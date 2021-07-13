@@ -1,4 +1,4 @@
-FC=gfortran-8
+#FC=gfortran-8
 FFLAGS=
 
 .SUFFIXES:
@@ -33,4 +33,4 @@ test_main: $(TEST_MAIN_FILES)
 	$(FC) $(FFLAGS) -o $@ $^
 
 clean:
-	rm -f *.o *.mod *.smod main
+	rm -f *.o *.mod *.smod test_main ccs_main
