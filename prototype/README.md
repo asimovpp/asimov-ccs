@@ -1,8 +1,8 @@
 # How to run asimov-ccs
-  export FC=${my_fortran_compiler}
-  make all
-  python3 link_executable.py config.json
-  ./ccs_main
+    export FC=${my_fortran_compiler}
+    make all
+    python3 link_executable.py config.json
+    ./ccs_main
 
 # Customising asimov-ccs
   Edit config.json
