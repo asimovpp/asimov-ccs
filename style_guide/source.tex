@@ -82,7 +82,16 @@
 TODO - what is this document
 
 \section{Fortran standard}
-TODO - code must follow Fortran 2018 standard
+All code must follow the Fortran 2018 standard and the file extenion \texttt{.f18} should be used by default. In order to verfiy that the standard is being following, the code should 
+be built with compile-time checks for standard adherence enabled:
+\begin{itemize}
+\item Cray Fortran: \texttt{-en}
+\item Gnu Fortran: \texttt{-std=f2018}
+\item Intel Fortran: \texttt{-std18}
+\item AMD Fortran: \texttt{-Mstandard}
+\end{itemize}  
+
+
 
 \section{Naming conventions and capitalisation}
 The following naming and capitalisation conventions should be followed:
@@ -256,6 +265,34 @@ end where
 end module
 end program
 select case
+\end{lstlisting}
+
+\subsection{Dummy argument intent}
+All dummy argument should be given a declared intent, both to allow for compile time checks and to aid readability.
+
+Common practice, no error checking and bad for readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:intent_bad}
+]
+subroutine example(dummy_a, dummy_b)
+  integer :: a, b
+  b = a
+end subroutine
+\end{lstlisting}
+
+Better practice, compile time error checking and improved readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:intent_good}
+]
+subroutine example(dummy_a, dummy_b)
+  integer, intent(in) :: a
+  integer, intent(out) :: b
+  b = a
+end subroutine
 \end{lstlisting}
 
 \end{document}
