@@ -65,7 +65,7 @@
 
 \makeEPCCtitle
 
-\centerline{\sc Programming style guide}
+\centerline{\sc Programming practices and style guide}
 
 \tableofcontents
 \pagebreak
@@ -79,19 +79,22 @@
 % CONTENT HERE
 
 \section{Introduction}
-TODO - what is this document
+This document describes the coding style and practices that must be adopted for ASiMoV CCS. Following this recommendations
+in this guide will result in consistent and clear code, with good readability and improved maintainability. In addition, 
+some of the practices described below will result in additional compile-time checks that will reduce the number of 
+bugs that are introduced into the code.
 
 \section{Fortran standard}
-All code must follow the Fortran 2018 standard and the file extenion \texttt{.f18} should be used by default. In order to verfiy that the standard is being following, the code should 
-be built with compile-time checks for standard adherence enabled:
+Adhering to the Fortran standard means the code is portable. Using language extensions that are only supported by a subset 
+of compilers must be avoided at all cost. All code must follow the Fortran 2018 standard and the file extenion \texttt{.f18} 
+should be used by default. In order to verfiy that the standard is being following, the code should be built with 
+compile-time checks for standard adherence enabled:
 \begin{itemize}
 \item Cray Fortran: \texttt{-en}
 \item Gnu Fortran: \texttt{-std=f2018}
 \item Intel Fortran: \texttt{-std18}
 \item AMD Fortran: \texttt{-Mstandard}
 \end{itemize}  
-
-
 
 \section{Naming conventions and capitalisation}
 The following naming and capitalisation conventions should be followed:
@@ -105,7 +108,6 @@ The following naming and capitalisation conventions should be followed:
   \item All source code, including Fortran keywords, must be written in lower case. The only exception are preprocessor 
   macros, which must be all capitals.
 \end{itemize}
-
 
 \section{Layout and formatting}
 The following is a list of recommended practices for layout and formatting for ASiMoV CCS.
