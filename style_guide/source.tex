@@ -101,7 +101,6 @@ The following is a list of recommended practices for layout and formatting for A
 \item Each module should be in a separate file.
 \end{itemize}
 
-
 \section{Style}
 
 \subsection{Array notation}
@@ -150,6 +149,38 @@ integer :: a, b, c, d
 a = (b * c) + d ! Good
 \end{lstlisting}
 
+\subsection{Logical expressions}
+True/false conditional statements should use logical rather than relational expressions (i.e. with variables of 
+type \texttt{logical} rather than integers). Comparisons involving \texttt{logical} variables should use the 
+following logical expression operators:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:logic_op}
+]
+.and.  ! logical conjunction: true if both A and B are true. 
+.eqv.  ! logical equivalence: true if both A and B are true, or both are false. 
+.neqv. ! logical inequivalence (exclusive OR): true if either A or B is true, but false if both are true.  
+.not.  ! logical negation: true if A is false and false if A is true. 
+.or.   ! logical disjunction (inclusive OR): true if either A, B, or both, are true.  
+.xor.  ! same as .neqv. 
+\end{lstlisting}
+
+\subsection{Relational expressions}
+Relational expressions (i.e. not involving \texttt{logical} variables) should use the following operators:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:logic_op}
+]
+<   ! less than
+<=  ! less than or equal to
+>   ! greater than
+>=  ! greater than or equal to
+==  ! equal to
+/=  ! not equal to
+\end{lstlisting}
+
 \subsection{Spaces between keywords}
 The following keywords should be written with spaces, rather than as a single word:
 \begin{lstlisting}[
@@ -171,13 +202,6 @@ end module
 end program
 select case
 \end{lstlisting}
-
-%\bibliographystyle{plain}
-%\begin{thebibliography}{10}
-
-% \bibitem{press} See, e.g., \textit{Numerical Recipes in Fortran}, W.H. Press, S.A. Teukolsky, W.T. Vettering, and B.R. Flannery (Cambridge University Press).
-
-%\end{thebibliography}
 
 \end{document}
 
