@@ -138,8 +138,17 @@ integer*4 i ! Bad
 \end{lstlisting}
 prefer (notice also the \texttt{::} separator between the type and variable(s))
 \begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
+use iso_fortran_env
+integer(kind=int32) :: i ! Good
+\end{lstlisting}
+note that although the first example is non-standard it does guarantee a 4 byte (32 bit) integer
+type, the second example is commonly written as
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
 integer(kind=4) :: i ! Good
 \end{lstlisting}
+which is usually of the same meaning, however is not portable, using the kind variables defined by
+\texttt{iso_fortran_env} ensures portability.
+
 Better still, define a \texttt{kind} variable and use throughout, \textit{e.g.}
 \begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
 ! In a common module, such as mod_constants.f90
