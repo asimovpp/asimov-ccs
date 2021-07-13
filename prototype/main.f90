@@ -13,7 +13,7 @@ continue_solve = 1
 do while (continue_timestep .eq. 1)
   call do_time_step_stuff()
   do while (continue_solve .eq. 1)
-    call turbulance()
+    call turbulence()
     call particles()
     call flux()
     call solve()

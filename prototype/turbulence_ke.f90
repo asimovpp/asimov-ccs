@@ -1,6 +1,6 @@
-submodule (flowsolve) turbulance_ke
+submodule (flowsolve) turbulence_ke
 contains
-  module subroutine turbulance()
-    print *,"Calculating turbulance ke"
-  end subroutine turbulance
-end submodule turbulance_ke 
+  module subroutine turbulence()
+    print *,"Calculating turbulence ke"
+  end subroutine turbulence
+end submodule turbulence_ke 

@@ -2,8 +2,8 @@ module flowsolve
 implicit none
 
 interface
-  module subroutine turbulance()
-  end subroutine turbulance 
+  module subroutine turbulence()
+  end subroutine turbulence 
   
   module subroutine particles()
   end subroutine particles

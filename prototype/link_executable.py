@@ -4,7 +4,7 @@ import json
 
 method_file_mapping = \
 {
-  "turbulance": {"ke": "turbulence_ke",
+  "turbulence": {"ke": "turbulence_ke",
                  "kw": "turbulence_kw"},
   "particles" : {"1": "particles_1",
                  "2": "particles_2"},

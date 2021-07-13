@@ -8,7 +8,7 @@
   Edit config.json
   
   Valid options:
-  - turbulance
+  - turbulence
     - ke
     - kw 
   - particles
