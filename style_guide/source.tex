@@ -134,7 +134,7 @@ In order to make it clear that variables used in an assignment are arrays, alway
 Common practice, bad for readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:array_bad}
 ]
 integer :: a(10, 20), b(10, 20)
@@ -144,7 +144,7 @@ a = b ! Bad
 Better practice, improved readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:array_good}
 ]
 integer :: a(10, 20), b(10, 20)
@@ -157,7 +157,7 @@ Improve readability of mathematical formulas by explicity using parentheses.
 Common practice, bad for readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:parens_bad}
 ]
 integer :: a, b, c, d
@@ -167,7 +167,7 @@ a = b * c + d ! Bad
 Better practice, improved readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:parens_good}
 ]
 integer :: a, b, c, d
@@ -181,7 +181,7 @@ type \texttt{logical} rather than integers).
 Common practice, bad for readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:logic_bad}
 ]
 integer :: n
@@ -194,7 +194,7 @@ end if
 Better practice for readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:logic_better}
 ]
 integer :: n
@@ -208,7 +208,7 @@ Good practice - unambiguous style for improved readability:
 
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:logic_good}
 ]
 logical :: n
@@ -224,14 +224,14 @@ Comparisons involving \texttt{logical} variables should use the
 following logical expression operators:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:logic_op}
 ]
-.and.  ! logical conjunction: true if both A and B are true. 
-.eqv.  ! logical equivalence: true if both A and B are true, or both are false. 
-.neqv. ! logical inequivalence (exclusive OR): true if either A or B is true, but false if both are true.  
-.not.  ! logical negation: true if A is false and false if A is true. 
-.or.   ! logical disjunction (inclusive OR): true if either A, B, or both, are true.  
+.and.  ! true if both A and B are true 
+.eqv.  ! true if both A and B are true, or both are false
+.neqv. ! true if either A or B is true, but false if both are true
+.not.  ! true if A is false, and false if A is true
+.or.   ! true if either A, B, or both, are true
 .xor.  ! same as .neqv. 
 \end{lstlisting}
 
@@ -239,7 +239,7 @@ following logical expression operators:
 Relational expressions (i.e. not involving \texttt{logical} variables) should use the following operators:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:rel_op}
 ]
 <   ! less than
@@ -254,7 +254,7 @@ Relational expressions (i.e. not involving \texttt{logical} variables) should us
 The following keywords should be written with spaces, rather than as a single word:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:parens_good}
 ]
 else if
@@ -268,6 +268,7 @@ end select
 end type
 end where
 end module
+end submodule
 end program
 select case
 \end{lstlisting}
@@ -278,35 +279,42 @@ All dummy arguments should be given a declared intent, both to allow for compile
 Common practice, no error checking and bad for readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:intent_bad}
 ]
 subroutine example(a, b)
+
   integer :: a, b
+
   b = a
+
 end subroutine
 \end{lstlisting}
 
 Better practice, compile time error checking and improved readability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:intent_good}
 ]
 subroutine example(a, b)
-  integer, intent(in) :: a  ! input - used but not modified
+
+  integer, intent(in)  :: a ! input - used but not modified
   integer, intent(out) :: b ! output - modified and returned
+
   b = a
+
 end subroutine
 \end{lstlisting}
 
 \subsection{Accessing struct members}
-Accessing members of structs must be done using the \texttt{\%} operator, even though some compilers will support the C-style \texttt{.} alternative.
+Accessing members of structs must be done using the \texttt{\%} operator, even though some compilers will support 
+the C-style ``\texttt{.}'' alternative.
 
 Allowed by some compilers, bad practice and bad for portability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:struct_bad}
 ]
 type example
@@ -321,7 +329,7 @@ b = example.a ! Bad - C-style member access, not Fortran standard
 Fortran standard, good practice and good for portability:
 \begin{lstlisting}[
 	language=fortran,
-    basicstyle=\fontsize{7}{10}\ttfamily
+    basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:struct_good}
 ]
 type example
