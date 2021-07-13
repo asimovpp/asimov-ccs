@@ -151,7 +151,51 @@ a = (b * c) + d ! Good
 
 \subsection{Logical expressions}
 True/false conditional statements should use logical rather than relational expressions (i.e. with variables of 
-type \texttt{logical} rather than integers). Comparisons involving \texttt{logical} variables should use the 
+type \texttt{logical} rather than integers). 
+
+Common practice, bad for readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:parens_bad}
+]
+integer :: n
+n = 1
+if(n) then ! Bad
+  write(*,*) "condition is true"
+end if
+\end{lstlisting}
+
+Better practice for readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:parens_bad}
+]
+integer :: n
+n = 1
+if(n == 1) then ! Better
+  write(*,*) "condition is true"
+end if
+\end{lstlisting}
+
+Good practice - unambiguous style for improved readability:
+
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:parens_good}
+]
+logical :: n
+n = .true.
+if(n .eqv. .true.) then ! Good
+  write(*,*) "condition is true"
+end if
+\end{lstlisting}
+
+
+
+Comparisons involving \texttt{logical} variables should use the 
 following logical expression operators:
 \begin{lstlisting}[
 	language=fortran,
