@@ -85,7 +85,18 @@ TODO - what is this document
 TODO - code must follow Fortran 2018 standard
 
 \section{Naming conventions and capitalisation}
-All Fortran keywords must be written in lower case.
+The following naming and capitalisation conventions should be followed:
+\begin{itemize}
+  \item All program units, variables and parameters should have meaningful names. The only exception are loop counters, which
+  are commonly single letter variables.
+  \item Fortran keywords should be regarded as reserved words and not be used for program units or variables.
+  \item Long names, for example those that consist of more than one word, 
+  should be written in ``pothole'' case style, e.g. \texttt{my\_long\_variable\_name}.
+  \item Module file names should start with \texttt{mod\_} to distinguish them from (implementation) files.
+  \item All source code, including Fortran keywords, must be written in lower case. The only exception are preprocessor 
+  macros, which must be all capitals.
+\end{itemize}
+
 
 \section{Layout and formatting}
 The following is a list of recommended practices for layout and formatting for ASiMoV CCS.
@@ -157,7 +168,7 @@ Common practice, bad for readability:
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{7}{10}\ttfamily
-    \label{lst:parens_bad}
+    \label{lst:logic_bad}
 ]
 integer :: n
 n = 1
@@ -170,7 +181,7 @@ Better practice for readability:
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{7}{10}\ttfamily
-    \label{lst:parens_bad}
+    \label{lst:logic_better}
 ]
 integer :: n
 n = 1
@@ -184,7 +195,7 @@ Good practice - unambiguous style for improved readability:
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{7}{10}\ttfamily
-    \label{lst:parens_good}
+    \label{lst:logic_good}
 ]
 logical :: n
 n = .true.
@@ -215,7 +226,7 @@ Relational expressions (i.e. not involving \texttt{logical} variables) should us
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{7}{10}\ttfamily
-    \label{lst:logic_op}
+    \label{lst:rel_op}
 ]
 <   ! less than
 <=  ! less than or equal to
