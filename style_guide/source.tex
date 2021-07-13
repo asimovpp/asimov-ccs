@@ -79,21 +79,22 @@
 % CONTENT HERE
 
 \section{Introduction}
-This document describes the coding style and practices that must be adopted for ASiMoV CCS. Following this recommendations
-in this guide will result in consistent and clear code, with good readability and improved maintainability. In addition, 
+This document describes the coding style and practices that must be adopted for ASiMoV CCS. Following the recommendations
+in this guide will result in consistent and clear code, with good readability and maintainability. In addition, 
 some of the practices described below will result in additional compile-time checks that will reduce the number of 
 bugs that are introduced into the code.
 
 \section{Fortran standard}
-Adhering to the Fortran standard means the code is portable. Using language extensions that are only supported by a subset 
-of compilers must be avoided at all cost. All code must follow the Fortran 2018 standard and the file extenion \texttt{.f18} 
-should be used by default. In order to verfiy that the standard is being following, the code should be built with 
-compile-time checks for standard adherence enabled:
+Adhering to the Fortran standard means the code is portable and can be compiled using a wide range of compilers. 
+Using language extensions that are only supported by a subset of compilers must be avoided at all cost. All code 
+must follow the Fortran 2018 standard and the file extenion \texttt{.f18} should be used by default. In order to 
+verfiy that the standard is being following, the code should be built with compile-time checks for standard 
+adherence enabled:
 \begin{itemize}
-\item Cray Fortran: \texttt{-en}
-\item Gnu Fortran: \texttt{-std=f2018}
-\item Intel Fortran: \texttt{-std18}
-\item AMD Fortran: \texttt{-Mstandard}
+\item Cray Fortran: \texttt{crayftn -en}
+\item Gnu Fortran: \texttt{gfortran -std=f2018}
+\item Intel Fortran: \texttt{ifort -std18}
+\item AMD Fortran: \texttt{flang -Mstandard}
 \end{itemize}  
 
 \section{Naming conventions and capitalisation}
@@ -106,20 +107,22 @@ The following naming and capitalisation conventions should be followed:
   should be written in ``pothole'' case style, e.g. \texttt{my\_long\_variable\_name}.
   \item Module file names should start with \texttt{mod\_} to distinguish them from (implementation) files.
   \item All source code, including Fortran keywords, must be written in lower case. The only exception are preprocessor 
-  macros, which must be all capitals.
+  macros, which must be all capitals, however preprocessor macros should be avoided whenever possible.
 \end{itemize}
 
 \section{Layout and formatting}
 The following is a list of recommended practices for layout and formatting for ASiMoV CCS.
 
 \begin{itemize}
-\item Templates are provided for modules, submodules, functions, subroutines, and programs. The templates should always be as a starting point for new code.
+\item Templates are provided for modules, submodules, functions, subroutines, and programs. The templates should always be as a 
+starting point for new code.
 \item Indent blocks by 2 spaces. Where possible, comments should be indented with the code within a block.
 \item Use space and blank lines where appropriate to format your code to improve readability.
 \item Where possible, avoid using continuation lines in a statement.
 \item Avoid putting multiple statements on the same line.
 \item Each program unit should follow a defined structure. The intended behaviour of the unit should be clearly described in the header.
-\item Comments should start with a single ! at beginning of the line. A blank line should be left before (but not after) the comment line. The exception is for one line comments which can be indented within the code or placed after the statement.
+\item Comments should start with a single ! indented to the correct current column. A blank line should be left before (but not after) the 
+comment line. The exception is for one line comments which can be indented within the code or placed after the statement.
 \item Each module should be in a separate file.
 \end{itemize}
 
@@ -270,7 +273,7 @@ select case
 \end{lstlisting}
 
 \subsection{Dummy argument intent}
-All dummy argument should be given a declared intent, both to allow for compile time checks and to aid readability.
+All dummy arguments should be given a declared intent, both to allow for compile time checks and to aid readability.
 
 Common practice, no error checking and bad for readability:
 \begin{lstlisting}[
@@ -278,7 +281,7 @@ Common practice, no error checking and bad for readability:
     basicstyle=\fontsize{7}{10}\ttfamily
     \label{lst:intent_bad}
 ]
-subroutine example(dummy_a, dummy_b)
+subroutine example(a, b)
   integer :: a, b
   b = a
 end subroutine
@@ -290,12 +293,48 @@ Better practice, compile time error checking and improved readability:
     basicstyle=\fontsize{7}{10}\ttfamily
     \label{lst:intent_good}
 ]
-subroutine example(dummy_a, dummy_b)
-  integer, intent(in) :: a
-  integer, intent(out) :: b
+subroutine example(a, b)
+  integer, intent(in) :: a  ! input - used but not modified
+  integer, intent(out) :: b ! output - modified and returned
   b = a
 end subroutine
 \end{lstlisting}
+
+\subsection{Accessing struct members}
+Accessing members of structs must be done using the \texttt{\%} operator, even though some compilers will support the C-style \texttt{.} alternative.
+
+Allowed by some compilers, bad practice and bad for portability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:struct_bad}
+]
+type example
+  integer :: a
+end type
+
+integer :: b
+
+b = example.a ! Bad - C-style member access, not Fortran standard
+\end{lstlisting}
+
+Fortran standard, good practice and good for portability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{7}{10}\ttfamily
+    \label{lst:struct_good}
+]
+type example
+  integer :: a
+end type
+
+integer :: b
+
+b = example%a ! Good - Fortran standard member access
+\end{lstlisting}
+
+\section{Versions}
+TODO
 
 \end{document}
 
