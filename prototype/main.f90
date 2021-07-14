@@ -3,23 +3,19 @@ use presolve
 use postsolve
 use flowsolve
 implicit none
-integer :: continue_timestep, continue_solve
+integer :: timestep, solvestep
 
 call read_input()
 call do_initialisation()
-continue_timestep = 1
-continue_solve = 1
 
-do while (continue_timestep .eq. 1)
+do timestep = 1, 3 
   call do_time_step_stuff()
-  do while (continue_solve .eq. 1)
+  do solvestep = 1, 2
     call turbulence()
     call particles()
     call flux()
     call solve()
-    continue_solve = 0
   end do
-  continue_timestep = 0
 end do
 
 call write_output()
