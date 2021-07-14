@@ -4,6 +4,8 @@ import json
 
 method_file_mapping = \
 {
+  "stepper"   : {"2loop": "stepper_2loop",
+                 "3loop": "stepper_3loop"},
   "turbulence": {"ke": "turbulence_ke",
                  "kw": "turbulence_kw"},
   "particles" : {"1": "particles_1",
