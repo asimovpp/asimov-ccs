@@ -5,3 +5,7 @@ auto
 *.synctex.gz
 *.out
 *.toc
+
+*.o
+*.mod
+*.smod
