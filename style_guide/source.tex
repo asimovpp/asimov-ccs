@@ -341,6 +341,49 @@ integer :: b
 b = example%a ! Good - Fortran standard member access
 \end{lstlisting}
 
+\section{Comments}
+All comments should be written using tags understood by the doxygen documentation generator. A minimal comment
+block would consist of only the \texttt{@brief} tag (single sentence description of the functionality), a better comment
+block will also include an \texttt{@details} tag with a detailed description of the functionality that can span many 
+lines/sentences. For subroutines or subroutine interfaces, the \texttt{@param} tag is useful to describe the arguments.
+
+Other useful tags are:
+\begin{itemize}
+  \item \texttt{@todo}: Describe functionality that still needs to be implemented.
+  \item \texttt{@bug}: Give details of a bug that needs to be fixed, especially non-trivial fixes.
+  \item \texttt{@see}: Give reference to another program unit, e.g. to a parent module or a related subroutine.
+\end{itemize}
+
+
+This is an example of a comment block for a simple subroutine that adds two integers:
+
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:doxygen}
+]
+!> @brief A subroutine to add two integers.
+
+!> @details Take two integers (a and b) as input and add them
+!> together to produce the `total' output
+!> 
+!> @param a Integer input
+!> @param b Integer input
+!> @param total Integer output, total of a and b
+
+!> @author M Weiland
+!> @version 1.0 
+
+subroutine add(a, b, total)
+
+  integer, intent(in)  :: a, b
+  integer, intent(out) :: total
+
+  total = a + b
+
+end subroutine add
+\end{lstlisting}
+
 \section{Versions}
 TODO
 
