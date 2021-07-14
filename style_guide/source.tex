@@ -128,6 +128,43 @@ comment line. The exception is for one line comments which can be indented withi
 
 \section{Style}
 
+\subsection{Declaring variables}
+Always use \texttt{implicit none} to force variable declaration, this should be applied at the
+module level and can additionally be applied at the subroutine level.
+
+Use proper type declarations, rather than the common non-standard style:
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_bad} ]
+integer*4 i ! Bad
+\end{lstlisting}
+prefer (notice also the \texttt{::} separator between the type and variable(s))
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
+use iso_fortran_env
+integer(kind=int32) :: i ! Good
+\end{lstlisting}
+note that although the first example is non-standard it does guarantee a 4 byte (32 bit) integer
+type, the second example is commonly written as
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
+integer(kind=4) :: i ! Good
+\end{lstlisting}
+which is usually of the same meaning, however is not portable, using the kind variables defined by
+\texttt{iso_fortran_env} ensures portability.
+
+Better still, define a \texttt{kind} variable and use throughout, \textit{e.g.}
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
+! In a common module, such as mod_constants.f90
+use iso_fortran_env                     ! Provided from F2008
+integer, parameter :: accs_int = int32  ! 4 byte integer
+integer, parameter :: accs_sgl = real32 ! single precision "float"
+integer, parameter :: accs_dbl = real64 ! double precision
+
+! Somewhere else when declaring variables
+integer(kind=accs_int) :: a
+real(kind=accs_sgl) :: b
+real(kind=accs_dbl) :: c
+\end{lstlisting}
+the advantage of this approach is changing the precision of variables requires only a single code
+change.
+
 \subsection{Array notation}
 In order to make it clear that variables used in an assignment are arrays, always use array notation.
 
@@ -389,3 +426,8 @@ TODO
 
 \end{document}
 
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
