@@ -2,6 +2,7 @@
 
 \usepackage{epcc}
 \usepackage{color}
+\usepackage{marginnote}
 \usepackage[pdftex]{graphicx}
 \usepackage{subcaption}
 \usepackage{newfloat}
@@ -87,7 +88,7 @@ bugs that are introduced into the code.
 \section{Fortran standard}
 Adhering to the Fortran standard means the code is portable and can be compiled using a wide range of compilers. 
 Using language extensions that are only supported by a subset of compilers must be avoided at all cost. All code 
-must follow the Fortran 2018 standard and the file extenion \texttt{.f18} should be used by default. In order to 
+must follow the Fortran 2018 standard and the file extenion \texttt{.f90} should be used by default. In order to 
 verfiy that the standard is being following, the code should be built with compile-time checks for standard 
 adherence enabled:
 \begin{itemize}
@@ -116,7 +117,7 @@ The following is a list of recommended practices for layout and formatting for A
 \begin{itemize}
 \item Templates are provided for modules, submodules, functions, subroutines, and programs. The templates should always be as a 
 starting point for new code.
-\item Indent blocks by 2 spaces. Where possible, comments should be indented with the code within a block.
+\item Indent blocks by 3 spaces. Where possible, comments should be indented with the code within a block.
 \item Use space and blank lines where appropriate to format your code to improve readability.
 \item Where possible, avoid using continuation lines in a statement.
 \item Avoid putting multiple statements on the same line.
@@ -144,14 +145,14 @@ integer(kind=int32) :: i ! Good
 \end{lstlisting}
 note that although the first example is non-standard it does guarantee a 4 byte (32 bit) integer
 type, the second example is commonly written as
-\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_ok} ]
 integer(kind=4) :: i ! Good
 \end{lstlisting}
 which is usually of the same meaning, however is not portable. Using the kind variables defined by
 \texttt{iso\_fortran\_env} ensures portability.
 
 Better still, define a \texttt{kind} variable and use throughout, \textit{e.g.}
-\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_best} ]
 ! In a common module, such as mod_constants.f90
 use iso_fortran_env                     ! Provided from F2008
 
@@ -301,7 +302,7 @@ The following keywords should be written with spaces, rather than as a single wo
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{9}{10}\ttfamily
-    \label{lst:parens_good}
+    \label{lst:keyword_spaces}
 ]
 else if
 end if
@@ -417,9 +418,6 @@ This is an example of a comment block for a simple subroutine that adds two inte
 !> @param b Integer input
 !> @param total Integer output, total of a and b
 
-!> @author M Weiland
-!> @version 1.0 
-
 subroutine add(a, b, total)
 
   integer, intent(in)  :: a, b
@@ -429,6 +427,7 @@ subroutine add(a, b, total)
 
 end subroutine add
 \end{lstlisting}
+
 
 \section{Versions}
 TODO
