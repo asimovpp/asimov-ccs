@@ -8,12 +8,16 @@
   Edit config.json
   
   Valid options:
+  - stepper
+    - 2loop
+    - 3loop
   - turbulence
     - ke
     - kw 
   - particles
     - 1
     - 2
+    - none
   - flux
     - 1st_order
     - 2nd_order

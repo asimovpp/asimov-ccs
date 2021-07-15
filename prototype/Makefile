@@ -15,7 +15,7 @@ all: $(OBJ)
 main.o: presolve.o postsolve.o flowsolve.o
 postsolve_basic.o: postsolve.o
 presolve_basic.o: presolve.o
-flux_1order.o flux_2order.o particles_1.o particles_2.o solve_amg.o solve_cgstab.o turbulence_ke.o turbulence_kw.o: flowsolve.o
+flux_1order.o flux_2order.o particles_1.o particles_2.o solve_amg.o solve_cgstab.o turbulence_ke.o turbulence_kw.o stepper_2loop stepper_3loop: flowsolve.o
 
 TEST_MAIN_FILES= \
 				main.o \
@@ -27,7 +27,8 @@ TEST_MAIN_FILES= \
 				turbulence_ke.o \
 				particles_1.o \
 				flux_1order.o \
-				solve_amg.o
+				solve_amg.o \
+				stepper_2loop.o
 
 test_main: $(TEST_MAIN_FILES)  
 	$(FC) $(FFLAGS) -o $@ $^
