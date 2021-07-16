@@ -357,6 +357,8 @@ subroutine example(a, b, c)
 end subroutine
 \end{lstlisting}
 
+\textit{\textbf{NOTE:} pay attention to compiler warnings about "unset dummy arguments with intent out" or similar - if unset the value is undefined, this can lead to hard to track down bugs!}
+
 \subsection{Accessing struct members}
 Accessing members of structs must be done using the \texttt{\%} operator, even though some compilers will support 
 the C-style ``\texttt{.}'' alternative.
