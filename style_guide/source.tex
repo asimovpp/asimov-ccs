@@ -329,11 +329,12 @@ Common practice, no error checking and bad for readability:
     basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:intent_bad}
 ]
-subroutine example(a, b)
+subroutine example(a, b, c)
 
-  integer :: a, b
+  integer :: a, b, c
 
   b = a
+  c = c + b
 
 end subroutine
 \end{lstlisting}
@@ -344,12 +345,14 @@ Better practice, compile time error checking and improved readability:
     basicstyle=\fontsize{9}{10}\ttfamily
     \label{lst:intent_good}
 ]
-subroutine example(a, b)
+subroutine example(a, b, c)
 
-  integer, intent(in)  :: a ! input - used but not modified
-  integer, intent(out) :: b ! output - modified and returned
-
+  integer, intent(in)    :: a ! input - used but not modified
+  integer, intent(out)   :: b ! output - modified and returned
+  integer, intent(inout) :: c ! both - value is modified in place
+  
   b = a
+  c = c + b
 
 end subroutine
 \end{lstlisting}
