@@ -438,7 +438,7 @@ Additionally, following these rules will help towards making sure that the commi
 
 \begin{itemize}
     \item Limit the subject line to about 50 characters. At 72 characters Git may truncate the message. 
-    \item If needed, put detailed information into the body of the commit message. Using \texttt{git commit} without the \texttt{-m} option will open a text editor for the message -- this is a convenient way to write a commit message with both a subject line and body. 
+    \item If needed, put detailed information into the body of the commit message. Using \texttt{git commit} without the \texttt{-m} option will open a text editor for the message\footnote{either set the \texttt{EDITOR} or \texttt{GIT\_EDITOR} environment variables or use the \texttt{git config --global core.editor "<editor>"} command to set your editor for commit messages} -- this is a convenient way to write a commit message with both a subject line and body. 
     \item Separate the subject line from the body with a blank line.
     \item Use the imperative mood in the subject line, e.g. ``Fix initialisation bug'' instead of ``Fixed initialisation bug''.
 \end{itemize}
