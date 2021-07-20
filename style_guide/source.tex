@@ -88,15 +88,15 @@ bugs that are introduced into the code.
 \section{Fortran standard}
 Adhering to the Fortran standard means the code is portable and can be compiled using a wide range of compilers. 
 Using language extensions that are only supported by a subset of compilers must be avoided at all cost. All code 
-must follow the Fortran 2018 standard and the file extenion \texttt{.f90} should be used by default. In order to 
-verfiy that the standard is being following, the code should be built with compile-time checks for standard 
-adherence enabled:
+must follow the Fortran 2018 standard and the file extension \texttt{.f90} should be used by default. In order to 
+verify that the standard is being following, the code should be built with compile-time checks for standard 
+adherence enabled, in addition to full warnings and error on warning:
 \begin{itemize}
-\item Cray Fortran: \texttt{crayftn -en}
-\item Gnu Fortran: \texttt{gfortran -std=f2018}
+\item Cray Fortran: \texttt{crayftn -en -herror_on_warning}
+\item Gnu Fortran: \texttt{gfortran -std=f2018 -Wall -Wpedantic -Werror}
 \item Intel Fortran: \texttt{ifort -std18}
 \item AMD Fortran: \texttt{flang -Mstandard}
-\end{itemize}  
+\end{itemize}
 
 \section{Naming conventions and capitalisation}
 The following naming and capitalisation conventions should be followed:
