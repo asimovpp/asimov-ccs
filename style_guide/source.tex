@@ -437,10 +437,82 @@ end subroutine add
 
 \section{Versions}
 ASiMoV-CCS will follow an internal development and release cycle that is closely aligned with the quarterly project review meetings (QRMs). Ahead of 
-each meeting, a version will tagged with a release number $0.X$, i.e. the first internal release will start at version $0.1$, which 
+each meeting, a version will tagged with a release number $X.Y$, i.e. the first internal release will start at version $0.1$, which 
 is then incremented by $0.1$ for each subsequent QRM. 
 
-Any bug fixes or features that are added to the release between QRMs will be tagged with $0.X.Y$.
+Any bug fixes or features that are added to the release between QRMs will be tagged with $X.Y.Z$.
+
+\subsection{Git development process}
+As discussed above, ASiMoV-CCS development will follow a release cadence based around the timing of
+QRMs, to support this we will follow the ``git flow'' method.
+The basic principle is that the \texttt{main} branch will contain tagged releases of the code and
+must always work (relative to what the goals of that release are), a parallel \texttt{develop}
+branch is where actual development activities will take place - code merged onto this branch should
+be tested but it is accepted the code in this branch may break occasionally.
+To develop a new feature/bugfix ``X'' a developer would create a new branch from \texttt{develop},
+\textit{e.g.}
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:feature-branch}]
+git checkout develop
+git pull                  # Ensure your develop branch is up to date
+git checkout -b feature/X # Create a new branch for feature X
+\end{lstlisting}
+once the feature is complete it is ready to be merged back into \texttt{develop}
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:feature-merge}]
+git checkout develop
+git pull                  # Ensure your develop branch is up to date
+git checkout feature/X
+git merge develop         # Ensure feature branch compatible with develop
+git checkout develop
+git merge feature/X
+\end{lstlisting}
+once it is clear the merge is successful and the feature branch no longer needed, delete the feature
+branch with \texttt{git branch -D feature/X}.
+
+When the project is ready to start a new release, a release branch is created from \texttt{develop}
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-branch}]
+git checkout develop
+git pull                    # Ensure your develop branch is up to date
+git checkout -b release/X.Y # Create a new branch for release X.Y
+\end{lstlisting}
+this branch can only receive bug fixes or updates to documentation - no new features can be added
+here.
+Once the release branch is stable, passing all tests, \textit{etc.} it is merged into \texttt{main}
+and tagged to create the new release
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-merge}]
+git checkout main
+git pull                  # Ensure your main branch is up to date
+git checkout release/X.Y
+git merge main            # Ensure feature branch compatible with main
+git checkout main
+git merge release/X.Y
+git tag vX.Y              # Tag the release
+git push --tags           # Push the tagged release to the repository
+\end{lstlisting}
+This newly released version should be merged back into \texttt{develop} (which may have seen new
+features in the meantime) and development can continue.
+
+In the event that a bug is found in the released version a bugfix branch should be used to resolve
+this, following a similar procedure to above
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:bugfix-branch}]
+git checkout main
+git pull                   # Ensure your main branch is up to date
+git checkout -b bugfix/BUG # Create a new branch for bugfix BUG
+\end{lstlisting}
+and this is merged into \texttt{main} similarly to creating a new release
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-merge}]
+git checkout main
+git pull                  # Ensure your main branch is up to date
+git checkout bugfix/BUG
+git merge main            # Ensure feature branch compatible with main
+git checkout main
+git merge bugfix/BUG
+git tag vX.Y.Z            # Tag the bugfix
+git push --tags           # Push the tagged bugfix to the repository
+\end{lstlisting}
+again, the newly released version should be merged back into \texttt{develop}.
+
+Further reading on this workflow can be found at
+\url{https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow}.
 
 \section{Git commit messages}
 Informative and concise commit messages are important for understanding the context of changes made. 
