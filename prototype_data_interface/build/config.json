@@ -1,0 +1,5 @@
+{
+  "stepper": "2loop",
+  "turbulence": "kw",
+  "solver": "amg"
+}
