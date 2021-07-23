@@ -228,7 +228,9 @@ a = (b * c) + d ! Good
 True/false conditional statements should use logical rather than relational expressions (i.e. with variables of 
 type \texttt{logical} rather than integers). 
 
-Common practice, bad for readability:
+Common practice, bad for readability\footnote{This can also lead to subtle bugs as not all Fortran
+  compilers treat the truth value of non-zeros in the same way (and not necessarily as someone
+  familiar with C would expect!)}:
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{9}{10}\ttfamily
