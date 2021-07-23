@@ -193,6 +193,14 @@ integer :: a(10, 20), b(10, 20)
 a(:) = b(:) ! Good
 \end{lstlisting}
 
+To ensure consistency of declarations with arrays of deferred size, the above can also be improved
+by adding the dimensions to the declaration:
+\begin{lstlisting}[language=fortran,basicstyle=\fontsize{9}{10}\ttfamily\label{lst:array_good_decl}
+]
+integer, dimension(10, 20) :: a, b
+a(:) = b(:) ! Good
+\end{lstlisting}
+
 \subsection{Parentheses}
 Improve readability of mathematical formulas by explicity using parentheses.
 
