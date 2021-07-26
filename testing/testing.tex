@@ -1,0 +1,148 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath}
+\usepackage{epcc}
+\usepackage{color}
+\usepackage{marginnote}
+\usepackage[pdftex]{graphicx}
+\usepackage{subcaption}
+\usepackage{newfloat}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[svgnames]{xcolor}
+  \definecolor{diffstart}{named}{Grey}
+  \definecolor{diffincl}{named}{Green}
+  \definecolor{diffrem}{named}{Red}
+\usepackage{listings}
+  \lstdefinelanguage{diff}{
+    basicstyle=\ttfamily\small,
+    morecomment=[f][\color{diffstart}]{@@},
+    morecomment=[f][\color{diffincl}]{+\ },
+    morecomment=[f][\color{diffrem}]{-\ },
+  }
+
+\hypersetup{colorlinks}
+\usepackage{float}
+
+\hyphenpenalty=500
+
+% This is for ``figures'' which are to have a caption
+% labelled ``Benchmark''.
+\DeclareFloatingEnvironment[
+  name=Benchmark,
+  placement=tbhp,
+  within=section,
+]{benchmark}
+
+
+\definecolor{terminalcolour}{gray}{0.96}
+
+% Code fragments are gray...
+\lstdefinestyle{codefragment}{
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{terminalcolour},
+  xleftmargin=0pt
+}
+
+% Benchmark tables
+\lstdefinestyle{terminalverbatim}{
+  basicstyle=\small\ttfamily,
+  xleftmargin=0pt
+}
+
+\lstset{showstringspaces=false}
+
+\renewcommand{\refname}{Notes and References}
+
+
+\begin{document}
+\lstset{style=codefragment}
+
+\title{ASiMoV CCS}
+
+% \date{July 2021}
+\author{EPCC}
+
+\makeEPCCtitle
+
+\centerline{\sc Testing guide}
+
+\tableofcontents
+\pagebreak
+
+\bigskip
+
+%\hrule
+
+\bigskip
+
+% CONTENT HERE
+
+\section{Introduction}
+
+\subsection{Property-based testing}
+\label{subsec:prop-based-test}
+
+A challenge of testing numerical methods is knowing \textit{what is the right answer?} as typically
+a numerical method is used when a problem cannot be solved analytically.
+Even when a problem can be solved in a simple case the numerical solution is an approximation and
+the question becomes \textit{is this answer good enough?}
+
+Rather than test specific examples such as
+\begin{equation}
+  f_i=1, f_{i+1}=2, \Delta{}x=1 \Rightarrow \left. \frac{\delta f}{\delta x} \right|_{i+1/2} = 1
+\end{equation}
+property-based testing ensures that an implementation of a function (such as approximating a
+derivative) maintains certain properties, without necessarily needing to know the correct answer ---
+see table~\ref{tab:cont-vs-disc-derivs} for an example of properties a discrete derivative
+approximation should maintain.
+An additional benefit of this approach is that properties can be tested over a wide range of
+randomly generated inputs, achieving much broader testing than would be possible with specific
+examples such as above.
+
+\section{Discretisation schemes}
+
+For a given discretisation scheme, the properties displayed in table~\ref{tab:cont-vs-disc-derivs}
+are expected to hold
+
+\begin{table}[h]
+  \centering
+  \caption{Comparison of properties of continuous and discrete
+    derivatives}\label{tab:cont-vs-disc-derivs}
+  \begin{tabular}[h]{c|cc}
+    Property & Continuous & Discrete \\
+    \hline
+    Negation & $\dfrac{\partial \left(-f\right)}{\partial x} = -\dfrac{\partial f}{\partial x}$ & Y
+    \\
+    Scaling & $\dfrac{\partial \alpha f}{\partial x} = \alpha \dfrac{\partial f}{\partial x},\
+              \kappa=const$ & Y \\
+    Summation & $\dfrac{\partial \left( \alpha f + \beta g \right)}{\partial x} = \alpha
+                \dfrac{\partial f}{\partial x} + \beta \dfrac{\partial g}{\partial x}$ & Y \\
+    Exactness & --- & $\dfrac{\delta f^n\left(x\right)}{\delta x} = \dfrac{\partial
+                    f^n\left(x\right)}{\partial x},\ n < \mathcal{P}$
+  \end{tabular}
+\end{table}
+
+note that the ``Exactness'' property means that for low-order schemes the product rule only applies
+in the special case that one of the variables is a constant, in which case it reduces to the
+``Scaling'' property.
+Analogous properties also hold for interpolations (the two being related).
+
+\section{Mesh}
+
+\subsection{Mesh partitioning and ordering}
+
+These are both in some sense sorting methods, so should maintain similar properties to a sorting
+scheme:
+\begin{itemize}
+\item a sorted list contains the same elements as an unsorted list
+\item sorting a sorted list should do nothing\footnote{This may not work for mesh
+    partitioning/ordering as often heuristics are involved.}
+\end{itemize}
+
+\end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
