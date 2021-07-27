@@ -1,0 +1,46 @@
+!!! -*- mode: F90 -*-
+!!!
+!!!
+
+@test
+subroutine test_adv_scaling()
+  !! Tests that scaling the advection coefficients is equivalent to rescaling the advected variable
+  !! before applying the advection scheme, i.e.
+  !!
+  !!   alpha * adv(phi) = adv(alpha * phi)
+  !!
+  !! The compiler macro TESTN determines the number of randomised inputs to generate
+
+  use funit
+  use iso_fortran_env
+
+  use accs_test_utils
+
+  implicit none
+
+  real(accs_dbl) :: alpha 
+
+  do iter = 1, TESTN
+
+     !! Get a scale factor
+     call random_number(alpha) 
+     alpha = accs_test_scale(alpha)
+
+     !! Create a local field and advecting velocity
+     call random_number(phiL)
+     call random_number(phiR)
+     call random_number(un)
+
+     phiL = accs_test_scale(phiL)
+     phiR = accs_test_scale(phiR)
+     un = accs_test_scale(un)
+
+     call calc_adv_coeffs(coeffL, coeffR, rhs, phiL, phiR, un)                    ! Unscaled input
+     call calc_adv_coeffs(coeffLS, coeffRS, rhsS, alpha * phiL, alpha * phiR, un) ! Scaled input
+     
+     @assertEqual(alpha * coeffL, coeffLS)
+     @assertEqual(alpha * coeffR, coeffRS)
+     @assertEqual(alpha * rhs, rhsS)
+  end do
+  
+end subroutine test_adv_scaling
