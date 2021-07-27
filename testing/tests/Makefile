@@ -16,7 +16,7 @@ FC = gfortran
 #FFLAGS = -J$(MODDIR)
 
 # Dependencies
-DEPDIR = ../src
+DEPDIR = ../../src
 _DEPS = mod_constants.f90
 DEPS = $(patsubst %, $(DEPDIR)/%, $(_DEPS))
 _DEPMODS = $(_DEPS:mod_%.f90=%.mod)
@@ -48,7 +48,7 @@ $(MODDIR) :
 
 $(MODDIR)/%.mod : %.mod
 	mv $< $(MODDIR)/
-	
+
 %.mod : $(DEPDIR)/mod_%.f90
 	$(FC) $(FFLAGS) -fsyntax-only $<
 
