@@ -13,7 +13,7 @@ OBJDIR=obj
 MODDIR=mod
 
 FC = gfortran
-#FFLAGS = -J$(MODDIR)
+FFLAGS = -std=f2018 -Wall -Wpedantic -Werror
 
 # Dependencies
 DEPDIR = ../../src
