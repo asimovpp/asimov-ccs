@@ -11,9 +11,13 @@ TESTSCALE = 1.0e9 # How large to scale test inputs? This should cover any concei
 
 OBJDIR=obj
 MODDIR=mod
+INC = -I$(MODDIR)
+
+OPT = -g
 
 FC = gfortran
-FFLAGS = -std=f2018 -Wall -Wpedantic -Werror
+FFLAGS = -cpp -std=f2018 -Wall -Wpedantic -Werror $(OPT)
+DECL = -DTESTSCALE=$(TESTSCALE) -DTESTN=$(TESTN)
 
 # Dependencies
 DEPDIR = ../../src
@@ -25,22 +29,31 @@ _DEPOBJ = $(_DEPS:%.f90=%.o)
 DEPOBJ = $(patsubst %, $(OBJDIR)/%, $(_DEPOBJ))
 
 # Test system modules
-
-# Tests
+TESTDEPS = mod_accs_test_utils.f90
+_TESTMODS = $(TESTDEPS:mod_%.f90=%.mod)
+TESTMODS = $(patsubst %, $(MODDIR)/%, $(_TESTMODS))
+_TESTOBJ = $(TESTDEPS:%.f90=%.o)
+TESTOBJ = $(patsubst %, $(OBJDIR)/%, $(_TESTOBJ))
 
 # Targets
-all : deps
+all : deps testdeps
 
 deps : depmods depobj
 depmods : $(MODDIR) $(DEPMODS)
 depobj : depmods $(OBJDIR) $(DEPOBJ)
 
+testdeps : testmods testobj
+testmods : $(MODDIR) $(TESTMODS)
+testobj : testmods $(OBJDIR) $(TESTOBJ)
+
 # Objects
 $(OBJDIR) :
 	mkdir $(OBJDIR)
 
+$(OBJDIR)/%.o : %.f90
+	$(FC) $(FFLAGS) $(DECL) -c $^ -o $@ -I$(MODDIR)
 $(OBJDIR)/%.o : $(DEPDIR)/%.f90
-	$(FC) $(FFLAGS) -c $^ -o $@ -I$(MODDIR)
+	$(FC) $(FFLAGS) $(DECL) -c $^ -o $@ -I$(MODDIR)
 
 # Modules
 $(MODDIR) :
@@ -49,8 +62,10 @@ $(MODDIR) :
 $(MODDIR)/%.mod : %.mod
 	mv $< $(MODDIR)/
 
+%.mod : mod_%.f90
+	$(FC) $(FFLAGS) $(DECL) -fsyntax-only $< $(INC)
 %.mod : $(DEPDIR)/mod_%.f90
-	$(FC) $(FFLAGS) -fsyntax-only $<
+	$(FC) $(FFLAGS) $(DECL) -fsyntax-only $< $(INC)
 
 clean :
 	rm -r $(MODDIR) $(OBJDIR)

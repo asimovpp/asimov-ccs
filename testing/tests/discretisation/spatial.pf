@@ -1,5 +1,5 @@
 !!! -*- mode: F90 -*-
-!!!
+!!! vim: set syntax=fortran:
 !!!
 
 @test
@@ -14,12 +14,18 @@ subroutine test_adv_scaling()
   use funit
   use iso_fortran_env
 
+  use constants
   use accs_test_utils
 
   implicit none
 
-  real(accs_dbl) :: alpha 
+  real(accs_real) :: alpha 
+  real(accs_real) :: phiL, phiR, un
+  real(accs_real) :: coeffL, coeffR, rhs
+  real(accs_real) :: coeffLS, coeffRS, rhsS
 
+  integer :: iter
+  
   do iter = 1, TESTN
 
      !! Get a scale factor
@@ -41,6 +47,7 @@ subroutine test_adv_scaling()
      @assertEqual(alpha * coeffL, coeffLS)
      @assertEqual(alpha * coeffR, coeffRS)
      @assertEqual(alpha * rhs, rhsS)
+     
   end do
   
 end subroutine test_adv_scaling
