@@ -2,16 +2,16 @@
 !!! vim: set syntax=fortran:
 !!!
   
-subroutine calc_adv_coeffs(coeffL, coeffR, rhs, phiL, phiR, advvel)
+pure subroutine calc_adv_coeffs(coeffL, coeffR, rhs, advvel)
 
   use constants
   
   implicit none
 
-  real(accs_real), intent(in) :: phiL, phiR, advvel
+  real(accs_real), intent(in) :: advvel
   real(accs_real), intent(out) :: coeffL, coeffR, rhs
 
-  coeffL = 0.5 * (phiL + phiR) * advvel
+  coeffL = 0.5 * advvel
   coeffR = coeffL
   rhs = 0
   
