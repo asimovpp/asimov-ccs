@@ -31,7 +31,10 @@ discretisation_OTHER_LIBRARIES = $(OBJ) # Yes, weird, I think interpret librarie
 $(eval $(call make_pfunit_test,discretisation))
 
 # Targets
-all : testsys discretisation
+all : testsys discretisation run
+
+run : testsys discretisation
+	./discretisation
 
 testsys :
 	$(MK) -C ../

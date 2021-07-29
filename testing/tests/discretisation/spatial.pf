@@ -1,6 +1,8 @@
 !!! -*- mode: F90 -*-
 !!! vim: set syntax=fortran:
 !!!
+!!!        FILE: spatial.pf
+!!! DESCRIPTION: pFUnit tests of spatial discretisation schemes.
 
 @test
 subroutine test_adv_scaling()
@@ -14,8 +16,8 @@ subroutine test_adv_scaling()
   use funit
   use iso_fortran_env
 
-  use constants
-  use accs_test_utils
+  use constants, only : accs_real
+  use accs_test_utils, only : accs_test_scale, accs_test_atol
 
   implicit none
 
@@ -24,6 +26,7 @@ subroutine test_adv_scaling()
   real(accs_real) :: coeffL, coeffR, rhs
   real(accs_real) :: coeffLS, coeffRS, rhsS
 
+  real(accs_real) :: expect
   integer :: iter
   
   do iter = 1, TESTN
@@ -43,6 +46,13 @@ subroutine test_adv_scaling()
 
      call calc_adv_coeffs(coeffL, coeffR, rhs, phiL, phiR, un)                    ! Unscaled input
      call calc_adv_coeffs(coeffLS, coeffRS, rhsS, alpha * phiL, alpha * phiR, un) ! Scaled input
+
+     expect = alpha * coeffL
+     @assertEqual(expect, coeffLS, accs_test_atol(expect))
+     expect = alpha * coeffR
+     @assertEqual(expect, coeffRS, accs_test_atol(expect))
+     expect = alpha * rhs
+     @assertEqual(expect, rhsS, accs_test_atol(expect))
      
      @assertEqual(alpha * coeffL, coeffLS)
      @assertEqual(alpha * coeffR, coeffRS)

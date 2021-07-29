@@ -11,8 +11,8 @@ subroutine calc_adv_coeffs(coeffL, coeffR, rhs, phiL, phiR, advvel)
   real(accs_real), intent(in) :: phiL, phiR, advvel
   real(accs_real), intent(out) :: coeffL, coeffR, rhs
 
-  coeffL = 1 * phiL
-  coeffR = 2 * phiR
-  rhs = 3 * advvel
+  coeffL = 0.5 * (phiL + phiR) * advvel
+  coeffR = coeffL
+  rhs = 0
   
 end subroutine calc_adv_coeffs
