@@ -48,4 +48,4 @@ testsys :
 # Modules
 
 clean :
-	rm -r *.F90 *.o *.mod *.inc
+	rm -f *.F90 *.o *.mod *.inc

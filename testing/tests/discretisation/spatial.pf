@@ -25,8 +25,8 @@ subroutine test_adv_scaling()
 
   real(accs_real) :: alpha 
   real(accs_real) :: un
-  real(accs_real) :: coeffL, coeffR, rhs
-  real(accs_real) :: coeffLS, coeffRS, rhsS
+  real(accs_real) :: coeffL, coeffR
+  real(accs_real) :: coeffLS, coeffRS
 
   real(accs_real) :: expect
   integer :: iter
@@ -41,15 +41,13 @@ subroutine test_adv_scaling()
      call random_number(un)
      un = accs_test_scale(un)
 
-     call calc_adv_coeffs(coeffL, coeffR, rhs, un)            ! Unscaled input
-     call calc_adv_coeffs(coeffLS, coeffRS, rhsS, alpha * un) ! Scaled input
+     call calc_adv_coeffs(coeffL, coeffR, un)           ! Unscaled input
+     call calc_adv_coeffs(coeffLS, coeffRS, alpha * un) ! Scaled input
 
      expect = alpha * coeffL
-     @assertEqual(expect, coeffLS, accs_test_atol(expect))
+     @assertEqual(expect, coeffLS, tolerance=accs_test_atol(expect))
      expect = alpha * coeffR
-     @assertEqual(expect, coeffRS, accs_test_atol(expect))
-     expect = alpha * rhs
-     @assertEqual(expect, rhsS, accs_test_atol(expect))
+     @assertEqual(expect, coeffRS, tolerance=accs_test_atol(expect))
      
   end do
   
