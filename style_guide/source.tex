@@ -370,6 +370,31 @@ end subroutine
 
 \textit{\textbf{NOTE:} pay attention to compiler warnings about "unset dummy arguments with intent out" or similar - if unset the value is undefined, this can lead to hard to track down bugs!}
 
+\subsection{Optional dummy arguments}
+\label{sec:opt-dummy-args}
+
+Dummy arguments may be declared as \texttt{optional}, \textit{e.g.}
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:intent_good}]
+subroutine example(a, b, opt_c)
+
+  integer, intent(in)           :: a ! input - used but not modified
+  integer, intent(out)          :: b ! output - modified and returned
+  integer, intent(in), optional :: c ! (optional) input
+  
+  b = a
+  if (present(c)) then
+     b = b + c
+  end if
+
+end subroutine
+\end{lstlisting}
+and their presence tested for with \texttt{if(present(<optional arg>))} as shown.
+This can be a useful way of extending a function/subroutine without affecting the behaviour of
+existing calls, however it does result in potentially difficult to understand code as the calls
+\texttt{call example(a, b)} and \texttt{call example(a, b, c)} will clearly be very different.
+Therefore, during the \texttt{v0.x} series of releases it is recommended to avoid the use of
+\texttt{optional}.
+
 \subsection{Accessing struct members}
 Accessing members of structs must be done using the \texttt{\%} operator, even though some compilers will support 
 the C-style ``\texttt{.}'' alternative.
