@@ -569,12 +569,18 @@ An issue tracker should be used to keep track of all developments, such as featu
 
 \begin{itemize}
   \item All features should be given a clear title and description, and they should be associated with a release milestone.
-  \item Any bugs that are discovered during testing and development must be documented using the issue tracker and marked using the ``bug'' label.
+  \item Any bugs that are discovered during testing and development must be documented using the issue tracker and marked using the \emph{bug} label.
   \item For each bug, there must be a detailed description of the bug and how it can be reproduced. If there is a known solution, this must also
   be documented.
-  \item Issues that are actively being worked on must be moved from the ``todo'' to the ``doing'' board.
+  \item Issues that are actively being worked on must be moved from the \emph{todo} to the \emph{doing} board.
+  \item Issues can be grouped by creating new labels that are assigned to topics that are related or dependent on each other,
+   e.g. \texttt{IO} or \texttt{combustion}.
   \item Issues must not be marked as ``closed'' until the branch they have been developed under has been reviewed and merged into 
   the \texttt{develop} branch.
+  \item Merge Requests should clearly summarise the changes that they introduce.
+  \item Merge Requests should use the keywords \texttt{Closes} or \texttt{Related to} to describe what issue they are referring to. 
+  For example, \texttt{Closes \#4} in a Merge Request description automatically closes issue \texttt{\#4} when the Merge Request 
+  is merged. \texttt{Related to \#5} flags \texttt{\#5} as a related issue, but it is not closed automatically. 
 \end{itemize}
 
 \end{document}
