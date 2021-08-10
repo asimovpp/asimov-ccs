@@ -66,7 +66,7 @@
 
 \makeEPCCtitle
 
-\centerline{\sc Programming practices and style guide}
+\centerline{\sc Programming practices, style and process guide}
 
 \tableofcontents
 \pagebreak
@@ -470,7 +470,7 @@ end subroutine add
 \end{lstlisting}
 
 
-\section{Versions}
+\section{Development process guide}
 ASiMoV-CCS will follow an internal development and release cycle that is closely aligned with the quarterly project review meetings (QRMs). Ahead of 
 each meeting, a version will tagged with a release number $X.Y$, i.e. the first internal release will start at version $0.1$, which 
 is then incremented by $0.1$ for each subsequent QRM. 
@@ -564,6 +564,18 @@ Additionally, following these rules will help towards making sure that the commi
     \item Use the imperative mood in the subject line, e.g. ``Fix initialisation bug'' instead of ``Fixed initialisation bug''.
 \end{itemize}
 
+\subsection{Issue tracking and bug fixing}
+An issue tracker should be used to keep track of all developments, such as features and bugs fixes. The following rules must be adhered to:
+
+\begin{itemize}
+  \item All features should be given a clear title and description, and they should be associated with a release milestone.
+  \item Any bugs that are discovered during testing and development must be documented using the issue tracker and marked using the ``bug'' label.
+  \item For each bug, there must be a detailed description of the bug and how it can be reproduced. If there is a known solution, this must also
+  be documented.
+  \item Issues that are actively being worked on must be moved from the ``todo'' to the ``doing'' board.
+  \item Issues must not be marked as ``closed'' until the branch they have been developed under has been reviewed and merged into 
+  the \texttt{develop} branch.
+\end{itemize}
 
 \end{document}
 
