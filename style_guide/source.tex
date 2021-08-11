@@ -559,23 +559,42 @@ Additionally, following these rules will help towards making sure that the commi
 
 \begin{itemize}
     \item Limit the subject line to about 50 characters. At 72 characters Git may truncate the message. 
-    \item If needed, put detailed information into the body of the commit message. Using \texttt{git commit} without the \texttt{-m} option will open a text editor for the message\footnote{either set the \texttt{EDITOR} or \texttt{GIT\_EDITOR} environment variables or use the \texttt{git config --global core.editor "<editor>"} command to set your editor for commit messages} -- this is a convenient way to write a commit message with both a subject line and body. 
+    \item If needed, put detailed information into the body of the commit message. Using \texttt{git commit} without the \texttt{-m} option will 
+    open a text editor for the message\footnote{either set the \texttt{EDITOR} or \texttt{GIT\_EDITOR} environment variables or use the 
+    \texttt{git config --global core.editor "<editor>"} command to set your editor for commit messages} -- this is a convenient way to write a 
+    commit message with both a subject line and body. 
     \item Separate the subject line from the body with a blank line.
     \item Use the imperative mood in the subject line, e.g. ``Fix initialisation bug'' instead of ``Fixed initialisation bug''.
 \end{itemize}
 
 \subsection{Issue tracking and bug fixing}
-An issue tracker should be used to keep track of all developments, such as features and bugs fixes. The following rules must be adhered to:
+An issue tracker should be used to keep track of all developments, such as features and bugs fixes. The software release cycle is marked using 
+milestones. The following general rules must be adhered to:
 
 \begin{itemize}
-  \item All features should be given a clear title and description, and they should be associated with a release milestone.
-  \item Any bugs that are discovered during testing and development must be documented using the issue tracker and marked using the ``bug'' label.
-  \item For each bug, there must be a detailed description of the bug and how it can be reproduced. If there is a known solution, this must also
-  be documented.
-  \item Issues that are actively being worked on must be moved from the ``todo'' to the ``doing'' board.
+  \item All issues should be given a clear title and description, and they should be associated with a release milestone.
+  \item Issues that are actively being worked on must be moved from \emph{todo} to \emph{doing} (by changing the labels) to make it clear the issue is
+  being actively worked on.
+  \item Issues can be given new labels (e.g. \texttt{parallel IO} or \texttt{parmetis support}) to categorise them. These labels can then be used to group 
+  issues by topics that are related or dependent on each other.
+  \item When relating to a requirement, issue should be marked with the associated label (i.e. \emph{usability}, \emph{security}, ...).
   \item Issues must not be marked as ``closed'' until the branch they have been developed under has been reviewed and merged into 
   the \texttt{develop} branch.
+  \item Merge Requests should clearly summarise the changes that they introduce.
+  \item Merge Requests should use the keywords \texttt{Closes} or \texttt{Related to} to describe what issue they are referring to. 
+  For example, \texttt{Closes \#4} in a Merge Request description automatically closes issue \texttt{\#4} when the Merge Request 
+  is merged. \texttt{Related to \#5} flags \texttt{\#5} as a related issue, but it is not closed automatically. 
 \end{itemize}
+
+For bugs, the following additonal rules apply:
+
+\begin{itemize}
+  \item Any bugs that are discovered during testing and development must be documented using the issue tracker and marked using the \emph{bug} label.
+  \item For each bug, there must be a detailed description of the bug and how it can be reproduced. If there is a known solution, this must also
+  be documented.
+  \item If a bug is critical, it must be marked as such using the \emph{critical} label.
+\end{itemize}
+
 
 \end{document}
 
