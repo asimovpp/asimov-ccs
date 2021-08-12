@@ -113,12 +113,33 @@ are expected to hold
   \begin{tabular}[h]{c|cc}
     Property & Continuous & Discrete \\
     \hline
-    Negation & $\dfrac{\partial \left(-f\right)}{\partial x} = -\dfrac{\partial f}{\partial x}$ & Y
+    Negation & $\dfrac{\partial \left(-f\right)}{\partial x} = -\dfrac{\partial f}{\partial x}$ &
+                                                                                                  $\dfrac{\delta
+                                                                                                  \left(
+                                                                                                  -f
+                                                                                                  \right)}{\delta
+                                                                                                  x}
+                                                                                                  =
+                                                                                                  -\dfrac{\delta
+                                                                                                  f}{\delta
+                                                                                                  x}$
     \\
     Scaling & $\dfrac{\partial \alpha f}{\partial x} = \alpha \dfrac{\partial f}{\partial x},\
-              \kappa=const$ & Y \\
+              \alpha=const$ & $\dfrac{\delta \alpha f}{\delta x} = \alpha \dfrac{\delta f}{\delta
+                              x},\ \alpha=const$ \\
     Summation & $\dfrac{\partial \left( \alpha f + \beta g \right)}{\partial x} = \alpha
-                \dfrac{\partial f}{\partial x} + \beta \dfrac{\partial g}{\partial x}$ & Y \\
+                \dfrac{\partial f}{\partial x} + \beta \dfrac{\partial g}{\partial x}$ &
+                                                                                         $\dfrac{\delta
+                                                                                         \left(
+                                                                                         \alpha f +
+                                                                                         \beta g
+                                                                                         \right)}{\delta
+                                                                                         x} =
+                                                                                         \alpha\dfrac{\delta
+                                                                                         f}{\delta
+                                                                                         x} + \beta
+                                                                                         \dfrac{\delta
+                                                                                         g}{\delta x}$ \\
     Exactness & --- & $\dfrac{\delta f^n\left(x\right)}{\delta x} = \dfrac{\partial
                     f^n\left(x\right)}{\partial x},\ n < \mathcal{P}$
   \end{tabular}
@@ -140,6 +161,11 @@ scheme:
 \item sorting a sorted list should do nothing\footnote{This may not work for mesh
     partitioning/ordering as often heuristics are involved.}
 \end{itemize}
+
+\section{Building, running and developing unit tests}
+\label{sec:build-runn-unit}
+
+The test suite for \texttt{ASiMoV-CCS} is built in the \texttt{pFUnit} framework.
 
 \end{document}
 %%% Local Variables:
