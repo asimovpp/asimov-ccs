@@ -1,20 +1,15 @@
 !> @brief Module file accsvec.mod
 !>
-!> @details An interface to vector objects - the datatype and operations on it (creation,
-!>          destruction, setting/getting, ...)
+!> @details An interface to operations on vector objects (creation, destruction, setting and
+!>          getting, ...)
 
 module accsvec
+
+  use accs_types, only : vector, vector_init_data
   
   implicit none
 
   private
-
-  type, public :: vector
-  end type vector
-
-  type, public :: vector_init_data
-     integer :: nglob, nloc
-  end type vector_init_data
 
   interface
      module subroutine create_vector(vec_dat, v)

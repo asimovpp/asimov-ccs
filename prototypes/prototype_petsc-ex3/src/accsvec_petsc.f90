@@ -8,13 +8,12 @@ submodule (accsvec) accsvec_petsc
 #include <petsc/finclude/petsc.h>
 #include <petsc/finclude/petscvec.h>
   use petsc, only : PETSC_COMM_WORLD, PETSC_DECIDE
-  use petscvec, only : tVec, VecCreate, VecSetSizes, VecSetFromOptions
+  use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions
 
-  implicit none
+  use accs_types, only : vector, vector_init_data
+  use accs_petsctypes, only : vector_petsc
   
-  type, extends(vector) :: vector_petsc
-     type(tVec) :: v
-  end type vector_petsc
+  implicit none
 
 contains
 

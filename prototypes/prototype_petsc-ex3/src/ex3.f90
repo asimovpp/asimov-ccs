@@ -10,7 +10,8 @@ program ex3
   use petsc, only : PetscInitialize, PetscFinalize, PETSC_NULL_CHARACTER
 
   !! ASiMoV-CCS uses
-  use accsvec, only : vector, vector_init_data, create_vector
+  use accs_types, only : vector_init_data, vector
+  use accsvec, only : create_vector
   
   implicit none
 
