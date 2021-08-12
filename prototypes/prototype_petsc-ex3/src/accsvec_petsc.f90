@@ -12,7 +12,7 @@ submodule (accsvec) accsvec_petsc
 
   use accs_types, only : vector, vector_init_data
   use accs_petsctypes, only : vector_petsc
-  
+
   implicit none
 
 contains
@@ -40,8 +40,29 @@ contains
        end if
        
        call VecSetFromOptions(v%v, ierr)
+       v%allocated = .true.
     end select
 
+  end subroutine
+
+  module subroutine free_vector(v)
+    
+    class(vector), intent(inout) :: v
+
+    integer :: ierr
+
+    select type (v)
+    type is (vector_petsc)
+
+       if (v%allocated) then
+          call VecDestroy(v%v, ierr)
+          v%allocated = .false.
+       else
+          print *, "WARNING: attempted double free of vector"
+       end if
+       
+    end select
+    
   end subroutine
   
 end submodule accsvec_petsc

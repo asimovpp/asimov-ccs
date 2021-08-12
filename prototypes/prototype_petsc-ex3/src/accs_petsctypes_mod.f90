@@ -15,6 +15,7 @@ module accs_petsctypes
   
   type, public, extends(vector) :: vector_petsc
      type(tVec) :: v
+     logical :: allocated
   end type vector_petsc
   
 end module accs_petsctypes

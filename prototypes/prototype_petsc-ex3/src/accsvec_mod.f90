@@ -11,6 +11,8 @@ module accsvec
 
   private
 
+  public :: create_vector, free_vector
+
   interface
      module subroutine create_vector(vec_dat, v)
        !> @brief Creates a vector given the local or global size.
@@ -22,8 +24,11 @@ module accsvec
        type(vector_init_data), intent(in) :: vec_dat
        class(vector), allocatable, intent(out) :: v
      end subroutine
-  end interface
 
-  public :: create_vector
+     module subroutine free_vector(v)
+       class(vector), intent(inout) :: v
+     end subroutine
+     
+  end interface
   
 end module accsvec

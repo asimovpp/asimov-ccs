@@ -12,7 +12,8 @@ program ex3
   !! ASiMoV-CCS uses
   use accs_types, only : vector_init_data, vector
   use accsvec, only : create_vector
-  
+  use accs_utils, only : accs_free
+
   implicit none
 
   class(vector), allocatable :: u
@@ -42,6 +43,7 @@ program ex3
   !! Check solution
 
   !! Clean up
+  call accs_free(u)
   call PetscFinalize(ierr)
   
 end program ex3
