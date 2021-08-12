@@ -1,5 +1,6 @@
-!!!        FILE: mod_constants.f90
-!!! DESCRIPTION: Module defining constants used by ASiMoV-CCS
+!> @brief Module file constants.mod
+!>
+!> @details Module defining constants used by ASiMoV-CCS
 
 module constants
 
