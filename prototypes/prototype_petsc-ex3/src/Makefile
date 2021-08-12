@@ -10,8 +10,7 @@ MODFLAGS = -fsyntax-only
 EXE = ex3
 
 MOD_SRC = $(wildcard *_mod.f90)
-SRC =	$(MOD_SRC) \
-	$(EXE).f90
+SRC =	$(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
 MOD = $(MOD_SRC:%_mod.f90=%.mod)
 

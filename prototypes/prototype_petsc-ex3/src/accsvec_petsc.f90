@@ -1,4 +1,4 @@
-!> @brief Submodule file vector_petsc.mod
+!> @brief Submodule file accsvec_petsc.mod
 !>
 !> @details An implementation of vector objects using PETSc - the datatype and operations on it
 !>          (creation, destruction, setting/getting, ...)
