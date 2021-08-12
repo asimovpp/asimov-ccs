@@ -181,8 +181,9 @@ commands to
 cd /path/to/pFUnit
 mkdir build
 cd build
-FC=gfortran CC=gcc CXX=g++ cmake -DSKIP_FHAMCREST=yes -DMAX_ASSERT_RANK=<N> \
-  -DCMAKE_INSTALL_PREFIX=/path/to/install ../ # Where N=max mpi ranks available
+FC=gfortran CC=gcc CXX=g++ cmake -DSKIP_FHAMCREST=yes \
+  -DMAX_ASSERT_RANK=<N> \ # Where N=max mpi ranks available
+  -DCMAKE_INSTALL_PREFIX=/path/to/install ../
 make all
 make tests
 make install

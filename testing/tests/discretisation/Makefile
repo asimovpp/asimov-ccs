@@ -5,9 +5,9 @@
 
 # Test constants
 TESTN = 100       # How many random inputs should a test generate?
-TESTSCALE = 1.0e9 # How large to scale test inputs? This should cover any conceivable speed (past
-                  # light-speed!) and pressures achieved by compressors with PR > 40 and 10^5 Pa
-                  # input.
+TESTSCALE = 1.0e9 # How large to scale test inputs? This should cover any
+                  # conceivable speed (past light-speed!) and pressures
+                  # achieved by compressors with PR > 40 and 10^5 Pa input.
 
 SRC = ../../../src
 INC = ../mod
@@ -27,7 +27,8 @@ DECL = -DTESTSCALE=$(TESTSCALE) -DTESTN=$(TESTN)
 # Tests
 discretisation_TESTS = spatial.pf
 discretisation_OTHER_SRCS = $(SRC)/discretisation/spatial.f90
-discretisation_OTHER_LIBRARIES = $(OBJ) # Yes, weird, I think interpret libraries==objects
+discretisation_OTHER_LIBRARIES = $(OBJ) # Yes, weird, I think interpret
+                                        # libraries==objects
 $(eval $(call make_pfunit_test,discretisation))
 
 # Targets
