@@ -8,8 +8,20 @@
 
 program ex3
 
+#include <petsc/finclude/petscksp.h>
+  use petscksp
+  
   implicit none
 
+  integer :: ierr
+  
+  !! Initialise program
+  call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+  if (ierr /= 0) then
+     print *, "Unable to initialise PETSc"
+     stop
+  end if
+  
   !! Create stiffness matrix
   !! Assemble matrix
   !! Create right-hand-side and solution vectors
@@ -18,6 +30,8 @@ program ex3
   !! Create linear solver & set options
   !! Solve linear system
   !! Check solution
+
   !! Clean up
+  call PetscFinalize(ierr)
   
 end program ex3
