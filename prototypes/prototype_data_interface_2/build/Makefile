@@ -1,5 +1,5 @@
 #FC=gfortran-8
-FFLAGS=-std=f2018
+FFLAGS=-std=f2018 -cpp
 
 SRCDIR=../
 
@@ -15,10 +15,14 @@ all: $(OBJ)
 %.o: $(SRCDIR)%.f90
 	$(FC) $(FFLAGS) -c $<
 
+types.o: turbulence_types.o problem_former_types.o type_headers.o solver_types.o
+problem_former_types.o: ../problem_former_types_sub.inc type_headers.o
+turbulence_types.o: type_headers.o
 main.o: stepper.o types.o
 form_problem.o: problem_former.o
 turbulence.o problem_former.o stepper.o: types.o
 solver_amg.o solver_cgstab.o: solver.o
+solver.o: types.o
 stepper_2loop.o: stepper.o turbulence.o solver.o 
 stepper_basic.o: stepper.o problem_former.o solver.o 
 turbulence_ke.o turbulence_kw.o: turbulence.o
@@ -26,9 +30,13 @@ turbulence_ke.o turbulence_kw.o: turbulence.o
 TEST_MAIN_FILES= \
 				main.o \
 				types.o \
+				turbulence_types.o \
+				type_headers.o \
+				problem_former_types.o \
 				problem_former.o \
 				form_problem.o \
 				solver.o \
+				solver_types.o \
 				solver_amg.o \
 				stepper.o \
 				stepper_basic.o \

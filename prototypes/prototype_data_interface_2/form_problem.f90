@@ -10,9 +10,11 @@ contains
 
     select type (t => d%form_problem_d)
       type is (form_problem_data_basic)
+        print *,"Initialising basic problem former"
         t%x1 = 173
+        allocate( t%datar(4) )
+        t%datar = (/2, 5, 9, 11/)
     end select
-    print *,"Initialising basic problem former"
     
   end subroutine initialise_form_problem
 
@@ -28,7 +30,8 @@ contains
         stop 1
     end select
 
-    print *,"Forming problem basic", my_data%x1
+    my_data%datar(:) = my_data%datar(:) + 1
+    print *,"Forming problem basic", my_data%x1, my_data%datar(1), my_data%datar(4)
   end subroutine form_problem
 
 end submodule form_problem_1

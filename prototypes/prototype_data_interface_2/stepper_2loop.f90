@@ -7,6 +7,7 @@ contains
   module subroutine initialise_stepper(d)
     type(all_data), intent(inout) :: d
     call initialise_turbulence(d)
+    call initialise_solve(d)
   end subroutine initialise_stepper
 
   module subroutine do_steps(d)
@@ -17,7 +18,7 @@ contains
     do timestep = 1, 3 
       do solvestep = 1, 2
         call do_turbulence(d%turbulence_d)
-        call solve()
+        call solve(d%solver_d)
       end do
     end do
   end subroutine do_steps

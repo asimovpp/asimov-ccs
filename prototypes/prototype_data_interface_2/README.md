@@ -1,27 +1,9 @@
-# How to run asimov-ccs
+This prototype explores grouping submodules by function, not by stage of the simulation.
+Also, types are broken out into multiple modules.
+
+# Running
     export FC=${my_fortran_compiler}
-    make all
-    python3 link_executable.py config.json
-    ./ccs_main
+    make test_main 
+    ./build/test_main
 
-# Customising asimov-ccs
-  Edit config.json
-  
-  Valid options:
-  - stepper
-    - 2loop
-    - 3loop
-  - turbulence
-    - ke
-    - kw 
-  - particles
-    - 1
-    - 2
-    - none
-  - flux
-    - 1st_order
-    - 2nd_order
-  - solver
-    - amg
-    - cgstab
-
+The configurator has not been updated to work with this prototype version.
