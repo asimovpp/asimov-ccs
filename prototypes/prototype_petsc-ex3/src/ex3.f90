@@ -6,8 +6,8 @@
 program ex3
 
   !! External uses
-#include <petsc/finclude/petscksp.h>
-  use petscksp
+#include <petsc/finclude/petsc.h>
+  use petsc, only : PetscInitialize, PetscFinalize, PETSC_NULL_CHARACTER
 
   !! ASiMoV-CCS uses
   use accsvec, only : vector, vector_init_data, create_vector

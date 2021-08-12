@@ -5,13 +5,15 @@
 
 submodule (accsvec) accsvec_petsc
 
+#include <petsc/finclude/petsc.h>
 #include <petsc/finclude/petscvec.h>
-  use petscvec
+  use petsc, only : PETSC_COMM_WORLD, PETSC_DECIDE
+  use petscvec, only : tVec, VecCreate, VecSetSizes, VecSetFromOptions
 
   implicit none
   
   type, extends(vector) :: vector_petsc
-     Vec :: v
+     type(tVec) :: v
   end type vector_petsc
 
 contains
