@@ -1,18 +1,24 @@
-!!! -*- mode: F90 -*-
-!!! vim: set syntax=fortran:
-!!!
-!!!        FILE: ex3.f90
-!!! DESCRIPTION: Port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code - this is to help
-!!!              determine how to interface our design with PETSc.
-!!!
+!> @brief Program file PETSc ex3
+!>
+!> @details Port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code - this is to help
+!>          determine how to interface our design with PETSc.
 
 program ex3
 
+  !! External uses
 #include <petsc/finclude/petscksp.h>
   use petscksp
+
+  !! ASiMoV-CCS uses
+  use accsvec, only : vector, vector_init_data, create_vector
   
   implicit none
 
+  class(vector), allocatable :: u
+  type(vector_init_data) :: vec_sizes
+
+  integer, parameter :: m = 100 ! XXX: temporary - this should be read from input
+  
   integer :: ierr
   
   !! Initialise program
@@ -25,6 +31,9 @@ program ex3
   !! Create stiffness matrix
   !! Assemble matrix
   !! Create right-hand-side and solution vectors
+  vec_sizes%nloc = -1
+  vec_sizes%nglob = (m+1)**2
+  call create_vector(vec_sizes, u)
   !! Assemble right-hand-side vector
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
   !! Create linear solver & set options
