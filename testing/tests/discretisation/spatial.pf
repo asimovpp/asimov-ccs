@@ -6,14 +6,15 @@
 
 @test
 subroutine test_adv_scaling()
-  !! Tests that scaling the advection coefficients is equivalent to scaling the advecting velocity
-  !! before applying the advection scheme, i.e.
+  !! Tests that scaling the advection coefficients is equivalent to scaling
+  !! the advecting velocity before applying the advection scheme, i.e.
   !!
   !!   adv(phi u) => aL, aR, rhs
   !!   adv(phi (alpha * u)) => aLS, aRS, rhsS
   !!   alpha * aL == aLS, alpha * aR == aRS, alpha * rhs == rhsS
   !!
-  !! The compiler macro TESTN determines the number of randomised inputs to generate
+  !! The compiler macro TESTN determines the number of randomised inputs to
+  !! generate
 
   use funit
   use iso_fortran_env
