@@ -13,11 +13,11 @@ program ex3
   use accs_kinds, only : accs_real, accs_int, accs_err
   use accs_types, only : vector_init_data, vector
   use accsvec, only : create_vector
-  use accs_utils, only : accs_free
+  use accs_utils, only : accs_free, update
 
   implicit none
 
-  class(vector), allocatable :: u, b
+  class(vector), allocatable :: u, b, ustar
   type(vector_init_data) :: vec_sizes
 
   integer(accs_int), parameter :: m = 100 ! XXX: temporary - this should be read from input
@@ -37,38 +37,41 @@ program ex3
   
   !! Create stiffness matrix
   !! Assemble matrix
+
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
   vec_sizes%nglob = (m+1)**2
   call create_vector(vec_sizes, u)
   call create_vector(vec_sizes, b)
-
-  !! Assemble right-hand-side vector
-  call assemble_rhs(b)
+  call update(u) ! Performs the parallel assembly
+  
+  !! Evaluate right-hand-side vector
+  call eval_rhs(b)
+  call update(b) ! Performs the parallel assembly
   
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
   !! Create linear solver & set options
   !! Solve linear system
   !! Check solution
+  call create_vector(vec_sizes, ustar)
+  call update(ustar) ! Performs the parallel assembly
 
   !! Clean up
   call accs_free(u)
   call accs_free(b)
+  call accs_free(ustar)
   
   call PetscFinalize(ierr)
 
 contains
 
-  subroutine assemble_rhs(b)
+  subroutine eval_rhs(b)
 
     use accs_constants, only : add_mode
     use accs_types, only : vector_values
     use accs_utils, only : set_values
     
     type(vector), intent(inout) :: b
-
-    integer(accs_int), dimension(npe) :: idx
-    real(accs_real), dimension(npe) :: r
 
     integer(accs_int) :: i
     real(accs_real) :: x, y
@@ -84,14 +87,14 @@ contains
        y = h * (i / m)
 
        call element_indices(i, val_dat%idx)
-       call form_element_rhs(x, y, h**2, val_dat%val)
+       call eval_element_rhs(x, y, h**2, val_dat%val)
        call set_values(val_dat, b)
     end do
 
     deallocate(val_dat%idx)
     deallocate(val_dat%val)
     
-  end subroutine assemble_rhs
+  end subroutine eval_rhs
 
   pure subroutine element_indices (i, idx)
 
@@ -105,13 +108,14 @@ contains
     
   end subroutine element_indices
 
-  pure subroutine form_element_rhs (x, y, H, r)
-
+  pure subroutine eval_element_rhs (x, y, H, r)
+    !> @brief Apply forcing function
+    
     real(accs_real), intent(in) :: x, y, H
     real(accs_real), dimension(npe), intent(out) :: r
 
     r(:) = 0.0
     
-  end subroutine form_element_rhs
+  end subroutine eval_element_rhs
   
 end program ex3

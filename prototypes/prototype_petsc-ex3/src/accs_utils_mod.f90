@@ -11,7 +11,7 @@ module accs_utils
 
   private
 
-  public :: accs_free, set_values
+  public :: accs_free, set_values, begin_update, end_update, update
 
 contains
   
@@ -47,5 +47,51 @@ contains
     end select
     
   end subroutine set_values
+
+  subroutine update(obj)
+    !> @brief Combine begin and end update for a parallel object
+    !>
+    !> @details Just tidies up code that would otherwise require explicit begin/end steps.
+
+    class(*), intent(inout) :: obj
+
+    call begin_update(obj)
+    call end_update(obj)
+
+  end subroutine update
+  
+  subroutine begin_update(obj)
+    !> @brief Begin updating values for a parallel object
+    !>
+    !> @details Separates the start of updating a parallel object from finalisation, allows
+    !>          overlapping comms and computation.
+
+    use accsvec, only : begin_update_vector
+    
+    class(*), intent(inout) :: obj
+
+    select type (obj)
+    class is (vector)
+       call begin_update_vector(obj)
+    end select
+    
+  end subroutine begin_update
+
+  subroutine end_update(obj)
+    !> @brief End updating values for a parallel object
+    !>
+    !> @details Separates the start of updating a parallel object from finalisation, allows
+    !>          overlapping comms and computation.
+
+    use accsvec, only : end_update_vector
+    
+    class(*), intent(inout) :: obj
+
+    select type (obj)
+    class is (vector)
+       call end_update_vector(obj)
+    end select
+    
+  end subroutine end_update
   
 end module accs_utils

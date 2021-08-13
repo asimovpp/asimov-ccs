@@ -10,6 +10,7 @@ submodule (accsvec) accsvec_petsc
   use petsc, only : PETSC_COMM_WORLD, PETSC_DECIDE
   use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions
 
+  use accs_kinds, only : accs_int, accs_err
   use accs_types, only : vector, vector_init_data
   use accs_petsctypes, only : vector_petsc
 
@@ -79,7 +80,6 @@ contains
 
   module subroutine set_vector_values(val_dat, v)
 
-    use accs_kinds, only : accs_int
     use accs_types, only : vector_values
     
     class(*), intent(in) :: val_dat
@@ -96,6 +96,32 @@ contains
        end select
     end select
     
+  end subroutine
+
+  module subroutine begin_update_vector(v)
+
+    class(vector), intent(inout) :: v
+
+    integer(accs_err) :: ierr
+    
+    select type (v)
+    type is (vector_petsc)
+       call VecAssemblyBegin(v, ierr)
+    end select
+
+  end subroutine
+
+  module subroutine end_update_vector(v)
+
+    class(vector), intent(inout) :: v
+
+    integer(accs_err) :: ierr
+    
+    select type (v)
+    type is (vector_petsc)
+       call VecAssemblyEnd(v, ierr)
+    end select
+
   end subroutine
   
 end submodule accsvec_petsc
