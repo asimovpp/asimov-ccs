@@ -10,10 +10,10 @@ module parallel
 
   interface
     !> @brief Create the parallel environment
-    module subroutine setup_parallel_environment(comm, rank, size)
+    module subroutine setup_parallel_environment(comm, rank, numprocs)
       integer, intent(out) :: comm
       integer, intent(out) :: rank
-      integer, intent(out) :: size
+      integer, intent(out) :: numprocs
       
     end subroutine
 

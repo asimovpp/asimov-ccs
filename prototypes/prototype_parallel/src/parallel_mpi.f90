@@ -14,11 +14,11 @@ contains
   !>
   !> @param[out] integer comm - MPI communicator
   !> @param[out] integer rank - MPI rank
-  !> @param[out] integer size - Total number of MPI ranks
-  module subroutine setup_parallel_environment(comm, rank, size)
+  !> @param[out] integer numprocs - Total number of MPI ranks
+  module subroutine setup_parallel_environment(comm, rank, numprocs)
     integer, intent(out) :: comm
     integer, intent(out) :: rank
-    integer, intent(out) :: size
+    integer, intent(out) :: numprocs
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
@@ -31,7 +31,7 @@ contains
     end if
 
     call mpi_comm_rank(comm, rank, ierr)
-    call mpi_comm_size(comm, size, ierr)
+    call mpi_comm_size(comm, numprocs, ierr)
 
   end subroutine
 
