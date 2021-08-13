@@ -12,6 +12,6 @@ testing.pdf : testing.tex
 	$(LTX) $<
 
 tidy :
-	rm testing.aux testing.log testing.out testing.toc
+	rm -f testing.aux testing.log testing.out testing.toc
 clean : tidy
-	rm testing.pdf 
+	rm -f testing.pdf 
