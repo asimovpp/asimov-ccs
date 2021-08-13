@@ -6,14 +6,12 @@
 module accs_kinds
 
   use iso_fortran_env
+
 #ifdef ACCS_PETSC
-#include <petsc/finclude/petsc.h>
-  use petsc
+#include <petsc/finclude/petscsys.h>
 #endif
 
   implicit none
-
-  private
 
 #ifdef ACCS_PETSC
   PetscReal x
@@ -28,5 +26,7 @@ module accs_kinds
   integer, public, parameter :: accs_real = kind(x)
   integer, public, parameter :: accs_int = kind(i)
   integer, public, parameter :: accs_err = kind(ierr)
+
+  private
   
 end module accs_kinds

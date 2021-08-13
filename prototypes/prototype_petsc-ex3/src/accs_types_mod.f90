@@ -4,6 +4,8 @@
 
 module accs_types
 
+  use accs_kinds, only : accs_int
+  
   implicit none
 
   private
@@ -12,7 +14,7 @@ module accs_types
   end type vector
 
   type, public :: vector_init_data
-     integer :: nglob, nloc
+     integer(accs_int) :: nglob, nloc
   end type vector_init_data
   
 end module accs_types
