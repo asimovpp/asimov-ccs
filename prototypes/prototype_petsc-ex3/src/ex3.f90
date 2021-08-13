@@ -12,7 +12,7 @@ program ex3
   !! ASiMoV-CCS uses
   use accs_kinds, only : accs_real, accs_int, accs_err
   use accs_types, only : vector_init_data, vector
-  use accsvec, only : create_vector
+  use accsvec, only : create_vector, axpy
   use accs_utils, only : accs_free, update
 
   implicit none
@@ -55,7 +55,8 @@ program ex3
   !! Check solution
   call create_vector(vec_sizes, ustar)
   call update(ustar) ! Performs the parallel assembly
-
+  call axpy(-1.0_accs_real, u, ustar)
+  
   !! Clean up
   call accs_free(u)
   call accs_free(b)

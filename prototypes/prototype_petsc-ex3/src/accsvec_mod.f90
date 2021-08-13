@@ -5,13 +5,14 @@
 
 module accsvec
 
+  use accs_kinds, only : accs_real
   use accs_types, only : vector, vector_init_data
   
   implicit none
 
   private
 
-  public :: create_vector, free_vector, set_vector_values, begin_update_vector, end_update_vector
+  public :: create_vector, free_vector, set_vector_values, begin_update_vector, end_update_vector, axpy
 
   interface
      module subroutine create_vector(vec_dat, v)
@@ -44,6 +45,12 @@ module accsvec
      end subroutine
      module subroutine end_update_vector(v)
        class(vector), intent(inout) :: v
+     end subroutine
+
+     module subroutine axpy(alpha, x, y)
+       real(accs_real), intent(in) :: alpha
+       class(vector), intent(in) :: x
+       class(vector), intent(inout) :: y
      end subroutine
      
   end interface

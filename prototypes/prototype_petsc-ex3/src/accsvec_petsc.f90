@@ -7,8 +7,6 @@ submodule (accsvec) accsvec_petsc
 
 #include <petsc/finclude/petsc.h>
 #include <petsc/finclude/petscvec.h>
-  use petsc, only : PETSC_COMM_WORLD, PETSC_DECIDE
-  use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions
 
   use accs_kinds, only : accs_int, accs_err
   use accs_types, only : vector, vector_init_data
@@ -23,6 +21,9 @@ contains
     !>
     !> @param[in] vector_innit_data vec_dat - the data describing how the vector should be created.
     !> @param[out] vector v - the vector specialised to type vector_petsc.
+
+    use petsc, only : PETSC_COMM_WORLD, PETSC_DECIDE
+    use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions
     
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
@@ -122,6 +123,22 @@ contains
        call VecAssemblyEnd(v, ierr)
     end select
 
+  end subroutine
+
+  module subroutine axpy(alpha, x, y)
+
+    real(accs_real), intent(in) :: alpha
+    class(vector), intent(in) :: x
+    class(vector), intent(inout) :: y
+
+    select type (x)
+    type is (vector_petsc)
+       select type (y)
+       type is (vector_petsc)
+          call VecAXPY(x, alpha, y)
+       end select
+    end select
+    
   end subroutine
   
 end submodule accsvec_petsc
