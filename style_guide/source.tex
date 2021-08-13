@@ -106,7 +106,13 @@ The following naming and capitalisation conventions should be followed:
   \item Fortran keywords should be regarded as reserved words and not be used for program units or variables.
   \item Long names, for example those that consist of more than one word, 
   should be written in ``pothole'' case style, e.g. \texttt{my\_long\_variable\_name}.
-  \item Module file names should use the suffix \texttt{\_mod} to distinguish them from (implementation) files, i.e. \texttt{foo\_mod.f90}.
+  \item Module file names should use the suffix \texttt{\_mod} to distinguish them from
+    (implementation) files, i.e. \texttt{foo\_mod.f90}
+    \begin{itemize}
+    \item Corresponding implementations go in submodules suffixed with the name of the
+      implementation, \textit{i.e.}  \texttt{foo\_implementationX.f90},
+      \texttt{foo\_implementationY.f90}, \textit{etc.}
+    \end{itemize}
   \item All source code, including Fortran keywords, must be written in lower case. The only exception are preprocessor 
   macros, which must be all capitals, however preprocessor macros should be avoided whenever possible.
 \end{itemize}
