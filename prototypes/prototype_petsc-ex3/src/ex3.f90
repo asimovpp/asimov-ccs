@@ -32,6 +32,7 @@ program ex3
      print *, "Unable to initialise PETSc"
      stop
   end if
+  istart = 0; iend = 0
   
   !! Create stiffness matrix
   !! Assemble matrix
