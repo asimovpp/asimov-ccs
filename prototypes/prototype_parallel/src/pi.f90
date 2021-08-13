@@ -19,7 +19,7 @@ program pi
 
   num_steps = 1000000000
 
-  call setup_parallel_environment(comm, rank, numprocs, ierr)
+  call setup_parallel_environment(comm, rank, numprocs)
 
   ! Get command line args (Fortran 2003 standard)
   if (command_argument_count() > 0) then
@@ -72,7 +72,7 @@ program pi
   end if
 
 
-  call cleanup_parallel_environment(ierr)
+  call cleanup_parallel_environment()
 
 end program pi
 
