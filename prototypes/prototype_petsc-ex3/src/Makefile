@@ -1,6 +1,7 @@
 #
 #        FILE: Makefile
-# DESCRIPTION: Makefile for PETSc ex3 prototype of ASiMoV-CCS.
+# DESCRIPTION: Makefile for PETSc ex3 prototype of ASiMoV-CCS, based on guide at
+#              http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 #
 
 .SUFFIXES:
