@@ -18,7 +18,7 @@ module parallel
 
     !> @brief Cleanup the parallel environment
     module subroutine cleanup_parallel_environment(comm)
-      integer, intent(out) :: comm
+      integer, intent(in) :: comm
     end subroutine
 
     !> @brief Synchronise the parallel environment
@@ -26,11 +26,16 @@ module parallel
       integer, intent(in) :: comm
     end subroutine
 
+    !> @brief Timer for parallel environment
+    module subroutine timer(tick)
+      double precision, intent(inout) :: tick
+    end subroutine
 
   end interface
 
   public :: setup_parallel_environment
   public :: cleanup_parallel_environment
   public :: sync
+  public :: timer
     
 end module parallel

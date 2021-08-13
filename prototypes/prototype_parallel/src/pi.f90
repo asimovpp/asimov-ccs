@@ -5,7 +5,8 @@ program pi
 
   use parallel, only: setup_parallel_environment, &
                       cleanup_parallel_environment, &
-                      sync
+                      sync, &
+                      timer
 
   implicit none
 
@@ -14,22 +15,14 @@ program pi
   integer :: numprocs
   integer :: ierr
 
-  double precision              :: step, x, s, finalsum, mypi, start, stop
+  double precision :: step, x, s, finalsum, mypi
+  double precision :: start_time, end_time
   integer(kind=int64)           :: num_steps, i, mymax, mymin
-  character(len=:), allocatable :: a
   integer                       :: argl
 
   num_steps = 1000000000
 
   call setup_parallel_environment(comm, rank, numprocs)
-
-  ! Get command line args (Fortran 2003 standard)
-  if (command_argument_count() > 0) then
-     call get_command_argument(1, length=argl)
-     allocate(character(argl) :: a)
-     call get_command_argument(1, a)
-     read(a,*) num_steps
-  end if
 
 ! Output start message
 
@@ -43,7 +36,7 @@ program pi
 
   call sync(comm)
 
-  start = MPI_WTIME()
+  call timer(start_time)
   s = 0d0
   step = 1.0d0 / num_steps
 
@@ -63,14 +56,14 @@ program pi
   mypi = finalsum * step
 
   call sync(comm)
-  stop =  MPI_WTIME()
+  call timer(end_time)
 
 ! output value of PI and time taken
 ! note cpu_time is only specified as being microsecond res
 
   if (rank == 0) then
     write(*,'(A,1F12.10,A)') "Obtained value of PI: ", mypi
-    write(*,'(A,1F12.5,A)') "Time taken:           ",(stop-start), " seconds"
+    write(*,'(A,1F12.5,A)') "Time taken:           ", (end_time-start_time), " seconds"
   end if
 
 

@@ -75,4 +75,15 @@ contains
 
     end subroutine
 
+    !> @brief Timer for MPI parallel environment
+    !>
+    !> @param[inout] double precision tick - Variable that is assigned the current time
+    module subroutine timer(tick)
+
+      double precision, intent(inout) :: tick
+      
+      tick = mpi_wtime()
+
+    end subroutine
+
   end submodule parallel_mpi
