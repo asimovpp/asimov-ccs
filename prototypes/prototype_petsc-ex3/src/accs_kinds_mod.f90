@@ -7,7 +7,7 @@ module accs_kinds
 
   use iso_fortran_env
 #ifdef ACCS_PETSC
-#import <petsc/finclude/petsc.h>
+#include <petsc/finclude/petsc.h>
   use petsc
 #endif
 
