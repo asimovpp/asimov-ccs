@@ -26,6 +26,9 @@ module accsvec
      end subroutine
 
      module subroutine free_vector(v)
+       !> @brief Interface to destroy a vector class object.
+       !>
+       !> @param[in] vector v - The vector to be destroyed.
        class(vector), intent(inout) :: v
      end subroutine
      

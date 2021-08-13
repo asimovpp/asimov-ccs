@@ -18,7 +18,11 @@ submodule (accsvec) accsvec_petsc
 contains
 
   module subroutine create_vector(vec_dat, v)
-
+    !> @brief Creates a PETSc-backed vector.
+    !>
+    !> @param[in] vector_innit_data vec_dat - the data describing how the vector should be created.
+    !> @param[out] vector v - the vector specialised to type vector_petsc.
+    
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
     
@@ -46,22 +50,30 @@ contains
   end subroutine
 
   module subroutine free_vector(v)
+    !> @brief Destroys a PETSc-backed vector.
+    !>
+    !> @param[in] vector v - the vector to be destroyed.
     
-    class(vector), intent(inout) :: v
+    class(vector), allocatable, intent(inout) :: v
 
     integer :: ierr
 
-    select type (v)
-    type is (vector_petsc)
+    if (allocated(v)) then
+       select type (v)
+       type is (vector_petsc)
+          
+          if (v%allocated) then
+             call VecDestroy(v%v, ierr)
+             v%allocated = .false.
+          else
+             print *, "WARNING: attempted double free of vector"
+          end if
 
-       if (v%allocated) then
-          call VecDestroy(v%v, ierr)
-          v%allocated = .false.
-       else
-          print *, "WARNING: attempted double free of vector"
-       end if
-       
-    end select
+          ! deallocate(v) ! XXX: I feel like we should deallocate(v) here, but it won't compile...
+       end select
+    else
+       print *, "WARNING: attempted double free of vector"
+    end if
     
   end subroutine
   

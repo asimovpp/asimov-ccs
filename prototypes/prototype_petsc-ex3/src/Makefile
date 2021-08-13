@@ -16,6 +16,7 @@ SRC = $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
 DEP = $(SRC:%.f90=%.d)
 
+FFLAGS += -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include
 LIB = -L$(PETSC_DIR)/lib -lpetsc
 
