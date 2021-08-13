@@ -6,13 +6,12 @@
 module accs_utils
 
   use accs_types, only : vector
-  use accsvec, only : free_vector
   
   implicit none
 
   private
 
-  public :: accs_free
+  public :: accs_free, set_values
 
 contains
   
@@ -20,6 +19,8 @@ contains
     !> @brief Frees/destroys an object
     !>
     !> @details Given some object, call the appropriate destructor.
+
+    use accsvec, only : free_vector
     
     class(*), intent(inout) :: obj
 
@@ -29,5 +30,22 @@ contains
     end select
     
   end subroutine accs_free
+
+  subroutine set_values(val_dat, obj)
+    !> @brief Sets values in an object
+    !>
+    !> @details Given an object and a struct of values to place in that object, call the appropriate
+    !> setter.
+    
+    use accsvec, only : set_vector_values
+
+    class(*), intent(in) :: val_dat
+    class(*), intent(inout) :: obj
+    select type (obj)
+    class is (vector)
+       call set_vector_values(val_dat, obj)
+    end select
+    
+  end subroutine set_values
   
 end module accs_utils

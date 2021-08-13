@@ -11,7 +11,7 @@ module accsvec
 
   private
 
-  public :: create_vector, free_vector
+  public :: create_vector, free_vector, set_vector_values
 
   interface
      module subroutine create_vector(vec_dat, v)
@@ -30,6 +30,13 @@ module accsvec
        !>
        !> @param[in] vector v - The vector to be destroyed.
        class(vector), intent(inout) :: v
+     end subroutine
+
+     module subroutine set_vector_values(val_dat, v)
+
+       class(*), intent(in) :: val_dat
+       class(vector), intent(inout) :: v
+
      end subroutine
      
   end interface

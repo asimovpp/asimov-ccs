@@ -61,19 +61,35 @@ contains
 
   subroutine assemble_rhs(b)
 
+    use accs_constants, only : add_mode
+    use accs_types, only : vector_values
+    use accs_utils, only : set_values
+    
     type(vector), intent(inout) :: b
+
+    integer(accs_int), dimension(npe) :: idx
+    real(accs_real), dimension(npe) :: r
 
     integer(accs_int) :: i
     real(accs_real) :: x, y
 
-    integer(accs_int), dimension(npe) :: idx
+    type(vector_values) :: val_dat
+
+    val_dat%mode = add_mode
+    allocate(val_dat%idx(npe))
+    allocate(val_dat%val(npe))
     
     do i = istart, iend
        x = h * modulo(i, m)
        y = h * (i / m)
 
-       call element_indices(i, idx)
+       call element_indices(i, val_dat%idx)
+       call form_element_rhs(x, y, h**2, val_dat%val)
+       call set_values(val_dat, b)
     end do
+
+    deallocate(val_dat%idx)
+    deallocate(val_dat%val)
     
   end subroutine assemble_rhs
 

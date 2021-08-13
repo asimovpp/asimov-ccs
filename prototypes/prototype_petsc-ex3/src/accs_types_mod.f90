@@ -4,7 +4,7 @@
 
 module accs_types
 
-  use accs_kinds, only : accs_int
+  use accs_kinds, only : accs_int, accs_real
   
   implicit none
 
@@ -16,5 +16,11 @@ module accs_types
   type, public :: vector_init_data
      integer(accs_int) :: nglob, nloc
   end type vector_init_data
+
+  type, public :: vector_values
+     integer(accs_int), dimension(:), allocatable :: idx
+     real(accs_real), dimension(:), allocatable :: val
+     integer(accs_int) :: mode
+  end type vector_values
   
 end module accs_types

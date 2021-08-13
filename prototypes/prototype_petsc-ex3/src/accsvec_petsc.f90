@@ -76,5 +76,26 @@ contains
     end if
     
   end subroutine
+
+  module subroutine set_vector_values(val_dat, v)
+
+    use accs_kinds, only : accs_int
+    use accs_types, only : vector_values
+    
+    class(*), intent(in) :: val_dat
+    class(vector), intent(inout) :: v
+
+    integer(accs_int) :: n
+    
+    select type (v)
+    type is (vector_petsc)
+       select type (val_dat)
+       type is (vector_values)
+          n = size(val_dat%idx)
+          call VecSetValues(v%v, n, val_dat%idx, val_dat%val, val_dat%val)
+       end select
+    end select
+    
+  end subroutine
   
 end submodule accsvec_petsc
