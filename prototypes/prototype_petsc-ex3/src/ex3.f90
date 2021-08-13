@@ -25,6 +25,7 @@ program ex3
   integer(accs_err) :: ierr
   integer(accs_int) :: istart, iend
   real(accs_real) :: h
+  integer(accs_int), parameter :: npe = 4 ! Points per element
   
   !! Initialise program
   call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
@@ -62,14 +63,39 @@ contains
 
     type(vector), intent(inout) :: b
 
-    integer :: i
+    integer(accs_int) :: i
     real(accs_real) :: x, y
 
+    integer(accs_int), dimension(npe) :: idx
+    
     do i = istart, iend
        x = h * modulo(i, m)
        y = h * (i / m)
+
+       call element_indices(i, idx)
     end do
     
   end subroutine assemble_rhs
+
+  pure subroutine element_indices (i, idx)
+
+    integer(accs_int), intent(in) :: i
+    integer(accs_int), dimension(npe), intent(out) :: idx
+
+    idx(1) = (m + 1) * (i / m) + modulo(i, m)
+    idx(2) = idx(1) + 1
+    idx(3) = idx(2) + (m + 1)
+    idx(4) = idx(3) - 1
+    
+  end subroutine element_indices
+
+  pure subroutine form_element_rhs (x, y, H, r)
+
+    real(accs_real), intent(in) :: x, y, H
+    real(accs_real), dimension(npe), intent(out) :: r
+
+    r(:) = 0.0
+    
+  end subroutine form_element_rhs
   
 end program ex3
