@@ -9,3 +9,4 @@ auto
 *.o
 *.mod
 *.smod
+*.d

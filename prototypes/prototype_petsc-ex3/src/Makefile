@@ -3,30 +3,44 @@
 # DESCRIPTION: Makefile for PETSc ex3 prototype of ASiMoV-CCS.
 #
 
+.SUFFIXES:
+
 FC = gfortran
 FFLAGS = -cpp -std="f2018"
 MODFLAGS = -fsyntax-only
+DEPFLAGS = -M -MD -MF
 
 EXE = ex3
 
-MOD_SRC = accs_types_mod.f90 accs_petsctypes_mod.f90 accsvec_mod.f90 accs_utils_mod.f90
-SRC =	$(wildcard *.f90)
+SRC = $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
-MOD = $(MOD_SRC:%_mod.f90=%.mod)
+DEP = $(SRC:%.f90=%.d)
 
 INC = -I$(PETSC_DIR)/include
 LIB = -L$(PETSC_DIR)/lib -lpetsc
 
-all: $(MOD) $(EXE)
+all: $(EXE)
 
 $(EXE): $(OBJ)
 	$(FC) $(FFLAGS) -o $@ $^ $(INC) $(LIB)
 
-%.mod: %_mod.f90
-	$(FC) $(FFLAGS) $(MODFLAGS) $< $(INC)
+%.mod %.smod %._mod.o: %_mod.f90 %_mod.d
+	$(FC) $(FFLAGS) -c $< $(INC)
 
-%.o: %.f90
-	$(FC) $(FFLAGS) -o $@ -c $^ $(INC)
+%.mod %._mod.o: %_mod.f90 %_mod.d
+	$(FC) $(FFLAGS) -c $< $(INC)
+
+%.o: %.f90 %.d
+	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
+
+%.d: %.f90
+	-@$(FC) $(FFLAGS) $(DEPFLAGS) $@ $< $(INC)
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod
+clean-full: clean
+	rm -f *.d
+
+$(DEP):
+
+-include $(DEP)
