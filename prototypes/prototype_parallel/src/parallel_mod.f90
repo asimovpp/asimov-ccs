@@ -14,11 +14,11 @@ module parallel
       integer, intent(out) :: comm
       integer, intent(out) :: rank
       integer, intent(out) :: numprocs
-      
     end subroutine
 
     !> @brief Cleanup the parallel environment
-    module subroutine cleanup_parallel_environment()
+    module subroutine cleanup_parallel_environment(comm)
+      integer, intent(out) :: comm
     end subroutine
 
     !> @brief Synchronise the parallel environment

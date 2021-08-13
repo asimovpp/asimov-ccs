@@ -74,7 +74,7 @@ program pi
   end if
 
 
-  call cleanup_parallel_environment()
+  call cleanup_parallel_environment(comm)
 
 end program pi
 

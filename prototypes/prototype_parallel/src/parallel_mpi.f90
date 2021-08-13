@@ -29,6 +29,7 @@ contains
     if (ierr /= MPI_SUCCESS ) then
       call mpi_error_string(ierr, error_message, length, tmp_ierr)
       write(*,*) error_message(1:length)
+      call mpi_abort(comm, ierr, tmp_ierr)
     end if
 
     call mpi_comm_rank(comm, rank, ierr)
@@ -37,8 +38,11 @@ contains
   end subroutine
 
   !> @brief Cleanup the MPI parallel environment
-  module subroutine cleanup_parallel_environment()
+  !>
+  !> @param[in] integer comm - MPI communicator to be cleaned up
+  module subroutine cleanup_parallel_environment(comm)
 
+    integer, intent(in) :: comm
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
@@ -47,6 +51,7 @@ contains
     if (ierr /= MPI_SUCCESS ) then
         call mpi_error_string(ierr, error_message, length, tmp_ierr)
         write(*,*) error_message(1:length)
+        call mpi_abort(comm, ierr, tmp_ierr)
     end if
 
     end subroutine
@@ -65,6 +70,7 @@ contains
       if (ierr /= MPI_SUCCESS ) then
         call mpi_error_string(ierr, error_message, length, tmp_ierr)
         write(*,*) error_message(1:length)
+        call mpi_abort(comm, ierr, tmp_ierr)
       end if
 
     end subroutine
