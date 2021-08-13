@@ -5,14 +5,14 @@
 
 module accsvec
 
-  use accs_kinds, only : accs_real
+  use accs_kinds, only : accs_real, accs_int
   use accs_types, only : vector, vector_init_data
   
   implicit none
 
   private
 
-  public :: create_vector, free_vector, set_vector_values, begin_update_vector, end_update_vector, axpy
+  public :: create_vector, free_vector, set_vector_values, begin_update_vector, end_update_vector, axpy, norm
 
   interface
      module subroutine create_vector(vec_dat, v)
@@ -52,6 +52,11 @@ module accsvec
        class(vector), intent(in) :: x
        class(vector), intent(inout) :: y
      end subroutine
+
+     module real(accs_real) function norm(v, norm_type)
+       class(vector), intent(in) :: v
+       integer(accs_int), intent(in) :: norm_type
+     end function
      
   end interface
   

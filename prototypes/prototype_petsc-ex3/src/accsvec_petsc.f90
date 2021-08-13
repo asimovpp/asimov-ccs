@@ -135,10 +135,29 @@ contains
     type is (vector_petsc)
        select type (y)
        type is (vector_petsc)
-          call VecAXPY(x, alpha, y)
+          call VecAXPY(x%v, alpha, y%v)
        end select
     end select
     
   end subroutine
+
+  module real(accs_real) function norm(v, norm_type)
+
+    use petscvec, only : NORM_2
+    
+    class(vector), intent(in) :: v
+    integer(accs_int), intent(in) :: norm_type
+
+    select type (v)
+    type is (vector_petsc)
+       if (norm_type == 2) then
+          call VecNorm(v%v, NORM_2, norm)
+       else
+          print *, "ERROR: unknown vector norm type ", norm_type
+          stop
+       end if
+    end select
+    
+  end function norm
   
 end submodule accsvec_petsc
