@@ -16,6 +16,7 @@ contains
   !> @param[out] integer rank - MPI rank
   !> @param[out] integer numprocs - Total number of MPI ranks
   module subroutine setup_parallel_environment(comm, rank, numprocs)
+
     integer, intent(out) :: comm
     integer, intent(out) :: rank
     integer, intent(out) :: numprocs
@@ -47,6 +48,24 @@ contains
         call mpi_error_string(ierr, error_message, length, tmp_ierr)
         write(*,*) error_message(1:length)
     end if
+
+    end subroutine
+
+    !> @brief Synchronise the parallel environment
+    !>
+    !> @param[in] iteger comm - MPI communicator to be synchronised
+    module subroutine sync(comm)
+    
+      integer, intent(in) :: comm
+      integer :: ierr, length, tmp_ierr
+      character(len = MPI_MAX_ERROR_STRING) :: error_message
+
+      call mpi_barrier(comm, ierr)
+
+      if (ierr /= MPI_SUCCESS ) then
+        call mpi_error_string(ierr, error_message, length, tmp_ierr)
+        write(*,*) error_message(1:length)
+      end if
 
     end subroutine
 

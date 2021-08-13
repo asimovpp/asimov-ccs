@@ -3,7 +3,9 @@ program pi
   use ISO_FORTRAN_ENV
   use mpi
 
-  use parallel, only: setup_parallel_environment, cleanup_parallel_environment
+  use parallel, only: setup_parallel_environment, &
+                      cleanup_parallel_environment, &
+                      sync
 
   implicit none
 
@@ -39,7 +41,7 @@ program pi
 
 ! Initialise time counter and sum: set step size
 
-  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  call sync(comm)
 
   start = MPI_WTIME()
   s = 0d0
@@ -60,7 +62,7 @@ program pi
 
   mypi = finalsum * step
 
-  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  call sync(comm)
   stop =  MPI_WTIME()
 
 ! output value of PI and time taken

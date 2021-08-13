@@ -21,9 +21,16 @@ module parallel
     module subroutine cleanup_parallel_environment()
     end subroutine
 
-    end interface
+    !> @brief Synchronise the parallel environment
+    module subroutine sync(comm)
+      integer, intent(in) :: comm
+    end subroutine
+
+
+  end interface
 
   public :: setup_parallel_environment
   public :: cleanup_parallel_environment
+  public :: sync
     
 end module parallel

@@ -1,6 +1,6 @@
 #
 #        FILE: Makefile
-# DESCRIPTION: Makefile for PETSc ex3 prototype of ASiMoV-CCS.
+# DESCRIPTION: Makefile for parallel PI prototype of ASiMoV-CCS.
 #
 
 FC = mpiifort
