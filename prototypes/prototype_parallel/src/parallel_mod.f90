@@ -45,6 +45,12 @@ module parallel
       integer, intent(in) :: comm
     end subroutine
 
+    !> @brief Error handling for parallel environment
+    module subroutine error_handling(error_code, comm)
+      integer, intent(in) :: error_code
+      integer, intent(in) :: comm
+    end subroutine
+
     end interface
 
   public :: setup_parallel_environment
