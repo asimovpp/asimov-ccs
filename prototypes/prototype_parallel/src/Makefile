@@ -9,10 +9,9 @@ MODFLAGS = -fsyntax-only
 
 EXE = pi
 
-MOD_SRC = parallel_mod.f90 parallel_mpi_env.f90 parallel_mpi_utils.f90 parallel_mpi_collectives.f90
 SRC =   $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
-MOD = $(MOD_SRC:%_mod.f90=%.mod)
+MOD = $(SRC:%_mod.f90=%.mod)
 
 all: $(MOD) $(EXE)
 
