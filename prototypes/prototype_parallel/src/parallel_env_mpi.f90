@@ -1,8 +1,8 @@
-!> @brief Submodule file parallel_mpi.smod
+!> @brief Submodule file parallel_env_mpi.smod
 !>
-!> @details Implementation (using MPI) of the parallel module interface
+!> @details Implementation of the parallel environment using MPI
 
-submodule (parallel) parallel_mpi
+submodule (parallel) parallel_env_mpi
 
   use mpi
 
@@ -16,6 +16,7 @@ contains
   !> @param[out] integer rank - MPI rank
   !> @param[out] integer numprocs - Total number of MPI ranks
   module subroutine setup_parallel_environment(comm, rank, numprocs)
+
     integer, intent(out) :: comm
     integer, intent(out) :: rank
     integer, intent(out) :: numprocs
@@ -24,30 +25,28 @@ contains
 
     comm = MPI_COMM_WORLD
     call mpi_init(ierr)
-    
-    if (ierr /= MPI_SUCCESS ) then
-      call mpi_error_string(ierr, error_message, length, tmp_ierr)
-      write(*,*) error_message(1:length)
-    end if
+    call error_handling(ierr, comm)
 
     call mpi_comm_rank(comm, rank, ierr)
+    call error_handling(ierr, comm)
+
     call mpi_comm_size(comm, numprocs, ierr)
+    call error_handling(ierr, comm)
 
   end subroutine
 
   !> @brief Cleanup the MPI parallel environment
-  module subroutine cleanup_parallel_environment()
+  !>
+  !> @param[in] integer comm - MPI communicator to be cleaned up
+  module subroutine cleanup_parallel_environment(comm)
 
+    integer, intent(in) :: comm
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
     call mpi_finalize(ierr)
-
-    if (ierr /= MPI_SUCCESS ) then
-        call mpi_error_string(ierr, error_message, length, tmp_ierr)
-        write(*,*) error_message(1:length)
-    end if
+    call error_handling(ierr, comm)
 
     end subroutine
 
-  end submodule parallel_mpi
+  end submodule parallel_env_mpi

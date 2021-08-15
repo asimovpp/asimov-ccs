@@ -1,33 +1,24 @@
 program pi
 
   use ISO_FORTRAN_ENV
-  use mpi
 
-  use parallel, only: setup_parallel_environment, cleanup_parallel_environment
+  use parallel, only: setup_parallel_environment, cleanup_parallel_environment, &
+                      sync, timer, &
+                      global_sum
 
   implicit none
 
   integer :: comm
   integer :: rank
   integer :: numprocs
-  integer :: ierr
 
-  double precision              :: step, x, s, finalsum, mypi, start, stop
-  integer(kind=int64)           :: num_steps, i, mymax, mymin
-  character(len=:), allocatable :: a
-  integer                       :: argl
+  double precision :: step, x, s, finalsum, mypi
+  double precision :: start_time, end_time
+  integer(kind=int64) :: num_steps, i, mymax, mymin
 
   num_steps = 1000000000
 
   call setup_parallel_environment(comm, rank, numprocs)
-
-  ! Get command line args (Fortran 2003 standard)
-  if (command_argument_count() > 0) then
-     call get_command_argument(1, length=argl)
-     allocate(character(argl) :: a)
-     call get_command_argument(1, a)
-     read(a,*) num_steps
-  end if
 
 ! Output start message
 
@@ -39,9 +30,9 @@ program pi
 
 ! Initialise time counter and sum: set step size
 
-  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  call sync(comm)
 
-  start = MPI_WTIME()
+  call timer(start_time)
   s = 0d0
   step = 1.0d0 / num_steps
 
@@ -54,25 +45,24 @@ program pi
     s = s + 4.0d0 / (1.0d0 + x*x)
   end do
 
-  call MPI_Reduce(s, finalsum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+  call global_sum(s, finalsum, comm)
 
 ! Evaluate PI from the final sum value, and stop the clock
 
   mypi = finalsum * step
 
-  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-  stop =  MPI_WTIME()
+  call sync(comm)
+  call timer(end_time)
 
 ! output value of PI and time taken
 ! note cpu_time is only specified as being microsecond res
 
   if (rank == 0) then
     write(*,'(A,1F12.10,A)') "Obtained value of PI: ", mypi
-    write(*,'(A,1F12.5,A)') "Time taken:           ",(stop-start), " seconds"
+    write(*,'(A,1F12.5,A)') "Time taken:           ", (end_time-start_time), " seconds"
   end if
 
-
-  call cleanup_parallel_environment()
+  call cleanup_parallel_environment(comm)
 
 end program pi
 

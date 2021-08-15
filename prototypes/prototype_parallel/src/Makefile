@@ -1,6 +1,6 @@
 #
 #        FILE: Makefile
-# DESCRIPTION: Makefile for PETSc ex3 prototype of ASiMoV-CCS.
+# DESCRIPTION: Makefile for parallel PI prototype of ASiMoV-CCS.
 #
 
 FC = mpiifort
@@ -9,10 +9,9 @@ MODFLAGS = -fsyntax-only
 
 EXE = pi
 
-MOD_SRC = parallel_mod.f90 parallel_mpi.f90
 SRC =   $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
-MOD = $(MOD_SRC:%_mod.f90=%.mod)
+MOD = $(SRC:%_mod.f90=%.mod)
 
 all: $(MOD) $(EXE)
 
