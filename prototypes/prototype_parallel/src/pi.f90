@@ -1,24 +1,20 @@
 program pi
 
   use ISO_FORTRAN_ENV
-  use mpi
 
-  use parallel, only: setup_parallel_environment, &
-                      cleanup_parallel_environment, &
-                      sync, &
-                      timer
+  use parallel, only: setup_parallel_environment, cleanup_parallel_environment, &
+                      sync, timer, &
+                      global_sum
 
   implicit none
 
   integer :: comm
   integer :: rank
   integer :: numprocs
-  integer :: ierr
 
   double precision :: step, x, s, finalsum, mypi
   double precision :: start_time, end_time
-  integer(kind=int64)           :: num_steps, i, mymax, mymin
-  integer                       :: argl
+  integer(kind=int64) :: num_steps, i, mymax, mymin
 
   num_steps = 1000000000
 
@@ -49,7 +45,7 @@ program pi
     s = s + 4.0d0 / (1.0d0 + x*x)
   end do
 
-  call MPI_Reduce(s, finalsum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+  call global_sum(s, finalsum, comm)
 
 ! Evaluate PI from the final sum value, and stop the clock
 
@@ -65,7 +61,6 @@ program pi
     write(*,'(A,1F12.10,A)') "Obtained value of PI: ", mypi
     write(*,'(A,1F12.5,A)') "Time taken:           ", (end_time-start_time), " seconds"
   end if
-
 
   call cleanup_parallel_environment(comm)
 
