@@ -23,6 +23,9 @@ LIB = -L$(PETSC_DIR)/lib -lpetsc
 
 all: $(EXE)
 
+test: $(EXE)
+	make -C ../tests all
+
 $(EXE): $(OBJ)
 	$(FC) $(FFLAGS) -o $@ $^ $(INC) $(LIB)
 

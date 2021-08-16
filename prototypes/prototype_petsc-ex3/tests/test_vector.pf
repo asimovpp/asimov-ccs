@@ -1,0 +1,22 @@
+!> @brief Vector unit tests.
+
+module test_vector
+
+  use pFUnit
+  use accsvec, only : create_vector, axpy, norm
+
+contains
+
+  @test
+  subroutine test_vector_norm
+  end subroutine test_vector_norm
+
+  @test
+  subroutine test_axpy
+  end subroutine test_axpy
+
+end module test_vector
+  
+!!! Local Variables:
+!!! mode: f90
+!!! End:
