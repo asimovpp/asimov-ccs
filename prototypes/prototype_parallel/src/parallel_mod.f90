@@ -33,20 +33,20 @@ module parallel
     end subroutine
 
     !> @brief Global reduction of integer scalars
-    module subroutine allreduce_integer(input, result, op, par_env)
-      integer, intent(in) :: input
-      integer, intent(out) :: result
+    module subroutine allreduce_scalar(input, result, op, par_env)
+      class(*), intent(in) :: input
+      class(*), intent(out) :: result
       integer, intent(in) :: op
       class(parallel_environment), intent(in) :: par_env
     end subroutine
 
-    !> @brief Global reduction of double precision real scalars
-    module subroutine allreduce_double(input, result, op, par_env)
-      double precision, intent(in) :: input
-      double precision, intent(out) :: result
-      integer, intent(in) :: op
-      class(parallel_environment), intent(in) :: par_env
-    end subroutine
+    ! !> @brief Global reduction of double precision real scalars
+    ! module subroutine allreduce_double(input, result, op, par_env)
+    !   double precision, intent(in) :: input
+    !   double precision, intent(out) :: result
+    !   integer, intent(in) :: op
+    !   class(parallel_environment), intent(in) :: par_env
+    ! end subroutine
 
     !> @brief Error handling for parallel environment
     module subroutine error_handling(error_code, par_env)
@@ -61,6 +61,6 @@ module parallel
   public :: sync
   public :: timer
 
-  generic, public :: allreduce => allreduce_integer, allreduce_double
+  generic, public :: allreduce => allreduce_scalar
 
 end module parallel
