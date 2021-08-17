@@ -9,13 +9,15 @@ module test_vector
   use accs_kinds, only : accs_int, accs_real
   use accs_types, only : vector_init_data, vector
   use accs_utils, only : update
-  
+
+  implicit none
+
   integer(accs_int), parameter :: nrows = 10
   type(vector_init_data), parameter :: vec_sizes=vector_init_data(nloc=-1, nglob=nrows)
 
   private
-
-  public :: test_vector_norm
+  public :: test_vector_norm, init, finalise
+  
 contains
 
   @test
@@ -26,8 +28,6 @@ contains
 
     !! XXX: These should/could be split into separate tests, need to figure out how to create a
     !!      single test setup/teardown so PETSc init/finalise is only called once.
-
-    call init
     
     call create_vector(vec_sizes, a)
     call update(a)
@@ -40,7 +40,6 @@ contains
     @assertEqual(sqrt(real(nrows)), real(n))
 
     deallocate(a)
-    call finalise
     
   end subroutine test_vector_norm
 
@@ -48,13 +47,23 @@ contains
   ! subroutine test_axpy
   ! end subroutine test_axpy
 
+  @before
   subroutine init
 
+    use accs_kinds, only : accs_err
+    
+    integer(accs_err) :: ierr
+    
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
   end subroutine init
 
+  @after
   subroutine finalise
+
+    use accs_kinds, only : accs_err
+
+    integer(accs_err) :: ierr
 
     call PetscFinalize(ierr)
 
