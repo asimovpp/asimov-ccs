@@ -46,54 +46,30 @@ contains
        end if
        
        call VecSetFromOptions(v%v, ierr)
+       call VecSet(v%v, 0.0, ierr)
        v%allocated = .true.
     end select
 
   end subroutine
 
-  module subroutine free_vector(v)
-    !> @brief Destroys a PETSc-backed vector.
-    !>
-    !> @param[in] vector v - the vector to be destroyed.
-    
-    class(vector), allocatable, intent(inout) :: v
-
-    integer :: ierr
-
-    if (allocated(v)) then
-       select type (v)
-       type is (vector_petsc)
-          
-          if (v%allocated) then
-             call VecDestroy(v%v, ierr)
-             v%allocated = .false.
-          else
-             print *, "WARNING: attempted double free of vector"
-          end if
-
-          ! deallocate(v) ! XXX: I feel like we should deallocate(v) here, but it won't compile...
-       end select
-    else
-       print *, "WARNING: attempted double free of vector"
-    end if
-    
-  end subroutine
-
   module subroutine set_vector_values(val_dat, v)
 
+    use petsc, only : VecSetValues
+    
     use accs_types, only : vector_values
     
     class(*), intent(in) :: val_dat
     class(vector), intent(inout) :: v
 
     integer(accs_int) :: n
+    integer(accs_err) :: ierr
     
     select type (v)
     type is (vector_petsc)
        select type (val_dat)
        type is (vector_values)
           n = size(val_dat%idx)
-          call VecSetValues(v%v, n, val_dat%idx, val_dat%val, val_dat%val)
+          call VecSetValues(v%v, n, val_dat%idx, val_dat%val, val_dat%mode, ierr)
        end select
     end select
     
@@ -101,41 +77,49 @@ contains
 
   module subroutine begin_update_vector(v)
 
+    use petsc, only : VecAssemblyBegin
+    
     class(vector), intent(inout) :: v
 
     integer(accs_err) :: ierr
     
     select type (v)
     type is (vector_petsc)
-       call VecAssemblyBegin(v, ierr)
+       call VecAssemblyBegin(v%v, ierr)
     end select
 
   end subroutine
 
   module subroutine end_update_vector(v)
 
+    use petsc, only : VecAssemblyEnd
+    
     class(vector), intent(inout) :: v
 
     integer(accs_err) :: ierr
     
     select type (v)
     type is (vector_petsc)
-       call VecAssemblyEnd(v, ierr)
+       call VecAssemblyEnd(v%v, ierr)
     end select
 
   end subroutine
 
   module subroutine axpy(alpha, x, y)
 
+    use petscvec, only : VecAXPY
+    
     real(accs_real), intent(in) :: alpha
     class(vector), intent(in) :: x
     class(vector), intent(inout) :: y
 
+    integer(accs_err) :: ierr
+    
     select type (x)
     type is (vector_petsc)
        select type (y)
        type is (vector_petsc)
-          call VecAXPY(x%v, alpha, y%v)
+          call VecAXPY(x%v, alpha, y%v, ierr)
        end select
     end select
     
@@ -143,15 +127,17 @@ contains
 
   module real(accs_real) function norm(v, norm_type)
 
-    use petscvec, only : NORM_2
+    use petscvec, only : NORM_2, VecNorm
     
     class(vector), intent(in) :: v
     integer(accs_int), intent(in) :: norm_type
 
+    integer(accs_err) :: ierr
+    
     select type (v)
     type is (vector_petsc)
        if (norm_type == 2) then
-          call VecNorm(v%v, NORM_2, norm)
+          call VecNorm(v%v, NORM_2, norm, ierr)
        else
           print *, "ERROR: unknown vector norm type ", norm_type
           stop

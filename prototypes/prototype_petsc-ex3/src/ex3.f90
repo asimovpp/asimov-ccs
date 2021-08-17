@@ -13,7 +13,7 @@ program ex3
   use accs_kinds, only : accs_real, accs_int, accs_err
   use accs_types, only : vector_init_data, vector
   use accsvec, only : create_vector, axpy, norm
-  use accs_utils, only : accs_free, update
+  use accs_utils, only : update
 
   implicit none
 
@@ -58,10 +58,10 @@ program ex3
   call axpy(-1.0_accs_real, u, ustar)
   print *, "Norm of error = ", norm(ustar, 2)
   
-  !! Clean up
-  call accs_free(u)
-  call accs_free(b)
-  call accs_free(ustar)
+  ! !! Clean up
+  deallocate(u)
+  deallocate(b)
+  deallocate(ustar)
   
   call PetscFinalize(ierr)
 
