@@ -7,7 +7,7 @@
 .SUFFIXES:
 
 FC = gfortran
-FFLAGS = -cpp -std="f2018"
+FFLAGS = -cpp -std="f2018" -Wall -Wpedantic -Werror
 MODFLAGS = -fsyntax-only
 DEPFLAGS = -M -MD -MF
 

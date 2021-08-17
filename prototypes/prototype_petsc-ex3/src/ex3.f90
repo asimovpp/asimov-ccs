@@ -116,7 +116,9 @@ contains
     real(accs_real), intent(in) :: x, y, H
     real(accs_real), dimension(npe), intent(out) :: r
 
-    r(:) = 0.0
+    
+    r(:) = 0.0 &
+         + 0 * (x + y + H) ! Silence unused dummy argument error
     
   end subroutine eval_element_rhs
   
