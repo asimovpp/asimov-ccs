@@ -13,7 +13,7 @@ contains
 
         select type (fpd => d%form_problem_d)
           type is (form_problem_data_basic)
-            t%datar => fpd%datar 
+            t%fpd => fpd 
         end select
     end select
   end subroutine initialise_solve
@@ -29,6 +29,6 @@ contains
         stop 1
     end select
 
-    print *,"Solving AMG", my_data%x1, my_data%datar(1), my_data%datar(4)
+    print *,"Solving AMG", my_data%x1, my_data%fpd%get_data(1), my_data%fpd%get_data(4)
   end subroutine solve
 end submodule solve_amg

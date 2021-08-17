@@ -16,7 +16,7 @@ all: $(OBJ)
 	$(FC) $(FFLAGS) -c $<
 
 types.o: turbulence_types.o problem_former_types.o type_headers.o solver_types.o
-problem_former_types.o: ../problem_former_types_sub.inc type_headers.o
+problem_former_types.o: type_headers.o
 turbulence_types.o: type_headers.o
 main.o: stepper.o types.o
 form_problem.o: problem_former.o
