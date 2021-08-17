@@ -3,18 +3,57 @@
 module test_vector
 
   use pFUnit
-  use accsvec, only : create_vector, axpy, norm
+  use petsc, only : PetscFinalize, PetscFinalize, PETSC_NULL_CHARACTER
+  
+  use accsvec, only : create_vector, axpy, norm, free_vector
+  use accs_kinds, only : accs_int, accs_real
+  use accs_types, only : vector_init_data, vector
+  use accs_utils, only : accs_free, update
+  
+  integer(accs_int), parameter :: N = 10
+  type(vector_init_data), parameter :: vec_sizes=vector_init_data(nloc=-1, nglob=N)
 
+  private
+
+  public :: test_vector_norm
 contains
 
   @test
   subroutine test_vector_norm
+
+    class(vector), pointer :: a
+    real(accs_real) :: n
+
+    call init
+    
+    call create_vector(vec_sizes, a)
+    call update(a)
+    
+    n = norm(a, 2)
+    @assertEqual(real(n), 0.0)
+    
+    call free_vector(a)
+
+    call finalise
+    
   end subroutine test_vector_norm
 
-  @test
-  subroutine test_axpy
-  end subroutine test_axpy
+  ! @test
+  ! subroutine test_axpy
+  ! end subroutine test_axpy
 
+  subroutine init
+
+    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+
+  end subroutine init
+
+  subroutine finalise
+
+    call PetscFinalize(ierr)
+
+  end subroutine finalise
+  
 end module test_vector
   
 !!! Local Variables:
