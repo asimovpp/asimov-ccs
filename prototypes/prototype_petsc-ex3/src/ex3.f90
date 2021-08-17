@@ -6,14 +6,13 @@
 program ex3
 
   !! External uses
-#include <petsc/finclude/petsc.h>
-  use petsc, only : PetscInitialize, PetscFinalize, PETSC_NULL_CHARACTER
+  use petsc, only : PetscFinalize
 
   !! ASiMoV-CCS uses
   use accs_kinds, only : accs_real, accs_int, accs_err
   use accs_types, only : vector_init_data, vector
   use accsvec, only : create_vector, axpy, norm
-  use accs_utils, only : update
+  use accs_utils, only : update, accs_init
 
   implicit none
 
@@ -28,11 +27,7 @@ program ex3
   integer(accs_int), parameter :: npe = 4 ! Points per element
   
   !! Initialise program
-  call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-  if (ierr /= 0) then
-     print *, "Unable to initialise PETSc"
-     stop
-  end if
+  call accs_init()
   istart = 0; iend = 0
   
   !! Create stiffness matrix

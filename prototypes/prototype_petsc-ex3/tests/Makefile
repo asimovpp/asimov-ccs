@@ -20,6 +20,7 @@ FFLAGS += $(PFUNIT_EXTRA_FFLAGS)
 test_vector_TESTS = test_vector.pf
 test_vector_OTHER_SRCS = $(SRC)
 test_vector_OTHER_LIBRARIES = $(LPETSC)
+test_vector_EXTRA_INITIALIZE = accs_init
 $(eval $(call make_pfunit_test,test_vector))
 
 all: ex3 test_vector
@@ -36,4 +37,4 @@ run:
 	$(FC) $(FFLAGS) -c $^ -o $@ -I$(INC)
 
 clean:
-	rm *.F90 *.o *.mod *.inc
+	rm -f *.F90 *.o *.mod *.inc

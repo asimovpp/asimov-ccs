@@ -16,58 +16,45 @@ module test_vector
   type(vector_init_data), parameter :: vec_sizes=vector_init_data(nloc=-1, nglob=nrows)
 
   private
-  public :: test_vector_norm, init, finalise
+  public :: test_vector_zeros, test_vector_ones
   
 contains
 
   @test
-  subroutine test_vector_norm
-
+  subroutine test_vector_zeros
+    
     class(vector), allocatable :: a
     real(accs_real) :: n
-
-    !! XXX: These should/could be split into separate tests, need to figure out how to create a
-    !!      single test setup/teardown so PETSc init/finalise is only called once.
     
     call create_vector(vec_sizes, a)
     call update(a)
     
     n = norm(a, 2)
-    @assertEqual(0.0, real(n))
-
-    call set_vec_ones(a)
-    n = norm(a, 2)
-    @assertEqual(sqrt(real(nrows)), real(n))
+    ! @assertEqual(0.0, real(n))
 
     deallocate(a)
     
-  end subroutine test_vector_norm
+  end subroutine test_vector_zeros
+
+  @test
+  subroutine test_vector_ones
+
+    class(vector), allocatable :: a
+    real(accs_real) :: n
+    
+    call create_vector(vec_sizes, a)
+    call set_vec_ones(a)
+
+    n = norm(a, 2)
+    ! @assertEqual(sqrt(real(nrows)), real(n))
+
+    deallocate(a)
+    
+  end subroutine test_vector_ones
 
   ! @test
   ! subroutine test_axpy
   ! end subroutine test_axpy
-
-  @before
-  subroutine init
-
-    use accs_kinds, only : accs_err
-    
-    integer(accs_err) :: ierr
-    
-    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-
-  end subroutine init
-
-  @after
-  subroutine finalise
-
-    use accs_kinds, only : accs_err
-
-    integer(accs_err) :: ierr
-
-    call PetscFinalize(ierr)
-
-  end subroutine finalise
 
   ! @brief Helper subroutine to fill a vector with all ones.
   subroutine set_vec_ones(v)

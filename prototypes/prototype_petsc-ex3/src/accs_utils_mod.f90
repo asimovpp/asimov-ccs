@@ -5,6 +5,8 @@
 
 module accs_utils
 
+  use iso_c_binding
+  
   use accs_types, only : vector
   
   implicit none
@@ -12,6 +14,7 @@ module accs_utils
   private
 
   public :: set_values, begin_update, end_update, update
+  public :: accs_init
 
 contains
 
@@ -77,5 +80,20 @@ contains
     end select
     
   end subroutine end_update
+
+  subroutine accs_init() bind (C, name="accs_init_")
+
+    use petsc, only : PetscInitialize, PETSC_NULL_CHARACTER
+    use accs_kinds, only : accs_err
+    
+    integer(accs_err) :: ierr
+    
+    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+    if (ierr /= 0) then
+       print *, "Unable to initialise PETSc"
+       stop
+    end if
+    
+  end subroutine accs_init
   
 end module accs_utils
