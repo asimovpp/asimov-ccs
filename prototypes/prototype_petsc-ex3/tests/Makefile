@@ -21,6 +21,7 @@ test_vector_TESTS = test_vector.pf
 test_vector_OTHER_SRCS = $(SRC)
 test_vector_OTHER_LIBRARIES = $(LPETSC)
 test_vector_EXTRA_INITIALIZE = accs_init
+test_vector_EXTRA_FINIALIZE = accs_finalise
 $(eval $(call make_pfunit_test,test_vector))
 
 all: ex3 test_vector

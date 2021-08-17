@@ -14,7 +14,7 @@ module accs_utils
   private
 
   public :: set_values, begin_update, end_update, update
-  public :: accs_init
+  public :: accs_init, accs_finalise
 
 contains
 
@@ -95,5 +95,16 @@ contains
     end if
     
   end subroutine accs_init
+
+  subroutine accs_finalise() bind (C, name="accs_finalise_")
+
+    use petsc, only : PetscFinalize
+    use accs_kinds, only : accs_err
+
+    integer(accs_err) :: ierr
+
+    call PetscFinalize(ierr)
+
+  end subroutine accs_finalise
   
 end module accs_utils

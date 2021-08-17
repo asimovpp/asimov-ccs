@@ -12,7 +12,7 @@ program ex3
   use accs_kinds, only : accs_real, accs_int, accs_err
   use accs_types, only : vector_init_data, vector
   use accsvec, only : create_vector, axpy, norm
-  use accs_utils, only : update, accs_init
+  use accs_utils, only : update, accs_init, accs_finalise
 
   implicit none
 
@@ -21,7 +21,6 @@ program ex3
 
   integer(accs_int), parameter :: m = 100 ! XXX: temporary - this should be read from input
   
-  integer(accs_err) :: ierr
   integer(accs_int) :: istart, iend
   real(accs_real) :: h
   integer(accs_int), parameter :: npe = 4 ! Points per element
@@ -58,7 +57,7 @@ program ex3
   deallocate(b)
   deallocate(ustar)
   
-  call PetscFinalize(ierr)
+  call accs_finalise()
 
 contains
 
