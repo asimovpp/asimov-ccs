@@ -11,25 +11,9 @@ module accs_utils
 
   private
 
-  public :: accs_free, set_values, begin_update, end_update, update
+  public :: set_values, begin_update, end_update, update
 
 contains
-  
-  subroutine accs_free(obj)
-    !> @brief Frees/destroys an object
-    !>
-    !> @details Given some object, call the appropriate destructor.
-
-    use accsvec, only : free_vector
-    
-    class(*), intent(inout) :: obj
-
-    select type (obj)
-    class is (vector)
-       call free_vector(obj)
-    end select
-    
-  end subroutine accs_free
 
   subroutine set_values(val_dat, obj)
     !> @brief Sets values in an object

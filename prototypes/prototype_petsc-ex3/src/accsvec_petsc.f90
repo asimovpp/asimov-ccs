@@ -46,37 +46,10 @@ contains
        end if
        
        call VecSetFromOptions(v%v, ierr)
+       call VecSet(v%v, 0.0, ierr)
        v%allocated = .true.
     end select
 
-  end subroutine
-
-  module subroutine free_vector(v)
-    !> @brief Destroys a PETSc-backed vector.
-    !>
-    !> @param[in] vector v - the vector to be destroyed.
-    
-    class(vector), allocatable, intent(inout) :: v
-
-    integer :: ierr
-
-    if (allocated(v)) then
-       select type (v)
-       type is (vector_petsc)
-          
-          if (v%allocated) then
-             call VecDestroy(v%v, ierr)
-             v%allocated = .false.
-          else
-             print *, "WARNING: attempted double free of vector"
-          end if
-
-          ! deallocate(v) ! XXX: I feel like we should deallocate(v) here, but it won't compile...
-       end select
-    else
-       print *, "WARNING: attempted double free of vector"
-    end if
-    
   end subroutine
 
   module subroutine set_vector_values(val_dat, v)

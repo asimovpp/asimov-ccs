@@ -16,6 +16,28 @@ module accs_petsctypes
   type, public, extends(vector) :: vector_petsc
      type(tVec) :: v
      logical :: allocated
+   contains
+     final :: free_vector_petsc
   end type vector_petsc
+
+contains
+  
+  module subroutine free_vector_petsc(v)
+    !> @brief Destroys a PETSc-backed vector.
+    !>
+    !> @param[in] vector v - the vector to be destroyed.
+    
+    type(vector_petsc), intent(inout) :: v
+
+    integer :: ierr
+
+    if (v%allocated) then
+       call VecDestroy(v%v, ierr)
+       v%allocated = .false.
+    else
+       print *, "WARNING: attempted double free of vector"
+    end if
+    
+  end subroutine
   
 end module accs_petsctypes
