@@ -14,6 +14,7 @@ contains
         select type (fpd => d%form_problem_d)
           type is (form_problem_data_basic)
             t%fpd1 => fpd 
+          class is (form_problem_data)
             t%fpd2 => fpd 
         end select
     end select
