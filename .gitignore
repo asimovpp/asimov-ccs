@@ -10,3 +10,5 @@ auto
 *.mod
 *.smod
 *.d
+
+.dir-locals.el
