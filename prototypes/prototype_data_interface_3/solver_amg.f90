@@ -13,7 +13,8 @@ contains
 
         select type (fpd => d%form_problem_d)
           type is (form_problem_data_basic)
-            t%fpd => fpd 
+            t%fpd1 => fpd 
+            t%fpd2 => fpd 
         end select
     end select
   end subroutine initialise_solve
@@ -29,6 +30,13 @@ contains
         stop 1
     end select
 
-    print *,"Solving AMG", my_data%x1, my_data%fpd%get_data(1), my_data%fpd%get_data(4)
+    ! specific type
+    print *,"Solving AMG fpd1", my_data%x1, my_data%fpd1%get_data(1), my_data%fpd1%get_data(4)
+
+    ! class of type
+    select type (t => my_data%fpd2)
+      type is (form_problem_data_basic)
+        print *,"Solving AMG fpd2", my_data%x1, t%get_data(1), t%get_data(4)
+    end select
   end subroutine solve
 end submodule solve_amg
