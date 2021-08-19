@@ -53,10 +53,15 @@ module parallel
 
     end interface
 
-  public :: setup_parallel_environment
-  public :: cleanup_parallel_environment
-  public :: sync
-  public :: timer
-  generic, public :: global_sum => global_sum_integer, global_sum_double
-
+    interface global_sum
+       module procedure global_sum_integer
+       module procedure global_sum_double
+    end interface global_sum
+    
+    public :: setup_parallel_environment
+    public :: cleanup_parallel_environment
+    public :: sync
+    public :: timer
+    public :: global_sum
+    
 end module parallel
