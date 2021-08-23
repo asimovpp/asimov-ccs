@@ -25,7 +25,7 @@ pi:
 	make -C ../src
 
 run:
-	./test_parallel
+	mpirun ./test_parallel
 
 %.o: %.F90
 	$(FC) $(FFLAGS) -c $^ -o $@ -I$(INC)
