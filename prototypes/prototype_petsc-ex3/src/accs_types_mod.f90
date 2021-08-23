@@ -12,6 +12,8 @@ module accs_types
 
   type, public :: vector
   end type vector
+  type, public :: matrix
+  end type matrix
 
   type, public :: vector_init_data
      integer(accs_int) :: nglob, nloc
@@ -23,5 +25,11 @@ module accs_types
      real(accs_real), dimension(:), allocatable :: val
      integer(accs_int) :: mode
   end type vector_values
+
+  type, public :: matrix_init_data
+     integer(accs_int) :: rloc, cloc
+     integer(accs_int) :: rglob, cglob
+     integer :: comm
+  end type matrix_init_data
   
 end module accs_types

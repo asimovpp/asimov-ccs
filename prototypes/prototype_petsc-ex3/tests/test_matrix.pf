@@ -1,0 +1,36 @@
+!> @brief Vector unit tests.
+
+module test_matrix
+
+  use MPI
+
+  use pFUnit
+
+  use accs_types, only : matrix, matrix_init_data
+  use accsmat, only : create_matrix
+  
+  implicit none
+
+  type(matrix_init_data) :: mat_sizes=matrix_init_data(rglob=10, cglob=10, rloc=-1, cloc=-1, comm=MPI_COMM_NULL)
+
+contains
+
+  @test(npes=[1,2,3,4])
+  subroutine test_mat(this)
+
+    class(MpiTestMethod), intent(inout) :: this
+    
+    class(matrix), allocatable :: M
+
+    mat_sizes%comm = this%getMpiCommunicator()
+    call create_matrix(mat_sizes, M)
+
+    deallocate(M)
+    
+  end subroutine test_mat
+  
+end module test_matrix
+
+!!! Local Variables:
+!!! mode: f90
+!!! End:
