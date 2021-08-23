@@ -48,11 +48,14 @@ module parallel
 
   end interface
 
+  interface allreduce
+    module procedure allreduce_scalar
+  end interface allreduce
+
   public :: setup_parallel_environment
   public :: cleanup_parallel_environment
   public :: sync
   public :: timer
-
-  generic, public :: allreduce => allreduce_scalar
+  public :: allreduce
 
 end module parallel
