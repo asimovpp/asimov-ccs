@@ -6,10 +6,10 @@
 program ex3
 
   !! External uses
-  use petsc, only : PetscFinalize
+  use petsc, only : PETSC_COMM_WORLD
 
   !! ASiMoV-CCS uses
-  use accs_kinds, only : accs_real, accs_int, accs_err
+  use accs_kinds, only : accs_real, accs_int
   use accs_types, only : vector_init_data, vector
   use accsvec, only : create_vector, axpy, norm
   use accs_utils, only : update, accs_init, accs_finalise
@@ -35,6 +35,7 @@ program ex3
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
   vec_sizes%nglob = (m+1)**2
+  vec_sizes%comm = PETSC_COMM_WORLD
   call create_vector(vec_sizes, u)
   call create_vector(vec_sizes, b)
   call update(u) ! Performs the parallel assembly
@@ -52,7 +53,7 @@ program ex3
   call axpy(-1.0_accs_real, u, ustar)
   print *, "Norm of error = ", norm(ustar, 2)
   
-  ! !! Clean up
+  !! Clean up
   deallocate(u)
   deallocate(b)
   deallocate(ustar)

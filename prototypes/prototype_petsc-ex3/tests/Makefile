@@ -3,7 +3,9 @@
 # DESCRIPTION: Builds/runs test cases for ASiMoV-CCS PETSc/ex3 prototype
 #
 
-FC = gfortran
+USEMPI=YES
+
+FC = mpif90
 FFLAGS = -cpp
 
 SRC := $(wildcard ../src/*.f90)

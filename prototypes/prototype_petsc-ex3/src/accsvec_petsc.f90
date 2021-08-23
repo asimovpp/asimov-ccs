@@ -22,7 +22,7 @@ contains
     !> @param[in] vector_innit_data vec_dat - the data describing how the vector should be created.
     !> @param[out] vector v - the vector specialised to type vector_petsc.
 
-    use petsc, only : PETSC_COMM_WORLD, PETSC_DECIDE
+    use petsc, only : PETSC_DECIDE
     use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions
     
     type(vector_init_data), intent(in) :: vec_dat
@@ -34,7 +34,7 @@ contains
     
     select type (v)
     type is (vector_petsc)
-       call VecCreate(PETSC_COMM_WORLD, v%v, ierr)
+       call VecCreate(vec_dat%comm, v%v, ierr)
 
        if (vec_dat%nloc >= 0) then
           call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
