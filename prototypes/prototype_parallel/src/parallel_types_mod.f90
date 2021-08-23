@@ -49,8 +49,8 @@ module parallel_types
       class(reduction_operator), intent(out) :: rop
     end subroutine
 
-    end interface
+  end interface
 
-    public :: set_reduction_operators
+  public :: set_reduction_operators
 
 end module parallel_types
