@@ -6,7 +6,7 @@
 
 .SUFFIXES:
 
-FC = gfortran
+FC = mpif90
 FFLAGS = -cpp -std="f2018" -Wall -Wpedantic -Werror
 MODFLAGS = -fsyntax-only
 DEPFLAGS = -M -MD -MF

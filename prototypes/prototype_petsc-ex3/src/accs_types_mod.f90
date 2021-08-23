@@ -15,6 +15,7 @@ module accs_types
 
   type, public :: vector_init_data
      integer(accs_int) :: nglob, nloc
+     integer :: comm
   end type vector_init_data
 
   type, public :: vector_values

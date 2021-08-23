@@ -2,8 +2,9 @@
 
 module test_vector
 
+  use MPI
+
   use pFUnit
-  use petsc, only : PetscFinalize, PetscFinalize, PETSC_NULL_CHARACTER
   
   use accsvec, only : create_vector, axpy, norm
   use accs_kinds, only : accs_int, accs_real
@@ -13,61 +14,79 @@ module test_vector
   implicit none
 
   integer(accs_int), parameter :: nrows = 10
-  type(vector_init_data), parameter :: vec_sizes=vector_init_data(nloc=-1, nglob=nrows)
+  type(vector_init_data) :: vec_sizes=vector_init_data(nloc=-1, nglob=nrows, comm=MPI_COMM_NULL)
 
   private
-  public :: test_vector_norm, init, finalise
+  public :: MpiTestMethod
+  public :: test_vector_zeros
+  public :: test_vector_ones
+  public :: test_axpy
   
 contains
 
-  @test
-  subroutine test_vector_norm
+  @test(npes=[1,2,3,4])
+  subroutine test_vector_zeros(this)
+    
+    class(MpiTestMethod), intent(inout) :: this
 
     class(vector), allocatable :: a
     real(accs_real) :: n
 
-    !! XXX: These should/could be split into separate tests, need to figure out how to create a
-    !!      single test setup/teardown so PETSc init/finalise is only called once.
-    
+    vec_sizes%comm = this%getMpiCommunicator()
     call create_vector(vec_sizes, a)
     call update(a)
     
     n = norm(a, 2)
     @assertEqual(0.0, real(n))
 
+    deallocate(a)
+    
+  end subroutine test_vector_zeros
+
+  @test(npes=[1,2,3,4])
+  subroutine test_vector_ones(this)
+    
+    class(MpiTestMethod), intent(inout) :: this
+
+    class(vector), allocatable :: a
+    real(accs_real) :: n
+    
+    vec_sizes%comm = this%getMpiCommunicator()
+    call create_vector(vec_sizes, a)
     call set_vec_ones(a)
+
     n = norm(a, 2)
     @assertEqual(sqrt(real(nrows)), real(n))
 
     deallocate(a)
     
-  end subroutine test_vector_norm
+  end subroutine test_vector_ones
 
-  ! @test
-  ! subroutine test_axpy
-  ! end subroutine test_axpy
-
-  @before
-  subroutine init
-
-    use accs_kinds, only : accs_err
+  @test(npes=[1,2,3,4])
+  subroutine test_axpy(this)
     
-    integer(accs_err) :: ierr
+    class(MpiTestMethod), intent(inout) :: this
+
+    class(vector), allocatable :: a, b
+    real(accs_real) :: n
+
+    vec_sizes%comm = this%getMpiCommunicator()
+    call create_vector(vec_sizes, a)
+    call create_vector(vec_sizes, b)
+    call set_vec_ones(a)
+    call set_vec_ones(b)
+
+    call axpy(-1.0_accs_real, a, b)
+
+    n = norm(a, 2)
+    @assertEqual(sqrt(real(nrows)), real(n))
+    n = norm(b, 2)
+    @assertEqual(0.0, n)
     
-    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-
-  end subroutine init
-
-  @after
-  subroutine finalise
-
-    use accs_kinds, only : accs_err
-
-    integer(accs_err) :: ierr
-
-    call PetscFinalize(ierr)
-
-  end subroutine finalise
+    deallocate(a)
+    deallocate(b)
+    
+  end subroutine test_axpy
 
   ! @brief Helper subroutine to fill a vector with all ones.
   subroutine set_vec_ones(v)
@@ -78,7 +97,6 @@ contains
     
     class(vector), allocatable :: v
 
-    real(accs_real), dimension(nrows) :: a
     type(vector_values) :: val_dat
     integer(accs_int) :: i
     

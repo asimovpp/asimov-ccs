@@ -4,7 +4,6 @@
 
 module accs_petsctypes
 
-#include <petsc/finclude/petscvec.h>
   use petscvec, only : tVec
 
   use accs_types, only : vector

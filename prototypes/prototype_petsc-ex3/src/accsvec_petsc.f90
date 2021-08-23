@@ -5,9 +5,6 @@
 
 submodule (accsvec) accsvec_petsc
 
-#include <petsc/finclude/petsc.h>
-#include <petsc/finclude/petscvec.h>
-
   use accs_kinds, only : accs_int, accs_err
   use accs_types, only : vector, vector_init_data
   use accs_petsctypes, only : vector_petsc
@@ -22,7 +19,7 @@ contains
     !> @param[in] vector_innit_data vec_dat - the data describing how the vector should be created.
     !> @param[out] vector v - the vector specialised to type vector_petsc.
 
-    use petsc, only : PETSC_COMM_WORLD, PETSC_DECIDE
+    use petsc, only : PETSC_DECIDE
     use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions
     
     type(vector_init_data), intent(in) :: vec_dat
@@ -34,7 +31,7 @@ contains
     
     select type (v)
     type is (vector_petsc)
-       call VecCreate(PETSC_COMM_WORLD, v%v, ierr)
+       call VecCreate(vec_dat%comm, v%v, ierr)
 
        if (vec_dat%nloc >= 0) then
           call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
@@ -119,7 +116,8 @@ contains
     type is (vector_petsc)
        select type (y)
        type is (vector_petsc)
-          call VecAXPY(x%v, alpha, y%v, ierr)
+          ! PETSc performs AXPY as YPAX, with result stored in Y.
+          call VecAXPY(y%v, alpha, x%v, ierr)
        end select
     end select
     

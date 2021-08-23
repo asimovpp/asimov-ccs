@@ -3,8 +3,10 @@
 # DESCRIPTION: Builds/runs test cases for ASiMoV-CCS PETSc/ex3 prototype
 #
 
-FC = gfortran
-FFLAGS = -cpp
+USEMPI=YES
+
+FC = mpif90
+FFLAGS = -cpp -std=f2018 -Wall -Wpedantic -Werror
 
 SRC := $(wildcard ../src/*.f90)
 SRC := $(filter-out ../src/ex3.f90, $(SRC)) # Exclude main program from sources
@@ -20,6 +22,8 @@ FFLAGS += $(PFUNIT_EXTRA_FFLAGS)
 test_vector_TESTS = test_vector.pf
 test_vector_OTHER_SRCS = $(SRC)
 test_vector_OTHER_LIBRARIES = $(LPETSC)
+test_vector_EXTRA_INITIALIZE = accs_init
+test_vector_EXTRA_FINIALIZE = accs_finalise
 $(eval $(call make_pfunit_test,test_vector))
 
 all: ex3 test_vector
@@ -36,4 +40,4 @@ run:
 	$(FC) $(FFLAGS) -c $^ -o $@ -I$(INC)
 
 clean:
-	rm *.F90 *.o *.mod *.inc
+	rm -f *.F90 *.o *.mod *.inc
