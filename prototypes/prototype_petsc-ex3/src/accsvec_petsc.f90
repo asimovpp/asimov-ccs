@@ -5,9 +5,6 @@
 
 submodule (accsvec) accsvec_petsc
 
-#include <petsc/finclude/petsc.h>
-#include <petsc/finclude/petscvec.h>
-
   use accs_kinds, only : accs_int, accs_err
   use accs_types, only : vector, vector_init_data
   use accs_petsctypes, only : vector_petsc

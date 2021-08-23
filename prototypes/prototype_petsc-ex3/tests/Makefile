@@ -6,7 +6,7 @@
 USEMPI=YES
 
 FC = mpif90
-FFLAGS = -cpp
+FFLAGS = -cpp -std=f2018 -Wall -Wpedantic -Werror
 
 SRC := $(wildcard ../src/*.f90)
 SRC := $(filter-out ../src/ex3.f90, $(SRC)) # Exclude main program from sources
