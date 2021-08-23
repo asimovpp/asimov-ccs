@@ -20,6 +20,7 @@ module test_vector
   public :: MpiTestMethod
   public :: test_vector_zeros
   public :: test_vector_ones
+  public :: test_axpy
   
 contains
 
@@ -61,9 +62,31 @@ contains
     
   end subroutine test_vector_ones
 
-  ! @test
-  ! subroutine test_axpy
-  ! end subroutine test_axpy
+  @test(npes=[1,2,3,4])
+  subroutine test_axpy(this)
+    
+    class(MpiTestMethod), intent(inout) :: this
+
+    class(vector), allocatable :: a, b
+    real(accs_real) :: n
+
+    vec_sizes%comm = this%getMpiCommunicator()
+    call create_vector(vec_sizes, a)
+    call create_vector(vec_sizes, b)
+    call set_vec_ones(a)
+    call set_vec_ones(b)
+
+    call axpy(-1.0_accs_real, a, b)
+
+    n = norm(a, 2)
+    @assertEqual(sqrt(real(nrows)), real(n))
+    n = norm(b, 2)
+    @assertEqual(0.0, n)
+    
+    deallocate(a)
+    deallocate(b)
+    
+  end subroutine test_axpy
 
   ! @brief Helper subroutine to fill a vector with all ones.
   subroutine set_vec_ones(v)

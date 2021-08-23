@@ -116,7 +116,8 @@ contains
     type is (vector_petsc)
        select type (y)
        type is (vector_petsc)
-          call VecAXPY(x%v, alpha, y%v, ierr)
+          ! PETSc performs AXPY as YPAX, with result stored in Y.
+          call VecAXPY(y%v, alpha, x%v, ierr)
        end select
     end select
     
