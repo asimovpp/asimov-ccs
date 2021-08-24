@@ -6,7 +6,7 @@
 USEMPI=YES
 
 FC = mpif90
-FFLAGS = -cpp -std=f2018 -Wall -Wpedantic -Werror
+FFLAGS = -cpp -std=f2018 -Wall -Wpedantic -Wno-integer-division -Werror
 
 SRC := $(wildcard ../src/*.f90)
 SRC := $(filter-out ../src/ex3.f90, $(SRC)) # Exclude main program from sources

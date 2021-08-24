@@ -6,8 +6,10 @@
 module accs_utils
 
   use iso_c_binding
-  
-  use accs_types, only : vector
+
+  use accsvec, only : set_vector_values
+  use accsmat, only : set_matrix_values
+  use accs_types, only : vector, matrix
   
   implicit none
 
@@ -16,25 +18,33 @@ module accs_utils
   public :: set_values, begin_update, end_update, update
   public :: accs_init, accs_finalise
 
+  interface set_values
+     module procedure set_vector_values
+     module procedure set_matrix_values
+  end interface set_values
+
 contains
 
-  subroutine set_values(val_dat, obj)
-    !> @brief Sets values in an object
-    !>
-    !> @details Given an object and a struct of values to place in that object, call the appropriate
-    !> setter.
+  ! subroutine set_values(val_dat, obj)
+  !   !> @brief Sets values in an object
+  !   !>
+  !   !> @details Given an object and a struct of values to place in that object, call the appropriate
+  !   !> setter.
     
-    use accsvec, only : set_vector_values
+  !   use accsvec, only : set_vector_values
 
-    class(*), intent(in) :: val_dat
-    class(*), intent(inout) :: obj
-    select type (obj)
-    class is (vector)
-       call set_vector_values(val_dat, obj)
-    end select
+  !   class(*), intent(in) :: val_dat
+  !   class(*), intent(inout) :: obj
+  !   select type (obj)
+  !   class is (vector)
+  !      call set_vector_values(val_dat, obj)
+  !   class default
+  !      print *, "Unknown type"
+  !      stop
+  !   end select
     
-  end subroutine set_values
-
+  ! end subroutine set_values
+  
   subroutine update(obj)
     !> @brief Combine begin and end update for a parallel object
     !>
@@ -54,12 +64,18 @@ contains
     !>          overlapping comms and computation.
 
     use accsvec, only : begin_update_vector
+    use accsmat, only : begin_update_matrix
     
     class(*), intent(inout) :: obj
 
     select type (obj)
     class is (vector)
        call begin_update_vector(obj)
+    class is (matrix)
+       call begin_update_matrix(obj)
+    class default
+       print *, "Unknown type"
+       stop
     end select
     
   end subroutine begin_update
@@ -71,12 +87,18 @@ contains
     !>          overlapping comms and computation.
 
     use accsvec, only : end_update_vector
+    use accsmat, only : end_update_matrix
     
     class(*), intent(inout) :: obj
 
     select type (obj)
     class is (vector)
        call end_update_vector(obj)
+    class is (matrix)
+       call end_update_matrix(obj)
+    class default
+       print *, "Unknown type"
+       stop
     end select
     
   end subroutine end_update

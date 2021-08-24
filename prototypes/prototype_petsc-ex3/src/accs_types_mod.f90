@@ -31,5 +31,11 @@ module accs_types
      integer(accs_int) :: rglob, cglob
      integer :: comm
   end type matrix_init_data
+
+  type, public :: matrix_values
+     integer(accs_int), dimension(:), allocatable :: rglob
+     integer(accs_int), dimension(:), allocatable :: cglob
+     real(accs_real), dimension(:,:), allocatable :: val
+  end type matrix_values
   
 end module accs_types
