@@ -12,7 +12,7 @@ module accsvec
 
   private
 
-  public :: create_vector, set_vector_values, begin_update_vector, end_update_vector, axpy, norm
+  public :: create_vector, set_vector_values, update_vector, begin_update_vector, end_update_vector, axpy, norm
 
   interface
      module subroutine create_vector(vec_dat, v)
@@ -33,6 +33,9 @@ module accsvec
 
      end subroutine
 
+     module subroutine update_vector(v)
+       class(vector), intent(inout) :: v
+     end subroutine
      module subroutine begin_update_vector(v)
        class(vector), intent(inout) :: v
      end subroutine
@@ -52,5 +55,7 @@ module accsvec
      end function
      
   end interface
+
+contains
   
 end module accsvec

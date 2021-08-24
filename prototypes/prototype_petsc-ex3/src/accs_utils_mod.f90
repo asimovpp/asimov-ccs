@@ -7,101 +7,38 @@ module accs_utils
 
   use iso_c_binding
 
-  use accsvec, only : set_vector_values
-  use accsmat, only : set_matrix_values
+  use accsvec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector
+  use accsmat, only : update_matrix, begin_update_matrix, end_update_matrix
   use accs_types, only : vector, matrix
   
   implicit none
 
   private
 
-  public :: set_values, begin_update, end_update, update
+  public :: set_values, begin_update, end_update , update
   public :: accs_init, accs_finalise
 
   interface set_values
      module procedure set_vector_values
-     module procedure set_matrix_values
+     ! module procedure set_matrix_values
   end interface set_values
 
+  interface update
+     module procedure update_vector
+     module procedure update_matrix
+  end interface update
+  
+  interface begin_update
+     module procedure begin_update_vector
+     module procedure begin_update_matrix
+  end interface begin_update
+
+  interface end_update
+     module procedure end_update_vector
+     module procedure end_update_matrix
+  end interface end_update
+  
 contains
-
-  ! subroutine set_values(val_dat, obj)
-  !   !> @brief Sets values in an object
-  !   !>
-  !   !> @details Given an object and a struct of values to place in that object, call the appropriate
-  !   !> setter.
-    
-  !   use accsvec, only : set_vector_values
-
-  !   class(*), intent(in) :: val_dat
-  !   class(*), intent(inout) :: obj
-  !   select type (obj)
-  !   class is (vector)
-  !      call set_vector_values(val_dat, obj)
-  !   class default
-  !      print *, "Unknown type"
-  !      stop
-  !   end select
-    
-  ! end subroutine set_values
-  
-  subroutine update(obj)
-    !> @brief Combine begin and end update for a parallel object
-    !>
-    !> @details Just tidies up code that would otherwise require explicit begin/end steps.
-
-    class(*), intent(inout) :: obj
-
-    call begin_update(obj)
-    call end_update(obj)
-
-  end subroutine update
-  
-  subroutine begin_update(obj)
-    !> @brief Begin updating values for a parallel object
-    !>
-    !> @details Separates the start of updating a parallel object from finalisation, allows
-    !>          overlapping comms and computation.
-
-    use accsvec, only : begin_update_vector
-    use accsmat, only : begin_update_matrix
-    
-    class(*), intent(inout) :: obj
-
-    select type (obj)
-    class is (vector)
-       call begin_update_vector(obj)
-    class is (matrix)
-       call begin_update_matrix(obj)
-    class default
-       print *, "Unknown type"
-       stop
-    end select
-    
-  end subroutine begin_update
-
-  subroutine end_update(obj)
-    !> @brief End updating values for a parallel object
-    !>
-    !> @details Separates the start of updating a parallel object from finalisation, allows
-    !>          overlapping comms and computation.
-
-    use accsvec, only : end_update_vector
-    use accsmat, only : end_update_matrix
-    
-    class(*), intent(inout) :: obj
-
-    select type (obj)
-    class is (vector)
-       call end_update_vector(obj)
-    class is (matrix)
-       call end_update_matrix(obj)
-    class default
-       print *, "Unknown type"
-       stop
-    end select
-    
-  end subroutine end_update
 
   subroutine accs_init() bind (C, name="accs_init_")
 

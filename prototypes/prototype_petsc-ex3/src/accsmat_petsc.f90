@@ -36,6 +36,16 @@ contains
     
   end subroutine
 
+  module subroutine update_matrix(M)
+    class(matrix), intent(inout) :: M
+
+    select type(M)
+    type is (matrix_petsc)
+       call begin_update_matrix(M)
+       call end_update_matrix(M)
+    end select
+  end subroutine
+  
   module subroutine begin_update_matrix(M)
 
     use petscmat, only : MatAssemblyBegin, MAT_FINAL_ASSEMBLY
@@ -66,10 +76,10 @@ contains
     
   end subroutine
 
-  module subroutine set_matrix_values(mat_values, M)
-    type(matrix_values), intent(in) :: mat_values
-    class(matrix), intent(inout) :: M
+  ! module subroutine set_matrix_values(mat_values, M)
+  !   type(matrix_values), intent(in) :: mat_values
+  !   class(matrix), intent(inout) :: M
 
-  end subroutine
+  ! end subroutine
 
 end submodule accsmat_petsc

@@ -72,6 +72,16 @@ contains
     
   end subroutine
 
+  module subroutine update_vector(v)
+    class(vector), intent(inout) :: v
+
+    select type(v)
+    type is (vector_petsc)
+       call begin_update_vector(v)
+       call end_update_vector(v)
+    end select
+  end subroutine
+  
   module subroutine begin_update_vector(v)
 
     use petsc, only : VecAssemblyBegin

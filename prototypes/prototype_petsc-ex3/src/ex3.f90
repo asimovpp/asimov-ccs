@@ -12,7 +12,7 @@ program ex3
   use accs_kinds, only : accs_real, accs_int
   use accs_types, only : vector_init_data, vector
   use accsvec, only : create_vector, axpy, norm
-  use accs_utils, only : update, accs_init, accs_finalise
+  use accs_utils, only : accs_init, accs_finalise, update
 
   implicit none
 
