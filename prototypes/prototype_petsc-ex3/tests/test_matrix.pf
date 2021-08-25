@@ -30,7 +30,7 @@ contains
 
     integer, dimension(1) :: ridx
     integer, dimension(stencil_width) :: cidx
-    integer, dimension(1, stencil_width) :: val
+    integer, dimension(stencil_width) :: val
     integer :: i, j
     integer :: nrank, comm
 
@@ -43,12 +43,12 @@ contains
     !! Set matrix row-by-row (global entries)
     allocate(mat_values%rglob(1))
     allocate(mat_values%cglob(stencil_width))
-    allocate(mat_values%val(1, stencil_width))
+    allocate(mat_values%val(1 * stencil_width))
     do i = 1, nrows
        ridx(1) = i + nrank * nrows
        do j = 1, stencil_width
           cidx(j) = ridx(1) - (stencil_width/2) + (j - 1)
-          val(1, j) = 1.0
+          val((i - 1) * stencil_width + j) = 1.0
        end do
        ridx(:) = ridx(:) - 1
        cidx(:) = cidx(:) - 1

@@ -35,7 +35,8 @@ module accs_types
   type, public :: matrix_values
      integer(accs_int), dimension(:), allocatable :: rglob
      integer(accs_int), dimension(:), allocatable :: cglob
-     real(accs_real), dimension(:,:), allocatable :: val
+     real(accs_real), dimension(:), allocatable :: val
+     integer(accs_int) :: mode
   end type matrix_values
   
 end module accs_types

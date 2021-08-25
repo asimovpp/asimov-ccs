@@ -51,14 +51,16 @@ contains
 
   module subroutine set_vector_values(val_dat, v)
 
-    use petsc, only : VecSetValues
-    
+    use petsc, only : VecSetValues, ADD_VALUES, INSERT_VALUES
+
+    use accs_constants, only : insert_mode, add_mode
     use accs_types, only : vector_values
     
     class(*), intent(in) :: val_dat
     class(vector), intent(inout) :: v
 
     integer(accs_int) :: n
+    integer(accs_int) :: mode
     integer(accs_err) :: ierr
     
     select type (v)
@@ -66,7 +68,15 @@ contains
        select type (val_dat)
        type is (vector_values)
           n = size(val_dat%idx)
-          call VecSetValues(v%v, n, val_dat%idx, val_dat%val, val_dat%mode, ierr)
+          if (val_dat%mode == add_mode) then
+             mode = ADD_VALUES
+          else if (val_dat%mode == insert_mode) then
+             mode = INSERT_VALUES
+          else
+             print *, "Unknown mode!"
+             stop
+          end if
+          call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
        end select
     end select
     

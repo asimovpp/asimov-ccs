@@ -91,7 +91,7 @@ contains
   ! @brief Helper subroutine to fill a vector with all ones.
   subroutine set_vec_ones(v)
 
-    use accs_constants, only : add_mode
+    use accs_constants, only : insert_mode
     use accs_types, only : vector_values
     use accs_utils, only : set_values
     
@@ -100,7 +100,7 @@ contains
     type(vector_values) :: val_dat
     integer(accs_int) :: i
     
-    val_dat%mode = add_mode
+    val_dat%mode = insert_mode
     allocate(val_dat%idx(nrows))
     allocate(val_dat%val(nrows))
 

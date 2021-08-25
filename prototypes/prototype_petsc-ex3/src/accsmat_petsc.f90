@@ -1,5 +1,6 @@
 submodule (accsmat) accsmat_petsc
 
+  use accs_kinds, only : accs_int, accs_err
   use accs_types, only : matrix_init_data
   use accs_petsctypes, only : matrix_petsc
   
@@ -15,7 +16,7 @@ contains
     type(matrix_init_data), intent(in) :: mat_dat
     class(matrix), allocatable, intent(out) :: M
 
-    integer :: ierr
+    integer(accs_err) :: ierr
 
     allocate(matrix_petsc :: M)
     select type (M)
@@ -52,7 +53,7 @@ contains
     
     class(matrix), intent(inout) :: M
 
-    integer :: ierr
+    integer(accs_err) :: ierr
 
     select type (M)
     type is (matrix_petsc)
@@ -67,7 +68,7 @@ contains
     
     class(matrix), intent(inout) :: M
 
-    integer :: ierr
+    integer(accs_err) :: ierr
 
     select type (M)
     type is (matrix_petsc)
@@ -76,10 +77,43 @@ contains
     
   end subroutine
 
-  ! module subroutine set_matrix_values(mat_values, M)
-  !   type(matrix_values), intent(in) :: mat_values
-  !   class(matrix), intent(inout) :: M
+  module subroutine set_matrix_values(mat_values, M)
 
-  ! end subroutine
+    use petsc, only : ADD_VALUES, INSERT_VALUES
+    use petscmat, only : MatSetValues
+    use accs_constants, only : insert_mode, add_mode
+    
+    type(matrix_values), intent(in) :: mat_values
+    class(matrix), intent(inout) :: M
+
+    integer(accs_int) :: nrows, ncols
+    integer(accs_int) :: mode
+    
+    integer(accs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+       associate(ridx=>mat_values%rglob, &
+            cidx=>mat_values%cglob, &
+            val=>mat_values%val, &
+            matmode=>mat_values%mode)
+         nrows = size(ridx)
+         ncols = size(cidx)
+         if (nrows * ncols /= size(val)) then
+            print *, "Invalid matrix values!"
+            stop
+         end if
+         if (matmode == add_mode) then
+            mode = ADD_VALUES
+         else if (matmode == insert_mode) then
+            mode = INSERT_VALUES
+         end if
+         call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
+       end associate
+    class default
+       print *, "Unknown matrix type!"
+       stop
+    end select
+  end subroutine
 
 end submodule accsmat_petsc

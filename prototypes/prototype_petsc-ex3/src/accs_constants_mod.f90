@@ -10,6 +10,6 @@ module accs_constants
 
   private
   
-  integer(accs_int), public, parameter :: add_mode = 1
+  integer(accs_int), public, parameter :: add_mode = 1, insert_mode = 2
   
 end module accs_constants

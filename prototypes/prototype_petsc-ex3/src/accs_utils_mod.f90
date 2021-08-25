@@ -8,7 +8,7 @@ module accs_utils
   use iso_c_binding
 
   use accsvec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector
-  use accsmat, only : update_matrix, begin_update_matrix, end_update_matrix
+  use accsmat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix
   use accs_types, only : vector, matrix
   
   implicit none
@@ -20,7 +20,7 @@ module accs_utils
 
   interface set_values
      module procedure set_vector_values
-     ! module procedure set_matrix_values
+     module procedure set_matrix_values
   end interface set_values
 
   interface update
