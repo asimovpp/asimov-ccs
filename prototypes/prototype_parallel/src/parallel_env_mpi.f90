@@ -8,44 +8,59 @@ submodule (parallel) parallel_env_mpi
 
   implicit none
 
-contains
+  contains
 
   !> @brief Create the MPI parallel environment
   !>
-  !> @param[out] integer comm - MPI communicator
-  !> @param[out] integer rank - MPI rank
-  !> @param[out] integer numprocs - Total number of MPI ranks
-  module subroutine setup_parallel_environment(comm, rank, numprocs)
+  !> @param[out] parallel_environment_mpi par_env
+  module subroutine initialise_parallel_environment(par_env)
 
-    integer, intent(out) :: comm
-    integer, intent(out) :: rank
-    integer, intent(out) :: numprocs
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
-    comm = MPI_COMM_WORLD
-    call mpi_init(ierr)
-    call error_handling(ierr, comm)
+    class(parallel_environment), intent(out) :: par_env
 
-    call mpi_comm_rank(comm, rank, ierr)
-    call error_handling(ierr, comm)
+    select type (par_env)
 
-    call mpi_comm_size(comm, numprocs, ierr)
-    call error_handling(ierr, comm)
+    type is (parallel_environment_mpi)   
+      par_env%comm = MPI_COMM_WORLD
+      call mpi_init(ierr)
+      call error_handling(ierr, par_env)
+
+      call mpi_comm_rank(par_env%comm, par_env%rank, ierr)
+      call error_handling(ierr, par_env)
+
+      call mpi_comm_size(par_env%comm, par_env%numprocs, ierr)
+      call error_handling(ierr, par_env)
+
+      call set_reduction_operators(par_env%rop)
+    
+    class default
+      write(*,*) "Unsupported parallel environment"
+    
+    end select
 
   end subroutine
 
   !> @brief Cleanup the MPI parallel environment
   !>
-  !> @param[in] integer comm - MPI communicator to be cleaned up
-  module subroutine cleanup_parallel_environment(comm)
+  !> @param[in] parallel_environment_mpi par_env
+  module subroutine cleanup_parallel_environment(par_env)
 
-    integer, intent(in) :: comm
+    class(parallel_environment), intent(in) :: par_env
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
-    call mpi_finalize(ierr)
-    call error_handling(ierr, comm)
+    select type (par_env)
+
+    type is (parallel_environment_mpi)   
+      call mpi_finalize(ierr)
+      call error_handling(ierr, par_env)
+    
+    class default
+      write(*,*) "Unsupported parallel environment"
+    
+    end select
 
     end subroutine
 
