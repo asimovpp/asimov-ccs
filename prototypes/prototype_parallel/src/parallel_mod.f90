@@ -33,9 +33,9 @@ module parallel
     end subroutine
 
     !> @brief Global reduction of integer scalars
-    module subroutine allreduce_scalar(input, result, op, par_env)
-      class(*), intent(in) :: input
-      class(*), intent(out) :: result
+    module subroutine allreduce_scalar(input_value, result_value, op, par_env)
+      class(*), intent(in) :: input_value
+      class(*), intent(out) :: result_value
       integer, intent(in) :: op
       class(parallel_environment), intent(in) :: par_env
     end subroutine
