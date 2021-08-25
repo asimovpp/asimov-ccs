@@ -30,16 +30,16 @@ module parallel_types
   !> @details reduction operator type from MPI that holds
   !> the MPI operator values that are passed to reductions
   type, extends(reduction_operator), public :: reduction_operator_mpi
-    integer :: sum_op
-    integer :: min_op
-    integer :: max_op
-    integer :: prod_op
-    integer :: land_op
-    integer :: lor_op
-    integer :: band_op
-    integer :: bor_op
-    integer :: maxloc_op
-    integer :: minloc_op
+    integer(kind=4) :: sum_op
+    integer(kind=4) :: min_op
+    integer(kind=4) :: max_op
+    integer(kind=4) :: prod_op
+    integer(kind=4) :: land_op
+    integer(kind=4) :: lor_op
+    integer(kind=4) :: band_op
+    integer(kind=4) :: bor_op
+    integer(kind=4) :: maxloc_op
+    integer(kind=4) :: minloc_op
   end type reduction_operator_mpi
 
   interface
