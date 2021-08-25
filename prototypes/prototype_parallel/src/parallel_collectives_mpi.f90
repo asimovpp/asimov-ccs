@@ -25,21 +25,25 @@ submodule (parallel) parallel_collectives_mpi
     integer :: ierr
 
     select type (par_env)
-      type is (parallel_environment_mpi)   
 
+    type is (parallel_environment_mpi)   
       select type (input_value)
-        type is (integer)
-          call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, op, par_env%comm, ierr)
-        type is (double precision)
-          call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, op, par_env%comm, ierr)
+
+      type is (integer)
+        call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, op, par_env%comm, ierr)
+
+      type is (double precision)
+        call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, op, par_env%comm, ierr)
+
       class default
-        write(*,*) "Unknown input data type"    
+        write(*,*) "Unsupported input data type"    
+
       end select
 
       call error_handling(ierr, par_env)
   
-      class default
-        write(*,*) "Unknown parallel environment"
+    class default
+      write(*,*) "Unsupported parallel environment"
 
     end select
 

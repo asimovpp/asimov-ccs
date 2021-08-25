@@ -20,10 +20,13 @@ submodule (parallel) parallel_utils_mpi
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
     select type (par_env)
-      type is (parallel_environment_mpi)   
 
-        call mpi_barrier(par_env%comm, ierr)
-        call error_handling(ierr, par_env)
+    type is (parallel_environment_mpi)   
+      call mpi_barrier(par_env%comm, ierr)
+      call error_handling(ierr, par_env)
+
+    class default
+      write(*,*) "Unsupported parallel environment"
 
     end select
 
@@ -52,13 +55,16 @@ submodule (parallel) parallel_utils_mpi
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
     select type (par_env)
-      type is (parallel_environment_mpi)   
 
+    type is (parallel_environment_mpi)   
       if (error_code /= MPI_SUCCESS ) then
-          call mpi_error_string(error_code, error_message, length, ierr)
-          write(*,*) error_message(1:length)
-          call mpi_abort(par_env%comm, error_code, ierr)
-        end if
+        call mpi_error_string(error_code, error_message, length, ierr)
+        write(*,*) error_message(1:length)
+        call mpi_abort(par_env%comm, error_code, ierr)
+      end if
+
+    class default
+      write(*,*) "Unsupported parallel environment"
 
     end select
 

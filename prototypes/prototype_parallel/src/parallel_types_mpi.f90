@@ -20,7 +20,8 @@ submodule (parallel_types) parallel_types_mpi
     class(reduction_operator), intent(out) :: rop
 
     select type (rop)
-      type is (reduction_operator_mpi)   
+
+    type is (reduction_operator_mpi)   
       rop%sum_op = int(MPI_SUM,kind=4)
       rop%min_op = int(MPI_MIN,kind=4)
       rop%max_op = int(MPI_MAX,kind=4)
@@ -31,8 +32,12 @@ submodule (parallel_types) parallel_types_mpi
       rop%bor_op = int(MPI_BOR,kind=4)
       rop%maxloc_op = int(MPI_MAXLOC,kind=4)
       rop%minloc_op = int(MPI_MINLOC,kind=4)
+
+    class default
+      write(*,*) "Unsupported reduction operator type"    
+
     end select
 
-  end subroutine
+Unsupported  end subroutine
 
 end submodule parallel_types_mpi

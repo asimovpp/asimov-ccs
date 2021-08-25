@@ -21,6 +21,7 @@ submodule (parallel) parallel_env_mpi
     class(parallel_environment), intent(out) :: par_env
 
     select type (par_env)
+
     type is (parallel_environment_mpi)   
       par_env%comm = MPI_COMM_WORLD
       call mpi_init(ierr)
@@ -33,7 +34,11 @@ submodule (parallel) parallel_env_mpi
       call error_handling(ierr, par_env)
 
       call set_reduction_operators(par_env%rop)
-   end select
+    
+    class default
+      write(*,*) "Unsupported parallel environment"
+    
+    end select
 
   end subroutine
 
@@ -47,9 +52,14 @@ submodule (parallel) parallel_env_mpi
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
     select type (par_env)
-      type is (parallel_environment_mpi)   
+
+    type is (parallel_environment_mpi)   
       call mpi_finalize(ierr)
       call error_handling(ierr, par_env)
+    
+    class default
+      write(*,*) "Unsupported parallel environment"
+    
     end select
 
     end subroutine
