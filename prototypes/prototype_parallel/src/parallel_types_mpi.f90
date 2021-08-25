@@ -38,6 +38,6 @@ submodule (parallel_types) parallel_types_mpi
 
     end select
 
-Unsupported  end subroutine
+  end subroutine 
 
 end submodule parallel_types_mpi
