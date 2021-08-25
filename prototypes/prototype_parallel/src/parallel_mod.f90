@@ -13,7 +13,7 @@ module parallel
   interface
 
     !> @brief Create the parallel environment
-    module subroutine setup_parallel_environment(par_env)
+    module subroutine initialise_parallel_environment(par_env)
       class(parallel_environment), intent(out) :: par_env
     end subroutine
 
@@ -52,7 +52,7 @@ module parallel
     module procedure allreduce_scalar
   end interface allreduce
 
-  public :: setup_parallel_environment
+  public :: initialise_parallel_environment
   public :: cleanup_parallel_environment
   public :: sync
   public :: timer

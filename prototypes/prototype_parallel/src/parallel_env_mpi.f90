@@ -13,7 +13,7 @@ submodule (parallel) parallel_env_mpi
   !> @brief Create the MPI parallel environment
   !>
   !> @param[out] parallel_environment_mpi par_env
-  module subroutine setup_parallel_environment(par_env)
+  module subroutine initialise_parallel_environment(par_env)
 
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
@@ -21,16 +21,18 @@ submodule (parallel) parallel_env_mpi
     class(parallel_environment), intent(out) :: par_env
 
     select type (par_env)
-      type is (parallel_environment_mpi)   
-        par_env%comm = MPI_COMM_WORLD
-        call mpi_init(ierr)
-        call error_handling(ierr, par_env)
+    type is (parallel_environment_mpi)   
+      par_env%comm = MPI_COMM_WORLD
+      call mpi_init(ierr)
+      call error_handling(ierr, par_env)
 
-        call mpi_comm_rank(par_env%comm, par_env%rank, ierr)
-        call error_handling(ierr, par_env)
+      call mpi_comm_rank(par_env%comm, par_env%rank, ierr)
+      call error_handling(ierr, par_env)
 
-        call mpi_comm_size(par_env%comm, par_env%numprocs, ierr)
-        call error_handling(ierr, par_env)
+      call mpi_comm_size(par_env%comm, par_env%numprocs, ierr)
+      call error_handling(ierr, par_env)
+
+      call set_reduction_operators(par_env%rop)
    end select
 
   end subroutine

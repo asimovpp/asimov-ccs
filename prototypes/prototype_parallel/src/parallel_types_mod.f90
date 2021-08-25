@@ -7,20 +7,6 @@ module parallel_types
 
   private 
 
-  !> @brief placeholder parallel environment type
-  type, public :: parallel_environment
-  end type parallel_environment
-
-  !> @brief parallel environment type for MPI
-  !>
-  !> @details parallel environment type from MPI that holds
-  !> rank, number of processes and communicator
-  type, extends(parallel_environment), public :: parallel_environment_mpi
-    integer :: rank
-    integer :: numprocs
-    integer :: comm
-  end type parallel_environment_mpi
-
   !> @brief placeholder reduction operator type
   type, public :: reduction_operator
   end type reduction_operator
@@ -50,6 +36,21 @@ module parallel_types
     end subroutine
 
   end interface
+
+  !> @brief placeholder parallel environment type
+  type, public :: parallel_environment
+  end type parallel_environment
+
+  !> @brief parallel environment type for MPI
+  !>
+  !> @details parallel environment type from MPI that holds
+  !> rank, number of processes and communicator
+  type, extends(parallel_environment), public :: parallel_environment_mpi
+    integer :: rank
+    integer :: numprocs
+    integer :: comm
+    type(reduction_operator_mpi) :: rop
+  end type parallel_environment_mpi
 
   public :: set_reduction_operators
 

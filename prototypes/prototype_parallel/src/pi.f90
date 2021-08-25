@@ -2,7 +2,7 @@ program pi
 
   use ISO_FORTRAN_ENV
 
-  use parallel, only: setup_parallel_environment, cleanup_parallel_environment, &
+  use parallel, only: initialise_parallel_environment, cleanup_parallel_environment, &
                       sync, timer, &
                       allreduce
   use parallel_types, only: parallel_environment_mpi, &
@@ -13,8 +13,6 @@ program pi
 
   ! create default parallel environment
   type(parallel_environment_mpi) :: par_env
-  ! create reduction operator
-  type(reduction_operator_mpi) :: rop
 
   double precision :: step, x, s, finalsum, mypi
   double precision :: start_time, end_time
@@ -22,8 +20,7 @@ program pi
 
   num_steps = 1000000000
 
-  call setup_parallel_environment(par_env)
-  call set_reduction_operators(rop)
+  call initialise_parallel_environment(par_env)
 
 ! Output start message
 
@@ -50,7 +47,7 @@ program pi
     s = s + 4.0d0 / (1.0d0 + x*x)
   end do
 
-  call allreduce(s, finalsum, rop%sum_op, par_env)
+  call allreduce(s, finalsum, par_env%rop%sum_op, par_env)
 
 ! Evaluate PI from the final sum value, and stop the clock
 
