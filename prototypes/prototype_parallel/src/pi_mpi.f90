@@ -4,7 +4,6 @@ program pi
 
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
-                      allreduce, &
                       sync, timer
   use parallel_types, only: parallel_environment_mpi
   use compute, only: compute_pi
@@ -14,7 +13,7 @@ program pi
   ! create default parallel environment
   type(parallel_environment_mpi) :: par_env
 
-  double precision :: step, x, s, finalsum, mypi
+  double precision :: mypi
   double precision :: start_time, end_time
   integer(kind=int64) :: num_steps
 
@@ -23,7 +22,6 @@ program pi
   call initialise_parallel_environment(par_env)
 
 ! Output start message
-
   if (par_env%proc_id == par_env%root) then
     write(*,'(A)') "Calculating PI using:"
     write(*,'(A,1I16,A)') "                  ",num_steps, " slices"
@@ -38,9 +36,7 @@ program pi
   call sync(par_env)
   call timer(end_time)
 
-! output value of PI and time taken
-! note cpu_time is only specified as being microsecond res
-
+! Output value of PI and time taken
   if (par_env%proc_id == par_env%root) then
     write(*,'(A,1F12.10,A)') "Obtained value of PI: ", mypi
     write(*,'(A,1F12.5,A)') "Time taken:           ", (end_time-start_time), " seconds"
