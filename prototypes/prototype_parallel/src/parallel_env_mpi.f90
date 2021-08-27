@@ -27,13 +27,15 @@ submodule (parallel) parallel_env_mpi
       call mpi_init(ierr)
       call error_handling(ierr, par_env)
 
-      call mpi_comm_rank(par_env%comm, par_env%rank, ierr)
+      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
       call error_handling(ierr, par_env)
 
-      call mpi_comm_size(par_env%comm, par_env%numprocs, ierr)
+      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
       call error_handling(ierr, par_env)
 
       call set_reduction_operators(par_env%rop)
+      
+      par_env%root=0
     
     class default
       write(*,*) "Unsupported parallel environment"
