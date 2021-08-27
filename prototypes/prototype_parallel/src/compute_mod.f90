@@ -9,6 +9,11 @@ module compute
 
   interface
 
+  !> @brief Compute Pi
+  !>
+  !> @param[in] integer(kind=int64) num_steps - number of steps for the algorithm
+  !> @param[in] parallel_environment par_env - the parallel environment
+  !> @param[out] double precision mypi - computed value for Pi
   module subroutine compute_pi(num_steps, par_env, mypi)
     integer(kind=int64) , intent(in) :: num_steps
     class(parallel_environment), intent(in) :: par_env

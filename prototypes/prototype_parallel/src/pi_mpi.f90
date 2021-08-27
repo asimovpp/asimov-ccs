@@ -45,4 +45,3 @@ program pi
   call cleanup_parallel_environment(par_env)
 
  end program pi
-

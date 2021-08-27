@@ -37,7 +37,6 @@ program pi
   call timer(end_time)
 
 ! Output value of PI and time taken
-! note cpu_time is only specified as being microsecond res
   if (par_env%proc_id == par_env%root) then
     write(*,'(A,1F12.10,A)') "Obtained value of PI: ", mypi
     write(*,'(A,1F12.5,A)') "Time taken:           ", (end_time-start_time), " seconds"
@@ -46,4 +45,3 @@ program pi
   call cleanup_parallel_environment(par_env)
 
  end program pi
-
