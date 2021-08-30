@@ -143,25 +143,30 @@ contains
     
   end subroutine
 
-  module real(accs_real) function norm(v, norm_type)
+  module function norm(v, norm_type) result(n)
 
     use petscvec, only : NORM_2, VecNorm
     
     class(vector), intent(in) :: v
     integer(accs_int), intent(in) :: norm_type
 
+    real(accs_real) :: n
     integer(accs_err) :: ierr
     
+    n = 0.0_accs_real
     select type (v)
     type is (vector_petsc)
        if (norm_type == 2) then
-          call VecNorm(v%v, NORM_2, norm, ierr)
+          call VecNorm(v%v, NORM_2, n, ierr)
        else
           print *, "ERROR: unknown vector norm type ", norm_type
           stop
        end if
+    class default
+       print *, "Type unhandled"
+       stop
     end select
     
-  end function norm
+  end function
   
 end submodule accsvec_petsc

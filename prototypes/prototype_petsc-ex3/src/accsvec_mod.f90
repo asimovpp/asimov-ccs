@@ -49,9 +49,10 @@ module accsvec
        class(vector), intent(inout) :: y
      end subroutine
 
-     module real(accs_real) function norm(v, norm_type)
+     module function norm(v, norm_type) result(n)
        class(vector), intent(in) :: v
        integer(accs_int), intent(in) :: norm_type
+       real(accs_real) :: n
      end function
      
   end interface
