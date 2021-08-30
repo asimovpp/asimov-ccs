@@ -1,7 +1,7 @@
 submodule (accsmat) accsmat_petsc
 
   use accs_kinds, only : accs_int, accs_err
-  use accs_types, only : matrix_init_data
+  use accs_types, only : matrix, matrix_init_data
   use accs_petsctypes, only : matrix_petsc
   
   implicit none
