@@ -17,7 +17,7 @@ SRC = $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
 DEP = $(SRC:%.f90=%.d)
 
-FFLAGS += -DACCS_PETSC
+BUILDOPTS = -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include
 LIB = -L$(PETSC_DIR)/lib -lpetsc
 
@@ -27,19 +27,19 @@ test: $(EXE)
 	make -C ../tests all
 
 $(EXE): $(OBJ)
-	$(FC) $(FFLAGS) -o $@ $^ $(INC) $(LIB)
+	$(FC) $(FFLAGS) $(BUILDOPTS) -o $@ $^ $(INC) $(LIB)
 
 %.mod %.smod %._mod.o: %_mod.f90 %_mod.d
-	$(FC) $(FFLAGS) -c $< $(INC)
+	$(FC) $(FFLAGS) $(BUILDOPTS) -c $< $(INC)
 
 %.mod %._mod.o: %_mod.f90 %_mod.d
-	$(FC) $(FFLAGS) -c $< $(INC)
+	$(FC) $(FFLAGS) $(BUILDOPTS) -c $< $(INC)
 
 %.o: %.f90 %.d
-	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
+	$(FC) $(FFLAGS) $(BUILDOPTS) -o $@ -c $< $(INC)
 
 %.d: %.f90
-	-@$(FC) $(FFLAGS) $(DEPFLAGS) $@ $< $(INC)
+	-@$(FC) $(FFLAGS) $(BUILDOPTS) $(DEPFLAGS) $@ $< $(INC)
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod
