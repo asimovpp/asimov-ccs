@@ -30,6 +30,9 @@ contains
           print *, "ERROR: invalid matrix creation!"
           stop
        end if
+       if (ierr == 0) then
+          M%allocated = .true.
+       end if
 
        call MatSetFromOptions(M%M, ierr)
        call MatSetUp(M%M, ierr)
@@ -107,6 +110,9 @@ contains
             mode = ADD_VALUES
          else if (matmode == insert_mode) then
             mode = INSERT_VALUES
+         else
+            print *, "Unknown mode!"
+            stop
          end if
          call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
        end associate
