@@ -6,10 +6,20 @@
 
 .SUFFIXES:
 
+CMP = gnu
+
+ifeq ($(CMP),gnu)
 FC = mpif90
 FFLAGS = -cpp -std="f2018" -Wall -Wpedantic -Werror
 MODFLAGS = -fsyntax-only
 DEPFLAGS = -M -MD -MF
+else
+ifeq ($(CMP),cray)
+FC = ftn
+FFLAGS = -ef -en -eF -M969
+DEPFLAGS = -eP
+endif
+endif
 
 EXE = ex3
 
