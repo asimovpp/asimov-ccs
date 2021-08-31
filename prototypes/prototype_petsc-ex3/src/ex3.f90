@@ -6,11 +6,12 @@
 program ex3
 
   !! External uses
+  use MPI
   use petsc, only : PETSC_COMM_WORLD
 
   !! ASiMoV-CCS uses
-  use accs_kinds, only : accs_real, accs_int
   use accs_types, only : vector_init_data, vector
+  use accs_kinds, only : accs_real, accs_int, accs_err
   use accsvec, only : create_vector, axpy, norm
   use accs_utils, only : accs_init, accs_finalise, update
 
@@ -24,9 +25,15 @@ program ex3
   integer(accs_int) :: istart, iend
   real(accs_real) :: h
   integer(accs_int), parameter :: npe = 4 ! Points per element
+
+  real(accs_real) :: err_norm
+  
+  integer(accs_err) :: ierr
+  integer :: nrank
   
   !! Initialise program
   call accs_init()
+  call MPI_Comm_rank(PETSC_COMM_WORLD, nrank, ierr)
   istart = 0; iend = 0
   
   !! Create stiffness matrix
@@ -51,7 +58,10 @@ program ex3
   call create_vector(vec_sizes, ustar)
   call update(ustar) ! Performs the parallel assembly
   call axpy(-1.0_accs_real, u, ustar)
-  print *, "Norm of error = ", norm(ustar, 2)
+  err_norm = norm(ustar, 2)
+  if (nrank == 0) then
+     print *, "Norm of error = ", err_norm
+  end if
   
   !! Clean up
   deallocate(u)
