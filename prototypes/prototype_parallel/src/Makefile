@@ -1,7 +1,7 @@
 
 PY = python
 FC = mpif90
-FFLAGS = -cpp -std="f2018" -fcoarray=single #-Wall -Wpedantic -Werror
+FFLAGS = -cpp -std="f2018" -fcoarray=single -fopenmp #-Wall -Wpedantic -Werror
 MODFLAGS = -fsyntax-only
 DEPFLAGS = -M -MD -MF
 

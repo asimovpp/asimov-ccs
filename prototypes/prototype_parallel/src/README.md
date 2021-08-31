@@ -18,6 +18,7 @@
     - caf
   -  compute
     - mpi
+    - mpi_omp
     - caf
   -  collectives
     - mpi
@@ -29,4 +30,5 @@
   You cannot mix mpi and caf, but at the moment there will only the linker will throw an error if mixing does happen. But it does not catch all incorrect combinations!
   The only actually valid combinations are:
   - pi_mpi, mpi, mpi, mpi, mpi, mpi
+  - pi_mpi, mpi, mpi, mpi_omp, mpi, mpi
   - pi_caf, caf, caf, caf, none, none
