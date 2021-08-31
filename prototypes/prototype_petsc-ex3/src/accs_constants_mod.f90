@@ -10,6 +10,9 @@ module accs_constants
 
   private
   
-  integer(accs_int), public, parameter :: add_mode = 1, insert_mode = 2
-  
+  !> Constants to control setting values in objects
+  !! add_mode: add to existing value
+  !! insert_mode: overwrite existing value
+  integer(accs_int), public, parameter :: add_mode = 1, insert_mode = 2 
+
 end module accs_constants

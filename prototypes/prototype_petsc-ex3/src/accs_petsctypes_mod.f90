@@ -12,27 +12,33 @@ module accs_petsctypes
   implicit none
 
   private
-  
+
+  !> @brief Implements the vector class backed by a PETSc vector
   type, public, extends(vector) :: vector_petsc
-     type(tVec) :: v
-     logical :: allocated
+     type(tVec) :: v      !> The PETSc vector
+     logical :: allocated !> Indicates whether the PETSc vector has been allocated
    contains
      final :: free_vector_petsc
   end type vector_petsc
 
+  !> @brief Implements the matrix class backed by a PETSc matrix
   type, public, extends(matrix) :: matrix_petsc
-     type(tMat) :: M
-     logical :: allocated
+     type(tMat) :: M      !> The PETSc matrix
+     logical :: allocated !> Indicates whether the PETSc matrix has been allocated
    contains
      final :: free_matrix_petsc
   end type matrix_petsc
 
 contains
   
+  !> @brief Destroys a PETSc-backed vector.
+  !>
+  !> @param[in] vector v - the vector to be destroyed.
+  !>
+  !> @details Destructor called by deallocating a vector_petsc - confirms the PETSc vector object is
+  !>          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
+  !>          the allocated flag to .false. to prevent double free's.
   module subroutine free_vector_petsc(v)
-    !> @brief Destroys a PETSc-backed vector.
-    !>
-    !> @param[in] vector v - the vector to be destroyed.
     
     type(vector_petsc), intent(inout) :: v
 
@@ -46,11 +52,15 @@ contains
     end if
     
   end subroutine
-
+  
+  !> @brief Destroys a PETSc-backed matrix.
+  !>
+  !> @param[in] matrix M - the matrix to be destroyed.
+  !>
+  !> @details Destructor called by deallocating a vector_petsc - confirms the PETSc vector object is
+  !>          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
+  !>          the allocated flag to .false. to prevent double free's.
   module subroutine free_matrix_petsc(M)
-    !> @brief Destroys a PETSc-backed matrix.
-    !>
-    !> @param[in] matrix M - the matrix to be destroyed.
 
     type(matrix_petsc), intent(inout) :: M
 

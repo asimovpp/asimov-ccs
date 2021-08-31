@@ -23,9 +23,9 @@ module accs_kinds
   integer :: ierr
 #endif
   
-  integer, public, parameter :: accs_real = kind(x)
-  integer, public, parameter :: accs_int = kind(i)
-  integer, public, parameter :: accs_err = kind(ierr)
+  integer, public, parameter :: accs_real = kind(x)   !> Real kind to be used in ASiMoV-CCS
+  integer, public, parameter :: accs_int = kind(i)    !> Integer kind to be used in ASiMoV-CCS
+  integer, public, parameter :: accs_err = kind(ierr) !> Error kind to be used in ASiMoV-CCS
 
   private
   

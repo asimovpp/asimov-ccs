@@ -1,3 +1,6 @@
+!> @brief Module file accsmat_mod.f90
+!>
+!> @details Provides the interface to matrix objects.
 module accsmat
 
   use accs_types, only : matrix, matrix_init_data, matrix_values
@@ -9,21 +12,44 @@ module accsmat
   public :: create_matrix, update_matrix, begin_update_matrix, end_update_matrix, set_matrix_values
 
   interface
+
+     !> @brief Interface to create a new matrix object.
+     !>
+     !> @param[in]  mat_dat - contains information about how the matrix should be allocated
+     !> @param[out] M       - the matrix object
      module subroutine create_matrix(mat_dat, M)
        type(matrix_init_data), intent(in) :: mat_dat
        class(matrix), allocatable, intent(out) :: M
      end subroutine
 
+     !> @brief Interface to perform a parallel update of a matrix.
+     !>
+     !> @param[in/out] M - the matrix
      module subroutine update_matrix(M)
        class(matrix), intent(inout) :: M
      end subroutine
+     !> @brief Interface to begin a parallel update of a matrix.
+     !>
+     !> @param[in/out] M - the matrix
+     !>
+     !> @details Begins the parallel update to allow overlapping comms and compute.
      module subroutine begin_update_matrix(M)
        class(matrix), intent(inout) :: M
      end subroutine
+     !> @brief Interface to end a parallel update of a matrix.
+     !>
+     !> @param[in/out] M - the matrix
+     !>
+     !> @details Ends the parallel update to allow overlapping comms and compute.
      module subroutine end_update_matrix(M)
        class(matrix), intent(inout) :: M
      end subroutine
 
+     !> @brief Interface to set values in a matrix.
+     !>
+     !> @param[in]     mat_values - contains the values, their indices and the mode to use when setting
+     !>                             them.
+     !> @param[in/out] M          - the matrix
      module subroutine set_matrix_values(mat_values, M)
        type(matrix_values), intent(in) :: mat_values
        class(matrix), intent(inout) :: M
