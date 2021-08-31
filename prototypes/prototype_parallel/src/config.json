@@ -1,0 +1,12 @@
+{
+  "main": "pi_mpi",
+  "common": ["parallel_types_mod", "parallel_mod", "compute_mod"],
+  "options": {
+    "parallel_env": "mpi",
+    "parallel_utils": "mpi",
+    "compute": "mpi",
+
+    "collectives": "mpi",
+    "parallel_types": "mpi"
+  }
+}

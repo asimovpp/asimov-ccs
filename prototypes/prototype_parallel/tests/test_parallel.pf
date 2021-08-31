@@ -1,0 +1,47 @@
+!> @brief Parallel MPI unit tests.
+
+module test_parallel
+
+  use pFUnit
+  use mpi
+
+  use parallel
+  use parallel_types, only: parallel_environment_mpi, &
+                            reduction_operator_mpi, &
+                            set_reduction_operators
+
+  implicit none
+
+  public :: MpiTestMethod
+  type(parallel_environment_mpi) :: par_env
+  type(reduction_operator_mpi) :: rop
+
+  private
+  public :: test_scalar_allreduce
+
+contains
+
+  @test(npes=[1,2,3,4])
+  subroutine test_scalar_allreduce(this)
+
+    class (MpiTestMethod), intent(inout) :: this
+    integer, parameter :: input = 1
+    integer :: result
+
+    par_env%rank = this%getProcessRank()
+    par_env%numprocs = this%getNumProcesses()
+    par_env%comm = this%getMpiCommunicator()
+
+    call set_reduction_operators(rop)
+
+    ! sum input (1) over all processes - result should be equal to numprocs
+    call allreduce(input, result, rop%sum_op, par_env)
+    @MPIassertequal(par_env%numprocs, result)
+
+    ! multiply input (1) over all processes - result should be 1
+    call allreduce(input, result, rop%prod_op, par_env)
+    @MPIassertequal(1, result)
+
+  end subroutine test_scalar_allreduce
+
+end module test_parallel

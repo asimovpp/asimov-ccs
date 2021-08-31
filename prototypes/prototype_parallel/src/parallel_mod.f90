@@ -4,59 +4,58 @@
 
 module parallel
 
+  use parallel_types
+
   implicit none
 
   private
 
   interface
+
     !> @brief Create the parallel environment
-    module subroutine setup_parallel_environment(comm, rank, numprocs)
-      integer, intent(out) :: comm
-      integer, intent(out) :: rank
-      integer, intent(out) :: numprocs
+    module subroutine initialise_parallel_environment(par_env)
+      class(parallel_environment), intent(out) :: par_env
     end subroutine
 
     !> @brief Cleanup the parallel environment
-    module subroutine cleanup_parallel_environment(comm)
-      integer, intent(in) :: comm
+    module subroutine cleanup_parallel_environment(par_env)
+      class(parallel_environment), intent(in) :: par_env
     end subroutine
 
     !> @brief Synchronise the parallel environment
-    module subroutine sync(comm)
-      integer, intent(in) :: comm
+    module subroutine sync(par_env)
+      class(parallel_environment), intent(in) :: par_env
     end subroutine
 
     !> @brief Timer for parallel environment
     module subroutine timer(tick)
-      double precision, intent(inout) :: tick
+      double precision, intent(out) :: tick
     end subroutine
 
-    !> @brief Global sum of integer scalars
-    module subroutine global_sum_integer(x, sum, comm)
-      integer, intent(in) :: x
-      integer, intent(out) :: sum
-      integer, intent(in) :: comm
-    end subroutine
-
-    !> @brief Global sum of double precision real scalars
-    module subroutine global_sum_double(x, sum, comm)
-      double precision, intent(in) :: x
-      double precision, intent(out) :: sum
-      integer, intent(in) :: comm
+    !> @brief Global reduction of integer scalars
+    module subroutine allreduce_scalar(input_value, result_value, op, par_env)
+      class(*), intent(in) :: input_value
+      class(*), intent(out) :: result_value
+      integer, intent(in) :: op
+      class(parallel_environment), intent(in) :: par_env
     end subroutine
 
     !> @brief Error handling for parallel environment
-    module subroutine error_handling(error_code, comm)
+    module subroutine error_handling(error_code, par_env)
       integer, intent(in) :: error_code
-      integer, intent(in) :: comm
+      class(parallel_environment), intent(in) :: par_env
     end subroutine
 
-    end interface
+  end interface
 
-  public :: setup_parallel_environment
+  interface allreduce
+    module procedure allreduce_scalar
+  end interface allreduce
+
+  public :: initialise_parallel_environment
   public :: cleanup_parallel_environment
   public :: sync
   public :: timer
-  generic, public :: global_sum => global_sum_integer, global_sum_double
+  public :: allreduce
 
 end module parallel

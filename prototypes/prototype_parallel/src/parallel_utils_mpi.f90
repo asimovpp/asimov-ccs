@@ -4,23 +4,31 @@
 
 submodule (parallel) parallel_utils_mpi
 
-use mpi
+  use mpi
 
-implicit none
+  implicit none
 
-contains
+  contains
 
   !> @brief Synchronise the parallel environment
   !>
-  !> @param[in] iteger comm - MPI communicator to be synchronised
-  module subroutine sync(comm)
+  !> @param[in] parallel_environment_mpi par_env
+  module subroutine sync(par_env)
   
-    integer, intent(in) :: comm
+    class(parallel_environment), intent(in) :: par_env
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
-    call mpi_barrier(comm, ierr)
-    call error_handling(ierr, comm)
+    select type (par_env)
+
+    type is (parallel_environment_mpi)   
+      call mpi_barrier(par_env%comm, ierr)
+      call error_handling(ierr, par_env)
+
+    class default
+      write(*,*) "Unsupported parallel environment"
+
+    end select
 
   end subroutine
 
@@ -29,7 +37,7 @@ contains
   !> @param[inout] double precision tick - Variable that is assigned the current time
   module subroutine timer(tick)
 
-    double precision, intent(inout) :: tick
+    double precision, intent(out) :: tick
 
     tick = mpi_wtime()
 
@@ -38,19 +46,27 @@ contains
   !> @brief Error handling for parallel environment
   !>
   !> @param[in] integer error_code - Variable the holds the error code
-  !> @param[in] integer comm - Communicator to use when calling mpi_abort
-  module subroutine error_handling(error_code, comm)
+  !> @param[in] parallel_environment_mpi par_env
+  module subroutine error_handling(error_code, par_env)
 
     integer, intent(in) :: error_code
-    integer, intent(in) :: comm
+    class(parallel_environment), intent(in) :: par_env
     integer :: length, ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
-    if (error_code /= MPI_SUCCESS ) then
-      call mpi_error_string(error_code, error_message, length, ierr)
-      write(*,*) error_message(1:length)
-      call mpi_abort(comm, error_code, ierr)
-    end if
+    select type (par_env)
+
+    type is (parallel_environment_mpi)   
+      if (error_code /= MPI_SUCCESS ) then
+        call mpi_error_string(error_code, error_message, length, ierr)
+        write(*,*) error_message(1:length)
+        call mpi_abort(par_env%comm, error_code, ierr)
+      end if
+
+    class default
+      write(*,*) "Unsupported parallel environment"
+
+    end select
 
   end subroutine
 

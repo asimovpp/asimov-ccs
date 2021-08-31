@@ -4,44 +4,49 @@
 
 submodule (parallel) parallel_collectives_mpi
 
-use mpi
+  use mpi
 
-implicit none
+  implicit none
 
-contains
+  contains
 
   !> @brief Global sum of integer scalars
   !>
-  !> @param[in] integer x - Variable to be summed over on all ranks
-  !> @param[out] integer sum - Variable to hold the sum on all ranks
-  !> @param[comm] integer comm - Communicator to perform the sum over
-  module subroutine global_sum_integer(x, sum, comm)
+  !> @param[in] integer input_value - Variable to be summed over on all ranks
+  !> @param[out] integer result_value - Variable to hold the sum on all ranks
+  !> @param[in] integer op - Variable that holds the reduction operation type
+  !> @param[in] parallel_environment_mpi par_env
+  module subroutine allreduce_scalar(input_value, result_value, op, par_env)
 
-    integer, intent(in) :: x
-    integer, intent(out) :: sum
-    integer, intent(in) :: comm
+    class(*), intent(in) :: input_value
+    class(*), intent(out) :: result_value
+    integer, intent(in) :: op
+    class(parallel_environment), intent(in) :: par_env
     integer :: ierr
 
-    call MPI_Allreduce(x, sum, 1, MPI_INTEGER, MPI_SUM, comm, ierr)
-    call error_handling(ierr, comm)
+    select type (par_env)
 
-  end subroutine
+    type is (parallel_environment_mpi)   
+      select type (input_value)
 
-  !> @brief Global sum of double precision real scalars
-  !>
-  !> @param[in] double precision x - Variable to be summed over on all ranks
-  !> @param[out] double precision sum - Variable to hold the sum on all ranks
-  !> @param[comm] double precision comm - Communicator to perform the sum over
-  module subroutine global_sum_double(x, sum, comm)
+      type is (integer)
+        call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, op, par_env%comm, ierr)
 
-    double precision, intent(in) :: x
-    double precision, intent(out) :: sum
-    integer, intent(in) :: comm
-    integer :: ierr
+      type is (double precision)
+        call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, op, par_env%comm, ierr)
 
-    call MPI_Allreduce(x, sum, 1, MPI_DOUBLE, MPI_SUM, comm, ierr)
-    call error_handling(ierr, comm)
-    
+      class default
+        write(*,*) "Unsupported input data type"    
+
+      end select
+
+      call error_handling(ierr, par_env)
+  
+    class default
+      write(*,*) "Unsupported parallel environment"
+
+    end select
+
   end subroutine
 
 end submodule parallel_collectives_mpi
