@@ -3,7 +3,6 @@ PY = python
 FC = mpif90
 FFLAGS = -cpp -std="f2018" -fcoarray=single -fopenmp #-Wall -Wpedantic -Werror
 MODFLAGS = -fsyntax-only
-DEPFLAGS = -M -MD -MF
 
 EXE = ccs_app
 EXE_DEPS=ccs_app.deps
