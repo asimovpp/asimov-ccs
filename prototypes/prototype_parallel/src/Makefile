@@ -1,28 +1,57 @@
-#
-#        FILE: Makefile
-# DESCRIPTION: Makefile for parallel PI prototype of ASiMoV-CCS.
-#
 
-FC = mpiifort
-FFLAGS = -cpp -stand f18
+PY = python
+FC = mpif90
+FFLAGS = -cpp -std="f2018" -fcoarray=single #-Wall -Wpedantic -Werror
 MODFLAGS = -fsyntax-only
+DEPFLAGS = -M -MD -MF
 
-EXE = pi
+EXE = ccs_app
+EXE_DEPS=ccs_app.deps
 
-SRC =   $(wildcard *.f90)
+SRC = $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
-MOD = $(SRC:%_mod.f90=%.mod)
+DEP = $(SRC:%.f90=%.d)
 
-all: $(MOD) $(EXE)
+FFLAGS += -DACCS_PETSC
+#INC = -I$(PETSC_DIR)/include
+#LIB = -L$(PETSC_DIR)/lib -lpetsc
 
-$(EXE): $(OBJ)
-	$(FC) $(FFLAGS) -o $@ $^ $(INC) $(LIB)
+all: $(OBJ) $(EXE)
 
-%.mod: %_mod.f90
-	$(FC) $(FFLAGS) $(MODFLAGS) $< $(INC)
+test: $(EXE)
+	        make -C ../tests all
 
-%.o: %.f90
-	$(FC) $(FFLAGS) -o $@ -c $^ $(INC)
+$(EXE_DEPS): config.json
+			$(PY) generate_link_deps.py $<
+
+$(EXE): $(EXE_DEPS)
+			$(FC) $(FFLAGS) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
+
+%_caf.mod %_caf.o: %_caf.f90 %_caf.d
+	        $(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
+
+%.mod %.smod %_mod.o: %_mod.f90 %_mod.d
+	        $(FC) $(FFLAGS) -c $< $(INC)
+
+%.mod %_mod.o: %_mod.f90 %_mod.d
+	        $(FC) $(FFLAGS) -c $< $(INC)
+
+%.o: %.f90 %.d
+	        $(FC) $(FFLAGS) -o $@ -c $< $(INC)
+
+%_caf.o: %_caf.f90 %_caf.d
+	        $(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
+
+%.d: %.f90
+	        -@$(FC) $(FFLAGS) $(DEPFLAGS) $@ $< $(INC)
 
 clean:
-	rm -f $(EXE) *.o *.mod *.smod
+	        rm -f $(EXE) *.o *.mod *.smod
+clean-full: clean
+	        rm -f *.d $(EXE_DEPS)
+
+$(DEP):
+
+-include $(DEP)
+
+-include $(EXE_DEPS)
