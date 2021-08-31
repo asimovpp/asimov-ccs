@@ -1,6 +1,6 @@
 submodule (accsmat) accsmat_petsc
 
-  use accs_kinds, only : accs_int, accs_err
+  use accs_kinds, only : accs_int, accs_real, accs_err
   use accs_types, only : matrix, matrix_init_data
   use accs_petsctypes, only : matrix_petsc
   
@@ -120,6 +120,26 @@ contains
        print *, "Unknown matrix type!"
        stop
     end select
+  end subroutine
+
+  module subroutine set_eqn(rows, M)
+
+    use petsc, only : PETSC_NULL_VEC
+    use petscmat, only : MatZeroRows
+
+    integer(accs_int), dimension(:), intent(in) :: rows
+    class(matrix), intent(inout) :: M
+
+    integer(accs_err) :: ierr
+    
+    select type (M)
+    type is (matrix_petsc)
+       call MatZeroRows(M%M, size(rows), rows, 1.0_accs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
+    class default
+       print *, "Unknown matrix type!"
+       stop
+    end select
+    
   end subroutine
 
 end submodule accsmat_petsc

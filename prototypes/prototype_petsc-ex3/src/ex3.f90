@@ -51,7 +51,7 @@ program ex3
   call create_matrix(mat_sizes, M)
 
   call form_element_stiffness(h**2, K)
-  call assemble_matrix(K, M)
+  call assemble_global_matrix(K, M)
   call update(M) ! Performs the parallel assembly
 
   !! Create right-hand-side and solution vectors
@@ -67,6 +67,8 @@ program ex3
   call update(b) ! Performs the parallel assembly
   
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
+  call apply_dirichlet_bcs(M, b, u)
+  
   !! Create linear solver & set options
   !! Solve linear system
   !! Check solution
@@ -154,7 +156,7 @@ contains
     
   end subroutine form_element_stiffness
 
-  subroutine assemble_matrix(K, M)
+  subroutine assemble_global_matrix(K, M)
 
     use accs_constants, only : add_mode
     use accs_types, only : matrix_values
@@ -181,5 +183,64 @@ contains
     deallocate(mat_coeffs%rglob)
     deallocate(mat_coeffs%cglob)
     deallocate(mat_coeffs%val)
-  end subroutine assemble_matrix
+  end subroutine assemble_global_matrix
+
+  subroutine apply_dirichlet_bcs(M, b, u)
+
+    use accs_constants, only : insert_mode
+    use accsmat, only : set_eqn
+    use accs_types, only : vector_values
+    use accs_utils, only : set_values
+    
+    class(matrix), intent(inout) :: M
+    class(vector), intent(inout) :: b, u
+
+    integer(accs_int), dimension(4 * eps) :: rows
+    integer(accs_int) :: i, idx
+
+    type(vector_values) :: vec_values
+
+    !! Set row indices
+    do i = 1, eps + 1
+       !! Top of domain
+       idx = i
+       rows(idx) = i
+       !! Bottom of domain
+       idx = 3 * eps - 1 + i
+       rows(idx) = i + eps * (eps + 1)
+    end do
+    idx = eps + 1
+    do i = (eps + 1) + 1, eps * (eps + 1), eps + 1
+       rows(idx) = i
+       idx = idx + 1
+    end do
+    idx = 2 * eps + 1
+    do i = (2 * eps + 1) + 1, eps * (eps + 1), eps + 1
+       rows(idx) = i
+       idx = idx + 1
+    end do
+
+    !! PETSc is zero-indexed
+    rows(:) = rows(:) - 1
+
+    print *, minval(rows), maxval(rows)
+    allocate(vec_values%idx(1))
+    allocate(vec_values%val(1))
+    vec_values%mode = insert_mode
+    do i = 1, 4 * eps
+       vec_values%idx(1) = rows(i)
+       vec_values%val(1) = h * (rows(i) / (eps + 1))
+       call set_values(vec_values, b)
+       call set_values(vec_values, u)
+    end do
+    deallocate(vec_values%idx)
+    deallocate(vec_values%val)
+
+    call set_eqn(rows, M)
+
+    !! Need to update halo values
+    call update(b)
+    call update(u)
+    
+  end subroutine apply_dirichlet_bcs
 end program ex3

@@ -3,13 +3,14 @@
 !> @details Provides the interface to matrix objects.
 module accsmat
 
+  use accs_kinds, only : accs_int
   use accs_types, only : matrix, matrix_init_data, matrix_values
   
   implicit none
 
   private
 
-  public :: create_matrix, update_matrix, begin_update_matrix, end_update_matrix, set_matrix_values
+  public :: create_matrix, update_matrix, begin_update_matrix, end_update_matrix, set_matrix_values, set_eqn
 
   interface
 
@@ -54,6 +55,20 @@ module accsmat
        type(matrix_values), intent(in) :: mat_values
        class(matrix), intent(inout) :: M
      end subroutine
+
+     !> @brief Interface to set equation
+     !>
+     !> @param[in]  rows - array of (global) row indices to set the equation on
+     !> @param[in/out] M - the matrix
+     !>
+     !> @details Sets equations in a system of equations by zeroing out the corresponding row in the
+     !>          system matrix and setting the diagonal to one such that the solution is given by
+     !>          the corresponding entry in the right-hand side vector.
+     module subroutine set_eqn(rows, M)
+       integer(accs_int), dimension(:), intent(in) :: rows
+       class(matrix), intent(inout) :: M
+     end subroutine
+     
   end interface
   
 end module accsmat
