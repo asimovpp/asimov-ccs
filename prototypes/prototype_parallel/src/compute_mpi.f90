@@ -28,6 +28,8 @@ submodule (compute) compute_mpi
 
     type is (parallel_environment_mpi)
     
+      write(*,*) "Using MPI compute implementation"
+    
       sum = 0d0
       step = 1.0d0 / num_steps
     

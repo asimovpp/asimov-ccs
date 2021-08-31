@@ -27,6 +27,8 @@ submodule (compute) compute_mpi_omp
     select type (par_env)
 
     type is (parallel_environment_mpi)
+        
+      write(*,*) "Using MPI/OMP compute implementation"
     
       s = 0d0
       step = 1.0d0 / num_steps

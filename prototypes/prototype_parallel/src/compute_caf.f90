@@ -28,6 +28,9 @@ submodule (compute) compute_caf
     select type (par_env)
 
     type is (parallel_environment_caf)   
+
+      write(*,*) "Using CAF compute implementation"
+
       myid = par_env%proc_id ! id of current image
       nimg = par_env%num_procs ! number of images
 
