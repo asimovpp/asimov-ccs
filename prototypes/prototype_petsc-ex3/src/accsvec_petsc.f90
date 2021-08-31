@@ -78,6 +78,9 @@ contains
           end if
           call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
        end select
+    class default
+       print *, "Unknown vector type!"
+       stop
     end select
     
   end subroutine
@@ -103,6 +106,9 @@ contains
     select type (v)
     type is (vector_petsc)
        call VecAssemblyBegin(v%v, ierr)
+    class default
+       print *, "Unknown vector type!"
+       stop
     end select
 
   end subroutine
@@ -118,6 +124,9 @@ contains
     select type (v)
     type is (vector_petsc)
        call VecAssemblyEnd(v%v, ierr)
+    class default
+       print *, "Unknown vector type!"
+       stop
     end select
 
   end subroutine
@@ -139,6 +148,9 @@ contains
           ! PETSc performs AXPY as YPAX, with result stored in Y.
           call VecAXPY(y%v, alpha, x%v, ierr)
        end select
+    class default
+       print *, "Unknown vector type!"
+       stop
     end select
     
   end subroutine
