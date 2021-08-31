@@ -19,36 +19,36 @@ FFLAGS += -DACCS_PETSC
 all: $(OBJ) $(EXE)
 
 test: $(EXE)
-	        make -C ../tests all
+	make -C ../tests all
 
 $(EXE_DEPS): config.json
-			$(PY) generate_link_deps.py $<
+	$(PY) generate_link_deps.py $<
 
 $(EXE): $(EXE_DEPS)
-			$(FC) $(FFLAGS) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
+	$(FC) $(FFLAGS) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
 
 %_caf.mod %_caf.o: %_caf.f90 %_caf.d
-	        $(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
+	$(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
 
 %.mod %.smod %_mod.o: %_mod.f90 %_mod.d
-	        $(FC) $(FFLAGS) -c $< $(INC)
+	$(FC) $(FFLAGS) -c $< $(INC)
 
 %.mod %_mod.o: %_mod.f90 %_mod.d
-	        $(FC) $(FFLAGS) -c $< $(INC)
+	$(FC) $(FFLAGS) -c $< $(INC)
 
 %.o: %.f90 %.d
-	        $(FC) $(FFLAGS) -o $@ -c $< $(INC)
+	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
 
 %_caf.o: %_caf.f90 %_caf.d
-	        $(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
+	$(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
 
 %.d: %.f90
-	        -@$(FC) $(FFLAGS) $(DEPFLAGS) $@ $< $(INC)
+	-@$(FC) $(FFLAGS) $(DEPFLAGS) $@ $< $(INC)
 
 clean:
-	        rm -f $(EXE) *.o *.mod *.smod
+	rm -f $(EXE) *.o *.mod *.smod
 clean-full: clean
-	        rm -f *.d $(EXE_DEPS)
+	rm -f *.d $(EXE_DEPS)
 
 $(DEP):
 
