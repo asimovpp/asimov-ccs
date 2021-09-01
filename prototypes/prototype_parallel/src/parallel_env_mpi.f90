@@ -4,7 +4,7 @@
 
 submodule (parallel) parallel_env_mpi
 
-  use mpi
+  use mpi_f08
 
   implicit none
 

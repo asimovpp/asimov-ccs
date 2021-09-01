@@ -4,9 +4,6 @@
 !> use MPI, e.g. MPI constants
 submodule (parallel_types) parallel_types_mpi
 
-  use mpi
-  use iso_fortran_env
-
   implicit none
 
   contains
@@ -22,16 +19,16 @@ submodule (parallel_types) parallel_types_mpi
     select type (rop)
 
     type is (reduction_operator_mpi)   
-      rop%sum_op = int(MPI_SUM,kind=4)
-      rop%min_op = int(MPI_MIN,kind=4)
-      rop%max_op = int(MPI_MAX,kind=4)
-      rop%prod_op = int(MPI_PROD,kind=4)
-      rop%land_op = int(MPI_LAND,kind=4)
-      rop%lor_op = int(MPI_LOR,kind=4)
-      rop%band_op = int(MPI_BAND,kind=4)
-      rop%bor_op = int(MPI_BOR,kind=4)
-      rop%maxloc_op = int(MPI_MAXLOC,kind=4)
-      rop%minloc_op = int(MPI_MINLOC,kind=4)
+      rop%sum_op = MPI_SUM
+      rop%min_op = MPI_MIN
+      rop%max_op = MPI_MAX
+      rop%prod_op = MPI_PROD
+      rop%land_op = MPI_LAND
+      rop%lor_op = MPI_LOR
+      rop%band_op = MPI_BAND
+      rop%bor_op = MPI_BOR
+      rop%maxloc_op = MPI_MAXLOC
+      rop%minloc_op = MPI_MINLOC
 
     class default
       write(*,*) "Unsupported reduction operator type"    

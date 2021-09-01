@@ -4,7 +4,7 @@
 
 submodule (parallel) parallel_collectives_mpi
 
-  use mpi
+  use mpi_f08
 
   implicit none
 
@@ -20,7 +20,7 @@ submodule (parallel) parallel_collectives_mpi
 
     class(*), intent(in) :: input_value
     class(*), intent(out) :: result_value
-    integer, intent(in) :: op
+    class(*), intent(in) :: op
     class(parallel_environment), intent(in) :: par_env
     integer :: ierr
 
