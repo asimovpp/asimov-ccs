@@ -1,6 +1,7 @@
 submodule (accs_solver) accs_solver_petsc
 
   use accs_kinds, only : accs_int, accs_err
+  use accs_types, only : linear_solver
   use accs_petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   
   implicit none
