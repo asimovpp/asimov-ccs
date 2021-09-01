@@ -48,25 +48,7 @@ program ex3
   
   !! Initialise program
   call accs_init()
-  h = 1.0_accs_real / eps
-
-  nel = eps**2       ! Number of elements
-  nnd = (eps + 1)**2 ! Number of nodes
-  call MPI_Comm_size(PETSC_COMM_WORLD, comm_size, ierr)
-  call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
-  istart = comm_rank * ((nel) / comm_size)
-  if (modulo(nel, comm_size) < comm_rank) then
-     istart = istart + modulo(nel, comm_size)
-  else
-     istart = istart + comm_rank
-  end if
-  istart = istart + 1 ! Fortran - 1 indexed
-  
-  iend = istart + nel / comm_size
-  if (modulo(nel, comm_size) > comm_rank) then
-     iend = iend + 1
-  end if
-  iend = iend - 1
+  call init_ex3()
   
   !! Create stiffness matrix
   mat_sizes%rglob = nnd
@@ -317,4 +299,27 @@ contains
 
     call update(ustar)
   end subroutine set_exact_sol
+
+  subroutine init_ex3()
+
+    h = 1.0_accs_real / eps
+    nel = eps**2       ! Number of elements
+    nnd = (eps + 1)**2 ! Number of nodes
+    call MPI_Comm_size(PETSC_COMM_WORLD, comm_size, ierr)
+    call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
+    istart = comm_rank * ((nel) / comm_size)
+    if (modulo(nel, comm_size) < comm_rank) then
+       istart = istart + modulo(nel, comm_size)
+    else
+       istart = istart + comm_rank
+    end if
+    istart = istart + 1 ! Fortran - 1 indexed
+  
+    iend = istart + nel / comm_size
+    if (modulo(nel, comm_size) > comm_rank) then
+       iend = iend + 1
+    end if
+    iend = iend - 1
+    
+  end subroutine init_ex3
 end program ex3
