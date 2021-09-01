@@ -31,8 +31,9 @@ program ex3
   type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
   
-  integer(accs_int), parameter :: eps = 100 ! Elements per side
+  integer(accs_int), parameter :: eps = 10 ! Elements per side
                                             ! XXX: temporary parameter - this should be read from input
+  integer(accs_int) :: eps2
   
   integer(accs_int) :: istart, iend
   real(accs_real) :: h
@@ -43,12 +44,27 @@ program ex3
   real(accs_real), dimension(16) :: K ! Element stiffness matrix
   
   integer(accs_err) :: ierr
-  integer :: nrank
+  integer :: comm_rank, comm_size
   
   !! Initialise program
   call accs_init()
-  call MPI_Comm_rank(PETSC_COMM_WORLD, nrank, ierr)
-  istart = 0; iend = 0
+
+  eps2 = eps**2
+  call MPI_Comm_size(PETSC_COMM_WORLD, comm_size, ierr)
+  call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
+  istart = comm_rank * ((eps2) / comm_size)
+  if (modulo(eps2, comm_size) < comm_rank) then
+     istart = istart + modulo(eps2, comm_size)
+  else
+     istart = istart + comm_rank
+  end if
+  istart = istart + 1 ! Fortran - 1 indexed
+  
+  iend = istart + eps2 / comm_size
+  if (modulo(eps2, comm_size) > comm_rank) then
+     iend = iend + 1
+  end if
+  iend = iend - 1
   
   !! Create stiffness matrix
   mat_sizes%rglob = (eps+1)**2
@@ -89,7 +105,7 @@ program ex3
   call update(ustar) ! Performs the parallel assembly
   call axpy(-1.0_accs_real, u, ustar)
   err_norm = norm(ustar, 2)
-  if (nrank == 0) then
+  if (comm_rank == 0) then
      print *, "Norm of error = ", err_norm
   end if
   
@@ -139,7 +155,10 @@ contains
     integer(accs_int), intent(in) :: i
     integer(accs_int), dimension(npe), intent(out) :: idx
 
-    idx(1) = (eps + 1) * (i / eps) + modulo(i, eps)
+    integer(accs_int) :: ii
+    
+    ii = i - 1 !! Need to convert from Fortran to C indexing as this is based on ex3.c
+    idx(1) = (eps + 1) * (ii / eps) + modulo(ii, eps)
     idx(2) = idx(1) + 1
     idx(3) = idx(2) + (eps + 1)
     idx(4) = idx(3) - 1
