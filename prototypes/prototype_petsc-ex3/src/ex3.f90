@@ -104,7 +104,6 @@ program ex3
   !! Check solution
   call create_vector(vec_sizes, ustar)
   call set_exact_sol(ustar)
-  print *, norm(u, 2) * h, norm(ustar, 2) * h
   call axpy(-1.0_accs_real, ustar, u)
   err_norm = norm(u, 2) * h
   if (comm_rank == 0) then
@@ -281,22 +280,36 @@ contains
 
   subroutine set_exact_sol(ustar)
 
+    use petscvec, only : VecGetOwnershipRange
+    
     use accs_constants, only : insert_mode
     use accs_types, only : vector_values
     use accs_utils, only : set_values
+
+    use accs_petsctypes, only : vector_petsc
     
     class(vector), intent(inout) :: ustar
 
     type(vector_values) :: vec_values
-    integer(accs_int) :: i
+    integer(accs_int) :: i, istart, iend
+    integer(accs_err) :: ierr
+
+    ! TODO: abstract this!
+    select type(ustar)
+    type is (vector_petsc)
+       call VecGetOwnershipRange(ustar%v, istart, iend, ierr)
+       istart = istart + 1
+    class default
+       print *, "Wrong type of vector! Besides you should have abstracted this!"
+       stop
+    end select
     
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
-    do i = 1, nnd ! TODO: get the ownership range - this only works for 1 rank!
+    do i = istart, iend
        vec_values%idx(1) = i - 1
        vec_values%val(1) = h * (vec_values%idx(1) / (eps + 1))
-       print *, vec_values%idx(1), vec_values%val(1)
        call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%idx)
