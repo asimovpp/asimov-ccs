@@ -18,7 +18,8 @@ submodule (parallel) parallel_env_mpi
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
-    class(parallel_environment), intent(out) :: par_env
+    class(parallel_environment), allocatable, intent(out) :: par_env
+    allocate(parallel_environment_mpi :: par_env)
 
     select type (par_env)
 

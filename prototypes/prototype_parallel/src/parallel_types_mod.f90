@@ -30,37 +30,21 @@ module parallel_types
     type(mpi_op) :: minloc_op
   end type reduction_operator_mpi
 
-  !> @brief reduction operator type for MPI
-  !>
-  !> @details reduction operator type from MPI that holds
-  !> the MPI operator values that are passed to reductions
-  type, extends(reduction_operator), public :: reduction_operator_caf
-    integer(kind=4) :: sum_op
-    integer(kind=4) :: min_op
-    integer(kind=4) :: max_op
-  end type reduction_operator_caf
-
-  interface
-    !> @brief Set the values of the reduction operators
-    module subroutine set_reduction_operators(rop)
-      class(reduction_operator), intent(out) :: rop
-    end subroutine
-
-  end interface
-
-  !> @brief placeholder parallel environment type
+  !> @brief parallel environment type with common parameters
+  !> process id, number of processes and root process
   type, public :: parallel_environment
+    integer :: proc_id
+    integer :: num_procs
+    integer :: root
   end type parallel_environment
 
   !> @brief parallel environment type for MPI
   !>
   !> @details parallel environment type from MPI that holds
-  !> rank, number of processes and communicator
+  !> a communicator and reduction operators in addition
+  !> to the common parameters
   type, extends(parallel_environment), public :: parallel_environment_mpi
-    integer :: proc_id
-    integer :: num_procs
     type(mpi_comm) :: comm
-    integer :: root
     type(reduction_operator_mpi) :: rop
   end type parallel_environment_mpi
 
@@ -69,10 +53,14 @@ module parallel_types
   !> @details parallel environment type from CAF that holds
   !> image ID and the number of images
   type, extends(parallel_environment), public :: parallel_environment_caf
-    integer :: proc_id
-    integer :: num_procs
-    integer :: root
   end type parallel_environment_caf
+
+  interface
+    !> @brief Set the values of the reduction operators
+    module subroutine set_reduction_operators(rop)
+      class(reduction_operator), intent(inout) :: rop
+    end subroutine
+  end interface
 
   public :: set_reduction_operators
 

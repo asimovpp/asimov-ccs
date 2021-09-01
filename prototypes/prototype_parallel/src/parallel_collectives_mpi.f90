@@ -20,25 +20,34 @@ submodule (parallel) parallel_collectives_mpi
 
     class(*), intent(in) :: input_value
     class(*), intent(out) :: result_value
-    class(*), intent(in) :: op
+    type(mpi_op), intent(in) :: op
     class(parallel_environment), intent(in) :: par_env
     integer :: ierr
 
     select type (par_env)
 
     type is (parallel_environment_mpi)   
-      select type (input_value)
 
-      type is (integer)
-        call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, op, par_env%comm, ierr)
+!      select type(op)
+!        type is(reduction_operator_mpi)
 
-      type is (double precision)
-        call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, op, par_env%comm, ierr)
+!        write(*,*) "Type is correct"
+        select type (input_value)
+        type is (integer)
+          call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, op, par_env%comm, ierr)
 
-      class default
-        write(*,*) "Unsupported input data type"    
+        type is (double precision)
+          call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, op, par_env%comm, ierr)
+
+        class default
+          write(*,*) "Unsupported input data type"    
 
       end select
+
+!      class default
+!        write(*,*) "Unsupported reduction operation type"
+
+!      end select
 
       call error_handling(ierr, par_env)
   

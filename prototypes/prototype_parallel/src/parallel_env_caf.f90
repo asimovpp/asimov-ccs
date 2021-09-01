@@ -13,7 +13,8 @@ submodule (parallel) parallel_env_caf
   !> @param[out] parallel_environment_caf par_env
   module subroutine initialise_parallel_environment(par_env)
 
-    class(parallel_environment), intent(out) :: par_env
+    class(parallel_environment), allocatable, intent(out) :: par_env
+    allocate(parallel_environment_caf :: par_env)
 
     select type (par_env)
 

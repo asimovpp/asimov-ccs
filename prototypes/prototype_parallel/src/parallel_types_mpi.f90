@@ -14,7 +14,7 @@ submodule (parallel_types) parallel_types_mpi
   !> reduction operator values for MPI
   module subroutine set_reduction_operators(rop)
 
-    class(reduction_operator), intent(out) :: rop
+    class(reduction_operator), intent(inout) :: rop
 
     select type (rop)
 
@@ -31,7 +31,7 @@ submodule (parallel_types) parallel_types_mpi
       rop%minloc_op = MPI_MINLOC
 
     class default
-      write(*,*) "Unsupported reduction operator type"    
+      write(*,*) "Unsupported parallel environment"    
 
     end select
 
