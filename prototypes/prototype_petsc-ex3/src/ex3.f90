@@ -209,7 +209,7 @@ contains
        idx = 3 * eps - 1 + i
        rows(idx) = i + eps * (eps + 1)
     end do
-    idx = eps + 1
+    idx = (eps + 1) + 1
     do i = (eps + 1) + 1, eps * (eps + 1), eps + 1
        rows(idx) = i
        idx = idx + 1
@@ -223,7 +223,6 @@ contains
     !! PETSc is zero-indexed
     rows(:) = rows(:) - 1
 
-    print *, minval(rows), maxval(rows)
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
