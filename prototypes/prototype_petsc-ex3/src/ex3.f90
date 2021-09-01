@@ -31,9 +31,9 @@ program ex3
   type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
   
-  integer(accs_int), parameter :: eps = 100 ! Elements per side
-                                            ! XXX: temporary parameter - this should be read from input
-  integer(accs_int) :: eps2
+  integer(accs_int), parameter :: eps = 5 ! Elements per side
+                                          ! XXX: temporary parameter - this should be read from input
+  integer(accs_int) :: nel, nnd
   
   integer(accs_int) :: istart, iend
   real(accs_real) :: h
@@ -50,25 +50,26 @@ program ex3
   call accs_init()
   h = 1.0_accs_real / eps
 
-  eps2 = eps**2
+  nel = eps**2       ! Number of elements
+  nnd = (eps + 1)**2 ! Number of nodes
   call MPI_Comm_size(PETSC_COMM_WORLD, comm_size, ierr)
   call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
-  istart = comm_rank * ((eps2) / comm_size)
-  if (modulo(eps2, comm_size) < comm_rank) then
-     istart = istart + modulo(eps2, comm_size)
+  istart = comm_rank * ((nel) / comm_size)
+  if (modulo(nel, comm_size) < comm_rank) then
+     istart = istart + modulo(nel, comm_size)
   else
      istart = istart + comm_rank
   end if
   istart = istart + 1 ! Fortran - 1 indexed
   
-  iend = istart + eps2 / comm_size
-  if (modulo(eps2, comm_size) > comm_rank) then
+  iend = istart + nel / comm_size
+  if (modulo(nel, comm_size) > comm_rank) then
      iend = iend + 1
   end if
   iend = iend - 1
   
   !! Create stiffness matrix
-  mat_sizes%rglob = (eps+1)**2
+  mat_sizes%rglob = nnd
   mat_sizes%cglob = mat_sizes%rglob
   mat_sizes%comm = PETSC_COMM_WORLD
   call create_matrix(mat_sizes, M)
@@ -79,7 +80,7 @@ program ex3
 
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
-  vec_sizes%nglob = (eps+1)**2
+  vec_sizes%nglob = nnd
   vec_sizes%comm = PETSC_COMM_WORLD
   call create_vector(vec_sizes, u)
   call create_vector(vec_sizes, b)
@@ -102,9 +103,10 @@ program ex3
   
   !! Check solution
   call create_vector(vec_sizes, ustar)
-  call update(ustar) ! Performs the parallel assembly
-  call axpy(-1.0_accs_real, u, ustar)
-  err_norm = norm(ustar, 2)
+  call set_exact_sol(ustar)
+  print *, norm(u, 2) * h, norm(ustar, 2) * h
+  call axpy(-1.0_accs_real, ustar, u)
+  err_norm = norm(u, 2) * h
   if (comm_rank == 0) then
      print *, "Norm of error = ", err_norm
   end if
@@ -276,4 +278,30 @@ contains
     call update(u)
     
   end subroutine apply_dirichlet_bcs
+
+  subroutine set_exact_sol(ustar)
+
+    use accs_constants, only : insert_mode
+    use accs_types, only : vector_values
+    use accs_utils, only : set_values
+    
+    class(vector), intent(inout) :: ustar
+
+    type(vector_values) :: vec_values
+    integer(accs_int) :: i
+    
+    allocate(vec_values%idx(1))
+    allocate(vec_values%val(1))
+    vec_values%mode = insert_mode
+    do i = 1, nnd ! TODO: get the ownership range - this only works for 1 rank!
+       vec_values%idx(1) = i - 1
+       vec_values%val(1) = h * (vec_values%idx(1) / (eps + 1))
+       print *, vec_values%idx(1), vec_values%val(1)
+       call set_values(vec_values, ustar)
+    end do
+    deallocate(vec_values%idx)
+    deallocate(vec_values%val)
+
+    call update(ustar)
+  end subroutine set_exact_sol
 end program ex3
