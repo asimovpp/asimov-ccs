@@ -1,8 +1,8 @@
 
 PY = python
-FC = mpif90
-FFLAGS = -cpp -std="f2018" -fcoarray=single -fopenmp #-Wall -Wpedantic -Werror
-MODFLAGS = -fsyntax-only
+FC = ftn
+FFLAGS = -ef -hcaf -homp  #-Wall -Wpedantic -Werror
+MODFLAGS = -dB
 
 EXE = ccs_app
 EXE_DEPS=ccs_app.deps
@@ -28,7 +28,7 @@ $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
 
 %_caf.mod %_caf.o: %_caf.f90
-	$(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
+	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
 
 %.mod %.smod %_mod.o: %_mod.f90
 	$(FC) $(FFLAGS) -c $< $(INC)
@@ -40,7 +40,7 @@ $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
 
 %_caf.o: %_caf.f90
-	$(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
+	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod
