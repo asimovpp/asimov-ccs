@@ -4,10 +4,12 @@
 
 module accs_petsctypes
 
+  use petscksp, only : tKSP
   use petscvec, only : tVec
   use petscmat, only : tMat
 
-  use accs_types, only : vector, matrix
+  use accs_kinds, only : accs_err
+  use accs_types, only : vector, matrix, linear_solver
   
   implicit none
 
@@ -29,11 +31,18 @@ module accs_petsctypes
      final :: free_matrix_petsc
   end type matrix_petsc
 
+  type, public, extends(linear_solver) :: linear_solver_petsc
+     type(tKSP) :: KSP !> The PETSc solver
+     logical :: allocated
+   contains
+     final :: free_linear_solver_petsc
+  end type linear_solver_petsc
+
 contains
   
   !> @brief Destroys a PETSc-backed vector.
   !>
-  !> @param[in] vector v - the vector to be destroyed.
+  !> @param[in/out] vector v - the vector to be destroyed.
   !>
   !> @details Destructor called by deallocating a vector_petsc - confirms the PETSc vector object is
   !>          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
@@ -42,7 +51,7 @@ contains
     
     type(vector_petsc), intent(inout) :: v
 
-    integer :: ierr
+    integer(accs_err) :: ierr
 
     if (v%allocated) then
        call VecDestroy(v%v, ierr)
@@ -55,16 +64,16 @@ contains
   
   !> @brief Destroys a PETSc-backed matrix.
   !>
-  !> @param[in] matrix M - the matrix to be destroyed.
+  !> @param[in/out] matrix M - the matrix to be destroyed.
   !>
-  !> @details Destructor called by deallocating a vector_petsc - confirms the PETSc vector object is
-  !>          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
+  !> @details Destructor called by deallocating a matrix_petsc - confirms the PETSc matrix object is
+  !>          allocated and calls the necessary destructor on the wrapped PETSc matrix object, sets
   !>          the allocated flag to .false. to prevent double free's.
   module subroutine free_matrix_petsc(M)
 
     type(matrix_petsc), intent(inout) :: M
 
-    integer :: ierr
+    integer(accs_err) :: ierr
 
     if (M%allocated) then
        call MatDestroy(M%M, ierr)
@@ -74,5 +83,28 @@ contains
     end if
 
   end subroutine
-  
+
+  !> @brief Destroys a PETSc-backed linear solver.
+  !>
+  !> @param[in/out] linear_solver solver - the linear solver to be destroyed.
+  !>
+  !> @details Destructor called by deallocating a linear_solver_petsc - confirms the PETSc vector
+  !>          object is allocated and calls the necessary destructor on the wrapped
+  !>          PETSc linear_solver object, sets the allocated flag to .false. to prevent double
+  !>          free's.
+  subroutine free_linear_solver_petsc(solver)
+
+    type(linear_solver_petsc), intent(inout) :: solver
+
+    integer(accs_err) :: ierr
+
+    if (solver%allocated) then
+       call KSPDestroy(solver%KSP, ierr)
+       solver%allocated = .false.
+    else
+       print *, "WARNING: attempted double free of linear solver"
+    end if
+
+  end subroutine free_linear_solver_petsc
+
 end module accs_petsctypes

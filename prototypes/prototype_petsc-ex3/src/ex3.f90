@@ -11,20 +11,26 @@ program ex3
 
   !! ASiMoV-CCS uses
   use accs_kinds, only : accs_real, accs_int, accs_err
-  use accs_types, only : vector_init_data, vector, matrix_init_data, matrix
+  use accs_types, only : vector_init_data, vector, matrix_init_data, matrix, linear_system, &
+       linear_solver
   use accsvec, only : create_vector, axpy, norm
   use accsmat, only : create_matrix
+  use accs_solver, only : create_solver, solve
   use accs_utils, only : accs_init, accs_finalise, update
 
   use accs_petsctypes, only : matrix_petsc
   
   implicit none
 
-  class(vector), allocatable :: u, b, ustar
+  class(vector), allocatable, target :: u, b
+  class(vector), allocatable :: ustar
   type(vector_init_data) :: vec_sizes
-  class(matrix), allocatable :: M
-  type(matrix_init_data) :: mat_sizes = matrix_init_data(rglob=-1, cglob=-1, rloc=-1, cloc=-1, comm=MPI_COMM_NULL)
-
+  class(matrix), allocatable, target :: M
+  type(matrix_init_data) :: mat_sizes = matrix_init_data(rglob=-1, cglob=-1, rloc=-1, cloc=-1, &
+       comm=MPI_COMM_NULL)
+  type(linear_system) :: poisson_eq
+  class(linear_solver), allocatable :: poisson_solver
+  
   integer(accs_int), parameter :: eps = 100 ! Elements per side
                                             ! XXX: temporary parameter - this should be read from input
   
@@ -70,7 +76,14 @@ program ex3
   call apply_dirichlet_bcs(M, b, u)
   
   !! Create linear solver & set options
+  poisson_eq%rhs => b
+  poisson_eq%sol => u
+  poisson_eq%M => M
+  poisson_eq%comm = PETSC_COMM_WORLD
+  call create_solver(poisson_eq, poisson_solver)
   !! Solve linear system
+  call solve(poisson_solver)
+  
   !! Check solution
   call create_vector(vec_sizes, ustar)
   call update(ustar) ! Performs the parallel assembly

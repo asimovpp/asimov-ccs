@@ -60,5 +60,17 @@ module accs_types
                                                            !! size(cglob). Uses row-major ordering.
      integer(accs_int) :: mode                             !> Which mode to use when setting values?
   end type matrix_values
+
+  !> @brief Container type representing a linear system.
+  type, public :: linear_system
+     class(vector), pointer :: sol, rhs
+     class(matrix), pointer :: M
+     integer :: comm
+  end type linear_system
   
+  !> @brief Stub type for solvers to be extended in sub-modules.
+  type, public :: linear_solver
+     type(linear_system) :: eqsys
+  end type linear_solver
+
 end module accs_types
