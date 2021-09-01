@@ -1,6 +1,6 @@
 submodule (accs_solver) accs_solver_petsc
 
-  use accs_kinds, only : accs_err
+  use accs_kinds, only : accs_int, accs_err
   use accs_petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   
   implicit none
@@ -51,6 +51,8 @@ contains
 
   module subroutine solve(solver)
 
+    use petscksp, only : KSPSolve
+    
     class(linear_solver), intent(inout) :: solver
 
     integer(accs_err) :: ierr
@@ -66,6 +68,9 @@ contains
             select type(u)
             type is(vector_petsc)
                call KSPSolve(ksp, b%v, u%v, ierr)
+               if (ierr /= 0) then
+                  print *, "ERROR in linear solve!"
+               end if
             class default
                print *, "ERROR: Trying to use non-PETSc vector for solution with PETSc solver!"
                stop

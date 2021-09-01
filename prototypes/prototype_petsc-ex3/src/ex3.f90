@@ -31,7 +31,7 @@ program ex3
   type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
   
-  integer(accs_int), parameter :: eps = 10 ! Elements per side
+  integer(accs_int), parameter :: eps = 100 ! Elements per side
                                             ! XXX: temporary parameter - this should be read from input
   integer(accs_int) :: eps2
   
@@ -48,6 +48,7 @@ program ex3
   
   !! Initialise program
   call accs_init()
+  h = 1.0_accs_real / eps
 
   eps2 = eps**2
   call MPI_Comm_size(PETSC_COMM_WORLD, comm_size, ierr)
@@ -97,7 +98,6 @@ program ex3
   poisson_eq%M => M
   poisson_eq%comm = PETSC_COMM_WORLD
   call create_solver(poisson_eq, poisson_solver)
-  !! Solve linear system
   call solve(poisson_solver)
   
   !! Check solution
@@ -114,6 +114,7 @@ program ex3
   deallocate(b)
   deallocate(ustar)
   deallocate(M)
+  deallocate(poisson_solver)
   
   call accs_finalise()
 
@@ -127,7 +128,7 @@ contains
     
     class(vector), intent(inout) :: b
 
-    integer(accs_int) :: i
+    integer(accs_int) :: i, ii
     real(accs_real) :: x, y
 
     type(vector_values) :: val_dat
@@ -137,8 +138,9 @@ contains
     allocate(val_dat%val(npe))
     
     do i = istart, iend
-       x = h * modulo(i, eps)
-       y = h * (i / eps)
+       ii = i - 1
+       x = h * modulo(ii, eps)
+       y = h * (ii / eps)
 
        call element_indices(i, val_dat%idx)
        call eval_element_rhs(x, y, h**2, val_dat%val)
