@@ -23,7 +23,8 @@ submodule (compute) compute_caf
     double precision :: step, x, sum, finalsum
     integer(kind=int64) :: i, myid, nimg
 
-    double precision, save :: partial[*] ! co-array that holds partial sum
+    double precision, allocatable :: partial[:] ! co-array that holds partial sum
+    allocate(partial)
 
     select type (par_env)
 
