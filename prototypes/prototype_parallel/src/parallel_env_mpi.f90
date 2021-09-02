@@ -34,7 +34,10 @@ submodule (parallel) parallel_env_mpi
       call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
       call error_handling(ierr, par_env)
 
-      call set_reduction_operators(par_env%rop)
+      ! call set_reduction_operators(par_env%set(MPI_OP))
+      call par_env%set(MPI_SUM)
+      call par_env%set(MPI_MIN)
+      call par_env%set(MPI_MAX)
       
       par_env%root=0
     

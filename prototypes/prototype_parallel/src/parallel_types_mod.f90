@@ -18,16 +18,7 @@ module parallel_types
   !> @details reduction operator type from MPI that holds
   !> the MPI operator values that are passed to reductions
   type, extends(reduction_operator), public :: reduction_operator_mpi
-    type(mpi_op) :: sum_op
-    type(mpi_op) :: min_op
-    type(mpi_op) :: max_op
-    type(mpi_op) :: prod_op
-    type(mpi_op) :: land_op
-    type(mpi_op) :: lor_op
-    type(mpi_op) :: band_op
-    type(mpi_op) :: bor_op
-    type(mpi_op) :: maxloc_op
-    type(mpi_op) :: minloc_op
+    type(mpi_op) :: op
   end type reduction_operator_mpi
 
   !> @brief parallel environment type with common parameters
@@ -45,7 +36,18 @@ module parallel_types
   !> to the common parameters
   type, extends(parallel_environment), public :: parallel_environment_mpi
     type(mpi_comm) :: comm
-    type(reduction_operator_mpi) :: rop
+    type(reduction_operator_mpi) :: sum_op
+    type(reduction_operator_mpi) :: min_op
+    type(reduction_operator_mpi) :: max_op
+    type(reduction_operator_mpi) :: prod_op
+    type(reduction_operator_mpi) :: land_op
+    type(reduction_operator_mpi) :: lor_op
+    type(reduction_operator_mpi) :: band_op
+    type(reduction_operator_mpi) :: bor_op
+    type(reduction_operator_mpi) :: maxloc_op
+    type(reduction_operator_mpi) :: minloc_op
+    contains
+      procedure :: set => set_mpi_reduction_operator
   end type parallel_environment_mpi
 
   !> @brief parallel environment type for CAF
@@ -57,11 +59,12 @@ module parallel_types
 
   interface
     !> @brief Set the values of the reduction operators
-    module subroutine set_reduction_operators(rop)
-      class(reduction_operator), intent(inout) :: rop
+    module subroutine set_mpi_reduction_operator(this, mpi_rop)
+      class(parallel_environment), intent(inout) :: this
+      type(mpi_op), intent(in) :: mpi_rop
     end subroutine
   end interface
 
-  public :: set_reduction_operators
+  public :: set_mpi_reduction_operator
 
 end module parallel_types
