@@ -31,7 +31,6 @@ submodule (parallel) parallel_collectives_mpi
       select type(rop)
         type is(reduction_operator_mpi)
 
-!        write(*,*) "Type is correct"
         select type (input_value)
         type is (integer)
           call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, rop%op, par_env%comm, ierr)

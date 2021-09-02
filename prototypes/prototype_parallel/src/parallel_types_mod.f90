@@ -47,7 +47,7 @@ module parallel_types
     type(reduction_operator_mpi) :: maxloc_op
     type(reduction_operator_mpi) :: minloc_op
     contains
-      procedure :: set => set_mpi_reduction_operator
+      procedure :: set_rop => set_mpi_reduction_operator
   end type parallel_environment_mpi
 
   !> @brief parallel environment type for CAF
@@ -59,9 +59,8 @@ module parallel_types
 
   interface
     !> @brief Set the values of the reduction operators
-    module subroutine set_mpi_reduction_operator(this, mpi_rop)
+    module subroutine set_mpi_reduction_operator(this)
       class(parallel_environment), intent(inout) :: this
-      type(mpi_op), intent(in) :: mpi_rop
     end subroutine
   end interface
 

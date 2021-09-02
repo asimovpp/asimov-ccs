@@ -35,9 +35,7 @@ submodule (parallel) parallel_env_mpi
       call error_handling(ierr, par_env)
 
       ! call set_reduction_operators(par_env%set(MPI_OP))
-      call par_env%set(MPI_SUM)
-      call par_env%set(MPI_MIN)
-      call par_env%set(MPI_MAX)
+      call par_env%set_rop()
       
       par_env%root=0
     

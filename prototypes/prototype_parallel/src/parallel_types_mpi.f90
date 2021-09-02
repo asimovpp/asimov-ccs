@@ -12,10 +12,9 @@ submodule (parallel_types) parallel_types_mpi
   !>
   !> @param[out] reduction_operator_mpi rop - Variable that holds
   !> reduction operator values for MPI
-  module subroutine set_mpi_reduction_operator(this, mpi_rop)
+  module subroutine set_mpi_reduction_operator(this)
 
     class(parallel_environment), intent(inout) :: this
-    type(mpi_op), intent(in) :: mpi_rop
 
     select type (this)
 
