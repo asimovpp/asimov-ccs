@@ -1,6 +1,6 @@
-  !> @brief Module file accs_solver.mod
-  !>
-  !> @details An interface to linear solver objects.
+!> @brief Module file accs_solver.mod
+!>
+!> @details An interface to linear solver objects.
 
 module accs_solver
 
