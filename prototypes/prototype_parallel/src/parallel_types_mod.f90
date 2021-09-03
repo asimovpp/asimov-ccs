@@ -9,6 +9,8 @@ module parallel_types
 
   private 
 
+  public :: set_mpi_reduction_operator
+
   !> @brief placeholder reduction operator type
   type, public :: reduction_operator
   end type reduction_operator
@@ -64,6 +66,5 @@ module parallel_types
     end subroutine
   end interface
 
-  public :: set_mpi_reduction_operator
 
 end module parallel_types
