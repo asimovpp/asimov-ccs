@@ -94,12 +94,12 @@ contains
     
     integer(accs_err) :: ierr
 
-    select type (M)
-    type is (matrix_petsc)
-       associate(ridx=>mat_values%rglob, &
-            cidx=>mat_values%cglob, &
-            val=>mat_values%val, &
-            matmode=>mat_values%mode)
+    associate(ridx=>mat_values%rglob, &
+         cidx=>mat_values%cglob, &
+         val=>mat_values%val, &
+         matmode=>mat_values%mode)
+      select type (M)
+      type is (matrix_petsc)
          nrows = size(ridx)
          ncols = size(cidx)
          if (nrows * ncols /= size(val)) then
@@ -115,11 +115,12 @@ contains
             stop
          end if
          call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
-       end associate
-    class default
-       print *, "Unknown matrix type!"
-       stop
-    end select
+      class default
+         print *, "Unknown matrix type!"
+         stop
+      end select
+    end associate
+
   end subroutine
 
   module subroutine set_eqn(rows, M)

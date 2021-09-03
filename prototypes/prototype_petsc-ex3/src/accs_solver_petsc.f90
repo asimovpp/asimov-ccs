@@ -61,12 +61,10 @@ contains
     select type(solver)
     type is(linear_solver_petsc)
 
-       associate(ksp => solver%KSP, &
-            b => solver%eqsys%rhs, &
-            u => solver%eqsys%sol)
-         select type (b)
+       associate(ksp => solver%KSP)
+         select type (b => solver%eqsys%rhs)
          type is(vector_petsc)
-            select type(u)
+            select type(u => solver%eqsys%sol)
             type is(vector_petsc)
                call KSPSolve(ksp, b%v, u%v, ierr)
                if (ierr /= 0) then
