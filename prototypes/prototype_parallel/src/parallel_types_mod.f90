@@ -62,9 +62,8 @@ module parallel_types
   interface
     !> @brief Set the values of the reduction operators
     module subroutine set_mpi_reduction_operator(this)
-      class(parallel_environment), intent(inout) :: this
+      class(parallel_environment_mpi), intent(inout) :: this
     end subroutine
   end interface
-
 
 end module parallel_types
