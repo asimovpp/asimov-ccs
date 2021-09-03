@@ -6,7 +6,6 @@
     "parallel_utils": "mpi",
     "compute": "mpi",
 
-    "collectives": "mpi",
-    "parallel_types": "mpi"
+    "collectives": "mpi"
   }
 }

@@ -19,8 +19,6 @@ method_file_mapping = \
               "caf":     "compute_caf"},
   "collectives": {"mpi": "parallel_collectives_mpi",
                   "none": None},
-  "parallel_types": {"mpi": "parallel_types_mpi",
-                     "none": None},
 }
 
 

@@ -1,8 +1,8 @@
 
 PY = python
-FC = ftn
-FFLAGS = -ef -hcaf -homp  #-Wall -Wpedantic -Werror
-MODFLAGS = -dB
+FC = mpif90
+FFLAGS = -cpp -std="f2018" -fcoarray=single -fopenmp  #-Wall -Wpedantic -Werror
+MODFLAGS = -fsyntax-only
 
 EXE = ccs_app
 EXE_DEPS=ccs_app.deps

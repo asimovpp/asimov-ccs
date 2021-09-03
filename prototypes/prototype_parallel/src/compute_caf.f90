@@ -24,7 +24,7 @@ submodule (compute) compute_caf
     integer(kind=int64) :: i, myid, nimg
 
     double precision, allocatable :: partial[:] ! co-array that holds partial sum
-    allocate(partial)
+    allocate(partial[*])
 
     select type (par_env)
 

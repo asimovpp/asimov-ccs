@@ -9,7 +9,7 @@ module parallel_types
 
   private 
 
-  public :: set_mpi_reduction_operator
+!  public :: set_mpi_reduction_operator
 
   !> @brief placeholder reduction operator type
   type, public :: reduction_operator
@@ -59,11 +59,20 @@ module parallel_types
   type, extends(parallel_environment), public :: parallel_environment_caf
   end type parallel_environment_caf
 
-  interface
-    !> @brief Set the values of the reduction operators
-    module subroutine set_mpi_reduction_operator(this)
-      class(parallel_environment_mpi), intent(inout) :: this
-    end subroutine
-  end interface
+  contains 
+  !> @brief Set the values of the reduction operators
+  subroutine set_mpi_reduction_operator(this)
+    class(parallel_environment_mpi), intent(inout) :: this
+    this%sum_op%op = MPI_SUM
+    this%min_op%op = MPI_MIN
+    this%max_op%op = MPI_MAX
+    this%prod_op%op = MPI_PROD
+    this%land_op%op = MPI_LAND
+    this%lor_op%op = MPI_LOR
+    this%band_op%op = MPI_BAND
+    this%bor_op%op = MPI_BOR
+    this%maxloc_op%op = MPI_MAXLOC
+    this%minloc_op%op = MPI_MINLOC
+  end subroutine
 
-end module parallel_types
+  end module parallel_types
