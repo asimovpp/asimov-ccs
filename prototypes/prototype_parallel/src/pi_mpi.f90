@@ -5,13 +5,13 @@ program pi
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
                       sync, timer
-  use parallel_types, only: parallel_environment_mpi
+  use parallel_types, only: parallel_environment
   use compute, only: compute_pi
 
   implicit none
 
   ! create default parallel environment
-  type(parallel_environment_mpi) :: par_env
+  class(parallel_environment), allocatable :: par_env
 
   double precision :: mypi
   double precision :: start_time, end_time

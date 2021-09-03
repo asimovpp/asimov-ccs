@@ -4,7 +4,7 @@
 
 submodule (parallel) parallel_env_mpi
 
-  use mpi
+  use mpi_f08
 
   implicit none
 
@@ -18,7 +18,8 @@ submodule (parallel) parallel_env_mpi
     integer :: ierr, length, tmp_ierr
     character(len = MPI_MAX_ERROR_STRING) :: error_message
 
-    class(parallel_environment), intent(out) :: par_env
+    class(parallel_environment), allocatable, intent(out) :: par_env
+    allocate(parallel_environment_mpi :: par_env)
 
     select type (par_env)
 
@@ -33,7 +34,8 @@ submodule (parallel) parallel_env_mpi
       call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
       call error_handling(ierr, par_env)
 
-      call set_reduction_operators(par_env%rop)
+      ! call set_reduction_operators(par_env%set(MPI_OP))
+      call par_env%set_rop()
       
       par_env%root=0
     

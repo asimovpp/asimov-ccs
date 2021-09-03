@@ -5,6 +5,7 @@
 module parallel
 
   use parallel_types
+  use mpi_f08
 
   implicit none
 
@@ -14,7 +15,7 @@ module parallel
 
     !> @brief Create the parallel environment
     module subroutine initialise_parallel_environment(par_env)
-      class(parallel_environment), intent(out) :: par_env
+      class(parallel_environment), allocatable, intent(out) :: par_env
     end subroutine
 
     !> @brief Cleanup the parallel environment
@@ -33,10 +34,10 @@ module parallel
     end subroutine
 
     !> @brief Global reduction of integer scalars
-    module subroutine allreduce_scalar(input_value, result_value, op, par_env)
+    module subroutine allreduce_scalar(input_value, result_value, rop, par_env)
       class(*), intent(in) :: input_value
       class(*), intent(out) :: result_value
-      integer, intent(in) :: op
+      class(reduction_operator), intent(in) :: rop
       class(parallel_environment), intent(in) :: par_env
     end subroutine
 

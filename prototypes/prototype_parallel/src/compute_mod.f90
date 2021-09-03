@@ -7,6 +7,8 @@ module compute
 
   private
 
+  public :: compute_pi
+
   interface
 
   !> @brief Compute Pi
@@ -21,7 +23,5 @@ module compute
   end subroutine
 
   end interface 
-
-  public :: compute_pi
 
 end module compute

@@ -4,9 +4,6 @@
 !> use MPI, e.g. MPI constants
 submodule (parallel_types) parallel_types_mpi
 
-  use mpi
-  use iso_fortran_env
-
   implicit none
 
   contains
@@ -15,28 +12,20 @@ submodule (parallel_types) parallel_types_mpi
   !>
   !> @param[out] reduction_operator_mpi rop - Variable that holds
   !> reduction operator values for MPI
-  module subroutine set_reduction_operators(rop)
+  module subroutine set_mpi_reduction_operator(this)
 
-    class(reduction_operator), intent(out) :: rop
+    class(parallel_environment_mpi), intent(inout) :: this
 
-    select type (rop)
-
-    type is (reduction_operator_mpi)   
-      rop%sum_op = int(MPI_SUM,kind=4)
-      rop%min_op = int(MPI_MIN,kind=4)
-      rop%max_op = int(MPI_MAX,kind=4)
-      rop%prod_op = int(MPI_PROD,kind=4)
-      rop%land_op = int(MPI_LAND,kind=4)
-      rop%lor_op = int(MPI_LOR,kind=4)
-      rop%band_op = int(MPI_BAND,kind=4)
-      rop%bor_op = int(MPI_BOR,kind=4)
-      rop%maxloc_op = int(MPI_MAXLOC,kind=4)
-      rop%minloc_op = int(MPI_MINLOC,kind=4)
-
-    class default
-      write(*,*) "Unsupported reduction operator type"    
-
-    end select
+    this%sum_op%op = MPI_SUM
+    this%min_op%op = MPI_MIN
+    this%max_op%op = MPI_MAX
+    this%prod_op%op = MPI_PROD
+    this%land_op%op = MPI_LAND
+    this%lor_op%op = MPI_LOR
+    this%band_op%op = MPI_BAND
+    this%bor_op%op = MPI_BOR
+    this%maxloc_op%op = MPI_MAXLOC
+    this%minloc_op%op = MPI_MINLOC
 
   end subroutine 
 

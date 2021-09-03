@@ -45,7 +45,7 @@ submodule (compute) compute_mpi_omp
 !$omp enddo
 !$omp end parallel
 
-      call allreduce(s, finalsum, par_env%rop%sum_op, par_env)
+      call allreduce(s, finalsum, par_env%sum_op, par_env)
     
       mypi = finalsum * step  
 

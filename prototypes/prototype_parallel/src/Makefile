@@ -1,12 +1,12 @@
 
 PY = python
-FC = mpif90
-FFLAGS = -cpp -std="f2018" -fcoarray=single -fopenmp #-Wall -Wpedantic -Werror
-MODFLAGS = -fsyntax-only
-DEPFLAGS = -M -MD -MF
+FC = ftn
+FFLAGS = -ef -hcaf -homp  #-Wall -Wpedantic -Werror
+MODFLAGS = -dB
 
 EXE = ccs_app
 EXE_DEPS=ccs_app.deps
+ALL_DEPS=all.deps
 
 SRC = $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
@@ -27,31 +27,29 @@ $(EXE_DEPS): config.json
 $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
 
-%_caf.mod %_caf.o: %_caf.f90 %_caf.d
-	$(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
-
-%.mod %.smod %_mod.o: %_mod.f90 %_mod.d
-	$(FC) $(FFLAGS) -c $< $(INC)
-
-%.mod %_mod.o: %_mod.f90 %_mod.d
-	$(FC) $(FFLAGS) -c $< $(INC)
-
-%.o: %.f90 %.d
+%_caf.mod %_caf.o: %_caf.f90
 	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
 
-%_caf.o: %_caf.f90 %_caf.d
-	$(FC) $(FFLAGS) -fcoarray=single -o $@ -c $< $(INC)
+%.mod %.smod %_mod.o: %_mod.f90
+	$(FC) $(FFLAGS) -c $< $(INC)
 
-%.d: %.f90
-	-@$(FC) $(FFLAGS) $(DEPFLAGS) $@ $< $(INC)
+%.mod %_mod.o: %_mod.f90
+	$(FC) $(FFLAGS) -c $< $(INC)
+
+%.o: %.f90
+	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
+
+%_caf.o: %_caf.f90
+	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod
 clean-full: clean
-	rm -f *.d $(EXE_DEPS)
+	rm -f *.deps $(EXE_DEPS)
 
-$(DEP):
+depend $(ALL_DEPS):
+	makedepf90 *.f90 > $(ALL_DEPS)
 
--include $(DEP)
+include $(ALL_DEPS)
 
--include $(EXE_DEPS)
+include $(EXE_DEPS)
