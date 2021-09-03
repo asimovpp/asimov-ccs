@@ -33,11 +33,15 @@ submodule (parallel) parallel_collectives_mpi
 
         select type (input_value)
         type is (integer)
-          call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, rop%op, par_env%comm, ierr)
-
+          select type (result_value)
+          type is (integer)
+            call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, rop%op, par_env%comm, ierr)
+          end select
         type is (double precision)
-          call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, rop%op, par_env%comm, ierr)
-
+          select type (result_value)
+          type is (double precision)
+            call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, rop%op, par_env%comm, ierr)
+          end select  
         class default
           write(*,*) "Unsupported input data type"    
 
