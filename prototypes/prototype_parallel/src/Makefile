@@ -4,7 +4,7 @@ PY = python
 ifeq ($(CMP),intel)
 FC = mpiifort
 FFLAGS = -fpp -O3 -stand f18 -fopenmp -warn all
-CAFFLAGS = -coarray=single
+CAFFLAGS = -coarray
 MODFLAGS = -fsyntax-only
 endif
 ifeq ($(CMP),gnu)
@@ -21,10 +21,15 @@ CAFFLAGS = -hcaf
 DEPFLAGS = -eP
 endif
 
+# Only set this value if building a CAF binary
+# otherwise keep unset
+ifeq ($(CMP),intel)
+CAFLINK= #-coarray
+endif
+ifeq ($(CMP),gnu)
+CAFLINK= #-fcoarray=single
+endif
 
-#FC = mpif90
-#FFLAGS = -cpp -std="f2018" -fcoarray=single -fopenmp  #-Wall -Wpedantic -Werror
-#MODFLAGS = -fsyntax-only
 
 EXE = ccs_app
 EXE_DEPS=ccs_app.deps
@@ -34,7 +39,7 @@ SRC = $(wildcard *.f90)
 OBJ = $(SRC:%.f90=%.o)
 DEP = $(SRC:%.f90=%.d)
 
-FFLAGS += -DACCS_PETSC
+#FFLAGS += -DACCS_PETSC
 #INC = -I$(PETSC_DIR)/include
 #LIB = -L$(PETSC_DIR)/lib -lpetsc
 
@@ -47,7 +52,7 @@ $(EXE_DEPS): config.json
 	$(PY) generate_link_deps.py $<
 
 $(EXE): $(EXE_DEPS)
-	$(FC) $(FFLAGS) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
+	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
 
 %_caf.mod %_caf.o: %_caf.f90
 	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
