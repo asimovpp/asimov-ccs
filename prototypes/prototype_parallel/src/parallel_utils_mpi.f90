@@ -16,8 +16,7 @@ submodule (parallel) parallel_utils_mpi
   module subroutine sync(par_env)
   
     class(parallel_environment), intent(in) :: par_env
-    integer :: ierr, length, tmp_ierr
-    character(len = MPI_MAX_ERROR_STRING) :: error_message
+    integer :: ierr
 
     select type (par_env)
 
