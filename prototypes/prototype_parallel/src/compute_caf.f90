@@ -20,7 +20,7 @@ submodule (compute) compute_caf
     class(parallel_environment), intent(in) :: par_env
     double precision, intent(out) :: mypi
 
-    double precision :: step, x, sum, finalsum
+    double precision :: step, x, sum
     integer(kind=int64) :: i, myid, nimg
 
     double precision, allocatable :: partial[:] ! co-array that holds partial sum
