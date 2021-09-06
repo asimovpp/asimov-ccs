@@ -19,7 +19,7 @@ submodule (parallel) parallel_collectives_mpi
   module subroutine allreduce_scalar(input_value, result_value, rop, par_env)
 
     class(*), intent(in) :: input_value
-    class(*), intent(out) :: result_value
+    class(*), intent(inout) :: result_value
     class(reduction_operator), intent(in) :: rop
     class(parallel_environment), intent(in) :: par_env
     integer :: ierr
@@ -36,11 +36,15 @@ submodule (parallel) parallel_collectives_mpi
           select type (result_value)
           type is (integer)
             call MPI_Allreduce(input_value, result_value, 1, MPI_INTEGER, rop%op, par_env%comm, ierr)
+          class default
+            write(*,*) "Result value not valid"
           end select
         type is (double precision)
           select type (result_value)
           type is (double precision)
             call MPI_Allreduce(input_value, result_value, 1, MPI_DOUBLE, rop%op, par_env%comm, ierr)
+          class default
+            write(*,*) "Result value not valid"
           end select  
         class default
           write(*,*) "Unsupported input data type"    
