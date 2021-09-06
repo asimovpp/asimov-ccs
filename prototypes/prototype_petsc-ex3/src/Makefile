@@ -10,7 +10,7 @@ CMP = gnu
 
 ifeq ($(CMP),gnu)
 FC = mpif90
-FFLAGS = -cpp -std="f2018" -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
+FFLAGS = -cpp -std=f2018 -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
 MODFLAGS = -fsyntax-only
 DEPFLAGS = -M -MD -MF
 else
