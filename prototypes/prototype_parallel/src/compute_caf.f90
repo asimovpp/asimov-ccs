@@ -36,7 +36,7 @@ submodule (compute) compute_caf
       nimg = par_env%num_procs ! number of images
 
       sum = 0d0
-      step = 1.0/num_steps
+      step = 1.0/real(num_steps)
   
       do i=myid,num_steps,nimg
         x = (i + 0.5d0)*step
