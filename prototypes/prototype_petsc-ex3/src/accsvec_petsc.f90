@@ -5,7 +5,7 @@
 
 submodule (accsvec) accsvec_petsc
 
-  use accs_kinds, only : accs_int, accs_err
+  use accs_kinds, only : accs_int, accs_real, accs_err
   use accs_types, only : vector, vector_init_data
   use accs_petsctypes, only : vector_petsc
 
@@ -20,7 +20,7 @@ contains
     !> @param[out] vector v - the vector specialised to type vector_petsc.
 
     use petsc, only : PETSC_DECIDE
-    use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions
+    use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet
     
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
@@ -43,7 +43,7 @@ contains
        end if
        
        call VecSetFromOptions(v%v, ierr)
-       call VecSet(v%v, 0.0, ierr)
+       call VecSet(v%v, 0.0_accs_real, ierr)
        v%allocated = .true.
     end select
 
