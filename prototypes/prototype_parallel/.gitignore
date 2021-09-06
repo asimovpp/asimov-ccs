@@ -1,1 +1,5 @@
 pi
+*.deps
+ccs_app
+tests/*.F90
+tests/*.inc
