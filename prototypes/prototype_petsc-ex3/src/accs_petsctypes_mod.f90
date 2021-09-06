@@ -49,6 +49,8 @@ contains
   !>          the allocated flag to .false. to prevent double free's.
   module subroutine free_vector_petsc(v)
     
+    use petscvec, only : VecDestroy
+    
     type(vector_petsc), intent(inout) :: v
 
     integer(accs_err) :: ierr
@@ -70,6 +72,8 @@ contains
   !>          allocated and calls the necessary destructor on the wrapped PETSc matrix object, sets
   !>          the allocated flag to .false. to prevent double free's.
   module subroutine free_matrix_petsc(M)
+    
+    use petscmat, only : MatDestroy
 
     type(matrix_petsc), intent(inout) :: M
 
@@ -93,6 +97,8 @@ contains
   !>          PETSc linear_solver object, sets the allocated flag to .false. to prevent double
   !>          free's.
   subroutine free_linear_solver_petsc(solver)
+    
+    use petscksp, only : KSPDestroy
 
     type(linear_solver_petsc), intent(inout) :: solver
 
