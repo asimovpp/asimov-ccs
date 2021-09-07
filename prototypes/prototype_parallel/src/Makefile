@@ -1,5 +1,5 @@
 
-PY = python
+PY = python3
 FC = mpif90
 FFLAGS = -cpp -std="f2018" -fcoarray=single -fopenmp #-Wall -Wpedantic -Werror
 MODFLAGS = -fsyntax-only
