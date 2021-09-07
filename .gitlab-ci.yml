@@ -1,0 +1,13 @@
+stages:
+  - build
+  - test
+
+build-ccs:
+  stage: build
+  script:
+     - echo "Put build script here"
+
+test-ccs:
+  stage: test
+  script:
+    - echo "Put test script here"
