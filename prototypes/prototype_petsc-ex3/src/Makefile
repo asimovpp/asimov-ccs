@@ -28,8 +28,8 @@ OBJ = $(SRC:%.f90=%.o)
 DEP = $(SRC:%.f90=%.d)
 
 BUILDOPTS = -DACCS_PETSC
-INC = -I$(PETSC_DIR)/include
-LIB = -L$(PETSC_DIR)/lib -lpetsc
+INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
+LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 
 all: $(EXE)
 
