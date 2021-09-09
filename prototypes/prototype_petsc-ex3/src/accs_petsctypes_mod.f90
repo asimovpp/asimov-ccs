@@ -38,6 +38,21 @@ module accs_petsctypes
      final :: free_linear_solver_petsc
   end type linear_solver_petsc
 
+  interface
+    module subroutine free_vector_petsc(v)
+      type(vector_petsc), intent(inout) :: v
+    end subroutine
+
+    module subroutine free_matrix_petsc(M)
+      type(matrix_petsc), intent(inout) :: M
+    end subroutine
+
+    module subroutine free_linear_solver_petsc(solver)
+      type(linear_solver_petsc), intent(inout) :: solver
+    end subroutine
+
+   end interface
+
 contains
   
   !> @brief Destroys a PETSc-backed vector.
@@ -49,7 +64,7 @@ contains
   !>          the allocated flag to .false. to prevent double free's.
   module subroutine free_vector_petsc(v)
     
-    use petscvec, only : VecDestroy
+    use petscvec
     
     type(vector_petsc), intent(inout) :: v
 
@@ -73,7 +88,7 @@ contains
   !>          the allocated flag to .false. to prevent double free's.
   module subroutine free_matrix_petsc(M)
     
-    use petscmat, only : MatDestroy
+   use petscmat
 
     type(matrix_petsc), intent(inout) :: M
 
@@ -96,9 +111,9 @@ contains
   !>          object is allocated and calls the necessary destructor on the wrapped
   !>          PETSc linear_solver object, sets the allocated flag to .false. to prevent double
   !>          free's.
-  subroutine free_linear_solver_petsc(solver)
+  module subroutine free_linear_solver_petsc(solver)
     
-    use petscksp, only : KSPDestroy
+    use petscksp
 
     type(linear_solver_petsc), intent(inout) :: solver
 
@@ -111,6 +126,6 @@ contains
        print *, "WARNING: attempted double free of linear solver"
     end if
 
-  end subroutine free_linear_solver_petsc
+  end subroutine 
 
 end module accs_petsctypes
