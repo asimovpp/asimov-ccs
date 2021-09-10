@@ -27,7 +27,7 @@ program ex3
   type(vector_init_data) :: vec_sizes
   class(matrix), allocatable, target :: M
   type(matrix_init_data) :: mat_sizes = matrix_init_data(rglob=-1, cglob=-1, rloc=-1, cloc=-1, &
-       comm=MPI_COMM_NULL)
+       comm=MPI_COMM_NULL, nnz=0)
   type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
   
@@ -54,6 +54,7 @@ program ex3
   mat_sizes%rglob = nnd
   mat_sizes%cglob = mat_sizes%rglob
   mat_sizes%comm = PETSC_COMM_WORLD
+  mat_sizes%nnz = 9
   call create_matrix(mat_sizes, M)
 
   call form_element_stiffness(h**2, K)

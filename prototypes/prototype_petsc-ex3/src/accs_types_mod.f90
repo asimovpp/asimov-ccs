@@ -47,6 +47,7 @@ module accs_types
      integer(accs_int) :: rglob, cglob
      integer(accs_int) :: rloc, cloc
      integer :: comm !> The communicator to create the matrix on.
+     integer(accs_int) :: nnz  !> The number of non-zeros in a row - MUST include the diagonal regardles off value.
   end type matrix_init_data
 
   !> @brief Container type for setting values in a matrix.
