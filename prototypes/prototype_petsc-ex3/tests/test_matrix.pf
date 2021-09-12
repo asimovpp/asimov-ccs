@@ -17,7 +17,7 @@ module test_matrix
   integer, parameter :: stencil_width = 5 ! How many points in stencil?
   type(matrix_init_data) :: mat_sizes=matrix_init_data(rglob=-1, cglob=-1, &
        rloc=-1, cloc=-1, &
-       comm=MPI_COMM_NULL)
+       comm=MPI_COMM_NULL, nnz=0)
 
 contains
 
@@ -42,6 +42,7 @@ contains
     mat_sizes%rglob = nproc * nrows
     mat_sizes%cglob = mat_sizes%rglob
     mat_sizes%comm = comm
+    mat_sizes%nnz = stencil_width
     call create_matrix(mat_sizes, M)
 
     !! Set matrix row-by-row (global entries)

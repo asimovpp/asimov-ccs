@@ -10,12 +10,16 @@ contains
 
   module subroutine create_matrix(mat_dat, M)
 
-    use petsc, only : PETSC_DECIDE
-    use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp
+    use mpi
+    
+    use petsc, only : PETSC_DECIDE, PETSC_NULL_INTEGER
+    use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
+         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
     class(matrix), allocatable, intent(out) :: M
 
+    integer(accs_int) :: nrank
     integer(accs_err) :: ierr
 
     allocate(matrix_petsc :: M)
@@ -35,7 +39,16 @@ contains
        end if
 
        call MatSetFromOptions(M%M, ierr)
-       call MatSetUp(M%M, ierr)
+       if (mat_dat%nnz < 1) then
+          call MPI_Comm_rank(mat_dat%comm, nrank, ierr)
+          if (nrank == 0) then
+             print *, "WARNING: No matrix preallocation set, potentially inefficient!"
+          end if
+          call MatSetUp(M%M, ierr)
+       else
+          call MatSeqAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, ierr)
+          call MatMPIAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, mat_dat%nnz - 1, PETSC_NULL_INTEGER, ierr)
+       end if
     end select
     
   end subroutine
