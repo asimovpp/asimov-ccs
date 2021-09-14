@@ -42,8 +42,9 @@ module parallel
     end subroutine
 
     !> @brief Error handling for parallel environment
-    module subroutine error_handling(error_code, par_env)
+    module subroutine error_handling(error_code, error_cat, par_env)
       integer, intent(in) :: error_code
+      character (len=*), intent (in) :: error_cat
       class(parallel_environment), intent(in) :: par_env
     end subroutine
 

@@ -25,15 +25,15 @@ submodule (parallel) parallel_env_mpi
 
     type is (parallel_environment_mpi)   
       call mpi_init(ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
 
       par_env%comm = MPI_COMM_WORLD
 
       call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
 
       call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
 
       call par_env%set_rop()
       
@@ -58,7 +58,7 @@ submodule (parallel) parallel_env_mpi
 
     type is (parallel_environment_mpi)   
       call mpi_finalize(ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
     
     class default
       write(*,*) "Unsupported parallel environment"

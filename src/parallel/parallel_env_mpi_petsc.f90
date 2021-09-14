@@ -14,7 +14,7 @@ submodule (parallel) parallel_env_mpi_petsc
 
   contains
 
-  !> @brief Create the MPI parallel environment
+  !> @brief Create the MPI and PETSc parallel environments
   !>
   !> @param[out] parallel_environment_mpi par_env
   module subroutine initialise_parallel_environment(par_env)
@@ -28,17 +28,17 @@ submodule (parallel) parallel_env_mpi_petsc
 
     type is (parallel_environment_mpi)   
       call mpi_init(ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
 
       par_env%comm = MPI_COMM_WORLD
  
-      call initialise_petsc()
+      call initialise_petsc(par_env)
 
       call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
 
       call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
 
       call par_env%set_rop()
       
@@ -51,7 +51,7 @@ submodule (parallel) parallel_env_mpi_petsc
 
   end subroutine
 
-  !> @brief Cleanup the MPI parallel environment
+  !> @brief Cleanup the PETSc and MPI parallel environments
   !>
   !> @param[in] parallel_environment_mpi par_env
   module subroutine cleanup_parallel_environment(par_env)
@@ -62,9 +62,9 @@ submodule (parallel) parallel_env_mpi_petsc
     select type (par_env)
 
     type is (parallel_environment_mpi)   
-      call finalise_petsc()
+      call finalise_petsc(par_env)
       call mpi_finalize(ierr)
-      call error_handling(ierr, par_env)
+      call error_handling(ierr, "mpi", par_env)
     
     class default
       write(*,*) "Unsupported parallel environment"
@@ -74,29 +74,29 @@ submodule (parallel) parallel_env_mpi_petsc
   end subroutine
 
   !> @brief Initalise PETSc
-  subroutine initialise_petsc()
+  subroutine initialise_petsc(par_env)
 
+    type(parallel_environment_mpi), intent(in) :: par_env
     integer :: ierr
 
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
     if (ierr /= 0) then
-      print *, "Unable to initialise PETSc"
-      stop
+      call error_handling(ierr, "petsc", par_env)
     end if
 
   end subroutine
 
   !> @brief Finalise PETSc
-  subroutine finalise_petsc()
+  subroutine finalise_petsc(par_env)
 
+    type(parallel_environment_mpi), intent(in) :: par_env
     integer :: ierr
 
     call PetscFinalize(ierr) ! Finalises MPI
 
     if (ierr /= 0) then
-      print *, "Unable to finalise PETSc"
-      stop
+      call error_handling(ierr, "petsc", par_env)
     end if
     
   end subroutine

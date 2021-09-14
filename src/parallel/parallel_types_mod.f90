@@ -21,4 +21,4 @@ module parallel_types
     integer :: root
   end type parallel_environment
 
-  end module parallel_types
+end module parallel_types
