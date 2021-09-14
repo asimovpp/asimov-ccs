@@ -188,61 +188,57 @@ contains
     deallocate(mat_coeffs%rglob)
     deallocate(mat_coeffs%cglob)
     deallocate(mat_coeffs%val)
+    
   end subroutine discretise_poisson
 
   subroutine apply_dirichlet_bcs(M, b, u)
 
-    use accs_constants, only : insert_mode
+    use accs_constants, only : add_mode
     use accsmat, only : set_eqn
-    use accs_types, only : vector_values
+    use accs_types, only : vector_values, matrix_values
     use accs_utils, only : set_values
     
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b, u
 
-    integer(accs_int), dimension(4 * cps) :: rows
-    integer(accs_int) :: i, idx
+    integer(accs_int) :: i, j
 
     type(vector_values) :: vec_values
+    type(matrix_values) :: mat_coeffs
 
-    stop "apply_dirichlet_bcs not converted to FVM"
+    allocate(mat_coeffs%rglob(1), mat_coeffs%cglob(1), mat_coeffs%val(1))
+    allocate(vec_values%idx(1), vec_values%val(1))
+    mat_coeffs%mode = add_mode
+    vec_values%mode = add_mode
     
-    !! Set row indices
-    do i = 1, cps + 1
-       !! Top of domain
-       idx = i
-       rows(idx) = i
-       !! Bottom of domain
-       idx = 3 * cps - 1 + i
-       rows(idx) = i + cps * (cps + 1)
-    end do
-    idx = (cps + 1) + 1
-    do i = (cps + 1) + 1, cps * (cps + 1), cps + 1
-       rows(idx) = i
-       idx = idx + 1
-    end do
-    idx = 2 * cps + 1
-    do i = (2 * cps + 1) + 1, cps * (cps + 1), cps + 1
-       rows(idx) = i
-       idx = idx + 1
-    end do
+    associate(row=>mat_coeffs%rglob, &
+         col=>mat_coeffs%cglob, &
+         coeff=>mat_coeffs%val, &
+         idx=>vec_values%idx, &
+         val=>vec_values%val)
+      do i = istart, iend
+         do j = 1, nnb(i)
+            if (nbidx(j, i) < 0) then
+               !! Boundary face
 
-    !! PETSc is zero-indexed
-    rows(:) = rows(:) - 1
-
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-    vec_values%mode = insert_mode
-    do i = 1, 4 * cps
-       vec_values%idx(1) = rows(i)
-       vec_values%val(1) = h * (rows(i) / (cps + 1))
-       call set_values(vec_values, b)
-       call set_values(vec_values, u)
-    end do
+               ! Coefficient
+               row(1) = i
+               col(1) = i
+               coeff(1) = -(3 / h) * Af
+               call set_values(mat_coeffs, M)
+               
+               ! RHS vector
+               idx(1) = i
+               val(1) = h * (i / (cps + 1))
+               val(1) = -(val(1) / h) * Af
+               call set_values(vec_values, b)
+            end if
+         end do
+      end do
+    end associate
+    
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
-
-    call set_eqn(rows, M)
 
     !! Need to update halo values
     call update(b)
