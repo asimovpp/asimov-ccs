@@ -31,17 +31,19 @@ program ex3
   type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
   
-  integer(accs_int), parameter :: eps = 5 ! Elements per side
+  integer(accs_int), parameter :: cps = 5 ! Cells per side
                                           ! XXX: temporary parameter - this should be read from input
-  integer(accs_int) :: nel, nnd
-  
+
+  !!=========================================================
+  !! The innards of a rudimentary mesh structure
+  integer(accs_int) :: nc
   integer(accs_int) :: istart, iend
-  real(accs_real) :: h
-  integer(accs_int), parameter :: npe = 4 ! Points per element
+  real(accs_real) :: h, Af
+  integer(accs_int), dimension(:), allocatable :: nnb
+  integer(accs_int), dimension(:, :), allocatable :: nbidx
+  !!=========================================================
 
   real(accs_real) :: err_norm
-
-  real(accs_real), dimension(16) :: K ! Element stiffness matrix
   
   integer(accs_err) :: ierr
   integer :: comm_rank, comm_size
@@ -51,19 +53,18 @@ program ex3
   call init_ex3()
   
   !! Create stiffness matrix
-  mat_sizes%rglob = nnd
+  mat_sizes%rglob = nc
   mat_sizes%cglob = mat_sizes%rglob
   mat_sizes%comm = PETSC_COMM_WORLD
   mat_sizes%nnz = 9
   call create_matrix(mat_sizes, M)
 
-  call form_element_stiffness(h**2, K)
-  call assemble_global_matrix(K, M)
+  call discretise_poisson(M)
   call update(M) ! Performs the parallel assembly
 
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
-  vec_sizes%nglob = nnd
+  vec_sizes%nglob = nc
   vec_sizes%comm = PETSC_COMM_WORLD
   call create_vector(vec_sizes, u)
   call create_vector(vec_sizes, b)
@@ -117,17 +118,18 @@ contains
 
     type(vector_values) :: val_dat
 
+    stop "eval_rhs not converted to FVM"
+    
     val_dat%mode = add_mode
-    allocate(val_dat%idx(npe))
-    allocate(val_dat%val(npe))
+    allocate(val_dat%idx(1))
+    allocate(val_dat%val(1))
     
     do i = istart, iend
        ii = i - 1
-       x = h * modulo(ii, eps)
-       y = h * (ii / eps)
+       x = h * modulo(ii, cps)
+       y = h * (ii / cps)
 
-       call element_indices(i, val_dat%idx)
-       call eval_element_rhs(x, y, h**2, val_dat%val)
+       call eval_cell_rhs(x, y, h**2, val_dat%val(1))
        call set_values(val_dat, b)
     end do
 
@@ -136,64 +138,49 @@ contains
     
   end subroutine eval_rhs
 
-  pure subroutine element_indices (i, idx)
-
-    integer(accs_int), intent(in) :: i
-    integer(accs_int), dimension(npe), intent(out) :: idx
-
-    integer(accs_int) :: ii
-    
-    ii = i - 1 !! Need to convert from Fortran to C indexing as this is based on ex3.c
-    idx(1) = (eps + 1) * (ii / eps) + modulo(ii, eps)
-    idx(2) = idx(1) + 1
-    idx(3) = idx(2) + (eps + 1)
-    idx(4) = idx(3) - 1
-    
-  end subroutine element_indices
-
   !> @brief Apply forcing function
-  pure subroutine eval_element_rhs (x, y, H, r)
+  pure subroutine eval_cell_rhs (x, y, H, r)
     
     real(accs_real), intent(in) :: x, y, H
-    real(accs_real), dimension(npe), intent(out) :: r
+    real(accs_real), intent(out) :: r
     
-    r(:) = 0.0 &
+    r = 0.0 &
          + 0 * (x + y + H) ! Silence unused dummy argument error
     
-  end subroutine eval_element_rhs
+  end subroutine eval_cell_rhs
 
-  pure subroutine form_element_stiffness(H, K)
-
-    real(accs_real), intent(in) :: H
-    real(accs_real), dimension(16), intent(inout) :: K
-
-    K(1)  = H/6.0;   K(2)  = -.125*H;  K(3)  = H/12.0;  K(4)  = -.125*H;
-    K(5)  = -.125*H; K(6)  = H/6.0;    K(7)  = -.125*H; K(8)  = H/12.0;
-    K(9)  = H/12.0;  K(10)  = -.125*H; K(11) = H/6.0;   K(12) = -.125*H;
-    K(13) = -.125*H; K(14) = H/12.0;   K(15) = -.125*H; K(16) = H/6.0;
-    
-  end subroutine form_element_stiffness
-
-  subroutine assemble_global_matrix(K, M)
+  subroutine discretise_poisson(M)
 
     use accs_constants, only : add_mode
     use accs_types, only : matrix_values
     use accs_utils, only : set_values
     
-    real(accs_real), dimension(16), intent(in) :: K
     class(matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
-    integer(accs_int) :: i
+    integer(accs_int) :: i, j
 
-    allocate(mat_coeffs%rglob(4))
-    allocate(mat_coeffs%cglob(4))
-    allocate(mat_coeffs%val(16))
-    mat_coeffs%val(:) = K(:)
-    mat_coeffs%mode = add_mode
+    real(accs_real) :: coeff_f
     
+    mat_coeffs%mode = add_mode
+
+    !! Loop over cells
     do i = istart, iend
-       call element_indices(i, mat_coeffs%rglob)
+       allocate(mat_coeffs%rglob(1 + nnb(i)), &
+            mat_coeffs%cglob(1 + nnb(i)), &
+            mat_coeffs%val(1 + nnb(i)))
+       mat_coeffs%rglob(:) = i
+       !! Loop over faces
+       do j = 1, nnb(i)
+          if (nbidx(i, j) >= 0) then
+             !! Interior face
+             coeff_f = (1.0 / h) * Af
+             mat_coeffs%val(1) = mat_coeffs%val(1) - coeff_f
+             mat_coeffs%val(j + 1) = coeff_f
+             mat_coeffs%cglob(j + 1) = nbidx(i, j)
+          end if
+       end do
+       deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
        mat_coeffs%cglob = mat_coeffs%rglob
        call set_values(mat_coeffs, M)
     end do
@@ -201,7 +188,7 @@ contains
     deallocate(mat_coeffs%rglob)
     deallocate(mat_coeffs%cglob)
     deallocate(mat_coeffs%val)
-  end subroutine assemble_global_matrix
+  end subroutine discretise_poisson
 
   subroutine apply_dirichlet_bcs(M, b, u)
 
@@ -213,27 +200,29 @@ contains
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b, u
 
-    integer(accs_int), dimension(4 * eps) :: rows
+    integer(accs_int), dimension(4 * cps) :: rows
     integer(accs_int) :: i, idx
 
     type(vector_values) :: vec_values
 
+    stop "apply_dirichlet_bcs not converted to FVM"
+    
     !! Set row indices
-    do i = 1, eps + 1
+    do i = 1, cps + 1
        !! Top of domain
        idx = i
        rows(idx) = i
        !! Bottom of domain
-       idx = 3 * eps - 1 + i
-       rows(idx) = i + eps * (eps + 1)
+       idx = 3 * cps - 1 + i
+       rows(idx) = i + cps * (cps + 1)
     end do
-    idx = (eps + 1) + 1
-    do i = (eps + 1) + 1, eps * (eps + 1), eps + 1
+    idx = (cps + 1) + 1
+    do i = (cps + 1) + 1, cps * (cps + 1), cps + 1
        rows(idx) = i
        idx = idx + 1
     end do
-    idx = 2 * eps + 1
-    do i = (2 * eps + 1) + 1, eps * (eps + 1), eps + 1
+    idx = 2 * cps + 1
+    do i = (2 * cps + 1) + 1, cps * (cps + 1), cps + 1
        rows(idx) = i
        idx = idx + 1
     end do
@@ -244,9 +233,9 @@ contains
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
-    do i = 1, 4 * eps
+    do i = 1, 4 * cps
        vec_values%idx(1) = rows(i)
-       vec_values%val(1) = h * (rows(i) / (eps + 1))
+       vec_values%val(1) = h * (rows(i) / (cps + 1))
        call set_values(vec_values, b)
        call set_values(vec_values, u)
     end do
@@ -277,6 +266,8 @@ contains
     integer(accs_int) :: i, istart, iend
     integer(accs_err) :: ierr
 
+    stop "set_exact_sol not converted to FVM"
+    
     ! TODO: abstract this!
     select type(ustar)
     type is (vector_petsc)
@@ -292,7 +283,7 @@ contains
     vec_values%mode = insert_mode
     do i = istart, iend
        vec_values%idx(1) = i - 1
-       vec_values%val(1) = h * (vec_values%idx(1) / (eps + 1))
+       vec_values%val(1) = h * (vec_values%idx(1) / (cps + 1))
        call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%idx)
@@ -303,21 +294,22 @@ contains
 
   subroutine init_ex3()
 
-    h = 1.0_accs_real / eps
-    nel = eps**2       ! Number of elements
-    nnd = (eps + 1)**2 ! Number of nodes
+    stop "init_ex3 not converted to FVM"
+    
+    h = 1.0_accs_real / cps
+    nc = cps**2       ! Number of cells
     call MPI_Comm_size(PETSC_COMM_WORLD, comm_size, ierr)
     call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
-    istart = comm_rank * ((nel) / comm_size)
-    if (modulo(nel, comm_size) < comm_rank) then
-       istart = istart + modulo(nel, comm_size)
+    istart = comm_rank * (nc / comm_size)
+    if (modulo(nc, comm_size) < comm_rank) then
+       istart = istart + modulo(nc, comm_size)
     else
        istart = istart + comm_rank
     end if
     istart = istart + 1 ! Fortran - 1 indexed
   
-    iend = istart + nel / comm_size
-    if (modulo(nel, comm_size) > comm_rank) then
+    iend = istart + nc / comm_size
+    if (modulo(nc, comm_size) > comm_rank) then
        iend = iend + 1
     end if
     iend = iend - 1
