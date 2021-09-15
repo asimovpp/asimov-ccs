@@ -60,7 +60,6 @@ program ex3
   call accs_init()
   call init_ex3()
 
-  print *, "Create stiffness matrix"
   !! Create stiffness matrix
   mat_sizes%rglob = nc
   mat_sizes%cglob = mat_sizes%rglob
@@ -68,12 +67,10 @@ program ex3
   mat_sizes%nnz = 5
   call create_matrix(mat_sizes, M)
 
-  print *, "Disc Poisson"
   call discretise_poisson(M)
   print *, "Done"
   call update(M) ! Performs the parallel assembly
 
-  print *, "Create vectors"
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
   vec_sizes%nglob = nc
@@ -82,16 +79,14 @@ program ex3
   call create_vector(vec_sizes, b)
   call update(u) ! Performs the parallel assembly
 
-  print *, "Eval RHS"
   !! Evaluate right-hand-side vector
   call eval_rhs(b)
   call update(b) ! Performs the parallel assembly
 
-  print *, "Apply Dirichlet BCs"
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
   call apply_dirichlet_bcs(M, b, u)
-
-  print *, "Setup solver"
+  call update(M)
+  
   !! Create linear solver & set options
   poisson_eq%rhs => b
   poisson_eq%sol => u
@@ -100,7 +95,6 @@ program ex3
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
-  print *, "Solve and check"
   !! Check solution
   call create_vector(vec_sizes, ustar)
   call set_exact_sol(ustar)
@@ -143,6 +137,7 @@ contains
        x = h * (modulo(ii, cps) + 0.5)
        y = h * ((ii / cps) + 0.5)
 
+       val_dat%idx(1) = ii
        call eval_cell_rhs(x, y, h**2, val_dat%val(1))
        call set_values(val_dat, b)
     end do
