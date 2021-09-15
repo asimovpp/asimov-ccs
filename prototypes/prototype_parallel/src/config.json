@@ -1,6 +1,5 @@
 {
   "main": "pi_mpi",
-  "common": ["parallel_types_mod", "parallel_mod", "compute_mod"],
   "options": {
     "parallel": "mpi"
   }

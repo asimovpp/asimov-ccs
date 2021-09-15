@@ -3,6 +3,7 @@ import os
 import json
 import logging as log
 from collections import OrderedDict
+import process_dependencies as pdeps
 
 # define must-appear-together sets
 in_set = \
@@ -33,13 +34,15 @@ def check_for_conflicts(config):
   #      sys.exit(1)
 
 
-def get_link_rule(config):
+def get_link_rule(config, deps):
   link_obj = "ccs_app: "
   # keep track of link files in a list
   link_deps = []
-  # add common files and main
+  # add main and common files
   link_deps.append(config["main"])
-  link_deps = link_deps + config["common"]
+  commons = pdeps.find_commons(deps)
+  log.debug("commons: %s", " ".join(commons))
+  link_deps = link_deps + commons 
   # add files that have options
   link_deps = link_deps + [v for k,v in config["options"].items()]
 
@@ -50,7 +53,6 @@ def get_link_rule(config):
 def apply_config_mapping(config, config_mapping):
   out = {}
   out["main"] = config["main"]
-  out["common"] = list(config["common"])
   out["options"] = {}
   opts = out["options"]
   for k,v in config["options"].items():
@@ -83,10 +85,12 @@ if __name__ == "__main__":
     config = json.load(f, object_pairs_hook=OrderedDict)
   log.debug("config read:\n%s", pretty_print(config))
 
+  deps = pdeps.parse_dependencies(sys.argv[2])
+
   mapped_config = apply_config_mapping(config, config_mapping)
   log.debug("mapped config:\n%s", pretty_print(mapped_config))
   check_for_conflicts(mapped_config)
-  link_rule = get_link_rule(mapped_config)
+  link_rule = get_link_rule(mapped_config, deps)
 
   log.info("Configurator produced link rule:\n%s", link_rule)
   with open("ccs_app.deps", "w") as f:

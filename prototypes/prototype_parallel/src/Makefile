@@ -21,8 +21,8 @@ all: $(OBJ) $(EXE)
 test: $(EXE)
 	make -C ../tests all
 
-$(EXE_DEPS): config.json
-	$(PY) generate_link_deps.py $<
+$(EXE_DEPS): config.json $(ALL_DEPS)
+	$(PY) generate_link_deps.py $^
 
 $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
