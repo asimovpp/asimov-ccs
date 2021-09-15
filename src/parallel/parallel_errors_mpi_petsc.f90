@@ -1,6 +1,8 @@
-!> @brief Submodule file parallel_utils_mpi.smod
+!> @brief Submodule file parallel_errors_mpi_petsc.smod
+!> @note mpi petsc
 !>
-!> @details Implementation (using MPI) of the parallel utilities
+!> @details Implementation (using MPI and PETSc) of parallel
+!> error handling
 
 submodule (parallel) parallel_errors_mpi_petsc
 
