@@ -20,7 +20,7 @@ program ex3
   !! ASiMoV-CCS uses
   use accs_kinds, only : accs_real, accs_int, accs_err
   use accs_types, only : vector_init_data, vector, matrix_init_data, matrix, linear_system, &
-       linear_solver
+       linear_solver, mesh
   use accsvec, only : create_vector, axpy, norm
   use accsmat, only : create_matrix
   use accs_solver, only : create_solver, solve
@@ -38,18 +38,10 @@ program ex3
        comm=MPI_COMM_NULL, nnz=0)
   type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
+  type(mesh) :: square_mesh
   
   integer(accs_int), parameter :: cps = 5 ! Cells per side
                                           ! XXX: temporary parameter - this should be read from input
-
-  !!=========================================================
-  !! The innards of a rudimentary mesh structure
-  integer(accs_int) :: nc
-  integer(accs_int) :: istart, iend
-  real(accs_real) :: h, Af, vol
-  integer(accs_int), dimension(:), allocatable :: nnb
-  integer(accs_int), dimension(:, :), allocatable :: nbidx
-  !!=========================================================
 
   real(accs_real) :: err_norm
   
@@ -61,7 +53,7 @@ program ex3
   call init_ex3()
 
   !! Create stiffness matrix
-  mat_sizes%rglob = nc
+  mat_sizes%rglob = square_mesh%n
   mat_sizes%cglob = mat_sizes%rglob
   mat_sizes%comm = PETSC_COMM_WORLD
   mat_sizes%nnz = 5
@@ -73,7 +65,7 @@ program ex3
 
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
-  vec_sizes%nglob = nc
+  vec_sizes%nglob = square_mesh%n
   vec_sizes%comm = PETSC_COMM_WORLD
   call create_vector(vec_sizes, u)
   call create_vector(vec_sizes, b)
@@ -99,7 +91,7 @@ program ex3
   call create_vector(vec_sizes, ustar)
   call set_exact_sol(ustar)
   call axpy(-1.0_accs_real, ustar, u)
-  err_norm = norm(u, 2) * h
+  err_norm = norm(u, 2) * square_mesh%h
   if (comm_rank == 0) then
      print *, "Norm of error = ", err_norm
   end if
@@ -124,7 +116,7 @@ contains
     class(vector), intent(inout) :: b
 
     integer(accs_int) :: i, ii
-    real(accs_real) :: x, y
+    real(accs_real) :: x, y, h
 
     type(vector_values) :: val_dat
     
@@ -132,8 +124,9 @@ contains
     allocate(val_dat%idx(1))
     allocate(val_dat%val(1))
     
-    do i = istart, iend
-       ii = i - 1              ! This code is translated from C - shift back by 1
+    do i = 1, square_mesh%nlocal
+       ii = square_mesh%idx_global(i) - 1              ! This code is translated from C - shift back by 1
+       h = square_mesh%h
        x = h * (modulo(ii, cps) + 0.5)
        y = h * ((ii / cps) + 0.5)
 
@@ -155,7 +148,7 @@ contains
     
     r = 0.0 &
          + 0 * (x + y + H) ! Silence unused dummy argument error
-    r = vol * r
+    r = square_mesh%vol * r
     
   end subroutine eval_cell_rhs
 
@@ -168,35 +161,34 @@ contains
     class(matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
-    integer(accs_int) :: i, ii, j
+    integer(accs_int) :: i, j
 
     real(accs_real) :: coeff_f
     
     mat_coeffs%mode = insert_mode
 
     !! Loop over cells
-    ii = 1
-    do i = istart, iend
+    do i = 1, square_mesh%nlocal
        !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
        !!        filling from front, and pass the number of coefficients to be set, requires
        !!        modifying the matrix_values type and the implementation of set_values applied to
        !!        matrices.
        allocate(mat_coeffs%rglob(1), &
-            mat_coeffs%cglob(1 + nnb(ii)))
-       allocate(mat_coeffs%val(1 + nnb(ii)))
+            mat_coeffs%cglob(1 + square_mesh%nnb(i)))
+       allocate(mat_coeffs%val(1 + square_mesh%nnb(i)))
        
-       mat_coeffs%rglob(1) = i
+       mat_coeffs%rglob(1) = square_mesh%idx_global(i)
        mat_coeffs%cglob(:) = -1 ! -ve indices are ignored
-       mat_coeffs%cglob(1) = i
+       mat_coeffs%cglob(1) = square_mesh%idx_global(i)
        mat_coeffs%val(:) = 0.0_accs_real
        !! Loop over faces
-       do j = 1, nnb(ii)
-          if (nbidx(j, ii) >= 0) then
+       do j = 1, square_mesh%nnb(i)
+          if (square_mesh%nbidx(j, i) >= 0) then
              !! Interior face
-             coeff_f = (1.0 / h) * Af
+             coeff_f = (1.0 / square_mesh%h) * square_mesh%Af
              mat_coeffs%val(1) = mat_coeffs%val(1) - coeff_f
              mat_coeffs%val(j + 1) = coeff_f
-             mat_coeffs%cglob(j + 1) = nbidx(j, ii)
+             mat_coeffs%cglob(j + 1) = square_mesh%nbidx(j, i)
           end if
        end do
        mat_coeffs%rglob(:) = mat_coeffs%rglob(:) - 1
@@ -205,7 +197,6 @@ contains
 
        deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
 
-       ii = ii + 1
     end do
     print *, "Finished disc Poiss"
     
@@ -222,6 +213,7 @@ contains
     class(vector), intent(inout) :: b, u
 
     integer(accs_int) :: i, j
+    real(accs_real) :: h
 
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
@@ -236,21 +228,22 @@ contains
          coeff=>mat_coeffs%val, &
          idx=>vec_values%idx, &
          val=>vec_values%val)
-      do i = istart, iend
-         do j = 1, nnb(i)
-            if (nbidx(j, i) < 0) then
+      do i = 1, square_mesh%nlocal
+         do j = 1, square_mesh%nnb(i)
+            if (square_mesh%nbidx(j, i) < 0) then
                !! Boundary face
+               h = square_mesh%h
 
                ! Coefficient
                row(1) = i - 1
                col(1) = i - 1
-               coeff(1) = -(3 / h) * Af
+               coeff(1) = -(3 / h) * square_mesh%Af
                call set_values(mat_coeffs, M)
                
                ! RHS vector
                idx(1) = i - 1
                val(1) = h * (i / (cps + 1) + 0.5) ! XXX: This is sort of y (y=i/cps+0.5), but matches ex3.c...
-               val(1) = -(val(1) / h) * Af
+               val(1) = -(val(1) / h) * square_mesh%Af
                call set_values(vec_values, b)
             end if
          end do
@@ -297,7 +290,7 @@ contains
     vec_values%mode = insert_mode
     do i = istart, iend
        vec_values%idx(1) = i - 1
-       vec_values%val(1) = h * (vec_values%idx(1) / (cps + 1) + 0.5)
+       vec_values%val(1) = square_mesh%h * (vec_values%idx(1) / (cps + 1) + 0.5)
        call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%idx)
@@ -308,68 +301,80 @@ contains
 
   subroutine init_ex3()
 
-    integer(accs_int) :: i, ii
-    integer(accs_int) :: nowned
+    square_mesh = build_mesh(cps**2)
     
-    h = 1.0_accs_real / cps
-    Af = h            ! Face area
-    vol = h**2        ! Cell volume
-    nc = cps**2       ! Number of cells
+  end subroutine init_ex3
+
+  function build_mesh(n) result(square_mesh)
+
+    integer(accs_int), intent(in) :: n
+
+    integer(accs_int) :: istart, iend
+    integer(accs_int) :: i, ii
+    type(mesh) :: square_mesh
+
+    square_mesh%n = n             ! Number of cells
+    square_mesh%h = 1.0_accs_real / sqrt(real(n, accs_real))
+    square_mesh%Af = square_mesh%h     ! Face area
+    square_mesh%vol = square_mesh%h**2 ! Cell volume
 
     !! Setup ownership range
     call MPI_Comm_size(PETSC_COMM_WORLD, comm_size, ierr)
     call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
-    istart = comm_rank * (nc / comm_size)
-    if (modulo(nc, comm_size) < comm_rank) then
-       istart = istart + modulo(nc, comm_size)
+    istart = comm_rank * (n / comm_size)
+    if (modulo(square_mesh%n, comm_size) < comm_rank) then
+       istart = istart + modulo(n, comm_size)
     else
        istart = istart + comm_rank
     end if
     istart = istart + 1 ! Fortran - 1 indexed
   
-    iend = istart + nc / comm_size
-    if (modulo(nc, comm_size) > comm_rank) then
+    iend = istart + n / comm_size
+    if (modulo(square_mesh%n, comm_size) > comm_rank) then
        iend = iend + 1
     end if
     iend = iend - 1
 
-    nowned = (iend - istart) + 1
-    allocate(nnb(nowned))
-    nnb(:) = 4                    ! All cells have 4 neighbours (possibly ghost/boundary cells)
-    allocate(nbidx(4, nowned))
-
+    square_mesh%nlocal = (iend - istart) + 1
+    allocate(square_mesh%idx_global(square_mesh%nlocal), square_mesh%nnb(square_mesh%nlocal))
+    square_mesh%nnb(:) = 4                    ! All cells have 4 neighbours (possibly ghost/boundary cells)
+    allocate(square_mesh%nbidx(4, square_mesh%nlocal))
+    
     !! Get neighbour indices
     do i = istart, iend
+       square_mesh%idx_global(i) = i
        ii = i - 1
        
        !! Left neighbour
        if (modulo(ii, cps) == 0) then
-          nbidx(1, i) = -1
+          square_mesh%nbidx(1, i) = -1
        else
-          nbidx(1, i) = i - 1
+          square_mesh%nbidx(1, i) = i - 1
        end if
 
        !! Right neighbour
        if (modulo(ii, cps) == (cps - 1)) then
-          nbidx(2, i) = -2
+          square_mesh%nbidx(2, i) = -2
        else
-          nbidx(2, i) = i + 1
+          square_mesh%nbidx(2, i) = i + 1
        end if
 
        !! Down neighbour
        if ((ii / cps) == 0) then
-          nbidx(3, i) = -3
+          square_mesh%nbidx(3, i) = -3
        else
-          nbidx(3, i) = i - cps
+          square_mesh%nbidx(3, i) = i - cps
        end if
 
        !! Up neighbour
        if ((ii / cps) == (cps - 1)) then
-          nbidx(4, i) = -4
+          square_mesh%nbidx(4, i) = -4
        else
-          nbidx(4, i) = i + cps
+          square_mesh%nbidx(4, i) = i + cps
        end if
     end do
+
     
-  end subroutine init_ex3
+  end function build_mesh
+  
 end program ex3
