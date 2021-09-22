@@ -341,6 +341,7 @@ contains
     allocate(square_mesh%nbidx(4, square_mesh%nlocal))
     
     !! Get neighbour indices
+    !! XXX: These are global indices and thus may be off-process
     do i = istart, iend
        square_mesh%idx_global(i) = i
        ii = i - 1
@@ -373,7 +374,6 @@ contains
           square_mesh%nbidx(4, i) = i + cps
        end if
     end do
-
     
   end function build_mesh
   
