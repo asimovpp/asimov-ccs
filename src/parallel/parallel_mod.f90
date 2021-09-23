@@ -5,7 +5,6 @@
 module parallel
 
   use parallel_types
-  use mpi_f08
 
   implicit none
 

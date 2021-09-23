@@ -3,8 +3,6 @@
 !> @details Module that defines the parallel environment types for ASiMoV-CCS
 module parallel_types
 
-  use mpi_f08
-
   implicit none
 
   private 
