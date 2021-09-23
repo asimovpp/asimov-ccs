@@ -34,7 +34,7 @@ submodule (parallel) parallel_errors_mpi
       
       if (error_code /= MPI_SUCCESS ) then
         call mpi_error_string(error_code, error_message, length, ierr)
-        write(*,*) error_message(1:length)
+        write(*,*) error_message
         call mpi_abort(par_env%comm, error_code, ierr)
       end if
 
