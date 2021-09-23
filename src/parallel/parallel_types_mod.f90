@@ -1,7 +1,9 @@
 !> @brief Module file parallel_types.mod
-!!
-!! @details Module that defines the parallel environment types for ASiMoV-CCS
+!
+!> @details Module that defines the parallel environment types for ASiMoV-CCS
 module parallel_types
+
+  use mpi_f08
 
   implicit none
 
@@ -12,7 +14,7 @@ module parallel_types
   end type reduction_operator
 
   !> @brief parallel environment type with common parameters
-  !! process id, number of processes and root process
+  !!        process id, number of processes and root process
   type, public :: parallel_environment
     integer :: proc_id
     integer :: num_procs

@@ -1,21 +1,22 @@
-!> @brief Submodule file parallel_errors_mpi.smod
-!
-!> @build mpi
-!
-!> @details Implementation (using MPI) of parallel 
-!!          error handling
+!> @brief Submodule file parallel_errors_mpi_petsc.smod
+!> @note mpi petsc
+!>
+!> @details Implementation (using MPI and PETSc) of parallel
+!> error handling
 
-submodule (parallel) parallel_errors_mpi
+submodule (parallel) parallel_errors_mpi_petsc
 
   use mpi_f08
+  use petsc, only: PetscAbort
   use parallel_types_mpi, only: parallel_environment_mpi
 
   implicit none
 
   contains
 
-  !> @brief Error handling for parallel environment that uses MPI only
-  !!
+  !> @brief Error handling for parallel environment that use
+  !> both MPI and PETSc
+  !>
   !> @param[in] integer error_code - Variable the holds the error code
   !> @param[in] string error_cat - String description of the error category
   !> @param[in] parallel_environment_mpi par_env
@@ -24,8 +25,8 @@ submodule (parallel) parallel_errors_mpi
     integer, intent(in) :: error_code
     character (len=*), intent (in) :: error_cat
     class(parallel_environment), intent(in) :: par_env
-    integer :: length, ierr 
-    character(len = MPI_MAX_ERROR_STRING) :: error_message 
+    integer :: length, ierr
+    character(len = MPI_MAX_ERROR_STRING) :: error_message
 
     select type (par_env)
 
@@ -39,6 +40,13 @@ submodule (parallel) parallel_errors_mpi
         call mpi_abort(par_env%comm, error_code, ierr)
       end if
 
+    else if (error_cat == "petsc") then
+
+      if (error_code /= 0) then
+        write(*,*) "PETSc error"
+        call PetscAbort(par_env%comm, error_code, ierr)
+      end if
+
     else 
       write(*,*) "Unsupported error categroy" 
     end if
@@ -50,4 +58,4 @@ submodule (parallel) parallel_errors_mpi
 
   end subroutine
 
-end submodule parallel_errors_mpi
+end submodule parallel_errors_mpi_petsc
