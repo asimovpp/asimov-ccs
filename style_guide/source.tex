@@ -447,11 +447,11 @@ to the selected \texttt{type} or \texttt{class}. In addition, indentation should
 select type (par_env)
 
   type is (parallel_environment_mpi)   
-  call mpi_finalize(ierr)
-  call error_handling(ierr, "mpi", par_env)
+    call mpi_finalize(ierr)
+    call error_handling(ierr, "mpi", par_env)
 
   class default
-  write(*,*) "Unsupported parallel environment"
+    write(*,*) "Unsupported parallel environment"
 
 end select
 \end{lstlisting}
