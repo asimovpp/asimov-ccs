@@ -435,6 +435,31 @@ integer :: b
 b = example%a ! Good - Fortran standard member access
 \end{lstlisting}
 
+\subsection{Type selection constructs}
+\texttt{select type} constructs must have default behaviour implemented, in order to avoid errors when there is no match 
+to the selected \texttt{type} or \texttt{class}. In addition, indentation should match that of the example below:
+
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:doxygen}
+]
+select type (par_env)
+
+  type is (parallel_environment_mpi)   
+  call mpi_finalize(ierr)
+  call error_handling(ierr, "mpi", par_env)
+
+  class default
+  write(*,*) "Unsupported parallel environment"
+
+end select
+\end{lstlisting}
+
+\subsection{Pure procedures}
+Subroutines and functions should be marked as \texttt{pure} whenever possible (i.e. when they are know to have no side-effects), 
+in order to guarantee that the compiler will routinely inline these procedures.
+
 \section{Comments}
 All comments should be written using tags understood by the doxygen documentation generator. A minimal comment
 block would consist of only the \texttt{@brief} tag (single sentence description of the functionality), a better comment
