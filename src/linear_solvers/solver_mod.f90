@@ -1,5 +1,5 @@
 !> @brief Module file solver.mod
-!>
+!
 !> @details An interface to linear solver objects.
 
 module solver
@@ -10,12 +10,13 @@ module solver
 
   private
 
-  public :: create_solver, solve
+  public :: create_solver
+  public :: solve
   
   interface
 
      !> @brief Interface to create a new solver object.
-     !>
+     !
      !> @param[in] linear_system eqsys   - Data structure containing equation system to be solved.
      !> @param[out] linear_solver solver - The linear solver returned allocated.
      module subroutine create_solver(eqsys, solver)
@@ -24,7 +25,7 @@ module solver
      end subroutine
 
      !> @brief Interface to solve the linear system in a solver.
-     !>
+     !
      !> @param[in/out] linear_solver solver - The linear solver object.
      module subroutine solve(solver)
        class(linear_solver), intent(inout) :: solver

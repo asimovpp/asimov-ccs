@@ -1,7 +1,7 @@
 !> @brief Submodule file parallel_env_mpi_petsc.smod
-!! @build mpi petsc
-!!
-!! @details Implementation of the parallel environment using MPI
+!> @build mpi petsc
+!
+!> @details Implementation of the parallel environment using MPI
 !!          and PETSc
 submodule (parallel) parallel_env_mpi_petsc
 
@@ -16,8 +16,8 @@ submodule (parallel) parallel_env_mpi_petsc
   contains
 
   !> @brief Create the MPI and PETSc parallel environments
-  !!
-  !! @param[out] parallel_environment_mpi par_env
+  !
+  !> @param[out] parallel_environment_mpi par_env
   module subroutine initialise_parallel_environment(par_env)
 
     integer :: ierr
@@ -27,34 +27,34 @@ submodule (parallel) parallel_env_mpi_petsc
 
     select type (par_env)
 
-    type is (parallel_environment_mpi)   
-      call mpi_init(ierr)
-      call error_handling(ierr, "mpi", par_env)
+      type is (parallel_environment_mpi)   
+        call mpi_init(ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      par_env%comm = MPI_COMM_WORLD
+        par_env%comm = MPI_COMM_WORLD
  
-      call initialise_petsc(par_env)
+        call initialise_petsc(par_env)
 
-      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-      call error_handling(ierr, "mpi", par_env)
+        call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-      call error_handling(ierr, "mpi", par_env)
+        call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      call par_env%set_rop()
-      
-      par_env%root=0
+        call par_env%set_rop()
+        
+        par_env%root=0
     
-    class default
-      write(*,*) "Unsupported parallel environment"
+      class default
+        write(*,*) "Unsupported parallel environment"
     
     end select
 
   end subroutine
 
-  !! @brief Cleanup the PETSc and MPI parallel environments
-  !!
-  !! @param[in] parallel_environment_mpi par_env
+  !> @brief Cleanup the PETSc and MPI parallel environments
+  !
+  !> @param[in] parallel_environment_mpi par_env
   module subroutine cleanup_parallel_environment(par_env)
 
     class(parallel_environment), intent(in) :: par_env
@@ -62,13 +62,13 @@ submodule (parallel) parallel_env_mpi_petsc
 
     select type (par_env)
 
-    type is (parallel_environment_mpi)   
-      call finalise_petsc(par_env)
-      call mpi_finalize(ierr)
-      call error_handling(ierr, "mpi", par_env)
+      type is (parallel_environment_mpi)   
+        call finalise_petsc(par_env)
+        call mpi_finalize(ierr)
+        call error_handling(ierr, "mpi", par_env)
     
-    class default
-      write(*,*) "Unsupported parallel environment"
+      class default
+        write(*,*) "Unsupported parallel environment"
     
     end select
 

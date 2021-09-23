@@ -30,21 +30,26 @@ contains
     allocate(vector_petsc :: v)
     
     select type (v)
-    type is (vector_petsc)
-       call VecCreate(vec_dat%comm, v%v, ierr)
+      type is (vector_petsc)
+        call VecCreate(vec_dat%comm, v%v, ierr)
 
-       if (vec_dat%nloc >= 0) then
+        if (vec_dat%nloc >= 0) then
           call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
-       else if (vec_dat%nglob > 0) then
+        else if (vec_dat%nglob > 0) then
           call VecSetSizes(v%v, PETSC_DECIDE, vec_dat%nglob, ierr)
-       else
+        else
           print *, "ERROR: invalid vector creation!"
           stop
-       end if
+        end if
        
-       call VecSetFromOptions(v%v, ierr)
-       call VecSet(v%v, 0.0_accs_real, ierr)
-       v%allocated = .true.
+        call VecSetFromOptions(v%v, ierr)
+        call VecSet(v%v, 0.0_accs_real, ierr)
+        v%allocated = .true.
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
     end select
 
   end subroutine
@@ -64,35 +69,53 @@ contains
     integer(accs_err) :: ierr
     
     select type (v)
-    type is (vector_petsc)
-       select type (val_dat)
-       type is (vector_values)
-          n = size(val_dat%idx)
-          if (val_dat%mode == add_mode) then
-             mode = ADD_VALUES
-          else if (val_dat%mode == insert_mode) then
-             mode = INSERT_VALUES
-          else
-             print *, "Unknown mode!"
-             stop
-          end if
-          call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
-       end select
-    class default
-       print *, "Unknown vector type!"
-       stop
+      type is (vector_petsc)
+      
+        select type (val_dat)
+          type is (vector_values)
+          
+            n = size(val_dat%idx)
+            if (val_dat%mode == add_mode) then
+              mode = ADD_VALUES
+            else if (val_dat%mode == insert_mode) then
+              mode = INSERT_VALUES
+            else
+              print *, "Unknown mode!"
+              stop
+            end if
+
+            call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
+
+          class default
+            print *, "Unknown vector value type!"
+            stop
+   
+        end select
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
     end select
     
   end subroutine
 
   module subroutine update_vector(v)
+
     class(vector), intent(inout) :: v
 
     select type(v)
-    type is (vector_petsc)
-       call begin_update_vector(v)
-       call end_update_vector(v)
+      type is (vector_petsc)
+
+        call begin_update_vector(v)
+        call end_update_vector(v)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
     end select
+
   end subroutine
   
   module subroutine begin_update_vector(v)
@@ -104,11 +127,14 @@ contains
     integer(accs_err) :: ierr
     
     select type (v)
-    type is (vector_petsc)
-       call VecAssemblyBegin(v%v, ierr)
-    class default
-       print *, "Unknown vector type!"
-       stop
+      type is (vector_petsc)
+
+        call VecAssemblyBegin(v%v, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
     end select
 
   end subroutine
@@ -122,11 +148,14 @@ contains
     integer(accs_err) :: ierr
     
     select type (v)
-    type is (vector_petsc)
-       call VecAssemblyEnd(v%v, ierr)
-    class default
-       print *, "Unknown vector type!"
-       stop
+      type is (vector_petsc)
+
+        call VecAssemblyEnd(v%v, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
     end select
 
   end subroutine
@@ -142,15 +171,24 @@ contains
     integer(accs_err) :: ierr
     
     select type (x)
-    type is (vector_petsc)
-       select type (y)
-       type is (vector_petsc)
-          ! PETSc performs AXPY as YPAX, with result stored in Y.
-          call VecAXPY(y%v, alpha, x%v, ierr)
-       end select
-    class default
-       print *, "Unknown vector type!"
-       stop
+      type is (vector_petsc)
+
+        select type (y)
+          type is (vector_petsc)
+
+            ! PETSc performs AXPY as YPAX, with result stored in Y.
+            call VecAXPY(y%v, alpha, x%v, ierr)
+
+          class default
+            print *, "Unknown vector type!"
+            stop
+
+        end select
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
     end select
     
   end subroutine
@@ -166,17 +204,20 @@ contains
     integer(accs_err) :: ierr
     
     n = 0.0_accs_real
+    
     select type (v)
-    type is (vector_petsc)
-       if (norm_type == 2) then
+      type is (vector_petsc)
+
+        if (norm_type == 2) then
           call VecNorm(v%v, NORM_2, n, ierr)
-       else
+        else
           print *, "ERROR: unknown vector norm type ", norm_type
           stop
-       end if
-    class default
-       print *, "Type unhandled"
-       stop
+        end if
+
+      class default
+        print *, "Type unhandled"
+        stop
     end select
     
   end function

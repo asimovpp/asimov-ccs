@@ -1,6 +1,6 @@
 !> @brief Module file petsctypes.mod
 !> @build petsc
-!>
+!
 !> @details Provides petsc-extended types.
 
 module petsctypes
@@ -57,13 +57,12 @@ module petsctypes
 contains
   
   !> @brief Destroys a PETSc-backed vector.
-  !>
-  !> @param[in/out] vector v - the vector to be destroyed.
-  !>
+  !
   !> @details Destructor called by deallocating a vector_petsc - confirms the PETSc vector object is
-  !>          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
-  !>          the allocated flag to .false. to prevent double free's.
-  module subroutine free_vector_petsc(v)
+  !!          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
+  !!          the allocated flag to .false. to prevent double free's.
+  !> @param[in/out] vector v - the vector to be destroyed.
+module subroutine free_vector_petsc(v)
     
     use petscvec
     
@@ -81,12 +80,11 @@ contains
   end subroutine
   
   !> @brief Destroys a PETSc-backed matrix.
-  !>
-  !> @param[in/out] matrix M - the matrix to be destroyed.
-  !>
+  !
   !> @details Destructor called by deallocating a matrix_petsc - confirms the PETSc matrix object is
-  !>          allocated and calls the necessary destructor on the wrapped PETSc matrix object, sets
-  !>          the allocated flag to .false. to prevent double free's.
+  !!          allocated and calls the necessary destructor on the wrapped PETSc matrix object, sets
+  !!          the allocated flag to .false. to prevent double free's.
+  !> @param[in/out] matrix M - the matrix to be destroyed.
   module subroutine free_matrix_petsc(M)
     
    use petscmat
@@ -105,13 +103,12 @@ contains
   end subroutine
 
   !> @brief Destroys a PETSc-backed linear solver.
-  !>
-  !> @param[in/out] linear_solver solver - the linear solver to be destroyed.
-  !>
+  !
   !> @details Destructor called by deallocating a linear_solver_petsc - confirms the PETSc vector
-  !>          object is allocated and calls the necessary destructor on the wrapped
-  !>          PETSc linear_solver object, sets the allocated flag to .false. to prevent double
-  !>          free's.
+  !!          object is allocated and calls the necessary destructor on the wrapped
+  !!          PETSc linear_solver object, sets the allocated flag to .false. to prevent double
+  !!          free's.
+  !> @param[in/out] linear_solver solver - the linear solver to be destroyed.
   module subroutine free_linear_solver_petsc(solver)
     
     use petscksp

@@ -1,6 +1,6 @@
 !> @brief Submodule file solver_petsc.smod
 !> @build petsc
-!>
+!
 !> @details An implementation of a PETSc solver
 submodule (solver) solver_petsc
 
@@ -25,31 +25,38 @@ contains
     allocate(linear_solver_petsc :: solver)
     
     select type(solver)
-    type is(linear_solver_petsc)
-       solver%eqsys = eqsys
+
+      type is(linear_solver_petsc)
+
+        solver%eqsys = eqsys
        
-       associate(comm => solver%eqsys%comm, &
-            ksp => solver%KSP, &
-            M => solver%eqsys%M)
-         select type(M)
+        associate(comm => solver%eqsys%comm, &
+                  ksp => solver%KSP, &
+                  M => solver%eqsys%M)
+
+          select type(M)
             type is(matrix_petsc)
-               call KSPCreate(comm, ksp, ierr)
-               if (ierr /= 0) then
-                  print *, "Error in creating solver KSP"
-                  stop
-               end if
-               call KSPSetOperators(ksp, M%M, M%M, ierr)
-               call KSPSetFromOptions(ksp, ierr)
-               call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
+              call KSPCreate(comm, ksp, ierr)
+              if (ierr /= 0) then
+                print *, "Error in creating solver KSP"
+                stop
+              end if
+              call KSPSetOperators(ksp, M%M, M%M, ierr)
+              call KSPSetFromOptions(ksp, ierr)
+              call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
+
             class default
-               print *, "ERROR: Trying to use non-PETSc matrix with PETSc solver!"
-               stop
-            end select
-       end associate
-       solver%allocated = .true.
-    class default
-       print *, "Unknown solver type"
-       stop
+              print *, "ERROR: Trying to use non-PETSc matrix with PETSc solver!"
+              stop
+          end select
+        end associate
+
+        solver%allocated = .true.
+
+      class default
+        print *, "Unknown solver type"
+        stop
+
     end select
     
   end subroutine
@@ -63,29 +70,36 @@ contains
     integer(accs_err) :: ierr
     
     select type(solver)
-    type is(linear_solver_petsc)
+      type is(linear_solver_petsc)
 
-       associate(ksp => solver%KSP)
-         select type (b => solver%eqsys%rhs)
-         type is(vector_petsc)
-            select type(u => solver%eqsys%sol)
+        associate(ksp => solver%KSP)
+
+          select type (b => solver%eqsys%rhs)
             type is(vector_petsc)
-               call KSPSolve(ksp, b%v, u%v, ierr)
-               if (ierr /= 0) then
-                  print *, "ERROR in linear solve!"
-               end if
+
+              select type(u => solver%eqsys%sol)
+                type is(vector_petsc)
+                  call KSPSolve(ksp, b%v, u%v, ierr)
+                  if (ierr /= 0) then
+                    print *, "ERROR in linear solve!"
+                  end if
+
+              class default
+                print *, "ERROR: Trying to use non-PETSc vector for solution with PETSc solver!"
+                stop
+              end select
+
             class default
-               print *, "ERROR: Trying to use non-PETSc vector for solution with PETSc solver!"
-               stop
-            end select
-         class default
-            print *, "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver!"
-            stop
-         end select
-       end associate
-    class default
-       print *, "Unknown solver type"
-       stop
+              print *, "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver!"
+              stop
+          end select
+
+        end associate
+
+      class default
+        print *, "Unknown solver type"
+        stop
+
     end select
        
   end subroutine

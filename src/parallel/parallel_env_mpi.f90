@@ -24,24 +24,24 @@ submodule (parallel) parallel_env_mpi
 
     select type (par_env)
 
-    type is (parallel_environment_mpi)   
-      call mpi_init(ierr)
-      call error_handling(ierr, "mpi", par_env)
+      type is (parallel_environment_mpi)   
+        call mpi_init(ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      par_env%comm = MPI_COMM_WORLD
+        par_env%comm = MPI_COMM_WORLD
 
-      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-      call error_handling(ierr, "mpi", par_env)
+        call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-      call error_handling(ierr, "mpi", par_env)
+        call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      call par_env%set_rop()
+        call par_env%set_rop()
       
-      par_env%root=0
+        par_env%root=0
     
-    class default
-      write(*,*) "Unsupported parallel environment"
+      class default
+        write(*,*) "Unsupported parallel environment"
     
     end select
 
@@ -57,12 +57,12 @@ submodule (parallel) parallel_env_mpi
 
     select type (par_env)
 
-    type is (parallel_environment_mpi)   
-      call mpi_finalize(ierr)
-      call error_handling(ierr, "mpi", par_env)
+      type is (parallel_environment_mpi)   
+        call mpi_finalize(ierr)
+        call error_handling(ierr, "mpi", par_env)
     
-    class default
-      write(*,*) "Unsupported parallel environment"
+      class default
+        write(*,*) "Unsupported parallel environment"
     
     end select
 

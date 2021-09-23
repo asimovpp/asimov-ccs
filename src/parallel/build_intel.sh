@@ -1,0 +1,9 @@
+mpiifort -cpp -fPIC -O3 -stand f18 -o parallel_mod.o -c parallel_mod.f90 -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include
+mpiifort -cpp -fPIC -O3 -stand f18 -o parallel_types_mod.o -c parallel_types_mod.f90 -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include
+mpiifort -cpp -fPIC -O3 -stand f18 -o parallel_types_mpi_mod.o -c parallel_types_mpi_mod.f90 -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include
+mpiifort -cpp -fPIC -O3 -stand f18 -o parallel_env_mpi.o -c parallel_env_mpi.f90 -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include
+mpiifort -cpp -fPIC -O3 -stand f18 -o parallel_env_mpi_petsc.o -c parallel_env_mpi_petsc.f90 -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include
+mpiifort -cpp -fPIC -O3 -stand f18 -o parallel_utils_mpi.o -c parallel_utils_mpi.f90 -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include
+mpiifort -cpp -fPIC -O3  -stand f18 -DACCS_PETSC -o test_init.o -c test_init.f90 -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include
+mpiifort -cpp -fPIC -O3  -stand f18 -DACCS_PETSC -o test_init_petsc parallel_mod.o parallel_types_mod.o parallel_types_mpi_mod.o parallel_env_mpi_petsc.o parallel_utils_mpi.o test_init.o -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include -L/work/Projects/ASiMoV/petsc/arch-linux-c-debug/lib -lpetsc
+mpiifort -cpp -fPIC -O3  -stand f18 -DACCS_PETSC -o test_init_mpi parallel_mod.o parallel_types_mod.o parallel_types_mpi_mod.o parallel_env_mpi.o parallel_utils_mpi.o test_init.o -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-debug/include -L/work/Projects/ASiMoV/petsc/arch-linux-c-debug/lib -lpetsc

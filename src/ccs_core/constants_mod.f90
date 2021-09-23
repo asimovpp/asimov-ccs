@@ -1,5 +1,5 @@
 !> @brief Module file constants.mod
-!>
+!
 !> @details Defines constants for use in ASiMoV-CCS
 
 module constants

@@ -23,12 +23,12 @@ submodule (parallel) parallel_utils_mpi
 
     select type (par_env)
 
-    type is (parallel_environment_mpi)   
-      call mpi_barrier(par_env%comm, ierr)
-      call error_handling(ierr, "mpi", par_env)
+      type is (parallel_environment_mpi)   
+        call mpi_barrier(par_env%comm, ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-    class default
-      write(*,*) "Unsupported parallel environment"
+      class default
+        write(*,*) "Unsupported parallel environment"
 
     end select
 

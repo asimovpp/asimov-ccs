@@ -14,7 +14,7 @@ contains
     
     use petsc, only : PETSC_DECIDE, PETSC_NULL_INTEGER
     use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
-         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
+         								 MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
     class(matrix), allocatable, intent(out) :: M
@@ -24,44 +24,62 @@ contains
 
     allocate(matrix_petsc :: M)
     select type (M)
-    type is (matrix_petsc)
-       call MatCreate(mat_dat%comm, M%M, ierr)
-       if (mat_dat%rloc >= 0) then
-          call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
-       else if (mat_dat%rglob >= 0) then
-          call MatSetSizes(M%M, PETSC_DECIDE, PETSC_DECIDE, mat_dat%rglob, mat_dat%cglob, ierr)
-       else
-          print *, "ERROR: invalid matrix creation!"
-          stop
-       end if
-       if (ierr == 0) then
-          M%allocated = .true.
-       end if
 
-       call MatSetFromOptions(M%M, ierr)
-       if (mat_dat%nnz < 1) then
-          call MPI_Comm_rank(mat_dat%comm, nrank, ierr)
-          if (nrank == 0) then
-             print *, "WARNING: No matrix preallocation set, potentially inefficient!"
+			type is (matrix_petsc)
+
+				call MatCreate(mat_dat%comm, M%M, ierr)
+ 
+				if (mat_dat%rloc >= 0) then
+      		call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
+      	else if (mat_dat%rglob >= 0) then
+      		call MatSetSizes(M%M, PETSC_DECIDE, PETSC_DECIDE, mat_dat%rglob, mat_dat%cglob, ierr)
+       	else
+        	print *, "ERROR: invalid matrix creation!"
+        	stop
+       	end if
+       	
+				if (ierr == 0) then
+        	M%allocated = .true.
+       	end if
+
+       	call MatSetFromOptions(M%M, ierr)
+       	
+				if (mat_dat%nnz < 1) then
+        	call MPI_Comm_rank(mat_dat%comm, nrank, ierr)
+        	if (nrank == 0) then
+          	print *, "WARNING: No matrix preallocation set, potentially inefficient!"
           end if
           call MatSetUp(M%M, ierr)
-       else
+       	else
           call MatSeqAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, ierr)
           call MatMPIAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, mat_dat%nnz - 1, PETSC_NULL_INTEGER, ierr)
-       end if
-    end select
+      	end if
+		
+			class default
+				write(*,*) "Unsupported matrix type"
+				stop
+
+		end select
     
   end subroutine
 
   module subroutine update_matrix(M)
-    class(matrix), intent(inout) :: M
+
+		class(matrix), intent(inout) :: M
 
     select type(M)
-    type is (matrix_petsc)
-       call begin_update_matrix(M)
-       call end_update_matrix(M)
-    end select
-  end subroutine
+
+			type is (matrix_petsc)
+      	call begin_update_matrix(M)
+      	call end_update_matrix(M)
+
+			class default
+				write(*,*) "Unsupported matrix type"
+				stop
+
+		end select
+  
+	end subroutine
   
   module subroutine begin_update_matrix(M)
 
@@ -72,9 +90,14 @@ contains
     integer(accs_err) :: ierr
 
     select type (M)
-    type is (matrix_petsc)
-       call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
-    end select
+			type is (matrix_petsc)
+				call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
+
+			class default
+				write(*,*) "Unsupported matrix type"
+				stop
+
+		end select
     
   end subroutine
 
@@ -87,9 +110,14 @@ contains
     integer(accs_err) :: ierr
 
     select type (M)
-    type is (matrix_petsc)
-       call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
-    end select
+	    type is (matrix_petsc)
+  	    call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+
+			class default
+				write(*,*) "Unsupported matrix type"
+				stop
+
+		end select
     
   end subroutine
 
@@ -108,30 +136,37 @@ contains
     integer(accs_err) :: ierr
 
     associate(ridx=>mat_values%rglob, &
-         cidx=>mat_values%cglob, &
-         val=>mat_values%val, &
-         matmode=>mat_values%mode)
-      select type (M)
-      type is (matrix_petsc)
-         nrows = size(ridx)
-         ncols = size(cidx)
-         if (nrows * ncols /= size(val)) then
-            print *, "Invalid matrix values!"
-            stop
-         end if
-         if (matmode == add_mode) then
-            mode = ADD_VALUES
-         else if (matmode == insert_mode) then
-            mode = INSERT_VALUES
-         else
-            print *, "Unknown mode!"
-            stop
-         end if
-         call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
-      class default
-         print *, "Unknown matrix type!"
-         stop
-      end select
+         			cidx=>mat_values%cglob, &
+         			val=>mat_values%val, &
+         			matmode=>mat_values%mode)
+    
+			select type (M)
+
+				type is (matrix_petsc)
+				
+					nrows = size(ridx)
+					ncols = size(cidx)
+					if (nrows * ncols /= size(val)) then
+						print *, "Invalid matrix values!"
+						stop
+					end if
+					if (matmode == add_mode) then
+						mode = ADD_VALUES
+					else if (matmode == insert_mode) then
+						mode = INSERT_VALUES
+					else
+						print *, "Unknown mode!"
+						stop
+					end if
+
+					call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
+
+				class default
+					print *, "Unknown matrix type!"
+					stop
+
+			end select
+
     end associate
 
   end subroutine
@@ -147,12 +182,14 @@ contains
     integer(accs_err) :: ierr
     
     select type (M)
-    type is (matrix_petsc)
-       call MatZeroRows(M%M, size(rows), rows, 1.0_accs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
-    class default
-       print *, "Unknown matrix type!"
-       stop
-    end select
+			type is (matrix_petsc)
+				call MatZeroRows(M%M, size(rows), rows, 1.0_accs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
+
+			class default
+				print *, "Unknown matrix type!"
+				stop
+
+		end select
     
   end subroutine
 

@@ -1,7 +1,7 @@
 !> @brief Module file kinds.mod
-!>
+!
 !> @details Defines kinds for use in primitive variable definitions 
-!! in ASiMoV-CCS, e.g. integer(kind=accs_int) :: i
+!!          in ASiMoV-CCS, e.g. integer(kind=accs_int) :: i
 
 module kinds
 

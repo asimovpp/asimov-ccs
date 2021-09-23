@@ -1,5 +1,5 @@
 !> @brief Module file types.mod
-!>
+!
 !> @details Provides concrete types and bases of extensible types.
 
 module types
@@ -37,7 +37,6 @@ module types
 
   !> @brief Container type for data required to initialise a matrix.
   type, public :: matrix_init_data
-
      !> The matrix size can be specified either globally or per-process
      integer(accs_int) :: rglob !> The global matrix rows size (set -1 to ignore)
      integer(accs_int) :: cglob !> The global matrix columns size (set -1 to ignore)
