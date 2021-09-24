@@ -65,7 +65,7 @@ contains
          if (modulo(ii, nps) == 0) then
             square_mesh%nbidx(1, ictr) = -1
          else
-            square_mesh%nbidx(1, i) = i - 1
+            square_mesh%nbidx(1, ictr) = i - 1
          end if
 
          !! Right neighbour
