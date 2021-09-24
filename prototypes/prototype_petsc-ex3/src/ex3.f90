@@ -201,15 +201,15 @@ contains
 
             end associate
          end do
+       
+         mat_coeffs%rglob(:) = mat_coeffs%rglob(:) - 1
+         mat_coeffs%cglob(:) = mat_coeffs%cglob(:) - 1
+
+         call set_values(mat_coeffs, M)
+
+         deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
          
        end associate
-       
-       mat_coeffs%rglob(:) = mat_coeffs%rglob(:) - 1
-       mat_coeffs%cglob(:) = mat_coeffs%cglob(:) - 1
-
-       call set_values(mat_coeffs, M)
-
-       deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
 
     end do
     print *, "Finished disc Poiss"
