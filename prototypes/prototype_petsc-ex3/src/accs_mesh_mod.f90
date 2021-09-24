@@ -19,7 +19,7 @@ contains
     integer, intent(in) :: comm
 
     integer(accs_int) :: istart, iend
-    integer(accs_int) :: i, ii
+    integer(accs_int) :: i, ii, ictr
     type(mesh) :: square_mesh
 
     integer :: comm_rank, comm_size
@@ -56,37 +56,40 @@ contains
     
       !! Get neighbour indices
       !! XXX: These are global indices and thus may be off-process
+      ictr = 1
       do i = istart, iend
-         square_mesh%idx_global(i) = i
+         square_mesh%idx_global(ictr) = i
          ii = i - 1
        
          !! Left neighbour
          if (modulo(ii, nps) == 0) then
-            square_mesh%nbidx(1, i) = -1
+            square_mesh%nbidx(1, ictr) = -1
          else
             square_mesh%nbidx(1, i) = i - 1
          end if
 
          !! Right neighbour
          if (modulo(ii, nps) == (nps - 1)) then
-            square_mesh%nbidx(2, i) = -2
+            square_mesh%nbidx(2, ictr) = -2
          else
-            square_mesh%nbidx(2, i) = i + 1
+            square_mesh%nbidx(2, ictr) = i + 1
          end if
 
          !! Down neighbour
          if ((ii / nps) == 0) then
-            square_mesh%nbidx(3, i) = -3
+            square_mesh%nbidx(3, ictr) = -3
          else
-            square_mesh%nbidx(3, i) = i - nps
+            square_mesh%nbidx(3, ictr) = i - nps
          end if
 
          !! Up neighbour
          if ((ii / nps) == (nps - 1)) then
-            square_mesh%nbidx(4, i) = -4
+            square_mesh%nbidx(4, ictr) = -4
          else
-            square_mesh%nbidx(4, i) = i + nps
+            square_mesh%nbidx(4, ictr) = i + nps
          end if
+
+         ictr = ictr + 1
       end do
     end associate
     
