@@ -1,8 +1,8 @@
 !> @brief Submodule file vec_petsc.smod
 !> @build petsc
-!>
+!
 !> @details An implementation of vector objects using PETSc - the datatype and operations on it
-!>          (creation, destruction, setting/getting, ...)
+!!          (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
 
   use kinds, only : accs_int, accs_real, accs_err
@@ -13,11 +13,11 @@ submodule (vec) vec_petsc
 
 contains
 
+  !> @brief Create a PETSc-backed vector
+  !
+  !> @param[in]  vector_innit_data vec_dat - the data describing how the vector should be created.
+  !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
-    !> @brief Creates a PETSc-backed vector.
-    !>
-    !> @param[in] vector_innit_data vec_dat - the data describing how the vector should be created.
-    !> @param[out] vector v - the vector specialised to type vector_petsc.
 
     use petsc, only : PETSC_DECIDE
     use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet
@@ -25,7 +25,7 @@ contains
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
     
-    integer :: ierr
+    integer(accs_err) :: ierr !> Error code
 
     allocate(vector_petsc :: v)
     
@@ -54,6 +54,11 @@ contains
 
   end subroutine
 
+  !> @brief Sets values in a PETSc vector
+  !
+  !> @param[in] val_dat - contains the values, their indices and the mode to use for setting
+  !!                      them.
+  !> @param[in,out] v   - the PETSc vector.
   module subroutine set_vector_values(val_dat, v)
 
     use petsc, only : VecSetValues, ADD_VALUES, INSERT_VALUES
@@ -64,9 +69,9 @@ contains
     class(*), intent(in) :: val_dat
     class(vector), intent(inout) :: v
 
-    integer(accs_int) :: n
-    integer(accs_int) :: mode
-    integer(accs_err) :: ierr
+    integer(accs_int) :: n    !> Number of elements to add
+    integer(accs_int) :: mode !> Append or insert mode
+    integer(accs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -100,6 +105,9 @@ contains
     
   end subroutine
 
+  !> @brief Perform a parallel update of a PETSc vector
+  !
+  !> @param[in,out] v - the PETSc vector
   module subroutine update_vector(v)
 
     class(vector), intent(inout) :: v
@@ -117,14 +125,19 @@ contains
     end select
 
   end subroutine
-  
+
+  !> @brief Begin a parallel update of a PETSc vector
+  !
+  !> @details Begins the parallel update to allow overlapping comms and compute
+  !
+  !> @param[in,out] v - the PETSc vector
   module subroutine begin_update_vector(v)
 
     use petsc, only : VecAssemblyBegin
     
     class(vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -139,13 +152,18 @@ contains
 
   end subroutine
 
+  !> @brief End a parallel update of a PETSc vector.
+  !
+  !> @details Ends the parallel update to allow overlapping comms and compute.
+  !
+  !> @param[in,out] v - the PETSc vector
   module subroutine end_update_vector(v)
 
     use petsc, only : VecAssemblyEnd
     
     class(vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -160,6 +178,14 @@ contains
 
   end subroutine
 
+  !> @brief Perform the AXPY vector operation using PETSc
+  !
+  !> @details Performs the AXPY operation
+  !!          y[i] = alpha * x[i] + y[i]
+  !
+  !> @param[in]     alpha - a scalar value
+  !> @param[in]     x     - a PETSc input vector
+  !> @param[in,out] y     - PETSc vector serving as input, overwritten with result
   module subroutine axpy(alpha, x, y)
 
     use petscvec, only : VecAXPY
@@ -168,7 +194,7 @@ contains
     class(vector), intent(in) :: x
     class(vector), intent(inout) :: y
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
     
     select type (x)
       type is (vector_petsc)
@@ -193,6 +219,13 @@ contains
     
   end subroutine
 
+  !> @brief Compute the norm of a PETSc vector
+  !
+  !> @param[in]  v         - the PETSc vector
+  !> @param[in]  norm_type - which norm to compute? Currently supported is the 2 norm:
+  !!                         norm_type=2.
+  !> @param[out] n         - the computed norm returned as the result of the function
+  !!                         call.
   module function norm(v, norm_type) result(n)
 
     use petscvec, only : NORM_2, VecNorm
@@ -200,10 +233,10 @@ contains
     class(vector), intent(in) :: v
     integer(accs_int), intent(in) :: norm_type
 
-    real(accs_real) :: n
-    integer(accs_err) :: ierr
+    real(accs_real) :: n      !> The computed norm 
+    integer(accs_err) :: ierr !> Error code
     
-    n = 0.0_accs_real
+    n = 0.0_accs_real ! initialise norm to 0
     
     select type (v)
       type is (vector_petsc)
