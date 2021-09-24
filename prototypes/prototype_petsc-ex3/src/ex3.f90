@@ -315,7 +315,7 @@ contains
     do i = 1, square_mesh%nlocal
        associate(idx=>square_mesh%idx_global(i))
          vec_values%idx(1) = idx - 1
-         vec_values%val(1) = rhs_val(vec_values%idx(1))
+         vec_values%val(1) = rhs_val(idx)
          call set_values(vec_values, ustar)
        end associate
     end do
