@@ -77,7 +77,8 @@ program ex3
   call update(b) ! Performs the parallel assembly
 
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
-  call apply_dirichlet_bcs(M, b, u)
+  call apply_dirichlet_bcs(M, b)
+  call update(b)
   call finalise(M)
   
   !! Create linear solver & set options
@@ -174,26 +175,38 @@ contains
        !!        filling from front, and pass the number of coefficients to be set, requires
        !!        modifying the matrix_values type and the implementation of set_values applied to
        !!        matrices.
-       allocate(mat_coeffs%rglob(1), &
-            mat_coeffs%cglob(1 + square_mesh%nnb(i)))
-       allocate(mat_coeffs%val(1 + square_mesh%nnb(i)))
+       associate(idxg=>square_mesh%idx_global(i), &
+            nnb=>square_mesh%nnb(i))
+         
+         allocate(mat_coeffs%rglob(1), &
+              mat_coeffs%cglob(1 + nnb))
+         allocate(mat_coeffs%val(1 + nnb))
+
+         mat_coeffs%rglob(1) = idxg
+         mat_coeffs%cglob(:) = -1 ! -ve indices are ignored
+         mat_coeffs%cglob(1) = idxg
+         mat_coeffs%val(:) = 0.0_accs_real
        
-       mat_coeffs%rglob(1) = square_mesh%idx_global(i)
-       mat_coeffs%cglob(:) = -1 ! -ve indices are ignored
-       mat_coeffs%cglob(1) = square_mesh%idx_global(i)
-       mat_coeffs%val(:) = 0.0_accs_real
-       !! Loop over faces
-       do j = 1, square_mesh%nnb(i)
-          if (square_mesh%nbidx(j, i) >= 0) then
-             !! Interior face
-             coeff_f = (1.0 / square_mesh%h) * square_mesh%Af
-             mat_coeffs%val(1) = mat_coeffs%val(1) - coeff_f
-             mat_coeffs%val(j + 1) = coeff_f
-             mat_coeffs%cglob(j + 1) = square_mesh%nbidx(j, i)
-          end if
-       end do
+         !! Loop over faces
+         do j = 1, nnb
+            associate(nbidxg=>square_mesh%nbidx(j, i))
+
+              if (nbidxg > 0) then
+                 !! Interior face
+                 coeff_f = (1.0 / square_mesh%h) * square_mesh%Af
+                 mat_coeffs%val(1) = mat_coeffs%val(1) - coeff_f
+                 mat_coeffs%val(j + 1) = coeff_f
+                 mat_coeffs%cglob(j + 1) = nbidxg
+              end if
+
+            end associate
+         end do
+         
+       end associate
+       
        mat_coeffs%rglob(:) = mat_coeffs%rglob(:) - 1
        mat_coeffs%cglob(:) = mat_coeffs%cglob(:) - 1
+
        call set_values(mat_coeffs, M)
 
        deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
@@ -203,7 +216,7 @@ contains
     
   end subroutine discretise_poisson
 
-  subroutine apply_dirichlet_bcs(M, b, u)
+  subroutine apply_dirichlet_bcs(M, b)
 
     use accs_constants, only : add_mode
     use accsmat, only : set_eqn
@@ -211,7 +224,7 @@ contains
     use accs_utils, only : set_values
     
     class(matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b, u
+    class(vector), intent(inout) :: b
 
     integer(accs_int) :: i, j
     real(accs_real) :: boundary_coeff, boundary_val
@@ -228,74 +241,83 @@ contains
          col=>mat_coeffs%cglob, &
          coeff=>mat_coeffs%val, &
          idx=>vec_values%idx, &
-         val=>vec_values%val)
+         val=>vec_values%val, &
+         idx_global=>square_mesh%idx_global)
+      
       do i = 1, square_mesh%nlocal
-         do j = 1, square_mesh%nnb(i)
-            if (square_mesh%nbidx(j, i) < 0) then
-               associate(h=>square_mesh%h, &
-                    Af=>square_mesh%Af)
-                 !! Boundary face
-                 boundary_coeff = (2 / h) * Af
-                 boundary_val = rhs_val(i)
+         if (minval(square_mesh%nbidx(:, i)) < 0) then
+            coeff(1) = 0.0_accs_real
+            val(1) = 0.0_accs_real
+            do j = 1, square_mesh%nnb(i)
+               associate(nbidx=>square_mesh%nbidx(j, i))
+                 
+                 if (nbidx < 0) then
+                    associate(h=>square_mesh%h, &
+                         Af=>square_mesh%Af)
 
-                 ! Coefficient
-                 row(1) = i - 1
-                 col(1) = i - 1
-                 coeff(1) = -boundary_coeff
-                 call set_values(mat_coeffs, M)
+                      !! Boundary face
+                      boundary_coeff = (2.0 / h) * Af
+                   
+                      if ((nbidx == -1) .or. (nbidx == -2)) then
+                         !! Left or right boundary
+                         boundary_val = rhs_val(idx_global(i)-1)
+                      else if (nbidx == -3) then
+                         !! Bottom boundary
+                         boundary_val = rhs_val(0, -0.5_accs_real)
+                      else if (nbidx == -4) then
+                         !! Top boundary
+                         boundary_val = rhs_val(idx_global(i)-1, 0.5_accs_real)
+                      else
+                         print *, "ERROR: invalid/unsupported BC ", nbidx
+                         stop
+                      end if
+
+                      ! Coefficient
+                      row(1) = idx_global(i) - 1
+                      col(1) = idx_global(i) - 1
+                      coeff(1) = coeff(1) - boundary_coeff
                
-                 ! RHS vector
-                 idx(1) = i - 1
-                 val(1) = -boundary_val * boundary_coeff
-                 call set_values(vec_values, b)
-                 end associate
-            end if
-         end do
+                      ! RHS vector
+                      idx(1) = idx_global(i) - 1
+                      val(1) = val(1) - boundary_val * boundary_coeff
+
+                    end associate
+                 end if
+
+               end associate
+            end do
+            call set_values(mat_coeffs, M)
+            call set_values(vec_values, b)
+         end if
       end do
+
     end associate
     
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
-
-    !! Need to update halo values
-    call update(b)
-    call update(u)
     
   end subroutine apply_dirichlet_bcs
 
   subroutine set_exact_sol(ustar)
 
-    use petscvec, only : VecGetOwnershipRange
-    
     use accs_constants, only : insert_mode
     use accs_types, only : vector_values
     use accs_utils, only : set_values
-
-    use accs_petsctypes, only : vector_petsc
     
     class(vector), intent(inout) :: ustar
 
     type(vector_values) :: vec_values
-    integer(accs_int) :: i, istart, iend
-    integer(accs_err) :: ierr
-    
-    !> @todo: abstract this!
-    select type(ustar)
-    type is (vector_petsc)
-       call VecGetOwnershipRange(ustar%v, istart, iend, ierr)
-       istart = istart + 1
-    class default
-       print *, "Wrong type of vector! Besides you should have abstracted this!"
-       stop
-    end select
+    integer(accs_int) :: i
     
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
-    do i = istart, iend
-       vec_values%idx(1) = i - 1
-       vec_values%val(1) = rhs_val(vec_values%idx(1))
-       call set_values(vec_values, ustar)
+    do i = 1, square_mesh%nlocal
+       associate(idx=>square_mesh%idx_global(i))
+         vec_values%idx(1) = idx - 1
+         vec_values%val(1) = rhs_val(vec_values%idx(1))
+         call set_values(vec_values, ustar)
+       end associate
     end do
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
@@ -312,14 +334,24 @@ contains
     
   end subroutine init_ex3
 
-  pure function rhs_val(i) result(r)
+  pure function rhs_val(i, opt_offset) result(r)
 
     integer(accs_int), intent(in) :: i
-    
-    real(accs_real) :: r
+    real(accs_real), intent(in), optional :: opt_offset
+
+    integer(accs_int) :: ii
+    real(accs_real) :: r, offset
+
+    if (present(opt_offset)) then
+       offset = opt_offset
+    else
+       offset = 0
+    end if
+
+    ii = i - 1
 
     associate(h=>square_mesh%h)
-      r = h * (i / (cps + 1) + 0.5)! XXX: This is sort of y (y=i/cps+0.5), but matches ex3.c...
+      r = h * (ii / cps + (0.5 + offset))
     end associate
     
   end function rhs_val
