@@ -340,7 +340,8 @@ contains
     real(accs_real), intent(in), optional :: opt_offset
 
     integer(accs_int) :: ii
-    real(accs_real) :: r, offset
+    real(accs_real) :: r
+    real(accs_real) :: offset
 
     if (present(opt_offset)) then
        offset = opt_offset
