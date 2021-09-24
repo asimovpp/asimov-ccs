@@ -260,13 +260,13 @@ contains
                    
                       if ((nbidx == -1) .or. (nbidx == -2)) then
                          !! Left or right boundary
-                         boundary_val = rhs_val(idx_global(i)-1)
+                         boundary_val = rhs_val(idx_global(i))
                       else if (nbidx == -3) then
                          !! Bottom boundary
                          boundary_val = rhs_val(0, -0.5_accs_real)
                       else if (nbidx == -4) then
                          !! Top boundary
-                         boundary_val = rhs_val(idx_global(i)-1, 0.5_accs_real)
+                         boundary_val = rhs_val(idx_global(i), 0.5_accs_real)
                       else
                          print *, "ERROR: invalid/unsupported BC ", nbidx
                          stop
