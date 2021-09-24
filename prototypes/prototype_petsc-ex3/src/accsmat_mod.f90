@@ -10,7 +10,7 @@ module accsmat
 
   private
 
-  public :: create_matrix, update_matrix, begin_update_matrix, end_update_matrix, set_matrix_values, set_eqn
+  public :: create_matrix, finalise_matrix, update_matrix, begin_update_matrix, end_update_matrix, set_matrix_values, set_eqn
 
   interface
 
@@ -21,6 +21,10 @@ module accsmat
      module subroutine create_matrix(mat_dat, M)
        type(matrix_init_data), intent(in) :: mat_dat
        class(matrix), allocatable, intent(out) :: M
+     end subroutine
+
+     module subroutine finalise_matrix(M)
+       class(matrix), intent(inout) :: M
      end subroutine
 
      !> @brief Interface to perform a parallel update of a matrix.

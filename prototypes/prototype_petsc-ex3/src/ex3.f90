@@ -24,7 +24,7 @@ program ex3
   use accsvec, only : create_vector, axpy, norm
   use accsmat, only : create_matrix
   use accs_solver, only : create_solver, solve
-  use accs_utils, only : accs_init, accs_finalise, update
+  use accs_utils, only : accs_init, accs_finalise, update, finalise
 
   use accs_mesh, only : build_mesh
   
@@ -78,7 +78,7 @@ program ex3
 
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
   call apply_dirichlet_bcs(M, b, u)
-  call update(M)
+  call finalise(M)
   
   !! Create linear solver & set options
   poisson_eq%rhs => b

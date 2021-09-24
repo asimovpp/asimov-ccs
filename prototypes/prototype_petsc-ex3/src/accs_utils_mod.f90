@@ -8,14 +8,14 @@ module accs_utils
   use iso_c_binding
 
   use accsvec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector
-  use accsmat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix
+  use accsmat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, finalise_matrix
   use accs_types, only : vector, matrix
   
   implicit none
 
   private
 
-  public :: set_values, begin_update, end_update , update
+  public :: set_values, begin_update, end_update, update, finalise
   public :: accs_init, accs_finalise
 
   !> @brief Generic interface to set values on an object.
@@ -24,6 +24,10 @@ module accs_utils
      module procedure set_matrix_values
   end interface set_values
 
+  interface finalise
+     module procedure finalise_matrix
+  end interface finalise
+  
   !> @brief Generic interface to perform parallel update of an object.
   interface update
      module procedure update_vector
