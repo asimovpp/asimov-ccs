@@ -8,6 +8,10 @@ submodule (mat) mat_petsc
 
 contains
 
+	!> @brief Create a new PETSc matrix object.
+	!
+	!> @param[in]  mat_dat - contains information about how the matrix should be allocated
+	!> @param[out] M       - the matrix object
   module subroutine create_matrix(mat_dat, M)
 
     use mpi
@@ -19,12 +23,12 @@ contains
     type(matrix_init_data), intent(in) :: mat_dat
     class(matrix), allocatable, intent(out) :: M
 
-    integer(accs_int) :: nrank
-    integer(accs_err) :: ierr
+    integer(accs_int) :: nrank !> MPI rank
+    integer(accs_err) :: ierr  !> Error code
 
     allocate(matrix_petsc :: M)
-    select type (M)
 
+    select type (M)
 			type is (matrix_petsc)
 
 				call MatCreate(mat_dat%comm, M%M, ierr)
@@ -63,13 +67,16 @@ contains
     
   end subroutine
 
+	!> @brief Perform a parallel update of a PETSc matrix.
+	!
+	!> @param[in/out] M - the matrix
   module subroutine update_matrix(M)
 
 		class(matrix), intent(inout) :: M
 
     select type(M)
-
 			type is (matrix_petsc)
+			
       	call begin_update_matrix(M)
       	call end_update_matrix(M)
 
@@ -80,17 +87,23 @@ contains
 		end select
   
 	end subroutine
-  
+
+	!> @brief Begin a parallel update of a PETSc matrix.
+	!
+	!> @details Begins the parallel update to allow overlapping comms and compute.
+	!
+	!> @param[in/out] M - the matrix
   module subroutine begin_update_matrix(M)
 
     use petscmat, only : MatAssemblyBegin, MAT_FINAL_ASSEMBLY
     
     class(matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
 
     select type (M)
 			type is (matrix_petsc)
+
 				call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
 
 			class default
@@ -101,16 +114,22 @@ contains
     
   end subroutine
 
+	!> @brief End a parallel update of a PETSc matrix.
+	!
+	!> @details Ends the parallel update to allow overlapping comms and compute.
+	!
+	!> @param[in/out] M - the matrix
   module subroutine end_update_matrix(M)
 
     use petscmat, only : MatAssemblyEnd, MAT_FINAL_ASSEMBLY
     
     class(matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
 
     select type (M)
 	    type is (matrix_petsc)
+
   	    call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
 
 			class default
@@ -121,6 +140,11 @@ contains
     
   end subroutine
 
+	!> @brief Set values in a PETSc matrix.
+	!
+	!> @param[in]     mat_values - contains the values, their indices and the mode 
+	!!                             to use when setting them.
+	!> @param[in/out] M          - the matrix
   module subroutine set_matrix_values(mat_values, M)
 
     use petsc, only : ADD_VALUES, INSERT_VALUES
@@ -130,18 +154,17 @@ contains
     type(matrix_values), intent(in) :: mat_values
     class(matrix), intent(inout) :: M
 
-    integer(accs_int) :: nrows, ncols
-    integer(accs_int) :: mode
+    integer(accs_int) :: nrows, ncols !> number of rows/columns
+    integer(accs_int) :: mode !> Add or insert values?
     
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
 
-    associate(ridx=>mat_values%rglob, &
-         			cidx=>mat_values%cglob, &
-         			val=>mat_values%val, &
-         			matmode=>mat_values%mode)
+    associate(ridx		=> mat_values%rglob, &
+         			cidx		=> mat_values%cglob, &
+         			val			=> mat_values%val, &
+         			matmode	=> mat_values%mode)
     
 			select type (M)
-
 				type is (matrix_petsc)
 				
 					nrows = size(ridx)
@@ -171,6 +194,14 @@ contains
 
   end subroutine
 
+	!> @brief Set equation
+	!
+	!> @details Sets equations in a system of equations by zeroing out the corresponding row in the
+	!!          system matrix and setting the diagonal to one such that the solution is given by
+	!!          the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
+	!
+	!> @param[in]  rows - array of (global) row indices to set the equation on
+	!> @param[in/out] M - the matrix
   module subroutine set_eqn(rows, M)
 
     use petsc, only : PETSC_NULL_VEC
@@ -183,6 +214,7 @@ contains
     
     select type (M)
 			type is (matrix_petsc)
+
 				call MatZeroRows(M%M, size(rows), rows, 1.0_accs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
 
 			class default

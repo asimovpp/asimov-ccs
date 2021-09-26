@@ -12,6 +12,10 @@ submodule (solver) solver_petsc
 
 contains
 
+  !> @brief Create a new PETSc solver object.
+  !
+  !> @param[in]  linear_system eqsys   - Data structure containing equation system to be solved.
+  !> @param[out] linear_solver solver - The linear solver returned allocated.
   module subroutine create_solver(eqsys, solver)
 
     use petsc, only : PETSC_TRUE
@@ -20,22 +24,22 @@ contains
     type(linear_system), intent(in) :: eqsys
     class(linear_solver), allocatable, intent(out) :: solver
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
     
     allocate(linear_solver_petsc :: solver)
     
     select type(solver)
-
       type is(linear_solver_petsc)
 
         solver%eqsys = eqsys
        
         associate(comm => solver%eqsys%comm, &
-                  ksp => solver%KSP, &
-                  M => solver%eqsys%M)
+                  ksp  => solver%KSP, &
+                  M    => solver%eqsys%M)
 
           select type(M)
             type is(matrix_petsc)
+
               call KSPCreate(comm, ksp, ierr)
               if (ierr /= 0) then
                 print *, "Error in creating solver KSP"
@@ -49,6 +53,7 @@ contains
               print *, "ERROR: Trying to use non-PETSc matrix with PETSc solver!"
               stop
           end select
+          
         end associate
 
         solver%allocated = .true.
@@ -61,13 +66,16 @@ contains
     
   end subroutine
 
+  !> @brief Solve the linear system in a PETSc solver.
+  !
+  !> @param[in/out] linear_solver solver - The linear solver object.
   module subroutine solve(solver)
 
     use petscksp, only : KSPSolve
     
     class(linear_solver), intent(inout) :: solver
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
     
     select type(solver)
       type is(linear_solver_petsc)
