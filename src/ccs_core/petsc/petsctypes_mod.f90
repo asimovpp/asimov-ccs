@@ -62,13 +62,13 @@ contains
   !!          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
   !!          the allocated flag to .false. to prevent double free's.
   !> @param[in/out] vector v - the vector to be destroyed.
-module subroutine free_vector_petsc(v)
+  module subroutine free_vector_petsc(v)
     
     use petscvec
     
     type(vector_petsc), intent(inout) :: v
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
 
     if (v%allocated) then
        call VecDestroy(v%v, ierr)
@@ -91,7 +91,7 @@ module subroutine free_vector_petsc(v)
 
     type(matrix_petsc), intent(inout) :: M
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
 
     if (M%allocated) then
        call MatDestroy(M%M, ierr)
@@ -115,7 +115,7 @@ module subroutine free_vector_petsc(v)
 
     type(linear_solver_petsc), intent(inout) :: solver
 
-    integer(accs_err) :: ierr
+    integer(accs_err) :: ierr !> Error code
 
     if (solver%allocated) then
        call KSPDestroy(solver%KSP, ierr)

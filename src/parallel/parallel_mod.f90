@@ -9,7 +9,13 @@ module parallel
   implicit none
 
   private
-
+  
+  public :: initialise_parallel_environment
+  public :: cleanup_parallel_environment
+  public :: sync
+  public :: timer
+  public :: allreduce
+  
   interface
 
     !> @brief Create the parallel environment
@@ -52,11 +58,5 @@ module parallel
   interface allreduce
     module procedure allreduce_scalar
   end interface allreduce
-
-  public :: initialise_parallel_environment
-  public :: cleanup_parallel_environment
-  public :: sync
-  public :: timer
-  public :: allreduce
 
 end module parallel
