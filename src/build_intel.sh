@@ -30,7 +30,21 @@ cd ../../ccs_core
 mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o utils_mod.o -c utils_mod.f90 -I../objs  -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
 mv *.o *.*mod ../objs
 
-cd ../case_setup/Poisson
+cd ../parallel
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_types_mod.o -c parallel_types_mod.f90 -I../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_mod.o -c parallel_mod.f90 -I../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_types_mpi_mod.o -c parallel_types_mpi_mod.f90 -I../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_env_mpi.o -c parallel_env_mpi.f90 -I../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_errors_mpi.o -c parallel_errors_mpi.f90 -I../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_utils_mpi.o -c parallel_utils_mpi.f90 -I../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mv *.o *.*mod ../objs
+
+cd petsc
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_env_mpi_petsc.o -c parallel_env_mpi_petsc.f90 -I../../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o parallel_errors_mpi_petsc.o -c parallel_errors_mpi_petsc.f90 -I../../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
+mv *.o *.*mod ../../objs
+
+cd ../../case_setup/Poisson
 mpiifort -cpp -fPIC -g -O3 -xHOST -warn all,noexternals  -stand f18 -DACCS_PETSC -o poisson.o -c poisson.f90 -I../../objs -I/work/Projects/ASiMoV/petsc/include -I/work/Projects/ASiMoV/petsc/arch-linux-c-opt/include
 mv *.o *.*mod ../../objs
 
