@@ -78,7 +78,7 @@ program poisson
   call update(b) ! Performs the parallel assembly
 
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
-  call apply_dirichlet_bcs(M, b, square_mesh)
+  call apply_dirichlet_bcs(M, b)
   call update(b)
   call finalise(M)
   
@@ -216,7 +216,7 @@ contains
     
   end subroutine discretise_poisson
 
-  subroutine apply_dirichlet_bcs(M, b, square_mesh)
+  subroutine apply_dirichlet_bcs(M, b)
 
     use constants, only : add_mode
     use mat, only : set_eqn
@@ -228,7 +228,6 @@ contains
   
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
-    class(mesh), intent(in) :: square_mesh
   
     integer(accs_int) :: i, j
     real(accs_real) :: boundary_coeff, boundary_val
