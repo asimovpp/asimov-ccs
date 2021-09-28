@@ -11,6 +11,7 @@ module mat
   private
 
   public :: create_matrix
+  public :: finalise_matrix
   public :: update_matrix
   public :: begin_update_matrix
   public :: end_update_matrix
@@ -27,6 +28,10 @@ module mat
        type(matrix_init_data), intent(in) :: mat_dat
        class(matrix), allocatable, intent(out) :: M
      end subroutine
+
+    module subroutine finalise_matrix(M)
+      class(matrix), intent(inout) :: M
+    end subroutine
 
      !> @brief Interface to perform a parallel update of a matrix.
      !
