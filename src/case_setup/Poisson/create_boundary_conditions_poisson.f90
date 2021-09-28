@@ -4,10 +4,11 @@
 
 subroutine apply_dirichlet_bcs(M, b)
 
-  use accs_constants, only : add_mode
-  use accsmat, only : set_eqn
-  use accs_types, only : vector_values, matrix_values
-  use accs_utils, only : set_values
+  use constants, only : add_mode
+  use mat, only : set_eqn
+  use types, only : vector_values, matrix_values, matrix, vector
+  use utils, only : set_values
+  use kinds, only: accs_int, accs_real
 
   class(matrix), intent(inout) :: M
   class(vector), intent(inout) :: b

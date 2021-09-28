@@ -20,17 +20,17 @@ program poisson
   use petsc, only : PETSC_COMM_WORLD
 
   !! ASiMoV-CCS uses
-  use accs_kinds, only : accs_real, accs_int, accs_err
-  use accs_types, only : vector_init_data, vector, matrix_init_data, matrix, linear_system, &
+  use kinds, only : accs_real, accs_int, accs_err
+  use types, only : vector_init_data, vector, matrix_init_data, matrix, linear_system, &
        linear_solver, mesh
-  use accsvec, only : create_vector, axpy, norm
-  use accsmat, only : create_matrix
-  use accs_solver, only : create_solver, solve
-  use accs_utils, only : accs_init, accs_finalise, update, finalise
+  use vec, only : create_vector, axpy, norm
+  use mat, only : create_matrix
+  use solver, only : create_solver, solve
+  use utils, only : accs_init, accs_finalise, update, finalise
 
-  use accs_mesh, only : build_mesh
+  use mesh, only : build_square_mesh
   
-  use accs_petsctypes, only : matrix_petsc
+  use petsctypes, only : matrix_petsc
   
   implicit none
 
@@ -112,9 +112,9 @@ contains
 
   subroutine eval_rhs(b)
 
-    use accs_constants, only : add_mode
-    use accs_types, only : vector_values
-    use accs_utils, only : set_values
+    use constants, only : add_mode
+    use types, only : vector_values
+    use utils, only : set_values
     
     class(vector), intent(inout) :: b
 
@@ -157,9 +157,9 @@ contains
 
   subroutine discretise_poisson(M)
 
-    use accs_constants, only : insert_mode
-    use accs_types, only : matrix_values
-    use accs_utils, only : set_values
+    use constants, only : insert_mode
+    use types, only : matrix_values
+    use utils, only : set_values
     
     class(matrix), intent(inout) :: M
 
@@ -218,9 +218,9 @@ contains
 
   subroutine set_exact_sol(ustar)
 
-    use accs_constants, only : insert_mode
-    use accs_types, only : vector_values
-    use accs_utils, only : set_values
+    use constants, only : insert_mode
+    use types, only : vector_values
+    use utils, only : set_values
     
     class(vector), intent(inout) :: ustar
 
@@ -248,7 +248,7 @@ contains
     integer(accs_err) :: ierr
     
     call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
-    square_mesh = build_mesh(cps, 1.0_accs_real, PETSC_COMM_WORLD)
+    square_mesh = build_square_mesh(cps, 1.0_accs_real, PETSC_COMM_WORLD)
     
   end subroutine init_poisson
 
