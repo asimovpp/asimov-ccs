@@ -70,4 +70,13 @@ module types
      type(linear_system) :: eqsys !> System of equations
   end type linear_solver
 
+   !> @brief Mesh type
+  type, public :: mesh
+     integer(accs_int) :: n, nlocal
+     integer(accs_int), dimension(:), allocatable :: idx_global
+     integer(accs_int), dimension(:), allocatable :: nnb
+     integer(accs_int), dimension(:, :), allocatable :: nbidx
+     real(accs_real) :: h, Af, vol    
+  end type mesh
+
 end module types

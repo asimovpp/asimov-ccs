@@ -8,7 +8,7 @@ module utils
   use iso_c_binding
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector
-  use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix
+  use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, finalise_matrix
   use types, only : vector, matrix
   
   implicit none
@@ -19,6 +19,7 @@ module utils
   public :: begin_update
   public :: end_update
   public :: update
+  public :: finalise
 
   public :: accs_init
   public :: accs_finalise
@@ -28,6 +29,10 @@ module utils
      module procedure set_vector_values
      module procedure set_matrix_values
   end interface set_values
+
+  interface finalise
+    module procedure finalise_matrix
+  end interface finalise
 
   !> @brief Generic interface to perform parallel update of an object.
   interface update
