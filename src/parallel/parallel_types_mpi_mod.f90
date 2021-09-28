@@ -29,6 +29,7 @@ module parallel_types_mpi
   !!          addition to the common parameters
   type, extends(parallel_environment), public :: parallel_environment_mpi
     type(mpi_comm) :: comm
+    integer :: comm_int
     type(reduction_operator_mpi) :: sum_op
     type(reduction_operator_mpi) :: min_op
     type(reduction_operator_mpi) :: max_op
