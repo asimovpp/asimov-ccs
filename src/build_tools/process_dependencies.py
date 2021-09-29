@@ -44,6 +44,14 @@ def find_commons(deps):
   return internal_nodes
 
 
+def find_commons_custom(deps):
+  nodes = deps.keys()
+  all_inward = [v for k,v in deps.items()]
+  all_inward_flattened = [x for l in all_inward for x in l]
+  internal_nodes = set(all_inward_flattened)
+  return list(internal_nodes)
+
+
 if __name__ == "__main__":
   deps = parse_dependencies(sys.argv[1])
   print(deps)

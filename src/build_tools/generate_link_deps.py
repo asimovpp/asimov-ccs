@@ -40,7 +40,7 @@ def get_link_rule(config, deps):
   link_deps = []
   # add main and common files
   link_deps.append(config["main"])
-  commons = pdeps.find_commons(deps)
+  commons = pdeps.find_commons_custom(deps)
   log.debug("commons: %s", " ".join(commons))
   link_deps = link_deps + commons 
   # add files that have options
