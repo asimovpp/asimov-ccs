@@ -5,7 +5,6 @@
 module types
 
   use kinds, only : accs_int, accs_real
-  use parallel_types, only: parallel_environment
   
   implicit none
 
