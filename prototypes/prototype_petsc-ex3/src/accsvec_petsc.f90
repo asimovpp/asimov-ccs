@@ -19,8 +19,8 @@ contains
     !> @param[in] vector_innit_data vec_dat - the data describing how the vector should be created.
     !> @param[out] vector v - the vector specialised to type vector_petsc.
 
-    use petsc, only : PETSC_DECIDE
-    use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet
+    use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
+    use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
     
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
@@ -43,6 +43,7 @@ contains
        end if
        
        call VecSetFromOptions(v%v, ierr)
+       call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
        call VecSet(v%v, 0.0_accs_real, ierr)
        v%allocated = .true.
     end select

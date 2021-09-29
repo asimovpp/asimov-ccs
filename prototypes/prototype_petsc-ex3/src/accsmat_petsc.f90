@@ -51,7 +51,23 @@ contains
        end if
     end select
     
-  end subroutine
+  end subroutine create_matrix
+
+  module subroutine finalise_matrix(M)
+
+    use petscmat, only : MatAssemblyBegin, MatAssemblyEnd, MAT_FINAL_ASSEMBLY
+    
+    class(matrix), intent(inout) :: M
+
+    integer(accs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+       call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
+       call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+    end select
+
+  end subroutine finalise_matrix
 
   module subroutine update_matrix(M)
     class(matrix), intent(inout) :: M
@@ -65,7 +81,7 @@ contains
   
   module subroutine begin_update_matrix(M)
 
-    use petscmat, only : MatAssemblyBegin, MAT_FINAL_ASSEMBLY
+    use petscmat, only : MatAssemblyBegin, MAT_FLUSH_ASSEMBLY
     
     class(matrix), intent(inout) :: M
 
@@ -73,14 +89,14 @@ contains
 
     select type (M)
     type is (matrix_petsc)
-       call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
+       call MatAssemblyBegin(M%M, MAT_FLUSH_ASSEMBLY, ierr)
     end select
     
   end subroutine
 
   module subroutine end_update_matrix(M)
 
-    use petscmat, only : MatAssemblyEnd, MAT_FINAL_ASSEMBLY
+    use petscmat, only : MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
     
     class(matrix), intent(inout) :: M
 
@@ -88,7 +104,7 @@ contains
 
     select type (M)
     type is (matrix_petsc)
-       call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+       call MatAssemblyEnd(M%M, MAT_FLUSH_ASSEMBLY, ierr)
     end select
     
   end subroutine

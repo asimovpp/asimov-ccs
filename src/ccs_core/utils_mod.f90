@@ -1,22 +1,28 @@
-!> @brief Module file accs_utils.mod
-!>
+!> @brief Module file utils.mod
+!
 !> @details Provides utility functions for ASiMoV-CCS, these should be polymorphic on their input
-!>          and call type-specific implementations of the interface in other modules.
+!!          and call type-specific implementations of the interface in other modules.
 
-module accs_utils
+module utils
 
   use iso_c_binding
 
-  use accsvec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector
-  use accsmat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, finalise_matrix
-  use accs_types, only : vector, matrix
+  use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector
+  use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, finalise_matrix
+  use types, only : vector, matrix
   
   implicit none
 
   private
 
-  public :: set_values, begin_update, end_update, update, finalise
-  public :: accs_init, accs_finalise
+  public :: set_values
+  public :: begin_update
+  public :: end_update
+  public :: update
+  public :: finalise
+
+  public :: accs_init
+  public :: accs_finalise
 
   !> @brief Generic interface to set values on an object.
   interface set_values
@@ -25,9 +31,9 @@ module accs_utils
   end interface set_values
 
   interface finalise
-     module procedure finalise_matrix
+    module procedure finalise_matrix
   end interface finalise
-  
+
   !> @brief Generic interface to perform parallel update of an object.
   interface update
      module procedure update_vector
@@ -35,7 +41,7 @@ module accs_utils
   end interface update
 
   !> @brief Generic interface to begin parallel update of an object.
-  !>
+  !
   !> @details This is to allow overlapping comms and compute.
   interface begin_update
      module procedure begin_update_vector
@@ -43,7 +49,7 @@ module accs_utils
   end interface begin_update
 
   !> @brief Generic interface to end parallel update of an object.
-  !>
+  !
   !> @details This is to allow overlapping comms and compute.
   interface end_update
      module procedure end_update_vector
@@ -53,17 +59,18 @@ module accs_utils
 contains
 
   !> @brief ASiMoV-CCS initialisation routine.
-  !>
+  !
   !> @details Currently implemented by calling PetscInitialize. Symbol must be bound using
-  !>          ISO_C_BINDING to tie into pFUnit initialiser.
+  !!          ISO_C_BINDING to tie into pFUnit initialiser.
   subroutine accs_init() bind (C, name="accs_init_")
 
     use petsc, only : PetscInitialize, PETSC_NULL_CHARACTER
-    use accs_kinds, only : accs_err
+    use kinds, only : accs_err
     
     integer(accs_err) :: ierr
     
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+    
     if (ierr /= 0) then
        print *, "Unable to initialise PETSc"
        stop
@@ -72,13 +79,13 @@ contains
   end subroutine accs_init
 
   !> @brief ASiMoV-CCS finalisation routine.
-  !>
+  !
   !> @details Currently implemented by calling PetscFinalize. Symbol must be bound using
-  !>          ISO_C_BINDING to tie into pFUnit finaliser.
+  !!          ISO_C_BINDING to tie into pFUnit finaliser.
   subroutine accs_finalise() bind (C, name="accs_finalise_")
 
     use petsc, only : PetscFinalize
-    use accs_kinds, only : accs_err
+    use kinds, only : accs_err
 
     integer(accs_err) :: ierr
 
@@ -86,4 +93,4 @@ contains
 
   end subroutine accs_finalise
   
-end module accs_utils
+end module utils
