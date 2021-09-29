@@ -2,12 +2,26 @@ stages:
   - build
   - test
 
-build-ccs:
-  stage: build
-  script:
-     - echo "Put build script here"
+variables:
+  CI_HOME: "/home/ubuntu/"
 
-test-ccs:
-  stage: test
+build_ccs_gnu:
+  stage: build
+  before_script:
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
+    - cd src
   script:
-    - echo "Put test script here"
+    - CMP=gnu make
+  artifacts:
+    paths:
+      - src/ccs_app
+    expire_in: 10 minutes
+
+test_ccs_gnu:
+  stage: test
+  before_script:
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
+    - cd src
+  script:
+    - mpirun --oversubscribe -n 4 ./ccs_app
+
