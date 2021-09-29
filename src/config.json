@@ -1,0 +1,6 @@
+{
+  "main": "poisson",
+  "options": {
+      "parallel": "poisson"
+  }
+}
