@@ -5,7 +5,8 @@ module mat
 
   use kinds, only : accs_int
   use types, only : matrix, matrix_init_data, matrix_values
-  
+  use parallel_types, only: parallel_environment
+
   implicit none
 
   private
@@ -24,8 +25,9 @@ module mat
      !
      !> @param[in]  mat_dat - contains information about how the matrix should be allocated
      !> @param[out] M       - the matrix object
-     module subroutine create_matrix(mat_dat, M)
+     module subroutine create_matrix(mat_dat, par_env, M)
        type(matrix_init_data), intent(in) :: mat_dat
+       class(parallel_environment), intent(in) :: par_env
        class(matrix), allocatable, intent(out) :: M
      end subroutine
 

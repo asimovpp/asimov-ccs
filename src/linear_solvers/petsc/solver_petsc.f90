@@ -7,6 +7,7 @@ submodule (solver) solver_petsc
   use kinds, only : accs_int, accs_err
   use types, only : linear_solver
   use petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
+  use parallel_types_mpi, only: parallel_environment_mpi
   
   implicit none
 
@@ -16,12 +17,13 @@ contains
   !
   !> @param[in]  linear_system eqsys   - Data structure containing equation system to be solved.
   !> @param[out] linear_solver solver - The linear solver returned allocated.
-  module subroutine create_solver(eqsys, solver)
+  module subroutine create_solver(eqsys, par_env, solver)
 
     use petsc, only : PETSC_TRUE
     use petscksp, only : KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
 
     type(linear_system), intent(in) :: eqsys
+    class(parallel_environment), intent(in) :: par_env
     class(linear_solver), allocatable, intent(out) :: solver
 
     integer(accs_err) :: ierr !> Error code
@@ -31,30 +33,39 @@ contains
     select type(solver)
       type is(linear_solver_petsc)
 
-        solver%eqsys = eqsys
+        select type (par_env)
+          type is(parallel_environment_mpi)
+            
+            solver%eqsys = eqsys
        
-        associate(comm => solver%eqsys%comm, &
-                  ksp  => solver%KSP, &
-                  M    => solver%eqsys%M)
+            associate(comm => par_env%comm%MPI_VAL, &
+                      ksp  => solver%KSP, &
+                      M    => solver%eqsys%M)
 
-          select type(M)
-            type is(matrix_petsc)
+              select type(M)
+                type is(matrix_petsc)
 
-              call KSPCreate(comm, ksp, ierr)
-              if (ierr /= 0) then
-                print *, "Error in creating solver KSP"
-                stop
-              end if
-              call KSPSetOperators(ksp, M%M, M%M, ierr)
-              call KSPSetFromOptions(ksp, ierr)
-              call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
+                  call KSPCreate(comm, ksp, ierr)
+                  if (ierr /= 0) then
+                    print *, "Error in creating solver KSP"
+                    stop
+                  end if
+                  call KSPSetOperators(ksp, M%M, M%M, ierr)
+                  call KSPSetFromOptions(ksp, ierr)
+                  call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
 
-            class default
-              print *, "ERROR: Trying to use non-PETSc matrix with PETSc solver!"
-              stop
-          end select
-          
-        end associate
+                class default
+                  print *, "ERROR: Trying to use non-PETSc matrix with PETSc solver!"
+                  stop
+
+              end select
+
+            end associate
+
+          class default
+            print *, "Unknown parallel environment"
+    
+        end select         
 
         solver%allocated = .true.
 

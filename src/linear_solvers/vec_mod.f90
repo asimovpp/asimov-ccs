@@ -7,6 +7,7 @@ module vec
 
   use kinds, only : accs_real, accs_int
   use types, only : vector, vector_init_data
+  use parallel_types, only: parallel_environment
   
   implicit none
 
@@ -28,8 +29,9 @@ module vec
     !!                                       of the vector, -1 is interpreted as unset. If both
     !!                                       are set the local size is used.
     !> @param[out] vector v - The vector returned allocated, but (potentially) uninitialised.
-    module subroutine create_vector(vec_dat, v)
+    module subroutine create_vector(vec_dat, par_env, v)
       type(vector_init_data), intent(in) :: vec_dat
+      class(parallel_environment), intent(in) :: par_env
       class(vector), allocatable, intent(out) :: v
     end subroutine
 

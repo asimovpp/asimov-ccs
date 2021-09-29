@@ -15,33 +15,30 @@
 
 program poisson
 
-  !! External uses
-  use MPI
-  use petsc, only : PETSC_COMM_WORLD
-
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int, accs_err
-  use types, only : vector_init_data, vector, matrix_init_data, matrix, linear_system, &
-       linear_solver, mesh
+  use types, only : vector_init_data, vector, matrix_init_data, matrix, &
+                    linear_system, linear_solver, mesh
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix
   use solver, only : create_solver, solve
   use utils, only : accs_init, accs_finalise, update, finalise
-
   use mesh_utils, only : build_square_mesh
-  
   use petsctypes, only : matrix_petsc
+  use parallel_types, only: parallel_environment
+  use parallel, only: initialise_parallel_environment, cleanup_parallel_environment
   
   implicit none
 
+  class(parallel_environment), allocatable :: par_env
   class(vector), allocatable, target :: u, b
   class(vector), allocatable :: ustar
-  type(vector_init_data) :: vec_sizes
   class(matrix), allocatable, target :: M
-  type(matrix_init_data) :: mat_sizes = matrix_init_data(rglob=-1, cglob=-1, rloc=-1, cloc=-1, &
-       comm=MPI_COMM_NULL, nnz=0)
-  type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
+
+  type(vector_init_data) :: vec_sizes
+  type(matrix_init_data) :: mat_sizes
+  type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
   
   integer(accs_int), parameter :: cps = 10 ! Cells per side
@@ -49,18 +46,16 @@ program poisson
 
   real(accs_real) :: err_norm
 
-  integer :: comm_rank
-  
-  !! Initialise program
-  call accs_init()
-  call init_poisson()
+  call initialise_parallel_environment(par_env) 
+  call init_poisson(par_env)
 
   !! Create stiffness matrix
   mat_sizes%rglob = square_mesh%n
   mat_sizes%cglob = mat_sizes%rglob
-  mat_sizes%comm = PETSC_COMM_WORLD
+  mat_sizes%rloc = -1
+  mat_sizes%cloc = -1
   mat_sizes%nnz = 5
-  call create_matrix(mat_sizes, M)
+  call create_matrix(mat_sizes, par_env, M)
 
   call discretise_poisson(M)
   call update(M) ! Performs the parallel assembly
@@ -68,9 +63,8 @@ program poisson
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
   vec_sizes%nglob = square_mesh%n
-  vec_sizes%comm = PETSC_COMM_WORLD
-  call create_vector(vec_sizes, u)
-  call create_vector(vec_sizes, b)
+  call create_vector(vec_sizes, par_env, u)
+  call create_vector(vec_sizes, par_env, b)
   call update(u) ! Performs the parallel assembly
 
   !! Evaluate right-hand-side vector
@@ -86,16 +80,15 @@ program poisson
   poisson_eq%rhs => b
   poisson_eq%sol => u
   poisson_eq%M => M
-  poisson_eq%comm = PETSC_COMM_WORLD
-  call create_solver(poisson_eq, poisson_solver)
+  call create_solver(poisson_eq, par_env, poisson_solver)
   call solve(poisson_solver)
 
   !! Check solution
-  call create_vector(vec_sizes, ustar)
+  call create_vector(vec_sizes, par_env, ustar)
   call set_exact_sol(ustar)
   call axpy(-1.0_accs_real, ustar, u)
   err_norm = norm(u, 2) * square_mesh%h
-  if (comm_rank == 0) then
+  if (par_env%proc_id == par_env%root) then
      print *, "Norm of error = ", err_norm
   end if
   
@@ -106,7 +99,7 @@ program poisson
   deallocate(M)
   deallocate(poisson_solver)
   
-  call accs_finalise()
+  call cleanup_parallel_environment(par_env)
 
 contains
 
@@ -328,12 +321,11 @@ contains
     call update(ustar)
   end subroutine set_exact_sol
 
-  subroutine init_poisson()
+  subroutine init_poisson(par_env)
 
-    integer(accs_err) :: ierr
-    
-    call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, PETSC_COMM_WORLD)
+    class(parallel_environment) :: par_env
+
+    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
     
   end subroutine init_poisson
 

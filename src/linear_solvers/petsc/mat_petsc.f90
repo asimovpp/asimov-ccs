@@ -3,6 +3,7 @@ submodule (mat) mat_petsc
   use kinds, only : accs_int, accs_real, accs_err
   use types, only : matrix, matrix_init_data
   use petsctypes, only : matrix_petsc
+  use parallel_types_mpi, only: parallel_environment_mpi
   
   implicit none
 
@@ -12,7 +13,7 @@ contains
   !
   !> @param[in]  mat_dat - contains information about how the matrix should be allocated
   !> @param[out] M       - the matrix object
-  module subroutine create_matrix(mat_dat, M)
+  module subroutine create_matrix(mat_dat, par_env, M)
 
     use mpi
     
@@ -21,9 +22,10 @@ contains
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
+    class(parallel_environment), intent(in) :: par_env
     class(matrix), allocatable, intent(out) :: M
 
-    integer(accs_int) :: nrank !> MPI rank
+!    integer(accs_int) :: nrank !> MPI rank
     integer(accs_err) :: ierr  !> Error code
 
     allocate(matrix_petsc :: M)
@@ -31,34 +33,41 @@ contains
     select type (M)
       type is (matrix_petsc)
 
-        call MatCreate(mat_dat%comm, M%M, ierr)
- 
-        if (mat_dat%rloc >= 0) then
-          call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
-        else if (mat_dat%rglob >= 0) then
-          call MatSetSizes(M%M, PETSC_DECIDE, PETSC_DECIDE, mat_dat%rglob, mat_dat%cglob, ierr)
-         else
-          print *, "ERROR: invalid matrix creation!"
-          stop
-         end if
-         
-        if (ierr == 0) then
-          M%allocated = .true.
-         end if
+        select type (par_env)
+          type is(parallel_environment_mpi)
 
-         call MatSetFromOptions(M%M, ierr)
-         
-        if (mat_dat%nnz < 1) then
-          call MPI_Comm_rank(mat_dat%comm, nrank, ierr)
-          if (nrank == 0) then
-            print *, "WARNING: No matrix preallocation set, potentially inefficient!"
+          call MatCreate(par_env%comm%MPI_VAL, M%M, ierr)
+  
+          if (mat_dat%rloc >= 0) then
+            call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
+          else if (mat_dat%rglob >= 0) then
+            call MatSetSizes(M%M, PETSC_DECIDE, PETSC_DECIDE, mat_dat%rglob, mat_dat%cglob, ierr)
+          else
+            print *, "ERROR: invalid matrix creation!"
+            stop
           end if
-          call MatSetUp(M%M, ierr)
-         else
-          call MatSeqAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, ierr)
-          call MatMPIAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, mat_dat%nnz - 1, PETSC_NULL_INTEGER, ierr)
-        end if
+          
+          if (ierr == 0) then
+            M%allocated = .true.
+          end if
+
+          call MatSetFromOptions(M%M, ierr)
+          
+          if (mat_dat%nnz < 1) then
+            if (par_env%proc_id == par_env%root) then
+              print *, "WARNING: No matrix preallocation set, potentially inefficient!"
+            end if
+            call MatSetUp(M%M, ierr)
+          else
+            call MatSeqAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, ierr)
+            call MatMPIAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, mat_dat%nnz - 1, PETSC_NULL_INTEGER, ierr)
+          end if
+
+          class default
+            print *, "Unknown parallel environment"
     
+        end select
+
       class default
         write(*,*) "Unsupported matrix type"
         stop

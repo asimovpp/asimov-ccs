@@ -7,7 +7,6 @@
 submodule (parallel) parallel_errors_mpi_petsc
 
   use mpi_f08
-  use petsc, only: PetscAbort
   use parallel_types_mpi, only: parallel_environment_mpi
   use kinds, only: accs_int
 
@@ -45,8 +44,8 @@ submodule (parallel) parallel_errors_mpi_petsc
         else if (error_cat == "petsc") then
 
           if (error_code /= 0) then
-            write(*,*) "PETSc error"
-            call PetscAbort(par_env%comm, error_code, ierr)
+            write(*,*) "PETSc error: ", ierr
+            call mpi_abort(par_env%comm, error_code, ierr)
           end if
 
         else 

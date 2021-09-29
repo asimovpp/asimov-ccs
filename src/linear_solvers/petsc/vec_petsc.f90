@@ -8,6 +8,7 @@ submodule (vec) vec_petsc
   use kinds, only : accs_int, accs_real, accs_err
   use types, only : vector, vector_init_data
   use petsctypes, only : vector_petsc
+  use parallel_types_mpi, only: parallel_environment_mpi
 
   implicit none
 
@@ -16,36 +17,46 @@ contains
   !> @brief Create a PETSc-backed vector
   !
   !> @param[in]  vector_innit_data vec_dat - the data describing how the vector should be created.
+  !> @param[in]  parallel_environment par_env - the environment on which to create the vector
   !> @param[out] vector v - the vector specialised to type vector_petsc.
-  module subroutine create_vector(vec_dat, v)
+  module subroutine create_vector(vec_dat, par_env, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
     
     type(vector_init_data), intent(in) :: vec_dat
+    class(parallel_environment), intent(in) :: par_env
     class(vector), allocatable, intent(out) :: v
-    
+
     integer(accs_err) :: ierr !> Error code
 
     allocate(vector_petsc :: v)
     
     select type (v)
       type is (vector_petsc)
-        call VecCreate(vec_dat%comm, v%v, ierr)
 
-        if (vec_dat%nloc >= 0) then
-          call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
-        else if (vec_dat%nglob > 0) then
-          call VecSetSizes(v%v, PETSC_DECIDE, vec_dat%nglob, ierr)
-        else
-          print *, "ERROR: invalid vector creation!"
-          stop
-        end if
-       
-        call VecSetFromOptions(v%v, ierr)
-        call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
-        call VecSet(v%v, 0.0_accs_real, ierr)
-        v%allocated = .true.
+        select type(par_env)
+        type is(parallel_environment_mpi)
+          call VecCreate(par_env%comm%MPI_VAL, v%v, ierr)
+
+          if (vec_dat%nloc >= 0) then
+            call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
+          else if (vec_dat%nglob > 0) then
+            call VecSetSizes(v%v, PETSC_DECIDE, vec_dat%nglob, ierr)
+          else
+            print *, "ERROR: invalid vector creation!"
+            stop
+          end if
+        
+          call VecSetFromOptions(v%v, ierr)
+          call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
+          call VecSet(v%v, 0.0_accs_real, ierr)
+          v%allocated = .true.
+
+        class default
+          print *, "Unknown parallel environment"
+    
+        end select
 
       class default
         print *, "Unknown vector type!"

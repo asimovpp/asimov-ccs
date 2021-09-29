@@ -23,7 +23,6 @@ module types
      !> The vector size can be specified either globally or per-process
      integer(accs_int) :: nglob !> The global vector size (set -1 to ignore)
      integer(accs_int) :: nloc  !> The local vector size (set -1 to ignore)
-     integer :: comm            !> The communicator to create the vector on.
   end type vector_init_data
 
   !> @brief Container type for setting values in a vector.
@@ -44,7 +43,6 @@ module types
      integer(accs_int) :: cloc  !> The local matrix columns size (set -1 to ignore)
      integer(accs_int) :: nnz   !> The number of non-zeros in a row - MUST include the 
                                 !! diagonal regardles off value.
-     integer :: comm            !> The communicator to create the matrix on.
   end type matrix_init_data
 
   !> @brief Container type for setting values in a matrix.
@@ -62,7 +60,7 @@ module types
      class(vector), pointer :: sol !> Solution vector
      class(vector), pointer :: rhs !> Right-hand side vector
      class(matrix), pointer :: M   !> Matrix
-     integer :: comm
+!     integer :: comm
   end type linear_system
   
   !> @brief Stub type for solvers to be extended in sub-modules.
