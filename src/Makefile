@@ -49,7 +49,7 @@ include $(TAG_DEPS)
 include $(EXE_DEPS)
 
 FFLAGS += -DACCS_PETSC
-INC = -I$(PETSC_DIR)/include
+INC = -I$(PETSC_DIR)/include -I/${PETSC_DIR}/${PETSC_ARCH}/include
 LIB = -L$(PETSC_DIR)/lib -lpetsc
 
 all: $(OBJ) $(EXE)
