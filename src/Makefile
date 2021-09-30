@@ -7,7 +7,7 @@ ifeq ($(CMP),intel)
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
-  FFLAGS = -cpp -O3 -std="f2018" -fopenmp -Wall -Jobj
+  FFLAGS = -cpp -O3 -std="f2018" -fopenmp -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure -Jobj
   CAFFLAGS = -fcoarray=single
 endif
 ifeq ($(CMP),cray)
@@ -49,8 +49,8 @@ include $(TAG_DEPS)
 include $(EXE_DEPS)
 
 FFLAGS += -DACCS_PETSC
-INC = -I$(PETSC_DIR)/include -I/${PETSC_DIR}/${PETSC_ARCH}/include
-LIB = -L$(PETSC_DIR)/lib -lpetsc
+INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
+LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 
 all: $(OBJ) $(EXE)
 
