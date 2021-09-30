@@ -1,13 +1,15 @@
 stages:
-  - build
-  - test
+  - gnu_build
+  - gnu_test
+  - intel_build
+  - intel_test
 
 variables:
   CI_HOME: "/home/ubuntu/"
 
 
 build_ccs_gnu:
-  stage: build
+  stage: gnu_build
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
@@ -19,7 +21,7 @@ build_ccs_gnu:
     expire_in: 10 minutes
 
 test_ccs_gnu:
-  stage: test
+  stage: gnu_test
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
@@ -28,7 +30,7 @@ test_ccs_gnu:
 
 
 build_ccs_intel:
-  stage: build
+  stage: intel_build
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
@@ -40,7 +42,7 @@ build_ccs_intel:
     expire_in: 10 minutes
 
 test_ccs_intel:
-  stage: test
+  stage: intel_test
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
