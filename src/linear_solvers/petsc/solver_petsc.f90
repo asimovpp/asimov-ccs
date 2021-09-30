@@ -5,7 +5,6 @@
 submodule (solver) solver_petsc
 
   use kinds, only : accs_int, accs_err
-  use types, only : linear_solver
   use petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   

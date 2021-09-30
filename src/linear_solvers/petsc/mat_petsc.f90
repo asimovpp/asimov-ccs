@@ -1,7 +1,6 @@
 submodule (mat) mat_petsc
 
-  use kinds, only : accs_int, accs_real, accs_err
-  use types, only : matrix, matrix_init_data
+  use kinds, only : accs_real, accs_err
   use petsctypes, only : matrix_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   

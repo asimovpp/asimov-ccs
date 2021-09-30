@@ -5,8 +5,7 @@
 !!          (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
 
-  use kinds, only : accs_int, accs_real, accs_err
-  use types, only : vector, vector_init_data
+  use kinds, only : accs_err
   use petsctypes, only : vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
 
