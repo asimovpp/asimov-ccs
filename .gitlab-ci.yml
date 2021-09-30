@@ -5,6 +5,7 @@ stages:
 variables:
   CI_HOME: "/home/ubuntu/"
 
+
 build_ccs_gnu:
   stage: build
   before_script:
@@ -25,3 +26,23 @@ test_ccs_gnu:
   script:
     - mpirun --oversubscribe -n 4 ./ccs_app
 
+
+build_ccs_intel:
+  stage: build
+  before_script:
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
+    - cd src
+  script:
+    - CMP=intel make
+  artifacts:
+    paths:
+      - src/ccs_app
+    expire_in: 10 minutes
+
+test_ccs_intel:
+  stage: test
+  before_script:
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
+    - cd src
+  script:
+    - mpirun -n 4 ./ccs_app
