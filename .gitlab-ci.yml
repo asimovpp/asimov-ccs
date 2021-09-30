@@ -15,9 +15,10 @@ build_ccs_gnu:
     - cd src
   script:
     - HOME=${CI_HOME} CMP=gnu make
+    - mv ccs_app ccs_app_gnu
   artifacts:
     paths:
-      - src/ccs_app
+      - src/ccs_app_gnu
     expire_in: 10 minutes
 
 test_ccs_gnu:
@@ -26,7 +27,7 @@ test_ccs_gnu:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
   script:
-    - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app
+    - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
 
 
 build_ccs_intel:
@@ -36,9 +37,10 @@ build_ccs_intel:
     - cd src
   script:
     - HOME=${CI_HOME} CMP=intel make
+    - mv ccs_app ccs_app_intel
   artifacts:
     paths:
-      - src/ccs_app
+      - src/ccs_app_intel
     expire_in: 10 minutes
 
 test_ccs_intel:
@@ -47,4 +49,4 @@ test_ccs_intel:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
   script:
-    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app
+    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
