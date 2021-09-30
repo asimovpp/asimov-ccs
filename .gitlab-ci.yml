@@ -14,7 +14,7 @@ build_ccs_gnu:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
   script:
-    - CMP=gnu make
+    - HOME=${CI_HOME} CMP=gnu make
   artifacts:
     paths:
       - src/ccs_app
@@ -26,7 +26,7 @@ test_ccs_gnu:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
   script:
-    - mpirun --oversubscribe -n 4 ./ccs_app
+    - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app
 
 
 build_ccs_intel:
@@ -35,7 +35,7 @@ build_ccs_intel:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
   script:
-    - CMP=intel make
+    - HOME=${CI_HOME} CMP=intel make
   artifacts:
     paths:
       - src/ccs_app
@@ -47,4 +47,4 @@ test_ccs_intel:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
   script:
-    - mpirun -n 4 ./ccs_app
+    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app
