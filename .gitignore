@@ -9,7 +9,7 @@ auto
 *.o
 *.mod
 *.smod
-*.d
+*.deps
 *.i
 
 .dir-locals.el
