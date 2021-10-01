@@ -13,3 +13,8 @@ auto
 *.i
 
 .dir-locals.el
+
+src/html/
+src/latex/
+src/obj/
+__pycache__

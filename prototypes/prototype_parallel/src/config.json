@@ -1,6 +1,0 @@
-{
-  "main": "pi_mpi",
-  "options": {
-    "parallel": "mpi"
-  }
-}

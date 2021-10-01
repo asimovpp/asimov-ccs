@@ -88,3 +88,7 @@ $(EXE_DEPS): config.json $(ALL_DEPS)
 #include $(ALL_DEPS)
 
 include $(RULE_DEPS)
+
+docs: doxy 
+doxy:
+	doxygen doxygen.cfg

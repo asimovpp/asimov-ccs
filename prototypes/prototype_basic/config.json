@@ -1,7 +1,0 @@
-{
-  "stepper": "2loop",
-  "turbulence": "kw",
-  "particles": "1",
-  "flux": "2nd_order",
-  "solver": "amg"
-}

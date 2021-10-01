@@ -1,5 +1,0 @@
-{
-  "stepper": "basic",
-  "turbulence": "kw",
-  "solver": "amg"
-}
