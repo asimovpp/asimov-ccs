@@ -1,8 +1,9 @@
-!> @brief Program file PETSc ex3
+!> @brief Program file for Poisson case
 !
-!> @details Port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code - this is to help
-!!          determine how to interface our design with PETSc.
-!!          Solves the equation
+!> @details Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
+!!          This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
+!!          the code is independent of PETSc.
+!!          The example case solves the equation
 !!          \f[
 !!            {\nabla^2} p = f
 !!          \f]
@@ -10,36 +11,34 @@
 !!          \f[
 !!            p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
 !!          \f]
+!
 
-program ex3
-
-  !! External uses
-  use MPI
-  use petsc, only : PETSC_COMM_WORLD
+program poisson
 
   !! ASiMoV-CCS uses
-  use accs_kinds, only : accs_real, accs_int, accs_err
-  use accs_types, only : vector_init_data, vector, matrix_init_data, matrix, linear_system, &
-       linear_solver, mesh
-  use accsvec, only : create_vector, axpy, norm
-  use accsmat, only : create_matrix
-  use accs_solver, only : create_solver, solve
-  use accs_utils, only : accs_init, accs_finalise, update, finalise
-
-  use accs_mesh, only : build_mesh
-  
-  use accs_petsctypes, only : matrix_petsc
+  use kinds, only : accs_real, accs_int, accs_err
+  use types, only : vector_init_data, vector, matrix_init_data, matrix, &
+                    linear_system, linear_solver, mesh
+  use vec, only : create_vector, axpy, norm
+  use mat, only : create_matrix
+  use solver, only : create_solver, solve
+  use utils, only : accs_init, accs_finalise, update, finalise
+  use mesh_utils, only : build_square_mesh
+  use petsctypes, only : matrix_petsc
+  use parallel_types, only: parallel_environment
+  use parallel, only: initialise_parallel_environment, cleanup_parallel_environment
   
   implicit none
 
+  class(parallel_environment), allocatable :: par_env
   class(vector), allocatable, target :: u, b
   class(vector), allocatable :: ustar
-  type(vector_init_data) :: vec_sizes
   class(matrix), allocatable, target :: M
-  type(matrix_init_data) :: mat_sizes = matrix_init_data(rglob=-1, cglob=-1, rloc=-1, cloc=-1, &
-       comm=MPI_COMM_NULL, nnz=0)
-  type(linear_system) :: poisson_eq
   class(linear_solver), allocatable :: poisson_solver
+
+  type(vector_init_data) :: vec_sizes
+  type(matrix_init_data) :: mat_sizes
+  type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
   
   integer(accs_int), parameter :: cps = 10 ! Cells per side
@@ -47,29 +46,25 @@ program ex3
 
   real(accs_real) :: err_norm
 
-  integer :: comm_rank
-  
-  !! Initialise program
-  call accs_init()
-  call init_ex3()
+  call initialise_parallel_environment(par_env) 
+  call init_poisson(par_env)
 
   !! Create stiffness matrix
   mat_sizes%rglob = square_mesh%n
   mat_sizes%cglob = mat_sizes%rglob
-  mat_sizes%comm = PETSC_COMM_WORLD
+  mat_sizes%rloc = -1
+  mat_sizes%cloc = -1
   mat_sizes%nnz = 5
-  call create_matrix(mat_sizes, M)
+  call create_matrix(mat_sizes, par_env, M)
 
   call discretise_poisson(M)
-  print *, "Done"
   call update(M) ! Performs the parallel assembly
 
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
   vec_sizes%nglob = square_mesh%n
-  vec_sizes%comm = PETSC_COMM_WORLD
-  call create_vector(vec_sizes, u)
-  call create_vector(vec_sizes, b)
+  call create_vector(vec_sizes, par_env, u)
+  call create_vector(vec_sizes, par_env, b)
   call update(u) ! Performs the parallel assembly
 
   !! Evaluate right-hand-side vector
@@ -85,16 +80,15 @@ program ex3
   poisson_eq%rhs => b
   poisson_eq%sol => u
   poisson_eq%M => M
-  poisson_eq%comm = PETSC_COMM_WORLD
-  call create_solver(poisson_eq, poisson_solver)
+  call create_solver(poisson_eq, par_env, poisson_solver)
   call solve(poisson_solver)
 
   !! Check solution
-  call create_vector(vec_sizes, ustar)
+  call create_vector(vec_sizes, par_env, ustar)
   call set_exact_sol(ustar)
   call axpy(-1.0_accs_real, ustar, u)
   err_norm = norm(u, 2) * square_mesh%h
-  if (comm_rank == 0) then
+  if (par_env%proc_id == par_env%root) then
      print *, "Norm of error = ", err_norm
   end if
   
@@ -105,15 +99,15 @@ program ex3
   deallocate(M)
   deallocate(poisson_solver)
   
-  call accs_finalise()
+  call cleanup_parallel_environment(par_env)
 
 contains
 
   subroutine eval_rhs(b)
 
-    use accs_constants, only : add_mode
-    use accs_types, only : vector_values
-    use accs_utils, only : set_values
+    use constants, only : add_mode
+    use types, only : vector_values
+    use utils, only : set_values
     
     class(vector), intent(inout) :: b
 
@@ -156,9 +150,9 @@ contains
 
   subroutine discretise_poisson(M)
 
-    use accs_constants, only : insert_mode
-    use accs_types, only : matrix_values
-    use accs_utils, only : set_values
+    use constants, only : insert_mode
+    use types, only : matrix_values
+    use utils, only : set_values
     
     class(matrix), intent(inout) :: M
 
@@ -212,52 +206,54 @@ contains
        end associate
 
     end do
-    print *, "Finished disc Poiss"
     
   end subroutine discretise_poisson
 
   subroutine apply_dirichlet_bcs(M, b)
 
-    use accs_constants, only : add_mode
-    use accsmat, only : set_eqn
-    use accs_types, only : vector_values, matrix_values
-    use accs_utils, only : set_values
-    
+    use constants, only : add_mode
+    use mat, only : set_eqn
+    use types, only : vector_values, matrix_values, matrix, vector, mesh
+    use utils, only : set_values
+    use kinds, only: accs_int, accs_real
+  
+    implicit none
+  
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
-
+  
     integer(accs_int) :: i, j
     real(accs_real) :: boundary_coeff, boundary_val
-    
+  
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
-
+  
     allocate(mat_coeffs%rglob(1), mat_coeffs%cglob(1), mat_coeffs%val(1))
     allocate(vec_values%idx(1), vec_values%val(1))
     mat_coeffs%mode = add_mode
     vec_values%mode = add_mode
-    
+  
     associate(row=>mat_coeffs%rglob, &
          col=>mat_coeffs%cglob, &
          coeff=>mat_coeffs%val, &
          idx=>vec_values%idx, &
          val=>vec_values%val, &
          idx_global=>square_mesh%idx_global)
-      
+  
       do i = 1, square_mesh%nlocal
          if (minval(square_mesh%nbidx(:, i)) < 0) then
             coeff(1) = 0.0_accs_real
             val(1) = 0.0_accs_real
             do j = 1, square_mesh%nnb(i)
                associate(nbidx=>square_mesh%nbidx(j, i))
-                 
+  
                  if (nbidx < 0) then
                     associate(h=>square_mesh%h, &
                          Af=>square_mesh%Af)
-
+  
                       !! Boundary face
                       boundary_coeff = (2.0 / h) * Af
-                   
+  
                       if ((nbidx == -1) .or. (nbidx == -2)) then
                          !! Left or right boundary
                          boundary_val = rhs_val(idx_global(i))
@@ -271,38 +267,38 @@ contains
                          print *, "ERROR: invalid/unsupported BC ", nbidx
                          stop
                       end if
-
+  
                       ! Coefficient
                       row(1) = idx_global(i) - 1
                       col(1) = idx_global(i) - 1
                       coeff(1) = coeff(1) - boundary_coeff
-               
+  
                       ! RHS vector
                       idx(1) = idx_global(i) - 1
                       val(1) = val(1) - boundary_val * boundary_coeff
-
+  
                     end associate
                  end if
-
+  
                end associate
             end do
             call set_values(mat_coeffs, M)
             call set_values(vec_values, b)
          end if
       end do
-
+  
     end associate
-    
+  
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
-    
+  
   end subroutine apply_dirichlet_bcs
 
   subroutine set_exact_sol(ustar)
 
-    use accs_constants, only : insert_mode
-    use accs_types, only : vector_values
-    use accs_utils, only : set_values
+    use constants, only : insert_mode
+    use types, only : vector_values
+    use utils, only : set_values
     
     class(vector), intent(inout) :: ustar
 
@@ -325,14 +321,13 @@ contains
     call update(ustar)
   end subroutine set_exact_sol
 
-  subroutine init_ex3()
+  subroutine init_poisson(par_env)
 
-    integer(accs_err) :: ierr
+    class(parallel_environment) :: par_env
+
+    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
     
-    call MPI_Comm_rank(PETSC_COMM_WORLD, comm_rank, ierr)
-    square_mesh = build_mesh(cps, 1.0_accs_real, PETSC_COMM_WORLD)
-    
-  end subroutine init_ex3
+  end subroutine init_poisson
 
   pure function rhs_val(i, opt_offset) result(r)
 
@@ -357,4 +352,4 @@ contains
     
   end function rhs_val
   
-end program ex3
+end program poisson

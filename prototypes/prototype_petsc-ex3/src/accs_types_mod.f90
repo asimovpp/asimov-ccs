@@ -74,4 +74,15 @@ module accs_types
      type(linear_system) :: eqsys
   end type linear_solver
 
+  type, public :: mesh
+
+     integer(accs_int) :: n, nlocal
+     integer(accs_int), dimension(:), allocatable :: idx_global
+     integer(accs_int), dimension(:), allocatable :: nnb
+     integer(accs_int), dimension(:, :), allocatable :: nbidx
+
+     real(accs_real) :: h, Af, vol
+     
+  end type mesh
+  
 end module accs_types

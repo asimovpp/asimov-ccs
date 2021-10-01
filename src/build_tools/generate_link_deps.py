@@ -40,14 +40,14 @@ def get_link_rule(config, deps):
   link_deps = []
   # add main and common files
   link_deps.append(config["main"])
-  commons = pdeps.find_commons(deps)
+  commons = pdeps.find_commons_custom(deps)
   log.debug("commons: %s", " ".join(commons))
   link_deps = link_deps + commons 
   # add files that have options
   link_deps = link_deps + [v for k,v in config["options"].items()]
 
   # turn array of filenames to a string with object postfix
-  return link_obj + " ".join([x + ".o" for x in link_deps])
+  return link_obj + " ".join(["obj/" + os.path.basename(x) + ".o" for x in link_deps])
 
 
 def apply_config_mapping(config, config_mapping):
@@ -77,7 +77,8 @@ if __name__ == "__main__":
   log.basicConfig(stream=sys.stderr, level=log.INFO)
 
   # get definition of how to map config options to filenames
-  with open("config_mapping.json") as f:
+  # assume the mapping file is in the same directory as this script
+  with open(sys.path[0] + "/config_mapping.json") as f:
     config_mapping = json.load(f)
   
   with open(sys.argv[1]) as f:
@@ -93,7 +94,7 @@ if __name__ == "__main__":
   link_rule = get_link_rule(mapped_config, deps)
 
   log.info("Configurator produced link rule:\n%s", link_rule)
-  with open("ccs_app.deps", "w") as f:
+  with open(sys.argv[3], "w") as f:
       f.write(link_rule)
 
   sys.exit(0)
