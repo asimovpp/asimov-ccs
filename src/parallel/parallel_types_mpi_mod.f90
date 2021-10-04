@@ -47,16 +47,16 @@ module parallel_types_mpi
   !> @brief Set the values of the reduction operators
   subroutine set_mpi_reduction_operator(this)
     class(parallel_environment_mpi), intent(inout) :: this
-    this%sum_op%op = MPI_SUM
-    this%min_op%op = MPI_MIN
-    this%max_op%op = MPI_MAX
-    this%prod_op%op = MPI_PROD
-    this%land_op%op = MPI_LAND
-    this%lor_op%op = MPI_LOR
-    this%band_op%op = MPI_BAND
-    this%bor_op%op = MPI_BOR
-    this%maxloc_op%op = MPI_MAXLOC
-    this%minloc_op%op = MPI_MINLOC
+    this%sum_op = MPI_SUM
+    this%min_op = MPI_MIN
+    this%max_op = MPI_MAX
+    this%prod_op = MPI_PROD
+    this%land_op = MPI_LAND
+    this%lor_op = MPI_LOR
+    this%band_op = MPI_BAND
+    this%bor_op = MPI_BOR
+    this%maxloc_op = MPI_MAXLOC
+    this%minloc_op = MPI_MINLOC
   end subroutine
 
 end module parallel_types_mpi
