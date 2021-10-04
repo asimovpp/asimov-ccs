@@ -36,7 +36,7 @@ contains
 
         select type(par_env)
         type is(parallel_environment_mpi)
-          call VecCreate(par_env%comm%MPI_VAL, v%v, ierr)
+          call VecCreate(par_env%comm, v%v, ierr)
 
           if (vec_dat%nloc >= 0) then
             call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)

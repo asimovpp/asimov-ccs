@@ -35,7 +35,7 @@ contains
         select type (par_env)
           type is(parallel_environment_mpi)
 
-          call MatCreate(par_env%comm%MPI_VAL, M%M, ierr)
+          call MatCreate(par_env%comm, M%M, ierr)
   
           if (mat_dat%rloc >= 0) then
             call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
