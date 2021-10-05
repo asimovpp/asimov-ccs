@@ -47,8 +47,8 @@ program poisson
 
   real(accs_real) :: err_norm
 
-  double precision :: start_time
-  double precision :: end_time
+!  double precision :: start_time
+!  double precision :: end_time
 
   call initialise_parallel_environment(par_env) 
  ! call timer(start_time)
@@ -115,9 +115,9 @@ program poisson
 
 !  call timer(end_time)
 
-  if (par_env%proc_id == par_env%root) then
-    print *, "Elapsed time = ", (end_time - start_time)
-  end if
+!  if (par_env%proc_id == par_env%root) then
+!    print *, "Elapsed time = ", (end_time - start_time)
+!  end if
 
   call cleanup_parallel_environment(par_env)
 
