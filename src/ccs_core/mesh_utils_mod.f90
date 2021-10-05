@@ -19,14 +19,12 @@ contains
     class(parallel_environment) :: par_env
     integer(accs_int), intent(in) :: nps
     real(accs_real), intent(in) :: l
-!    integer, intent(in) :: comm
 
     integer(accs_int) :: istart, iend
     integer(accs_int) :: i, ii, ictr
     type(mesh) :: square_mesh
 
     integer :: comm_rank, comm_size
-!    integer(accs_err) :: ierr
 
     select type(par_env)
       type is (parallel_environment_mpi)
@@ -42,8 +40,6 @@ contains
           !! Setup ownership range
           comm_rank = par_env%proc_id
           comm_size = par_env%num_procs
-!          call MPI_Comm_size(comm, comm_size, ierr)
-!          call MPI_Comm_rank(comm, comm_rank, ierr)
           istart = comm_rank * (n / comm_size)
           if (modulo(square_mesh%n, comm_size) < comm_rank) then
             istart = istart + modulo(n, comm_size)

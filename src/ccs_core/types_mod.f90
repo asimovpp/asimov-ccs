@@ -82,25 +82,29 @@ module types
   end type mesh
 
   interface vector_init_data
-    module procedure construct_vector
+    module procedure vector_constructor
   end interface vector_init_data
 
   interface matrix_init_data
-    module procedure construct_matrix
+    module procedure matrix_constructor
   end interface matrix_init_data
+
+  interface linear_system
+    module procedure linear_system_constructor
+  end interface linear_system
 
   contains
 
   !> @brief Constructor for default vector values
-  pure function construct_vector() result(vec)
+  pure function vector_constructor() result(vec)
     type(vector_init_data) :: vec
     vec%nglob = -1
     vec%nloc = -1
     vec%par_env => null()
-  end function construct_vector
+  end function vector_constructor
 
   !> @brief Constructor for default matrix values
-  pure function construct_matrix() result(mat)
+  pure function matrix_constructor() result(mat)
     type(matrix_init_data) :: mat
     mat%rglob = -1
     mat%cglob = -1
@@ -108,6 +112,15 @@ module types
     mat%cloc = -1
     mat%nnz = -1
     mat%par_env => null()
-  end function construct_matrix
+  end function matrix_constructor
+
+  !> @brief Constructor for default linear system
+  pure function linear_system_constructor() result(lin_sys)
+    type(linear_system) :: lin_sys
+    lin_sys%sol => null()
+    lin_sys%rhs => null()
+    lin_sys%M => null()
+    lin_sys%par_env => null()
+  end function linear_system_constructor
 
 end module types

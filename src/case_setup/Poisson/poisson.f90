@@ -54,9 +54,10 @@ program poisson
  ! call timer(start_time)
   call init_poisson(par_env)
 
-  ! Default constructors
+  !! Constructors - set default values
   mat_sizes = matrix_init_data()
   vec_sizes = vector_init_data()
+  poisson_eq = linear_system()
 
   !! Create stiffness matrix
   mat_sizes%rglob = square_mesh%n
@@ -66,30 +67,32 @@ program poisson
   call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)
-  call begin_update(M) ! Performs the parallel assembly
+
+  call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
   vec_sizes%nglob = square_mesh%n
   vec_sizes%par_env => par_env
-  call create_vector(vec_sizes, u)
-  call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, b)
-  call begin_update(u) ! Performs the parallel assembly
+  call create_vector(vec_sizes, ustar)
+  call create_vector(vec_sizes, u)
+
+  call begin_update(u) ! Start the parallel assembly for u
 
   !! Evaluate right-hand-side vector
   call eval_rhs(b)
-  call begin_update(b) ! Performs the parallel assembly
 
-  call end_update(M)
-  call end_update(b)
+  call begin_update(b) ! Start the parallel assembly for b
+  call end_update(M) ! Complete the parallel assembly for M
+  call end_update(b) ! Complete the parallel assembly for b
 
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
   call apply_dirichlet_bcs(M, b)
-  call begin_update(b)
+  call begin_update(b) ! Start the parallel assembly for b
   call finalise(M)
 
-  call end_update(u)
-  call end_update(b)
+  call end_update(u) ! Complete the parallel assembly for u
+  call end_update(b) ! Complete the parallel assembly for b
 
   !! Create linear solver & set options
   poisson_eq%rhs => b
@@ -102,6 +105,7 @@ program poisson
   !! Check solution
   call set_exact_sol(ustar)
   call axpy(-1.0_accs_real, ustar, u)
+
   err_norm = norm(u, 2) * square_mesh%h
   if (par_env%proc_id == par_env%root) then
      print *, "Norm of error = ", err_norm
