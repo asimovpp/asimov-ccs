@@ -44,7 +44,7 @@ submodule (parallel) parallel_errors_mpi_petsc
         else if (error_cat == "petsc") then
 
           if (error_code /= 0) then
-            write(*,*) "PETSc error: ", ierr
+            write(*,*) "PETSc error: ", error_code
             call mpi_abort(par_env%comm, error_code, ierr)
           end if
 
