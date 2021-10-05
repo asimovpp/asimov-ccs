@@ -20,9 +20,8 @@ module solver
      !
      !> @param[in]  linear_system eqsys   - Data structure containing equation system to be solved.
      !> @param[out] linear_solver solver - The linear solver returned allocated.
-     module subroutine create_solver(eqsys, par_env, solver)
+     module subroutine create_solver(eqsys, solver)
        type(linear_system), intent(in) :: eqsys
-       class(parallel_environment), intent(in) :: par_env
        class(linear_solver), allocatable, intent(out) :: solver
      end subroutine
 

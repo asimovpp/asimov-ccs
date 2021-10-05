@@ -18,13 +18,12 @@ contains
   !> @param[in]  vector_innit_data vec_dat - the data describing how the vector should be created.
   !> @param[in]  parallel_environment par_env - the environment on which to create the vector
   !> @param[out] vector v - the vector specialised to type vector_petsc.
-  module subroutine create_vector(vec_dat, par_env, v)
+  module subroutine create_vector(vec_dat, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
     
     type(vector_init_data), intent(in) :: vec_dat
-    class(parallel_environment), intent(in) :: par_env
     class(vector), allocatable, intent(out) :: v
 
     integer(accs_err) :: ierr !> Error code
@@ -34,7 +33,7 @@ contains
     select type (v)
       type is (vector_petsc)
 
-        select type(par_env)
+        select type(par_env => vec_dat%par_env)
         type is(parallel_environment_mpi)
           call VecCreate(par_env%comm%MPI_VAL, v%v, ierr)
 

@@ -12,7 +12,7 @@ contains
   !
   !> @param[in]  mat_dat - contains information about how the matrix should be allocated
   !> @param[out] M       - the matrix object
-  module subroutine create_matrix(mat_dat, par_env, M)
+  module subroutine create_matrix(mat_dat, M)
 
     use mpi
     
@@ -21,7 +21,6 @@ contains
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
-    class(parallel_environment), intent(in) :: par_env
     class(matrix), allocatable, intent(out) :: M
 
 !    integer(accs_int) :: nrank !> MPI rank
@@ -32,7 +31,7 @@ contains
     select type (M)
       type is (matrix_petsc)
 
-        select type (par_env)
+        select type (par_env => mat_dat%par_env)
           type is(parallel_environment_mpi)
 
           call MatCreate(par_env%comm%MPI_VAL, M%M, ierr)

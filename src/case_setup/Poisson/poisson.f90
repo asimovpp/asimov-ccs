@@ -22,11 +22,12 @@ program poisson
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix
   use solver, only : create_solver, solve
-  use utils, only : update, finalise
+  use utils, only : update, begin_update, end_update, finalise
   use mesh_utils, only : build_square_mesh
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
-  use parallel, only: initialise_parallel_environment, cleanup_parallel_environment
+  use parallel, only: initialise_parallel_environment, &
+                      cleanup_parallel_environment, timer
   
   implicit none
 
@@ -41,12 +42,16 @@ program poisson
   type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
   
-  integer(accs_int), parameter :: cps = 10 ! Cells per side
+  integer(accs_int), parameter :: cps = 3200 ! Cells per side
                                           ! XXX: temporary parameter - this should be read from input
 
   real(accs_real) :: err_norm
 
+  double precision :: start_time
+  double precision :: end_time
+
   call initialise_parallel_environment(par_env) 
+  call timer(start_time)
   call init_poisson(par_env)
 
   !! Create stiffness matrix
@@ -55,36 +60,45 @@ program poisson
   mat_sizes%rloc = -1
   mat_sizes%cloc = -1
   mat_sizes%nnz = 5
-  call create_matrix(mat_sizes, par_env, M)
+  mat_sizes%par_env = par_env
+  call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)
-  call update(M) ! Performs the parallel assembly
+  call begin_update(M) ! Performs the parallel assembly
 
   !! Create right-hand-side and solution vectors
   vec_sizes%nloc = -1
   vec_sizes%nglob = square_mesh%n
-  call create_vector(vec_sizes, par_env, u)
-  call create_vector(vec_sizes, par_env, b)
-  call update(u) ! Performs the parallel assembly
+  vec_sizes%par_env = par_env
+  call create_vector(vec_sizes, u)
+  call create_vector(vec_sizes, ustar)
+  call create_vector(vec_sizes, b)
+  call begin_update(u) ! Performs the parallel assembly
 
   !! Evaluate right-hand-side vector
   call eval_rhs(b)
-  call update(b) ! Performs the parallel assembly
+  call begin_update(b) ! Performs the parallel assembly
+
+  call end_update(M)
+  call end_update(b)
 
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
   call apply_dirichlet_bcs(M, b)
-  call update(b)
+  call begin_update(b)
   call finalise(M)
-  
+
+  call end_update(u)
+  call end_update(b)
+
   !! Create linear solver & set options
   poisson_eq%rhs => b
   poisson_eq%sol => u
   poisson_eq%M => M
-  call create_solver(poisson_eq, par_env, poisson_solver)
+  poisson_eq%par_env = par_env
+  call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
   !! Check solution
-  call create_vector(vec_sizes, par_env, ustar)
   call set_exact_sol(ustar)
   call axpy(-1.0_accs_real, ustar, u)
   err_norm = norm(u, 2) * square_mesh%h
@@ -98,7 +112,13 @@ program poisson
   deallocate(ustar)
   deallocate(M)
   deallocate(poisson_solver)
-  
+
+  call timer(end_time)
+
+  if (par_env%proc_id == par_env%root) then
+    print *, "Elapsed time = ", (end_time - start_time)
+  end if
+
   call cleanup_parallel_environment(par_env)
 
 contains
