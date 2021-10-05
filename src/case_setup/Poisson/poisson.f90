@@ -22,7 +22,7 @@ program poisson
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix
   use solver, only : create_solver, solve
-  use utils, only : accs_init, accs_finalise, update, finalise
+  use utils, only : update, finalise
   use mesh_utils, only : build_square_mesh
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
