@@ -24,8 +24,9 @@ module types
      !> The vector size can be specified either globally or per-process
      integer(accs_int) :: nglob !> The global vector size (set -1 to ignore)
      integer(accs_int) :: nloc  !> The local vector size (set -1 to ignore)
-     class(parallel_environment), allocatable :: par_env !> The parallel environment
+     class(parallel_environment), pointer :: par_env !> The parallel environment
   end type vector_init_data
+
 
   !> @brief Container type for setting values in a vector.
   type, public :: vector_values
@@ -45,7 +46,7 @@ module types
      integer(accs_int) :: cloc  !> The local matrix columns size (set -1 to ignore)
      integer(accs_int) :: nnz   !> The number of non-zeros in a row - MUST include the 
                                 !! diagonal regardles off value.
-     class(parallel_environment), allocatable :: par_env !> The parallel environment
+     class(parallel_environment), pointer :: par_env !> The parallel environment
   end type matrix_init_data
 
   !> @brief Container type for setting values in a matrix.
@@ -63,7 +64,7 @@ module types
      class(vector), pointer :: sol !> Solution vector
      class(vector), pointer :: rhs !> Right-hand side vector
      class(matrix), pointer :: M   !> Matrix
-     class(parallel_environment), allocatable :: par_env !> The parallel environment
+     class(parallel_environment), pointer :: par_env !> The parallel environment
   end type linear_system
   
   !> @brief Stub type for solvers to be extended in sub-modules.
@@ -79,5 +80,34 @@ module types
      integer(accs_int), dimension(:, :), allocatable :: nbidx
      real(accs_real) :: h, Af, vol    
   end type mesh
+
+  interface vector_init_data
+    module procedure construct_vector
+  end interface vector_init_data
+
+  interface matrix_init_data
+    module procedure construct_matrix
+  end interface matrix_init_data
+
+  contains
+
+  !> @brief Constructor for default vector values
+  pure function construct_vector() result(vec)
+    type(vector_init_data) :: vec
+    vec%nglob = -1
+    vec%nloc = -1
+    vec%par_env => null()
+  end function construct_vector
+
+  !> @brief Constructor for default matrix values
+  pure function construct_matrix() result(mat)
+    type(matrix_init_data) :: mat
+    mat%rglob = -1
+    mat%cglob = -1
+    mat%rloc = -1
+    mat%cloc = -1
+    mat%nnz = -1
+    mat%par_env => null()
+  end function construct_matrix
 
 end module types

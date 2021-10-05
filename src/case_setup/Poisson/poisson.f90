@@ -31,7 +31,7 @@ program poisson
   
   implicit none
 
-  class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable, target :: par_env
   class(vector), allocatable, target :: u, b
   class(vector), allocatable :: ustar
   class(matrix), allocatable, target :: M
@@ -54,22 +54,23 @@ program poisson
  ! call timer(start_time)
   call init_poisson(par_env)
 
+  ! Default constructors
+  mat_sizes = matrix_init_data()
+  vec_sizes = vector_init_data()
+
   !! Create stiffness matrix
   mat_sizes%rglob = square_mesh%n
   mat_sizes%cglob = mat_sizes%rglob
-  mat_sizes%rloc = -1
-  mat_sizes%cloc = -1
   mat_sizes%nnz = 5
-  mat_sizes%par_env = par_env
+  mat_sizes%par_env => par_env
   call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)
   call begin_update(M) ! Performs the parallel assembly
 
   !! Create right-hand-side and solution vectors
-  vec_sizes%nloc = -1
   vec_sizes%nglob = square_mesh%n
-  vec_sizes%par_env = par_env
+  vec_sizes%par_env => par_env
   call create_vector(vec_sizes, u)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, b)
@@ -94,7 +95,7 @@ program poisson
   poisson_eq%rhs => b
   poisson_eq%sol => u
   poisson_eq%M => M
-  poisson_eq%par_env = par_env
+  poisson_eq%par_env => par_env
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
