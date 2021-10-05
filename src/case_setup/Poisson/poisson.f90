@@ -42,7 +42,7 @@ program poisson
   type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
   
-  integer(accs_int), parameter :: cps = 3200 ! Cells per side
+  integer(accs_int), parameter :: cps = 10 ! Cells per side
                                           ! XXX: temporary parameter - this should be read from input
 
   real(accs_real) :: err_norm
