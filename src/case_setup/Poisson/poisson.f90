@@ -42,7 +42,7 @@ program poisson
   type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
   
-  integer(accs_int), parameter :: cps = 10 ! Cells per side
+  integer(accs_int), parameter :: cps = 1600 ! Cells per side
                                           ! XXX: temporary parameter - this should be read from input
 
   real(accs_real) :: err_norm
@@ -207,47 +207,48 @@ contains
     
     mat_coeffs%mode = insert_mode
 
+    coeff_f = (1.0 / square_mesh%h) * square_mesh%Af
+
     !! Loop over cells
     do i = 1, square_mesh%nlocal
-       !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
-       !!        filling from front, and pass the number of coefficients to be set, requires
-       !!        modifying the matrix_values type and the implementation of set_values applied to
-       !!        matrices.
-       associate(idxg=>square_mesh%idx_global(i), &
-            nnb=>square_mesh%nnb(i))
-         
-         allocate(mat_coeffs%rglob(1), &
-              mat_coeffs%cglob(1 + nnb))
-         allocate(mat_coeffs%val(1 + nnb))
+      !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
+      !!        filling from front, and pass the number of coefficients to be set, requires
+      !!        modifying the matrix_values type and the implementation of set_values applied to
+      !!        matrices.
+      associate(idxg=>square_mesh%idx_global(i), &
+                nnb=>square_mesh%nnb(i))
+        
+        allocate(mat_coeffs%rglob(1))
+        allocate(mat_coeffs%cglob(1 + nnb))
+        allocate(mat_coeffs%val(1 + nnb))
 
-         mat_coeffs%rglob(1) = idxg
-         mat_coeffs%cglob(:) = -1 ! -ve indices are ignored
-         mat_coeffs%cglob(1) = idxg
-         mat_coeffs%val(:) = 0.0_accs_real
-       
-         !! Loop over faces
-         do j = 1, nnb
-            associate(nbidxg=>square_mesh%nbidx(j, i))
+        mat_coeffs%rglob(1) = idxg
+        mat_coeffs%cglob(:) = -1 ! -ve indices are ignored
+        mat_coeffs%cglob(1) = idxg
+        mat_coeffs%val(:) = 0.0_accs_real
+      
+        !! Loop over faces
+        do j = 1, nnb
+          associate(nbidxg=>square_mesh%nbidx(j, i))
 
-              if (nbidxg > 0) then
-                 !! Interior face
-                 coeff_f = (1.0 / square_mesh%h) * square_mesh%Af
-                 mat_coeffs%val(1) = mat_coeffs%val(1) - coeff_f
-                 mat_coeffs%val(j + 1) = coeff_f
-                 mat_coeffs%cglob(j + 1) = nbidxg
-              end if
+            if (nbidxg > 0) then
+              !! Interior face
+              mat_coeffs%val(1) = mat_coeffs%val(1) - coeff_f
+              mat_coeffs%val(j + 1) = coeff_f
+              mat_coeffs%cglob(j + 1) = nbidxg
+            end if
 
-            end associate
-         end do
-       
-         mat_coeffs%rglob(:) = mat_coeffs%rglob(:) - 1
-         mat_coeffs%cglob(:) = mat_coeffs%cglob(:) - 1
+          end associate
+        end do
+      
+        mat_coeffs%rglob(:) = mat_coeffs%rglob(:) - 1
+        mat_coeffs%cglob(:) = mat_coeffs%cglob(:) - 1
 
-         call set_values(mat_coeffs, M)
+        call set_values(mat_coeffs, M)
 
-         deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
-         
-       end associate
+        deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+        
+      end associate
 
     end do
     
@@ -272,63 +273,68 @@ contains
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
   
-    allocate(mat_coeffs%rglob(1), mat_coeffs%cglob(1), mat_coeffs%val(1))
-    allocate(vec_values%idx(1), vec_values%val(1))
+    allocate(mat_coeffs%rglob(1))
+    allocate(mat_coeffs%cglob(1))
+    allocate(mat_coeffs%val(1))
+    allocate(vec_values%idx(1))
+    allocate(vec_values%val(1))
+
     mat_coeffs%mode = add_mode
     vec_values%mode = add_mode
-  
+
+    ! calculate outside loop
+    boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af
+
     associate(row=>mat_coeffs%rglob, &
-         col=>mat_coeffs%cglob, &
-         coeff=>mat_coeffs%val, &
-         idx=>vec_values%idx, &
-         val=>vec_values%val, &
-         idx_global=>square_mesh%idx_global)
+              col=>mat_coeffs%cglob, &
+              coeff=>mat_coeffs%val, &
+              idx=>vec_values%idx, &
+              val=>vec_values%val, &
+              idx_global=>square_mesh%idx_global)
   
       do i = 1, square_mesh%nlocal
-         if (minval(square_mesh%nbidx(:, i)) < 0) then
-            coeff(1) = 0.0_accs_real
-            val(1) = 0.0_accs_real
-            do j = 1, square_mesh%nnb(i)
-               associate(nbidx=>square_mesh%nbidx(j, i))
-  
-                 if (nbidx < 0) then
-                    associate(h=>square_mesh%h, &
-                         Af=>square_mesh%Af)
-  
-                      !! Boundary face
-                      boundary_coeff = (2.0 / h) * Af
-  
-                      if ((nbidx == -1) .or. (nbidx == -2)) then
-                         !! Left or right boundary
-                         boundary_val = rhs_val(idx_global(i))
-                      else if (nbidx == -3) then
-                         !! Bottom boundary
-                         boundary_val = rhs_val(0, -0.5_accs_real)
-                      else if (nbidx == -4) then
-                         !! Top boundary
-                         boundary_val = rhs_val(idx_global(i), 0.5_accs_real)
-                      else
-                         print *, "ERROR: invalid/unsupported BC ", nbidx
-                         stop
-                      end if
-  
-                      ! Coefficient
-                      row(1) = idx_global(i) - 1
-                      col(1) = idx_global(i) - 1
-                      coeff(1) = coeff(1) - boundary_coeff
-  
-                      ! RHS vector
-                      idx(1) = idx_global(i) - 1
-                      val(1) = val(1) - boundary_val * boundary_coeff
-  
-                    end associate
-                 end if
-  
-               end associate
-            end do
-            call set_values(mat_coeffs, M)
-            call set_values(vec_values, b)
-         end if
+        if (minval(square_mesh%nbidx(:, i)) < 0) then
+          coeff(1) = 0.0_accs_real 
+          val(1) = 0.0_accs_real
+
+          do j = 1, square_mesh%nnb(i)
+
+            associate(nbidx=>square_mesh%nbidx(j, i))
+
+              if (nbidx < 0) then
+
+                if ((nbidx == -1) .or. (nbidx == -2)) then
+                    !! Left or right boundary
+                    boundary_val = rhs_val(idx_global(i))
+                else if (nbidx == -3) then
+                    !! Bottom boundary
+                    boundary_val = rhs_val(0, -0.5_accs_real)
+                else if (nbidx == -4) then
+                    !! Top boundary
+                    boundary_val = rhs_val(idx_global(i), 0.5_accs_real)
+                else
+                    print *, "ERROR: invalid/unsupported BC ", nbidx
+                    stop
+                end if
+
+                ! Coefficient
+                row(1) = idx_global(i) - 1
+                col(1) = idx_global(i) - 1
+                coeff(1) = coeff(1) - boundary_coeff
+
+                ! RHS vector
+                idx(1) = idx_global(i) - 1
+                val(1) = val(1) - boundary_val * boundary_coeff
+
+              end if
+
+            end associate
+          end do
+
+          call set_values(mat_coeffs, M)
+          call set_values(vec_values, b)
+          
+        end if
       end do
   
     end associate
