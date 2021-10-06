@@ -42,9 +42,6 @@ program poisson
   type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
 
-  character(len=32) :: arg
-
-  integer(accs_int) :: nargs
   integer(accs_int) :: cps = 10 ! Default value for cells per side
 
   real(accs_real) :: err_norm
@@ -52,16 +49,7 @@ program poisson
 !  double precision :: start_time
 !  double precision :: end_time
 
-  !! read command line arguments
-  do nargs = 1, command_argument_count()
-    call get_command_argument(nargs, arg)
-    select case (arg)
-      case ('-m', '--cps')
-          call get_command_argument(nargs+1, arg)
-          read(arg, '(I5)') cps
-      case default
-    end select
-  end do 
+  call read_command_line_arguments()
 
   call initialise_parallel_environment(par_env) 
  ! call timer(start_time)
@@ -414,5 +402,23 @@ contains
     end associate
     
   end function rhs_val
+
+  !> @brief read command line arguments and their values
+  subroutine read_command_line_arguments()
+
+    character(len=32) :: arg !> argument string
+    integer(accs_int) :: nargs !> number of arguments
+
+    do nargs = 1, command_argument_count()
+      call get_command_argument(nargs, arg)
+      select case (arg)
+        case ('-m', '--cps') !> problems size
+            call get_command_argument(nargs+1, arg)
+            read(arg, '(I5)') cps
+        case default
+      end select
+    end do 
+
+  end subroutine read_command_line_arguments
   
 end program poisson
