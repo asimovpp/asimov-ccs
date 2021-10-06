@@ -41,14 +41,27 @@ program poisson
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
-  
-  integer(accs_int), parameter :: cps = 10 ! Cells per side
-                                          ! XXX: temporary parameter - this should be read from input
+
+  character(len=32) :: arg
+
+  integer(accs_int) :: nargs
+  integer(accs_int) :: cps = 10 ! Default value for cells per side
 
   real(accs_real) :: err_norm
 
 !  double precision :: start_time
 !  double precision :: end_time
+
+  !! read command line arguments
+  do nargs = 1, command_argument_count()
+    call get_command_argument(nargs, arg)
+    select case (arg)
+      case ('-m', '--cps')
+          call get_command_argument(nargs+1, arg)
+          read(arg, '(I5)') cps
+      case default
+    end select
+  end do 
 
   call initialise_parallel_environment(par_env) 
  ! call timer(start_time)
