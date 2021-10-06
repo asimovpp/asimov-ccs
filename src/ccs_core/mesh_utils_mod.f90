@@ -14,23 +14,22 @@ contains
 
   function build_square_mesh(nps, l, par_env) result(square_mesh)
 
-!    use mpi
-    
     class(parallel_environment) :: par_env
     integer(accs_int), intent(in) :: nps
     real(accs_real), intent(in) :: l
 
     integer(accs_int) :: istart, iend
     integer(accs_int) :: i, ii, ictr
-    type(mesh) :: square_mesh
+    integer(accs_int) :: comm_rank, comm_size
 
-    integer :: comm_rank, comm_size
+    type(mesh) :: square_mesh
 
     select type(par_env)
       type is (parallel_environment_mpi)
 
         square_mesh%n = nps**2            !> Number of cells
         square_mesh%h = l / nps
+
         associate(n=>square_mesh%n, &
                   h=>square_mesh%h)
           
@@ -55,9 +54,12 @@ contains
           iend = iend - 1
 
           square_mesh%nlocal = (iend - istart) + 1
-          allocate(square_mesh%idx_global(square_mesh%nlocal), square_mesh%nnb(square_mesh%nlocal))
-          square_mesh%nnb(:) = 4                    ! All cells have 4 neighbours (possibly ghost/boundary cells)
+
+          allocate(square_mesh%idx_global(square_mesh%nlocal))
+          allocate(square_mesh%nnb(square_mesh%nlocal))
           allocate(square_mesh%nbidx(4, square_mesh%nlocal))
+
+          square_mesh%nnb(:) = 4 ! All cells have 4 neighbours (possibly ghost/boundary cells)
         
           !! Get neighbour indices
           !! XXX: These are global indices and thus may be off-process
@@ -97,6 +99,11 @@ contains
             ictr = ictr + 1
           end do
         end associate
-      end select    
+
+      class default
+        print *, "Unknown parallel environment type!"
+        stop
+
+    end select    
   end function build_square_mesh
 end module mesh_utils
