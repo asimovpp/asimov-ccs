@@ -27,7 +27,7 @@ program poisson
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment!, timer
+                      cleanup_parallel_environment, timer
   
   implicit none
 
@@ -46,13 +46,13 @@ program poisson
 
   real(accs_real) :: err_norm
 
-!  double precision :: start_time
-!  double precision :: end_time
+  double precision :: start_time
+  double precision :: end_time
 
   call read_command_line_arguments()
 
   call initialise_parallel_environment(par_env) 
- ! call timer(start_time)
+  call timer(start_time)
   call init_poisson(par_env)
 
   !! Constructors - set default values
@@ -119,11 +119,11 @@ program poisson
   deallocate(M)
   deallocate(poisson_solver)
 
-!  call timer(end_time)
+  call timer(end_time)
 
-!  if (par_env%proc_id == par_env%root) then
-!    print *, "Elapsed time = ", (end_time - start_time)
-!  end if
+  if (par_env%proc_id == par_env%root) then
+    print *, "Elapsed time = ", (end_time - start_time)
+  end if
 
   call cleanup_parallel_environment(par_env)
 
