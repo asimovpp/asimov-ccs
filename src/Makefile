@@ -2,7 +2,7 @@ PY = python3
 
 ifeq ($(CMP),intel)
   FC = mpiifort
-  FFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -Jobj
+  FFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -module obj
   CAFFLAGS = -coarray
 endif
 ifeq ($(CMP),gnu)
