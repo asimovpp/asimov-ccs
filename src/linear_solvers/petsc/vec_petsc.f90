@@ -16,7 +16,6 @@ contains
   !> @brief Create a PETSc-backed vector
   !
   !> @param[in]  vector_innit_data vec_dat - the data describing how the vector should be created.
-  !> @param[in]  parallel_environment par_env - the environment on which to create the vector
   !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
 
