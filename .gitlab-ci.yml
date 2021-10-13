@@ -3,6 +3,7 @@ stages:
   - gnu_test
   - intel_build
   - intel_test
+  - docs_generation
 
 variables:
   CI_HOME: "/home/ubuntu/"
@@ -50,3 +51,10 @@ test_ccs_intel:
     - cd src
   script:
     - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
+
+generate_documentation:
+  stage: docs_generation
+  before_script:
+    - cd src
+  script:
+    - make docs
