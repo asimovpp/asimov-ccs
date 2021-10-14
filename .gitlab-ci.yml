@@ -14,7 +14,7 @@ build_ccs_gnu:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
   script:
-    - HOME=${CI_HOME} CMP=gnu makee
+    - HOME=${CI_HOME} CMP=gnu make
     - mv ccs_app ccs_app_gnu
   artifacts:
     paths:
