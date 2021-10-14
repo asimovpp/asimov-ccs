@@ -137,9 +137,8 @@ contains
     
     class(vector), intent(inout) :: b
 
-    integer(accs_int) :: i
+    integer(accs_int) :: i, ii
     integer(accs_int) :: nloc
-    integer(accs_int), dimension(:), allocatable :: c_idx
     real(accs_real) :: h
     real(accs_real), dimension(:), allocatable :: x, y
 
@@ -149,9 +148,6 @@ contains
     allocate(val_dat%idx(1))
     allocate(val_dat%val(1))
 
-    allocate(c_idx(size(square_mesh%idx_global)))
-    c_idx = square_mesh%idx_global - 1 !> c_idx is the index shifted by -1
-
     nloc = square_mesh%nlocal
     allocate(x(nloc))
     allocate(y(nloc))
@@ -160,22 +156,23 @@ contains
 
     ! compute all x and y values
     do i = 1, nloc
-      x(i) = h * (modulo(c_idx(i), cps) + 0.5)
-      y(i) = h * ((c_idx(i) / cps) + 0.5)
+      !> todo: The cell centres should come from the mesh, the user should not be computing them...
+      ii = i - 1
+      x(i) = h * (modulo(ii, cps) + 0.5)
+      y(i) = h * ((ii / cps) + 0.5)
     end do
 
     ! this is currently setting 1 vector value at a time
     ! consider changing to doing all the updates in one go
     ! to do only 1 call to eval_cell_rhs and set_values
     do i = 1, nloc
-      val_dat%idx(1) = c_idx(i)
+      val_dat%idx(1) = i
       call eval_cell_rhs(x(i), y(i), h**2, val_dat%val(1))
       call set_values(val_dat, b)
     end do
 
     deallocate(val_dat%idx)
     deallocate(val_dat%val)
-    deallocate(c_idx)
     deallocate(x)
     deallocate(y)
     
@@ -241,9 +238,6 @@ contains
 
           end associate
         end do
-      
-        mat_coeffs%rglob(:) = mat_coeffs%rglob(:) - 1
-        mat_coeffs%cglob(:) = mat_coeffs%cglob(:) - 1
 
         call set_values(mat_coeffs, M)
 
@@ -361,7 +355,7 @@ contains
     vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
        associate(idx=>square_mesh%idx_global(i))
-         vec_values%idx(1) = idx - 1
+         vec_values%idx(1) = idx
          vec_values%val(1) = rhs_val(idx)
          call set_values(vec_values, ustar)
        end associate
