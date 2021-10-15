@@ -59,6 +59,9 @@ module utils
   end interface end_update
 
   !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
+  !
+  !> @details Stores the entries and elements in an object for later setting, this ensures the
+  !!          storage and values of indices in particular are set appropriately for each backend.
   interface pack_entries
     module procedure pack_one_vector_element
     module procedure pack_one_matrix_coefficient

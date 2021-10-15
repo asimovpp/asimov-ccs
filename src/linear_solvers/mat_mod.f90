@@ -60,6 +60,18 @@ module mat
        class(matrix), intent(inout) :: M
      end subroutine
 
+     !> @brief Interface to store one matrix coefficient and its index for later setting.
+     !
+     !> @param[in/out] mat_coeffs - object storing the coefficients, their indices and mode to use
+     !!                             when setting them.
+     !> @param[in]     row_entry  - which entry in the row indices to set?
+     !> @param[in]     col_entry  - which entry in the column indices to set?
+     !> @param[in]     row        - matrix row index
+     !> @param[in]     col        - matrix column index
+     !> @param[in]     coeff      - matrix coefficient
+     !
+     !> @details Stores a matrix coefficient and associated row and column indices for later
+     !!          setting, ensuring they are set appropriately for the backend.
      module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
        type(matrix_values), intent(inout) :: mat_coeffs
        integer(accs_int), intent(in) :: row_entry
