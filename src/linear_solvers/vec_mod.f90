@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data
+  use types, only : vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -20,6 +20,7 @@ module vec
   public :: end_update_vector
   public :: axpy
   public :: norm
+  public :: pack_one_vector_element
 
   interface
      
@@ -67,7 +68,14 @@ module vec
     !> @param[in,out] v - the vector
     module subroutine end_update_vector(v)
       class(vector), intent(inout) :: v
-    end subroutine
+    end subroutine end_update_vector
+
+    module subroutine pack_one_vector_element(val_dat, ent, idx, val)
+      type(vector_values), intent(inout) :: val_dat
+      integer(accs_int), intent(in) :: ent
+      integer(accs_int), intent(in) :: idx
+      real(accs_real), intent(in) :: val
+    end subroutine pack_one_vector_element
 
     !> @brief Interface to perform the AXPY vector operation.
     !
@@ -99,5 +107,21 @@ module vec
   end interface
 
 contains
+    
+  ! subroutine pack_vector_elements(val_dat, entries, idxs, vals)
+  !   type(vector_values), intent(inout) :: val_dat
+  !   integer(accs_int), dimension(:), intent(in) :: entries
+  !   integer(accs_int), dimension(:), intent(in) :: idxs
+  !   real(accs_real), dimension(:), intent(in) :: vals
+    
+  !   integer(accs_int) :: i
+  !   integer(accs_int) :: n
+
+  !   n = size(entries)
+  !   do i = 1, n
+  !     call pack_one_vector_element(val_dat, entries(i), idxs(i), vals(i))
+  !   end do
+    
+  ! end subroutine pack_vector_elements
   
 end module vec

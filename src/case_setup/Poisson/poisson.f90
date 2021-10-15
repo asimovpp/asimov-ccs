@@ -16,7 +16,7 @@
 program poisson
 
   !! ASiMoV-CCS uses
-  use kinds, only : accs_real, accs_int, accs_err
+  use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
                     linear_system, linear_solver, mesh
   use vec, only : create_vector, axpy, norm
@@ -133,7 +133,7 @@ contains
 
     use constants, only : add_mode
     use types, only : vector_values
-    use utils, only : set_values
+    use utils, only : set_values, pack_entries
     
     class(vector), intent(inout) :: b
 
@@ -141,6 +141,7 @@ contains
     integer(accs_int) :: nloc
     real(accs_real) :: h
     real(accs_real), dimension(:), allocatable :: x, y
+    real(accs_real) :: r
 
     type(vector_values) :: val_dat
     
@@ -165,12 +166,14 @@ contains
     ! this is currently setting 1 vector value at a time
     ! consider changing to doing all the updates in one go
     ! to do only 1 call to eval_cell_rhs and set_values
-    do i = 1, nloc
-      val_dat%idx(1) = i
-      call eval_cell_rhs(x(i), y(i), h**2, val_dat%val(1))
-      call set_values(val_dat, b)
-    end do
-
+    associate(idx => square_mesh%idx_global)
+      do i = 1, nloc
+        call eval_cell_rhs(x(i), y(i), h**2, r)
+        call pack_entries(val_dat, 1, idx(i), r)
+        call set_values(val_dat, b)
+      end do
+    end associate
+    
     deallocate(val_dat%idx)
     deallocate(val_dat%val)
     deallocate(x)
@@ -194,14 +197,15 @@ contains
 
     use constants, only : insert_mode
     use types, only : matrix_values
-    use utils, only : set_values
+    use utils, only : set_values, pack_entries
     
     class(matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
     integer(accs_int) :: i, j
 
-    real(accs_real) :: coeff_f
+    integer(accs_int) :: row, col
+    real(accs_real) :: coeff_f, coeff_p, coeff_nb
     
     mat_coeffs%mode = insert_mode
 
@@ -220,10 +224,8 @@ contains
         allocate(mat_coeffs%cglob(1 + nnb))
         allocate(mat_coeffs%val(1 + nnb))
 
-        mat_coeffs%rglob(1) = idxg
-        mat_coeffs%cglob(:) = -1 ! -ve indices are ignored
-        mat_coeffs%cglob(1) = idxg
-        mat_coeffs%val(:) = 0.0_accs_real
+        row = idxg
+        coeff_p = 0.0_accs_real
       
         !! Loop over faces
         do j = 1, nnb
@@ -231,14 +233,23 @@ contains
 
             if (nbidxg > 0) then
               !! Interior face
-              mat_coeffs%val(1) = mat_coeffs%val(1) - coeff_f
-              mat_coeffs%val(j + 1) = coeff_f
-              mat_coeffs%cglob(j + 1) = nbidxg
+              coeff_p = coeff_p - coeff_f
+              coeff_nb = coeff_f
+              col = nbidxg
+            else
+              col = -1
+              coeff_nb = 0.0_accs_real
             end if
+            call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
 
           end associate
         end do
 
+        !! Add the diagonal entry
+        col = row
+        call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+
+        !! Set the values
         call set_values(mat_coeffs, M)
 
         deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
@@ -254,7 +265,7 @@ contains
     use constants, only : add_mode
     use mat, only : set_eqn
     use types, only : vector_values, matrix_values, matrix, vector, mesh
-    use utils, only : set_values
+    use utils, only : set_values, pack_entries
     use kinds, only: accs_int, accs_real
   
     implicit none
@@ -264,7 +275,10 @@ contains
   
     integer(accs_int) :: i, j
     real(accs_real) :: boundary_coeff, boundary_val
-  
+
+    integer(accs_int) :: idx, row, col
+    real(accs_real) :: r, coeff
+    
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
   
@@ -280,17 +294,16 @@ contains
     ! calculate outside loop
     boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af
 
-    associate(row=>mat_coeffs%rglob, &
-              col=>mat_coeffs%cglob, &
-              coeff=>mat_coeffs%val, &
-              idx=>vec_values%idx, &
-              val=>vec_values%val, &
-              idx_global=>square_mesh%idx_global)
+    associate(idx_global=>square_mesh%idx_global)
   
       do i = 1, square_mesh%nlocal
         if (minval(square_mesh%nbidx(:, i)) < 0) then
-          coeff(1) = 0.0_accs_real 
-          val(1) = 0.0_accs_real
+          coeff = 0.0_accs_real 
+          r = 0.0_accs_real
+          
+          row = idx_global(i)
+          col = idx_global(i)
+          idx = idx_global(i)
 
           do j = 1, square_mesh%nnb(i)
 
@@ -313,18 +326,17 @@ contains
                 end if
 
                 ! Coefficient
-                row(1) = idx_global(i) - 1
-                col(1) = idx_global(i) - 1
-                coeff(1) = coeff(1) - boundary_coeff
+                coeff = coeff - boundary_coeff
 
                 ! RHS vector
-                idx(1) = idx_global(i) - 1
-                val(1) = val(1) - boundary_val * boundary_coeff
-
+                r = r - boundary_val * boundary_coeff
               end if
 
             end associate
           end do
+
+          call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
+          call pack_entries(vec_values, 1, idx, r)
 
           call set_values(mat_coeffs, M)
           call set_values(vec_values, b)
@@ -343,7 +355,7 @@ contains
 
     use constants, only : insert_mode
     use types, only : vector_values
-    use utils, only : set_values
+    use utils, only : set_values, pack_entries
     
     class(vector), intent(inout) :: ustar
 
@@ -355,8 +367,7 @@ contains
     vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
        associate(idx=>square_mesh%idx_global(i))
-         vec_values%idx(1) = idx
-         vec_values%val(1) = rhs_val(idx)
+         call pack_entries(vec_values, 1, idx, rhs_val(idx))
          call set_values(vec_values, ustar)
        end associate
     end do

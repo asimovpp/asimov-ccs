@@ -163,6 +163,27 @@ contains
     
   end subroutine
 
+  module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
+    type(matrix_values), intent(inout) :: mat_coeffs
+    integer(accs_int), intent(in) :: row_entry
+    integer(accs_int), intent(in) :: col_entry
+    integer(accs_int), intent(in) :: row
+    integer(accs_int), intent(in) :: col
+    real(accs_real), intent(in) :: coeff
+
+    integer(accs_int) :: nc
+    integer(accs_int) :: validx
+
+    mat_coeffs%rglob(row_entry) = row - 1
+    mat_coeffs%cglob(col_entry) = col - 1
+
+    nc = size(mat_coeffs%cglob)
+
+    validx = (row_entry - 1) * nc + col_entry
+    mat_coeffs%val(validx) = coeff
+    
+  end subroutine pack_one_matrix_coefficient
+
   !> @brief Set values in a PETSc matrix.
   !
   !> @param[in]     mat_values - contains the values, their indices and the mode 
