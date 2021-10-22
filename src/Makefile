@@ -1,18 +1,19 @@
 PY = python3
+OBJ_DIR=obj/
 
 ifeq ($(CMP),intel)
   FC = mpiifort
-  FFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -module obj
+  FTNFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -module $(OBJ_DIR)
   CAFFLAGS = -coarray
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
-  FFLAGS = -cpp -O3 -std="f2018" -fopenmp -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure -Jobj
+  FTNFLAGS = -cpp -O3 -std="f2018" -fopenmp -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure -J$(OBJ_DIR)
   CAFFLAGS = -fcoarray=single
 endif
 ifeq ($(CMP),cray)
   FC = ftn
-  FFLAGS = -ef -en -eF -M969 -homp -Jobj
+  FTNFLAGS = -ef -en -eF -M969 -homp -J$(OBJ_DIR)
   CAFFLAGS = -hcaf
 endif
 
@@ -35,9 +36,10 @@ ALL_DEPS=$(DEP_PREFIX)all.deps
 TAG_DEPS=$(DEP_PREFIX)build_tags.deps
 RULE_DEPS=$(DEP_PREFIX)rules.deps
 
-OBJ_DIR=obj/
+TESTDIR = ../testing
 
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
+CASES = poisson
 
 #SRC = $(wildcard *.f90)
 ALL_SRC = $(shell find . -type f -name '*.f90')
@@ -48,9 +50,12 @@ OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 include $(TAG_DEPS)
 include $(EXE_DEPS)
 
-FFLAGS += -DACCS_PETSC
+FTNFLAGS += -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+
+include $(TESTDIR)/Makefile.testdefs
+FFLAGS = $(FTNFLAGS)
 
 all: $(OBJ) $(EXE)
 

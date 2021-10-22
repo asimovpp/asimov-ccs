@@ -1,0 +1,39 @@
+# -*- mode: makefile -*-
+#
+#
+
+TESTDIR ?= ./                        # This should be overrwritten by Makefile including this one.
+USEMPI = YES
+include $(PFUNIT)/include/PFUNIT.mk
+
+#
+# Define test suites below.
+# XXX: It should be possible to "cargo cult" previous test cases.
+#
+CCS_TESTS =
+
+# Linear solver
+TEST_SUITE = linear_solvers
+TEST_SUITE_DIR = $(TESTDIR)/tests/$(TEST_SUITE)
+$(TEST_SUITE)_TESTS = $(wildcard $(TEST_SUITE_DIR)/*.pf)
+$(TEST_SUITE)_OTHER_LIBRARIES := $(filter-out obj/$(CASES).o,$(filter-out $(EXE):,$(shell cat ${EXE_DEPS}))) -I$(OBJ_DIR) $(LIB)
+$(eval $(call make_pfunit_test,$(TEST_SUITE),$(TEST_SUITE_DIR)))
+CCS_TESTS += $(TEST_SUITE_DIR)/$(TEST_SUITE)
+
+#
+# Create a test target to build the tests.
+# XXX: It should not be necessary to edit this
+#
+
+# pFUnit is not compatible with -Wimplicit-interface and similar flags
+test: FTNFLAGS := $(filter-out -Wimplicit-interface,$(FTNFLAGS))
+test: FTNFLAGS += $(PFUNIT_EXTRA_FFLAGS)
+test: $(EXE_DEPS) $(CCS_TESTS)
+
+
+%.o : %.F90
+	mv loader.mod $(dir $@)/
+	$(FC) $(FFLAGS) -o $@ -c $< $(INC) -I$(dir $@) $(LIB)
+
+clean-tests:
+	rm $(TESTDIR)/tests/*/*.o $(TESTDIR)/tests/*/*.F90 $(TESTDIR)/tests/*/*.inc $(TESTDIR)/tests/*/*.mod

@@ -1,0 +1,32 @@
+!!! -*- mode: F90 -*-
+
+!> @brief Test module for mat_mod.f90
+module test_mat
+
+  use mat
+
+  implicit none
+
+  private
+  public :: test_mat_packing
+
+contains
+
+  !> @brief Test case to ensure packing matrix coefficients doesn't result in out of range indices.
+  !
+  !> @details Packing matrix coefficients may modify the index according to the backend in use,
+  !!          however this should never result in an index range greater than the size of the
+  !!          matrix, i.e. (idx_max - idx_min) <= N --- I suppose this is possible for a backend
+  !!          using globally non-contiguous indices but that seems unlikely.
+  @test
+  subroutine test_mat_packing()
+
+    use utils, only : pack_entries
+    
+    ! coeff = create_mat_coeff(val, ridx, cidx)
+    ! call pack_entries(mat_coeffs, coeff)
+    
+  end subroutine test_mat_packing
+  
+end module test_mat
+  
