@@ -1,0 +1,41 @@
+!!! -*- mode: F90 -*-
+
+!> @brief Test module for mat_mod.f90
+module test_vec
+
+  use kinds, only : accs_int, accs_real
+  use types, only : vector_values
+  
+  use vec
+
+  implicit none
+
+  private
+  public :: test_vec_packing
+
+contains
+
+  !> @brief Test case to ensure packing vector elements doesn't result in out of range indices.
+  !
+  !> @details Packing vector elements may modify the index according to the backend in use,
+  !!          however this should never result in an index range greater than the size of the
+  !!          matrix, i.e. (idx_max - idx_min) <= N --- I suppose this is possible for a backend
+  !!          using globally non-contiguous indices but that seems unlikely.
+  @test
+  subroutine test_vec_packing()
+
+    use utils, only : pack_entries
+
+    type(vector_values) :: vec_elements
+
+    allocate(vec_elements%idx(1))
+    allocate(vec_elements%val(1))
+
+    call pack_entries(vec_elements, 1, 100, 1.0_accs_real)
+    
+    deallocate(vec_elements%idx, vec_elements%val)
+    
+  end subroutine test_vec_packing
+  
+end module test_vec
+  
