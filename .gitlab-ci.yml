@@ -5,7 +5,7 @@ stages:
 
 
 variables:
-  CI_HOME: "/home/ubuntu/"
+  CI_HOME: "/home/jzarins/"
   
 
 build_ccs_gnu:
