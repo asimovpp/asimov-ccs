@@ -19,7 +19,7 @@ module parallel_types_mpi
   !!          the MPI operator values that are passed to
   !!          reductions
   type, extends(reduction_operator), public :: reduction_operator_mpi
-  integer :: op
+    integer :: op
   end type reduction_operator_mpi
 
   !> @brief parallel environment type for MPI
