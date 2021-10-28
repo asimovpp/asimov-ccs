@@ -49,9 +49,8 @@ program poisson
   double precision :: start_time
   double precision :: end_time
 
-  call read_command_line_arguments()
-
   call initialise_parallel_environment(par_env) 
+  call read_command_line_arguments()
   call timer(start_time)
   call init_poisson(par_env)
 
@@ -412,9 +411,18 @@ contains
     do nargs = 1, command_argument_count()
       call get_command_argument(nargs, arg)
       select case (arg)
-        case ('-m', '--cps') !> problems size
+        case ('--ccs_m') !> problems size
             call get_command_argument(nargs+1, arg)
             read(arg, '(I5)') cps
+        case ('--ccs_help')
+          if(par_env%proc_id==par_env%root) then
+            print *, "================================"
+            print *, "ASiMoV-CCS command line options:"
+            print *, "================================"
+            print *, "--ccs_help:         This help menu."
+            print *, "--ccs_m <value>:    Problem size."
+          endif
+          stop
         case default
       end select
     end do 
