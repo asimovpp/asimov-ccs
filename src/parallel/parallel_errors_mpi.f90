@@ -7,7 +7,7 @@
 
 submodule (parallel) parallel_errors_mpi
 
-  use mpi_f08
+  use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
   use kinds, only: accs_int
 

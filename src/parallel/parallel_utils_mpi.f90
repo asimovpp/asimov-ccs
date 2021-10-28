@@ -6,7 +6,7 @@
 
 submodule (parallel) parallel_utils_mpi
 
-  use mpi_f08
+  use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
 
   implicit none
