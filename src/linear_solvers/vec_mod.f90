@@ -115,23 +115,5 @@ module vec
     end function
      
   end interface
-
-contains
-    
-  ! subroutine pack_vector_elements(val_dat, entries, idxs, vals)
-  !   type(vector_values), intent(inout) :: val_dat
-  !   integer(accs_int), dimension(:), intent(in) :: entries
-  !   integer(accs_int), dimension(:), intent(in) :: idxs
-  !   real(accs_real), dimension(:), intent(in) :: vals
-    
-  !   integer(accs_int) :: i
-  !   integer(accs_int) :: n
-
-  !   n = size(entries)
-  !   do i = 1, n
-  !     call pack_one_vector_element(val_dat, entries(i), idxs(i), vals(i))
-  !   end do
-    
-  ! end subroutine pack_vector_elements
   
 end module vec
