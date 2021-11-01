@@ -22,7 +22,7 @@ build_ccs_gnu:
     expire_in: 10 minutes
   allow_failure: true
 
-test_ccs_gnu:
+run_ccs_gnu:
   stage: test
   dependencies: 
     - build_ccs_gnu
@@ -31,6 +31,17 @@ test_ccs_gnu:
     - cd src
   script:
     - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
+
+test_ccs_gnu:
+  stage: test
+  dependencies: 
+    - build_ccs_gnu
+  before_script:
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
+    - cd src
+  script:
+    - HOME=${CI_HOME} CMP=gnu make all
+    - HOME=${CI_HOME} CMP=gnu make tests
 
 
 build_ccs_intel:
@@ -47,7 +58,7 @@ build_ccs_intel:
     expire_in: 10 minutes
   allow_failure: true
   
-test_ccs_intel:
+run_ccs_intel:
   stage: test
   dependencies: 
     - build_ccs_intel
@@ -56,6 +67,17 @@ test_ccs_intel:
     - cd src
   script:
     - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
+
+test_ccs_intel:
+  stage: test
+  dependencies: 
+    - build_ccs_intel
+  before_script:
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
+    - cd src
+  script:
+    - HOME=${CI_HOME} CMP=intel make all
+    - HOME=${CI_HOME} CMP=intel make tests
 
 generate_documentation:
   stage: docs_generation
