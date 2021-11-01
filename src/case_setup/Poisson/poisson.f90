@@ -54,10 +54,10 @@ program poisson
   call timer(start_time)
   call init_poisson(par_env)
 
-  !! Constructors - set default values
-  mat_sizes = matrix_init_data()
-  vec_sizes = vector_init_data()
-  poisson_eq = linear_system()
+  !! Initialise with default values
+  mat_sizes = mat_sizes%initialise()
+  vec_sizes = vec_sizes%initialise()
+  poisson_eq = poisson_eq%initialise()
 
   !! Create stiffness matrix
   mat_sizes%rglob = square_mesh%n
