@@ -3,7 +3,7 @@
 !> @details Provides the interface to matrix objects.
 module mat
 
-  use kinds, only : accs_int
+  use kinds, only : accs_int, accs_real
   use types, only : matrix, matrix_init_data, matrix_values
   use parallel_types, only: parallel_environment
 
@@ -18,6 +18,7 @@ module mat
   public :: end_update_matrix
   public :: set_matrix_values
   public :: set_eqn
+  public :: pack_one_matrix_coefficient
 
   interface
 
@@ -59,6 +60,27 @@ module mat
        class(matrix), intent(inout) :: M
      end subroutine
 
+     !> @brief Interface to store one matrix coefficient and its index for later setting.
+     !
+     !> @param[in/out] mat_coeffs - object storing the coefficients, their indices and mode to use
+     !!                             when setting them.
+     !> @param[in]     row_entry  - which entry in the row indices to set?
+     !> @param[in]     col_entry  - which entry in the column indices to set?
+     !> @param[in]     row        - matrix row index
+     !> @param[in]     col        - matrix column index
+     !> @param[in]     coeff      - matrix coefficient
+     !
+     !> @details Stores a matrix coefficient and associated row and column indices for later
+     !!          setting, ensuring they are set appropriately for the backend.
+     module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
+       type(matrix_values), intent(inout) :: mat_coeffs
+       integer(accs_int), intent(in) :: row_entry
+       integer(accs_int), intent(in) :: col_entry
+       integer(accs_int), intent(in) :: row
+       integer(accs_int), intent(in) :: col
+       real(accs_real), intent(in) :: coeff
+     end subroutine pack_one_matrix_coefficient
+     
      !> @brief Interface to set values in a matrix.
      !
      !> @param[in]     mat_values - contains the values, their indices and the mode to use when setting

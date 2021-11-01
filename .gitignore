@@ -18,3 +18,5 @@ src/html/
 src/latex/
 src/obj/
 __pycache__
+
+ccs_app

@@ -1,6 +1,6 @@
 submodule (mat) mat_petsc
 
-  use kinds, only : accs_real, accs_err
+  use kinds, only : accs_err
   use petsctypes, only : matrix_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   
@@ -34,7 +34,7 @@ contains
         select type (par_env => mat_dat%par_env)
           type is(parallel_environment_mpi)
 
-          call MatCreate(par_env%comm%MPI_VAL, M%M, ierr)
+          call MatCreate(par_env%comm, M%M, ierr)
   
           if (mat_dat%rloc >= 0) then
             call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
@@ -162,6 +162,27 @@ contains
     end select
     
   end subroutine
+
+  module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
+    type(matrix_values), intent(inout) :: mat_coeffs
+    integer(accs_int), intent(in) :: row_entry
+    integer(accs_int), intent(in) :: col_entry
+    integer(accs_int), intent(in) :: row
+    integer(accs_int), intent(in) :: col
+    real(accs_real), intent(in) :: coeff
+
+    integer(accs_int) :: nc
+    integer(accs_int) :: validx
+
+    mat_coeffs%rglob(row_entry) = row - 1
+    mat_coeffs%cglob(col_entry) = col - 1
+
+    nc = size(mat_coeffs%cglob)
+
+    validx = (row_entry - 1) * nc + col_entry
+    mat_coeffs%val(validx) = coeff
+    
+  end subroutine pack_one_matrix_coefficient
 
   !> @brief Set values in a PETSc matrix.
   !

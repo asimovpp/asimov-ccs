@@ -34,7 +34,7 @@ contains
 
         select type(par_env => vec_dat%par_env)
         type is(parallel_environment_mpi)
-          call VecCreate(par_env%comm%MPI_VAL, v%v, ierr)
+          call VecCreate(par_env%comm, v%v, ierr)
 
           if (vec_dat%nloc >= 0) then
             call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
@@ -186,6 +186,17 @@ contains
     end select
 
   end subroutine
+
+  module subroutine pack_one_vector_element(val_dat, ent, idx, val)
+    type(vector_values), intent(inout) :: val_dat
+    integer(accs_int), intent(in) :: ent
+    integer(accs_int), intent(in) :: idx
+    real(accs_real), intent(in) :: val
+
+    val_dat%idx(ent) = idx - 1
+    val_dat%val(ent) = val
+
+  end subroutine pack_one_vector_element
 
   !> @brief Perform the AXPY vector operation using PETSc
   !

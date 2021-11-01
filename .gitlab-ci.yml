@@ -1,15 +1,15 @@
 stages:
-  - gnu_build
-  - gnu_test
-  - intel_build
-  - intel_test
+  - docs_generation
+  - build
+  - test
+
 
 variables:
-  CI_HOME: "/home/ubuntu/"
-
+  CI_HOME: "/home/jzarins/"
+  
 
 build_ccs_gnu:
-  stage: gnu_build
+  stage: build
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
@@ -20,9 +20,12 @@ build_ccs_gnu:
     paths:
       - src/ccs_app_gnu
     expire_in: 10 minutes
+  allow_failure: true
 
 test_ccs_gnu:
-  stage: gnu_test
+  stage: test
+  dependencies: 
+    - build_ccs_gnu
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
@@ -31,7 +34,7 @@ test_ccs_gnu:
 
 
 build_ccs_intel:
-  stage: intel_build
+  stage: build
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
@@ -42,11 +45,22 @@ build_ccs_intel:
     paths:
       - src/ccs_app_intel
     expire_in: 10 minutes
-
+  allow_failure: true
+  
 test_ccs_intel:
-  stage: intel_test
+  stage: test
+  dependencies: 
+    - build_ccs_intel
   before_script:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
   script:
     - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
+
+generate_documentation:
+  stage: docs_generation
+  before_script:
+    - cd src
+  script:
+    - make docs
+  allow_failure: true

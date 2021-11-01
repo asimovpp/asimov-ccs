@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data
+  use types, only : vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -20,6 +20,7 @@ module vec
   public :: end_update_vector
   public :: axpy
   public :: norm
+  public :: pack_one_vector_element
 
   interface
      
@@ -67,7 +68,24 @@ module vec
     !> @param[in,out] v - the vector
     module subroutine end_update_vector(v)
       class(vector), intent(inout) :: v
-    end subroutine
+    end subroutine end_update_vector
+
+    !> @brief Interface to store one vector element and its index for later setting.
+    !
+    !> @param[in/out] val_dat - object storing the elements, their indices and mode to use when
+    !!                          setting them.
+    !> @param[in]     ent     - which entry in the index/element arrays to set?
+    !> @oaram[in]     idx     - vector element index
+    !> @param[in]     val     - vector element value
+    !
+    !> @details Stores a vector element and associated index for later setting, ensuring they are
+    !!          set appropriately for the backend.
+    module subroutine pack_one_vector_element(val_dat, ent, idx, val)
+      type(vector_values), intent(inout) :: val_dat
+      integer(accs_int), intent(in) :: ent
+      integer(accs_int), intent(in) :: idx
+      real(accs_real), intent(in) :: val
+    end subroutine pack_one_vector_element
 
     !> @brief Interface to perform the AXPY vector operation.
     !
@@ -97,7 +115,5 @@ module vec
     end function
      
   end interface
-
-contains
   
 end module vec

@@ -36,7 +36,7 @@ contains
             
             solver%eqsys = eqsys
        
-            associate(comm => par_env%comm%MPI_VAL, &
+            associate(comm => par_env%comm, &
                       ksp  => solver%KSP, &
                       M    => solver%eqsys%M)
 
