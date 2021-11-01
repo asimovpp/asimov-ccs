@@ -3,6 +3,8 @@
 !> @brief Test module for mat_mod.f90
 module test_vec
 
+  use pFUnit
+  
   use kinds, only : accs_int, accs_real
   use types, only : vector_values
   
@@ -28,10 +30,23 @@ contains
 
     type(vector_values) :: vec_elements
 
-    allocate(vec_elements%idx(1))
-    allocate(vec_elements%val(1))
+    integer :: N
+    integer :: i
+    integer :: nmin
+    integer :: idx_range
 
-    call pack_entries(vec_elements, 1, 100, 1.0_accs_real)
+    N = 27                ! Arbitrary (keep small for test purposes)
+    nmin = -37            ! Arbitrary
+    
+    allocate(vec_elements%idx(N))
+    allocate(vec_elements%val(N))
+
+    do i = 1, N
+      call pack_entries(vec_elements, i, nmin + (i - 1), 1.0_accs_real)
+    end do
+
+    idx_range = maxval(vec_elements%idx) - (minval(vec_elements%idx) - 1)
+    @assertEqual(idx_range, N)
     
     deallocate(vec_elements%idx, vec_elements%val)
     
