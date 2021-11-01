@@ -58,6 +58,8 @@ all: $(OBJ) $(EXE)
 tests: FFLAGS := $(filter-out -Wimplicit-procedure,$(FFLAGS))
 tests: FFLAGS := $(filter-out -Wimplicit-interface,$(FFLAGS))
 tests: FFLAGS := $(filter-out -J$(OBJ_DIR),$(FFLAGS))
+tests: FFLAGS := $(filter-out -warn\ all\,noexternals,$(FFLAGS))
+tests: FFLAGS := $(filter-out -module\ $(OBJ_DIR),$(FFLAGS))
 tests: all
 	make -C ../testing tests
 
