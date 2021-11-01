@@ -187,6 +187,17 @@ contains
 
   end subroutine
 
+  module subroutine pack_one_vector_element(val_dat, ent, idx, val)
+    type(vector_values), intent(inout) :: val_dat
+    integer(accs_int), intent(in) :: ent
+    integer(accs_int), intent(in) :: idx
+    real(accs_real), intent(in) :: val
+
+    val_dat%idx(ent) = idx - 1
+    val_dat%val(ent) = val
+
+  end subroutine pack_one_vector_element
+
   !> @brief Perform the AXPY vector operation using PETSc
   !
   !> @details Performs the AXPY operation
