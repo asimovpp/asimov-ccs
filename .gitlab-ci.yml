@@ -1,8 +1,3 @@
-stages:
-  - docs_generation
-  - build
-  - test
-
 .setup_gnu:
   before_script:
     - source setup_gitlab_runner_env
@@ -15,8 +10,8 @@ stages:
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
 
+
 build_ccs_gnu:
-  stage: build
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} CMP=gnu make
@@ -25,20 +20,15 @@ build_ccs_gnu:
     paths:
       - src/ccs_app_gnu
     expire_in: 10 minutes
-  allow_failure: true
 
 run_ccs_gnu:
-  stage: test
-  dependencies: 
-    - build_ccs_gnu
+  needs: build_ccs_gnu
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
 
 test_ccs_gnu:
-  stage: test
-  dependencies: 
-    - build_ccs_gnu
+  needs: build_ccs_gnu
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} CMP=gnu make all
@@ -46,7 +36,6 @@ test_ccs_gnu:
 
 
 build_ccs_intel:
-  stage: build
   extends: .setup_intel
   script:
     - HOME=${CI_HOME} CMP=intel make
@@ -55,27 +44,21 @@ build_ccs_intel:
     paths:
       - src/ccs_app_intel
     expire_in: 10 minutes
-  allow_failure: true
   
 run_ccs_intel:
-  stage: test
-  dependencies: 
-    - build_ccs_intel
+  needs: build_ccs_intel
   extends: .setup_intel
   script:
     - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
 
 test_ccs_intel:
-  stage: test
-  dependencies: 
-    - build_ccs_intel
+  needs: build_ccs_intel
   extends: .setup_intel
   script:
     - HOME=${CI_HOME} CMP=intel make all
     - HOME=${CI_HOME} CMP=intel make tests
 
 generate_documentation:
-  stage: docs_generation
   before_script:
     - cd src
   script:
