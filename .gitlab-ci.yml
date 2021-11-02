@@ -22,13 +22,15 @@ build_ccs_gnu:
     expire_in: 10 minutes
 
 run_ccs_gnu:
-  needs: build_ccs_gnu
+  needs: 
+    - build_ccs_gnu
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
 
 test_ccs_gnu:
-  needs: build_ccs_gnu
+  needs: 
+    - build_ccs_gnu
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} CMP=gnu make all
@@ -46,13 +48,15 @@ build_ccs_intel:
     expire_in: 10 minutes
   
 run_ccs_intel:
-  needs: build_ccs_intel
+  needs: 
+    - build_ccs_intel
   extends: .setup_intel
   script:
     - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
 
 test_ccs_intel:
-  needs: build_ccs_intel
+  needs: 
+    - build_ccs_intel
   extends: .setup_intel
   script:
     - HOME=${CI_HOME} CMP=intel make all
