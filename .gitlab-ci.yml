@@ -2,10 +2,6 @@ stages:
   - docs_generation
   - build
   - test
-
-
-variables:
-  CI_HOME: "/home/jzarins/"
   
 
 build_ccs_gnu:
