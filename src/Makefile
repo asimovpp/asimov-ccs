@@ -1,7 +1,13 @@
 PY = python3
 OBJ_DIR=obj/
+
+# these 2 variables are needed to parse "," and " " correctly
 comma := ,
 space := $(null) $(null)
+
+ifndef CMP
+$(warning "CMP is not set. Please define which compiler should be used.")
+endif
 
 ifeq ($(CMP),intel)
   FC = mpiifort
@@ -105,4 +111,5 @@ docs: doxy
 doxy:
 	doxygen doxygen.cfg
 
+#Needed to pass variables to children Makefiles, e.g. for the testing framework
 export
