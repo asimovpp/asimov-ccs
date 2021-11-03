@@ -19,18 +19,19 @@ build_ccs_gnu:
   artifacts:
     paths:
       - src/ccs_app_gnu
-    expire_in: 10 minutes
+    expire_in: 30 minutes
 
 run_ccs_gnu:
   needs: 
-    - build_ccs_gnu
+    - job: build_ccs_gnu
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
 
 test_ccs_gnu:
   needs: 
-    - build_ccs_gnu
+    - job: build_ccs_gnu
+      artifacts: false
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} CMP=gnu make all
@@ -45,18 +46,19 @@ build_ccs_intel:
   artifacts:
     paths:
       - src/ccs_app_intel
-    expire_in: 10 minutes
+    expire_in: 30 minutes
   
 run_ccs_intel:
   needs: 
-    - build_ccs_intel
+    - job: build_ccs_intel
   extends: .setup_intel
   script:
     - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
 
 test_ccs_intel:
   needs: 
-    - build_ccs_intel
+    - job: build_ccs_intel
+      artifacts: false
   extends: .setup_intel
   script:
     - HOME=${CI_HOME} CMP=intel make all
