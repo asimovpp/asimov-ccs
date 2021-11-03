@@ -65,17 +65,20 @@ module utils
     module procedure end_update_matrix
   end interface end_update
 
+  !> @brief Generic interface to initialse vectors, matrices and linear systems
   interface initialise
     module procedure initialise_vector
     module procedure initialise_matrix
     module procedure initialise_linear_system
   end interface initialise
 
+  !> @brief Generic interface to set global vector and matrix sizes
   interface set_global_size
     module procedure set_global_vector_size
     module procedure set_global_matrix_size
   end interface set_global_size
 
+  !> @brief Generic interface to set local vector and matrix sizes
   interface set_local_size
     module procedure set_local_vector_size
     module procedure set_local_matrix_size
