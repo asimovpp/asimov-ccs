@@ -39,6 +39,14 @@ module solver
       type(linear_system), intent(inout) :: lin_sys
     end subroutine initialise_linear_system
 
+    !> @brief Setter for the linear system
+    !
+    !> @param[in/out] lin_sys   - the linear system
+    !> @param[in] rhs           - the right hand side vector
+    !> @param[in] solution      - the solution vector
+    !> @param[in] mat           - the matrix
+    !> @param[in] par_env       - the parallel environment where the linear 
+    !!                            system resides
     module subroutine set_linear_system(lin_sys, rhs, solution, mat, par_env)
       type(linear_system), intent(inout) :: lin_sys
       class(vector), allocatable, target, intent(in) :: rhs
