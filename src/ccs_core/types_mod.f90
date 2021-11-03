@@ -95,12 +95,12 @@ module types
   end subroutine set_global_matrix_size
 
   module subroutine set_local_matrix_size(mat, rows, columns, nnz, par_env)
-      type(matrix_init_data), intent(inout) :: mat
-      integer(accs_int), intent(in) :: rows
-      integer(accs_int), intent(in) :: columns
-      integer(accs_int), intent(in) :: nnz
-      class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine set_local_matrix_size
+    type(matrix_init_data), intent(inout) :: mat
+    integer(accs_int), intent(in) :: rows
+    integer(accs_int), intent(in) :: columns
+    integer(accs_int), intent(in) :: nnz
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+  end subroutine set_local_matrix_size
 
   end interface
 
