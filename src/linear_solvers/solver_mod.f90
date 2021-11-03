@@ -4,7 +4,7 @@
 
 module solver
 
-  use types, only : linear_solver, linear_system
+  use types, only : linear_solver, linear_system, vector, matrix
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -14,6 +14,7 @@ module solver
   public :: create_solver
   public :: solve
   public :: initialise_linear_system
+  public :: set_linear_system
   
   interface
 
@@ -37,6 +38,14 @@ module solver
     module subroutine initialise_linear_system(lin_sys)
       type(linear_system), intent(inout) :: lin_sys
     end subroutine initialise_linear_system
+
+    module subroutine set_linear_system(lin_sys, rhs, solution, mat, par_env)
+      type(linear_system), intent(inout) :: lin_sys
+      class(vector), allocatable, target, intent(in) :: rhs
+      class(vector), allocatable, target, intent(in) :: solution
+      class(matrix), allocatable, target, intent(in) :: mat
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
 
   end interface
   

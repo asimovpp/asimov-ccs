@@ -21,7 +21,7 @@ program poisson
                     linear_system, linear_solver, mesh, set_global_matrix_size
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve
+  use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_global_size
   use mesh_utils, only : build_square_mesh
@@ -53,7 +53,7 @@ program poisson
   call initialise_parallel_environment(par_env) 
   call read_command_line_arguments()
   call timer(start_time)
-  
+
   call initialise_poisson(par_env)
 
   !! Initialise with default values
@@ -94,10 +94,7 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   !! Create linear solver & set options
-  poisson_eq%rhs => b
-  poisson_eq%sol => u
-  poisson_eq%M => M
-  poisson_eq%par_env => par_env
+  call set_linear_system(poisson_eq, b, u, M, par_env)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
