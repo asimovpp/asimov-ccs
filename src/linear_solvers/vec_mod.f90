@@ -21,6 +21,7 @@ module vec
   public :: axpy
   public :: norm
   public :: pack_one_vector_element
+  public :: initialise_vector
 
   interface
      
@@ -113,7 +114,14 @@ module vec
       integer(accs_int), intent(in) :: norm_type
       real(accs_real) :: n
     end function
-     
+    
+    !> @brief Constructor for default vector values
+    !
+    !> param[in/out] vec     - the initialised vector values
+    module subroutine initialise_vector(vec)
+      type(vector_init_data), intent(inout) :: vec
+    end subroutine initialise_vector
+
   end interface
   
 end module vec

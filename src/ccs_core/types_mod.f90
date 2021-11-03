@@ -11,6 +11,9 @@ module types
 
   private
 
+  public :: set_global_matrix_size
+  public :: set_local_matrix_size
+
   !> @brief Stub type for vectors to be extended in sub-modules.
   type, public :: vector
   end type vector
@@ -25,8 +28,6 @@ module types
     integer(accs_int) :: nglob !> The global vector size (set -1 to ignore)
     integer(accs_int) :: nloc  !> The local vector size (set -1 to ignore)
     class(parallel_environment), pointer :: par_env !> The parallel environment
-  contains
-    procedure, nopass :: initialise => vector_init_data_constructor !> Initialise to default values
   end type vector_init_data
 
 
@@ -49,8 +50,6 @@ module types
     integer(accs_int) :: nnz   !> The number of non-zeros in a row - MUST include the 
                               !! diagonal regardles off value.
     class(parallel_environment), pointer :: par_env !> The parallel environment
-  contains
-    procedure, nopass :: initialise => matrix_init_data_constructor !> Initialise to default values
   end type matrix_init_data
 
   !> @brief Container type for setting values in a matrix.
@@ -69,8 +68,6 @@ module types
     class(vector), pointer :: rhs !> Right-hand side vector
     class(matrix), pointer :: M   !> Matrix
     class(parallel_environment), pointer :: par_env !> The parallel environment
-  contains
-    procedure, nopass :: initialise => linear_system_constructor !> Initialise to default values
   end type linear_system
   
   !> @brief Stub type for solvers to be extended in sub-modules.
@@ -88,34 +85,49 @@ module types
     real(accs_real) :: h, Af, vol    
   end type mesh
 
+  interface
+  module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
+    type(matrix_init_data), intent(inout) :: mat
+    integer(accs_int), intent(in) :: rows
+    integer(accs_int), intent(in) :: columns
+    integer(accs_int), intent(in) :: nnz
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+  end subroutine set_global_matrix_size
+
+  module subroutine set_local_matrix_size(mat, rows, columns, nnz, par_env)
+      type(matrix_init_data), intent(inout) :: mat
+      integer(accs_int), intent(in) :: rows
+      integer(accs_int), intent(in) :: columns
+      integer(accs_int), intent(in) :: nnz
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine set_local_matrix_size
+
+  end interface
+
   contains
 
-  !> @brief Constructor for default vector values
-  pure function vector_init_data_constructor() result(vec)
-    type(vector_init_data) :: vec
-    vec%nglob = -1
-    vec%nloc = -1
-    vec%par_env => null()
-  end function vector_init_data_constructor
+  module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
+    type(matrix_init_data), intent(inout) :: mat
+    integer(accs_int), intent(in) :: rows
+    integer(accs_int), intent(in) :: columns
+    integer(accs_int), intent(in) :: nnz
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    mat%rglob = rows
+    mat%cglob = columns
+    mat%nnz = nnz
+    mat%par_env => par_env
+  end subroutine set_global_matrix_size
 
-  !> @brief Constructor for default matrix values
-  pure function matrix_init_data_constructor() result(mat)
-    type(matrix_init_data) :: mat
-    mat%rglob = -1
-    mat%cglob = -1
-    mat%rloc = -1
-    mat%cloc = -1
-    mat%nnz = -1
-    mat%par_env => null()
-  end function matrix_init_data_constructor
-
-  !> @brief Constructor for default linear system
-  pure function linear_system_constructor() result(lin_sys)
-    type(linear_system) :: lin_sys
-    lin_sys%sol => null()
-    lin_sys%rhs => null()
-    lin_sys%M => null()
-    lin_sys%par_env => null()
-  end function linear_system_constructor
+  module subroutine set_local_matrix_size(mat, rows, columns, nnz, par_env)
+    type(matrix_init_data), intent(inout) :: mat
+    integer(accs_int), intent(in) :: rows
+    integer(accs_int), intent(in) :: columns
+    integer(accs_int), intent(in) :: nnz
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    mat%rloc = rows
+    mat%cloc = columns
+    mat%nnz = nnz
+    mat%par_env => par_env
+  end subroutine set_local_matrix_size
 
 end module types

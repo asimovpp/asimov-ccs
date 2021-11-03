@@ -1,8 +1,11 @@
 {
   "parallel": {
     "poisson": {
+        "mat_common": "mat_common",
         "mat": "mat_petsc",
+        "vec_common": "vec_common",
         "vec": "vec_petsc",
+        "solver_common": "solver_common",
         "solver": "solver_petsc",
         "parallel_env": "parallel_env_mpi_petsc",
         "parallel_env_error": "parallel_errors_mpi_petsc",

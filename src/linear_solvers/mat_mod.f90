@@ -19,6 +19,7 @@ module mat
   public :: set_matrix_values
   public :: set_eqn
   public :: pack_one_matrix_coefficient
+  public :: initialise_matrix
 
   interface
 
@@ -103,7 +104,14 @@ module mat
        integer(accs_int), dimension(:), intent(in) :: rows
        class(matrix), intent(inout) :: M
      end subroutine
-     
+
+    !> @brief Constructor for default matrix values
+    !
+    !> param[in/out] mat         - the initialised matrix values
+    module subroutine initialise_matrix(mat)
+      type(matrix_init_data), intent(inout) :: mat
+    end subroutine initialise_matrix
+
   end interface
   
 end module mat

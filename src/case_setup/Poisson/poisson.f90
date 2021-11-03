@@ -18,11 +18,11 @@ program poisson
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-                    linear_system, linear_solver, mesh
+                    linear_system, linear_solver, mesh, set_global_matrix_size
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix
   use solver, only : create_solver, solve
-  use utils, only : update, begin_update, end_update, finalise
+  use utils, only : update, begin_update, end_update, finalise, initialise
   use mesh_utils, only : build_square_mesh
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
@@ -55,15 +55,12 @@ program poisson
   call init_poisson(par_env)
 
   !! Initialise with default values
-  mat_sizes = mat_sizes%initialise()
-  vec_sizes = vec_sizes%initialise()
-  poisson_eq = poisson_eq%initialise()
+  call initialise(mat_sizes)
+  call initialise(vec_sizes)
+  call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  mat_sizes%rglob = square_mesh%n
-  mat_sizes%cglob = square_mesh%n
-  mat_sizes%nnz = 5
-  mat_sizes%par_env => par_env
+  call set_global_matrix_size(mat_sizes, square_mesh%n, square_mesh%n, 5, par_env)
   call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)
