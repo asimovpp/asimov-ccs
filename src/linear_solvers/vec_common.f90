@@ -24,6 +24,7 @@ contains
     integer(accs_int), intent(in) :: size
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     vec%nglob = size
+    vec%nloc = -1
     vec%par_env => par_env
   end subroutine
 
@@ -37,6 +38,7 @@ contains
     integer(accs_int), intent(in) :: size
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     vec%nloc = size
+    vec%nglob = -1
     vec%par_env => par_env
   end subroutine
 
