@@ -22,6 +22,8 @@ module vec
   public :: norm
   public :: pack_one_vector_element
   public :: initialise_vector
+  public :: set_global_vector_size
+  public :: set_local_vector_size
 
   interface
      
@@ -122,6 +124,18 @@ module vec
       type(vector_init_data), intent(inout) :: vec
     end subroutine initialise_vector
 
-  end interface
+    module subroutine set_global_vector_size(vec, size, par_env)
+      type(vector_init_data), intent(inout) :: vec
+      integer(accs_int), intent(in) :: size
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    module subroutine set_local_vector_size(vec, size, par_env)
+      type(vector_init_data), intent(inout) :: vec
+      integer(accs_int), intent(in) :: size
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    end interface
   
 end module vec

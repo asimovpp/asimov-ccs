@@ -14,4 +14,20 @@ contains
     vec%par_env => null()
   end subroutine initialise_vector
 
+  module subroutine set_global_vector_size(vec, size, par_env)
+    type(vector_init_data), intent(inout) :: vec
+    integer(accs_int), intent(in) :: size
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    vec%nglob = size
+    vec%par_env => par_env
+  end subroutine
+
+  module subroutine set_local_vector_size(vec, size, par_env)
+    type(vector_init_data), intent(inout) :: vec
+    integer(accs_int), intent(in) :: size
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    vec%nloc = size
+    vec%par_env => par_env
+  end subroutine
+
 end submodule

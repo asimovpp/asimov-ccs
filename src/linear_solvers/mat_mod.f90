@@ -20,6 +20,9 @@ module mat
   public :: set_eqn
   public :: pack_one_matrix_coefficient
   public :: initialise_matrix
+  public :: set_global_matrix_size
+  public :: set_local_matrix_size
+  public :: set_nnz
 
   interface
 
@@ -111,6 +114,25 @@ module mat
     module subroutine initialise_matrix(mat)
       type(matrix_init_data), intent(inout) :: mat
     end subroutine initialise_matrix
+
+    module subroutine set_global_matrix_size(mat, rows, columns, par_env)
+      type(matrix_init_data), intent(inout) :: mat
+      integer(accs_int), intent(in) :: rows
+      integer(accs_int), intent(in) :: columns
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    module subroutine set_local_matrix_size(mat, rows, columns, par_env)
+      type(matrix_init_data), intent(inout) :: mat
+      integer(accs_int), intent(in) :: rows
+      integer(accs_int), intent(in) :: columns
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    module subroutine set_nnz(mat, nnz)
+      type(matrix_init_data), intent(inout) :: mat
+      integer(accs_int), intent(in) :: nnz
+    end subroutine
 
   end interface
   

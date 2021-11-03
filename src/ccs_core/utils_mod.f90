@@ -8,9 +8,11 @@ module utils
   use iso_c_binding
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
-                  initialise_vector, pack_one_vector_element
+                  initialise_vector, set_global_vector_size, set_local_vector_size,         &
+                  pack_one_vector_element
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
-                  initialise_matrix, finalise_matrix, pack_one_matrix_coefficient
+                  initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
+                  pack_one_matrix_coefficient
   use solver, only: initialise_linear_system
   use types, only : vector, matrix
   
@@ -25,6 +27,8 @@ module utils
   public :: finalise
   public :: pack_entries
   public :: initialise
+  public :: set_global_size
+  public :: set_local_size
 
   public :: accs_init
   public :: accs_finalise
@@ -66,6 +70,16 @@ module utils
     module procedure initialise_matrix
     module procedure initialise_linear_system
   end interface initialise
+
+  interface set_global_size
+    module procedure set_global_vector_size
+    module procedure set_global_matrix_size
+  end interface set_global_size
+
+  interface set_local_size
+    module procedure set_local_vector_size
+    module procedure set_local_matrix_size
+  end interface set_local_size
 
   !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
   !

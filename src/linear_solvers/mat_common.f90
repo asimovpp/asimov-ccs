@@ -17,4 +17,30 @@ contains
     mat%par_env => null()
   end subroutine initialise_matrix
 
+  module subroutine set_global_matrix_size(mat, rows, columns, par_env)
+    type(matrix_init_data), intent(inout) :: mat
+    integer(accs_int), intent(in) :: rows
+    integer(accs_int), intent(in) :: columns
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    mat%rglob = rows
+    mat%cglob = columns
+    mat%par_env => par_env
+  end subroutine
+
+  module subroutine set_local_matrix_size(mat, rows, columns, par_env)
+    type(matrix_init_data), intent(inout) :: mat
+    integer(accs_int), intent(in) :: rows
+    integer(accs_int), intent(in) :: columns
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    mat%rloc = rows
+    mat%cloc = columns
+    mat%par_env => par_env
+  end subroutine
+
+  module subroutine set_nnz(mat, nnz)
+    type(matrix_init_data), intent(inout) :: mat
+    integer(accs_int), intent(in) :: nnz
+    mat%nnz = nnz
+  end subroutine  
+
 end submodule
