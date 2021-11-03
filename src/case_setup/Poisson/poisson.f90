@@ -18,11 +18,12 @@ program poisson
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-                    linear_system, linear_solver, mesh
+                    linear_system, linear_solver, mesh, set_global_matrix_size
   use vec, only : create_vector, axpy, norm
-  use mat, only : create_matrix
-  use solver, only : create_solver, solve
-  use utils, only : update, begin_update, end_update, finalise
+  use mat, only : create_matrix, set_nnz
+  use solver, only : create_solver, solve, set_linear_system
+  use utils, only : update, begin_update, end_update, finalise, initialise, &
+                    set_global_size
   use mesh_utils, only : build_square_mesh
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
@@ -52,18 +53,17 @@ program poisson
   call initialise_parallel_environment(par_env) 
   call read_command_line_arguments()
   call timer(start_time)
-  call init_poisson(par_env)
+
+  call initialise_poisson(par_env)
 
   !! Initialise with default values
-  mat_sizes = mat_sizes%initialise()
-  vec_sizes = vec_sizes%initialise()
-  poisson_eq = poisson_eq%initialise()
+  call initialise(mat_sizes)
+  call initialise(vec_sizes)
+  call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  mat_sizes%rglob = square_mesh%n
-  mat_sizes%cglob = square_mesh%n
-  mat_sizes%nnz = 5
-  mat_sizes%par_env => par_env
+  call set_global_size(mat_sizes, square_mesh%n, square_mesh%n, par_env)
+  call set_nnz(mat_sizes, 5)
   call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)
@@ -71,8 +71,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  vec_sizes%nglob = square_mesh%n
-  vec_sizes%par_env => par_env
+  call set_global_size(vec_sizes, square_mesh%n, par_env)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)
@@ -95,10 +94,7 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   !! Create linear solver & set options
-  poisson_eq%rhs => b
-  poisson_eq%sol => u
-  poisson_eq%M => M
-  poisson_eq%par_env => par_env
+  call set_linear_system(poisson_eq, b, u, M, par_env)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
@@ -376,13 +372,13 @@ contains
     call update(ustar)
   end subroutine set_exact_sol
 
-  subroutine init_poisson(par_env)
+  subroutine initialise_poisson(par_env)
 
     class(parallel_environment) :: par_env
 
     square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
     
-  end subroutine init_poisson
+  end subroutine initialise_poisson
 
   pure function rhs_val(i, opt_offset) result(r)
 

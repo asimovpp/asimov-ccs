@@ -7,9 +7,13 @@ module utils
 
   use iso_c_binding
 
-  use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, pack_one_vector_element
-  use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, finalise_matrix, &
-       pack_one_matrix_coefficient
+  use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
+                  initialise_vector, set_global_vector_size, set_local_vector_size,         &
+                  pack_one_vector_element
+  use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
+                  initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
+                  pack_one_matrix_coefficient
+  use solver, only: initialise_linear_system
   use types, only : vector, matrix
   
   implicit none
@@ -22,6 +26,9 @@ module utils
   public :: update
   public :: finalise
   public :: pack_entries
+  public :: initialise
+  public :: set_global_size
+  public :: set_local_size
 
   public :: accs_init
   public :: accs_finalise
@@ -57,6 +64,25 @@ module utils
     module procedure end_update_vector
     module procedure end_update_matrix
   end interface end_update
+
+  !> @brief Generic interface to initialse vectors, matrices and linear systems
+  interface initialise
+    module procedure initialise_vector
+    module procedure initialise_matrix
+    module procedure initialise_linear_system
+  end interface initialise
+
+  !> @brief Generic interface to set global vector and matrix sizes
+  interface set_global_size
+    module procedure set_global_vector_size
+    module procedure set_global_matrix_size
+  end interface set_global_size
+
+  !> @brief Generic interface to set local vector and matrix sizes
+  interface set_local_size
+    module procedure set_local_vector_size
+    module procedure set_local_matrix_size
+  end interface set_local_size
 
   !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
   !
