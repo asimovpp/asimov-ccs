@@ -1,6 +1,14 @@
 PY = python3
 OBJ_DIR=obj/
 
+# these 2 variables are needed to parse "," and " " correctly
+comma := ,
+space := $(null) $(null)
+
+ifndef CMP
+$(warning "CMP is not set. Please define which compiler should be used.")
+endif
+
 ifeq ($(CMP),intel)
   FC = mpiifort
   FFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -module $(OBJ_DIR)
@@ -55,10 +63,14 @@ LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 all: $(OBJ) $(EXE)
 
 # pFUnit is incompatible with -Wimplicit-procedure, etc.
-tests: FFLAGS := $(filter-out -Wimplicit-procedure,$(FFLAGS))
-tests: FFLAGS := $(filter-out -Wimplicit-interface,$(FFLAGS))
-tests: FFLAGS := $(filter-out -J$(OBJ_DIR),$(FFLAGS))
-tests: all
+tests: all tests_build
+
+tests_build: FFLAGS := $(filter-out -Wimplicit-procedure,$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -Wimplicit-interface,$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -J$(OBJ_DIR),$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -warn$(space)all$(comma)noexternals,$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -module$(space)$(OBJ_DIR),$(FFLAGS))
+tests_build:
 	make -C ../testing tests
 
 $(EXE): $(EXE_DEPS)
@@ -99,4 +111,5 @@ docs: doxy
 doxy:
 	doxygen doxygen.cfg
 
+#Needed to pass variables to children Makefiles, e.g. for the testing framework
 export

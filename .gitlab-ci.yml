@@ -1,64 +1,70 @@
-stages:
-  - docs_generation
-  - build
-  - test
-
-
-variables:
-  CI_HOME: "/home/jzarins/"
-  
-
-build_ccs_gnu:
-  stage: build
+.setup_gnu:
   before_script:
+    - source setup_gitlab_runner_env
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - cd src
+
+.setup_intel:
+  before_script:
+    - source setup_gitlab_runner_env
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
+    - cd src
+
+
+build_ccs_gnu:
+  extends: .setup_gnu
   script:
     - HOME=${CI_HOME} CMP=gnu make
     - mv ccs_app ccs_app_gnu
   artifacts:
     paths:
       - src/ccs_app_gnu
-    expire_in: 10 minutes
-  allow_failure: true
+    expire_in: 30 minutes
 
-test_ccs_gnu:
-  stage: test
-  dependencies: 
-    - build_ccs_gnu
-  before_script:
-    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
-    - cd src
+run_ccs_gnu:
+  needs: 
+    - job: build_ccs_gnu
+  extends: .setup_gnu
   script:
     - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
 
+test_ccs_gnu:
+  needs: 
+    - job: build_ccs_gnu
+      artifacts: false
+  extends: .setup_gnu
+  script:
+    - HOME=${CI_HOME} CMP=gnu make all
+    - HOME=${CI_HOME} CMP=gnu make tests
+
 
 build_ccs_intel:
-  stage: build
-  before_script:
-    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
-    - cd src
+  extends: .setup_intel
   script:
     - HOME=${CI_HOME} CMP=intel make
     - mv ccs_app ccs_app_intel
   artifacts:
     paths:
       - src/ccs_app_intel
-    expire_in: 10 minutes
-  allow_failure: true
+    expire_in: 30 minutes
   
-test_ccs_intel:
-  stage: test
-  dependencies: 
-    - build_ccs_intel
-  before_script:
-    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
-    - cd src
+run_ccs_intel:
+  needs: 
+    - job: build_ccs_intel
+  extends: .setup_intel
   script:
     - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
 
+test_ccs_intel:
+  needs: 
+    - job: build_ccs_intel
+      artifacts: false
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intel make all
+    - HOME=${CI_HOME} CMP=intel make tests
+
 generate_documentation:
-  stage: docs_generation
   before_script:
     - cd src
   script:
