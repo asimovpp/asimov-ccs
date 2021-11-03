@@ -1,7 +1,5 @@
 submodule (mat) mat_common
 
-  use types, only: matrix_init_data
-
   implicit none
 
 contains

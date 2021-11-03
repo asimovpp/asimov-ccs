@@ -1,7 +1,5 @@
 submodule (solver) solver_common
 
-  use types, only: linear_system
-
   implicit none
 
 contains

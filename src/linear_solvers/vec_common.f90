@@ -1,7 +1,5 @@
 submodule (vec) vec_common
 
-  use types, only : vector_init_data
-
   implicit none 
 
 contains
