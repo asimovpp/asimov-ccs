@@ -114,6 +114,8 @@ module types
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     mat%rglob = rows
     mat%cglob = columns
+    mat%rloc = -1
+    mat%cloc = -1
     mat%nnz = nnz
     mat%par_env => par_env
   end subroutine set_global_matrix_size
@@ -126,6 +128,8 @@ module types
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     mat%rloc = rows
     mat%cloc = columns
+    mat%rglob = -1
+    mat%cglob = -1
     mat%nnz = nnz
     mat%par_env => par_env
   end subroutine set_local_matrix_size
