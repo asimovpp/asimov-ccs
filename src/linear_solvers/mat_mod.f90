@@ -115,6 +115,12 @@ module mat
       type(matrix_init_data), intent(inout) :: mat
     end subroutine initialise_matrix
 
+    !> @brief Setter for global matrix size
+    !
+    !> param[in/out] mat    - the matrix data object
+    !> param[in] rows       - the global number of rows
+    !> param[in] columns    - the global number of columns
+    !> param[in] par_env    - the parallel environment where the matrix resides
     module subroutine set_global_matrix_size(mat, rows, columns, par_env)
       type(matrix_init_data), intent(inout) :: mat
       integer(accs_int), intent(in) :: rows
@@ -122,6 +128,12 @@ module mat
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
 
+    !> @brief Setter for local matrix size
+    !
+    !> param[in/out] mat    - the matrix data object
+    !> param[in] rows       - the local number of rows
+    !> param[in] columns    - the local number of columns
+    !> param[in] par_env    - the parallel environment where the matrix resides
     module subroutine set_local_matrix_size(mat, rows, columns, par_env)
       type(matrix_init_data), intent(inout) :: mat
       integer(accs_int), intent(in) :: rows
@@ -129,6 +141,11 @@ module mat
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
 
+    !> @brief Setter for matrix number of non-zeros
+    !
+    !> param[in/out] mat    - the matrix data object
+    !> param[in] nnz        - the number of non-zeros
+    !> param[in] par_env    - the parallel environment where the matrix resides
     module subroutine set_nnz(mat, nnz)
       type(matrix_init_data), intent(inout) :: mat
       integer(accs_int), intent(in) :: nnz
