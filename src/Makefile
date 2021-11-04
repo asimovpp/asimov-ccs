@@ -1,18 +1,27 @@
 PY = python3
+OBJ_DIR=obj/
+
+# these 2 variables are needed to parse "," and " " correctly
+comma := ,
+space := $(null) $(null)
+
+ifndef CMP
+$(warning "CMP is not set. Please define which compiler should be used.")
+endif
 
 ifeq ($(CMP),intel)
   FC = mpiifort
-  FFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -Jobj
+  FFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -module $(OBJ_DIR)
   CAFFLAGS = -coarray
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
-  FFLAGS = -cpp -O3 -std="f2018" -fopenmp -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure -Jobj
+  FFLAGS = -cpp -O3 -std="f2018" -fopenmp -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure -J$(OBJ_DIR)
   CAFFLAGS = -fcoarray=single
 endif
 ifeq ($(CMP),cray)
   FC = ftn
-  FFLAGS = -ef -en -eF -M969 -homp -Jobj
+  FFLAGS = -ef -en -eF -M969 -homp -J$(OBJ_DIR)
   CAFFLAGS = -hcaf
 endif
 
@@ -35,9 +44,8 @@ ALL_DEPS=$(DEP_PREFIX)all.deps
 TAG_DEPS=$(DEP_PREFIX)build_tags.deps
 RULE_DEPS=$(DEP_PREFIX)rules.deps
 
-OBJ_DIR=obj/
-
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
+CASES = poisson
 
 #SRC = $(wildcard *.f90)
 ALL_SRC = $(shell find . -type f -name '*.f90')
@@ -54,8 +62,16 @@ LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 
 all: $(OBJ) $(EXE)
 
-#test: $(EXE)
-#	make -C ../tests all
+# pFUnit is incompatible with -Wimplicit-procedure, etc.
+tests: all tests_build
+
+tests_build: FFLAGS := $(filter-out -Wimplicit-procedure,$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -Wimplicit-interface,$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -J$(OBJ_DIR),$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -warn$(space)all$(comma)noexternals,$(FFLAGS))
+tests_build: FFLAGS := $(filter-out -module$(space)$(OBJ_DIR),$(FFLAGS))
+tests_build:
+	make -C ../testing tests
 
 $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
@@ -69,7 +85,9 @@ $(CAF_OBJ): %.o: %.f90
 clean:
 	rm -f $(EXE) *.o *.mod *.smod
 	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod
-clean-full: clean
+clean-tests:
+	make -C ../testing clean
+clean-full: clean clean-tests
 	rm -f $(OBJ_DIR)*.deps
 
 $(ALL_DEPS): $(SRC)
@@ -92,3 +110,6 @@ include $(RULE_DEPS)
 docs: doxy 
 doxy:
 	doxygen doxygen.cfg
+
+#Needed to pass variables to children Makefiles, e.g. for the testing framework
+export

@@ -1,6 +1,6 @@
 submodule (mat) mat_petsc
 
-  use kinds, only : accs_real, accs_err
+  use kinds, only : accs_err
   use petsctypes, only : matrix_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   
@@ -12,7 +12,7 @@ contains
   !
   !> @param[in]  mat_dat - contains information about how the matrix should be allocated
   !> @param[out] M       - the matrix object
-  module subroutine create_matrix(mat_dat, par_env, M)
+  module subroutine create_matrix(mat_dat, M)
 
     use mpi
     
@@ -21,7 +21,6 @@ contains
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
-    class(parallel_environment), intent(in) :: par_env
     class(matrix), allocatable, intent(out) :: M
 
 !    integer(accs_int) :: nrank !> MPI rank
@@ -32,10 +31,10 @@ contains
     select type (M)
       type is (matrix_petsc)
 
-        select type (par_env)
+        select type (par_env => mat_dat%par_env)
           type is(parallel_environment_mpi)
 
-          call MatCreate(par_env%comm%MPI_VAL, M%M, ierr)
+          call MatCreate(par_env%comm, M%M, ierr)
   
           if (mat_dat%rloc >= 0) then
             call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
@@ -163,6 +162,27 @@ contains
     end select
     
   end subroutine
+
+  module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
+    type(matrix_values), intent(inout) :: mat_coeffs
+    integer(accs_int), intent(in) :: row_entry
+    integer(accs_int), intent(in) :: col_entry
+    integer(accs_int), intent(in) :: row
+    integer(accs_int), intent(in) :: col
+    real(accs_real), intent(in) :: coeff
+
+    integer(accs_int) :: nc
+    integer(accs_int) :: validx
+
+    mat_coeffs%rglob(row_entry) = row - 1
+    mat_coeffs%cglob(col_entry) = col - 1
+
+    nc = size(mat_coeffs%cglob)
+
+    validx = (row_entry - 1) * nc + col_entry
+    mat_coeffs%val(validx) = coeff
+    
+  end subroutine pack_one_matrix_coefficient
 
   !> @brief Set values in a PETSc matrix.
   !

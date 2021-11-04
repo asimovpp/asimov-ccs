@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data
+  use types, only : vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -20,6 +20,10 @@ module vec
   public :: end_update_vector
   public :: axpy
   public :: norm
+  public :: pack_one_vector_element
+  public :: initialise_vector
+  public :: set_global_vector_size
+  public :: set_local_vector_size
 
   interface
      
@@ -29,9 +33,8 @@ module vec
     !!                                       of the vector, -1 is interpreted as unset. If both
     !!                                       are set the local size is used.
     !> @param[out] vector v - The vector returned allocated, but (potentially) uninitialised.
-    module subroutine create_vector(vec_dat, par_env, v)
+    module subroutine create_vector(vec_dat, v)
       type(vector_init_data), intent(in) :: vec_dat
-      class(parallel_environment), intent(in) :: par_env
       class(vector), allocatable, intent(out) :: v
     end subroutine
 
@@ -68,7 +71,24 @@ module vec
     !> @param[in,out] v - the vector
     module subroutine end_update_vector(v)
       class(vector), intent(inout) :: v
-    end subroutine
+    end subroutine end_update_vector
+
+    !> @brief Interface to store one vector element and its index for later setting.
+    !
+    !> @param[in/out] val_dat - object storing the elements, their indices and mode to use when
+    !!                          setting them.
+    !> @param[in]     ent     - which entry in the index/element arrays to set?
+    !> @oaram[in]     idx     - vector element index
+    !> @param[in]     val     - vector element value
+    !
+    !> @details Stores a vector element and associated index for later setting, ensuring they are
+    !!          set appropriately for the backend.
+    module subroutine pack_one_vector_element(val_dat, ent, idx, val)
+      type(vector_values), intent(inout) :: val_dat
+      integer(accs_int), intent(in) :: ent
+      integer(accs_int), intent(in) :: idx
+      real(accs_real), intent(in) :: val
+    end subroutine pack_one_vector_element
 
     !> @brief Interface to perform the AXPY vector operation.
     !
@@ -96,9 +116,38 @@ module vec
       integer(accs_int), intent(in) :: norm_type
       real(accs_real) :: n
     end function
-     
-  end interface
+    
+    !> @brief Constructor for default vector values
+    !
+    !> param[in/out] vector_descriptor - the initialised vector values
+    module subroutine initialise_vector(vector_descriptor)
+      type(vector_init_data), intent(inout) :: vector_descriptor
+    end subroutine initialise_vector
 
-contains
+    !> @brief Setter for global vector size
+    !
+    !> param[in/out] vector_descriptor - the vector data object
+    !> param[in] size                  - the global vector size
+    !> param[in] par_env               - the parallel environment 
+    !!                                   where the vector resides
+    module subroutine set_global_vector_size(vector_descriptor, size, par_env)
+      type(vector_init_data), intent(inout) :: vector_descriptor
+      integer(accs_int), intent(in) :: size
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    !> @brief Setter for local vector size
+    !
+    !> param[in/out] vvector_descriptor - the vector data object
+    !> param[in] size                   - the local vector size
+    !> param[in] par_env                - the parallel environment 
+    !!                                    where the vector resides
+    module subroutine set_local_vector_size(vector_descriptor, size, par_env)
+      type(vector_init_data), intent(inout) :: vector_descriptor
+      integer(accs_int), intent(in) :: size
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    end interface
   
 end module vec

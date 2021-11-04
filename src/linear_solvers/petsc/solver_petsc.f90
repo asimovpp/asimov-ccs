@@ -16,13 +16,12 @@ contains
   !
   !> @param[in]  linear_system eqsys   - Data structure containing equation system to be solved.
   !> @param[out] linear_solver solver - The linear solver returned allocated.
-  module subroutine create_solver(eqsys, par_env, solver)
+  module subroutine create_solver(eqsys, solver)
 
     use petsc, only : PETSC_TRUE
     use petscksp, only : KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
 
     type(linear_system), intent(in) :: eqsys
-    class(parallel_environment), intent(in) :: par_env
     class(linear_solver), allocatable, intent(out) :: solver
 
     integer(accs_err) :: ierr !> Error code
@@ -32,12 +31,12 @@ contains
     select type(solver)
       type is(linear_solver_petsc)
 
-        select type (par_env)
+        select type (par_env => eqsys%par_env)
           type is(parallel_environment_mpi)
             
             solver%eqsys = eqsys
        
-            associate(comm => par_env%comm%MPI_VAL, &
+            associate(comm => par_env%comm, &
                       ksp  => solver%KSP, &
                       M    => solver%eqsys%M)
 

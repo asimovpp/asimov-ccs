@@ -5,7 +5,7 @@
 !!          and PETSc
 submodule (parallel) parallel_env_mpi_petsc
 
-  use mpi_f08
+  use mpi
   use petsc, only:  PetscInitialize, &
                     PetscFinalize, &
                     PETSC_NULL_CHARACTER

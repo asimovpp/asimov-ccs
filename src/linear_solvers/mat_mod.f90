@@ -3,7 +3,7 @@
 !> @details Provides the interface to matrix objects.
 module mat
 
-  use kinds, only : accs_int
+  use kinds, only : accs_int, accs_real
   use types, only : matrix, matrix_init_data, matrix_values
   use parallel_types, only: parallel_environment
 
@@ -18,6 +18,11 @@ module mat
   public :: end_update_matrix
   public :: set_matrix_values
   public :: set_eqn
+  public :: pack_one_matrix_coefficient
+  public :: initialise_matrix
+  public :: set_global_matrix_size
+  public :: set_local_matrix_size
+  public :: set_nnz
 
   interface
 
@@ -25,9 +30,8 @@ module mat
      !
      !> @param[in]  mat_dat - contains information about how the matrix should be allocated
      !> @param[out] M       - the matrix object
-     module subroutine create_matrix(mat_dat, par_env, M)
+     module subroutine create_matrix(mat_dat, M)
        type(matrix_init_data), intent(in) :: mat_dat
-       class(parallel_environment), intent(in) :: par_env
        class(matrix), allocatable, intent(out) :: M
      end subroutine
 
@@ -60,6 +64,27 @@ module mat
        class(matrix), intent(inout) :: M
      end subroutine
 
+     !> @brief Interface to store one matrix coefficient and its index for later setting.
+     !
+     !> @param[in/out] mat_coeffs - object storing the coefficients, their indices and mode to use
+     !!                             when setting them.
+     !> @param[in]     row_entry  - which entry in the row indices to set?
+     !> @param[in]     col_entry  - which entry in the column indices to set?
+     !> @param[in]     row        - matrix row index
+     !> @param[in]     col        - matrix column index
+     !> @param[in]     coeff      - matrix coefficient
+     !
+     !> @details Stores a matrix coefficient and associated row and column indices for later
+     !!          setting, ensuring they are set appropriately for the backend.
+     module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
+       type(matrix_values), intent(inout) :: mat_coeffs
+       integer(accs_int), intent(in) :: row_entry
+       integer(accs_int), intent(in) :: col_entry
+       integer(accs_int), intent(in) :: row
+       integer(accs_int), intent(in) :: col
+       real(accs_real), intent(in) :: coeff
+     end subroutine pack_one_matrix_coefficient
+     
      !> @brief Interface to set values in a matrix.
      !
      !> @param[in]     mat_values - contains the values, their indices and the mode to use when setting
@@ -82,7 +107,53 @@ module mat
        integer(accs_int), dimension(:), intent(in) :: rows
        class(matrix), intent(inout) :: M
      end subroutine
-     
+
+    !> @brief Constructor for default matrix values
+    !
+    !> param[in/out] matrix_descriptor - the initialised matrix values
+     module subroutine initialise_matrix(matrix_descriptor)
+      type(matrix_init_data), intent(inout) :: matrix_descriptor
+    end subroutine initialise_matrix
+
+    !> @brief Setter for global matrix size
+    !
+    !> param[in/out] matrix_descriptor  - the matrix data object
+    !> param[in] rows                   - the global number of rows
+    !> param[in] columns                - the global number of columns
+    !> param[in] par_env                - the parallel environment where 
+    !!                                    the matrix resides
+    module subroutine set_global_matrix_size(matrix_descriptor, rows, columns, par_env)
+      type(matrix_init_data), intent(inout) :: matrix_descriptor
+      integer(accs_int), intent(in) :: rows
+      integer(accs_int), intent(in) :: columns
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    !> @brief Setter for local matrix size
+    !
+    !> param[in/out] matrix_descriptor  - the matrix data object
+    !> param[in] rows                   - the local number of rows
+    !> param[in] columns                - the local number of columns
+    !> param[in] par_env                - the parallel environment where
+    !!                                    the matrix resides
+    module subroutine set_local_matrix_size(matrix_descriptor, rows, columns, par_env)
+      type(matrix_init_data), intent(inout) :: matrix_descriptor
+      integer(accs_int), intent(in) :: rows
+      integer(accs_int), intent(in) :: columns
+      class(parallel_environment), allocatable, target, intent(in) :: par_env
+    end subroutine
+
+    !> @brief Setter for matrix number of non-zeros
+    !
+    !> param[in/out] matrix_descriptor - the matrix data object
+    !> param[in] nnz                   - the number of non-zeros
+    !> param[in] par_env               - the parallel environment where
+    !!                                   the matrix resides
+    module subroutine set_nnz(matrix_descriptor, nnz)
+      type(matrix_init_data), intent(inout) :: matrix_descriptor
+      integer(accs_int), intent(in) :: nnz
+    end subroutine
+
   end interface
   
 end module mat
