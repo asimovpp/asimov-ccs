@@ -1,0 +1,81 @@
+---
+title: "TaylorGreenVortex"
+
+reference_numbers:
+  pressure: 101325
+  temperature: 289
+  density: 1
+  viscosity: 1.0e-05
+  pref_at_cell: 4096
+
+steps: 1000
+
+solve:
+  w: "off"
+
+solver:
+  u: 12
+  v: 12
+
+init: "user"
+
+transient:
+  type: "quad"
+  dt: 0.0001
+  gamma: 1
+  max_sub_steps: 10
+
+target_residual: 1.0e-12
+
+monitor_cell: 8094
+
+convection_scheme:
+  u: 1
+  v: 1
+  w: 1
+
+blending_factor:
+  u: 0.8
+  v: 0.8
+  p: 0.5
+
+output:
+  every: 1000
+
+plot_format: "vtk"
+
+post:
+  type: "center"
+  variables:
+  - "u"
+  - "v"
+  - "w"
+  - "p"
+
+boundary:
+- region: "left"
+  type: "periodic"
+  vector:
+  - 6.283195
+  - 0
+  - 0
+- region: "right"
+  type: "periodic"
+  vector:
+  - 6.283195
+  - 0
+  - 0
+- region: "top"
+  type: "periodic"
+  vector:
+  - 0
+  - 6.283195
+  - 0
+- region: "bottom"
+  type: "periodic"
+  vector:
+  - 0
+  - 6.283195
+  - 0
+- region: "live"
+  type: "symp"
