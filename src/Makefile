@@ -1,5 +1,6 @@
 PY = python3
 OBJ_DIR=obj/
+BUILD ?= release
 
 # these 2 variables are needed to parse "," and " " correctly
 comma := ,
@@ -11,17 +12,35 @@ endif
 
 ifeq ($(CMP),intel)
   FC = mpiifort
-  FFLAGS = -cpp -fPIC -g -O3 -xHOST -warn all,noexternals -stand f18 -module $(OBJ_DIR)
+  FFLAGS = -cpp -fPIC -g -O3 -stand f18
+  ifeq ($(BUILD),debug)
+    # Add debugging (i.e. expensive) flags
+  endif
+  FFLAGS += -xHOST
+  FFLAGS += -warn all,noexternals
+  FFLAGS += -module $(OBJ_DIR)
   CAFFLAGS = -coarray
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
-  FFLAGS = -cpp -O3 -std="f2018" -fopenmp -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure -J$(OBJ_DIR)
+  FFLAGS = -cpp -O3 -std="f2018"
   CAFFLAGS = -fcoarray=single
+  ifeq ($(BUILD),debug)
+    # Add debugging (i.e. expensive) flags
+    FFLAGS += -fcheck=bounds
+  endif
+  FFLAGS += -fopenmp
+  FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
+  FFLAGS += -J$(OBJ_DIR)
 endif
 ifeq ($(CMP),cray)
   FC = ftn
-  FFLAGS = -ef -en -eF -M969 -homp -J$(OBJ_DIR)
+  FFLAGS = -ef -en -eF -M969
+  ifeq ($(BUILD),debug)
+    # Add debugging (i.e. expensive) flags
+  endif
+  FFLAGS += -homp
+  FFLAGS += -J$(OBJ_DIR)
   CAFFLAGS = -hcaf
 endif
 
