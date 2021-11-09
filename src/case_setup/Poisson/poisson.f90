@@ -132,10 +132,9 @@ contains
     
     class(vector), intent(inout) :: b
 
-    integer(accs_int) :: i, ii
+    integer(accs_int) :: i
     integer(accs_int) :: nloc
     real(accs_real) :: h
-    real(accs_real), dimension(:), allocatable :: x, y
     real(accs_real) :: r
 
     type(vector_values) :: val_dat
@@ -145,34 +144,25 @@ contains
     allocate(val_dat%val(1))
 
     nloc = square_mesh%nlocal
-    allocate(x(nloc))
-    allocate(y(nloc))
 
     h = square_mesh%h
-
-    ! compute all x and y values
-    do i = 1, nloc
-      !> todo: The cell centres should come from the mesh, the user should not be computing them...
-      ii = i - 1
-      x(i) = h * (modulo(ii, cps) + 0.5)
-      y(i) = h * ((ii / cps) + 0.5)
-    end do
 
     ! this is currently setting 1 vector value at a time
     ! consider changing to doing all the updates in one go
     ! to do only 1 call to eval_cell_rhs and set_values
     associate(idx => square_mesh%idx_global)
       do i = 1, nloc
-        call eval_cell_rhs(x(i), y(i), h**2, r)
-        call pack_entries(val_dat, 1, idx(i), r)
-        call set_values(val_dat, b)
+        associate(x => square_mesh%xc(1, i), &
+             y =>square_mesh%xc(2, i))
+          call eval_cell_rhs(x, y, h**2, r)
+          call pack_entries(val_dat, 1, idx(i), r)
+          call set_values(val_dat, b)
+        end associate
       end do
     end associate
     
     deallocate(val_dat%idx)
     deallocate(val_dat%val)
-    deallocate(x)
-    deallocate(y)
     
   end subroutine eval_rhs
 
@@ -305,20 +295,7 @@ contains
             associate(nbidx=>square_mesh%nbidx(j, i))
 
               if (nbidx < 0) then
-
-                if ((nbidx == -1) .or. (nbidx == -2)) then
-                    !! Left or right boundary
-                    boundary_val = rhs_val(idx_global(i))
-                else if (nbidx == -3) then
-                    !! Bottom boundary
-                    boundary_val = rhs_val(0, -0.5_accs_real)
-                else if (nbidx == -4) then
-                    !! Top boundary
-                    boundary_val = rhs_val(idx_global(i), 0.5_accs_real)
-                else
-                    print *, "ERROR: invalid/unsupported BC ", nbidx
-                    stop
-                end if
+                boundary_val = rhs_val(i, j)
 
                 ! Coefficient
                 coeff = coeff - boundary_coeff
@@ -362,7 +339,7 @@ contains
     vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
        associate(idx=>square_mesh%idx_global(i))
-         call pack_entries(vec_values, 1, idx, rhs_val(idx))
+         call pack_entries(vec_values, 1, idx, rhs_val(i))
          call set_values(vec_values, ustar)
        end associate
     end do
@@ -380,26 +357,24 @@ contains
     
   end subroutine initialise_poisson
 
-  pure function rhs_val(i, opt_offset) result(r)
+  pure function rhs_val(i, f) result(r)
 
-    integer(accs_int), intent(in) :: i
-    real(accs_real), intent(in), optional :: opt_offset
+    integer(accs_int), intent(in) :: i !> Cell index
+    integer(accs_int), intent(in), optional :: f !> Face index (local wrt cell)
 
-    integer(accs_int) :: ii
     real(accs_real) :: r
-    real(accs_real) :: offset
 
-    if (present(opt_offset)) then
-       offset = opt_offset
+    if (present(f)) then
+      !! Face-centred value
+      associate(y => square_mesh%xf(2, f, i))
+        r = y
+      end associate
     else
-       offset = 0
+      !! Cell-centred value
+      associate(y => square_mesh%xc(2, i))
+        r = y
+      end associate
     end if
-
-    ii = i - 1
-
-    associate(h=>square_mesh%h)
-      r = h * (ii / cps + (0.5 + offset))
-    end associate
     
   end function rhs_val
 
@@ -413,8 +388,8 @@ contains
       call get_command_argument(nargs, arg)
       select case (arg)
         case ('--ccs_m') !> problems size
-            call get_command_argument(nargs+1, arg)
-            read(arg, '(I5)') cps
+          call get_command_argument(nargs+1, arg)
+          read(arg, '(I5)') cps
         case ('--ccs_help')
           if(par_env%proc_id==par_env%root) then
             print *, "================================"
