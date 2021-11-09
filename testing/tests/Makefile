@@ -19,6 +19,6 @@ all : $(TEST_SUITES)
 	$(foreach suite,$^,$(MK) -C $(suite) all && $(suite)/$(suite);)
 
 clean : $(TEST_SUITES)
-	$(MK) -C $^ clean
+	$(foreach suite,$^,$(MK) -C $(suite) clean;)
 
 MK = make
