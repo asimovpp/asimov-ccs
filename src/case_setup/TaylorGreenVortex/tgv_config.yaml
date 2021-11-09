@@ -1,5 +1,5 @@
 ---
-title: "TaylorGreenVortex"
+title: TaylorGreenVortex
 
 reference_numbers:
   pressure: 101325
@@ -11,16 +11,16 @@ reference_numbers:
 steps: 1000
 
 solve:
-  w: "off"
+  w: off
 
 solver:
   u: 12
   v: 12
 
-init: "user"
+init: user
 
 transient:
-  type: "quad"
+  type: quad
   dt: 0.0001
   gamma: 1
   max_sub_steps: 10
@@ -42,40 +42,24 @@ blending_factor:
 output:
   every: 1000
 
-plot_format: "vtk"
+plot_format: vtk
 
 post:
-  type: "center"
-  variables:
-  - "u"
-  - "v"
-  - "w"
-  - "p"
+  type: center
+  variables: [u, v, w, p]
 
 boundary:
-- region: "left"
-  type: "periodic"
-  vector:
-  - 6.283195
-  - 0
-  - 0
-- region: "right"
-  type: "periodic"
-  vector:
-  - 6.283195
-  - 0
-  - 0
-- region: "top"
-  type: "periodic"
-  vector:
-  - 0
-  - 6.283195
-  - 0
-- region: "bottom"
-  type: "periodic"
-  vector:
-  - 0
-  - 6.283195
-  - 0
-- region: "live"
-  type: "symp"
+- region: left
+  type: periodic
+  vector: [ 6.283195, 0, 0]
+- region: right
+  type: periodic
+  vector: [ 6.283195, 0, 0]
+- region: top
+  type: periodic
+  vector: [ 0, 6.283195, 0]
+- region: bottom
+  type: periodic
+  vector: [ 0, 6.283195, 0]
+- region: live
+  type: symp
