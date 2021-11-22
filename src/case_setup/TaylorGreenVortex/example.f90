@@ -3,7 +3,7 @@ program example
 
   use yaml, only: parse, error_length
   use yaml_types, only: type_node, type_dictionary, type_error, real_kind, &
-                        type_list, type_list_item
+                        type_list, type_list_item, type_scalar
   
   class(type_node), pointer :: root
   character(len=error_length) :: error
@@ -54,6 +54,27 @@ program example
   ! Monitor cell
   integer :: monitor_cell
 
+  ! Convection schemes
+  integer :: u_conv
+  integer :: v_conv
+  integer :: w_conv
+
+  ! Blending factors
+  real(real_kind) :: u_blend
+  real(real_kind) :: v_blend
+  real(real_kind) :: p_blend
+
+  ! Output frequency & iteration
+  integer :: output_freq
+  integer :: output_iter
+
+  ! Plot format
+  character(len=:), allocatable :: plot_format
+
+  ! Output type & vars
+  character(len=:), allocatable :: out_type
+  character(len=2), dimension(10) :: out_vars = "  "
+
   root => parse("./tgv_config.yaml", error = error)
   if (error/='') then
     print*,trim(error)
@@ -89,6 +110,21 @@ program example
 
     ! Get monitor cell ID
     call get_monitor_cell(root, monitor_cell)
+
+    ! Get convection schemes
+    call get_convection_scheme(root, u_conv, v_conv, w_conv)
+
+    ! Get blending factors
+    call get_blending_factor(root, u_blend, v_blend, p_blend)
+
+    ! Get output frequency and iteration
+    call get_output_frequency(root, output_freq, output_freq)
+
+    ! Get plot format
+    call get_plot_format(root, plot_format)
+
+    ! Get output type and variables
+    call get_output_type(root, out_type, out_vars)
 
   end select
 
@@ -136,7 +172,6 @@ contains
     if(associated(io_err) == .false.) print*,'init=',init
 
   end subroutine
-
 
   subroutine get_reference_numbers(root, p, temp, density, viscosity, pref)
     class(type_dictionary), pointer, intent(in) :: root
@@ -305,6 +340,113 @@ contains
     if(associated(io_err) == .false.) print*,'monitor_cell=',monitor_cell
 
   end subroutine
+
+  subroutine get_convection_scheme(root, u_conv, v_conv, w_conv)
+    class(type_dictionary), pointer, intent(in) :: root
+    integer, intent(inout) :: u_conv
+    integer, intent(inout) :: v_conv
+    integer, intent(inout) :: w_conv
+
+    class(type_dictionary), pointer :: dict
+
+    dict => root%get_dictionary('convection_scheme',required=.false.,error=io_err)
+
+    u_conv = dict%get_integer('u', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'u=',u_conv
+
+    v_conv = dict%get_integer('v', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'v=',v_conv
+
+    w_conv = dict%get_integer('w', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'w=',w_conv
+
+  end subroutine
+
+  subroutine get_blending_factor(root, u_blend, v_blend, p_blend)
+    class(type_dictionary), pointer, intent(in) :: root
+    real(real_kind), intent(inout) :: u_blend
+    real(real_kind), intent(inout) :: v_blend
+    real(real_kind), intent(inout) :: p_blend
+
+    class(type_dictionary), pointer :: dict
+
+    dict => root%get_dictionary('blending_factor',required=.false.,error=io_err)
+
+    u_blend = dict%get_real('u', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'u=',u_blend
+
+    v_blend = dict%get_real('v', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'v=',v_blend
+
+    p_blend = dict%get_real('p', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'p=',p_blend
+
+  end subroutine
+
+  subroutine get_output_frequency(root, output_freq, output_iter)
+    class(type_dictionary), pointer, intent(in) :: root
+    integer, intent(inout) :: output_freq
+    integer, intent(inout) :: output_iter
+
+    class(type_dictionary), pointer :: dict
+
+    dict => root%get_dictionary('output',required=.false.,error=io_err)
+
+    output_freq = dict%get_integer('every', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'every=',output_freq
+
+    output_iter = dict%get_integer('iter', error=io_err)
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'iter=',output_iter
+
+  end subroutine
+
+  subroutine get_plot_format(root, plot_format)
+    class(type_dictionary), pointer, intent(in) :: root
+    character(len=:), allocatable, intent(inout) :: plot_format
+
+    plot_format = trim(root%get_string('plot_format',error=io_err))
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'plot_formt=',plot_format
+
+  end subroutine
+
+  subroutine get_output_type(root, out_type, out_vars)
+    class(type_dictionary), pointer, intent(in) :: root
+    character(len=:), allocatable, intent(inout) :: out_type
+    character(len=2), dimension(10), intent(inout) :: out_vars    
+
+    class(type_dictionary), pointer :: dict
+    integer :: index
+
+    dict => root%get_dictionary('post',required=.false.,error=io_err)
+
+    out_type = trim(dict%get_string('type', error=io_err))
+    call error_handler(io_err)  
+    if(associated(io_err) == .false.) print*,'type=',out_type
+
+    list => dict%get_list('variables',required=.false.,error=io_err)
+     call error_handler(io_err)  
+
+    item => list%first
+    index = 1
+    do while(associated(item))
+      select type (element => item%node)
+      class is (type_scalar)
+        out_vars(index) = trim(element%string)
+        print*,out_vars(index)
+        item => item%next
+        index = index + 1
+      end select
+    enddo
+ end subroutine
 
 end program
 
