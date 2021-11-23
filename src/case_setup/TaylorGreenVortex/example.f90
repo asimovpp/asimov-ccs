@@ -1,6 +1,7 @@
 
 program example
 
+  use, intrinsic :: iso_fortran_env, only:  output_unit
   use yaml, only: parse, error_length
   use yaml_types, only: type_node, type_dictionary, type_error, real_kind, &
                         type_list, type_list_item, type_scalar
@@ -9,7 +10,7 @@ program example
   character(len=error_length) :: error
   
   class(type_dictionary), pointer :: dict
-  class(type_list), pointer :: list
+  class(type_list), pointer :: list, list2
   class(type_list_item), pointer :: item
   type(type_error), pointer :: io_err
   
@@ -71,9 +72,14 @@ program example
   ! Plot format
   character(len=:), allocatable :: plot_format
 
-  ! Output type & vars
-  character(len=:), allocatable :: out_type
-  character(len=2), dimension(10) :: out_vars = "  "
+  ! Post type & vars
+  character(len=:), allocatable :: post_type
+  character(len=2), dimension(10) :: post_vars = "  "
+
+  ! Boundardies
+  character(len=16), dimension(:), allocatable :: bnd_region
+  character(len=16), dimension(:), allocatable :: bnd_type
+  real(real_kind), dimension(:), allocatable :: bnd_vector
 
   root => parse("./tgv_config.yaml", error = error)
   if (error/='') then
@@ -124,7 +130,10 @@ program example
     call get_plot_format(root, plot_format)
 
     ! Get output type and variables
-    call get_output_type(root, out_type, out_vars)
+    call get_output_type(root, post_type, post_vars)
+
+    ! Get boundaries
+    call get_boundaries(root, bnd_region, bnd_type, bnd_vector)
 
   end select
 
@@ -418,35 +427,94 @@ contains
 
   end subroutine
 
-  subroutine get_output_type(root, out_type, out_vars)
+  subroutine get_output_type(root, post_type, post_vars)
     class(type_dictionary), pointer, intent(in) :: root
-    character(len=:), allocatable, intent(inout) :: out_type
-    character(len=2), dimension(10), intent(inout) :: out_vars    
+    character(len=:), allocatable, intent(inout) :: post_type
+    character(len=2), dimension(10), intent(inout) :: post_vars    
 
     class(type_dictionary), pointer :: dict
     integer :: index
 
     dict => root%get_dictionary('post',required=.false.,error=io_err)
 
-    out_type = trim(dict%get_string('type', error=io_err))
+    post_type = trim(dict%get_string('type', error=io_err))
     call error_handler(io_err)  
-    if(associated(io_err) == .false.) print*,'type=',out_type
+    if(associated(io_err) == .false.) print*,'type=',post_type
 
     list => dict%get_list('variables',required=.false.,error=io_err)
-     call error_handler(io_err)  
+    call error_handler(io_err)  
 
     item => list%first
     index = 1
     do while(associated(item))
       select type (element => item%node)
       class is (type_scalar)
-        out_vars(index) = trim(element%string)
-        print*,out_vars(index)
+        post_vars(index) = trim(element%string)
+        print*,post_vars(index)
         item => item%next
         index = index + 1
       end select
     enddo
- end subroutine
+  end subroutine
+
+  subroutine get_boundaries(root, bnd_region, bnd_type, bnd_vector)
+    class(type_dictionary), pointer, intent(in) :: root
+    character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
+    character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
+    real(real_kind), dimension(:), allocatable, intent(inout) :: bnd_vector
+  
+    integer :: num_boundaries = 0
+    integer :: index = 1
+
+    dict => root%get_dictionary('boundary', required=.false., error=io_err)
+    call error_handler(io_err)  
+
+    call dict%dump(unit=output_unit,indent=0)
+    
+    list => dict%get_list('region', required=.false.,error=io_err)
+    call error_handler(io_err)  
+
+    item => list%first
+    do while(associated(item))
+      num_boundaries = num_boundaries + 1
+      item => item%next
+    end do
+
+    allocate(bnd_region(num_boundaries))
+    allocate(bnd_type(num_boundaries))
+    allocate(bnd_vector(3))
+
+    list => dict%get_list('region', required=.false.,error=io_err)
+    call error_handler(io_err)  
+
+    item => list%first
+    do while(associated(item))
+      select type(element => item%node)
+      class is (type_scalar)
+        bnd_region(index) = trim(element%string)
+        print*,bnd_region(index)
+        item => item%next
+        index = index + 1
+        end select  
+    end do
+
+    list => dict%get_list('type', required=.false.,error=io_err)
+    call error_handler(io_err)  
+
+    index = 1 
+    
+    item => list%first
+    do while(associated(item))
+      select type(element => item%node)
+      class is (type_scalar)
+        bnd_type(index) = trim(element%string)
+        print*,bnd_type(index)
+        item => item%next
+        index = index + 1
+        end select  
+    end do
+  
+  end subroutine
 
 end program
 

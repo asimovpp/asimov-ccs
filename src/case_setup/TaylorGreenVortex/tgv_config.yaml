@@ -49,17 +49,6 @@ post:
   variables: [u, v, w, p]
 
 boundary:
-- region: left
-  type: periodic
+  region: [left, right, top, bottom, live]
+  type: [periodic, periodic, periodic, periodic, sym]
   vector: [ 6.283195, 0, 0]
-- region: right
-  type: periodic
-  vector: [ 6.283195, 0, 0]
-- region: top
-  type: periodic
-  vector: [ 0, 6.283195, 0]
-- region: bottom
-  type: periodic
-  vector: [ 0, 6.283195, 0]
-- region: live
-  type: symp
