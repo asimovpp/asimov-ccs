@@ -153,8 +153,10 @@ contains
     associate(idx => square_mesh%idx_global)
       do i = 1, nloc
         associate(x => square_mesh%xc(1, i), &
-             y =>square_mesh%xc(2, i))
+             y => square_mesh%xc(2, i), &
+             V => square_mesh%vol(i))
           call eval_cell_rhs(x, y, h**2, r)
+          r = V * r
           call pack_entries(val_dat, 1, idx(i), r)
           call set_values(val_dat, b)
         end associate
@@ -174,7 +176,6 @@ contains
     
     r = 0.0 &
          + 0 * (x + y + H) ! Silence unused dummy argument error
-    r = square_mesh%vol * r
     
   end subroutine eval_cell_rhs
 

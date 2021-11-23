@@ -61,9 +61,11 @@ contains
           allocate(square_mesh%nbidx(4, square_mesh%nlocal))
           allocate(square_mesh%xc(2, square_mesh%nlocal))    !> @note Currently hardcoded as a 2D mesh!
           allocate(square_mesh%xf(2, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
-
+          allocate(square_mesh%vol(square_mesh%nlocal))
+          
           square_mesh%nnb(:) = 4 ! All cells have 4 neighbours (possibly ghost/boundary cells)
-        
+          square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
+          
           !! Get neighbour indices
           !! XXX: These are global indices and thus may be off-process
           ictr = 1
