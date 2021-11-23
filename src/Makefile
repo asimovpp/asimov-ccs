@@ -83,6 +83,7 @@ all: $(OBJ) $(EXE)
 
 # pFUnit is incompatible with -Wimplicit-procedure, etc.
 tests: all tests_build
+	make -C ../testing tests
 
 tests_build: FFLAGS := $(filter-out -Wimplicit-procedure,$(FFLAGS))
 tests_build: FFLAGS := $(filter-out -Wimplicit-interface,$(FFLAGS))
@@ -90,7 +91,7 @@ tests_build: FFLAGS := $(filter-out -J$(OBJ_DIR),$(FFLAGS))
 tests_build: FFLAGS := $(filter-out -warn$(space)all$(comma)noexternals,$(FFLAGS))
 tests_build: FFLAGS := $(filter-out -module$(space)$(OBJ_DIR),$(FFLAGS))
 tests_build:
-	make -C ../testing tests
+	make -C ../testing build
 
 $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)

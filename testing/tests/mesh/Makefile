@@ -28,4 +28,4 @@ $(TEST_SUITE) : $(TEST_OBJ)
 	$(FC) $(FFLAGS) -o $@ -c $< -I$(OBJ_DIR) $(INC)
 
 clean:
-	rm *.o *.mod $(TEST_SUITE)
+	rm -f *.o *.mod *.smod $(TEST_SUITE)

@@ -15,8 +15,12 @@ TEST_SUITES += linear_solvers
 TEST_SUITES += mesh
 
 .PHONY: $(TEST_SUITES)
-all : $(TEST_SUITES)
-	$(foreach suite,$^,$(MK) -C $(suite) all && mpirun $(suite)/$(suite);)
+all : build run
+
+build : $(TEST_SUITES)
+	$(foreach suite,$^,$(MK) -C $(suite) all;)
+run : $(TEST_SUITES)
+	$(foreach suite,$^,mpirun $(suite)/$(suite);)
 
 .PHONY: clean
 clean : $(TEST_SUITES)
