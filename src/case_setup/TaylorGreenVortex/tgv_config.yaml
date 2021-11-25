@@ -51,4 +51,8 @@ post:
 boundary:
   region: [left, right, top, bottom, live]
   type: [periodic, periodic, periodic, periodic, sym]
-  vector: [ 6.283195, 0, 0]
+  vector: 
+  - [ 6.283195, 0, 0 ]
+  - [ 6.283195, 0, 0 ]
+  - [ 0, 6.283195, 0 ]
+  - [ 0, 6.283195, 0 ]

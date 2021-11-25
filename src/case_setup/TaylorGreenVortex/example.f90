@@ -11,7 +11,7 @@ program example
   
   class(type_dictionary), pointer :: dict
   class(type_list), pointer :: list, list2
-  class(type_list_item), pointer :: item
+  class(type_list_item), pointer :: item, inner_item
   type(type_error), pointer :: io_err
   
   character(len=:), allocatable :: string
@@ -79,7 +79,7 @@ program example
   ! Boundardies
   character(len=16), dimension(:), allocatable :: bnd_region
   character(len=16), dimension(:), allocatable :: bnd_type
-  real(real_kind), dimension(:), allocatable :: bnd_vector
+  real(real_kind), dimension(:,:), allocatable :: bnd_vector
 
   root => parse("./tgv_config.yaml", error = error)
   if (error/='') then
@@ -461,15 +461,17 @@ contains
     class(type_dictionary), pointer, intent(in) :: root
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-    real(real_kind), dimension(:), allocatable, intent(inout) :: bnd_vector
+    real(real_kind), dimension(:,:), allocatable, intent(inout) :: bnd_vector
   
     integer :: num_boundaries = 0
     integer :: index = 1
+    integer :: inner_index = 1
+    logical :: success
 
     dict => root%get_dictionary('boundary', required=.false., error=io_err)
     call error_handler(io_err)  
 
-    call dict%dump(unit=output_unit,indent=0)
+!    call dict%dump(unit=output_unit,indent=0)
     
     list => dict%get_list('region', required=.false.,error=io_err)
     call error_handler(io_err)  
@@ -482,11 +484,14 @@ contains
 
     allocate(bnd_region(num_boundaries))
     allocate(bnd_type(num_boundaries))
-    allocate(bnd_vector(3))
+    allocate(bnd_vector(3,num_boundaries))
+
+    print*,"* Boundaries:"
 
     list => dict%get_list('region', required=.false.,error=io_err)
     call error_handler(io_err)  
 
+    print*,"** Regions:"
     item => list%first
     do while(associated(item))
       select type(element => item%node)
@@ -503,6 +508,7 @@ contains
 
     index = 1 
     
+    print*,"** Types:"
     item => list%first
     do while(associated(item))
       select type(element => item%node)
@@ -514,8 +520,39 @@ contains
         end select  
     end do
   
+    list => dict%get_list('vector', required=.false.,error=io_err)
+    call error_handler(io_err)  
+
+    index = 1
+
+    print*,"** Vectors:"
+    item => list%first
+
+    do while(associated(item))
+
+      select type(inner_list => item%node)
+      type is(type_list)
+
+        inner_item => inner_list%first
+        inner_index = 1
+
+        do while(associated(inner_item))
+          select type(inner_element => inner_item%node)
+          class is(type_scalar)
+            inner_item => inner_item%next
+            inner_index = inner_index + 1
+            bnd_vector(inner_index,index) = inner_element%to_real(bnd_vector(inner_index,index),success)
+            print*,bnd_vector(inner_index,index)
+          end select
+        end do
+
+      end select
+
+      item => item%next
+      index = index + 1
+
+    end do
+
   end subroutine
 
 end program
-
-
