@@ -82,7 +82,8 @@ module types
     integer(accs_int), dimension(:), allocatable :: idx_global 
     integer(accs_int), dimension(:), allocatable :: nnb 
     integer(accs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
-    real(accs_real) :: h, Af
+    real(accs_real) :: h
+    real(accs_real), dimension(:, :), allocatable :: Af      !> Face areas
     real(accs_real), dimension(:), allocatable :: vol        !> Cell volumes
     real(accs_real), dimension(:, :), allocatable :: xc      !> Cell centres (dimension, cell)
     real(accs_real), dimension(:, :, :), allocatable :: xf   !> Face centres (dimension, face, cell)

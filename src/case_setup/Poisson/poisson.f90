@@ -195,8 +195,6 @@ contains
     
     mat_coeffs%mode = insert_mode
 
-    coeff_f = (1.0 / square_mesh%h) * square_mesh%Af
-
     !! Loop over cells
     do i = 1, square_mesh%nlocal
       !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
@@ -215,6 +213,7 @@ contains
       
         !! Loop over faces
         do j = 1, nnb
+          coeff_f = (1.0 / square_mesh%h) * square_mesh%Af(j, i)
           associate(nbidxg=>square_mesh%nbidx(j, i))
 
             if (nbidxg > 0) then
@@ -277,9 +276,6 @@ contains
     mat_coeffs%mode = add_mode
     vec_values%mode = add_mode
 
-    ! calculate outside loop
-    boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af
-
     associate(idx_global=>square_mesh%idx_global)
   
       do i = 1, square_mesh%nlocal
@@ -296,6 +292,7 @@ contains
             associate(nbidx=>square_mesh%nbidx(j, i))
 
               if (nbidx < 0) then
+                boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af(j, i)
                 boundary_val = rhs_val(i, j)
 
                 ! Coefficient
