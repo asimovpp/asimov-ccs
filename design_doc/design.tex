@@ -96,11 +96,11 @@
 \end{itemize}
 \subsection{Structure of Poisson solver}
 \begin{itemize}
-  \item The goal is to solve the matrix equation $M\textbf u = \textbf b$
-  \item Start by initialising the relevant parallel environment with \texttt{initialise\_parallel\_environment} (e.g. the MPI implementation is found in \texttt{src/parallel/parallel\_env\_mpi.f90}, which will set the communcator, get the number of ranks, etc, whereas the interface declaration is found in \texttt{src/parallel/parallel\_mod.f90}). 
+  \item The goal is to solve the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation.
+  \item Start by initialising the relevant parallel environment with \texttt{initialise\_parallel\_environment} (e.g. the MPI implementation is found in \texttt{src/parallel/parallel\_env\_mpi.f90}, which will set the communicator, get the number of ranks, etc, whereas the interface declaration is found in \texttt{src/parallel/parallel\_mod.f90}). 
   \item Currently the parallel environment implementation uses MPI and the solver uses PETSc, although others can be added. 
   \item In PETSc the process to solve this matrix equation is to setup the matrix and vectors over the number of ranks provided, create the solver, and solve it with, for example, a Krylov solver.
-  \item The vectors, $\textbf u$ and $\textbf b$, matrix $M$, and corresponding linear system are initialised with the \texttt{initialise} interface. This sets their global and local sizes to default values and the parallel environment to \texttt{null}.
+  \item The vectors, $u$ and $b$, matrix $M$, and corresponding linear system are initialised with the \texttt{initialise} interface. This sets their global and local sizes to default values and the parallel environment to \texttt{null}.
   \item The stiffness matrix, $M$, is created, first by setting the sizes (\texttt{set\_global\_size}), followed by the number of non-zero entries (\texttt{set\_nnz}), creating a PETSc matrix with \texttt{create\_matrix}.
   \item The matrix values are computed with \texttt{discretise\_poisson}, updated to have Dirichlet BCs with \texttt{apply\_dirichlet\_bcs}, and communicated between the ranks with a combination of \texttt{begin\_update}, and \texttt{end\_update}.
   \item The $u$ and $b$ vectors are set in a similar fashion, with the values of \texttt{b} being set with \texttt{eval\_rhs}.
