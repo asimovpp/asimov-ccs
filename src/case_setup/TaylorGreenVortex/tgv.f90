@@ -3,12 +3,13 @@ program tgv
 
   use, intrinsic :: iso_fortran_env, only:  output_unit
   use yaml, only:       parse, error_length
-  use yaml_types, only: type_node, type_dictionary, real_kind
-  use read_yaml
+  use yaml_types, only: type_node
+  use read_config
+  use kinds, only : accs_real
 
   implicit none
 
-  class(type_node), pointer :: root
+  class(*), pointer :: root
   character(len=error_length) :: error
 
   ! Case title
@@ -25,7 +26,7 @@ program tgv
   integer :: temperature
   integer :: density
   integer :: pref_at_cell
-  real(real_kind)    :: viscosity
+  real(accs_real)    :: viscosity
 
   ! Solve
   character(len=3) :: u_sol = "   "
@@ -41,12 +42,12 @@ program tgv
 
   ! Unsteady solution
   character(len=5) :: transient_type = "     "  
-  real(real_kind) :: dt
-  real(real_kind) :: gamma
+  real(accs_real) :: dt
+  real(accs_real) :: gamma
   integer :: max_sub_steps
 
   ! Target residual
-  real(real_kind) :: residual
+  real(accs_real) :: residual
 
   ! Monitor cell
   integer :: monitor_cell
@@ -57,9 +58,9 @@ program tgv
   integer :: w_conv
 
   ! Blending factors
-  real(real_kind) :: u_blend
-  real(real_kind) :: v_blend
-  real(real_kind) :: p_blend
+  real(accs_real) :: u_blend
+  real(accs_real) :: v_blend
+  real(accs_real) :: p_blend
 
   ! Output frequency & iteration
   integer :: output_freq
@@ -75,7 +76,7 @@ program tgv
   ! Boundardies
   character(len=16), dimension(:), allocatable :: bnd_region
   character(len=16), dimension(:), allocatable :: bnd_type
-  real(real_kind), dimension(:,:), allocatable :: bnd_vector
+  real(accs_real), dimension(:,:), allocatable :: bnd_vector
 
   ! Read TGV configuration file
   call read_configuration()
@@ -90,58 +91,52 @@ program tgv
       stop 1
     endif
     
-    select type (root)
-    class is (type_dictionary)
   
-      ! Get title
-      call get_case_name(root, title)
-      
-      ! Get reference numbers
-      call get_reference_numbers(root, pressure, temperature, density, viscosity, pref_at_cell)
-  
-      ! Get steps
-      call get_steps(root, steps)
-  
-      ! Variables to solve
-      call get_solve(root, u_sol, v_sol, w_sol, p_sol)
-  
-      ! Solvers
-      call get_solvers(root, u_solver, v_solver, w_solver, p_solver)  
-      
-      ! Get initilisation
-      call get_init(root, init)
-  
-      ! Get unsteady solution parameters
-      call get_transient(root, transient_type, dt, gamma, max_sub_steps)
-  
-      ! Get target resdiual
-      call get_target_residual(root, residual)
-  
-      ! Get monitor cell ID
-      call get_monitor_cell(root, monitor_cell)
-  
-      ! Get convection schemes
-      call get_convection_scheme(root, u_conv, v_conv, w_conv)
-  
-      ! Get blending factors
-      call get_blending_factor(root, u_blend, v_blend, p_blend)
-  
-      ! Get output frequency and iteration
-      call get_output_frequency(root, output_freq, output_freq)
-  
-      ! Get plot format
-      call get_plot_format(root, plot_format)
-  
-      ! Get output type and variables
-      call get_output_type(root, post_type, post_vars)
-  
-      ! Get boundaries
-      call get_boundaries(root, bnd_region, bnd_type, bnd_vector)
-  
-    end select
-  
-    call root%finalize()
+    ! Get title
+    call get_case_name(root, title)
     
+    ! Get reference numbers
+    call get_reference_numbers(root, pressure, temperature, density, viscosity, pref_at_cell)
+
+    ! Get steps
+    call get_steps(root, steps)
+
+    ! Variables to solve
+    call get_solve(root, u_sol, v_sol, w_sol, p_sol)
+
+    ! Solvers
+    call get_solvers(root, u_solver, v_solver, w_solver, p_solver)  
+    
+    ! Get initilisation
+    call get_init(root, init)
+
+    ! Get unsteady solution parameters
+    call get_transient(root, transient_type, dt, gamma, max_sub_steps)
+
+    ! Get target resdiual
+    call get_target_residual(root, residual)
+
+    ! Get monitor cell ID
+    call get_monitor_cell(root, monitor_cell)
+
+    ! Get convection schemes
+    call get_convection_scheme(root, u_conv, v_conv, w_conv)
+
+    ! Get blending factors
+    call get_blending_factor(root, u_blend, v_blend, p_blend)
+
+    ! Get output frequency and iteration
+    call get_output_frequency(root, output_freq, output_freq)
+
+    ! Get plot format
+    call get_plot_format(root, plot_format)
+
+    ! Get output type and variables
+    call get_output_type(root, post_type, post_vars)
+
+    ! Get boundaries
+    call get_boundaries(root, bnd_region, bnd_type, bnd_vector)
+     
     deallocate(root)
 
   end subroutine
