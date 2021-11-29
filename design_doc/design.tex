@@ -78,12 +78,11 @@
 
 \bigskip
 
-\section{Code structure}
+\section{Design considerations}
+ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of cores for the purposes of simulating jet engines. It follows a ``separation of concerns'' design that separates interfaces from implementations, and physics from parallelisation. There is a distinction between ``user'' and ``back-end'' code - i.e. case specific code (such as the setup of a particular test) is the ``user'' code, while the core functionality provided by ASiMoV-CCS is the ``back-end'' code. This is implemented in a modular fashion by separating the interface declarations contained in modules from their implementation in submodules. As a result it is possible to implement multiple physics models and parallelisation strategies by writing separate submodules, each providing a distinct solution.
 
+\section{Code structure}
 \begin{itemize}
-  \item ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of cores
-  \item It is implemented in a modular fashion separating the interface declarations in modules from their implementation in submodules
-  \item This allows multiple physics implementations and parallelisation strategies by writing separate submodules, each providing a distinct solution
   \item The organisation of these declarations and definitions is as follows:
   \begin{itemize}
     \item Code pertaining to a particular functionality should be contained in its own directory (e.g. everything to do with the solver belongs in \texttt{src/linear\_solvers}
