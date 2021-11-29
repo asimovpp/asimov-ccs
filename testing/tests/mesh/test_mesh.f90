@@ -245,6 +245,9 @@ contains
   !> @description Performs initialisation for the test (setting up parallel environment, etc.)
   subroutine init()
 
+    integer, allocatable :: seed(:)
+    integer :: n
+
     call initialise_parallel_environment(par_env)
 
     ! XXX: This would be a good candidate for a testing library
@@ -253,6 +256,12 @@ contains
       write(*,"(A)",advance="no") " "
     end if
 
+    call random_seed(size=n)
+    allocate(seed(n))
+    seed(:) = 159753
+    call random_seed(put=seed)
+    deallocate(seed)
+    
     ctr = 0
     
   end subroutine init
