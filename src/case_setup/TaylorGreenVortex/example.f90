@@ -1,10 +1,14 @@
 
 program example
 
+
   use, intrinsic :: iso_fortran_env, only:  output_unit
   use yaml, only: parse, error_length
   use yaml_types, only: type_node, type_dictionary, type_error, real_kind, &
                         type_list, type_list_item, type_scalar
+  
+
+  implicit none
   
   class(type_node), pointer :: root
   character(len=error_length) :: error
@@ -471,8 +475,6 @@ contains
     dict => root%get_dictionary('boundary', required=.false., error=io_err)
     call error_handler(io_err)  
 
-!    call dict%dump(unit=output_unit,indent=0)
-    
     list => dict%get_list('region', required=.false.,error=io_err)
     call error_handler(io_err)  
 
