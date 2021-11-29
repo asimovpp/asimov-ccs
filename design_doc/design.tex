@@ -89,7 +89,8 @@ ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of co
     \item Code pertaining to a particular functionality should be contained in its own directory (e.g. everything to do with the solver belongs in \texttt{src/linear\_solvers}
     \item Interface declarations are in \texttt{\_mod.f90} files (e.g. declarations pertaining to matrices are found in \texttt{mat\_mod.f90})
     \item Function definitions that are commonly used among different implementations may be defined in \texttt{\_common.f90} files (e.g. \texttt{mat\_common.f90})
-    \item Function definitions that pertain to a particular implementation should be stored in an appropriately named directory (e.g. the PETSc solver implementation is in \texttt{petsc} and the corresponding matrix manipulation functions are defined in \texttt{mat\_petsc.f90})
+    \item Function definitions that pertain to a particular implementation should be in submodules, stored in an appropriately named directory (e.g. the PETSc solver implementation is in \texttt{petsc} and the corresponding matrix manipulation functions are defined in \texttt{mat\_petsc.f90})
+    \item Only one implementation of a procedure by a submodule is allowed, with the implementation to be used being specified in the configuration file. 
   \end{itemize}
   \item Individual main program files are contained in \texttt{src/case\_setup}
   \item Here we'll examine the Poisson solver
