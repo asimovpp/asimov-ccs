@@ -35,7 +35,6 @@ contains
                   h=>square_mesh%h)
           
           square_mesh%Af = square_mesh%h     !> Face area
-          square_mesh%vol = square_mesh%h**2 !> Cell volume
 
           !! Setup ownership range
           comm_rank = par_env%proc_id
