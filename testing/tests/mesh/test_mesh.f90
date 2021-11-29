@@ -258,8 +258,10 @@ contains
 
     call random_seed(size=n)
     allocate(seed(n))
-    seed(:) = 159753
-    call random_seed(put=seed)
+    call random_seed(get=seed)
+    if (par_env%proc_id == par_env%root) then
+      print *, "Using seed: ", seed
+    end if
     deallocate(seed)
     
     ctr = 0
