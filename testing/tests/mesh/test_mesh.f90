@@ -251,18 +251,20 @@ contains
     call initialise_parallel_environment(par_env)
 
     ! XXX: This would be a good candidate for a testing library
-    if (par_env%proc_id == par_env%root) then
-      print *, "Testing: mesh"
-      write(*,"(A)",advance="no") " "
-    end if
-
     call random_seed(size=n)
     allocate(seed(n))
     call random_seed(get=seed)
     if (par_env%proc_id == par_env%root) then
       print *, "Using seed: ", seed
+      print *, "----------------------------------"
     end if
     deallocate(seed)
+
+    ! XXX: This would be a good candidate for a testing library
+    if (par_env%proc_id == par_env%root) then
+      print *, "Testing: mesh"
+      write(*,"(A)",advance="no") " "
+    end if
     
     ctr = 0
     
