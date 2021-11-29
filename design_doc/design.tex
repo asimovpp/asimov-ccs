@@ -83,7 +83,7 @@
 \begin{itemize}
   \item ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of cores
   \item It is implemented in a modular fashion separating the interface declarations in modules from their implementation in submodules
-  \item This allows multiple physics implementations by writing separate submodules
+  \item This allows multiple physics implementations and parallelisation strategies by writing separate submodules, each providing a distinct solution
   \item The organisation of these declarations and definitions is as follows:
   \begin{itemize}
     \item Code pertaining to a particular functionality should be contained in its own directory (e.g. everything to do with the solver belongs in \texttt{src/linear\_solvers}
