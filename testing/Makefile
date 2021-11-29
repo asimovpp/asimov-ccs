@@ -15,8 +15,11 @@ docs :
 	$(MK) -C $(DOCDIR)
 
 .PHONY : tests
-tests :
+tests : build
 	$(MK) -C $(TESTDIR)
+
+build :
+	$(MK) -C $(TESTDIR) build
 
 clean : clean-docs clean-tests
 clean-docs :

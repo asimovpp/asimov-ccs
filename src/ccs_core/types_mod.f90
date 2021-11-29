@@ -82,7 +82,9 @@ module types
     integer(accs_int), dimension(:), allocatable :: idx_global 
     integer(accs_int), dimension(:), allocatable :: nnb 
     integer(accs_int), dimension(:, :), allocatable :: nbidx 
-    real(accs_real) :: h, Af, vol    
+    real(accs_real) :: h, Af, vol
+    real(accs_real), dimension(:, :), allocatable :: xc !> Cell centres
+    real(accs_real), dimension(:, :, :), allocatable :: xf !> Face centres
   end type mesh
 
   interface

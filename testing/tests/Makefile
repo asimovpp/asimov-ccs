@@ -12,12 +12,17 @@ TESTSCALE = 1.0e9 # How large to scale test inputs? This should cover any concei
 
 TEST_SUITES =
 TEST_SUITES += linear_solvers
-# TEST_SUITES += mesh
+TEST_SUITES += mesh
 
 .PHONY: $(TEST_SUITES)
-all : $(TEST_SUITES)
-	$(foreach suite,$^,$(MK) -C $(suite) all && $(suite)/$(suite);)
+all : build run
 
+build : $(TEST_SUITES)
+	$(foreach suite,$^,$(MK) -C $(suite) all;)
+run : $(TEST_SUITES)
+	$(foreach suite,$^,mpirun $(suite)/$(suite);)
+
+.PHONY: clean
 clean : $(TEST_SUITES)
 	$(foreach suite,$^,$(MK) -C $(suite) clean;)
 

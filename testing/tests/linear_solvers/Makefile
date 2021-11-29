@@ -32,4 +32,4 @@ all : $(TEST_SUITES)
 	$(FC) $(FFLAGS) -o $@ -c $< $(INC) -I$(OBJ_DIR) $(LIB) $(PFUNIT_EXTRA_FFLAGS)
 
 clean:
-	rm *.o *.F90 *.inc *.mod
+	rm -f *.o *.F90 *.inc *.mod *.smod $(TEST_SUITES)
