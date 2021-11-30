@@ -14,7 +14,61 @@ submodule (read_config) read_config_utils
 
   implicit none
 
+  interface get_value
+    module procedure get_integer_value
+    module procedure get_real_value
+    module procedure get_string_value
+  end interface
+
   contains 
+
+  subroutine get_integer_value(dict, keyword, int_val)
+    class (type_dictionary), pointer, intent(in) :: dict
+    character (len=*), intent(in) :: keyword
+    integer, intent(out)  :: int_val
+
+    type(type_error), pointer :: io_err
+
+    int_val = dict%get_integer(keyword,error=io_err)
+    call error_handler(io_err)  
+
+    if(associated(io_err) == .false.) then 
+      print*,keyword," = ",int_val
+    end if
+
+  end subroutine
+    
+  subroutine get_real_value(dict, keyword, real_val)
+    class (type_dictionary), pointer, intent(in) :: dict
+    character (len=*), intent(in) :: keyword
+    real(accs_real), intent(out)  :: real_val
+
+    type(type_error), pointer :: io_err
+
+    real_val = dict%get_real(keyword,error=io_err)
+    call error_handler(io_err)  
+
+    if(associated(io_err) == .false.) then 
+      print*,keyword," = ",real_val
+    end if
+
+  end subroutine
+
+  subroutine get_string_value(dict, keyword, string_val)
+    class (type_dictionary), pointer, intent(in) :: dict
+    character (len=*), intent(in) :: keyword
+    character (len=:), allocatable, intent(inout) :: string_val
+
+    type(type_error), pointer :: io_err
+
+    string_val = trim(dict%get_string(keyword,error=io_err))
+    call error_handler(io_err)  
+
+    if(associated(io_err) == .false.) then 
+      print*,keyword," = ",string_val
+    end if
+
+  end subroutine
 
   subroutine error_handler(io_err)
     type(type_error), pointer, intent(inout) :: io_err
@@ -24,7 +78,14 @@ submodule (read_config) read_config_utils
     endif
   
   end subroutine
-    
+
+  !> @brief Get the name of the test case
+  !
+  !> @details Get the case name for the configuration file and 
+  !! store it in a string.
+  !
+  !> @param[in] root - the entry point to the config file    
+  !> @param[in,out] title - the case name string    
   module subroutine get_case_name(root, title)
     class(*), pointer, intent(in) :: root
     character(len=:), allocatable, intent(inout) :: title
@@ -33,15 +94,22 @@ submodule (read_config) read_config_utils
 
     select type(root)
     type is(type_dictionary)
-      title = trim(root%get_string('title',error=io_err))
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'title=',title
+    
+      call get_value(root, "title", title)
+
     class default
       print*,"Unknown type"
     end select
   
   end subroutine
     
+  !> @brief Get the number of steps
+  !
+  !> @details Get the maximum number of iterations 
+  !! to be preformed in the current run 
+  !
+  !> @param[in] root - the entry point to the config file    
+  !> @param[in,out] steps - the maximum number of iterations    
   module  subroutine get_steps(root, steps)
     class(*), pointer, intent(in) :: root
     integer, intent(inout) :: steps
@@ -50,32 +118,54 @@ submodule (read_config) read_config_utils
 
     select type(root)
     type is(type_dictionary)
-      steps = root%get_integer('steps',error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'steps=',steps
+
+      print*,"*Number of steps: "
+
+      call get_value(root, 'steps', steps)
+
     class default
       print*,"Unknown type"
     end select
 
   end subroutine
     
+  !> @brief Get source of initial values
+  !
+  !> @details Get the source of the initial values - accepted
+  !! values are "user", "field" or "step" 
+  !
+  !> @param[in] root - the entry point to the config file    
+  !> @param[in,out] init - the source of the initial values    
   module  subroutine get_init(root, init)
     class(*), pointer, intent(in) :: root
-    character(len=5), intent(inout) :: init
+    character(len=:), allocatable, intent(inout) :: init
 
     type(type_error), pointer :: io_err
 
     select type(root)
     type is(type_dictionary)
-      init = trim(root%get_string('init',error=io_err))
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'init=',init
+
+      print*,"* Initialisation: "
+
+      call get_value(root, "init", init)
+
     class default
       print*,"Unknown type"
     end select
 
   end subroutine
 
+  !> @brief Get reference numbers
+  !
+  !> @details Get the reference numbers, the fluid properties 
+  !! and the operating condition 
+  !
+  !> @param[in] root - the entry point to the config file    
+  !> @param[in,out] pressure - reference pressure      
+  !> @param[in,out] temperature - reference temperature      
+  !> @param[in,out] density - reference density      
+  !> @param[in,out] viscosity - laminar viscosity      
+  !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
   module subroutine get_reference_numbers(root, pressure, temperature, density, viscosity, pref_at_cell)
     class(*), pointer, intent(in) :: root
     integer, intent(inout) :: pressure
@@ -92,32 +182,22 @@ submodule (read_config) read_config_utils
 
       dict => root%get_dictionary('reference_numbers',required=.true.,error=io_err)
 
-      print*,"Reference numbers: "
+      print*,"* Reference numbers: "
       
       ! Pressure
-      pressure = dict%get_integer("pressure",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"pressure= ",pressure
+      call get_value(dict, "pressure", pressure)
       
       ! Temperature
-      temperature = dict%get_integer("temperature",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"temperature= ",temperature
+      call get_value(dict, "temperature", temperature)
 
       ! Density
-      density = dict%get_integer("density",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"density= ",density
+      call get_value(dict, "density", density)
       
       ! Pref_at_cell
-      pref_at_cell = dict%get_integer("pref_at_cell",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"pref_at_cell= ",pref_at_cell
+      call get_value(dict, "pref_at_cell", pref_at_cell)
 
       ! Viscosity
-      viscosity = dict%get_real("viscosity",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"viscosity= ",viscosity
+      call get_value(dict, "viscosity", viscosity)
       
     class default
       print*,"Unknown type"
@@ -125,13 +205,26 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get variables to be solved
+  !
+  !> @details By default, all variables will be solved. Using this 
+  !! "solve" keyword, the user can specifically request that 
+  !! certain variables will not be solved by setting in to "off"
+  !
+  !> @param[in] root - the entry point to the config file    
+  !> @param[in,out] u_sol - solve u on/off
+  !> @param[in,out] v_sol - solve v on/off
+  !> @param[in,out] w_sol - solve w on/off
+  !> @param[in,out] p_sol - solve p on/off
+  !
+  !> @todo extend list of variables 
   module subroutine get_solve(root, u_sol, v_sol, w_sol, p_sol)
 
     class(*), pointer, intent(in) :: root
-    character(len=3), intent(inout) :: u_sol
-    character(len=3), intent(inout) :: v_sol
-    character(len=3), intent(inout) :: w_sol
-    character(len=3), intent(inout) :: p_sol
+    character(len=:), allocatable, intent(inout) :: u_sol
+    character(len=:), allocatable, intent(inout) :: v_sol
+    character(len=:), allocatable, intent(inout) :: w_sol
+    character(len=:), allocatable, intent(inout) :: p_sol
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -141,27 +234,19 @@ submodule (read_config) read_config_utils
 
       dict => root%get_dictionary('solve',required=.true.,error=io_err)
 
-      print*,"Solve (on/off): "
+      print*,"* Solve (on/off): "
 
       ! Solve u?
-      u_sol = trim(dict%get_string('u',error=io_err))
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,'u=',u_sol
+      call get_value(dict, "u", u_sol)
       
       ! Solve v?
-      v_sol = trim(dict%get_string('v',error=io_err))
-      call error_handler(io_err)    
-      if(associated(io_err) == .false.) print*,'v=',v_sol
+      call get_value(dict, "v", v_sol)
 
       ! Solve w?
-      w_sol = trim(dict%get_string('w',error=io_err))
-      call error_handler(io_err)   
-      if(associated(io_err) == .false.) print*,'w=',w_sol
+      call get_value(dict, "w", w_sol)
       
       ! Solve p?
-      p_sol = trim(dict%get_string('p',error=io_err))
-      call error_handler(io_err)    
-      if(associated(io_err) == .false.) print*,'p=',p_sol
+      call get_value(dict, "p", p_sol)
       
     class default
       print*,"Unknown type"
@@ -169,6 +254,18 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get solvers to be used
+  !
+  !> @details Get the solvers that are to be used for each of
+  !! the variables. Solver types are defined by integer values
+  !
+  !> @param[in] root - the entry point to the config file    
+  !> @param[in,out] u_solver - solver to be used for u
+  !> @param[in,out] v_solver - solver to be used for v
+  !> @param[in,out] w_solver - solver to be used for w
+  !> @param[in,out] p_solver - solver to be used for p
+  !
+  !> @todo extend list of variables   
   module subroutine get_solvers(root, u_solver, v_solver, w_solver, p_solver)
 
     class(*), pointer, intent(in) :: root
@@ -185,27 +282,19 @@ submodule (read_config) read_config_utils
 
       dict => root%get_dictionary('solver',required=.true.,error=io_err)
 
-      print*,"Solver: "
+      print*,"* Solver: "
 
       ! Get u_solver
-      u_solver = dict%get_integer('u',error=io_err)
-      call error_handler(io_err)   
-      if(associated(io_err) == .false.) print*,'u=',u_solver
+      call get_value(dict, "u", u_solver)
       
       ! Get v_solver
-      v_solver = dict%get_integer('u',error=io_err)
-      call error_handler(io_err)    
-      if(associated(io_err) == .false.) print*,'v=',v_solver
+      call get_value(dict, "v", v_solver)
 
       ! Get w_solver
-      w_solver = dict%get_integer('w',error=io_err)
-      call error_handler(io_err)   
-      if(associated(io_err) == .false.) print*,'w=',w_solver
+      call get_value(dict, "w", w_solver)
       
       ! Get p_solver
-      p_solver = dict%get_integer('p',error=io_err)
-      call error_handler(io_err)    
-      if(associated(io_err) == .false.) print*,'p=',p_solver
+      call get_value(dict, "p", p_solver)
 
     class default
       print*,"Unknown type"
@@ -213,9 +302,18 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get transient status
+  !
+  !> @details Enables/disables unsteady solution algorithm
+  !
+  !> @param[in] root - the entry point to the config file   
+  !> @param[in,out] transient_type - "euler" (first order) or "quad" (second order)
+  !> @param[in,out] dt - time interval (seconds) between two consecutive time steps
+  !> @param[in,out] gamma - euler blending factor which blends quad
+  !> @param[in,out] max_sub_step - maximum number of sub-iterations at each time step
   module subroutine get_transient(root, transient_type, dt, gamma, max_sub_steps)
     class(*), pointer, intent(in) :: root
-    character(len=5), intent(inout) :: transient_type
+    character(len=:), allocatable, intent(inout) :: transient_type
     real(accs_real), intent(inout) :: dt
     real(accs_real), intent(inout) :: gamma
     integer, intent(inout) :: max_sub_steps
@@ -228,27 +326,19 @@ submodule (read_config) read_config_utils
 
       dict => root%get_dictionary('transient',required=.false.,error=io_err)
 
-      print*,"Transient: "
+      print*,"* Transient: "
       
       ! Transient type (euler/quad)
-      transient_type = dict%get_string("type",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"type= ",transient_type
+      call get_value(dict, "type", transient_type)
       
       ! Dt
-      dt = dict%get_real("dt",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"dt= ",dt
+      call get_value(dict, "dt", dt)
 
       ! Gamma
-      gamma = dict%get_integer("gamma",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"gamma= ",gamma
+      call get_value(dict, "gamma", gamma)
       
       ! Maximum number of sub steps
-      max_sub_steps = dict%get_integer("max_sub_steps",error = io_err)  
-      call error_handler(io_err)
-      if(associated(io_err) == .false.) print*,"max_sub_steps= ",max_sub_steps
+      call get_value(dict, "max_sub_steps", max_sub_steps)
 
     class default
       print*,"Unknown type"
@@ -256,6 +346,14 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get target residual
+  !
+  !> @details Get the convergence criterion. 
+  !! The calculation will stop when the residuals (L2-norm) of the 
+  !! governing equations are less than the target residual.
+  !
+  !> @param[in] root - the entry point to the config file   
+  !> @param[in,out] residual - convergence criterion
   module  subroutine get_target_residual(root, residual)
     class(*), pointer, intent(in) :: root
     real(accs_real), intent(inout) :: residual
@@ -265,9 +363,7 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
-      residual = root%get_real('target_residual',error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'target_residual=',residual
+      call get_value(root, "target_residual", residual)
 
     class default
       print*,"Unknown type"
@@ -275,6 +371,13 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get grid cell to monitor
+  !
+  !> @details Get the grid cell at which to monitor the values
+  !! of the flow variables (U,V,W,P,TE,ED and T)
+  !
+  !> @param[in] root - the entry point to the config file   
+  !> @param[in,out] monitor_cell - grid cell ID
   module  subroutine get_monitor_cell(root, monitor_cell)
     class(*), pointer, intent(in) :: root
     integer, intent(inout) :: monitor_cell
@@ -284,9 +387,7 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
-      monitor_cell = root%get_integer('monitor_cell',error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'monitor_cell=',monitor_cell
+      call get_value(root, "monitor_cell", monitor_cell)
 
     class default
       print*,"Unknown type"
@@ -294,6 +395,16 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get convection schemes 
+  !
+  !> @details Get convection schemes to be used for the 
+  !! different variables. The convection schemes are defined
+  !! by integer values.
+  !
+  !> @param[in] root - the entry point to the config file   
+  !> @param[in,out] u_conv - convection scheme for u
+  !> @param[in,out] v_conv - convection scheme for v
+  !> @param[in,out] w_conv - convection scheme for w
   module  subroutine get_convection_scheme(root, u_conv, v_conv, w_conv)
     class(*), pointer, intent(in) :: root
     integer, intent(inout) :: u_conv
@@ -306,19 +417,13 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
+      print*,"* Convection scheme: "
+      
       dict => root%get_dictionary('convection_scheme',required=.false.,error=io_err)
 
-      u_conv = dict%get_integer('u', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'u=',u_conv
-
-      v_conv = dict%get_integer('v', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'v=',v_conv
-
-      w_conv = dict%get_integer('w', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'w=',w_conv
+      call get_value(dict, "u", u_conv)
+      call get_value(dict, "v", v_conv)
+      call get_value(dict, "w", w_conv)
       
     class default
       print*,"Unknown type"
@@ -326,6 +431,14 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get blending factor values 
+  !
+  !> @details Get blending factors
+  !
+  !> @param[in] root - the entry point to the config file
+  !> @param[in,out] u_blend - blending factor for u
+  !> @param[in,out] v_blend - blending factor for v
+  !> @param[in,out] p_blend - blending factor for p
   module subroutine get_blending_factor(root, u_blend, v_blend, p_blend)
     class(*), pointer, intent(in) :: root
     real(accs_real), intent(inout) :: u_blend
@@ -338,19 +451,13 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
+      print*,"* Blending factor: "
+
       dict => root%get_dictionary('blending_factor',required=.false.,error=io_err)
 
-      u_blend = dict%get_real('u', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'u=',u_blend
-
-      v_blend = dict%get_real('v', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'v=',v_blend
-
-      p_blend = dict%get_real('p', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'p=',p_blend
+      call get_value(dict, "u", u_blend)
+      call get_value(dict, "v", v_blend)
+      call get_value(dict, "p", p_blend)
 
     class default
       print*,"Unknown type"
@@ -358,6 +465,14 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get output frequency 
+  !
+  !> @details Get output frequency, set with keywords "every"
+  !! "iter" or both.
+  !
+  !> @param[in] root - the entry point to the config file
+  !> @param[inout] output_freq - the frequency of writing output files
+  !> @param[inout] output iter - output files are written every output_iter/steps
   module subroutine get_output_frequency(root, output_freq, output_iter)
     class(*), pointer, intent(in) :: root
     integer, intent(inout) :: output_freq
@@ -369,15 +484,12 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
+      print*,"Output frequency: "
+
       dict => root%get_dictionary('output',required=.false.,error=io_err)
 
-      output_freq = dict%get_integer('every', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'every=',output_freq
-
-      output_iter = dict%get_integer('iter', error=io_err)
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'iter=',output_iter
+      call get_value(dict, "every", output_freq)
+      call get_value(dict, "iter", output_iter)
 
     class default
       print*,"Unknown type"
@@ -385,6 +497,10 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get output file format 
+  !
+  !> @param[in] root - the entry point to the config file
+  !> @param[inout] plot_format - output format (e.g. vtk)
   module subroutine get_plot_format(root, plot_format)
     class(*), pointer, intent(in) :: root
     character(len=:), allocatable, intent(inout) :: plot_format
@@ -394,9 +510,7 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
-      plot_format = trim(root%get_string('plot_format',error=io_err))
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'plot_formt=',plot_format
+      call get_value(root, "plot_format", plot_format)
 
     class default
       print*,"Unknown type"
@@ -404,6 +518,11 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get output type and variables 
+  !
+  !> @param[in] root - the entry point to the config file
+  !> @param[inout] post_type - values at cell centres or cell vertices?
+  !> @param[inout] post_vars - variables to be written out
   module subroutine get_output_type(root, post_type, post_vars)
     class(*), pointer, intent(in) :: root
     character(len=:), allocatable, intent(inout) :: post_type
@@ -418,11 +537,11 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
+      print*,"* Output type and variables: "
+
       dict => root%get_dictionary('post',required=.false.,error=io_err)
 
-      post_type = trim(dict%get_string('type', error=io_err))
-      call error_handler(io_err)  
-      if(associated(io_err) == .false.) print*,'type=',post_type
+      call get_value(dict, "type", post_type)
 
       list => dict%get_list('variables',required=.false.,error=io_err)
       call error_handler(io_err)  
@@ -445,6 +564,12 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
+  !> @brief Get boundary condntions 
+  !
+  !> @param[in] root - the entry point to the config file
+  !> @param[inout] bnd_region - array of boundary region names
+  !> @param[inout] bnd_type - array of boundary types (e.g. periodic, symmetric, ...)
+  !> @param[inout] bnd_vector - array of boundary vectors
   module subroutine get_boundaries(root, bnd_region, bnd_type, bnd_vector)
 
     use yaml_types, only: real_kind

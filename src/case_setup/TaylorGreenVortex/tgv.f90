@@ -3,7 +3,6 @@ program tgv
 
   use, intrinsic :: iso_fortran_env, only:  output_unit
   use yaml, only:       parse, error_length
-  use yaml_types, only: type_node
   use read_config
   use kinds, only : accs_real
 
@@ -19,7 +18,7 @@ program tgv
   integer :: steps
 
   ! Initialisation
-  character(len=5) :: init = "     "
+  character(len=:), allocatable :: init
 
   ! Reference numbers
   integer :: pressure
@@ -29,10 +28,10 @@ program tgv
   real(accs_real)    :: viscosity
 
   ! Solve
-  character(len=3) :: u_sol = "   "
-  character(len=3) :: v_sol = "   "
-  character(len=3) :: w_sol = "   "
-  character(len=3) :: p_sol = "   "
+  character(len=:), allocatable :: u_sol
+  character(len=:), allocatable :: v_sol
+  character(len=:), allocatable :: w_sol
+  character(len=:), allocatable :: p_sol
 
   ! Solvers
   integer :: u_solver
@@ -41,7 +40,7 @@ program tgv
   integer :: p_solver
 
   ! Unsteady solution
-  character(len=5) :: transient_type = "     "  
+  character(len=:), allocatable :: transient_type
   real(accs_real) :: dt
   real(accs_real) :: gamma
   integer :: max_sub_steps
@@ -91,7 +90,6 @@ program tgv
       stop 1
     endif
     
-  
     ! Get title
     call get_case_name(root, title)
     
