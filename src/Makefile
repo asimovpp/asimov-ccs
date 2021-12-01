@@ -59,6 +59,8 @@ include $(EXE_DEPS)
 FFLAGS += -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+INC += -I${FYAML}/build 
+LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp
 
 all: $(OBJ) $(EXE)
 
