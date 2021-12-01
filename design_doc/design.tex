@@ -96,6 +96,37 @@ ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of co
   \item Here we'll examine the Poisson solver
 \end{itemize}
 
+\subsection{Design of interfaces}
+
+A basic design principle of ASiMoV-CCS is that the code should follow a data-in/data-out design,
+functionally everything looks the same with an object containing input data and an output object
+from the result of the operation.
+Consequently, type-bound procedures are to be avoided as they would break this principle, rather a
+generic interface should be used.
+As an example to perform a parallel update of a data structure, whether that be a matrix or a
+vector, rather than write
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:tbp} ]
+call M%update()
+call v%update()
+\end{lstlisting}
+a generic interface (resolving to a type-specific procedure at compile-time should be used)
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:gen-interface} ]
+call update(M)
+call update(v)
+
+!! In a "utilities module"
+interface update
+  module procedure update_mat
+  module procedure update_vec
+end interface
+
+!! In "Matrix module"
+subroutine update_mat(M)
+  type(matrix) :: M
+  ...
+end subroutine
+\end{lstlisting}
+
 \subsection{Structure of Poisson solver}
 The goal is to solve the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation. As specified in Section \ref{code_structure}, multiple different solvers and parallelisation methods may be implemented by using different submodules in ASiMoV-CCS, however at present the parallelisation implementation uses MPI and the solver takes advantage of a Krylov method provided by PETSc. The implementation is as follows:
 \begin{itemize}
