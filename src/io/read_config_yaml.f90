@@ -32,7 +32,7 @@ submodule (read_config) read_config_utils
     int_val = dict%get_integer(keyword,error=io_err)
     call error_handler(io_err)  
 
-    if(associated(io_err) == .false.) then 
+    if(associated(io_err) .eqv. .false.) then 
       print*,keyword," = ",int_val
     end if
 
@@ -48,7 +48,7 @@ submodule (read_config) read_config_utils
     real_val = dict%get_real(keyword,error=io_err)
     call error_handler(io_err)  
 
-    if(associated(io_err) == .false.) then 
+    if(associated(io_err) .eqv. .false.) then 
       print*,keyword," = ",real_val
     end if
 
@@ -64,7 +64,7 @@ submodule (read_config) read_config_utils
     string_val = trim(dict%get_string(keyword,error=io_err))
     call error_handler(io_err)  
 
-    if(associated(io_err) == .false.) then 
+    if(associated(io_err) .eqv. .false.) then 
       print*,keyword," = ",string_val
     end if
 
@@ -90,8 +90,6 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: root
     character(len=:), allocatable, intent(inout) :: title
 
-    type(type_error), pointer :: io_err
-
     select type(root)
     type is(type_dictionary)
     
@@ -113,8 +111,6 @@ submodule (read_config) read_config_utils
   module  subroutine get_steps(root, steps)
     class(*), pointer, intent(in) :: root
     integer, intent(inout) :: steps
-
-    type(type_error), pointer :: io_err
 
     select type(root)
     type is(type_dictionary)
@@ -139,8 +135,6 @@ submodule (read_config) read_config_utils
   module  subroutine get_init(root, init)
     class(*), pointer, intent(in) :: root
     character(len=:), allocatable, intent(inout) :: init
-
-    type(type_error), pointer :: io_err
 
     select type(root)
     type is(type_dictionary)
@@ -358,8 +352,6 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: root
     real(accs_real), intent(inout) :: residual
 
-    type(type_error), pointer :: io_err
-
     select type(root)
     type is(type_dictionary)
 
@@ -381,8 +373,6 @@ submodule (read_config) read_config_utils
   module  subroutine get_monitor_cell(root, monitor_cell)
     class(*), pointer, intent(in) :: root
     integer, intent(inout) :: monitor_cell
-
-    type(type_error), pointer :: io_err
 
     select type(root)
     type is(type_dictionary)
@@ -505,8 +495,6 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: root
     character(len=:), allocatable, intent(inout) :: plot_format
 
-    type(type_error), pointer :: io_err
-
     select type(root)
     type is(type_dictionary)
 
@@ -586,7 +574,7 @@ submodule (read_config) read_config_utils
     logical :: success
 
     class(type_dictionary), pointer :: dict
-    class(type_list), pointer :: list, inner_list
+    class(type_list), pointer :: list
     class(type_list_item), pointer :: item, inner_item
 
     select type(root)

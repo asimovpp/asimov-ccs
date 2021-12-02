@@ -124,7 +124,7 @@ program tgv
     call get_blending_factor(root, u_blend, v_blend, p_blend)
 
     ! Get output frequency and iteration
-    call get_output_frequency(root, output_freq, output_freq)
+    call get_output_frequency(root, output_freq, output_iter)
 
     ! Get plot format
     call get_plot_format(root, plot_format)
