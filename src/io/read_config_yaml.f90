@@ -476,7 +476,7 @@ submodule (read_config) read_config_utils
     select type(root)
     type is(type_dictionary)
 
-      print*,"* Blending factor: "
+      print*,"* Relaxation factor: "
 
       dict => root%get_dictionary('relaxation_factor',required=.false.,error=io_err)
 
