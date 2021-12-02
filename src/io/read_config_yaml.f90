@@ -463,7 +463,7 @@ submodule (read_config) read_config_utils
     !> @param[in,out] u_relax - relaxation factor for u
     !> @param[in,out] v_relax - relaxation factor for v
     !> @param[in,out] p_relax - relaxation factor for p
-  module subroutine get_relaxation_factor(root, u_blend, v_blend, p_blend)
+  module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax)
     class(*), pointer, intent(in) :: root
     real(accs_real), intent(inout) :: u_relax
     real(accs_real), intent(inout) :: v_relax
