@@ -21,6 +21,7 @@ module read_config
   public :: get_monitor_cell
   public :: get_convection_scheme
   public :: get_blending_factor
+  public :: get_relaxation_factor
   public :: get_output_frequency
   public :: get_plot_format
   public :: get_output_type
@@ -77,9 +78,9 @@ module read_config
     !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
     module subroutine get_reference_numbers(root, pressure, temperature, density, viscosity, pref_at_cell)
       class(*), pointer, intent(in) :: root
-      integer, intent(inout) :: pressure
-      integer, intent(inout) :: temperature
-      integer, intent(inout) :: density
+      real(accs_real), intent(inout) :: pressure
+      real(accs_real), intent(inout) :: temperature
+      real(accs_real), intent(inout) :: density
       integer, intent(inout) :: pref_at_cell
       real(accs_real), intent(inout) :: viscosity
     end subroutine
@@ -191,12 +192,27 @@ module read_config
     !> @param[in] root - the entry point to the config file
     !> @param[in,out] u_blend - blending factor for u
     !> @param[in,out] v_blend - blending factor for v
-    !> @param[in,out] p_blend - blending factor for p
-    module subroutine get_blending_factor(root, u_blend, v_blend, p_blend)
+    !> @param[in,out] w_blend - blending factor for w
+    module subroutine get_blending_factor(root, u_blend, v_blend, w_blend)
       class(*), pointer, intent(in) :: root
       real(accs_real), intent(inout) :: u_blend
       real(accs_real), intent(inout) :: v_blend
-      real(accs_real), intent(inout) :: p_blend
+      real(accs_real), intent(inout) :: w_blend
+    end subroutine
+
+    !> @brief Get relaxation factor values 
+    !
+    !> @details Get relaxation factors
+    !
+    !> @param[in] root - the entry point to the config file
+    !> @param[in,out] u_relax - relaxation factor for u
+    !> @param[in,out] v_relax - relaxation factor for v
+    !> @param[in,out] p_relax - relaxation factor for p
+    module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax)
+      class(*), pointer, intent(in) :: root
+      real(accs_real), intent(inout) :: u_relax
+      real(accs_real), intent(inout) :: v_relax
+      real(accs_real), intent(inout) :: p_relax
     end subroutine
 
     !> @brief Get output frequency 

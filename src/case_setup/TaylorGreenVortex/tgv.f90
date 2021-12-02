@@ -21,9 +21,9 @@ program tgv
   character(len=:), allocatable :: init
 
   ! Reference numbers
-  integer :: pressure
-  integer :: temperature
-  integer :: density
+  real(accs_real) :: pressure
+  real(accs_real) :: temperature
+  real(accs_real) :: density
   integer :: pref_at_cell
   real(accs_real)    :: viscosity
 
@@ -59,7 +59,12 @@ program tgv
   ! Blending factors
   real(accs_real) :: u_blend
   real(accs_real) :: v_blend
-  real(accs_real) :: p_blend
+  real(accs_real) :: w_blend
+
+  ! Relaxation factors
+  real(accs_real) :: u_relax
+  real(accs_real) :: v_relax
+  real(accs_real) :: p_relax
 
   ! Output frequency & iteration
   integer :: output_freq
@@ -121,7 +126,10 @@ program tgv
     call get_convection_scheme(root, u_conv, v_conv, w_conv)
 
     ! Get blending factors
-    call get_blending_factor(root, u_blend, v_blend, p_blend)
+    call get_blending_factor(root, u_blend, v_blend, w_blend)
+
+    ! Get relaxation factors
+    call get_relaxation_factor(root, u_relax, v_relax, p_relax)
 
     ! Get output frequency and iteration
     call get_output_frequency(root, output_freq, output_iter)
