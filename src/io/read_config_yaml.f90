@@ -215,10 +215,10 @@ submodule (read_config) read_config_utils
   module subroutine get_solve(root, u_sol, v_sol, w_sol, p_sol)
 
     class(*), pointer, intent(in) :: root
-    character(len=:), allocatable, intent(inout) :: u_sol
-    character(len=:), allocatable, intent(inout) :: v_sol
-    character(len=:), allocatable, intent(inout) :: w_sol
-    character(len=:), allocatable, intent(inout) :: p_sol
+    character(len=:), allocatable, optional, intent(inout) :: u_sol
+    character(len=:), allocatable, optional, intent(inout) :: v_sol
+    character(len=:), allocatable, optional, intent(inout) :: w_sol
+    character(len=:), allocatable, optional, intent(inout) :: p_sol
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -231,17 +231,25 @@ submodule (read_config) read_config_utils
       print*,"* Solve (on/off): "
 
       ! Solve u?
-      call get_value(dict, "u", u_sol)
+      if(present(u_sol)) then
+        call get_value(dict, "u", u_sol)
+      end if   
       
       ! Solve v?
-      call get_value(dict, "v", v_sol)
+      if(present(v_sol)) then
+        call get_value(dict, "v", v_sol)
+      end if
 
       ! Solve w?
-      call get_value(dict, "w", w_sol)
+      if(present(w_sol)) then
+        call get_value(dict, "w", w_sol)
+      end if 
       
       ! Solve p?
-      call get_value(dict, "p", p_sol)
-      
+      if(present(p_sol)) then
+        call get_value(dict, "p", p_sol)
+      end if
+
     class default
       print*,"Unknown type"
     end select
@@ -263,10 +271,10 @@ submodule (read_config) read_config_utils
   module subroutine get_solvers(root, u_solver, v_solver, w_solver, p_solver)
 
     class(*), pointer, intent(in) :: root
-    integer, intent(inout) :: u_solver
-    integer, intent(inout) :: v_solver
-    integer, intent(inout) :: w_solver
-    integer, intent(inout) :: p_solver
+    integer, optional, intent(inout) :: u_solver
+    integer, optional, intent(inout) :: v_solver
+    integer, optional, intent(inout) :: w_solver
+    integer, optional, intent(inout) :: p_solver
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -279,16 +287,24 @@ submodule (read_config) read_config_utils
       print*,"* Solver: "
 
       ! Get u_solver
-      call get_value(dict, "u", u_solver)
+      if(present(u_solver)) then
+        call get_value(dict, "u", u_solver)
+      end if
       
       ! Get v_solver
-      call get_value(dict, "v", v_solver)
+      if(present(v_solver)) then
+        call get_value(dict, "v", v_solver)
+      end if
 
       ! Get w_solver
-      call get_value(dict, "w", w_solver)
+      if(present(w_solver)) then
+        call get_value(dict, "w", w_solver)
+      end if
       
       ! Get p_solver
-      call get_value(dict, "p", p_solver)
+      if(present(p_solver)) then
+        call get_value(dict, "p", p_solver)
+      end if
 
     class default
       print*,"Unknown type"
@@ -455,14 +471,14 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-    !> @brief Get relaxation factor values 
-    !
-    !> @details Get relaxation factors
-    !
-    !> @param[in] root - the entry point to the config file
-    !> @param[in,out] u_relax - relaxation factor for u
-    !> @param[in,out] v_relax - relaxation factor for v
-    !> @param[in,out] p_relax - relaxation factor for p
+  !> @brief Get relaxation factor values 
+  !
+  !> @details Get relaxation factors
+  !
+  !> @param[in] root - the entry point to the config file
+  !> @param[in,out] u_relax - relaxation factor for u
+  !> @param[in,out] v_relax - relaxation factor for v
+  !> @param[in,out] p_relax - relaxation factor for p
   module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax)
     class(*), pointer, intent(in) :: root
     real(accs_real), intent(inout) :: u_relax

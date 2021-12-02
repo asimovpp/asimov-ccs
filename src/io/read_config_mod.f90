@@ -100,10 +100,10 @@ module read_config
     !> @todo extend list of variables 
     module subroutine get_solve(root, u_sol, v_sol, w_sol, p_sol)
       class(*), pointer, intent(in) :: root
-      character(len=:), allocatable, intent(inout) :: u_sol
-      character(len=:), allocatable, intent(inout) :: v_sol
-      character(len=:), allocatable, intent(inout) :: w_sol
-      character(len=:), allocatable, intent(inout) :: p_sol
+      character(len=:), allocatable, optional, intent(inout) :: u_sol
+      character(len=:), allocatable, optional, intent(inout) :: v_sol
+      character(len=:), allocatable, optional, intent(inout) :: w_sol
+      character(len=:), allocatable, optional, intent(inout) :: p_sol
     end subroutine
 
     !> @brief Get solvers to be used
@@ -120,10 +120,10 @@ module read_config
     !> @todo extend list of variables   
     module subroutine get_solvers(root, u_solver, v_solver, w_solver, p_solver)
       class(*), pointer, intent(in) :: root
-      integer, intent(inout) :: u_solver
-      integer, intent(inout) :: v_solver
-      integer, intent(inout) :: w_solver
-      integer, intent(inout) :: p_solver
+      integer, optional, intent(inout) :: u_solver
+      integer, optional, intent(inout) :: v_solver
+      integer, optional, intent(inout) :: w_solver
+      integer, optional, intent(inout) :: p_solver
     end subroutine
 
     !> @brief Get transient status

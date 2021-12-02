@@ -21,23 +21,18 @@ program tgv
   character(len=:), allocatable :: init
 
   ! Reference numbers
+  integer :: pref_at_cell
   real(accs_real) :: pressure
   real(accs_real) :: temperature
   real(accs_real) :: density
-  integer :: pref_at_cell
   real(accs_real)    :: viscosity
 
   ! Solve
-  character(len=:), allocatable :: u_sol
-  character(len=:), allocatable :: v_sol
   character(len=:), allocatable :: w_sol
-  character(len=:), allocatable :: p_sol
 
   ! Solvers
   integer :: u_solver
   integer :: v_solver
-  integer :: w_solver
-  integer :: p_solver
 
   ! Unsteady solution
   character(len=:), allocatable :: transient_type
@@ -105,10 +100,10 @@ program tgv
     call get_steps(root, steps)
 
     ! Variables to solve
-    call get_solve(root, u_sol, v_sol, w_sol, p_sol)
+    call get_solve(root, w_sol)
 
     ! Solvers
-    call get_solvers(root, u_solver, v_solver, w_solver, p_solver)  
+    call get_solvers(root, u_solver, v_solver)  
     
     ! Get initilisation
     call get_init(root, init)
