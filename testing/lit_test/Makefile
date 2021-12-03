@@ -1,2 +1,4 @@
 all:
-	python -m lit.main -v .
+	python run_lit.py -v .
+clean:
+	rm -rf suite*/Output/
