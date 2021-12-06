@@ -25,7 +25,7 @@ program tgv
   real(accs_real) :: pressure
   real(accs_real) :: temperature
   real(accs_real) :: density
-  real(accs_real)    :: viscosity
+  real(accs_real) :: viscosity
 
   ! Solve
   character(len=:), allocatable :: w_sol
@@ -84,7 +84,7 @@ program tgv
 
   subroutine read_configuration()
 
-    root => parse("./tgv_config.yaml", error = error)
+    root => parse("./tgv_config.yaml", error=error)
     if (error/='') then
       print*,trim(error)
       stop 1
@@ -94,16 +94,16 @@ program tgv
     call get_case_name(root, title)
     
     ! Get reference numbers
-    call get_reference_numbers(root, pressure, temperature, density, viscosity, pref_at_cell)
+    call get_reference_numbers(root, p_ref=pressure, temp_ref=temperature, dens_ref=density, visc_ref=viscosity, pref_at_cell=pref_at_cell)
 
     ! Get steps
     call get_steps(root, steps)
 
     ! Variables to solve
-    call get_solve(root, w_sol)
+    call get_solve(root, w_sol=w_sol)
 
     ! Solvers
-    call get_solvers(root, u_solver, v_solver)  
+    call get_solvers(root, u_solver=u_solver, v_solver=v_solver)  
     
     ! Get initilisation
     call get_init(root, init)

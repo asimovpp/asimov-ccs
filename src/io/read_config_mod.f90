@@ -71,18 +71,25 @@ module read_config
     !! and the operating condition 
     !
     !> @param[in] root - the entry point to the config file    
-    !> @param[in,out] pressure - reference pressure      
-    !> @param[in,out] temperature - reference temperature      
-    !> @param[in,out] density - reference density      
-    !> @param[in,out] viscosity - laminar viscosity      
+    !> @param[in,out] p_ref - reference pressure 
+    !> @param[in,out] p_total - total pressure 
+    !> @param[in,out] temp_ref - reference temperature      
+    !> @param[in,out] dens_ref - reference density      
+    !> @param[in,out] visc_ref - laminar viscosity      
+    !> @param[in,out] velo_ref - reference velocity      
+    !> @param[in,out] len_ref - reference length, used to define the Reynolds number of the flow      
     !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
-    module subroutine get_reference_numbers(root, pressure, temperature, density, viscosity, pref_at_cell)
+    module subroutine get_reference_numbers(root, p_ref, p_total, temp_ref, &
+                                            dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
       class(*), pointer, intent(in) :: root
-      real(accs_real), intent(inout) :: pressure
-      real(accs_real), intent(inout) :: temperature
-      real(accs_real), intent(inout) :: density
-      integer, intent(inout) :: pref_at_cell
-      real(accs_real), intent(inout) :: viscosity
+      real(accs_real), optional, intent(inout) :: p_ref
+      real(accs_real), optional, intent(inout) :: p_total
+      real(accs_real), optional, intent(inout) :: temp_ref
+      real(accs_real), optional, intent(inout) :: dens_ref
+      real(accs_real), optional, intent(inout) :: visc_ref
+      real(accs_real), optional, intent(inout) :: velo_ref
+      real(accs_real), optional, intent(inout) :: len_ref      
+      integer, optional, intent(inout) :: pref_at_cell
     end subroutine
 
     !> @brief Get variables to be solved

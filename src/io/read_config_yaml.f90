@@ -155,18 +155,25 @@ submodule (read_config) read_config_utils
   !! and the operating condition 
   !
   !> @param[in] root - the entry point to the config file    
-  !> @param[in,out] pressure - reference pressure      
-  !> @param[in,out] temperature - reference temperature      
-  !> @param[in,out] density - reference density      
-  !> @param[in,out] viscosity - laminar viscosity      
+  !> @param[in,out] p_ref - reference pressure 
+  !> @param[in,out] p_total - total pressure 
+  !> @param[in,out] temp_ref - reference temperature      
+  !> @param[in,out] dens_ref - reference density      
+  !> @param[in,out] visc_ref - laminar viscosity      
+  !> @param[in,out] velo_ref - reference velocity      
+  !> @param[in,out] leng_ref - reference length, used to define the Reynolds number of the flow      
   !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
-  module subroutine get_reference_numbers(root, pressure, temperature, density, viscosity, pref_at_cell)
+  module subroutine get_reference_numbers(root, p_ref, p_total, temp_ref, &
+                                          dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
     class(*), pointer, intent(in) :: root
-    real(accs_real), intent(inout) :: pressure
-    real(accs_real), intent(inout) :: temperature
-    real(accs_real), intent(inout) :: density
-    integer, intent(inout) :: pref_at_cell
-    real(accs_real), intent(inout) :: viscosity
+    real(accs_real), optional, intent(inout) :: p_ref
+    real(accs_real), optional, intent(inout) :: p_total
+    real(accs_real), optional, intent(inout) :: temp_ref
+    real(accs_real), optional, intent(inout) :: dens_ref
+    real(accs_real), optional, intent(inout) :: visc_ref
+    real(accs_real), optional, intent(inout) :: velo_ref
+    real(accs_real), optional, intent(inout) :: len_ref      
+    integer, optional, intent(inout) :: pref_at_cell
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -179,21 +186,46 @@ submodule (read_config) read_config_utils
       print*,"* Reference numbers: "
       
       ! Pressure
-      call get_value(dict, "pressure", pressure)
-      
+      if(present(p_ref)) then
+        call get_value(dict, "pressure", p_ref)
+      end if
+
+      ! Pressure_total
+      if(present(p_total)) then
+        call get_value(dict, "pressure_total", p_total)
+      end if
+
       ! Temperature
-      call get_value(dict, "temperature", temperature)
+      if(present(temp_ref)) then
+        call get_value(dict, "temperature", temp_ref)
+      end if
 
       ! Density
-      call get_value(dict, "density", density)
-      
-      ! Pref_at_cell
-      call get_value(dict, "pref_at_cell", pref_at_cell)
+      if(present(dens_ref)) then
+        call get_value(dict, "density", dens_ref)
+      end if
 
       ! Viscosity
-      call get_value(dict, "viscosity", viscosity)
+      if(present(visc_ref)) then
+        call get_value(dict, "viscosity", visc_ref)
+      end if
       
-    class default
+      ! Velocity
+      if(present(velo_ref)) then
+        call get_value(dict, "velocity", velo_ref)
+      end if
+
+      ! Length
+      if(present(len_ref)) then
+        call get_value(dict, "length", len_ref)
+      end if
+
+      ! Pref_at_cell
+      if(present(pref_at_cell)) then
+        call get_value(dict, "pref_at_cell", pref_at_cell)
+      end if
+
+      class default
       print*,"Unknown type"
     end select
 
