@@ -23,6 +23,8 @@ program test_mesh
 
   logical :: test_suite_passing = .true.
 
+  real(accs_real), parameter :: eps = epsilon(0.0_accs_real)
+
   if (kind(0.0_accs_real) == kind(0.0d0)) then
     real_type = MPI_DOUBLE
   else
@@ -38,19 +40,19 @@ contains
   subroutine test_runner()
 
     call test_mesh_point_distribution()
-    call test_square_mesh_cell_centres()
+    call test_square_mesh_centres()
     call test_mesh_square_mesh_volume()
     call test_mesh_square_mesh_closed()
     
   end subroutine test_runner
   
-  !> @brief Test the cell centres of a square mesh.
+  !> @brief Test the cell/face centres of a square mesh.
   !
-  !> @description The cell centres of a mesh should all fall within the meshed domain, for a square
-  !!              mesh \f$x\in[0,1]^d\f$.
-  subroutine test_square_mesh_cell_centres()
+  !> @description The cell/face centres of a mesh should all fall within the meshed domain, for a
+  !!              square mesh \f$x\in[0,1]^d\f$.
+  subroutine test_square_mesh_centres()
 
-    use mesh_utils, only : build_square_mesh
+    use mesh_utils, only : build_square_mesh, centre
 
     type (mesh) :: square_mesh
 
@@ -61,19 +63,40 @@ contains
     integer(accs_int) :: n
 
     integer(accs_int) :: i
+    integer(accs_int) :: j
+
+    type(cell_locator) :: cell_location
+    real(accs_real), dimension(ndim) :: cc
+    type(face_locator) :: face_location
+    real(accs_real), dimension(ndim) :: fc
     
     do n = 1, 100
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
 
       do i = 1, square_mesh%nlocal
-        associate(x => square_mesh%xc(1, i), &
-             y => square_mesh%xc(2, i))
+        call set_cell_location(cell_location, square_mesh, i)
+        call centre(cell_location, cc)
+        associate(x => cc(1), y => cc(2))
           if ((x > l) .or. (x < 0_accs_real) &
                .or. (y > l) .or. (y < 0_accs_real)) then
-            print *, "FAIL: expected 0 <= x,y <= ", l, " got ", x, " ", y
+            print *, "FAIL: expected cell centre 0 <= x,y <= ", l, " got ", x, " ", y
             passing = .false.
           end if
+        end associate
+
+        associate(nnb => square_mesh%nnb(i))
+          do j = 1, nnb
+            call set_face_location(face_location, square_mesh, i, j)
+            call centre(face_location, fc)
+            associate(x => fc(1), y => fc(2))
+              if ((x > (l + eps)) .or. (x < (0.0_accs_real - eps)) &
+                   .or. (y > (l + eps)) .or. (y < (0.0_accs_real - eps))) then
+                print *, "FAIL: expected face centre 0 <= x,y <= ", l, " got ", x, " ", y
+                passing = .false.
+              end if
+            end associate
+          end do
         end associate
       end do
       
@@ -102,7 +125,7 @@ contains
       test_suite_passing = .false.
     end if
     
-  end subroutine test_square_mesh_cell_centres
+  end subroutine test_square_mesh_centres
 
   !> @brief Test the parallel distribution of a mesh's points.
   !

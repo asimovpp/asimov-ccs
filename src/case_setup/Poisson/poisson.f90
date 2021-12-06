@@ -16,16 +16,19 @@
 program poisson
 
   !! ASiMoV-CCS uses
+  use constants, only : ndim
+  
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
        linear_system, linear_solver, mesh, set_global_matrix_size, &
+       cell_locator, set_cell_location, &
        face_locator, set_face_location
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_global_size
-  use mesh_utils, only : build_square_mesh, face_area
+  use mesh_utils, only : build_square_mesh, face_area, centre
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -139,6 +142,9 @@ contains
     real(accs_real) :: r
 
     type(vector_values) :: val_dat
+
+    type(cell_locator) :: cell_location
+    real(accs_real), dimension(ndim) :: cc
     
     val_dat%mode = add_mode
     allocate(val_dat%idx(1))
@@ -153,8 +159,9 @@ contains
     ! to do only 1 call to eval_cell_rhs and set_values
     associate(idx => square_mesh%idx_global)
       do i = 1, nloc
-        associate(x => square_mesh%xc(1, i), &
-             y => square_mesh%xc(2, i), &
+        call set_cell_location(cell_location, square_mesh, i)
+        call centre(cell_location, cc)
+        associate(x => cc(1), y => cc(2), &
              V => square_mesh%vol(i))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
@@ -366,21 +373,29 @@ contains
     
   end subroutine initialise_poisson
 
-  pure function rhs_val(i, f) result(r)
+  function rhs_val(i, f) result(r)
 
     integer(accs_int), intent(in) :: i !> Cell index
     integer(accs_int), intent(in), optional :: f !> Face index (local wrt cell)
 
+    type(cell_locator) :: cell_location
+    type(face_locator) :: face_location
+    
+    real(accs_real), dimension(ndim) :: x
     real(accs_real) :: r
 
     if (present(f)) then
       !! Face-centred value
-      associate(y => square_mesh%xf(2, f, i))
+      call set_face_location(face_location, square_mesh, i, f)
+      call centre(face_location, x)
+      associate(y => x(2))
         r = y
       end associate
     else
       !! Cell-centred value
-      associate(y => square_mesh%xc(2, i))
+      call set_cell_location(cell_location, square_mesh, i)
+      call centre(cell_location, x)
+      associate(y => x(2))
         r = y
       end associate
     end if

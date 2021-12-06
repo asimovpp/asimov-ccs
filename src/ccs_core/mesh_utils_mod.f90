@@ -3,7 +3,7 @@ module mesh_utils
   use constants, only : ndim
   
   use kinds, only: accs_int, accs_real, accs_err
-  use types, only: mesh, face_locator
+  use types, only: mesh, face_locator, cell_locator
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   
@@ -13,6 +13,12 @@ module mesh_utils
   public :: build_square_mesh
   public :: face_normal
   public :: face_area
+  public :: centre
+
+  interface centre
+    module procedure cell_centre
+    module procedure face_centre
+  end interface centre
   
 contains
 
@@ -33,7 +39,7 @@ contains
       type is (parallel_environment_mpi)
 
         square_mesh%n = nps**2            !> Number of cells
-        square_mesh%h = l / nps
+        square_mesh%h = l / real(nps, accs_real)
 
         associate(n=>square_mesh%n, &
                   h=>square_mesh%h)
@@ -70,6 +76,8 @@ contains
           square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
           square_mesh%Af(:, :) = square_mesh%h  !> @note Mesh is square and 2D
           square_mesh%nf(:, :, :) = 0.0_accs_real
+          square_mesh%xc(:, :) = 0.0_accs_real
+          square_mesh%xf(:, :, :) = 0.0_accs_real
           
           !! Get neighbour indices
           !! XXX: These are global indices and thus may be off-process
@@ -188,5 +196,31 @@ contains
     end associate
 
   end subroutine face_area
-  
+
+  subroutine cell_centre(cell_location, x)
+
+    type(cell_locator), intent(in) :: cell_location
+
+    real(accs_real), dimension(ndim), intent(out) :: x
+
+    associate(mesh => cell_location%mesh, &
+         cell => cell_location%cell_idx)
+      x(:) = mesh%xc(:, cell)
+    end associate
+
+  end subroutine cell_centre
+
+  subroutine face_centre(face_location, x)
+
+    type(face_locator), intent(in) :: face_location
+
+    real(accs_real), dimension(ndim), intent(out) :: x
+
+    associate(mesh => face_location%mesh, &
+         cell => face_location%cell_idx, &
+         face => face_location%cell_face_ctr)
+      x(:) = mesh%xf(:, face, cell)
+    end associate
+
+  end subroutine face_centre
 end module mesh_utils

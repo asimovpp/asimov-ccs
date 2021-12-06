@@ -14,6 +14,7 @@ module types
   public :: set_global_matrix_size
   public :: set_local_matrix_size
   public :: set_face_location
+  public :: set_cell_location
 
   !> @brief Stub type for vectors to be extended in sub-modules.
   type, public :: vector
@@ -91,6 +92,15 @@ module types
     real(accs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
   end type mesh
 
+  !> @brief Cell locator
+  !
+  !> @description Lightweight type to provide easy cell location based on a cell's cell
+  !!              connectivity.
+  type, public :: cell_locator
+    type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
+    integer(accs_int) :: cell_idx      !> Cell index
+  end type cell_locator
+
   !> @brief Face locator
   !
   !> @description Lightweight type to provide easy face location based on a cell's face
@@ -117,6 +127,12 @@ module types
     integer(accs_int), intent(in) :: nnz
     class(parallel_environment), allocatable, target, intent(in) :: par_env
   end subroutine set_local_matrix_size
+
+  module subroutine set_cell_location(cell_location, geometry, cell_idx)
+    type(cell_locator), intent(out) :: cell_location
+    type(mesh), target, intent(in) :: geometry
+    integer(accs_int), intent(in) :: cell_idx
+  end subroutine set_cell_location
 
   module subroutine set_face_location(face_location, geometry, cell_idx, cell_face_ctr)
     type(face_locator), intent(out) :: face_location
@@ -167,5 +183,14 @@ module types
     face_location%cell_idx = cell_idx
     face_location%cell_face_ctr = cell_face_ctr
   end subroutine set_face_location
+
+  module subroutine set_cell_location(cell_location, geometry, cell_idx)
+    type(cell_locator), intent(out) :: cell_location
+    type(mesh), target, intent(in) :: geometry
+    integer(accs_int), intent(in) :: cell_idx
+
+    cell_location%mesh => geometry
+    cell_location%cell_idx = cell_idx
+  end subroutine set_cell_location
   
 end module types
