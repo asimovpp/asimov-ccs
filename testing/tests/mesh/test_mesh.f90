@@ -205,7 +205,7 @@ contains
   !>              verified by summing the volumes of all cells.
   subroutine test_mesh_square_mesh_volume()
 
-    use mesh_utils, only : build_square_mesh
+    use mesh_utils, only : build_square_mesh, volume
     
     type(mesh) :: square_mesh
 
@@ -218,15 +218,19 @@ contains
     real(accs_real) :: expected_vol
 
     integer(accs_int) :: i
+    type(cell_locator) :: cell_location
+    real(accs_real) :: V
     
     do n = 1, 100
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
       expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
-      vol = 0_accs_real
+      vol = 0.0_accs_real
       do i = 1, square_mesh%nlocal
-        vol = vol + square_mesh%vol(i)
+        call set_cell_location(cell_location, square_mesh, i)
+        call volume(cell_location, V)
+        vol = vol + V
       end do
       
       select type(par_env)

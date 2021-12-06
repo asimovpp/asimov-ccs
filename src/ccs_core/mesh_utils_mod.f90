@@ -14,6 +14,7 @@ module mesh_utils
   public :: face_normal
   public :: face_area
   public :: centre
+  public :: volume
 
   interface centre
     module procedure cell_centre
@@ -223,4 +224,18 @@ contains
     end associate
 
   end subroutine face_centre
+
+  subroutine volume(cell_location, V)
+
+    type(cell_locator), intent(in) :: cell_location
+
+    real(accs_real), intent(out) :: V
+
+    associate(mesh => cell_location%mesh, &
+         cell => cell_location%cell_idx)
+      V = mesh%vol(cell)
+    end associate
+   
+  end subroutine volume  
+  
 end module mesh_utils

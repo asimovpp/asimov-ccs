@@ -28,7 +28,7 @@ program poisson
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_global_size
-  use mesh_utils, only : build_square_mesh, face_area, centre
+  use mesh_utils, only : build_square_mesh, face_area, centre, volume
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -145,6 +145,7 @@ contains
 
     type(cell_locator) :: cell_location
     real(accs_real), dimension(ndim) :: cc
+    real(accs_real) :: V
     
     val_dat%mode = add_mode
     allocate(val_dat%idx(1))
@@ -161,8 +162,8 @@ contains
       do i = 1, nloc
         call set_cell_location(cell_location, square_mesh, i)
         call centre(cell_location, cc)
-        associate(x => cc(1), y => cc(2), &
-             V => square_mesh%vol(i))
+        call volume(cell_location, V)
+        associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
           call pack_entries(val_dat, 1, idx(i), r)
