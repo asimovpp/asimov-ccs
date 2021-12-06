@@ -1,7 +1,9 @@
 module mesh_utils
 
+  use constants, only : ndim
+  
   use kinds, only: accs_int, accs_real, accs_err
-  use types, only: mesh
+  use types, only: mesh, face_locator
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   
@@ -10,6 +12,7 @@ module mesh_utils
   private
   public :: build_square_mesh
   public :: face_normal
+  public :: face_area
   
 contains
 
@@ -57,15 +60,16 @@ contains
           allocate(square_mesh%idx_global(square_mesh%nlocal))
           allocate(square_mesh%nnb(square_mesh%nlocal))
           allocate(square_mesh%nbidx(4, square_mesh%nlocal))
-          allocate(square_mesh%xc(2, square_mesh%nlocal))    !> @note Currently hardcoded as a 2D mesh!
-          allocate(square_mesh%xf(2, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
+          allocate(square_mesh%xc(ndim, square_mesh%nlocal))    
+          allocate(square_mesh%xf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
           allocate(square_mesh%vol(square_mesh%nlocal))
-          allocate(square_mesh%Af(4, square_mesh%nlocal))    !> @note Currently hardcoded as a 2D mesh!
-          allocate(square_mesh%nf(2, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
+          allocate(square_mesh%Af(4, square_mesh%nlocal))    
+          allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
           
           square_mesh%nnb(:) = 4 ! All cells have 4 neighbours (possibly ghost/boundary cells)
           square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
           square_mesh%Af(:, :) = square_mesh%h  !> @note Mesh is square and 2D
+          square_mesh%nf(:, :, :) = 0.0_accs_real
           
           !! Get neighbour indices
           !! XXX: These are global indices and thus may be off-process
@@ -157,16 +161,32 @@ contains
     end select    
   end function build_square_mesh
 
-  function face_normal(mesh_obj, cell, face)
+  subroutine face_normal(face_location, normal)
 
-    type(mesh), intent(in) :: mesh_obj
-    integer(accs_int), intent(in) :: cell
-    integer(accs_int), intent(in) :: face
+    type(face_locator), intent(in) :: face_location
 
-    real(accs_real), dimension(3) :: face_normal
+    real(accs_real), dimension(ndim), intent(out) :: normal
 
-    face_normal(1:2) = mesh_obj%nf(1:2, face, cell)
+    associate(mesh => face_location%mesh, &
+         cell => face_location%cell_idx, &
+         face => face_location%cell_face_ctr)
+      normal(:) = mesh%nf(:, face, cell)
+    end associate
     
-  end function face_normal
+  end subroutine face_normal
+
+  subroutine face_area(face_location, area)
+
+    type(face_locator), intent(in) :: face_location
+
+    real(accs_real), intent(out) :: area
+
+    associate(mesh => face_location%mesh, &
+         cell => face_location%cell_idx, &
+         face => face_location%cell_face_ctr)
+      area = mesh%Af(face, cell)
+    end associate
+
+  end subroutine face_area
   
 end module mesh_utils

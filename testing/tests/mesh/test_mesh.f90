@@ -3,6 +3,8 @@ program test_mesh
 
   use MPI
 
+  use constants, only : ndim
+  
   use kinds
   use types
   use parallel
@@ -247,19 +249,22 @@ contains
   !!              same is true of mesh cells.
   subroutine test_mesh_square_mesh_closed()
 
-    use mesh_utils, only : build_square_mesh, face_normal
+    use mesh_utils, only : build_square_mesh, face_normal, face_area
     
-    type(mesh) :: square_mesh
-
+    type(mesh), target :: square_mesh
+    type(face_locator) :: face_location
+    
     logical :: passing = .true.
     logical :: global_passing
     
     integer(accs_int) :: n
     real(accs_real) :: l
 
-    real(accs_real), dimension(3) :: S
+    real(accs_real), dimension(ndim) :: S
+    real(accs_real), dimension(ndim) :: norm
+    real(accs_real) :: A
 
-    integer(accs_int) :: i, j, k
+    integer(accs_int) :: i, j
     integer :: ndim
 
     do n = 1, 100
@@ -273,18 +278,17 @@ contains
 
         ! Loop over neighbours/faces
         do j = 1, square_mesh%nnb(i)
-          associate(A => square_mesh%Af(j, i), &
-               norm => face_normal(square_mesh, i, j))
-            do k = 1, 2
-              S(:) = S(:) + norm(:) * A
-            end do
-          end associate
+          
+          call set_face_location(face_location, square_mesh, i, j)
+          call face_area(face_location, A)
+          call face_normal(face_location, norm)
+          S(:) = S(:) + norm(:) * A
         end do
 
         ! Loop over axes
-        do j = 1, 2
+        do j = 1, ndim
           if (abs(S(j) - 0.0_accs_real) > epsilon(0.0_accs_real)) then
-            print *, "FAIL: expected", 0.0_accs_real, " got ", S
+            print *, "FAIL: expected", 0.0_accs_real, " got ", S(j)
             passing = .false.
             exit
           end if

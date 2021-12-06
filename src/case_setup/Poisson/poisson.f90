@@ -18,13 +18,14 @@ program poisson
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-                    linear_system, linear_solver, mesh, set_global_matrix_size
+       linear_system, linear_solver, mesh, set_global_matrix_size, &
+       face_locator, set_face_location
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_global_size
-  use mesh_utils, only : build_square_mesh
+  use mesh_utils, only : build_square_mesh, face_area
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -192,6 +193,9 @@ contains
 
     integer(accs_int) :: row, col
     real(accs_real) :: coeff_f, coeff_p, coeff_nb
+
+    type(face_locator) :: face_location
+    real(accs_real) :: A
     
     mat_coeffs%mode = insert_mode
 
@@ -213,7 +217,9 @@ contains
       
         !! Loop over faces
         do j = 1, nnb
-          coeff_f = (1.0 / square_mesh%h) * square_mesh%Af(j, i)
+          call set_face_location(face_location, square_mesh, i, j)
+          call face_area(face_location, A)
+          coeff_f = (1.0 / square_mesh%h) * A
           associate(nbidxg=>square_mesh%nbidx(j, i))
 
             if (nbidxg > 0) then
@@ -266,6 +272,9 @@ contains
     
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
+
+    type(face_locator) :: face_location
+    real(accs_real) :: A
   
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
@@ -292,7 +301,9 @@ contains
             associate(nbidx=>square_mesh%nbidx(j, i))
 
               if (nbidx < 0) then
-                boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af(j, i)
+                call set_face_location(face_location, square_mesh, i, j)
+                call face_area(face_location, A)
+                boundary_coeff = (2.0 / square_mesh%h) * A
                 boundary_val = rhs_val(i, j)
 
                 ! Coefficient

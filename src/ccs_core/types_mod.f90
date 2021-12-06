@@ -13,6 +13,7 @@ module types
 
   public :: set_global_matrix_size
   public :: set_local_matrix_size
+  public :: set_face_location
 
   !> @brief Stub type for vectors to be extended in sub-modules.
   type, public :: vector
@@ -75,7 +76,7 @@ module types
     type(linear_system) :: eqsys !> System of equations
   end type linear_solver
 
-   !> @brief Mesh type
+  !> @brief Mesh type
   type, public :: mesh
     integer(accs_int) :: n !> Global mesh size
     integer(accs_int) :: nlocal !> Local mesh size
@@ -90,6 +91,16 @@ module types
     real(accs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
   end type mesh
 
+  !> @brief Face locator
+  !
+  !> @description Lightweight type to provide easy face location based on a cell's face
+  !!              connectivity.
+  type, public :: face_locator
+    type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
+    integer(accs_int) :: cell_idx      !> Cell index
+    integer(accs_int) :: cell_face_ctr !> Cell-face ctr i.e. I want to access face "3" of the cell.
+  end type face_locator
+  
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
     type(matrix_init_data), intent(inout) :: mat
@@ -139,4 +150,15 @@ module types
     mat%par_env => par_env
   end subroutine set_local_matrix_size
 
+  module subroutine set_face_location(face_location, geometry, cell_idx, cell_face_ctr)
+    type(face_locator), intent(out) :: face_location
+    type(mesh), target, intent(in) :: geometry
+    integer(accs_int), intent(in) :: cell_idx
+    integer(accs_int), intent(in) :: cell_face_ctr
+
+    face_location%mesh => geometry
+    face_location%cell_idx = cell_idx
+    face_location%cell_face_ctr = cell_face_ctr
+  end subroutine set_face_location
+  
 end module types
