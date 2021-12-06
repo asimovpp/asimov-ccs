@@ -23,6 +23,7 @@ program test_mesh
 
   logical :: test_suite_passing = .true.
 
+  integer(accs_int), parameter :: nmax = 100
   real(accs_real), parameter :: eps = epsilon(0.0_accs_real)
 
   if (kind(0.0_accs_real) == kind(0.0d0)) then
@@ -65,15 +66,15 @@ contains
     type(cell_locator) :: cell_location
     integer(accs_int) :: idxg
 
-    do n = 1, 100
+    do n = 1, nmax
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
 
       do i = 1, n
         call set_cell_location(cell_location, square_mesh, i)
         call global_index(cell_location, idxg)
-        if ((idxg < 1) .or. (idxg > 100)) then
-          print *, "FAIL: expected global index 1 <= idx <= 100, got ", idxg
+        if ((idxg < 1) .or. (idxg > n)) then
+          print *, "FAIL: expected global index 1 <= idx <= ", n, " got ", idxg
           passing = .false.
           exit
         end if
@@ -129,7 +130,7 @@ contains
     type(face_locator) :: face_location
     real(accs_real), dimension(ndim) :: fc
     
-    do n = 1, 100
+    do n = 1, nmax
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
 
@@ -202,7 +203,7 @@ contains
     integer(accs_int) :: n_expected
     integer(accs_int) :: n_global
     
-    do n = 1, 100
+    do n = 1, nmax
       square_mesh = build_square_mesh(n, 1.0_accs_real, par_env)
 
       if (square_mesh%nlocal < 0) then
@@ -280,7 +281,7 @@ contains
     type(cell_locator) :: cell_location
     real(accs_real) :: V
     
-    do n = 1, 100
+    do n = 1, nmax
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
       expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
@@ -353,7 +354,7 @@ contains
     integer(accs_int) :: i, j
     integer :: ndim
 
-    do n = 1, 100
+    do n = 1, nmax
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
       ndim = size(square_mesh%nf, 1)
