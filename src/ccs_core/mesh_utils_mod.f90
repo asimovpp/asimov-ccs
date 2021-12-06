@@ -9,6 +9,7 @@ module mesh_utils
 
   private
   public :: build_square_mesh
+  public :: face_normal
   
 contains
 
@@ -155,4 +156,17 @@ contains
 
     end select    
   end function build_square_mesh
+
+  function face_normal(mesh_obj, cell, face)
+
+    type(mesh), intent(in) :: mesh_obj
+    integer(accs_int), intent(in) :: cell
+    integer(accs_int), intent(in) :: face
+
+    real(accs_real), dimension(3) :: face_normal
+
+    face_normal(1:2) = mesh_obj%nf(1:2, face, cell)
+    
+  end function face_normal
+  
 end module mesh_utils

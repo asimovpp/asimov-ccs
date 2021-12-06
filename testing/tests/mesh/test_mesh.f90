@@ -247,7 +247,7 @@ contains
   !!              same is true of mesh cells.
   subroutine test_mesh_square_mesh_closed()
 
-    use mesh_utils, only : build_square_mesh
+    use mesh_utils, only : build_square_mesh, face_normal
     
     type(mesh) :: square_mesh
 
@@ -257,7 +257,7 @@ contains
     integer(accs_int) :: n
     real(accs_real) :: l
 
-    real(accs_real) :: S
+    real(accs_real), dimension(3) :: S
 
     integer(accs_int) :: i, j, k
     integer :: ndim
@@ -269,19 +269,21 @@ contains
       
       ! Loop over cells
       do i = 1, square_mesh%nlocal
+        S(:) = 0.0_accs_real
+
+        ! Loop over neighbours/faces
+        do j = 1, square_mesh%nnb(i)
+          associate(A => square_mesh%Af(j, i), &
+               norm => face_normal(square_mesh, i, j))
+            do k = 1, 2
+              S(:) = S(:) + norm(:) * A
+            end do
+          end associate
+        end do
+
         ! Loop over axes
-        do k = 1, ndim
-          S = 0.0_accs_real
-
-          ! Loop over neighbours/faces
-          do j = 1, square_mesh%nnb(i)
-            associate(A => square_mesh%Af(j, i), &
-                 norm => square_mesh%nf(k, j, i))
-              S = S + norm * A
-            end associate
-          end do
-
-          if (abs(S - 0.0_accs_real) > epsilon(0.0_accs_real)) then
+        do j = 1, 2
+          if (abs(S(j) - 0.0_accs_real) > epsilon(0.0_accs_real)) then
             print *, "FAIL: expected", 0.0_accs_real, " got ", S
             passing = .false.
             exit
