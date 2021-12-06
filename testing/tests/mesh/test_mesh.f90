@@ -39,12 +39,71 @@ contains
 
   subroutine test_runner()
 
+    call test_square_mesh_indices()
     call test_mesh_point_distribution()
     call test_square_mesh_centres()
     call test_mesh_square_mesh_volume()
     call test_mesh_square_mesh_closed()
     
   end subroutine test_runner
+
+  !> @brief Test the indexing of cells
+  subroutine test_square_mesh_indices()
+
+    use mesh_utils, only : build_square_mesh, global_index
+
+    type (mesh) :: square_mesh
+
+    logical :: passing = .true.
+    logical :: global_passing
+    
+    real(accs_real) :: l
+    integer(accs_int) :: n
+
+    integer(accs_int) :: i
+
+    type(cell_locator) :: cell_location
+    integer(accs_int) :: idxg
+
+    do n = 1, 100
+      l = parallel_random(par_env)
+      square_mesh = build_square_mesh(n, l, par_env)
+
+      do i = 1, n
+        call set_cell_location(cell_location, square_mesh, i)
+        call global_index(cell_location, idxg)
+        if ((idxg < 1) .or. (idxg > 100)) then
+          print *, "FAIL: expected global index 1 <= idx <= 100, got ", idxg
+          passing = .false.
+          exit
+        end if
+      end do
+    end do
+
+    select type(par_env)
+    type is(parallel_environment_mpi)
+      call MPI_Allreduce(passing, global_passing, 1, MPI_LOGICAL, MPI_LAND, par_env%comm, ierr)
+    class default
+      print *, "ERROR: Unknown parallel environment!"
+      stop
+    end select
+
+    ! XXX: This would be a good candidate for a testing library
+    if (global_passing) then
+      if (par_env%proc_id == par_env%root) then
+        if (ctr > line_length) then
+          print *, " "
+          write(*,"(A)",advance="no") " "
+        end if
+        write(*,"(A)",advance="no") "."
+      end if
+      ctr = ctr + 1
+    else
+      ctr = 0
+      test_suite_passing = .false.
+    end if
+    
+  end subroutine test_square_mesh_indices
   
   !> @brief Test the cell/face centres of a square mesh.
   !

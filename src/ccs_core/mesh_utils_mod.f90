@@ -15,11 +15,16 @@ module mesh_utils
   public :: face_area
   public :: centre
   public :: volume
+  public :: global_index
 
   interface centre
     module procedure cell_centre
     module procedure face_centre
   end interface centre
+
+  interface global_index
+    module procedure cell_global_index
+  end interface global_index
   
 contains
 
@@ -237,5 +242,18 @@ contains
     end associate
    
   end subroutine volume  
+
+  subroutine cell_global_index(cell_location, idxg)
+
+    type(cell_locator), intent(in) :: cell_location
+
+    integer(accs_int), intent(out) :: idxg
+
+    associate(mesh => cell_location%mesh, &
+         cell => cell_location%cell_idx)
+      idxg = mesh%idx_global(cell)
+    end associate
+   
+  end subroutine cell_global_index
   
 end module mesh_utils

@@ -28,7 +28,7 @@ program poisson
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_global_size
-  use mesh_utils, only : build_square_mesh, face_area, centre, volume
+  use mesh_utils, only : build_square_mesh, face_area, centre, volume, global_index
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -146,6 +146,7 @@ contains
     type(cell_locator) :: cell_location
     real(accs_real), dimension(ndim) :: cc
     real(accs_real) :: V
+    integer(accs_int) :: idxg
     
     val_dat%mode = add_mode
     allocate(val_dat%idx(1))
@@ -158,19 +159,18 @@ contains
     ! this is currently setting 1 vector value at a time
     ! consider changing to doing all the updates in one go
     ! to do only 1 call to eval_cell_rhs and set_values
-    associate(idx => square_mesh%idx_global)
-      do i = 1, nloc
-        call set_cell_location(cell_location, square_mesh, i)
-        call centre(cell_location, cc)
-        call volume(cell_location, V)
-        associate(x => cc(1), y => cc(2))
-          call eval_cell_rhs(x, y, h**2, r)
-          r = V * r
-          call pack_entries(val_dat, 1, idx(i), r)
-          call set_values(val_dat, b)
-        end associate
-      end do
-    end associate
+    do i = 1, nloc
+      call set_cell_location(cell_location, square_mesh, i)
+      call centre(cell_location, cc)
+      call volume(cell_location, V)
+      call global_index(cell_location, idxg)
+      associate(x => cc(1), y => cc(2))
+        call eval_cell_rhs(x, y, h**2, r)
+        r = V * r
+        call pack_entries(val_dat, 1, idxg, r)
+        call set_values(val_dat, b)
+      end associate
+    end do
     
     deallocate(val_dat%idx)
     deallocate(val_dat%val)
@@ -204,6 +204,9 @@ contains
 
     type(face_locator) :: face_location
     real(accs_real) :: A
+
+    integer(accs_int) :: idxg
+    type(cell_locator) :: cell_location
     
     mat_coeffs%mode = insert_mode
 
@@ -213,8 +216,9 @@ contains
       !!        filling from front, and pass the number of coefficients to be set, requires
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
-      associate(idxg=>square_mesh%idx_global(i), &
-                nnb=>square_mesh%nnb(i))
+      call set_cell_location(cell_location, square_mesh, i)
+      call global_index(cell_location, idxg)
+      associate(nnb=>square_mesh%nnb(i))
         
         allocate(mat_coeffs%rglob(1))
         allocate(mat_coeffs%cglob(1 + nnb))
@@ -283,7 +287,10 @@ contains
 
     type(face_locator) :: face_location
     real(accs_real) :: A
-  
+
+    type(cell_locator) :: cell_location
+    integer(accs_int) :: idxg
+    
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
     allocate(mat_coeffs%val(1))
@@ -293,47 +300,45 @@ contains
     mat_coeffs%mode = add_mode
     vec_values%mode = add_mode
 
-    associate(idx_global=>square_mesh%idx_global)
-  
-      do i = 1, square_mesh%nlocal
-        if (minval(square_mesh%nbidx(:, i)) < 0) then
-          coeff = 0.0_accs_real 
-          r = 0.0_accs_real
+    do i = 1, square_mesh%nlocal
+      if (minval(square_mesh%nbidx(:, i)) < 0) then
+        call set_cell_location(cell_location, square_mesh, i)
+        call global_index(cell_location, idxg)
+        coeff = 0.0_accs_real 
+        r = 0.0_accs_real
           
-          row = idx_global(i)
-          col = idx_global(i)
-          idx = idx_global(i)
+        row = idxg
+        col = idxg
+        idx = idxg
 
-          do j = 1, square_mesh%nnb(i)
+        do j = 1, square_mesh%nnb(i)
 
-            associate(nbidx=>square_mesh%nbidx(j, i))
+          associate(nbidx=>square_mesh%nbidx(j, i))
 
-              if (nbidx < 0) then
-                call set_face_location(face_location, square_mesh, i, j)
-                call face_area(face_location, A)
-                boundary_coeff = (2.0 / square_mesh%h) * A
-                boundary_val = rhs_val(i, j)
+            if (nbidx < 0) then
+              call set_face_location(face_location, square_mesh, i, j)
+              call face_area(face_location, A)
+              boundary_coeff = (2.0 / square_mesh%h) * A
+              boundary_val = rhs_val(i, j)
 
-                ! Coefficient
-                coeff = coeff - boundary_coeff
+              ! Coefficient
+              coeff = coeff - boundary_coeff
 
-                ! RHS vector
-                r = r - boundary_val * boundary_coeff
-              end if
+              ! RHS vector
+              r = r - boundary_val * boundary_coeff
+            end if
 
-            end associate
-          end do
+          end associate
+        end do
 
-          call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
-          call pack_entries(vec_values, 1, idx, r)
+        call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
+        call pack_entries(vec_values, 1, idx, r)
 
-          call set_values(mat_coeffs, M)
-          call set_values(vec_values, b)
+        call set_values(mat_coeffs, M)
+        call set_values(vec_values, b)
           
-        end if
-      end do
-  
-    end associate
+      end if
+    end do
   
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
@@ -350,15 +355,18 @@ contains
 
     type(vector_values) :: vec_values
     integer(accs_int) :: i
+
+    type(cell_locator) :: cell_location
+    integer(accs_int) :: idxg
     
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
-       associate(idx=>square_mesh%idx_global(i))
-         call pack_entries(vec_values, 1, idx, rhs_val(i))
-         call set_values(vec_values, ustar)
-       end associate
+      call set_cell_location(cell_location, square_mesh, i)
+      call global_index(cell_location, idxg)
+      call pack_entries(vec_values, 1, idxg, rhs_val(i))
+      call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
