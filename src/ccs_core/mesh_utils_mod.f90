@@ -60,6 +60,7 @@ contains
           allocate(square_mesh%xf(2, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
           allocate(square_mesh%vol(square_mesh%nlocal))
           allocate(square_mesh%Af(4, square_mesh%nlocal))    !> @note Currently hardcoded as a 2D mesh!
+          allocate(square_mesh%nf(2, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
           
           square_mesh%nnb(:) = 4 ! All cells have 4 neighbours (possibly ghost/boundary cells)
           square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
@@ -73,7 +74,8 @@ contains
             ii = i - 1
 
             associate(xc => square_mesh%xc(:, ictr), &
-                 xf => square_mesh%xf(:, :, ictr))
+                 xf => square_mesh%xf(:, :, ictr), &
+                 nrm => square_mesh%nf(:, :, ictr))
               !! Set cell centre
               xc(1) = (modulo(ii, nps) + 0.5_accs_real) * h
               xc(2) = (ii / nps + 0.5_accs_real) * h
@@ -91,6 +93,8 @@ contains
               end if
               xf(1, fctr) = xc(1) - 0.5_accs_real * h
               xf(2, fctr) = xc(2)
+              nrm(1, fctr) = -1.0_accs_real
+              nrm(2, fctr) = 0.0_accs_real
 
               !! Right neighbour
               fctr = 2
@@ -105,6 +109,8 @@ contains
               end if
               xf(1, fctr) = xc(1) + 0.5_accs_real * h
               xf(2, fctr) = xc(2)
+              nrm(1, fctr) = 1.0_accs_real
+              nrm(2, fctr) = 0.0_accs_real
 
               !! Down neighbour
               fctr = 3
@@ -119,6 +125,8 @@ contains
               end if
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) - 0.5_accs_real * h
+              nrm(1, fctr) = 0.0_accs_real
+              nrm(2, fctr) = -1.0_accs_real
 
               !! Up neighbour
               fctr = 4
@@ -133,6 +141,8 @@ contains
               end if
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) + 0.5_accs_real * h
+              nrm(1, fctr) = 0.0_accs_real
+              nrm(2, fctr) = 1.0_accs_real
             end associate
 
             ictr = ictr + 1

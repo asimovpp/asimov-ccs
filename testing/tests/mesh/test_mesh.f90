@@ -38,6 +38,7 @@ contains
     call test_mesh_point_distribution()
     call test_square_mesh_cell_centres()
     call test_mesh_square_mesh_volume()
+    call test_mesh_square_mesh_closed()
     
   end subroutine test_runner
   
@@ -176,7 +177,7 @@ contains
   !> @brief Test the square mesh generator creates a correctly-sized mesh.
   !
   !> @description A "square" domain of side L should result in a mesh of volume L^d, this can be
-  !> verified by summing the volumes of all cells.
+  !>              verified by summing the volumes of all cells.
   subroutine test_mesh_square_mesh_volume()
 
     use mesh_utils, only : build_square_mesh
@@ -239,6 +240,56 @@ contains
     end if
     
   end subroutine test_mesh_square_mesh_volume
+
+  !> @brief Test the square mesh generator creates a closed mesh.
+  !
+  !> @description A valid mesh should be "closed" that is the surface integral should be zero. The
+  !!              same is true of mesh cells.
+  subroutine test_mesh_square_mesh_closed()
+
+    use mesh_utils, only : build_square_mesh
+    
+    type(mesh) :: square_mesh
+
+    logical :: passing = .true.
+
+    integer(accs_int) :: n
+    real(accs_real) :: l
+
+    real(accs_real) :: S
+
+    integer(accs_int) :: i, j, k
+    integer :: ndim
+
+    do n = 1, 100
+      l = parallel_random(par_env)
+      square_mesh = build_square_mesh(n, l, par_env)
+      ndim = size(square_mesh%nf, 1)
+      
+      ! Loop over cells
+      do i = 1, square_mesh%nlocal
+        ! Loop over axes
+        do k = 1, ndim
+          S = 0.0_accs_real
+
+          ! Loop over neighbours/faces
+          do j = 1, square_mesh%nnb(i)
+            associate(A => square_mesh%Af(j, i), &
+                 norm => square_mesh%nf(k, j, i))
+              S = S + norm * A
+            end associate
+          end do
+
+          if (abs(S - 0.0_accs_real) > epsilon(0.0_accs_real)) then
+            print *, "FAIL: expected", 0.0_accs_real, " got ", S
+            passing = .false.
+            exit
+          end if
+        end do
+      end do
+    end do
+    
+  end subroutine test_mesh_square_mesh_closed
 
   !> @brief Test initialisation
   !

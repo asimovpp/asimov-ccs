@@ -87,6 +87,7 @@ module types
     real(accs_real), dimension(:), allocatable :: vol        !> Cell volumes
     real(accs_real), dimension(:, :), allocatable :: xc      !> Cell centres (dimension, cell)
     real(accs_real), dimension(:, :, :), allocatable :: xf   !> Face centres (dimension, face, cell)
+    real(accs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
   end type mesh
 
   interface
