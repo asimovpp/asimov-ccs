@@ -118,6 +118,13 @@ module types
     class(parallel_environment), allocatable, target, intent(in) :: par_env
   end subroutine set_local_matrix_size
 
+  module subroutine set_face_location(face_location, geometry, cell_idx, cell_face_ctr)
+    type(face_locator), intent(out) :: face_location
+    type(mesh), target, intent(in) :: geometry
+    integer(accs_int), intent(in) :: cell_idx
+    integer(accs_int), intent(in) :: cell_face_ctr
+  end subroutine set_face_location
+
   end interface
 
   contains
