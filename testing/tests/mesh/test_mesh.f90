@@ -252,7 +252,8 @@ contains
     type(mesh) :: square_mesh
 
     logical :: passing = .true.
-
+    logical :: global_passing
+    
     integer(accs_int) :: n
     real(accs_real) :: l
 
@@ -288,6 +289,29 @@ contains
         end do
       end do
     end do
+
+    select type(par_env)
+    type is(parallel_environment_mpi)
+      call MPI_Allreduce(passing, global_passing, 1, MPI_LOGICAL, MPI_LAND, par_env%comm, ierr)
+    class default
+      print *, "ERROR: Unknown parallel environment!"
+      stop
+    end select
+
+    ! XXX: This would be a good candidate for a testing library
+    if (global_passing) then
+      if (par_env%proc_id == par_env%root) then
+        if (ctr > line_length) then
+          print *, " "
+          write(*,"(A)",advance="no") " "
+        end if
+        write(*,"(A)",advance="no") "."
+      end if
+      ctr = ctr + 1
+    else
+      ctr = 0
+      test_suite_passing = .false.
+    end if
     
   end subroutine test_mesh_square_mesh_closed
 
