@@ -94,7 +94,7 @@ program tgv
     call get_case_name(root, title)
     
     ! Get reference numbers
-    call get_reference_numbers(root, p_ref=pressure, temp_ref=temperature, dens_ref=density, &
+    call get_reference_number(root, p_ref=pressure, temp_ref=temperature, dens_ref=density, &
                                visc_ref=viscosity, pref_at_cell=pref_at_cell)
 
     ! Get steps
@@ -104,7 +104,7 @@ program tgv
     call get_solve(root, w_sol=w_sol)
 
     ! Solvers
-    call get_solvers(root, u_solver=u_solver, v_solver=v_solver)  
+    call get_solver(root, u_solver=u_solver, v_solver=v_solver)  
     
     ! Get initilisation
     call get_init(root, init)
@@ -125,7 +125,7 @@ program tgv
     call get_blending_factor(root, u_blend, v_blend, w_blend)
 
     ! Get relaxation factors
-    call get_relaxation_factor(root, u_relax, v_relax, p_relax)
+    call get_relaxation_factor(root, u_relax=u_relax, v_relax=v_relax, p_relax=p_relax)
 
     ! Get output frequency and iteration
     call get_output_frequency(root, output_freq, output_iter)

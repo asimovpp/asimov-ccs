@@ -13,9 +13,9 @@ module read_config
   public :: get_case_name
   public :: get_steps
   public :: get_init
-  public :: get_reference_numbers
+  public :: get_reference_number
   public :: get_solve
-  public :: get_solvers
+  public :: get_solver
   public :: get_transient
   public :: get_target_residual
   public :: get_monitor_cell
@@ -79,7 +79,7 @@ module read_config
     !> @param[in,out] velo_ref - reference velocity      
     !> @param[in,out] len_ref - reference length, used to define the Reynolds number of the flow      
     !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
-    module subroutine get_reference_numbers(root, p_ref, p_total, temp_ref, &
+    module subroutine get_reference_number(root, p_ref, p_total, temp_ref, &
                                             dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
       class(*), pointer, intent(in) :: root
       real(accs_real), optional, intent(inout) :: p_ref
@@ -125,12 +125,14 @@ module read_config
     !> @param[in,out] p_solver - solver to be used for p
     !
     !> @todo extend list of variables   
-    module subroutine get_solvers(root, u_solver, v_solver, w_solver, p_solver)
+    module subroutine get_solver(root, u_solver, v_solver, w_solver, p_solver, te_solver, ed_solver)
       class(*), pointer, intent(in) :: root
       integer, optional, intent(inout) :: u_solver
       integer, optional, intent(inout) :: v_solver
       integer, optional, intent(inout) :: w_solver
       integer, optional, intent(inout) :: p_solver
+      integer, optional, intent(inout) :: te_solver
+      integer, optional, intent(inout) :: ed_solver
     end subroutine
 
     !> @brief Get transient status
@@ -185,11 +187,15 @@ module read_config
     !> @param[in,out] u_conv - convection scheme for u
     !> @param[in,out] v_conv - convection scheme for v
     !> @param[in,out] w_conv - convection scheme for w
-    module  subroutine get_convection_scheme(root, u_conv, v_conv, w_conv)
+    !> @param[in,out] te_conv - convection scheme for te
+    !> @param[in,out] ed_conv - convection scheme for ed
+    module  subroutine get_convection_scheme(root, u_conv, v_conv, w_conv, te_conv, ed_conv)
       class(*), pointer, intent(in) :: root
-      integer, intent(inout) :: u_conv
-      integer, intent(inout) :: v_conv
-      integer, intent(inout) :: w_conv
+      integer, optional, intent(inout) :: u_conv
+      integer, optional, intent(inout) :: v_conv
+      integer, optional, intent(inout) :: w_conv
+      integer, optional, intent(inout) :: te_conv
+      integer, optional, intent(inout) :: ed_conv
     end subroutine
 
     !> @brief Get blending factor values 
@@ -200,11 +206,15 @@ module read_config
     !> @param[in,out] u_blend - blending factor for u
     !> @param[in,out] v_blend - blending factor for v
     !> @param[in,out] w_blend - blending factor for w
-    module subroutine get_blending_factor(root, u_blend, v_blend, w_blend)
+    !> @param[in,out] te_blend - blending factor for te
+    !> @param[in,out] ed_blend - blending factor for ed
+    module subroutine get_blending_factor(root, u_blend, v_blend, w_blend, te_blend, ed_blend)
       class(*), pointer, intent(in) :: root
-      real(accs_real), intent(inout) :: u_blend
-      real(accs_real), intent(inout) :: v_blend
-      real(accs_real), intent(inout) :: w_blend
+      real(accs_real), optional, intent(inout) :: u_blend
+      real(accs_real), optional, intent(inout) :: v_blend
+      real(accs_real), optional, intent(inout) :: w_blend
+      real(accs_real), optional, intent(inout) :: te_blend
+      real(accs_real), optional, intent(inout) :: ed_blend
     end subroutine
 
     !> @brief Get relaxation factor values 
@@ -215,11 +225,15 @@ module read_config
     !> @param[in,out] u_relax - relaxation factor for u
     !> @param[in,out] v_relax - relaxation factor for v
     !> @param[in,out] p_relax - relaxation factor for p
-    module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax)
+    !> @param[in,out] te_relax - relaxation factor for te
+    !> @param[in,out] ed_relax - relaxation factor for ed
+    module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax, te_relax, ed_relax)
       class(*), pointer, intent(in) :: root
-      real(accs_real), intent(inout) :: u_relax
-      real(accs_real), intent(inout) :: v_relax
-      real(accs_real), intent(inout) :: p_relax
+      real(accs_real), optional, intent(inout) :: u_relax
+      real(accs_real), optional, intent(inout) :: v_relax
+      real(accs_real), optional, intent(inout) :: p_relax
+      real(accs_real), optional, intent(inout) :: te_relax
+      real(accs_real), optional, intent(inout) :: ed_relax
     end subroutine
 
     !> @brief Get output frequency 

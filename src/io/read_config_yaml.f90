@@ -163,7 +163,7 @@ submodule (read_config) read_config_utils
   !> @param[in,out] velo_ref - reference velocity      
   !> @param[in,out] leng_ref - reference length, used to define the Reynolds number of the flow      
   !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
-  module subroutine get_reference_numbers(root, p_ref, p_total, temp_ref, &
+  module subroutine get_reference_number(root, p_ref, p_total, temp_ref, &
                                           dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
     class(*), pointer, intent(in) :: root
     real(accs_real), optional, intent(inout) :: p_ref
@@ -298,15 +298,19 @@ submodule (read_config) read_config_utils
   !> @param[in,out] v_solver - solver to be used for v
   !> @param[in,out] w_solver - solver to be used for w
   !> @param[in,out] p_solver - solver to be used for p
+  !> @param[in,out] te_solver - solver to be used for te
+  !> @param[in,out] ed_solver - solver to be used for ed
   !
   !> @todo extend list of variables   
-  module subroutine get_solvers(root, u_solver, v_solver, w_solver, p_solver)
+  module subroutine get_solver(root, u_solver, v_solver, w_solver, p_solver, te_solver, ed_solver)
 
     class(*), pointer, intent(in) :: root
     integer, optional, intent(inout) :: u_solver
     integer, optional, intent(inout) :: v_solver
     integer, optional, intent(inout) :: w_solver
     integer, optional, intent(inout) :: p_solver
+    integer, optional, intent(inout) :: te_solver
+    integer, optional, intent(inout) :: ed_solver
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -336,6 +340,16 @@ submodule (read_config) read_config_utils
       ! Get p_solver
       if(present(p_solver)) then
         call get_value(dict, "p", p_solver)
+      end if
+
+      ! Get te_solver
+      if(present(te_solver)) then
+        call get_value(dict, "te", te_solver)
+      end if
+
+      ! Get ed_solver
+      if(present(ed_solver)) then
+        call get_value(dict, "ed", ed_solver)
       end if
 
     class default
@@ -443,11 +457,15 @@ submodule (read_config) read_config_utils
   !> @param[in,out] u_conv - convection scheme for u
   !> @param[in,out] v_conv - convection scheme for v
   !> @param[in,out] w_conv - convection scheme for w
-  module  subroutine get_convection_scheme(root, u_conv, v_conv, w_conv)
+  !> @param[in,out] te_conv - convection scheme for te
+  !> @param[in,out] ed_conv - convection scheme for ed
+  module  subroutine get_convection_scheme(root, u_conv, v_conv, w_conv, te_conv, ed_conv)
     class(*), pointer, intent(in) :: root
-    integer, intent(inout) :: u_conv
-    integer, intent(inout) :: v_conv
-    integer, intent(inout) :: w_conv
+    integer, optional, intent(inout) :: u_conv
+    integer, optional, intent(inout) :: v_conv
+    integer, optional, intent(inout) :: w_conv
+    integer, optional, intent(inout) :: te_conv
+    integer, optional, intent(inout) :: ed_conv
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -459,10 +477,26 @@ submodule (read_config) read_config_utils
       
       dict => root%get_dictionary('convection_scheme',required=.false.,error=io_err)
 
-      call get_value(dict, "u", u_conv)
-      call get_value(dict, "v", v_conv)
-      call get_value(dict, "w", w_conv)
+      if(present(u_conv)) then
+        call get_value(dict, "u", u_conv)
+      end if
       
+      if(present(v_conv)) then
+        call get_value(dict, "v", v_conv)
+      end if
+      
+      if(present(w_conv)) then
+        call get_value(dict, "w", w_conv)
+      end if
+      
+      if(present(te_conv)) then
+        call get_value(dict, "te", te_conv)
+      end if
+      
+      if(present(ed_conv)) then
+        call get_value(dict, "ed", ed_conv)
+      end if
+
     class default
       print*,"Unknown type"
     end select
@@ -477,11 +511,15 @@ submodule (read_config) read_config_utils
   !> @param[in,out] u_blend - blending factor for u
   !> @param[in,out] v_blend - blending factor for v
   !> @param[in,out] w_blend - blending factor for w
-  module subroutine get_blending_factor(root, u_blend, v_blend, w_blend)
+  !> @param[in,out] te_blend - blending factor for te
+  !> @param[in,out] ed_blend - blending factor for ed
+  module subroutine get_blending_factor(root, u_blend, v_blend, w_blend, te_blend, ed_blend)
     class(*), pointer, intent(in) :: root
-    real(accs_real), intent(inout) :: u_blend
-    real(accs_real), intent(inout) :: v_blend
-    real(accs_real), intent(inout) :: w_blend
+    real(accs_real), optional, intent(inout) :: u_blend
+    real(accs_real), optional, intent(inout) :: v_blend
+    real(accs_real), optional, intent(inout) :: w_blend
+    real(accs_real), optional, intent(inout) :: te_blend
+    real(accs_real), optional, intent(inout) :: ed_blend
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -493,9 +531,25 @@ submodule (read_config) read_config_utils
 
       dict => root%get_dictionary('blending_factor',required=.false.,error=io_err)
 
-      call get_value(dict, "u", u_blend)
-      call get_value(dict, "v", v_blend)
-      call get_value(dict, "w", w_blend)
+      if(present(u_blend)) then
+        call get_value(dict, "u", u_blend)
+      end if
+
+      if(present(v_blend)) then
+        call get_value(dict, "v", v_blend)
+      end if 
+
+      if(present(w_blend)) then
+        call get_value(dict, "w", w_blend)
+      end if
+
+      if(present(te_blend)) then
+        call get_value(dict, "te", te_blend)
+      end if
+
+      if(present(ed_blend)) then
+        call get_value(dict, "ed", ed_blend)
+      end if
 
     class default
       print*,"Unknown type"
@@ -511,12 +565,15 @@ submodule (read_config) read_config_utils
   !> @param[in,out] u_relax - relaxation factor for u
   !> @param[in,out] v_relax - relaxation factor for v
   !> @param[in,out] p_relax - relaxation factor for p
-  module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax)
+  !> @param[in,out] te_relax - relaxation factor for te
+  !> @param[in,out] ed_relax - relaxation factor for ed
+  module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax, te_relax, ed_relax)
     class(*), pointer, intent(in) :: root
-    real(accs_real), intent(inout) :: u_relax
-    real(accs_real), intent(inout) :: v_relax
-    real(accs_real), intent(inout) :: p_relax
-
+    real(accs_real), optional, intent(inout) :: u_relax
+    real(accs_real), optional, intent(inout) :: v_relax
+    real(accs_real), optional, intent(inout) :: p_relax
+    real(accs_real), optional, intent(inout) :: te_relax
+    real(accs_real), optional, intent(inout) :: ed_relax
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
@@ -528,9 +585,25 @@ submodule (read_config) read_config_utils
 
       dict => root%get_dictionary('relaxation_factor',required=.false.,error=io_err)
 
-      call get_value(dict, "u", u_relax)
-      call get_value(dict, "v", v_relax)
-      call get_value(dict, "p", p_relax)
+      if(present(u_relax)) then
+        call get_value(dict, "u", u_relax)
+      end if
+
+      if(present(v_relax)) then
+        call get_value(dict, "v", v_relax)
+      end if
+
+      if(present(p_relax)) then
+        call get_value(dict, "p", p_relax)
+      end if
+
+      if(present(te_relax)) then
+        call get_value(dict, "te", te_relax)
+      end if
+
+      if(present(ed_relax)) then
+        call get_value(dict, "ed", ed_relax)
+      end if
 
     class default
       print*,"Unknown type"
