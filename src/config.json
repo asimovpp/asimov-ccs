@@ -1,6 +1,6 @@
 {
-  "main": "poisson",
+  "main": "scalar_advection_poisson",
   "options": {
-      "parallel": "poisson"
+      "parallel": "scalar_advection"
   }
 }
