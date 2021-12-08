@@ -17,7 +17,8 @@ solver:
   u: 12
   v: 12
 
-init: user
+init: 
+  type: user
 
 transient:
   type: quad
