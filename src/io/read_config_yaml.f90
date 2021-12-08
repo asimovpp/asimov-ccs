@@ -131,17 +131,53 @@ submodule (read_config) read_config_utils
   !! values are "user", "field" or "step" 
   !
   !> @param[in] root - the entry point to the config file    
-  !> @param[in,out] init - the source of the initial values    
-  module  subroutine get_init(root, init)
+  !> @param[in,out] init - the source of the initial values (user or field)
+  !> @param[in,out] u_init - initial value for u
+  !> @param[in,out] v_init - initial value for v
+  !> @param[in,out] w_init - initial value for w
+  !> @param[in,out] te_init - initial value for te
+  !> @param[in,out] ed_init - initial value for ed
+
+  module  subroutine get_init(root, init, u_init, v_init, w_init, te_init, ed_init)
     class(*), pointer, intent(in) :: root
     character(len=:), allocatable, intent(inout) :: init
+    integer, optional, intent(inout) :: u_init
+    integer, optional, intent(inout) :: v_init
+    integer, optional, intent(inout) :: w_init
+    integer, optional, intent(inout) :: te_init
+    integer, optional, intent(inout) :: ed_init
+
+    class(type_dictionary), pointer :: dict
+    type(type_error), pointer :: io_err
 
     select type(root)
     type is(type_dictionary)
 
+      dict => root%get_dictionary('init',required=.true.,error=io_err)
+
       print*,"* Initialisation: "
 
-      call get_value(root, "init", init)
+      call get_value(dict, "type", init)
+
+      if(present(u_init)) then
+        call get_value(dict, "u", u_init)
+      end if
+
+      if(present(v_init)) then
+        call get_value(dict, "v", v_init)
+      end if
+
+      if(present(w_init)) then
+        call get_value(dict, "w", w_init)
+      end if
+
+      if(present(te_init)) then
+        call get_value(dict, "te", te_init)
+      end if
+
+      if(present(ed_init)) then
+        call get_value(dict, "ed", ed_init)
+      end if
 
     class default
       print*,"Unknown type"
@@ -826,4 +862,3 @@ submodule (read_config) read_config_utils
   end subroutine
     
 end submodule read_config_utils
-  

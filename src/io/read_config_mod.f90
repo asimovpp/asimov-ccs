@@ -60,9 +60,15 @@ module read_config
     !
     !> @param[in] root - the entry point to the config file    
     !> @param[in,out] init - the source of the initial values    
-    module  subroutine get_init(root, init)
+    module  subroutine get_init(root, init, u_init, v_init, w_init, te_init, ed_init)
       class(*), pointer, intent(in) :: root
       character(len=:), allocatable, intent(inout) :: init
+      integer, optional, intent(inout) :: u_init
+      integer, optional, intent(inout) :: v_init
+      integer, optional, intent(inout) :: w_init
+      integer, optional, intent(inout) :: te_init
+      integer, optional, intent(inout) :: ed_init
+
     end subroutine
 
     !> @brief Get reference numbers
