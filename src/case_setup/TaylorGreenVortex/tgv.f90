@@ -8,7 +8,7 @@ program tgv
 
   implicit none
 
-  class(*), pointer :: root
+  class(*), pointer :: config_file
   character(len=error_length) :: error
 
   ! Case title
@@ -37,7 +37,7 @@ program tgv
   ! Unsteady solution
   character(len=:), allocatable :: transient_type
   real(accs_real) :: dt
-  real(accs_real) :: gamma
+  real(accs_real) :: euler_blend
   integer :: max_sub_steps
 
   ! Target residual
@@ -84,62 +84,62 @@ program tgv
 
   subroutine read_configuration()
 
-    root => parse("./tgv_config.yaml", error=error)
+    config_file => parse("./tgv_config.yaml", error=error)
     if (error/='') then
       print*,trim(error)
       stop 1
     endif
     
     ! Get title
-    call get_case_name(root, title)
+    call get_case_name(config_file, title)
     
     ! Get reference numbers
-    call get_reference_number(root, p_ref=pressure, temp_ref=temperature, dens_ref=density, &
+    call get_reference_number(config_file, p_ref=pressure, temp_ref=temperature, dens_ref=density, &
                                visc_ref=viscosity, pref_at_cell=pref_at_cell)
 
     ! Get steps
-    call get_steps(root, steps)
+    call get_steps(config_file, steps)
 
     ! Variables to solve
-    call get_solve(root, w_sol=w_sol)
+    call get_solve(config_file, w_sol=w_sol)
 
     ! Solvers
-    call get_solver(root, u_solver=u_solver, v_solver=v_solver)  
+    call get_solver(config_file, u_solver=u_solver, v_solver=v_solver)  
     
     ! Get initilisation
-    call get_init(root, init)
+    call get_init(config_file, init)
 
     ! Get unsteady solution parameters
-    call get_transient(root, transient_type, dt, gamma, max_sub_steps)
+    call get_transient(config_file, transient_type, dt, euler_blend, max_sub_steps)
 
     ! Get target resdiual
-    call get_target_residual(root, residual)
+    call get_target_residual(config_file, residual)
 
     ! Get monitor cell ID
-    call get_monitor_cell(root, monitor_cell)
+    call get_monitor_cell(config_file, monitor_cell)
 
     ! Get convection schemes
-    call get_convection_scheme(root, u_conv, v_conv, w_conv)
+    call get_convection_scheme(config_file, u_conv, v_conv, w_conv)
 
     ! Get blending factors
-    call get_blending_factor(root, u_blend, v_blend, w_blend)
+    call get_blending_factor(config_file, u_blend, v_blend, w_blend)
 
     ! Get relaxation factors
-    call get_relaxation_factor(root, u_relax=u_relax, v_relax=v_relax, p_relax=p_relax)
+    call get_relaxation_factor(config_file, u_relax=u_relax, v_relax=v_relax, p_relax=p_relax)
 
     ! Get output frequency and iteration
-    call get_output_frequency(root, output_freq, output_iter)
+    call get_output_frequency(config_file, output_freq, output_iter)
 
     ! Get plot format
-    call get_plot_format(root, plot_format)
+    call get_plot_format(config_file, plot_format)
 
     ! Get output type and variables
-    call get_output_type(root, post_type, post_vars)
+    call get_output_type(config_file, post_type, post_vars)
 
     ! Get boundaries
-    call get_boundaries(root, bnd_region, bnd_type, bnd_vector)
+    call get_boundaries(config_file, bnd_region, bnd_type, bnd_vector)
      
-    deallocate(root)
+    deallocate(config_file)
 
   end subroutine
 

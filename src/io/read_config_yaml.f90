@@ -84,16 +84,16 @@ submodule (read_config) read_config_utils
   !> @details Get the case name for the configuration file and 
   !! store it in a string.
   !
-  !> @param[in] root - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file    
   !> @param[in,out] title - the case name string    
-  module subroutine get_case_name(root, title)
-    class(*), pointer, intent(in) :: root
+  module subroutine get_case_name(config_file, title)
+    class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: title
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
     
-      call get_value(root, "title", title)
+      call get_value(config_file, "title", title)
 
     class default
       print*,"Unknown type"
@@ -106,18 +106,18 @@ submodule (read_config) read_config_utils
   !> @details Get the maximum number of iterations 
   !! to be preformed in the current run 
   !
-  !> @param[in] root - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file    
   !> @param[in,out] steps - the maximum number of iterations    
-  module  subroutine get_steps(root, steps)
-    class(*), pointer, intent(in) :: root
+  module  subroutine get_steps(config_file, steps)
+    class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: steps
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
       print*,"*Number of steps: "
 
-      call get_value(root, 'steps', steps)
+      call get_value(config_file, 'steps', steps)
 
     class default
       print*,"Unknown type"
@@ -130,7 +130,7 @@ submodule (read_config) read_config_utils
   !> @details Get the source of the initial values - accepted
   !! values are "user", "field" or "step" 
   !
-  !> @param[in] root - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file    
   !> @param[in,out] init - the source of the initial values (user or field)
   !> @param[in,out] u_init - initial value for u
   !> @param[in,out] v_init - initial value for v
@@ -138,8 +138,8 @@ submodule (read_config) read_config_utils
   !> @param[in,out] te_init - initial value for te
   !> @param[in,out] ed_init - initial value for ed
 
-  module  subroutine get_init(root, init, u_init, v_init, w_init, te_init, ed_init)
-    class(*), pointer, intent(in) :: root
+  module  subroutine get_init(config_file, init, u_init, v_init, w_init, te_init, ed_init)
+    class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: init
     integer, optional, intent(inout) :: u_init
     integer, optional, intent(inout) :: v_init
@@ -150,10 +150,10 @@ submodule (read_config) read_config_utils
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      dict => root%get_dictionary('init',required=.true.,error=io_err)
+      dict => config_file%get_dictionary('init',required=.true.,error=io_err)
 
       print*,"* Initialisation: "
 
@@ -190,7 +190,7 @@ submodule (read_config) read_config_utils
   !> @details Get the reference numbers, the fluid properties 
   !! and the operating condition 
   !
-  !> @param[in] root - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file    
   !> @param[in,out] p_ref - reference pressure 
   !> @param[in,out] p_total - total pressure 
   !> @param[in,out] temp_ref - reference temperature      
@@ -199,9 +199,9 @@ submodule (read_config) read_config_utils
   !> @param[in,out] velo_ref - reference velocity      
   !> @param[in,out] leng_ref - reference length, used to define the Reynolds number of the flow      
   !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
-  module subroutine get_reference_number(root, p_ref, p_total, temp_ref, &
+  module subroutine get_reference_number(config_file, p_ref, p_total, temp_ref, &
                                           dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
-    class(*), pointer, intent(in) :: root
+    class(*), pointer, intent(in) :: config_file
     real(accs_real), optional, intent(inout) :: p_ref
     real(accs_real), optional, intent(inout) :: p_total
     real(accs_real), optional, intent(inout) :: temp_ref
@@ -214,10 +214,10 @@ submodule (read_config) read_config_utils
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      dict => root%get_dictionary('reference_numbers',required=.true.,error=io_err)
+      dict => config_file%get_dictionary('reference_numbers',required=.true.,error=io_err)
 
       print*,"* Reference numbers: "
       
@@ -273,16 +273,16 @@ submodule (read_config) read_config_utils
   !! "solve" keyword, the user can specifically request that 
   !! certain variables will not be solved by setting in to "off"
   !
-  !> @param[in] root - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file    
   !> @param[in,out] u_sol - solve u on/off
   !> @param[in,out] v_sol - solve v on/off
   !> @param[in,out] w_sol - solve w on/off
   !> @param[in,out] p_sol - solve p on/off
   !
   !> @todo extend list of variables 
-  module subroutine get_solve(root, u_sol, v_sol, w_sol, p_sol)
+  module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
 
-    class(*), pointer, intent(in) :: root
+    class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, optional, intent(inout) :: u_sol
     character(len=:), allocatable, optional, intent(inout) :: v_sol
     character(len=:), allocatable, optional, intent(inout) :: w_sol
@@ -291,10 +291,10 @@ submodule (read_config) read_config_utils
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      dict => root%get_dictionary('solve',required=.true.,error=io_err)
+      dict => config_file%get_dictionary('solve',required=.true.,error=io_err)
 
       print*,"* Solve (on/off): "
 
@@ -329,7 +329,7 @@ submodule (read_config) read_config_utils
   !> @details Get the solvers that are to be used for each of
   !! the variables. Solver types are defined by integer values
   !
-  !> @param[in] root - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file    
   !> @param[in,out] u_solver - solver to be used for u
   !> @param[in,out] v_solver - solver to be used for v
   !> @param[in,out] w_solver - solver to be used for w
@@ -338,9 +338,9 @@ submodule (read_config) read_config_utils
   !> @param[in,out] ed_solver - solver to be used for ed
   !
   !> @todo extend list of variables   
-  module subroutine get_solver(root, u_solver, v_solver, w_solver, p_solver, te_solver, ed_solver)
+  module subroutine get_solver(config_file, u_solver, v_solver, w_solver, p_solver, te_solver, ed_solver)
 
-    class(*), pointer, intent(in) :: root
+    class(*), pointer, intent(in) :: config_file
     integer, optional, intent(inout) :: u_solver
     integer, optional, intent(inout) :: v_solver
     integer, optional, intent(inout) :: w_solver
@@ -351,10 +351,10 @@ submodule (read_config) read_config_utils
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      dict => root%get_dictionary('solver',required=.true.,error=io_err)
+      dict => config_file%get_dictionary('solver',required=.true.,error=io_err)
 
       print*,"* Solver: "
 
@@ -398,25 +398,25 @@ submodule (read_config) read_config_utils
   !
   !> @details Enables/disables unsteady solution algorithm
   !
-  !> @param[in] root - the entry point to the config file   
+  !> @param[in] config_file - the entry point to the config file   
   !> @param[in,out] transient_type - "euler" (first order) or "quad" (second order)
   !> @param[in,out] dt - time interval (seconds) between two consecutive time steps
-  !> @param[in,out] gamma - euler blending factor which blends quad
+  !> @param[in,out] euler_blend - gamma, euler blending factor which blends quad
   !> @param[in,out] max_sub_step - maximum number of sub-iterations at each time step
-  module subroutine get_transient(root, transient_type, dt, gamma, max_sub_steps)
-    class(*), pointer, intent(in) :: root
+  module subroutine get_transient(config_file, transient_type, dt, euler_blend, max_sub_steps)
+    class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: transient_type
     real(accs_real), intent(inout) :: dt
-    real(accs_real), intent(inout) :: gamma
+    real(accs_real), intent(inout) :: euler_blend
     integer, intent(inout) :: max_sub_steps
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      dict => root%get_dictionary('transient',required=.false.,error=io_err)
+      dict => config_file%get_dictionary('transient',required=.false.,error=io_err)
 
       print*,"* Transient: "
       
@@ -427,7 +427,7 @@ submodule (read_config) read_config_utils
       call get_value(dict, "dt", dt)
 
       ! Gamma
-      call get_value(dict, "gamma", gamma)
+      call get_value(dict, "gamma", euler_blend)
       
       ! Maximum number of sub steps
       call get_value(dict, "max_sub_steps", max_sub_steps)
@@ -444,16 +444,16 @@ submodule (read_config) read_config_utils
   !! The calculation will stop when the residuals (L2-norm) of the 
   !! governing equations are less than the target residual.
   !
-  !> @param[in] root - the entry point to the config file   
+  !> @param[in] config_file - the entry point to the config file   
   !> @param[in,out] residual - convergence criterion
-  module  subroutine get_target_residual(root, residual)
-    class(*), pointer, intent(in) :: root
+  module  subroutine get_target_residual(config_file, residual)
+    class(*), pointer, intent(in) :: config_file
     real(accs_real), intent(inout) :: residual
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      call get_value(root, "target_residual", residual)
+      call get_value(config_file, "target_residual", residual)
 
     class default
       print*,"Unknown type"
@@ -466,16 +466,16 @@ submodule (read_config) read_config_utils
   !> @details Get the grid cell at which to monitor the values
   !! of the flow variables (U,V,W,P,TE,ED and T)
   !
-  !> @param[in] root - the entry point to the config file   
+  !> @param[in] config_file - the entry point to the config file   
   !> @param[in,out] monitor_cell - grid cell ID
-  module  subroutine get_monitor_cell(root, monitor_cell)
-    class(*), pointer, intent(in) :: root
+  module  subroutine get_monitor_cell(config_file, monitor_cell)
+    class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: monitor_cell
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      call get_value(root, "monitor_cell", monitor_cell)
+      call get_value(config_file, "monitor_cell", monitor_cell)
 
     class default
       print*,"Unknown type"
@@ -489,14 +489,14 @@ submodule (read_config) read_config_utils
   !! different variables. The convection schemes are defined
   !! by integer values.
   !
-  !> @param[in] root - the entry point to the config file   
+  !> @param[in] config_file - the entry point to the config file   
   !> @param[in,out] u_conv - convection scheme for u
   !> @param[in,out] v_conv - convection scheme for v
   !> @param[in,out] w_conv - convection scheme for w
   !> @param[in,out] te_conv - convection scheme for te
   !> @param[in,out] ed_conv - convection scheme for ed
-  module  subroutine get_convection_scheme(root, u_conv, v_conv, w_conv, te_conv, ed_conv)
-    class(*), pointer, intent(in) :: root
+  module  subroutine get_convection_scheme(config_file, u_conv, v_conv, w_conv, te_conv, ed_conv)
+    class(*), pointer, intent(in) :: config_file
     integer, optional, intent(inout) :: u_conv
     integer, optional, intent(inout) :: v_conv
     integer, optional, intent(inout) :: w_conv
@@ -506,12 +506,12 @@ submodule (read_config) read_config_utils
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
       print*,"* Convection scheme: "
       
-      dict => root%get_dictionary('convection_scheme',required=.false.,error=io_err)
+      dict => config_file%get_dictionary('convection_scheme',required=.false.,error=io_err)
 
       if(present(u_conv)) then
         call get_value(dict, "u", u_conv)
@@ -543,14 +543,14 @@ submodule (read_config) read_config_utils
   !
   !> @details Get blending factors
   !
-  !> @param[in] root - the entry point to the config file
+  !> @param[in] config_file - the entry point to the config file
   !> @param[in,out] u_blend - blending factor for u
   !> @param[in,out] v_blend - blending factor for v
   !> @param[in,out] w_blend - blending factor for w
   !> @param[in,out] te_blend - blending factor for te
   !> @param[in,out] ed_blend - blending factor for ed
-  module subroutine get_blending_factor(root, u_blend, v_blend, w_blend, te_blend, ed_blend)
-    class(*), pointer, intent(in) :: root
+  module subroutine get_blending_factor(config_file, u_blend, v_blend, w_blend, te_blend, ed_blend)
+    class(*), pointer, intent(in) :: config_file
     real(accs_real), optional, intent(inout) :: u_blend
     real(accs_real), optional, intent(inout) :: v_blend
     real(accs_real), optional, intent(inout) :: w_blend
@@ -560,12 +560,12 @@ submodule (read_config) read_config_utils
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
       print*,"* Blending factor: "
 
-      dict => root%get_dictionary('blending_factor',required=.false.,error=io_err)
+      dict => config_file%get_dictionary('blending_factor',required=.false.,error=io_err)
 
       if(present(u_blend)) then
         call get_value(dict, "u", u_blend)
@@ -597,14 +597,14 @@ submodule (read_config) read_config_utils
   !
   !> @details Get relaxation factors
   !
-  !> @param[in] root - the entry point to the config file
+  !> @param[in] config_file - the entry point to the config file
   !> @param[in,out] u_relax - relaxation factor for u
   !> @param[in,out] v_relax - relaxation factor for v
   !> @param[in,out] p_relax - relaxation factor for p
   !> @param[in,out] te_relax - relaxation factor for te
   !> @param[in,out] ed_relax - relaxation factor for ed
-  module subroutine get_relaxation_factor(root, u_relax, v_relax, p_relax, te_relax, ed_relax)
-    class(*), pointer, intent(in) :: root
+  module subroutine get_relaxation_factor(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
+    class(*), pointer, intent(in) :: config_file
     real(accs_real), optional, intent(inout) :: u_relax
     real(accs_real), optional, intent(inout) :: v_relax
     real(accs_real), optional, intent(inout) :: p_relax
@@ -614,12 +614,12 @@ submodule (read_config) read_config_utils
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
       print*,"* Relaxation factor: "
 
-      dict => root%get_dictionary('relaxation_factor',required=.false.,error=io_err)
+      dict => config_file%get_dictionary('relaxation_factor',required=.false.,error=io_err)
 
       if(present(u_relax)) then
         call get_value(dict, "u", u_relax)
@@ -652,23 +652,23 @@ submodule (read_config) read_config_utils
   !> @details Get output frequency, set with keywords "every"
   !! "iter" or both.
   !
-  !> @param[in] root - the entry point to the config file
+  !> @param[in] config_file - the entry point to the config file
   !> @param[inout] output_freq - the frequency of writing output files
   !> @param[inout] output iter - output files are written every output_iter/steps
-  module subroutine get_output_frequency(root, output_freq, output_iter)
-    class(*), pointer, intent(in) :: root
+  module subroutine get_output_frequency(config_file, output_freq, output_iter)
+    class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: output_freq
     integer, intent(inout) :: output_iter
 
     class(type_dictionary), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
       print*,"Output frequency: "
 
-      dict => root%get_dictionary('output',required=.false.,error=io_err)
+      dict => config_file%get_dictionary('output',required=.false.,error=io_err)
 
       call get_value(dict, "every", output_freq)
       call get_value(dict, "iter", output_iter)
@@ -681,16 +681,16 @@ submodule (read_config) read_config_utils
 
   !> @brief Get output file format 
   !
-  !> @param[in] root - the entry point to the config file
+  !> @param[in] config_file - the entry point to the config file
   !> @param[inout] plot_format - output format (e.g. vtk)
-  module subroutine get_plot_format(root, plot_format)
-    class(*), pointer, intent(in) :: root
+  module subroutine get_plot_format(config_file, plot_format)
+    class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: plot_format
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      call get_value(root, "plot_format", plot_format)
+      call get_value(config_file, "plot_format", plot_format)
 
     class default
       print*,"Unknown type"
@@ -700,11 +700,11 @@ submodule (read_config) read_config_utils
 
   !> @brief Get output type and variables 
   !
-  !> @param[in] root - the entry point to the config file
+  !> @param[in] config_file - the entry point to the config file
   !> @param[inout] post_type - values at cell centres or cell vertices?
   !> @param[inout] post_vars - variables to be written out
-  module subroutine get_output_type(root, post_type, post_vars)
-    class(*), pointer, intent(in) :: root
+  module subroutine get_output_type(config_file, post_type, post_vars)
+    class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: post_type
     character(len=2), dimension(10), intent(inout) :: post_vars    
 
@@ -712,14 +712,14 @@ submodule (read_config) read_config_utils
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item
     type(type_error), pointer :: io_err
-    integer :: index
+    integer :: idx
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
       print*,"* Output type and variables: "
 
-      dict => root%get_dictionary('post',required=.false.,error=io_err)
+      dict => config_file%get_dictionary('post',required=.false.,error=io_err)
 
       call get_value(dict, "type", post_type)
 
@@ -727,16 +727,16 @@ submodule (read_config) read_config_utils
       call error_handler(io_err)  
 
       item => list%first
-      index = 1
+      idx = 1
       do while(associated(item))
         select type (element => item%node)
         class is (type_scalar)
-          post_vars(index) = trim(element%string)
-          print*,post_vars(index)
+          post_vars(idx) = trim(element%string)
+          print*,post_vars(idx)
           item => item%next
-          index = index + 1
+          idx = idx + 1
         end select
-      enddo
+      end do
 
     class default
       print*,"Unknown type"
@@ -744,35 +744,35 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get boundary condntions 
+  !> @brief Get boundary conditions 
   !
-  !> @param[in] root - the entry point to the config file
+  !> @param[in] config_file - the entry point to the config file
   !> @param[inout] bnd_region - array of boundary region names
   !> @param[inout] bnd_type - array of boundary types (e.g. periodic, symmetric, ...)
   !> @param[inout] bnd_vector - array of boundary vectors
-  module subroutine get_boundaries(root, bnd_region, bnd_type, bnd_vector)
+  module subroutine get_boundaries(config_file, bnd_region, bnd_type, bnd_vector)
 
     use yaml_types, only: real_kind
 
-    class(*), pointer, intent(in) :: root
+    class(*), pointer, intent(in) :: config_file
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
     real(accs_real), dimension(:,:), allocatable, intent(inout) :: bnd_vector
   
     type(type_error), pointer :: io_err
     integer :: num_boundaries = 0
-    integer :: index = 1
-    integer :: inner_index = 1
+    integer :: idx = 1
+    integer :: inner_idx = 1
     logical :: success
 
     class(type_dictionary), pointer :: dict
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item, inner_item
 
-    select type(root)
+    select type(config_file)
     type is(type_dictionary)
 
-      dict => root%get_dictionary('boundary', required=.false., error=io_err)
+      dict => config_file%get_dictionary('boundary', required=.false., error=io_err)
       call error_handler(io_err)  
 
       list => dict%get_list('region', required=.false.,error=io_err)
@@ -798,34 +798,34 @@ submodule (read_config) read_config_utils
       do while(associated(item))
         select type(element => item%node)
         class is (type_scalar)
-          bnd_region(index) = trim(element%string)
-          print*,bnd_region(index)
+          bnd_region(idx) = trim(element%string)
+          print*,bnd_region(idx)
           item => item%next
-          index = index + 1
+          idx = idx + 1
           end select  
       end do
 
       list => dict%get_list('type', required=.false.,error=io_err)
       call error_handler(io_err)  
 
-      index = 1 
+      idx = 1 
       
       print*,"** Types:"
       item => list%first
       do while(associated(item))
         select type(element => item%node)
         class is (type_scalar)
-          bnd_type(index) = trim(element%string)
-          print*,bnd_type(index)
+          bnd_type(idx) = trim(element%string)
+          print*,bnd_type(idx)
           item => item%next
-          index = index + 1
+          idx = idx + 1
           end select  
       end do
     
       list => dict%get_list('vector', required=.false.,error=io_err)
       call error_handler(io_err)  
 
-      index = 1
+      idx = 1
 
       print*,"** Vectors:"
       item => list%first
@@ -836,22 +836,22 @@ submodule (read_config) read_config_utils
         type is(type_list)
 
           inner_item => inner_list%first
-          inner_index = 1
+          inner_idx = 1
 
           do while(associated(inner_item))
             select type(inner_element => inner_item%node)
             class is(type_scalar)
               inner_item => inner_item%next
-              inner_index = inner_index + 1
-              bnd_vector(inner_index,index) = inner_element%to_real(real(bnd_vector(inner_index,index),real_kind),success)
-              print*,bnd_vector(inner_index,index)
+              inner_idx = inner_idx + 1
+              bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
+              print*,bnd_vector(inner_idx,idx)
             end select
           end do
 
         end select
 
         item => item%next
-        index = index + 1
+        idx = idx + 1
 
       end do
 
