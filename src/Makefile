@@ -111,8 +111,7 @@ clean-full: clean clean-tests
 	rm -f $(OBJ_DIR)*.deps
 
 $(ALL_DEPS): $(SRC)
-	makedepf90 $(SRC) > $(DEP_PREFIX)tmp_all.deps
-	$(PY) $(TOOLS)send_to_obj.py $(DEP_PREFIX)tmp_all.deps $(ALL_DEPS) 
+	makedepf90 -b $(DEP_PREFIX) $(SRC) > $(ALL_DEPS)
 
 $(RULE_DEPS): $(ALL_DEPS)
 	$(PY) $(TOOLS)fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
