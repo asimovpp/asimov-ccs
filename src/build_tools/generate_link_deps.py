@@ -1,6 +1,6 @@
 import sys
 import os
-import json
+import yaml
 import logging as log
 from collections import OrderedDict
 import process_dependencies as pdeps
@@ -20,7 +20,7 @@ conflicts = \
 
 
 def pretty_print(d):
-    return json.dumps(d, indent=2)
+    return yaml.dump(d)
 
 
 def check_for_conflicts(config):
@@ -78,12 +78,13 @@ if __name__ == "__main__":
 
   # get definition of how to map config options to filenames
   # assume the mapping file is in the same directory as this script
-  with open(sys.path[0] + "/config_mapping.json") as f:
-    config_mapping = json.load(f)
+  with open(sys.path[0] + "/config_mapping.yaml") as f:
+    config_mapping = yaml.load(f, Loader=yaml.FullLoader)
   
   with open(sys.argv[1]) as f:
+    # TODO: make sure yaml dictionaries are loaded in the same order they are written
     # want to preserve the order of the config file so that overwriting behaviour is clear
-    config = json.load(f, object_pairs_hook=OrderedDict)
+    config = yaml.load(f, Loader=yaml.FullLoader)
   log.debug("config read:\n%s", pretty_print(config))
 
   deps = pdeps.parse_dependencies(sys.argv[2])

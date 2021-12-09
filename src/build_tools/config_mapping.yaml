@@ -1,0 +1,32 @@
+parallel: 
+  poisson: 
+    mat_common: mat_common
+    mat: mat_petsc
+    vec_common: vec_common
+    vec: vec_petsc
+    solver_common: solver_common
+    solver: solver_petsc
+    parallel_env: parallel_env_mpi_petsc
+    parallel_env_error: parallel_errors_mpi_petsc
+    parallel_utils: parallel_utils_mpi
+
+parallel_env: 
+  mpi: parallel_env_mpi
+  caf: parallel_env_caf
+
+parallel_utils: 
+  mpi: parallel_utils_mpi
+  caf: parallel_utils_caf
+
+compute: 
+  mpi: compute_mpi
+  mpi_omp: compute_mpi_omp
+  caf: compute_caf
+
+collectives: 
+  mpi: parallel_collectives_mpi
+  none: null
+
+parallel_types: 
+  mpi: parallel_types_mpi
+  none: null

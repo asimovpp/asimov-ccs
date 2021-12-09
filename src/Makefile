@@ -120,8 +120,8 @@ $(RULE_DEPS): $(ALL_DEPS)
 $(TAG_DEPS): $(SRC)
 	$(PY) $(TOOLS)process_build_tags.py $(SRC) > $(TAG_DEPS)
 
-$(EXE_DEPS): config.json $(ALL_DEPS)
-	$(PY) $(TOOLS)generate_link_deps.py config.json $(ALL_DEPS) $(EXE_DEPS)
+$(EXE_DEPS): config.yaml $(ALL_DEPS)
+	$(PY) $(TOOLS)generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
 
 #include $(ALL_DEPS)
 
