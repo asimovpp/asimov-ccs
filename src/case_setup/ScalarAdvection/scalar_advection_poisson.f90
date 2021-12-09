@@ -38,7 +38,7 @@ program scalar_advection
 
   integer(accs_int) :: cps = 10 ! Default value for cells per side
 
-  real(accs_real) :: err_norm
+  !real(accs_real) :: err_norm
 
   double precision :: start_time
   double precision :: end_time
@@ -128,6 +128,10 @@ program scalar_advection
 contains
 
   subroutine compute_fluxes(M, u, v)
+    use constants, only : insert_mode
+    use types, only : matrix_values
+    use utils, only : set_values, pack_entries
+
     class(matrix), intent(inout) :: M   
     real(accs_real), dimension(:,:), intent(in) :: u, v
     
@@ -137,23 +141,41 @@ contains
     integer(accs_int), parameter :: n_coeffs = 5
     real(accs_real), dimension(n_coeffs) :: adv_coeffs, diff_coeffs
 
+    type(matrix_values) :: mat_coeffs
+
+    mat_coeffs%mode = insert_mode
+
+    allocate(mat_coeffs%rglob(1))
+    allocate(mat_coeffs%cglob(n_coeffs))
+    allocate(mat_coeffs%val(n_coeffs))
+
     select type (M)
       type is (matrix_petsc) ! ALEXEI: make this independent of solver implementation
-      call MatGetSize(M, n_rows, n_cols)
+      n_rows = int(sqrt(real(square_mesh%n)))
+      n_cols = n_rows
+      
+      ! calculate diffusion coefficients outside the loop because they shouldn't depend on position
+      call calc_diffusion_coeffs(diff_coeffs)
+
       ! Loop over cells computing advection and diffusion fluxes
       ! Note, n_cols corresponds to the number of cells in the mesh
       do i = 1, n_cols
         call calc_advection_coeffs(i, adv_coeffs, "CDS", n_cols, u, v) ! change string comparison to int comparison.
-        call calc_diffusion_coeffs(i, diff_coeffs)
 
         ! Assign fluxes to matrix. Coefficients have same ordering as eq 4.51 of Ferziger.
         ! This loop finds the locations of the corresponding cell in the matrix and updates 
         ! its value
         do j = 1, n_coeffs
           call get_matrix_ngbs(i, j, n_cols, row, col) ! Should eventually use mesh to find neighbours
-          call MatSetValue(M, row, col, adv_coeffs(j) + diff_coeffs(j), ADD_VALUES) 
+          ! Replace this hack setting row and column values to -1 with proper use of neighbours in mesh
+          if (row > 0 .and. col > 0) then
+            call pack_entries(mat_coeffs, 1, j, row, col, adv_coeffs(j) + diff_coeffs(j)) ! I think this is only suitable for serial with
+                                                                                     ! this choice of indices
+          end if
         end do
       end do
+
+      call set_values(mat_coeffs, M)
       class default
         write(*,*) "Unsupported matrix type"
         stop
@@ -162,8 +184,8 @@ contains
 
   ! Calculates advection coefficients and stores them in coefficient array using ordering i
   ! of eq 4.51 of Ferziger (i.e. W, S, P, N, E)
-  subroutine calc_advection_coeffs(index, coeffs, discretisation, cps, u, v)
-    integer(accs_int), intent(in) :: index
+  subroutine calc_advection_coeffs(idx, coeffs, discretisation, cps, u, v)
+    integer(accs_int), intent(in) :: idx
     real(accs_real), dimension(5), intent(inout) :: coeffs
     character(len=3), intent(in) :: discretisation
     integer(accs_int), intent(in) :: cps
@@ -173,7 +195,7 @@ contains
     integer(accs_int) :: row, col       ! coordinates within grid
 
     ! Find where we are in the grid first
-    call calc_cell_coords(index, cps, row, col)
+    call calc_cell_coords(idx, cps, row, col)
 
     edge_len = 1./real(cps)
 
@@ -200,10 +222,8 @@ contains
 
   ! Calculates diffusion coefficients and stores them in coefficient array using ordering i
   ! of eq 4.51 of Ferziger (i.e. W, S, P, N, E)
-  subroutine calc_diffusion_coeffs(index, coeffs)
-    integer(accs_int), intent(in) :: index
+  subroutine calc_diffusion_coeffs(coeffs)
     real(accs_real), dimension(5), intent(inout) :: coeffs
-    integer(accs_int) :: row, col       ! coordinates within grid
 
     real(accs_real), parameter :: Gamma = 0.001
 
@@ -219,18 +239,37 @@ contains
     real(accs_real), intent(in) :: edge_len
     real(accs_real), dimension(:,:), intent(in) :: u, v
     integer(accs_int), intent(in) :: row, col
+    integer(accs_int) :: n_cols
 
     real(accs_real) :: flux
 
+    n_cols = int(sqrt(real(square_mesh%n)))
+
     select case(edge)
       case("w")
-        flux = 0.5*(u(col, row) + u(col-1, row)) * edge_len
+        if (col > 1) then
+          flux = 0.5*(u(col, row) + u(col-1, row)) * edge_len
+        else
+          flux = u(col, row) * edge_len
+        end if
       case("e")
-        flux = 0.5*(u(col, row) + u(col+1, row)) * edge_len
+        if (col < n_cols) then
+          flux = 0.5*(u(col, row) + u(col+1, row)) * edge_len
+        else
+          flux = u(col, row) * edge_len
+        end if
       case("s")
-        flux = 0.5*(v(col, row) + v(col-1, row)) * edge_len
+        if (row > 1) then
+          flux = 0.5*(v(col, row) + v(col, row-1)) * edge_len
+        else
+          flux = v(col, row) * edge_len
+        end if
       case("n")
-        flux = 0.5*(v(col, row) + v(col+1, row)) * edge_len
+        if (row < n_cols) then
+          flux = 0.5*(v(col, row) + v(col, row+1)) * edge_len
+        else
+          flux = v(col, row) * edge_len
+        end if
       case default
         write(*,*) "Invalid edge provided. Aborting"
         stop
@@ -300,7 +339,7 @@ contains
     integer(accs_int) :: i, cps
 
     data%mode = add_mode
-    cps = sqrt(real(square_mesh%n))
+    cps = int(sqrt(real(square_mesh%n)))
     allocate(data%idx(1))
     allocate(data%val(1))
     data%val = 1
@@ -316,21 +355,21 @@ contains
 
   ! Calculates the row and column indices from flattened vector index
   ! Note: assumes square mesh
-  subroutine calc_cell_coords(index, cps, row, col)
-    integer(accs_int), intent(in) :: index, cps
+  subroutine calc_cell_coords(idx, cps, row, col)
+    integer(accs_int), intent(in) :: idx, cps
     integer(accs_int), intent(inout) :: row, col
 
-     row = index/cps
-     col = index - row*cps
+    col = modulo(idx-1,cps) + 1 
+    row = (idx-1)/cps + 1
   end subroutine calc_cell_coords
 
   ! Calculates the index of a flattened 2d array
-  pure function calc_flat_index(row, col, cps) result(index)
-    integer(accs_int), intent(in) :: row, col, cps
-    integer(accs_int) :: index
+  !pure function calc_flat_index(row, col, cps) result(index)
+  !  integer(accs_int), intent(in) :: row, col, cps
+  !  integer(accs_int) :: index
 
-    index = col + (row - 1)*cps
-  end function calc_flat_index
+  !  index = col + (row - 1)*cps
+  !end function calc_flat_index
 
   ! Computes the row and column indices of 
   subroutine get_matrix_ngbs(cell_index, coeff_index, cps, row, col)
@@ -339,279 +378,302 @@ contains
     integer(accs_int), intent(in) :: cps
     integer(accs_int), intent(inout) :: row, col
     integer(accs_int) :: central_col    ! column of central cell
+    integer(accs_int) :: n_cols
+
+    n_cols = int(sqrt(real(square_mesh%n)))
 
     call calc_cell_coords(cell_index, cps, row, central_col)
     if (coeff_index == 3) then
       col = central_col
     else if (coeff_index == 1) then
-      call calc_cell_coords(cell_index-1, cps, row, col)
-      col = central_col
+      if (cell_index-1 < 1) then
+        row = -1
+        col = -1
+      else
+        call calc_cell_coords(cell_index-1, cps, row, col)
+        col = central_col
+      end if
     else if (coeff_index == 2) then
-      call calc_cell_coords(cell_index-cps, cps, row, col)
-      col = central_col
+      if (cell_index-cps < 1) then
+        row = -1
+        col = -1
+      else
+        call calc_cell_coords(cell_index-cps, cps, row, col)
+        col = central_col
+      end if
     else if (coeff_index == 4) then
-      call calc_cell_coords(cell_index+cps, cps, row, col)
-      col = central_col
+      if (cell_index+cps > n_cols) then
+        row = -1
+        col = -1
+      else
+        call calc_cell_coords(cell_index+cps, cps, row, col)
+        col = central_col
+      end if
     else if (coeff_index == 5) then
-      call calc_cell_coords(cell_index+1, cps, row, col)
-      col = central_col
+      if (cell_index+1 > n_cols) then
+        row = -1
+        col = -1
+      else
+        call calc_cell_coords(cell_index+1, cps, row, col)
+        col = central_col
+      end if
     end if
 
   end subroutine
 
 !----------------------------------------------------------------------!
 
-  subroutine eval_rhs(b)
+  !subroutine eval_rhs(b)
 
-    use constants, only : add_mode
-    use types, only : vector_values
-    use utils, only : set_values, pack_entries
-    
-    class(vector), intent(inout) :: b
+  !  use constants, only : add_mode
+  !  use types, only : vector_values
+  !  use utils, only : set_values, pack_entries
+  !  
+  !  class(vector), intent(inout) :: b
 
-    integer(accs_int) :: i
-    integer(accs_int) :: nloc
-    real(accs_real) :: h
-    real(accs_real) :: r
+  !  integer(accs_int) :: i
+  !  integer(accs_int) :: nloc
+  !  real(accs_real) :: h
+  !  real(accs_real) :: r
 
-    type(vector_values) :: val_dat
-    
-    val_dat%mode = add_mode
-    allocate(val_dat%idx(1))
-    allocate(val_dat%val(1))
+  !  type(vector_values) :: val_dat
+  !  
+  !  val_dat%mode = add_mode
+  !  allocate(val_dat%idx(1))
+  !  allocate(val_dat%val(1))
 
-    nloc = square_mesh%nlocal
+  !  nloc = square_mesh%nlocal
 
-    h = square_mesh%h
+  !  h = square_mesh%h
 
-    ! this is currently setting 1 vector value at a time
-    ! consider changing to doing all the updates in one go
-    ! to do only 1 call to eval_cell_rhs and set_values
-    associate(idx => square_mesh%idx_global)
-      do i = 1, nloc
-        associate(x => square_mesh%xc(1, i), &
-             y => square_mesh%xc(2, i), &
-             V => square_mesh%vol(i))
-          call eval_cell_rhs(x, y, h**2, r)
-          r = V * r
-          call pack_entries(val_dat, 1, idx(i), r)
-          call set_values(val_dat, b)
-        end associate
-      end do
-    end associate
-    
-    deallocate(val_dat%idx)
-    deallocate(val_dat%val)
-    
-  end subroutine eval_rhs
+  !  ! this is currently setting 1 vector value at a time
+  !  ! consider changing to doing all the updates in one go
+  !  ! to do only 1 call to eval_cell_rhs and set_values
+  !  associate(idx => square_mesh%idx_global)
+  !    do i = 1, nloc
+  !      associate(x => square_mesh%xc(1, i), &
+  !           y => square_mesh%xc(2, i), &
+  !           V => square_mesh%vol(i))
+  !        call eval_cell_rhs(x, y, h**2, r)
+  !        r = V * r
+  !        call pack_entries(val_dat, 1, idx(i), r)
+  !        call set_values(val_dat, b)
+  !      end associate
+  !    end do
+  !  end associate
+  !  
+  !  deallocate(val_dat%idx)
+  !  deallocate(val_dat%val)
+  !  
+  !end subroutine eval_rhs
 
-  !> @brief Apply forcing function
-  pure subroutine eval_cell_rhs (x, y, H, r)
-    
-    real(accs_real), intent(in) :: x, y, H
-    real(accs_real), intent(out) :: r
-    
-    r = 0.0 &
-         + 0 * (x + y + H) ! Silence unused dummy argument error
-    
-  end subroutine eval_cell_rhs
+  !!> @brief Apply forcing function
+  !pure subroutine eval_cell_rhs (x, y, H, r)
+  !  
+  !  real(accs_real), intent(in) :: x, y, H
+  !  real(accs_real), intent(out) :: r
+  !  
+  !  r = 0.0 &
+  !       + 0 * (x + y + H) ! Silence unused dummy argument error
+  !  
+  !end subroutine eval_cell_rhs
 
-  subroutine discretise_poisson(M)
+  !subroutine discretise_poisson(M)
 
-    use constants, only : insert_mode
-    use types, only : matrix_values
-    use utils, only : set_values, pack_entries
-    
-    class(matrix), intent(inout) :: M
+  !  use constants, only : insert_mode
+  !  use types, only : matrix_values
+  !  use utils, only : set_values, pack_entries
+  !  
+  !  class(matrix), intent(inout) :: M
 
-    type(matrix_values) :: mat_coeffs
-    integer(accs_int) :: i, j
+  !  type(matrix_values) :: mat_coeffs
+  !  integer(accs_int) :: i, j
 
-    integer(accs_int) :: row, col
-    real(accs_real) :: coeff_f, coeff_p, coeff_nb
-    
-    mat_coeffs%mode = insert_mode
+  !  integer(accs_int) :: row, col
+  !  real(accs_real) :: coeff_f, coeff_p, coeff_nb
+  !  
+  !  mat_coeffs%mode = insert_mode
 
-    !! Loop over cells
-    do i = 1, square_mesh%nlocal
-      !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
-      !!        filling from front, and pass the number of coefficients to be set, requires
-      !!        modifying the matrix_values type and the implementation of set_values applied to
-      !!        matrices.
-      associate(idxg=>square_mesh%idx_global(i), &
-                nnb=>square_mesh%nnb(i))
-        
-        allocate(mat_coeffs%rglob(1))
-        allocate(mat_coeffs%cglob(1 + nnb))
-        allocate(mat_coeffs%val(1 + nnb))
+  !  !! Loop over cells
+  !  do i = 1, square_mesh%nlocal
+  !    !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
+  !    !!        filling from front, and pass the number of coefficients to be set, requires
+  !    !!        modifying the matrix_values type and the implementation of set_values applied to
+  !    !!        matrices.
+  !    associate(idxg=>square_mesh%idx_global(i), &
+  !              nnb=>square_mesh%nnb(i))
+  !      
+  !      allocate(mat_coeffs%rglob(1))
+  !      allocate(mat_coeffs%cglob(1 + nnb))
+  !      allocate(mat_coeffs%val(1 + nnb))
 
-        row = idxg
-        coeff_p = 0.0_accs_real
-      
-        !! Loop over faces
-        do j = 1, nnb
-          coeff_f = (1.0 / square_mesh%h) * square_mesh%Af(j, i)
-          associate(nbidxg=>square_mesh%nbidx(j, i))
+  !      row = idxg
+  !      coeff_p = 0.0_accs_real
+  !    
+  !      !! Loop over faces
+  !      do j = 1, nnb
+  !        coeff_f = (1.0 / square_mesh%h) * square_mesh%Af(j, i)
+  !        associate(nbidxg=>square_mesh%nbidx(j, i))
 
-            if (nbidxg > 0) then
-              !! Interior face
-              coeff_p = coeff_p - coeff_f
-              coeff_nb = coeff_f
-              col = nbidxg
-            else
-              col = -1
-              coeff_nb = 0.0_accs_real
-            end if
-            call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
+  !          if (nbidxg > 0) then
+  !            !! Interior face
+  !            coeff_p = coeff_p - coeff_f
+  !            coeff_nb = coeff_f
+  !            col = nbidxg
+  !          else
+  !            col = -1
+  !            coeff_nb = 0.0_accs_real
+  !          end if
+  !          call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
 
-          end associate
-        end do
+  !        end associate
+  !      end do
 
-        !! Add the diagonal entry
-        col = row
-        call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+  !      !! Add the diagonal entry
+  !      col = row
+  !      call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
 
-        !! Set the values
-        call set_values(mat_coeffs, M)
+  !      !! Set the values
+  !      call set_values(mat_coeffs, M)
 
-        deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
-        
-      end associate
+  !      deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+  !      
+  !    end associate
 
-    end do
-    
-  end subroutine discretise_poisson
+  !  end do
+  !  
+  !end subroutine discretise_poisson
 
-  subroutine apply_dirichlet_bcs(M, b)
+  !subroutine apply_dirichlet_bcs(M, b)
 
-    use constants, only : add_mode
-    use mat, only : set_eqn
-    use types, only : vector_values, matrix_values, matrix, vector, mesh
-    use utils, only : set_values, pack_entries
-    use kinds, only: accs_int, accs_real
-  
-    implicit none
-  
-    class(matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b
-  
-    integer(accs_int) :: i, j
-    real(accs_real) :: boundary_coeff, boundary_val
+  !  use constants, only : add_mode
+  !  use mat, only : set_eqn
+  !  use types, only : vector_values, matrix_values, matrix, vector, mesh
+  !  use utils, only : set_values, pack_entries
+  !  use kinds, only: accs_int, accs_real
+  !
+  !  implicit none
+  !
+  !  class(matrix), intent(inout) :: M
+  !  class(vector), intent(inout) :: b
+  !
+  !  integer(accs_int) :: i, j
+  !  real(accs_real) :: boundary_coeff, boundary_val
 
-    integer(accs_int) :: idx, row, col
-    real(accs_real) :: r, coeff
-    
-    type(vector_values) :: vec_values
-    type(matrix_values) :: mat_coeffs
-  
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
+  !  integer(accs_int) :: idx, row, col
+  !  real(accs_real) :: r, coeff
+  !  
+  !  type(vector_values) :: vec_values
+  !  type(matrix_values) :: mat_coeffs
+  !
+  !  allocate(mat_coeffs%rglob(1))
+  !  allocate(mat_coeffs%cglob(1))
+  !  allocate(mat_coeffs%val(1))
+  !  allocate(vec_values%idx(1))
+  !  allocate(vec_values%val(1))
 
-    mat_coeffs%mode = add_mode
-    vec_values%mode = add_mode
+  !  mat_coeffs%mode = add_mode
+  !  vec_values%mode = add_mode
 
-    associate(idx_global=>square_mesh%idx_global)
-  
-      do i = 1, square_mesh%nlocal
-        if (minval(square_mesh%nbidx(:, i)) < 0) then
-          coeff = 0.0_accs_real 
-          r = 0.0_accs_real
-          
-          row = idx_global(i)
-          col = idx_global(i)
-          idx = idx_global(i)
+  !  associate(idx_global=>square_mesh%idx_global)
+  !
+  !    do i = 1, square_mesh%nlocal
+  !      if (minval(square_mesh%nbidx(:, i)) < 0) then
+  !        coeff = 0.0_accs_real 
+  !        r = 0.0_accs_real
+  !        
+  !        row = idx_global(i)
+  !        col = idx_global(i)
+  !        idx = idx_global(i)
 
-          do j = 1, square_mesh%nnb(i)
+  !        do j = 1, square_mesh%nnb(i)
 
-            associate(nbidx=>square_mesh%nbidx(j, i))
+  !          associate(nbidx=>square_mesh%nbidx(j, i))
 
-              if (nbidx < 0) then
-                boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af(j, i)
-                boundary_val = rhs_val(i, j)
+  !            if (nbidx < 0) then
+  !              boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af(j, i)
+  !              boundary_val = rhs_val(i, j)
 
-                ! Coefficient
-                coeff = coeff - boundary_coeff
+  !              ! Coefficient
+  !              coeff = coeff - boundary_coeff
 
-                ! RHS vector
-                r = r - boundary_val * boundary_coeff
-              end if
+  !              ! RHS vector
+  !              r = r - boundary_val * boundary_coeff
+  !            end if
 
-            end associate
-          end do
+  !          end associate
+  !        end do
 
-          call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
-          call pack_entries(vec_values, 1, idx, r)
+  !        call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
+  !        call pack_entries(vec_values, 1, idx, r)
 
-          call set_values(mat_coeffs, M)
-          call set_values(vec_values, b)
-          
-        end if
-      end do
-  
-    end associate
-  
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
-  
-  end subroutine apply_dirichlet_bcs
+  !        call set_values(mat_coeffs, M)
+  !        call set_values(vec_values, b)
+  !        
+  !      end if
+  !    end do
+  !
+  !  end associate
+  !
+  !  deallocate(vec_values%idx)
+  !  deallocate(vec_values%val)
+  !
+  !end subroutine apply_dirichlet_bcs
 
-  subroutine set_exact_sol(ustar)
+  !subroutine set_exact_sol(ustar)
 
-    use constants, only : insert_mode
-    use types, only : vector_values
-    use utils, only : set_values, pack_entries
-    
-    class(vector), intent(inout) :: ustar
+  !  use constants, only : insert_mode
+  !  use types, only : vector_values
+  !  use utils, only : set_values, pack_entries
+  !  
+  !  class(vector), intent(inout) :: ustar
 
-    type(vector_values) :: vec_values
-    integer(accs_int) :: i
-    
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-    vec_values%mode = insert_mode
-    do i = 1, square_mesh%nlocal
-       associate(idx=>square_mesh%idx_global(i))
-         call pack_entries(vec_values, 1, idx, rhs_val(i))
-         call set_values(vec_values, ustar)
-       end associate
-    end do
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
+  !  type(vector_values) :: vec_values
+  !  integer(accs_int) :: i
+  !  
+  !  allocate(vec_values%idx(1))
+  !  allocate(vec_values%val(1))
+  !  vec_values%mode = insert_mode
+  !  do i = 1, square_mesh%nlocal
+  !     associate(idx=>square_mesh%idx_global(i))
+  !       call pack_entries(vec_values, 1, idx, rhs_val(i))
+  !       call set_values(vec_values, ustar)
+  !     end associate
+  !  end do
+  !  deallocate(vec_values%idx)
+  !  deallocate(vec_values%val)
 
-    call update(ustar)
-  end subroutine set_exact_sol
+  !  call update(ustar)
+  !end subroutine set_exact_sol
 
-  subroutine initialise_poisson(par_env)
+  !subroutine initialise_poisson(par_env)
 
-    class(parallel_environment) :: par_env
+  !  class(parallel_environment) :: par_env
 
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
-    
-  end subroutine initialise_poisson
+  !  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+  !  
+  !end subroutine initialise_poisson
 
-  pure function rhs_val(i, f) result(r)
+  !pure function rhs_val(i, f) result(r)
 
-    integer(accs_int), intent(in) :: i !> Cell index
-    integer(accs_int), intent(in), optional :: f !> Face index (local wrt cell)
+  !  integer(accs_int), intent(in) :: i !> Cell index
+  !  integer(accs_int), intent(in), optional :: f !> Face index (local wrt cell)
 
-    real(accs_real) :: r
+  !  real(accs_real) :: r
 
-    if (present(f)) then
-      !! Face-centred value
-      associate(y => square_mesh%xf(2, f, i))
-        r = y
-      end associate
-    else
-      !! Cell-centred value
-      associate(y => square_mesh%xc(2, i))
-        r = y
-      end associate
-    end if
-    
-  end function rhs_val
+  !  if (present(f)) then
+  !    !! Face-centred value
+  !    associate(y => square_mesh%xf(2, f, i))
+  !      r = y
+  !    end associate
+  !  else
+  !    !! Cell-centred value
+  !    associate(y => square_mesh%xc(2, i))
+  !      r = y
+  !    end associate
+  !  end if
+  !  
+  !end function rhs_val
 
   !> @brief read command line arguments and their values
   subroutine read_command_line_arguments()
