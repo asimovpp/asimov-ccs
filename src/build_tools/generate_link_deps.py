@@ -44,30 +44,44 @@ def get_link_rule(config, deps):
   log.debug("commons: %s", " ".join(commons))
   link_deps = link_deps + commons 
   # add files that have options
-  link_deps = link_deps + [v for k,v in config["options"].items()]
+  link_deps = link_deps + [v for k,v in config["config"].items()]
 
   # turn array of filenames to a string with object postfix
   return link_obj + " ".join(["obj/" + os.path.basename(x) + ".o" for x in link_deps])
 
 
 def apply_config_mapping(config, config_mapping):
-  out = {}
-  out["main"] = config["main"]
-  out["options"] = {}
-  opts = out["options"]
-  for k,v in config["options"].items():
-    m = config_mapping[k][v]
-    log.debug("-- %s %s %s",k, v, m) 
-    if isinstance(m, dict):
-      log.debug("  is dict")
-      opts.update(m) 
-    elif isinstance(m, str):
-      log.debug("  is str")
-      opts[k] = m
+  out = {"main": "", "config": {}}
+  
+  if "main" in config:
+    out["main"] = config["main"]
+  else:
+    raise Exception("config has to specify a main")
+  
+  if "base" in config:
+    base = config["base"]
+    if base in config_mapping["bases"]:
+        out["config"].update(config_mapping["bases"][base]["defaults"])
     else:
-      raise Exception(m, "matches no config mapping rule")
+        raise Exception("base not found in config mapping", base)
+  else:
+    raise Exception("config has to specify a base")
 
-
+  if "options" in config:
+    opts = config_mapping["bases"][base]["options"]
+    if opts:
+      for k,v in config["options"].items():
+        if k in opts:
+          if v in opts[k]:
+            out["config"][k] = v 
+          else:
+            raise Exception("option choice not found in config mapping", k)
+        else:
+          raise Exception("option category not found in config mapping", k)
+    else:
+      raise Exception("base does not allow options", base)
+  print("here it is")
+  print(out)
   return out
 
 

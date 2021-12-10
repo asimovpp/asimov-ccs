@@ -1,3 +1,4 @@
 main: poisson
-options: 
-  parallel: poisson
+base: mpi_petsc
+#options:
+  #component: opt_2
