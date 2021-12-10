@@ -18,6 +18,10 @@ docs :
 tests : build
 	$(MK) -C $(TESTDIR)
 
+.PHONY : lit_tests
+lit_tests : 
+	$(MK) -C lit_test
+
 build :
 	$(MK) -C $(TESTDIR) build
 

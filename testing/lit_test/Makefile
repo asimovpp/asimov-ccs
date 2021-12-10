@@ -1,4 +1,4 @@
 all:
-	python run_lit.py -v .
+	python3 run_lit.py -j 1 -v .
 clean:
-	rm -rf suite*/Output/
+	rm -rf */Output/

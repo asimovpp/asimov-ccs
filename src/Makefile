@@ -1,5 +1,5 @@
 PY = python3
-OBJ_DIR=obj/
+OBJ_DIR=$(CCS_DIR)src/obj/
 BUILD ?= release
 
 # these 2 variables are needed to parse "," and " " correctly
@@ -23,7 +23,7 @@ ifeq ($(CMP),intel)
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
-  FFLAGS = -cpp -O3 -std="f2018"
+  FFLAGS = -cpp -O3 -std=f2018
   CAFFLAGS = -fcoarray=single
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
@@ -55,9 +55,9 @@ endif
 
 
 EXE = ccs_app
-TOOLS=build_tools/
+TOOLS=$(CCS_DIR)src/build_tools/
 
-DEP_PREFIX=obj/
+DEP_PREFIX=$(CCS_DIR)src/obj/
 EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
 ALL_DEPS=$(DEP_PREFIX)all.deps
 TAG_DEPS=$(DEP_PREFIX)build_tags.deps
@@ -66,10 +66,8 @@ RULE_DEPS=$(DEP_PREFIX)rules.deps
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
 CASES = poisson
 
-#SRC = $(wildcard *.f90)
-ALL_SRC = $(shell find . -type f -name '*.f90')
+ALL_SRC = $(shell find $(CCS_DIR)src/ -type f -name '*.f90')
 SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
-#OBJ = $(SRC:%.f90=%.o)
 OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
 include $(TAG_DEPS)
@@ -82,8 +80,8 @@ LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 all: $(OBJ) $(EXE)
 
 # pFUnit is incompatible with -Wimplicit-procedure, etc.
-tests: all tests_build
-	make -C ../testing tests
+tests: all
+	make -C ../testing lit_tests
 
 tests_build: FFLAGS := $(filter-out -Wimplicit-procedure,$(FFLAGS))
 tests_build: FFLAGS := $(filter-out -Wimplicit-interface,$(FFLAGS))

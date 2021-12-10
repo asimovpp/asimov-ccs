@@ -47,7 +47,7 @@ def get_link_rule(config, deps):
   link_deps = link_deps + [v for k,v in config["config"].items()]
 
   # turn array of filenames to a string with object postfix
-  return link_obj + " ".join(["obj/" + os.path.basename(x) + ".o" for x in link_deps])
+  return link_obj + " ".join(["${OBJ_DIR}" + os.path.basename(x) + ".o" for x in link_deps])
 
 
 def apply_config_mapping(config, config_mapping):
