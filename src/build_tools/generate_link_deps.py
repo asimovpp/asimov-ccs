@@ -80,8 +80,7 @@ def apply_config_mapping(config, config_mapping):
           raise Exception("option category not found in config mapping", k)
     else:
       raise Exception("base does not allow options", base)
-  print("here it is")
-  print(out)
+  
   return out
 
 
