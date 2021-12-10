@@ -1,3 +1,8 @@
+.general_setup:
+  before_script:
+    - export CCS_DIR=${PWD}"/"
+    - cd src
+
 .setup_gnu:
   before_script:
     - source setup_gitlab_runner_env
@@ -67,8 +72,7 @@ test_ccs_intel:
     - HOME=${CI_HOME} CMP=intel make tests
 
 generate_documentation:
-  before_script:
-    - cd src
+  extends: .general_setup
   script:
     - make docs
   allow_failure: true
