@@ -105,7 +105,7 @@ clean:
 	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod
 clean-tests:
 	make -C ../testing clean
-clean-full: clean clean-tests
+clean-full: clean clean-tests clean-docs
 	rm -f $(OBJ_DIR)*.deps
 
 $(ALL_DEPS): $(SRC)
@@ -127,6 +127,10 @@ include $(RULE_DEPS)
 docs: doxy 
 doxy:
 	doxygen doxygen.cfg
+docs-latex: doxy
+	make -C latex
+clean-docs:
+	rm -rf html latex
 
 #Needed to pass variables to children Makefiles, e.g. for the testing framework
 export
