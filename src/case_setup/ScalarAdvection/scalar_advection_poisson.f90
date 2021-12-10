@@ -146,8 +146,8 @@ contains
     mat_coeffs%mode = insert_mode
 
     allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(n_coeffs))
-    allocate(mat_coeffs%val(n_coeffs))
+    allocate(mat_coeffs%cglob(1))
+    allocate(mat_coeffs%val(1))
 
     select type (M)
       type is (matrix_petsc) ! ALEXEI: make this independent of solver implementation
@@ -169,17 +169,18 @@ contains
           call get_matrix_ngbs(i, j, n_cols, row, col) ! Should eventually use mesh to find neighbours
           ! Replace this hack setting row and column values to -1 with proper use of neighbours in mesh
           if (row > 0 .and. col > 0) then
-            call pack_entries(mat_coeffs, 1, j, row, col, adv_coeffs(j) + diff_coeffs(j)) ! I think this is only suitable for serial with
-                                                                                     ! this choice of indices
+            call pack_entries(mat_coeffs, 1, 1, row, col, adv_coeffs(j) + diff_coeffs(j)) ! I think this is only suitable for serial with
+                                                                                          ! this choice of indices
+            call set_values(mat_coeffs, M)
           end if
         end do
       end do
 
-      call set_values(mat_coeffs, M)
       class default
         write(*,*) "Unsupported matrix type"
         stop
     end select
+    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
   end subroutine compute_fluxes
 
   ! Calculates advection coefficients and stores them in coefficient array using ordering i
@@ -302,23 +303,24 @@ contains
   subroutine set_zero(vec)
     use constants, only : add_mode
     use types, only : vector_values
-    use utils, only : set_values
+    use utils, only : set_values, pack_entries
 
     class(vector), intent(inout) :: vec
-    type(vector_values) :: data
+    type(vector_values) :: vec_data
     integer(accs_int) :: i, nloc
 
-    data%mode = add_mode
-    nloc = square_mesh%nlocal
-    allocate(data%idx(nloc))
-    allocate(data%val(nloc))
+    vec_data%mode = add_mode
+    nloc = square_mesh%n
+    allocate(vec_data%idx(nloc))
+    allocate(vec_data%val(nloc))
 
     do i = 1, nloc
-      data%idx(i) = i
-      data%val(i) = 0
+      !vec_data%idx(i) = i
+      !vec_data%val(i) = 0
+      call pack_entries(vec_data, i, i, 0.0_accs_real)
     end do
 
-    call set_values(data, vec)
+    call set_values(vec_data, vec)
   end subroutine set_zero
 
   ! Assigns source vector
@@ -332,7 +334,7 @@ contains
   subroutine set_scalar_BCs(scalar)
     use constants, only : add_mode
     use types, only : vector_values
-    use utils, only : set_values
+    use utils, only : set_values, pack_entries
 
     class(vector), intent(inout) :: scalar
     type(vector_values) :: data
@@ -340,15 +342,16 @@ contains
 
     data%mode = add_mode
     cps = int(sqrt(real(square_mesh%n)))
-    allocate(data%idx(1))
-    allocate(data%val(1))
-    data%val = 1
+    allocate(data%idx(cps))
+    allocate(data%val(cps))
 
     call set_zero(scalar)
 
     do i = 1, cps
-      data%idx = i + square_mesh%n - cps
-      data%val = 1
+      !data%idx = i + square_mesh%n - cps
+      !data%val = 1
+      call pack_entries(data, i, i + square_mesh%n - cps, 1.0_accs_real)
+      !print *, 'set_scalar idx ', data%idx
     end do
     call set_values(data, scalar)
   end subroutine set_scalar_BCs
@@ -417,6 +420,15 @@ contains
         call calc_cell_coords(cell_index+1, cps, row, col)
         col = central_col
       end if
+    end if
+
+    if (row > n_cols .or. row < -1 .or. row == 0) then
+      print *, 'invalid row ', row
+      stop
+    end if
+    if (col > n_cols .or. col < -1 .or. col == 0) then
+      print *, 'invalid col ', col
+      stop
     end if
 
   end subroutine

@@ -235,6 +235,8 @@ contains
         call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
 
         !! Set the values
+        print *, 'mat_coeffs rglob', mat_coeffs%rglob
+        print *, 'mat_coeffs cglob', mat_coeffs%cglob
         call set_values(mat_coeffs, M)
 
         deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
