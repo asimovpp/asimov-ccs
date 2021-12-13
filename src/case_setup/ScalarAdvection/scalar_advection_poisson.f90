@@ -135,13 +135,17 @@ contains
     class(matrix), intent(inout) :: M   
     real(accs_real), dimension(:,:), intent(in) :: u, v
     
-    integer(accs_int) :: i, j           ! Counters
+    integer(accs_int) :: j           ! Counters
     integer(accs_int) :: n_rows, n_cols 
     integer(accs_int) :: row, col 
-    integer(accs_int), parameter :: n_coeffs = 5
-    real(accs_real), dimension(n_coeffs) :: adv_coeffs, diff_coeffs
+    real(accs_real) :: adv_coeff, diff_coeff
+    real(accs_real) :: adv_coeff_total, diff_coeff_total
+    integer(accs_int) :: ngb_idx, self_idx
+    integer(accs_int) :: cps
 
     type(matrix_values) :: mat_coeffs
+    
+    cps = int(sqrt(real(square_mesh%n)))
 
     mat_coeffs%mode = insert_mode
 
@@ -155,25 +159,30 @@ contains
       n_cols = n_rows
       
       ! calculate diffusion coefficients outside the loop because they shouldn't depend on position
-      call calc_diffusion_coeffs(diff_coeffs)
+      !call calc_diffusion_coeffs(diff_coeffs)
 
       ! Loop over cells computing advection and diffusion fluxes
       ! Note, n_cols corresponds to the number of cells in the mesh
-      do i = 1, n_cols
-        call calc_advection_coeffs(i, adv_coeffs, "CDS", n_cols, u, v) ! change string comparison to int comparison.
-
-        ! Assign fluxes to matrix. Coefficients have same ordering as eq 4.51 of Ferziger.
-        ! This loop finds the locations of the corresponding cell in the matrix and updates 
-        ! its value
-        do j = 1, n_coeffs
-          call get_matrix_ngbs(i, j, n_cols, row, col) ! Should eventually use mesh to find neighbours
-          ! Replace this hack setting row and column values to -1 with proper use of neighbours in mesh
-          if (row > 0 .and. col > 0) then
-            call pack_entries(mat_coeffs, 1, 1, row, col, adv_coeffs(j) + diff_coeffs(j)) ! I think this is only suitable for serial with
-                                                                                          ! this choice of indices
-            call set_values(mat_coeffs, M)
-          end if
+      do self_idx = 1, n_cols
+        ! Calculate contribution from neighbours
+        diff_coeff_total = 0.
+        adv_coeff_total = 0.
+        do j = 1, square_mesh%nnb(self_idx)
+          ngb_idx = square_mesh%nbidx(j, self_idx)
+          call calc_diffusion_coeff(diff_coeff, 0)
+          call calc_advection_coeff(ngb_idx, j, square_mesh%Af(j, self_idx), adv_coeff, "CDS", cps, u, v)
+          call calc_cell_coords(ngb_idx, cps, row, col)
+          call pack_entries(mat_coeffs, 1, 1, row, col, adv_coeff + diff_coeff)
+          call set_values(mat_coeffs, M)
+          diff_coeff_total = diff_coeff_total + diff_coeff
+          adv_coeff_total = adv_coeff_total + adv_coeff
         end do
+        ! Calculate contribution from self
+        call calc_diffusion_coeff(diff_coeff, 1)
+        call calc_advection_coeff(self_idx, 0, 0.0_accs_real, adv_coeff, "CDS", cps, u, v)
+        call calc_cell_coords(self_idx, cps, row, col)
+        call pack_entries(mat_coeffs, 1, 1, row, col, -(adv_coeff_total + diff_coeff_total))
+        call set_values(mat_coeffs, M)
       end do
 
       class default
@@ -185,96 +194,112 @@ contains
 
   ! Calculates advection coefficients and stores them in coefficient array using ordering i
   ! of eq 4.51 of Ferziger (i.e. W, S, P, N, E)
-  subroutine calc_advection_coeffs(idx, coeffs, discretisation, cps, u, v)
-    integer(accs_int), intent(in) :: idx
-    real(accs_real), dimension(5), intent(inout) :: coeffs
+  !subroutine calc_advection_coeffs(idx, coeffs, discretisation, cps, u, v)
+  !  integer(accs_int), intent(in) :: idx
+  !  real(accs_real), dimension(5), intent(inout) :: coeffs
+  !  character(len=3), intent(in) :: discretisation
+  !  integer(accs_int), intent(in) :: cps
+  !  real(accs_real), dimension(:,:) :: u, v
+
+  !  real(accs_real) :: edge_len         ! cell edge length
+  !  integer(accs_int) :: row, col       ! coordinates within grid
+
+  !  ! Find where we are in the grid first
+  !  call calc_cell_coords(idx, cps, row, col)
+
+  !  edge_len = 1./real(cps)
+
+  !  select case(discretisation)
+  !    case("UDS")
+  !      coeffs(1) = min(calc_mass_flux("w", edge_len, u, v, row, col), 0.0_accs_real)
+  !      coeffs(2) = min(calc_mass_flux("s", edge_len, u, v, row, col), 0.0_accs_real)
+  !      coeffs(4) = min(calc_mass_flux("n", edge_len, u, v, row, col), 0.0_accs_real)
+  !      coeffs(5) = min(calc_mass_flux("e", edge_len, u, v, row, col), 0.0_accs_real)
+  !      coeffs(3) = -(coeffs(1) + coeffs(2) + coeffs(4) + coeffs(5))
+  !    case("CDS")
+  !      ! NOTE: Assumes uniform grid! (for now)
+  !      coeffs(1) = calc_mass_flux("w", edge_len, u, v, row, col)
+  !      coeffs(2) = calc_mass_flux("s", edge_len, u, v, row, col)
+  !      coeffs(4) = calc_mass_flux("n", edge_len, u, v, row, col)
+  !      coeffs(5) = calc_mass_flux("e", edge_len, u, v, row, col)
+  !      coeffs(3) = -(coeffs(1) + coeffs(2) + coeffs(4) + coeffs(5))
+  !    case default
+  !      write(*,*) "Invalid discretisation scheme provided. Aborting"
+  !      stop
+  !  end select
+
+  !end subroutine calc_advection_coeffs
+  
+  ! Calculates advection coefficient for neighbouring cell 
+  subroutine calc_advection_coeff(ngb_idx, self_idx, face_area, coeff, discretisation, cps, u, v)
+    integer(accs_int), intent(in) :: ngb_idx, self_idx
+    real(accs_real), intent(in) :: face_area
+    real(accs_real), intent(inout) :: coeff
     character(len=3), intent(in) :: discretisation
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:,:) :: u, v
 
-    real(accs_real) :: edge_len         ! cell edge length
-    integer(accs_int) :: row, col       ! coordinates within grid
+    integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
+    integer(accs_int) :: self_row, self_col     ! cell coordinates within grid
 
     ! Find where we are in the grid first
-    call calc_cell_coords(idx, cps, row, col)
+    call calc_cell_coords(ngb_idx, cps, ngb_row, ngb_col)
+    call calc_cell_coords(self_idx, cps, self_row, self_col)
 
-    edge_len = 1./real(cps)
-
-    select case(discretisation)
-      case("UDS")
-        coeffs(1) = min(calc_mass_flux("w", edge_len, u, v, row, col), 0.0_accs_real)
-        coeffs(2) = min(calc_mass_flux("s", edge_len, u, v, row, col), 0.0_accs_real)
-        coeffs(4) = min(calc_mass_flux("n", edge_len, u, v, row, col), 0.0_accs_real)
-        coeffs(5) = min(calc_mass_flux("e", edge_len, u, v, row, col), 0.0_accs_real)
-        coeffs(3) = -(coeffs(1) + coeffs(2) + coeffs(4) + coeffs(5))
-      case("CDS")
-        ! NOTE: Assumes uniform grid! (for now)
-        coeffs(1) = calc_mass_flux("w", edge_len, u, v, row, col)
-        coeffs(2) = calc_mass_flux("s", edge_len, u, v, row, col)
-        coeffs(4) = calc_mass_flux("n", edge_len, u, v, row, col)
-        coeffs(5) = calc_mass_flux("e", edge_len, u, v, row, col)
-        coeffs(3) = -(coeffs(1) + coeffs(2) + coeffs(4) + coeffs(5))
-      case default
-        write(*,*) "Invalid discretisation scheme provided. Aborting"
-        stop
-    end select
-
-  end subroutine calc_advection_coeffs
+    coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col)
+    if (discretisation == "UDS") then
+      coeff = min(coeff, 0.0_accs_real)
+    end if
+  end subroutine calc_advection_coeff
 
   ! Calculates diffusion coefficients and stores them in coefficient array using ordering i
   ! of eq 4.51 of Ferziger (i.e. W, S, P, N, E)
-  subroutine calc_diffusion_coeffs(coeffs)
-    real(accs_real), dimension(5), intent(inout) :: coeffs
+  !subroutine calc_diffusion_coeffs(coeffs)
+  !  real(accs_real), dimension(5), intent(inout) :: coeffs
 
-    real(accs_real), parameter :: Gamma = 0.001
+  !  real(accs_real), parameter :: Gamma = 0.001
+
+  !  ! Because mesh is assumed to be square and uniform, all coefficients (apart from P) 
+  !  ! have the same value
+  !  coeffs = -2.*Gamma 
+  !  coeffs(3) = -4*coeffs(1)
+  !end subroutine calc_diffusion_coeffs
+  
+  ! Calculates diffusion coefficient
+  subroutine calc_diffusion_coeff(coeff, source_cell)
+    real(accs_real), intent(inout) :: coeff
+    integer(accs_int), intent(in) :: source_cell
+
+    real(accs_real), parameter :: diffusion_factor = 0.001
 
     ! Because mesh is assumed to be square and uniform, all coefficients (apart from P) 
     ! have the same value
-    coeffs = -2.*Gamma 
-    coeffs(3) = -4*coeffs(1)
-  end subroutine calc_diffusion_coeffs
+    if (source_cell == 0) then
+      coeff = -2.*diffusion_factor 
+    else
+      coeff = 8*diffusion_factor
+    end if
+  end subroutine calc_diffusion_coeff
 
   ! Calculates mass flux across given edge. Note: assuming rho = 1
-  function calc_mass_flux(edge, edge_len, u, v, row, col) result(flux)
-    character, intent(in) :: edge
+  function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col) result(flux)
     real(accs_real), intent(in) :: edge_len
     real(accs_real), dimension(:,:), intent(in) :: u, v
-    integer(accs_int), intent(in) :: row, col
-    integer(accs_int) :: n_cols
+    integer(accs_int), intent(in) :: ngb_row, ngb_col
+    integer(accs_int), intent(in) :: self_row, self_col
 
     real(accs_real) :: flux
 
-    n_cols = int(sqrt(real(square_mesh%n)))
+    if (abs(ngb_col - self_col) == 1) then
+      flux = 0.5*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
+    !else if (abs(ngb_row - self_row) == 1) then
+    else
+      flux = 0.5*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
+    !else 
+    !  print *, 'cells do not neighbour each other ngb self col row', ngb_col, ngb_row, self_col, self_row
+    !  stop
+    end if
 
-    select case(edge)
-      case("w")
-        if (col > 1) then
-          flux = 0.5*(u(col, row) + u(col-1, row)) * edge_len
-        else
-          flux = u(col, row) * edge_len
-        end if
-      case("e")
-        if (col < n_cols) then
-          flux = 0.5*(u(col, row) + u(col+1, row)) * edge_len
-        else
-          flux = u(col, row) * edge_len
-        end if
-      case("s")
-        if (row > 1) then
-          flux = 0.5*(v(col, row) + v(col, row-1)) * edge_len
-        else
-          flux = v(col, row) * edge_len
-        end if
-      case("n")
-        if (row < n_cols) then
-          flux = 0.5*(v(col, row) + v(col, row+1)) * edge_len
-        else
-          flux = v(col, row) * edge_len
-        end if
-      case default
-        write(*,*) "Invalid edge provided. Aborting"
-        stop
-    end select
   end function calc_mass_flux
 
   ! Make the square mesh, and setup ICs for u, v, and our scalar field
@@ -375,63 +400,63 @@ contains
   !end function calc_flat_index
 
   ! Computes the row and column indices of 
-  subroutine get_matrix_ngbs(cell_index, coeff_index, cps, row, col)
-    integer(accs_int), intent(in) :: cell_index
-    integer(accs_int), intent(in) :: coeff_index
-    integer(accs_int), intent(in) :: cps
-    integer(accs_int), intent(inout) :: row, col
-    integer(accs_int) :: central_col    ! column of central cell
-    integer(accs_int) :: n_cols
+  !subroutine get_matrix_ngbs(cell_index, coeff_index, cps, row, col)
+  !  integer(accs_int), intent(in) :: cell_index
+  !  integer(accs_int), intent(in) :: coeff_index
+  !  integer(accs_int), intent(in) :: cps
+  !  integer(accs_int), intent(inout) :: row, col
+  !  integer(accs_int) :: central_col    ! column of central cell
+  !  integer(accs_int) :: n_cols
 
-    n_cols = int(sqrt(real(square_mesh%n)))
+  !  n_cols = int(sqrt(real(square_mesh%n)))
 
-    call calc_cell_coords(cell_index, cps, row, central_col)
-    if (coeff_index == 3) then
-      col = central_col
-    else if (coeff_index == 1) then
-      if (cell_index-1 < 1) then
-        row = -1
-        col = -1
-      else
-        call calc_cell_coords(cell_index-1, cps, row, col)
-        col = central_col
-      end if
-    else if (coeff_index == 2) then
-      if (cell_index-cps < 1) then
-        row = -1
-        col = -1
-      else
-        call calc_cell_coords(cell_index-cps, cps, row, col)
-        col = central_col
-      end if
-    else if (coeff_index == 4) then
-      if (cell_index+cps > n_cols) then
-        row = -1
-        col = -1
-      else
-        call calc_cell_coords(cell_index+cps, cps, row, col)
-        col = central_col
-      end if
-    else if (coeff_index == 5) then
-      if (cell_index+1 > n_cols) then
-        row = -1
-        col = -1
-      else
-        call calc_cell_coords(cell_index+1, cps, row, col)
-        col = central_col
-      end if
-    end if
+  !  call calc_cell_coords(cell_index, cps, row, central_col)
+  !  if (coeff_index == 3) then
+  !    col = central_col
+  !  else if (coeff_index == 1) then
+  !    if (cell_index-1 < 1) then
+  !      row = -1
+  !      col = -1
+  !    else
+  !      call calc_cell_coords(cell_index-1, cps, row, col)
+  !      col = central_col
+  !    end if
+  !  else if (coeff_index == 2) then
+  !    if (cell_index-cps < 1) then
+  !      row = -1
+  !      col = -1
+  !    else
+  !      call calc_cell_coords(cell_index-cps, cps, row, col)
+  !      col = central_col
+  !    end if
+  !  else if (coeff_index == 4) then
+  !    if (cell_index+cps > n_cols) then
+  !      row = -1
+  !      col = -1
+  !    else
+  !      call calc_cell_coords(cell_index+cps, cps, row, col)
+  !      col = central_col
+  !    end if
+  !  else if (coeff_index == 5) then
+  !    if (cell_index+1 > n_cols) then
+  !      row = -1
+  !      col = -1
+  !    else
+  !      call calc_cell_coords(cell_index+1, cps, row, col)
+  !      col = central_col
+  !    end if
+  !  end if
 
-    if (row > n_cols .or. row < -1 .or. row == 0) then
-      print *, 'invalid row ', row
-      stop
-    end if
-    if (col > n_cols .or. col < -1 .or. col == 0) then
-      print *, 'invalid col ', col
-      stop
-    end if
+  !  if (row > n_cols .or. row < -1 .or. row == 0) then
+  !    print *, 'invalid row ', row
+  !    stop
+  !  end if
+  !  if (col > n_cols .or. col < -1 .or. col == 0) then
+  !    print *, 'invalid col ', col
+  !    stop
+  !  end if
 
-  end subroutine
+  !end subroutine
 
 !----------------------------------------------------------------------!
 
