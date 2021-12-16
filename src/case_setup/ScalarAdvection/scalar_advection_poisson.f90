@@ -7,8 +7,8 @@ program scalar_advection
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-                    linear_system, linear_solver, mesh, set_global_matrix_size
-  use vec, only : create_vector, axpy, norm
+                    linear_system, linear_solver, mesh, set_global_matrix_size, viewer
+  use vec, only : create_vector, axpy, norm, vec_view
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
@@ -19,8 +19,8 @@ program scalar_advection
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer
 
-  use petsc, only: ADD_VALUES
-  
+  use petsc, only: ADD_VALUES  
+
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
@@ -38,7 +38,10 @@ program scalar_advection
 
   integer(accs_int) :: cps = 10 ! Default value for cells per side
 
-  !real(accs_real) :: err_norm
+  real(accs_real) :: err_norm
+  !real(accs_real), pointer, dimension(:) :: scalar_data
+  !PetscScalar, pointer, dimension(:) :: scalar_data
+  integer(accs_int) :: i
 
   double precision :: start_time
   double precision :: end_time
@@ -93,29 +96,34 @@ program scalar_advection
   call end_update(scalar) ! Complete the parallel assembly for scalar
   !call end_update(source) ! Complete the parallel assembly for source
 
+  !call vec_view(scalar)
+
   !! Create linear solver & set options
   call set_linear_system(scalar_linear_system, source, scalar, M, par_env)
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
+  
+  call vec_view(scalar)
 
   !! Check solution
   ! ALEXEI: Need to know what the analytic solution for this problem is first.
-  !call set_exact_sol(ustar)
-  !call axpy(-1.0_accs_real, ustar, scalar)
+  call set_exact_sol(solution)
+  call axpy(-1.0_accs_real, solution, scalar)
 
-  !err_norm = norm(scalar, 2) * square_mesh%h
-  !if (par_env%proc_id == par_env%root) then
-  !   print *, "Norm of error = ", err_norm
-  !end if
+  err_norm = norm(scalar, 2) * square_mesh%h
+  if (par_env%proc_id == par_env%root) then
+     print *, "Norm of error = ", err_norm
+  end if
   
   !! Clean up
   deallocate(scalar)
   deallocate(source)
-  !deallocate(ustar)
+  deallocate(solution)
   deallocate(M)
   deallocate(u)
   deallocate(v)
   deallocate(scalar_solver)
+
 
   call timer(end_time)
 
@@ -139,6 +147,7 @@ contains
     real(accs_real) :: adv_coeff, diff_coeff
     real(accs_real) :: adv_coeff_total, diff_coeff_total
     integer(accs_int) :: ngb_idx, self_idx
+    integer(accs_int) :: cps
 
     type(matrix_values) :: mat_coeffs
     
@@ -147,6 +156,8 @@ contains
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
     allocate(mat_coeffs%val(1))
+
+    cps = int(sqrt(real(square_mesh%n)))
 
     select type (M)
       type is (matrix_petsc) ! ALEXEI: make this independent of solver implementation
@@ -163,6 +174,7 @@ contains
           ! ALEXEI: for now only work on neighbours that are directly within the mesh (i.e. not using e.g. periodic BCs). Fix to use any
           ! neighbour
           if (ngb_idx > 0 .and. ngb_idx .le. square_mesh%n) then
+            !call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "CDS", cps, u, v)
             call pack_entries(mat_coeffs, 1, 1, self_idx, ngb_idx, adv_coeff + diff_coeff)
             call set_values(mat_coeffs, M)
             diff_coeff_total = diff_coeff_total + diff_coeff
@@ -170,7 +182,7 @@ contains
           end if
         end do
         ! Calculate contribution from self
-        call calc_diffusion_coeff(diff_coeff, 1)
+        !call calc_diffusion_coeff(diff_coeff, 1)
         call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
         call set_values(mat_coeffs, M)
       end do
@@ -209,7 +221,7 @@ contains
     real(accs_real), intent(inout) :: coeff
     integer(accs_int), intent(in) :: source_cell
 
-    real(accs_real), parameter :: diffusion_factor = 0.001
+    real(accs_real), parameter :: diffusion_factor = 0.1
 
     ! Because mesh is assumed to be square and uniform, all coefficients (apart from P) 
     ! have the same value
@@ -305,15 +317,18 @@ contains
     integer(accs_int) :: i, cps
 
     data%mode = add_mode
-    cps = int(sqrt(real(square_mesh%n)))
+    !cps = int(sqrt(real(square_mesh%n)))
+    cps = 1
     allocate(data%idx(cps))
     allocate(data%val(cps))
 
     call set_zero(scalar)
 
-    do i = 1, cps
-      call pack_entries(data, i, i + square_mesh%n - cps, 1.0_accs_real)
-    end do
+    !do i = 1, cps
+    !  call pack_entries(data, i, i + square_mesh%n - cps, 1.0_accs_real)
+    !end do
+
+    call pack_entries(data, 1, 15, 100.0_accs_real)
     call set_values(data, scalar)
   end subroutine set_scalar_BCs
 
@@ -326,6 +341,15 @@ contains
     col = modulo(idx-1,cps) + 1 
     row = (idx-1)/cps + 1
   end subroutine calc_cell_coords
+
+  subroutine write_data(filename, solution)
+    character(len=*), intent(in) :: filename
+    real(accs_real), dimension(:), intent(in) :: solution
+
+    open(10, file=filename, form='unformatted')
+    write(10) solution
+    close(10)
+  end subroutine write_data
 
 !----------------------------------------------------------------------!
 
@@ -526,31 +550,32 @@ contains
   !
   !end subroutine apply_dirichlet_bcs
 
-  !subroutine set_exact_sol(ustar)
+  subroutine set_exact_sol(ustar)
 
-  !  use constants, only : insert_mode
-  !  use types, only : vector_values
-  !  use utils, only : set_values, pack_entries
-  !  
-  !  class(vector), intent(inout) :: ustar
+    use constants, only : insert_mode
+    use types, only : vector_values
+    use utils, only : set_values, pack_entries
+    
+    class(vector), intent(inout) :: ustar
 
-  !  type(vector_values) :: vec_values
-  !  integer(accs_int) :: i
-  !  
-  !  allocate(vec_values%idx(1))
-  !  allocate(vec_values%val(1))
-  !  vec_values%mode = insert_mode
-  !  do i = 1, square_mesh%nlocal
-  !     associate(idx=>square_mesh%idx_global(i))
-  !       call pack_entries(vec_values, 1, idx, rhs_val(i))
-  !       call set_values(vec_values, ustar)
-  !     end associate
-  !  end do
-  !  deallocate(vec_values%idx)
-  !  deallocate(vec_values%val)
+    type(vector_values) :: vec_values
+    integer(accs_int) :: i
+    
+    allocate(vec_values%idx(1))
+    allocate(vec_values%val(1))
+    vec_values%mode = insert_mode
+    do i = 1, square_mesh%nlocal
+       associate(idx=>square_mesh%idx_global(i))
+         !call pack_entries(vec_values, 1, idx, rhs_val(i))
+         call pack_entries(vec_values, 1, idx, 1.0_accs_real)
+         call set_values(vec_values, ustar)
+       end associate
+    end do
+    deallocate(vec_values%idx)
+    deallocate(vec_values%val)
 
-  !  call update(ustar)
-  !end subroutine set_exact_sol
+    call update(ustar)
+  end subroutine set_exact_sol
 
   !subroutine initialise_poisson(par_env)
 

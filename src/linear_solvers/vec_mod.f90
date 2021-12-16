@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data, vector_values
+  use types, only : vector, vector_init_data, vector_values, viewer
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -24,6 +24,7 @@ module vec
   public :: initialise_vector
   public :: set_global_vector_size
   public :: set_local_vector_size
+  public :: vec_view
 
   interface
      
@@ -147,6 +148,22 @@ module vec
       integer(accs_int), intent(in) :: size
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
+
+    !> @brief get pointer to data array 
+    !
+    !> param[in] vec - the vector object
+    !> param[in/out] vec_data - the pointer to data array contained in vec
+    !!
+    !module subroutine get_array_pointer(vec, vec_data)
+    !  use petsc
+    !  class(vector), intent(in) :: vec
+    !  !real(accs_real), pointer, dimension(:) :: vec_data
+    !  PetscScalar, pointer, dimension(:) :: vec_data
+    !end subroutine
+
+    module subroutine vec_view(vec)
+      class(vector), intent(in) :: vec
+    end subroutine vec_view
 
     end interface
   

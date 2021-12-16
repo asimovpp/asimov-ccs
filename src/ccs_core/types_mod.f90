@@ -14,6 +14,9 @@ module types
   public :: set_global_matrix_size
   public :: set_local_matrix_size
 
+  type, public :: viewer
+  end type viewer
+
   !> @brief Stub type for vectors to be extended in sub-modules.
   type, public :: vector
   end type vector
