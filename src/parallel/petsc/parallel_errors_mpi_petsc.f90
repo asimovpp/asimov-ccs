@@ -8,7 +8,6 @@ submodule (parallel) parallel_errors_mpi_petsc
 
   use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
-  use kinds, only: accs_int
 
   implicit none
 
