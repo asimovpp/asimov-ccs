@@ -22,13 +22,16 @@ program poisson
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
-  use utils, only : update, begin_update, end_update, finalise, initialise, &
+  use utils, only : update, begin_update, end_update, &
+                    finalise, initialise, &
                     set_global_size
   use mesh_utils, only : build_square_mesh
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, timer
+                      cleanup_parallel_environment, &
+                      read_command_line_arguments, &
+                      timer, sync
   
   implicit none
 
@@ -51,7 +54,9 @@ program poisson
   double precision :: end_time
 
   call initialise_parallel_environment(par_env) 
-  call read_command_line_arguments()
+  call read_command_line_arguments(par_env, cps=cps)
+
+  call sync(par_env)
   call timer(start_time)
 
   call initialise_poisson(par_env)
@@ -377,32 +382,5 @@ contains
     end if
     
   end function rhs_val
-
-  !> @brief read command line arguments and their values
-  subroutine read_command_line_arguments()
-
-    character(len=32) :: arg !> argument string
-    integer(accs_int) :: nargs !> number of arguments
-
-    do nargs = 1, command_argument_count()
-      call get_command_argument(nargs, arg)
-      select case (arg)
-        case ('--ccs_m') !> problems size
-          call get_command_argument(nargs+1, arg)
-          read(arg, '(I5)') cps
-        case ('--ccs_help')
-          if(par_env%proc_id==par_env%root) then
-            print *, "================================"
-            print *, "ASiMoV-CCS command line options:"
-            print *, "================================"
-            print *, "--ccs_help:         This help menu."
-            print *, "--ccs_m <value>:    Problem size."
-          endif
-          stop
-        case default
-      end select
-    end do 
-
-  end subroutine read_command_line_arguments
   
 end program poisson
