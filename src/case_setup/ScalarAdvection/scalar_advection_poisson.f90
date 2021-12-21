@@ -36,7 +36,7 @@ program scalar_advection
 
   real(accs_real), dimension(:,:), allocatable :: u, v          ! Prescribed x, y velocity fields
 
-  integer(accs_int) :: cps = 10 ! Default value for cells per side
+  integer(accs_int) :: cps = 150 ! Default value for cells per side
 
   real(accs_real) :: err_norm
   !real(accs_real), pointer, dimension(:) :: scalar_data
@@ -106,7 +106,6 @@ program scalar_advection
   call vec_view(scalar)
 
   !! Check solution
-  ! ALEXEI: Need to know what the analytic solution for this problem is first.
   call set_exact_sol(solution)
   call axpy(-1.0_accs_real, solution, scalar)
 
@@ -136,7 +135,7 @@ program scalar_advection
 contains
 
   subroutine compute_fluxes(M, u, v)
-    use constants, only : insert_mode
+    use constants, only : insert_mode, add_mode
     use types, only : matrix_values
     use utils, only : set_values, pack_entries
 
@@ -151,7 +150,7 @@ contains
 
     type(matrix_values) :: mat_coeffs
     
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%mode = add_mode
 
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
@@ -171,9 +170,8 @@ contains
         call calc_diffusion_coeff(diff_coeff, 0)
         do j = 1, square_mesh%nnb(self_idx)
           ngb_idx = square_mesh%nbidx(j, self_idx)
-          ! ALEXEI: for now only work on neighbours that are directly within the mesh (i.e. not using e.g. periodic BCs). Fix to use any
-          ! neighbour
-          if (ngb_idx > 0 .and. ngb_idx .le. square_mesh%n) then
+          ! ALEXEI: only setting matrix elements that correspond to entries within the domain is the same as zero-gradient BCs when using a uniform square mesh.
+          if (ngb_idx > 0) then
             !call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "CDS", cps, u, v)
             call pack_entries(mat_coeffs, 1, 1, self_idx, ngb_idx, adv_coeff + diff_coeff)
             call set_values(mat_coeffs, M)
@@ -181,8 +179,6 @@ contains
             adv_coeff_total = adv_coeff_total + adv_coeff
           end if
         end do
-        ! Calculate contribution from self
-        !call calc_diffusion_coeff(diff_coeff, 1)
         call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
         call set_values(mat_coeffs, M)
       end do
@@ -221,7 +217,7 @@ contains
     real(accs_real), intent(inout) :: coeff
     integer(accs_int), intent(in) :: source_cell
 
-    real(accs_real), parameter :: diffusion_factor = 0.1
+    real(accs_real), parameter :: diffusion_factor = 0.001
 
     ! Because mesh is assumed to be square and uniform, all coefficients (apart from P) 
     ! have the same value
@@ -291,8 +287,6 @@ contains
     allocate(vec_data%val(nloc))
 
     do i = 1, nloc
-      !vec_data%idx(i) = i
-      !vec_data%val(i) = 0
       call pack_entries(vec_data, i, i, 0.0_accs_real)
     end do
 
@@ -314,21 +308,16 @@ contains
 
     class(vector), intent(inout) :: scalar
     type(vector_values) :: data
-    integer(accs_int) :: i, cps
+    integer(accs_int) :: i, n_non_zero
 
     data%mode = add_mode
-    !cps = int(sqrt(real(square_mesh%n)))
-    cps = 1
-    allocate(data%idx(cps))
-    allocate(data%val(cps))
+    n_non_zero = 1
+    allocate(data%idx(n_non_zero))
+    allocate(data%val(n_non_zero))
 
     call set_zero(scalar)
 
-    !do i = 1, cps
-    !  call pack_entries(data, i, i + square_mesh%n - cps, 1.0_accs_real)
-    !end do
-
-    call pack_entries(data, 1, 15, 100.0_accs_real)
+    call pack_entries(data, 1, 11175, 22500.0_accs_real)
     call set_values(data, scalar)
   end subroutine set_scalar_BCs
 
