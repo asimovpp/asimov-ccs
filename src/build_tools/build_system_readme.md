@@ -6,6 +6,7 @@ The general approach is to compile all components available in ccs individually 
 
 When a component can have multiple implementations, these implementations are put into different submodules. A particular implementation is selected at link time by linking in the compiled object of the desired submodule.
 
+Note: the environment variable `CCS_DIR` needs to be defined and point to the root directory of the `asimov_ccs` project.
 
 # Compilation 
 
@@ -33,4 +34,46 @@ It is possible for a user to provide a configuration that cannot be linked or ru
 
 # Testing
 
-Test building follows the same basic pattern as building ccs applications. All ccs files are built independently and then linked to provide the functionality that the test requires. However, an application would be specific in all components where there is a choice of implementation but a test would not. A test exercises the interfaces of components and has to be successful with all implementations of the components. Thus there is additionaly machinery to repeat test cases with all submodule options.
+Test building follows the same basic pattern as building ccs applications. All ccs files are built independently and then linked to provide the functionality that the test requires. However, an application would be specific in all components where there is a choice of implementation but a test would not. A test exercises the interfaces of components and has to be successful with all implementations of the components. Thus there is additionaly machinery to repeat test cases with all relevant submodule options.
+
+The test suites are executed using the LLVM LIT framework.
+
+## Running tests
+`lit` is required to run tests. The easiest method is to run `pip install lit`.
+
+Tests need to be run from the `src` directory in order to pass through the compilation flags that are used to build CCS. Execute `CMP=gnu make tests` (substitute gnu for your chosen compilation environment) to run the test suite. 
+The expected output is compilation messages of CCS files (if not built already) followed by "-- Testing: n tests, m workers --" (where n and m are integers). Passing tests are listed briefly and failed tests provide their entire output. Further debugging can be done by examining temporary files in `Output` directories within the test subdirectories under `testing`.
+
+## How tests are written
+Test cases are written as single-file Fortran programs plus one or more configuration `yaml` files. 
+The configuration files define every submodule combination that has to be tested for the given test program. 
+The `main` in the configuration has to be equal to the name of the test program file (minus the `.f90` extension).
+
+The configuration file needs to have one or more comments starting with `RUN:` that say how the test should be executed. 
+The test case fails if any of the RUN commands fail.
+`# RUN: %build_test %s %t1` will compile the test case (identified with the macro `%s`) and store the executable in `t1`.
+This can then be executed with, for example `# RUN: mpirun -n 4 %t1`.
+If a compiled test case returns non-zero, the test case has failed.
+
+Test cases can `use testing_lib` to included the testing library which contains various utility functions for test initialisation, finalisation, stopping and assertions (not everything has been implemented yet). 
+
+## Testing framework details
+The `lit.cfg` file configures the LIT testing framework. See therein or refer to the LIT user guide for details.
+
+Tests are built using the `test_builder.py` script (this is what the `%build_test` macro invokes). 
+It does the following actions:
+- Parse the `yaml` file that defines the test case to find the test's source filename.
+- Compile the test case object.
+- Evaluate dependencies on CCS.
+- Generate a link rule to the required CCS objects.
+- Link the test case to create an executable.
+
+## More resources
+- LIT user guides
+  - https://llvm.org/docs/CommandGuide/lit.html
+  - https://llvm.org/docs/TestingGuide.html
+- LIT python source
+  - https://github.com/llvm/llvm-project/tree/main/llvm/utils/lit/lit
+- LIT usage examples in LLVM
+  - https://github.com/llvm/llvm-project/tree/main/llvm/test
+  - https://github.com/llvm/llvm-project/blob/main/llvm/test/lit.cfg.py
