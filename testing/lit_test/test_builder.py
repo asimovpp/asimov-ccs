@@ -4,10 +4,12 @@ import os
 import subprocess as sp
 
 config_file = sys.argv[1]
-test_obj = sys.argv[2]
-test_deps = sys.argv[3]
-test_link = sys.argv[4]
-test_exe = sys.argv[5]
+output_stub = sys.argv[2]
+
+test_obj = output_stub + ".test_obj.o"
+test_deps = output_stub + ".deps"
+test_link = output_stub + ".link"
+test_exe = output_stub 
 
 print("TEST BUILDER: starting")
 
