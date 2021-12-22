@@ -107,7 +107,7 @@ if __name__ == "__main__":
   check_for_conflicts(mapped_config)
   link_rule = get_link_rule(mapped_config, deps)
 
-  log.info("Configurator produced link rule:\n%s", link_rule)
+  log.debug("Configurator produced link rule:\n%s", link_rule)
   with open(sys.argv[3], "w") as f:
       f.write(link_rule)
 
