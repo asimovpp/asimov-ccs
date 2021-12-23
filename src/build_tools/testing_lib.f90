@@ -100,5 +100,22 @@ contains
     stop 1
   end subroutine stop_test
   
+  !> @brief Assertion for integer equality
+  !
+  !> @description Check whether input integers are equal. If not, construct message, print and stop.
+  subroutine assert_equal(a, b, msg_format)
+
+    integer(accs_int), intent(in) :: a
+    integer(accs_int), intent(in) :: b
+    character(*), intent(in) :: msg_format
+    character(1024) :: message
+
+    if (a /= b) then
+      write (message, msg_format) a, b
+      call stop_test(message)
+    end if
+
+  end subroutine assert_equal
+  
   
 end module testing_lib
