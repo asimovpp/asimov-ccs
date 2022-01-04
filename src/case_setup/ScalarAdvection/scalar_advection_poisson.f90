@@ -36,11 +36,9 @@ program scalar_advection
 
   real(accs_real), dimension(:,:), allocatable :: u, v          ! Prescribed x, y velocity fields
 
-  integer(accs_int) :: cps = 150 ! Default value for cells per side
+  integer(accs_int) :: cps = 50 ! Default value for cells per side
 
   real(accs_real) :: err_norm
-  !real(accs_real), pointer, dimension(:) :: scalar_data
-  !PetscScalar, pointer, dimension(:) :: scalar_data
   integer(accs_int) :: i
 
   double precision :: start_time
@@ -49,8 +47,6 @@ program scalar_advection
   call initialise_parallel_environment(par_env) 
   call read_command_line_arguments()
   call timer(start_time)
-
-  !call initialise_poisson(par_env)
 
   ! Init ICs (velocities, BC scalar, mesh, etc)
   call initialise_scalar_advection(par_env, u, v)
@@ -78,25 +74,23 @@ program scalar_advection
 
   call begin_update(scalar) ! Start the parallel assembly for scalar
 
-  ! Update scalar BCs
-  call set_scalar_BCs(scalar)
-
   !! Evaluate right-hand-side vector
-  call compute_source_terms(source)
+  call set_zero(source)
 
   call begin_update(source) ! Start the parallel assembly for source
   call end_update(M) ! Complete the parallel assembly for M
   call end_update(source) ! Complete the parallel assembly for source
 
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
-  !call apply_dirichlet_bcs(M, source)
-  !call begin_update(source) ! Start the parallel assembly for source
-  !call finalise(M)
+  call apply_dirichlet_bcs(M, source, -1)
+  call apply_dirichlet_bcs(M, source, -2)
+  call apply_dirichlet_bcs(M, source, -3)
+  call apply_dirichlet_bcs(M, source, -4)
+  call begin_update(source) ! Start the parallel assembly for source
+  call finalise(M)
 
   call end_update(scalar) ! Complete the parallel assembly for scalar
-  !call end_update(source) ! Complete the parallel assembly for source
-
-  !call vec_view(scalar)
+  call end_update(source) ! Complete the parallel assembly for source
 
   !! Create linear solver & set options
   call set_linear_system(scalar_linear_system, source, scalar, M, par_env)
@@ -167,12 +161,12 @@ contains
         ! Calculate contribution from neighbours
         diff_coeff_total = 0.
         adv_coeff_total = 0.
-        call calc_diffusion_coeff(diff_coeff, 0)
         do j = 1, square_mesh%nnb(self_idx)
           ngb_idx = square_mesh%nbidx(j, self_idx)
+          call calc_diffusion_coeff(diff_coeff, ngb_idx, self_idx)
           ! ALEXEI: only setting matrix elements that correspond to entries within the domain is the same as zero-gradient BCs when using a uniform square mesh.
           if (ngb_idx > 0) then
-            !call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "CDS", cps, u, v)
+            !call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "UDS", cps, u, v)
             call pack_entries(mat_coeffs, 1, 1, self_idx, ngb_idx, adv_coeff + diff_coeff)
             call set_values(mat_coeffs, M)
             diff_coeff_total = diff_coeff_total + diff_coeff
@@ -213,16 +207,16 @@ contains
   end subroutine calc_advection_coeff
 
   ! Calculates diffusion coefficient
-  subroutine calc_diffusion_coeff(coeff, source_cell)
+  subroutine calc_diffusion_coeff(coeff, ngb_idx, self_idx)
     real(accs_real), intent(inout) :: coeff
-    integer(accs_int), intent(in) :: source_cell
+    integer(accs_int), intent(in) :: ngb_idx, self_idx
 
-    real(accs_real), parameter :: diffusion_factor = 0.001
+    real(accs_real), parameter :: diffusion_factor = 1.e-10
 
     ! Because mesh is assumed to be square and uniform, all coefficients (apart from P) 
     ! have the same value
-    if (source_cell == 0) then
-      coeff = -2.*diffusion_factor 
+    if (self_idx .ne. ngb_idx) then
+      coeff = -2.*diffusion_factor
     else
       coeff = 8*diffusion_factor
     end if
@@ -239,12 +233,8 @@ contains
 
     if (abs(ngb_col - self_col) == 1) then
       flux = 0.5*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
-    !else if (abs(ngb_row - self_row) == 1) then
     else
       flux = 0.5*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
-    !else 
-    !  print *, 'cells do not neighbour each other ngb self col row', ngb_col, ngb_row, self_col, self_row
-    !  stop
     end if
 
   end function calc_mass_flux
@@ -264,11 +254,8 @@ contains
     allocate(v(cps,cps))
 
     ! Set IC velocity and scalar fields
-    do i = 1, cps
-      u(:,i) = -real(i)/real(cps)
-      v(i,:) = real(i)/real(cps)
-    end do
-    
+    u = 0.0_accs_real
+    v = 1.0_accs_real
   end subroutine initialise_scalar_advection
 
   ! Assigns vector to zero
@@ -295,9 +282,28 @@ contains
 
   ! Assigns source vector
   subroutine compute_source_terms(source)
+    use constants, only : add_mode
+    use types, only : vector_values
+    use utils, only : set_values, pack_entries
+
     class(vector), intent(inout) :: source
+    type(vector_values) :: data
+    integer(accs_int) :: i, n_non_zero, cps, idx, start
+
+    data%mode = add_mode
+    cps = int(sqrt(real(square_mesh%n)))
+    n_non_zero = cps
+    allocate(data%idx(n_non_zero))
+    allocate(data%val(n_non_zero))
 
     call set_zero(source)
+
+    start = 0
+    do i = 1, n_non_zero
+      idx = calc_flat_array_index(cps, i+start, cps)
+      call pack_entries(data, i, idx, 1.0_accs_real)
+    end do
+    call set_values(data, source)
   end subroutine compute_source_terms
 
   ! Sets values of the scalar field on the boundaries
@@ -308,16 +314,25 @@ contains
 
     class(vector), intent(inout) :: scalar
     type(vector_values) :: data
-    integer(accs_int) :: i, n_non_zero
+    integer(accs_int) :: i, j, n_non_zero, nz_grid_size, cps, start, idx, data_idx
 
     data%mode = add_mode
-    n_non_zero = 1
+    nz_grid_size = 10
+    n_non_zero = nz_grid_size*nz_grid_size
     allocate(data%idx(n_non_zero))
     allocate(data%val(n_non_zero))
 
     call set_zero(scalar)
 
-    call pack_entries(data, 1, 11175, 22500.0_accs_real)
+    cps = int(sqrt(real(square_mesh%n)))
+    start = int(cps/2 - nz_grid_size/2)
+    do i = 1, nz_grid_size
+      do j = 1, nz_grid_size
+        idx = calc_flat_array_index(j+start, i+start, cps)
+        data_idx = calc_flat_array_index(j, i, nz_grid_size)
+        call pack_entries(data, data_idx, idx, real(square_mesh%n/n_non_zero, kind=accs_real))
+      end do
+    end do
     call set_values(data, scalar)
   end subroutine set_scalar_BCs
 
@@ -325,11 +340,20 @@ contains
   ! Note: assumes square mesh
   subroutine calc_cell_coords(idx, cps, row, col)
     integer(accs_int), intent(in) :: idx, cps
-    integer(accs_int), intent(inout) :: row, col
+    integer(accs_int), intent(out) :: row, col
 
     col = modulo(idx-1,cps) + 1 
     row = (idx-1)/cps + 1
   end subroutine calc_cell_coords
+
+  ! Computes the index of a flat array from the provided row, col and array side length
+  ! Note: assumes square array
+  pure function calc_flat_array_index(row, col, cps) result(idx)
+    integer(accs_int), intent(in) :: row, col, cps
+    integer(accs_int) :: idx
+
+    idx = (row-1)*cps + col
+  end function calc_flat_array_index
 
   subroutine write_data(filename, solution)
     character(len=*), intent(in) :: filename
@@ -339,6 +363,96 @@ contains
     write(10) solution
     close(10)
   end subroutine write_data
+  
+  subroutine apply_dirichlet_bcs(M, b, boundary)
+
+    use constants, only : add_mode
+    use mat, only : set_eqn
+    use types, only : vector_values, matrix_values, matrix, vector, mesh
+    use utils, only : set_values, pack_entries
+    use kinds, only: accs_int, accs_real
+  
+    implicit none
+  
+    class(matrix), intent(inout) :: M
+    class(vector), intent(inout) :: b
+    integer(accs_int), intent(in) :: boundary
+  
+    integer(accs_int) :: i, j
+    real(accs_real) :: boundary_coeff, boundary_val
+
+    integer(accs_int) :: idx, row, col
+    real(accs_real) :: r, coeff
+    
+    type(vector_values) :: vec_values
+    type(matrix_values) :: mat_coeffs
+  
+    allocate(mat_coeffs%rglob(1))
+    allocate(mat_coeffs%cglob(1))
+    allocate(mat_coeffs%val(1))
+    allocate(vec_values%idx(1))
+    allocate(vec_values%val(1))
+
+    mat_coeffs%mode = add_mode
+    vec_values%mode = add_mode
+
+    associate(idx_global=>square_mesh%idx_global)
+  
+      do i = 1, square_mesh%nlocal
+        if (minval(square_mesh%nbidx(:, i)) < 0) then
+          coeff = 0.0_accs_real 
+          r = 0.0_accs_real
+          
+          row = idx_global(i)
+          col = idx_global(i)
+          idx = idx_global(i)
+
+          do j = 1, square_mesh%nnb(i)
+
+            associate(nbidx=>square_mesh%nbidx(j, i))
+
+              if (nbidx == boundary) then
+                boundary_coeff = (2.0 / square_mesh%h) * square_mesh%Af(j, i)
+                boundary_val = compute_boundary_val(boundary, j)
+
+                ! Coefficient
+                coeff = coeff - boundary_coeff
+
+                ! RHS vector
+                r = r - boundary_val * boundary_coeff
+              end if
+
+            end associate
+          end do
+
+          call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
+          call pack_entries(vec_values, 1, idx, r)
+
+          call set_values(mat_coeffs, M)
+          call set_values(vec_values, b)
+          
+        end if
+      end do
+  
+    end associate
+  
+    deallocate(vec_values%idx)
+    deallocate(vec_values%val)
+  
+  end subroutine apply_dirichlet_bcs
+
+  pure function compute_boundary_val(boundary, i) result(val)
+    integer(accs_int), intent(in) :: boundary
+    integer(accs_int), intent(in) :: i
+    real(accs_real) :: val
+    integer(accs_int) :: cps 
+
+    cps = int(sqrt(real(square_mesh%n)))
+
+    if (boundary == -3) then
+      val = 2.0_accs_real
+    end if
+  end function compute_boundary_val
 
 !----------------------------------------------------------------------!
 
