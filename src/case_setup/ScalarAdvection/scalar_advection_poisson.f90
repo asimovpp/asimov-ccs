@@ -36,7 +36,7 @@ program scalar_advection
 
   real(accs_real), dimension(:,:), allocatable :: u, v          ! Prescribed x, y velocity fields
 
-  integer(accs_int) :: cps = 5 ! Default value for cells per side
+  integer(accs_int) :: cps = 50 ! Default value for cells per side
 
   real(accs_real) :: err_norm
   integer(accs_int) :: i
@@ -61,36 +61,36 @@ program scalar_advection
   call set_nnz(mat_sizes, 5) 
   call create_matrix(mat_sizes, M)
 
-  ! Actually compute the values to fill the matrix
-  call compute_fluxes(M, u, v)
-
-  call begin_update(M) ! Start the parallel assembly for M
-
   !! Create right-hand-side and solution vectors
   call set_global_size(vec_sizes, square_mesh%n, par_env)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar)
 
+  ! Actually compute the values to fill the matrix
+  call compute_fluxes(M, source, u, v, 0.0_accs_real, 1.0_accs_real)
+
+  call begin_update(M) ! Start the parallel assembly for M
+
   call begin_update(scalar) ! Start the parallel assembly for scalar
 
   !! Evaluate right-hand-side vector
-  call set_zero(source)
+  !call set_zero(source)
 
   call begin_update(source) ! Start the parallel assembly for source
   call end_update(M) ! Complete the parallel assembly for M
   call end_update(source) ! Complete the parallel assembly for source
 
   !! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
-  call apply_dirichlet_bcs(M, source, -1)
-  call apply_dirichlet_bcs(M, source, -2)
-  call apply_dirichlet_bcs(M, source, -3)
-  call apply_dirichlet_bcs(M, source, -4)
-  call begin_update(source) ! Start the parallel assembly for source
-  call finalise(M)
+  !call apply_dirichlet_bcs(M, source, -1)
+  !call apply_dirichlet_bcs(M, source, -2)
+  !call apply_dirichlet_bcs(M, source, -3)
+  !call apply_dirichlet_bcs(M, source, -4)
+  !call begin_update(source) ! Start the parallel assembly for source
+  !call finalise(M)
 
   call end_update(scalar) ! Complete the parallel assembly for scalar
-  call end_update(source) ! Complete the parallel assembly for source
+  !call end_update(source) ! Complete the parallel assembly for source
 
   !! Create linear solver & set options
   call set_linear_system(scalar_linear_system, source, scalar, M, par_env)
@@ -128,71 +128,88 @@ program scalar_advection
 
 contains
 
-  subroutine compute_fluxes(M, u, v)
+  subroutine compute_fluxes(M, b, u, v, n_value, w_value)
     use constants, only : insert_mode, add_mode
-    use types, only : matrix_values
+    use types, only : matrix_values, vector_values
     use utils, only : set_values, pack_entries
 
     class(matrix), intent(inout) :: M   
+    class(vector), intent(inout) :: b   
     real(accs_real), dimension(:,:), intent(in) :: u, v
+    real(accs_real), intent(in) :: n_value, w_value
     
     integer(accs_int) :: j           ! Counters
     real(accs_real) :: adv_coeff, diff_coeff
     real(accs_real) :: adv_coeff_total, diff_coeff_total
     integer(accs_int) :: ngb_idx, self_idx
-    integer(accs_int) :: cps
+    integer(accs_int) :: cps, row, col
+    real(accs_real) :: BC_value
 
     type(matrix_values) :: mat_coeffs
+    type(vector_values) :: b_coeffs
     
     mat_coeffs%mode = add_mode
+    b_coeffs%mode = add_mode
 
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
     allocate(mat_coeffs%val(1))
+    allocate(b_coeffs%idx(1))
+    allocate(b_coeffs%val(1))
 
     cps = int(sqrt(real(square_mesh%n)))
 
-    select type (M)
-      type is (matrix_petsc) ! ALEXEI: make this independent of solver implementation
-      
-      ! Loop over cells computing advection and diffusion fluxes
-      ! Note, n_cols corresponds to the number of cells in the mesh
-      do self_idx = 1, square_mesh%n
-        ! Calculate contribution from neighbours
-        diff_coeff_total = 0.
-        adv_coeff_total = 0.
-        do j = 1, square_mesh%nnb(self_idx)
-          ngb_idx = square_mesh%nbidx(j, self_idx)
-          call calc_diffusion_coeff(diff_coeff, ngb_idx, self_idx)
-          ! ALEXEI: only setting matrix elements that correspond to entries within the domain is the same as zero-gradient BCs when using a uniform square mesh.
-          if (ngb_idx > 0) then
-            call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "CDS", cps, u, v)
-            call pack_entries(mat_coeffs, 1, 1, self_idx, ngb_idx, adv_coeff + diff_coeff)
-            call set_values(mat_coeffs, M)
-            print *, 'self ngb advection/diffusion coeff ', self_idx, ngb_idx, adv_coeff/diff_coeff, adv_coeff, diff_coeff
-            diff_coeff_total = diff_coeff_total + diff_coeff
-            adv_coeff_total = adv_coeff_total + adv_coeff
-          end if
-        end do
-        call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
-        call set_values(mat_coeffs, M)
+    ! Loop over cells computing advection and diffusion fluxes
+    ! Note, n_cols corresponds to the number of cells in the mesh
+    do self_idx = 1, square_mesh%n
+      ! Calculate contribution from neighbours
+      diff_coeff_total = 0.
+      adv_coeff_total = 0.
+      do j = 1, square_mesh%nnb(self_idx)
+        ngb_idx = square_mesh%nbidx(j, self_idx)
+        call calc_diffusion_coeff(diff_coeff, ngb_idx, self_idx)
+        ! ALEXEI: only setting matrix elements that correspond to entries within the domain is the same as zero-gradient BCs when using a uniform square mesh.
+        if (ngb_idx > 0) then
+          call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "CDS", cps, u, v, 0)
+          call pack_entries(mat_coeffs, 1, 1, self_idx, ngb_idx, adv_coeff + diff_coeff)
+          call set_values(mat_coeffs, M)
+          diff_coeff_total = diff_coeff_total + diff_coeff
+          adv_coeff_total = adv_coeff_total + adv_coeff
+        else if (ngb_idx == -1) then
+          ! Set Dirichlet BCs at left boundary
+          call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j, self_idx), adv_coeff, "CDS", cps, u, v, ngb_idx)
+          call calc_cell_coords(self_idx, cps, row, col)
+          BC_value = -(1. - float(row)/float(cps)) * w_value
+          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*BC_value)
+          call set_values(b_coeffs, b)
+          diff_coeff_total = diff_coeff_total + diff_coeff
+          adv_coeff_total = adv_coeff_total + adv_coeff
+        else if (ngb_idx == -4) then
+          ! Set Dirichlet BCs at top boundary
+          call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j, self_idx), adv_coeff, "CDS", cps, u, v, ngb_idx)
+          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*n_value)
+          call set_values(b_coeffs, b)
+          diff_coeff_total = diff_coeff_total + diff_coeff
+          adv_coeff_total = adv_coeff_total + adv_coeff
+        end if
       end do
+      call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
+      call set_values(mat_coeffs, M)
+    end do
 
-      class default
-        write(*,*) "Unsupported matrix type"
-        stop
-    end select
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+    deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_fluxes
 
   ! Calculates advection coefficient for neighbouring cell 
-  subroutine calc_advection_coeff(ngb_idx, self_idx, face_area, coeff, discretisation, cps, u, v)
+  subroutine calc_advection_coeff(ngb_idx, self_idx, face_area, coeff, discretisation, cps, u, v, BC)
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
     real(accs_real), intent(inout) :: coeff
     character(len=3), intent(in) :: discretisation
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:,:) :: u, v
+    integer(accs_int), intent(in) :: BC
 
     integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
     integer(accs_int) :: self_row, self_col     ! cell coordinates within grid
@@ -201,11 +218,10 @@ contains
     call calc_cell_coords(ngb_idx, cps, ngb_row, ngb_col)
     call calc_cell_coords(self_idx, cps, self_row, self_col)
 
-    coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col)
+    coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col, BC)
     if (discretisation == "UDS") then
-      coeff = max(coeff, 0.0_accs_real)
+      coeff = min(coeff, 0.0_accs_real)
     end if
-    !print *, 'self ngb col row coeff difference ', self_col, self_row, ngb_col, ngb_row, coeff, abs(ngb_col - self_col)
   end subroutine calc_advection_coeff
 
   ! Calculates diffusion coefficient
@@ -213,7 +229,7 @@ contains
     real(accs_real), intent(inout) :: coeff
     integer(accs_int), intent(in) :: ngb_idx, self_idx
 
-    real(accs_real), parameter :: diffusion_factor = 1.e-3
+    real(accs_real), parameter :: diffusion_factor = 1.e-2
 
     ! Because mesh is assumed to be square and uniform, all coefficients (apart from P) 
     ! have the same value
@@ -225,20 +241,35 @@ contains
   end subroutine calc_diffusion_coeff
 
   ! Calculates mass flux across given edge. Note: assuming rho = 1 and uniform grid
-  function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col) result(flux)
+  function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col, BC_flag) result(flux)
     real(accs_real), intent(in) :: edge_len
     real(accs_real), dimension(:,:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_row, ngb_col
     integer(accs_int), intent(in) :: self_row, self_col
+    integer(accs_int), intent(in) :: BC_flag
 
     real(accs_real) :: flux
 
-    if (abs(ngb_col - self_col) == 1) then
-      flux = 0.25*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
-    else
-      flux = 0.25*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
-    end if
+    flux = 0.
 
+    if (BC_flag == 0) then
+      if (ngb_col - self_col == 1) then
+        flux = 0.25*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
+      else if (ngb_col - self_col == -1) then
+        flux = -0.25*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
+      else if (ngb_row - self_row == 1) then
+        flux = 0.25*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
+      else 
+        flux = -0.25*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
+      end if
+    else if (BC_flag == -1 .or. BC_flag == -2) then
+      flux = u(self_col, self_row) * edge_len
+    else if (BC_flag == -3 .or. BC_flag == -4) then
+      flux = v(self_col, self_row) * edge_len
+    else
+      print *, 'invalid BC flag'
+      stop
+    end if
   end function calc_mass_flux
 
   ! Make the square mesh, and setup ICs for u, v, and our scalar field
@@ -256,8 +287,12 @@ contains
     allocate(v(cps,cps))
 
     ! Set IC velocity and scalar fields
-    u = 0.0_accs_real
-    v = 1.0_accs_real
+    !v = 1.0_accs_real
+    !u = 0.0_accs_real
+    do i = 1, cps
+      u(i,:) = float(i)/float(cps)
+      v(:,i) = -float(i)/float(cps)
+    end do
   end subroutine initialise_scalar_advection
 
   ! Assigns vector to zero
