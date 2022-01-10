@@ -36,7 +36,7 @@ program scalar_advection
 
   real(accs_real), dimension(:,:), allocatable :: u, v          ! Prescribed x, y velocity fields
 
-  integer(accs_int) :: cps = 50 ! Default value for cells per side
+  integer(accs_int) :: cps = 5 ! Default value for cells per side
 
   real(accs_real) :: err_norm
   integer(accs_int) :: i
@@ -166,9 +166,10 @@ contains
           call calc_diffusion_coeff(diff_coeff, ngb_idx, self_idx)
           ! ALEXEI: only setting matrix elements that correspond to entries within the domain is the same as zero-gradient BCs when using a uniform square mesh.
           if (ngb_idx > 0) then
-            !call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "UDS", cps, u, v)
+            call calc_advection_coeff(ngb_idx, self_idx, square_mesh%Af(j,self_idx), adv_coeff, "CDS", cps, u, v)
             call pack_entries(mat_coeffs, 1, 1, self_idx, ngb_idx, adv_coeff + diff_coeff)
             call set_values(mat_coeffs, M)
+            print *, 'self ngb advection/diffusion coeff ', self_idx, ngb_idx, adv_coeff/diff_coeff, adv_coeff, diff_coeff
             diff_coeff_total = diff_coeff_total + diff_coeff
             adv_coeff_total = adv_coeff_total + adv_coeff
           end if
@@ -202,8 +203,9 @@ contains
 
     coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col)
     if (discretisation == "UDS") then
-      coeff = min(coeff, 0.0_accs_real)
+      coeff = max(coeff, 0.0_accs_real)
     end if
+    !print *, 'self ngb col row coeff difference ', self_col, self_row, ngb_col, ngb_row, coeff, abs(ngb_col - self_col)
   end subroutine calc_advection_coeff
 
   ! Calculates diffusion coefficient
@@ -211,7 +213,7 @@ contains
     real(accs_real), intent(inout) :: coeff
     integer(accs_int), intent(in) :: ngb_idx, self_idx
 
-    real(accs_real), parameter :: diffusion_factor = 1.e-10
+    real(accs_real), parameter :: diffusion_factor = 1.e-3
 
     ! Because mesh is assumed to be square and uniform, all coefficients (apart from P) 
     ! have the same value
@@ -222,7 +224,7 @@ contains
     end if
   end subroutine calc_diffusion_coeff
 
-  ! Calculates mass flux across given edge. Note: assuming rho = 1
+  ! Calculates mass flux across given edge. Note: assuming rho = 1 and uniform grid
   function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col) result(flux)
     real(accs_real), intent(in) :: edge_len
     real(accs_real), dimension(:,:), intent(in) :: u, v
@@ -232,9 +234,9 @@ contains
     real(accs_real) :: flux
 
     if (abs(ngb_col - self_col) == 1) then
-      flux = 0.5*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
+      flux = 0.25*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
     else
-      flux = 0.5*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
+      flux = 0.25*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
     end if
 
   end function calc_mass_flux
@@ -449,7 +451,7 @@ contains
 
     cps = int(sqrt(real(square_mesh%n)))
 
-    if (boundary == -3) then
+    if ((boundary == -1 .or. boundary == -3) .and. i > cps*0.25 .and. i < cps*0.75) then
       val = 2.0_accs_real
     end if
   end function compute_boundary_val
