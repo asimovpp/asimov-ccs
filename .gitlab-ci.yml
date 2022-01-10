@@ -64,6 +64,34 @@ test_ccs_intel:
     - HOME=${CI_HOME} CMP=intel make all
     - HOME=${CI_HOME} CMP=intel make tests
 
+
+build_ccs_intelx:
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intelx make
+    - mv ccs_app ccs_app_intelx
+  artifacts:
+    paths:
+      - src/ccs_app_intelx
+    expire_in: 30 minutes
+  
+run_ccs_intelx:
+  needs: 
+    - job: build_ccs_intelx
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intelx
+
+test_ccs_intelx:
+  needs: 
+    - job: build_ccs_intelx
+      artifacts: false
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intelx make all
+    - HOME=${CI_HOME} CMP=intelx make tests
+
+
 generate_documentation:
   before_script:
     - cd src
