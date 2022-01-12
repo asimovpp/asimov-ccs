@@ -98,7 +98,7 @@ contains
               stop
             end if
 
-            call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
+            call VecSetValues(v%v, n, val_dat%idx, real(val_dat%val, kind=accs_real), mode, ierr)
 
           class default
             print *, "Unknown vector value type!"
