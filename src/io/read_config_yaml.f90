@@ -23,7 +23,7 @@ submodule (read_config) read_config_utils
   contains 
 
   subroutine get_integer_value(dict, keyword, int_val)
-    class (*), pointer, intent(in) :: dict
+    class(*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     integer, intent(out)  :: int_val
 
@@ -46,7 +46,7 @@ submodule (read_config) read_config_utils
   end subroutine
     
   subroutine get_real_value(dict, keyword, real_val)
-    class (*), pointer, intent(in) :: dict
+    class(*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     real(accs_real), intent(out)  :: real_val
 
@@ -60,7 +60,7 @@ submodule (read_config) read_config_utils
       if(associated(io_err) .eqv. .false.) then 
         print*,keyword," = ",real_val
       end if
-      
+
     class default
       print*,"Unknown type"
     end select
@@ -68,7 +68,7 @@ submodule (read_config) read_config_utils
   end subroutine
 
   subroutine get_string_value(dict, keyword, string_val)
-    class (*), pointer, intent(in) :: dict
+    class(*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     character (len=:), allocatable, intent(inout) :: string_val
 
