@@ -249,11 +249,16 @@ contains
 
     integer(accs_int), intent(out) :: idxg
 
-    associate(mesh => cell_location%mesh, &
-         cell => cell_location%cell_idx)
-      idxg = mesh%idx_global(cell)
+    associate(mesh => cell_location%mesh)
+      if (mesh%nlocal > 0) then ! XXX: Potentially expensive...
+        associate(cell => cell_location%cell_idx)
+          idxg = mesh%idx_global(cell)
+        end associate
+      else
+        idxg = -1 ! XXX: What should we do in case of too many processors for a given mesh?
+      end if
     end associate
-   
+
   end subroutine cell_global_index
   
 end module mesh_utils

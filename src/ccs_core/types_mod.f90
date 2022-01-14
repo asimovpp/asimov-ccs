@@ -189,8 +189,15 @@ module types
     type(mesh), target, intent(in) :: geometry
     integer(accs_int), intent(in) :: cell_idx
 
-    cell_location%mesh => geometry
-    cell_location%cell_idx = cell_idx
+    ! XXX: Potentially expensive...
+    if (cell_idx > geometry%nlocal) then
+      print *, "ERROR: trying to access cell I don't own!"
+      stop
+    else
+      cell_location%mesh => geometry
+      cell_location%cell_idx = cell_idx
+    end if
+
   end subroutine set_cell_location
   
 end module types
