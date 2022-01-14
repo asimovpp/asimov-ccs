@@ -74,7 +74,7 @@ build_ccs_intelx:
     paths:
       - src/ccs_app_intelx
     expire_in: 30 minutes
-  
+ 
 run_ccs_intelx:
   needs: 
     - job: build_ccs_intelx
@@ -90,6 +90,30 @@ test_ccs_intelx:
   script:
     - HOME=${CI_HOME} CMP=intelx make all
     - HOME=${CI_HOME} CMP=intelx make tests
+
+
+build_ccs_cray:
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make"
+    - mv ccs_app ccs_app_cray
+  artifacts:
+    paths:
+      - src/ccs_app_cray
+    expire_in: 30 minutes
+  
+run_ccs_cray:
+  needs: 
+    - job: build_ccs_cray
+  script:
+    - HOME=${CI_HOME} cray_run_command "srun -n 4 ./ccs_app_cray"
+
+test_ccs_cray:
+  needs: 
+    - job: build_ccs_cray
+      artifacts: false
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make all"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
 
 
 generate_documentation:
