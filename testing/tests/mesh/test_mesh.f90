@@ -70,15 +70,20 @@ contains
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
 
-      do i = 1, n
-        call set_cell_location(cell_location, square_mesh, i)
-        call global_index(cell_location, idxg)
-        if ((idxg < 1) .or. (idxg > n)) then
-          print *, "FAIL: expected global index 1 <= idx <= ", n, " got ", idxg
-          passing = .false.
-          exit
-        end if
-      end do
+      associate(nlocal => square_mesh%nlocal, &
+           nglobal => square_mesh%n)
+        do i = 1, nlocal
+          call set_cell_location(cell_location, square_mesh, i)
+          call global_index(cell_location, idxg)
+          if ((idxg < 1) .or. (idxg > nglobal)) then
+            if (idxg /= -1) then
+              print *, "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", idxg
+              passing = .false.
+            end if
+            exit
+          end if
+        end do
+      end associate
     end do
 
     select type(par_env)
