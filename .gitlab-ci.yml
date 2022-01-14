@@ -10,6 +10,11 @@
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - cd src
 
+.setup_cray:
+  before_script:
+    - source setup_gitlab_runner_env
+    - cd src
+
 
 build_ccs_gnu:
   extends: .setup_gnu
@@ -93,6 +98,7 @@ test_ccs_intelx:
 
 
 build_ccs_cray:
+  extends: .setup_cray
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray make"
     - mv ccs_app ccs_app_cray
@@ -104,6 +110,7 @@ build_ccs_cray:
 run_ccs_cray:
   needs: 
     - job: build_ccs_cray
+  extends: .setup_cray
   script:
     - HOME=${CI_HOME} cray_run_command "srun -n 4 ./ccs_app_cray"
 
@@ -111,6 +118,7 @@ test_ccs_cray:
   needs: 
     - job: build_ccs_cray
       artifacts: false
+  extends: .setup_cray
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray make all"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
