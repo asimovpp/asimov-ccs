@@ -23,69 +23,50 @@ submodule (read_config) read_config_utils
   contains 
 
   subroutine get_integer_value(dict, keyword, int_val)
-    class(*), pointer, intent(in) :: dict
+    class (type_dictionary), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     integer, intent(out)  :: int_val
 
     type(type_error), pointer :: io_err
 
-    select type(dict)
-    type is(type_dictionary)
+    int_val = dict%get_integer(keyword,error=io_err)
+    call error_handler(io_err)  
 
-      int_val = dict%get_integer(keyword,error=io_err)
-      call error_handler(io_err)  
-
-      if(associated(io_err) .eqv. .false.) then 
-        print*,keyword," = ",int_val
-      end if
-
-    class default
-      print*,"Unknown type"
-    end select
+    if(associated(io_err) .eqv. .false.) then 
+      print*,keyword," = ",int_val
+    end if
 
   end subroutine
     
   subroutine get_real_value(dict, keyword, real_val)
-    class(*), pointer, intent(in) :: dict
+    class (type_dictionary), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     real(accs_real), intent(out)  :: real_val
 
     type(type_error), pointer :: io_err
 
-    select type(dict)
-    type is(type_dictionary)
-      real_val = dict%get_real(keyword,error=io_err)
-      call error_handler(io_err)  
+    real_val = dict%get_real(keyword,error=io_err)
+    call error_handler(io_err)  
 
-      if(associated(io_err) .eqv. .false.) then 
-        print*,keyword," = ",real_val
-      end if
-
-    class default
-      print*,"Unknown type"
-    end select
+    if(associated(io_err) .eqv. .false.) then 
+      print*,keyword," = ",real_val
+    end if
 
   end subroutine
 
   subroutine get_string_value(dict, keyword, string_val)
-    class(*), pointer, intent(in) :: dict
+    class (type_dictionary), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     character (len=:), allocatable, intent(inout) :: string_val
 
     type(type_error), pointer :: io_err
 
-    select type(dict)
-    type is(type_dictionary)
-      string_val = trim(dict%get_string(keyword,error=io_err))
-      call error_handler(io_err)  
+    string_val = trim(dict%get_string(keyword,error=io_err))
+    call error_handler(io_err)  
 
-      if(associated(io_err) .eqv. .false.) then 
-        print*,keyword," = ",string_val
-      end if
-
-    class default
-      print*,"Unknown type"
-    end select
+    if(associated(io_err) .eqv. .false.) then 
+      print*,keyword," = ",string_val
+    end if
 
   end subroutine
 
