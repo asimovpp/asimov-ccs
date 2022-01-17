@@ -143,8 +143,6 @@ contains
     class(vector), intent(inout) :: b
 
     integer(accs_int) :: i
-    integer(accs_int) :: nloc
-    real(accs_real) :: h
     real(accs_real) :: r
 
     type(vector_values) :: val_dat
@@ -158,25 +156,24 @@ contains
     allocate(val_dat%idx(1))
     allocate(val_dat%val(1))
 
-    nloc = square_mesh%nlocal
-
-    h = square_mesh%h
-
-    ! this is currently setting 1 vector value at a time
-    ! consider changing to doing all the updates in one go
-    ! to do only 1 call to eval_cell_rhs and set_values
-    do i = 1, nloc
-      call set_cell_location(cell_location, square_mesh, i)
-      call centre(cell_location, cc)
-      call volume(cell_location, V)
-      call global_index(cell_location, idxg)
-      associate(x => cc(1), y => cc(2))
-        call eval_cell_rhs(x, y, h**2, r)
-        r = V * r
-        call pack_entries(val_dat, 1, idxg, r)
-        call set_values(val_dat, b)
-      end associate
-    end do
+    associate(nloc => square_mesh%nlocal, &
+         h => square_mesh%h)
+      ! this is currently setting 1 vector value at a time
+      ! consider changing to doing all the updates in one go
+      ! to do only 1 call to eval_cell_rhs and set_values
+      do i = 1, nloc
+        call set_cell_location(cell_location, square_mesh, i)
+        call centre(cell_location, cc)
+        call volume(cell_location, V)
+        call global_index(cell_location, idxg)
+        associate(x => cc(1), y => cc(2))
+          call eval_cell_rhs(x, y, h**2, r)
+          r = V * r
+          call pack_entries(val_dat, 1, idxg, r)
+          call set_values(val_dat, b)
+        end associate
+      end do
+    end associate
     
     deallocate(val_dat%idx)
     deallocate(val_dat%val)
