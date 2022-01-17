@@ -16,6 +16,7 @@ module mesh_utils
   public :: centre
   public :: volume
   public :: global_index
+  public :: count_neighbours
 
   interface centre
     module procedure cell_centre
@@ -25,6 +26,10 @@ module mesh_utils
   interface global_index
     module procedure cell_global_index
   end interface global_index
+
+  interface count_neighbours
+    module procedure cell_count_neighbours
+  end interface count_neighbours
   
 contains
 
@@ -260,5 +265,18 @@ contains
     end associate
 
   end subroutine cell_global_index
+
+  subroutine cell_count_neighbours(cell_location, nnb)
+
+    type(cell_locator), intent(in) :: cell_location
+
+    integer(accs_int), intent(out) :: nnb
+
+    associate(mesh => cell_location%mesh, &
+         cell => cell_location%cell_idx)
+      nnb = mesh%nnb(cell)
+    end associate
+
+  end subroutine cell_count_neighbours
   
 end module mesh_utils

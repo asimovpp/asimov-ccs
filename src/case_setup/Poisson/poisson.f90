@@ -29,7 +29,8 @@ program poisson
   use utils, only : update, begin_update, end_update, &
                     finalise, initialise, &
                     set_global_size
-  use mesh_utils, only : build_square_mesh, face_area, centre, volume, global_index
+  use mesh_utils, only : build_square_mesh, face_area, centre, volume, global_index, &
+       count_neighbours
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -212,6 +213,8 @@ contains
 
     integer(accs_int) :: idxg
     type(cell_locator) :: cell_location
+
+    integer(accs_int) :: nnb
     
     mat_coeffs%mode = insert_mode
 
@@ -223,47 +226,45 @@ contains
       !!        matrices.
       call set_cell_location(cell_location, square_mesh, i)
       call global_index(cell_location, idxg)
-      associate(nnb=>square_mesh%nnb(i))
+      call count_neighbours(cell_location, nnb)
         
-        allocate(mat_coeffs%rglob(1))
-        allocate(mat_coeffs%cglob(1 + nnb))
-        allocate(mat_coeffs%val(1 + nnb))
+      allocate(mat_coeffs%rglob(1))
+      allocate(mat_coeffs%cglob(1 + nnb))
+      allocate(mat_coeffs%val(1 + nnb))
 
-        row = idxg
-        coeff_p = 0.0_accs_real
+      row = idxg
+      coeff_p = 0.0_accs_real
       
-        !! Loop over faces
-        do j = 1, nnb
-          call set_face_location(face_location, square_mesh, i, j)
-          call face_area(face_location, A)
-          coeff_f = (1.0 / square_mesh%h) * A
-          associate(nbidxg=>square_mesh%nbidx(j, i))
+      !! Loop over faces
+      do j = 1, nnb
+        call set_face_location(face_location, square_mesh, i, j)
+        call face_area(face_location, A)
+        coeff_f = (1.0 / square_mesh%h) * A
+        associate(nbidxg=>square_mesh%nbidx(j, i))
 
-            if (nbidxg > 0) then
-              !! Interior face
-              coeff_p = coeff_p - coeff_f
-              coeff_nb = coeff_f
-              col = nbidxg
-            else
-              col = -1
-              coeff_nb = 0.0_accs_real
-            end if
-            call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
+          if (nbidxg > 0) then
+            !! Interior face
+            coeff_p = coeff_p - coeff_f
+            coeff_nb = coeff_f
+            col = nbidxg
+          else
+            col = -1
+            coeff_nb = 0.0_accs_real
+          end if
+          call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
 
-          end associate
-        end do
+        end associate
+      end do
 
-        !! Add the diagonal entry
-        col = row
-        call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+      !! Add the diagonal entry
+      col = row
+      call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+      
+      !! Set the values
+      call set_values(mat_coeffs, M)
 
-        !! Set the values
-        call set_values(mat_coeffs, M)
-
-        deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+      deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
         
-      end associate
-
     end do
     
   end subroutine discretise_poisson
@@ -295,6 +296,8 @@ contains
 
     type(cell_locator) :: cell_location
     integer(accs_int) :: idxg
+
+    integer(accs_int) :: nnb
     
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
@@ -316,7 +319,8 @@ contains
         col = idxg
         idx = idxg
 
-        do j = 1, square_mesh%nnb(i)
+        call count_neighbours(cell_location, nnb)
+        do j = 1, nnb
 
           associate(nbidx=>square_mesh%nbidx(j, i))
 

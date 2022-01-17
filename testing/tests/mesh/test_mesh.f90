@@ -45,6 +45,7 @@ contains
     call test_square_mesh_centres()
     call test_mesh_square_mesh_volume()
     call test_mesh_square_mesh_closed()
+    call test_mesh_neighbours()
     
   end subroutine test_runner
 
@@ -412,6 +413,75 @@ contains
     end if
     
   end subroutine test_mesh_square_mesh_closed
+
+  !> @brief Test that cells have correct numbers of neighbours
+  !
+  !> @description for any mesh with >1 cell, every cell must have at least 1 neighbour.
+  subroutine test_mesh_neighbours()
+
+    use mesh_utils, only : build_square_mesh, count_neighbours
+    
+    type(mesh), target :: square_mesh
+    type(cell_locator) :: cell_location
+    
+    logical :: passing = .true.
+    logical :: global_passing
+    
+    integer(accs_int) :: n
+    real(accs_real) :: l
+
+    integer(accs_int) :: i
+    integer :: ndim
+
+    integer(accs_int) :: nnb
+
+    do n = 1, nmax
+      l = parallel_random(par_env)
+      square_mesh = build_square_mesh(n, l, par_env)
+      ndim = size(square_mesh%nf, 1)
+      
+      do i = 1, square_mesh%nlocal
+
+        call set_cell_location(cell_location, square_mesh, i)
+        call count_neighbours(cell_location, nnb)
+        if (nnb < 1) then
+          ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
+          ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
+          ! Even in the limit of single 1D cell should have 2 boundary neighbours.
+          print *, "FAIL: cell should have 2 or more neighbours, got ", nnb
+          passing = .false.
+        else if (nnb > (2**ndim)) then
+          print *, "FAIL: cell should have at most ", 2**ndim, " neighbours, got ", nnb
+          passing = .false.
+        end if
+
+      end do
+    end do
+
+    select type(par_env)
+    type is(parallel_environment_mpi)
+      call MPI_Allreduce(passing, global_passing, 1, MPI_LOGICAL, MPI_LAND, par_env%comm, ierr)
+    class default
+      print *, "ERROR: Unknown parallel environment!"
+      stop
+    end select
+
+    ! XXX: This would be a good candidate for a testing library
+    if (global_passing) then
+      if (par_env%proc_id == par_env%root) then
+        if (ctr > line_length) then
+          print *, " "
+          write(*,"(A)",advance="no") " "
+        end if
+        write(*,"(A)",advance="no") "."
+      end if
+      ctr = ctr + 1
+    else
+      ctr = 0
+      test_suite_passing = .false.
+    end if
+        
+  end subroutine test_mesh_neighbours
 
   !> @brief Test initialisation
   !
