@@ -112,8 +112,8 @@ run_ccs_cray:
     - job: build_ccs_cray
   extends: .setup_cray
   script:
-    - cray_run_command "slurmctld -vv -L $CI_HOME/cray/slurmdctld.log"
-    - cray_run_command "slurmd -vv -L $CI_HOME/cray/slurmd.log"
+    - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
+    - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
     - cray_run_command "srun -n 4 ./ccs_app_cray"
 
 test_ccs_cray:
