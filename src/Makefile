@@ -11,7 +11,18 @@ $(warning "CMP is not set. Please define which compiler should be used.")
 endif
 
 ifeq ($(CMP),intel)
-  FC = mpiifort
+  FC = mpiifort -fc=ifort
+  FFLAGS = -cpp -fPIC -g -O3 -stand f18
+  ifeq ($(BUILD),debug)
+    # Add debugging (i.e. expensive) flags
+  endif
+  FFLAGS += -xHOST
+  FFLAGS += -warn all,noexternals
+  FFLAGS += -module $(OBJ_DIR)
+  CAFFLAGS = -coarray
+endif
+ifeq ($(CMP),intelx)
+  FC = mpiifort -fc=ifx
   FFLAGS = -cpp -fPIC -g -O3 -stand f18
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
