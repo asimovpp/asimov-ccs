@@ -100,7 +100,7 @@ test_ccs_intelx:
 build_ccs_cray:
   extends: .setup_cray
   script:
-    - HOME=${CI_HOME} cray_run_command "CMP=cray make"
+    - cray_run_command "CMP=cray make"
     - mv ccs_app ccs_app_cray
   artifacts:
     paths:
@@ -112,10 +112,9 @@ run_ccs_cray:
     - job: build_ccs_cray
   extends: .setup_cray
   script:
-    - HOME=${CI_HOME} cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
-    - HOME=${CI_HOME} cray_run_command "slurmd -vv -L $HOME/slurmd.log"
-    - HOME=${CI_HOME} cray_run_command "srun -n 4 ./ccs_app_cray"
-
+    - cray_run_command "slurmctld -vv -L $CI_HOME/cray/slurmdctld.log"
+    - cray_run_command "slurmd -vv -L $CI_HOME/cray/slurmd.log"
+    - cray_run_command "srun -n 4 ./ccs_app_cray"
 
 test_ccs_cray:
   needs: 
@@ -123,8 +122,8 @@ test_ccs_cray:
       artifacts: false
   extends: .setup_cray
   script:
-    - HOME=${CI_HOME} cray_run_command "CMP=cray make all"
-    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
+    - cray_run_command "CMP=cray make all"
+    - cray_run_command "CMP=cray make tests"
 
 
 generate_documentation:
