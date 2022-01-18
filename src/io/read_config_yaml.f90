@@ -23,15 +23,22 @@ submodule (read_config) read_config_utils
   contains 
 
   subroutine get_integer_value(dict, keyword, int_val)
-    class (type_dictionary), pointer, intent(in) :: dict
+    class (*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     integer, intent(out)  :: int_val
 
     type(type_error), pointer :: io_err
 
-    int_val = dict%get_integer(keyword,error=io_err)
-    call error_handler(io_err)  
+    select type(dict)
+    type is(type_dictionary)
 
+      int_val = dict%get_integer(keyword,error=io_err)
+      call error_handler(io_err)
+      
+    class default
+      print*,"Unknown type"
+    end select
+   
     if(associated(io_err) .eqv. .false.) then 
       print*,keyword," = ",int_val
     end if
@@ -39,14 +46,21 @@ submodule (read_config) read_config_utils
   end subroutine
     
   subroutine get_real_value(dict, keyword, real_val)
-    class (type_dictionary), pointer, intent(in) :: dict
+    class (*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     real(accs_real), intent(out)  :: real_val
 
     type(type_error), pointer :: io_err
 
-    real_val = dict%get_real(keyword,error=io_err)
-    call error_handler(io_err)  
+    select type(dict)
+    type is(type_dictionary)
+
+      real_val = dict%get_real(keyword,error=io_err)
+      call error_handler(io_err)  
+      
+    class default
+      print*,"Unknown type"
+    end select
 
     if(associated(io_err) .eqv. .false.) then 
       print*,keyword," = ",real_val
@@ -55,14 +69,21 @@ submodule (read_config) read_config_utils
   end subroutine
 
   subroutine get_string_value(dict, keyword, string_val)
-    class (type_dictionary), pointer, intent(in) :: dict
+    class (*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     character (len=:), allocatable, intent(inout) :: string_val
 
     type(type_error), pointer :: io_err
 
-    string_val = trim(dict%get_string(keyword,error=io_err))
-    call error_handler(io_err)  
+    select type(dict)
+    type is(type_dictionary)
+
+      string_val = trim(dict%get_string(keyword,error=io_err))
+      call error_handler(io_err)  
+
+    class default
+      print*,"Unknown type"
+    end select
 
     if(associated(io_err) .eqv. .false.) then 
       print*,keyword," = ",string_val
@@ -90,15 +111,8 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: title
 
-    select type(config_file)
-    type is(type_dictionary)
-    
-      call get_value(config_file, "title", title)
+    call get_value(config_file, "title", title)
 
-    class default
-      print*,"Unknown type"
-    end select
-  
   end subroutine
     
   !> @brief Get the number of steps
@@ -112,16 +126,8 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: steps
 
-    select type(config_file)
-    type is(type_dictionary)
-
-      print*,"*Number of steps: "
-
-      call get_value(config_file, 'steps', steps)
-
-    class default
-      print*,"Unknown type"
-    end select
+    print*,"*Number of steps: "
+    call get_value(config_file, 'steps', steps)
 
   end subroutine
     
@@ -147,7 +153,7 @@ submodule (read_config) read_config_utils
     integer, optional, intent(inout) :: te_init
     integer, optional, intent(inout) :: ed_init
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -155,7 +161,8 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('init',required=.true.,error=io_err)
 
-      print*,"* Initialisation: "
+
+    print*,"* Initialisation: "
 
       call get_value(dict, "type", init)
 
@@ -211,7 +218,7 @@ submodule (read_config) read_config_utils
     real(accs_real), optional, intent(inout) :: len_ref      
     integer, optional, intent(inout) :: pref_at_cell
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -288,7 +295,7 @@ submodule (read_config) read_config_utils
     character(len=:), allocatable, optional, intent(inout) :: w_sol
     character(len=:), allocatable, optional, intent(inout) :: p_sol
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -348,7 +355,7 @@ submodule (read_config) read_config_utils
     integer, optional, intent(inout) :: te_solver
     integer, optional, intent(inout) :: ed_solver
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -410,7 +417,7 @@ submodule (read_config) read_config_utils
     real(accs_real), intent(inout) :: euler_blend
     integer, intent(inout) :: max_sub_steps
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -450,14 +457,7 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     real(accs_real), intent(inout) :: residual
 
-    select type(config_file)
-    type is(type_dictionary)
-
-      call get_value(config_file, "target_residual", residual)
-
-    class default
-      print*,"Unknown type"
-    end select
+    call get_value(config_file, "target_residual", residual)
 
   end subroutine
 
@@ -472,14 +472,7 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: monitor_cell
 
-    select type(config_file)
-    type is(type_dictionary)
-
-      call get_value(config_file, "monitor_cell", monitor_cell)
-
-    class default
-      print*,"Unknown type"
-    end select
+    call get_value(config_file, "monitor_cell", monitor_cell)
 
   end subroutine
 
@@ -503,7 +496,7 @@ submodule (read_config) read_config_utils
     integer, optional, intent(inout) :: te_conv
     integer, optional, intent(inout) :: ed_conv
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -557,7 +550,7 @@ submodule (read_config) read_config_utils
     real(accs_real), optional, intent(inout) :: te_blend
     real(accs_real), optional, intent(inout) :: ed_blend
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -611,7 +604,7 @@ submodule (read_config) read_config_utils
     real(accs_real), optional, intent(inout) :: te_relax
     real(accs_real), optional, intent(inout) :: ed_relax
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -660,7 +653,7 @@ submodule (read_config) read_config_utils
     integer, intent(inout) :: output_freq
     integer, intent(inout) :: output_iter
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
@@ -687,14 +680,7 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: plot_format
 
-    select type(config_file)
-    type is(type_dictionary)
-
-      call get_value(config_file, "plot_format", plot_format)
-
-    class default
-      print*,"Unknown type"
-    end select
+    call get_value(config_file, "plot_format", plot_format)
 
   end subroutine
 
@@ -708,7 +694,7 @@ submodule (read_config) read_config_utils
     character(len=:), allocatable, intent(inout) :: post_type
     character(len=2), dimension(10), intent(inout) :: post_vars    
 
-    class(type_dictionary), pointer :: dict
+    class(*), pointer :: dict
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item
     type(type_error), pointer :: io_err
@@ -723,21 +709,28 @@ submodule (read_config) read_config_utils
 
       call get_value(dict, "type", post_type)
 
-      list => dict%get_list('variables',required=.false.,error=io_err)
-      call error_handler(io_err)  
+      select type(dict)
+      type is(type_dictionary)
+         
+        list => dict%get_list('variables',required=.false.,error=io_err)
+        call error_handler(io_err)  
 
-      item => list%first
-      idx = 1
-      do while(associated(item))
-        select type (element => item%node)
-        class is (type_scalar)
-          post_vars(idx) = trim(element%string)
-          print*,post_vars(idx)
-          item => item%next
-          idx = idx + 1
-        end select
-      end do
+        item => list%first
+        idx = 1
+        do while(associated(item))
+          select type (element => item%node)
+          class is (type_scalar)
+            post_vars(idx) = trim(element%string)
+            print*,post_vars(idx)
+            item => item%next
+            idx = idx + 1
+           end select
+        end do
 
+      class default
+        print*,"Unknown type"
+      end select
+     
     class default
       print*,"Unknown type"
     end select
