@@ -107,7 +107,7 @@ test_ccs_intelx:
 build_ccs_cray:
   extends: .setup_cray
   script:
-    - cray_run_command "CMP=cray make"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make"
     - mv ccs_app ccs_app_cray
   artifacts:
     paths:
@@ -129,10 +129,10 @@ test_ccs_cray:
       artifacts: false
   extends: .setup_cray
   script:
-    - cray_run_command "CMP=cray make all"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make all"
     - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
     - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
-    - cray_run_command "CMP=cray make tests"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
 
 
 generate_code_docs:
