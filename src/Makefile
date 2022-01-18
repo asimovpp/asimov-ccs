@@ -1,4 +1,5 @@
 PY = python3
+CCS_DIR ?= ../
 OBJ_DIR=$(CCS_DIR)src/obj/
 BUILD ?= release
 
