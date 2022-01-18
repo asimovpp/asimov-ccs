@@ -1,18 +1,25 @@
+.general_setup:
+  before_script:
+    - export CCS_DIR=${PWD}"/"
+
 .setup_gnu:
   before_script:
     - source setup_gitlab_runner_env
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
+    - export CCS_DIR=${PWD}"/"
     - cd src
 
 .setup_intel:
   before_script:
     - source setup_gitlab_runner_env
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
+    - export CCS_DIR=${PWD}"/"
     - cd src
 
 .setup_cray:
   before_script:
     - source setup_gitlab_runner_env
+    - export CCS_DIR=${PWD}"/"
     - cd src
 
 
@@ -123,12 +130,39 @@ test_ccs_cray:
   extends: .setup_cray
   script:
     - cray_run_command "CMP=cray make all"
+    - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
+    - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
     - cray_run_command "CMP=cray make tests"
 
 
-generate_documentation:
-  before_script:
-    - cd src
+generate_code_docs:
+  extends: .general_setup
   script:
+    - cd src
     - make docs
+    - make docs-latex
+  artifacts:
+    paths:
+      - src/latex/refman.pdf
   allow_failure: true
+
+generate_test_docs:
+  extends: .general_setup
+  script:
+    - cd style_guide
+    - make all
+  artifacts:
+    paths:
+      - style_guide/source.pdf
+  allow_failure: true
+
+generate_style_guide:
+  extends: .general_setup
+  script:
+    - cd testing/docs
+    - make all
+  artifacts:
+    paths:
+      - testing/docs/testing.pdf
+  allow_failure: true
+
