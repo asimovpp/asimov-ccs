@@ -28,7 +28,7 @@ ifeq ($(CMP),gnu)
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
     FFLAGS += -g -Og
-    FFLAGS += -fcheck=bounds
+    FFLAGS += -fcheck=bounds -fbacktrace
   else
     FFLAGS += -O3
   endif
