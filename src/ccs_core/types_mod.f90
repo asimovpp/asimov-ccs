@@ -15,6 +15,7 @@ module types
   public :: set_local_matrix_size
   public :: set_face_location
   public :: set_cell_location
+  public :: set_neighbour_location
 
   !> @brief Stub type for vectors to be extended in sub-modules.
   type, public :: vector
@@ -110,6 +111,15 @@ module types
     integer(accs_int) :: cell_idx      !> Cell index
     integer(accs_int) :: cell_face_ctr !> Cell-face ctr i.e. I want to access face "3" of the cell.
   end type face_locator
+
+  !> @brief Neighbour locator
+  !
+  !> @description Lightweight type to provide easy cell-neighbour connection.
+  type, public :: neighbour_locator
+    type(mesh), pointer :: mesh
+    integer(accs_int) :: cell_idx
+    integer(accs_int) :: cell_neighbour_ctr
+  end type neighbour_locator
   
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
@@ -141,6 +151,12 @@ module types
     integer(accs_int), intent(in) :: cell_face_ctr
   end subroutine set_face_location
 
+  module subroutine set_neighbour_location(neighbour_location, cell_location, cell_neighbour_ctr)
+    type(neighbour_locator), intent(out) :: neighbour_location
+    type(cell_locator), intent(in) :: cell_location
+    integer(accs_int), intent(in) :: cell_neighbour_ctr
+  end subroutine set_neighbour_location
+  
   end interface
 
   contains
@@ -191,7 +207,7 @@ module types
 
     ! XXX: Potentially expensive...
     if (cell_idx > geometry%nlocal) then
-      print *, "ERROR: trying to access cell I don't own!"
+      print *, "ERROR: trying to access cell I don't own!", cell_idx, geometry%nlocal
       stop
     else
       cell_location%mesh => geometry
@@ -199,5 +215,39 @@ module types
     end if
 
   end subroutine set_cell_location
-  
+
+  module subroutine set_neighbour_location(neighbour_location, cell_location, cell_neighbour_ctr)
+    type(neighbour_locator), intent(out) :: neighbour_location
+    type(cell_locator), intent(in) :: cell_location
+    integer(accs_int), intent(in) :: cell_neighbour_ctr
+
+    ! integer(accs_int) :: nnb
+    
+    neighbour_location%mesh => cell_location%mesh
+    neighbour_location%cell_idx = cell_location%cell_idx
+
+    !! XXX: Safe, but would create a circular dependency...
+    !! ! XXX: Potentially expensive...
+    !! call count_neighbours(cell_location, nnb)
+    !! if (cell_neighbour_ctr > nnb) then
+    !!   print *, "ERROR: cell has fewer neighbours than neighbour count requested!"
+    !!   stop
+    !! else if (cell_neighbour_ctr < 1) then
+    !!   print *, "ERROR: cell neighbour counter must be >= 1!"
+    !! else
+    !!   neighbour_location%cell_neighbour_ctr = cell_neighbour_ctr
+    !! end if
+    
+    neighbour_location%cell_neighbour_ctr = cell_neighbour_ctr
+
+    associate(mymesh => neighbour_location%mesh, &
+         i => neighbour_location%cell_idx, &
+         j => neighbour_location%cell_neighbour_ctr)
+      if (mymesh%nbidx(j, i) == i) then
+        print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
+      end if
+    end associate
+    
+  end subroutine set_neighbour_location
+
 end module types

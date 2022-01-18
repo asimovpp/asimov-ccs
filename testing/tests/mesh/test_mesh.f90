@@ -419,7 +419,7 @@ contains
   !> @description for any mesh with >1 cell, every cell must have at least 1 neighbour.
   subroutine test_mesh_neighbours()
 
-    use mesh_utils, only : build_square_mesh, count_neighbours
+    use mesh_utils, only : build_square_mesh, count_neighbours, boundary_status
     
     type(mesh), target :: square_mesh
     type(cell_locator) :: cell_location
@@ -431,31 +431,72 @@ contains
     real(accs_real) :: l
 
     integer(accs_int) :: i
-    integer :: ndim
 
     integer(accs_int) :: nnb
+    integer(accs_int) :: j
 
+    type(neighbour_locator) :: nb_location
+    logical :: is_boundary
+    integer(accs_int) :: boundary_ctr
+    integer(accs_int) :: global_boundary_ctr
+    integer(accs_int) :: expected_boundary_ctr
+    
     do n = 1, nmax
       l = parallel_random(par_env)
       square_mesh = build_square_mesh(n, l, par_env)
-      ndim = size(square_mesh%nf, 1)
-      
+
+      boundary_ctr = 0
       do i = 1, square_mesh%nlocal
 
         call set_cell_location(cell_location, square_mesh, i)
         call count_neighbours(cell_location, nnb)
-        if (nnb < 1) then
+
+        if (nnb < 2) then
           ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
           ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
           ! Even in the limit of single 1D cell should have 2 boundary neighbours.
           print *, "FAIL: cell should have 2 or more neighbours, got ", nnb
           passing = .false.
-        else if (nnb > (2**ndim)) then
-          print *, "FAIL: cell should have at most ", 2**ndim, " neighbours, got ", nnb
+        else if (nnb > 4) then
+          ! XXX: specific to 2D Cartesian mesh
+          print *, "FAIL: cell should have at most ", 4, " neighbours, got ", nnb
           passing = .false.
         end if
 
+        ! Loop over neighbours
+        do j = 1, nnb
+          call set_neighbour_location(nb_location, cell_location, j)
+          call boundary_status(nb_location, is_boundary)
+          if (is_boundary) then
+            ! Boundary neighbour/face
+            boundary_ctr = boundary_ctr + 1
+          else
+            if (.not. test_mesh_internal_neighbours(nb_location)) then
+              passing = .false.
+            end if
+          end if
+        end do
+        
       end do
+
+      ! Check total boundary neighbours
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(boundary_ctr, global_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
+      class default
+        print *, "ERROR: Unknown parallel environment!"
+        stop
+      end select
+
+      expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh (square mesh has 2^d sides
+                                    !      of length n)
+      if (global_boundary_ctr /= expected_boundary_ctr) then
+        passing = .false.
+        if (par_env%proc_id == par_env%root) then
+          print *, "FAIL: mesh boundary count is incorrect, expected ", expected_boundary_ctr, &
+               " got ", global_boundary_ctr
+        end if
+      end if
     end do
 
     select type(par_env)
@@ -480,9 +521,65 @@ contains
       ctr = 0
       test_suite_passing = .false.
     end if
-        
+    
   end subroutine test_mesh_neighbours
 
+  logical function test_mesh_internal_neighbours(nb_location)
+
+    use mesh_utils, only : count_neighbours, local_index, boundary_status
+    
+    type(neighbour_locator), intent(in) :: nb_location
+
+    logical :: passing
+    
+    integer(accs_int) :: nbidx
+    ! type(cell_locator) :: nb_cell_location
+    ! integer(accs_int) :: nnb
+    ! logical :: found_parent
+    ! integer(accs_int) :: j
+    ! type(neighbour_locator) :: nbnb_location
+    ! logical :: is_boundary
+    
+    passing = .true.
+
+    associate(mesh => nb_location%mesh, &
+         i => nb_location%cell_idx)
+      call local_index(nb_location, nbidx)
+            
+      ! Neighbour index should not be its parents
+      if (nbidx == i) then
+        print *, "FAIL: Neighbour has same index ", nbidx, " as parent cell ", i
+        passing = .false.
+      end if
+
+      ! if (passing) then ! Doesn't make sense to continue if part1 fails
+      !   ! Parent should be in neighbour's neighbour list
+      !   call set_cell_location(nb_cell_location, mesh, nbidx)
+      !   ! call count_neighbours(nb_cell_location, nnb)
+      !   ! found_parent = .false.
+      !   ! do j = 1, nnb
+      !   !   call set_neighbour_location(nbnb_location, nb_cell_location, j)
+      !   !   call boundary_status(nbnb_location, is_boundary)
+      !   !   if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
+      !   !     call local_index(nbnb_location, nbidx)
+      !   !     if (nbidx == i) then
+      !   !       found_parent = .true.
+      !   !       exit
+      !   !     end if
+      !   !   end if
+      !   ! end do
+      !   ! if (.not. found_parent) then
+      !   !   print *, "FAIL: Couldn't find cell in neighbour's neighbour list!"
+      !   !   passing = .false.
+      !   ! end if
+      ! end if
+      
+    end associate
+
+    test_mesh_internal_neighbours = passing
+    
+  end function test_mesh_internal_neighbours
+  
   !> @brief Test initialisation
   !
   !> @description Performs initialisation for the test (setting up parallel environment, etc.)

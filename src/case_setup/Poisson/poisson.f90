@@ -22,7 +22,8 @@ program poisson
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
        linear_system, linear_solver, mesh, set_global_matrix_size, &
        cell_locator, set_cell_location, &
-       face_locator, set_face_location
+       face_locator, set_face_location, &
+       neighbour_locator, set_neighbour_location
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
@@ -30,7 +31,7 @@ program poisson
                     finalise, initialise, &
                     set_global_size
   use mesh_utils, only : build_square_mesh, face_area, centre, volume, global_index, &
-       count_neighbours
+       count_neighbours, boundary_status
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -210,9 +211,12 @@ contains
 
     integer(accs_int) :: idxg
     type(cell_locator) :: cell_location
-
     integer(accs_int) :: nnb
-    
+
+    type(neighbour_locator) :: nb_location
+    logical :: is_boundary
+    integer(accs_int) :: nbidxg
+
     mat_coeffs%mode = insert_mode
 
     !! Loop over cells
@@ -234,23 +238,27 @@ contains
       
       !! Loop over faces
       do j = 1, nnb
-        call set_face_location(face_location, square_mesh, i, j)
-        call face_area(face_location, A)
-        coeff_f = (1.0 / square_mesh%h) * A
-        associate(nbidxg=>square_mesh%nbidx(j, i))
+        call set_neighbour_location(nb_location, cell_location, j)
+        call boundary_status(nb_location, is_boundary)
 
-          if (nbidxg > 0) then
-            !! Interior face
-            coeff_p = coeff_p - coeff_f
-            coeff_nb = coeff_f
-            col = nbidxg
-          else
-            col = -1
-            coeff_nb = 0.0_accs_real
-          end if
-          call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
+        if (.not. is_boundary) then
+          !! Interior face
+        
+          call set_face_location(face_location, square_mesh, i, j)
+          call face_area(face_location, A)
+          coeff_f = (1.0 / square_mesh%h) * A
 
-        end associate
+          call global_index(nb_location, nbidxg)
+          
+          coeff_p = coeff_p - coeff_f
+          coeff_nb = coeff_f
+          col = nbidxg
+        else
+          col = -1
+          coeff_nb = 0.0_accs_real
+        end if
+        call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
+
       end do
 
       !! Add the diagonal entry
@@ -293,8 +301,10 @@ contains
 
     type(cell_locator) :: cell_location
     integer(accs_int) :: idxg
+    type(neighbour_locator) :: nb_location
 
     integer(accs_int) :: nnb
+    logical :: is_boundary
     
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
@@ -319,22 +329,22 @@ contains
         call count_neighbours(cell_location, nnb)
         do j = 1, nnb
 
-          associate(nbidx=>square_mesh%nbidx(j, i))
+          call set_neighbour_location(nb_location, cell_location, j)
+          call boundary_status(nb_location, is_boundary)
 
-            if (nbidx < 0) then
-              call set_face_location(face_location, square_mesh, i, j)
-              call face_area(face_location, A)
-              boundary_coeff = (2.0 / square_mesh%h) * A
-              boundary_val = rhs_val(i, j)
+          if (.not. is_boundary) then
+            call set_face_location(face_location, square_mesh, i, j)
+            call face_area(face_location, A)
+            boundary_coeff = (2.0 / square_mesh%h) * A
+            boundary_val = rhs_val(i, j)
 
-              ! Coefficient
-              coeff = coeff - boundary_coeff
+            ! Coefficient
+            coeff = coeff - boundary_coeff
 
-              ! RHS vector
-              r = r - boundary_val * boundary_coeff
-            end if
-
-          end associate
+            ! RHS vector
+            r = r - boundary_val * boundary_coeff
+          end if
+            
         end do
 
         call pack_entries(mat_coeffs, 1, 1, row, col, coeff)

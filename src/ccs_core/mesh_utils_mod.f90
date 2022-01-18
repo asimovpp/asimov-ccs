@@ -3,7 +3,7 @@ module mesh_utils
   use constants, only : ndim
   
   use kinds, only: accs_int, accs_real, accs_err
-  use types, only: mesh, face_locator, cell_locator
+  use types, only: mesh, face_locator, cell_locator, neighbour_locator
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   
@@ -16,8 +16,10 @@ module mesh_utils
   public :: centre
   public :: volume
   public :: global_index
+  public :: local_index
   public :: count_neighbours
-
+  public :: boundary_status
+  
   interface centre
     module procedure cell_centre
     module procedure face_centre
@@ -25,8 +27,14 @@ module mesh_utils
 
   interface global_index
     module procedure cell_global_index
+    module procedure neighbour_global_index
   end interface global_index
 
+  interface local_index
+    module procedure cell_local_index
+    module procedure neighbour_local_index
+  end interface local_index
+  
   interface count_neighbours
     module procedure cell_count_neighbours
   end interface count_neighbours
@@ -201,8 +209,8 @@ contains
     real(accs_real), intent(out) :: area
 
     associate(mesh => face_location%mesh, &
-         cell => face_location%cell_idx, &
-         face => face_location%cell_face_ctr)
+         cell =>face_location%cell_idx, &
+         face =>face_location%cell_face_ctr)
       area = mesh%Af(face, cell)
     end associate
 
@@ -266,6 +274,25 @@ contains
 
   end subroutine cell_global_index
 
+  subroutine neighbour_global_index(neighbour_location, nbidxg)
+
+    use types, only : set_cell_location
+    
+    type(neighbour_locator), intent(in) :: neighbour_location
+    integer(accs_int), intent(out) :: nbidxg
+
+    type(cell_locator) :: nb_cell_location
+
+    associate(mesh => neighbour_location%mesh, &
+         i => neighbour_location%cell_idx, &
+         j => neighbour_location%cell_neighbour_ctr)
+      call set_cell_location(nb_cell_location, mesh, mesh%nbidx(j, i))
+    end associate
+
+    call global_index(nb_cell_location, nbidxg)
+    
+  end subroutine neighbour_global_index
+  
   subroutine cell_count_neighbours(cell_location, nnb)
 
     type(cell_locator), intent(in) :: cell_location
@@ -278,5 +305,44 @@ contains
     end associate
 
   end subroutine cell_count_neighbours
+
+  subroutine boundary_status(neighbour_location, is_boundary)
+    type(neighbour_locator), intent(in) :: neighbour_location
+    logical, intent(out) :: is_boundary
+
+    integer :: nbidx
+
+    call neighbour_local_index(neighbour_location, nbidx)
+    
+    if (nbidx > 0) then
+      is_boundary = .false.
+    else
+      is_boundary = .true.
+    end if
+    
+  end subroutine boundary_status
+
+  subroutine cell_local_index(cell_location, idx)
+
+    type(cell_locator), intent(in) :: cell_location
+
+    integer(accs_int), intent(out) :: idx
+
+    idx = cell_location%cell_idx
+    
+  end subroutine cell_local_index
+
+  subroutine neighbour_local_index(neighbour_location, nbidx)
+
+    type(neighbour_locator), intent(in) :: neighbour_location
+    integer(accs_int), intent(out) :: nbidx
+
+    associate(mesh => neighbour_location%mesh, &
+         i => neighbour_location%cell_idx, &
+         j => neighbour_location%cell_neighbour_ctr)
+      nbidx = mesh%nbidx(j, i)
+    end associate
+    
+  end subroutine neighbour_local_index
   
 end module mesh_utils
