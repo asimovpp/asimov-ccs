@@ -26,6 +26,7 @@ contains
     call calc_cell_coords(self_idx, cps, self_row, self_col)
 
     coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col, BC)
+    coeff = min(coeff, 0.0_accs_real)
   end subroutine calc_advection_coeff
 
 end submodule fv_CDS
