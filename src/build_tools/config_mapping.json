@@ -20,7 +20,8 @@
         "solver": "solver_petsc",
         "parallel_env": "parallel_env_mpi_petsc",
         "parallel_env_error": "parallel_errors_mpi_petsc",
-        "parallel_utils": "parallel_utils_mpi"
+        "parallel_utils": "parallel_utils_mpi",
+        "fv": "fv_CDS"
     }
   },
   "parallel_env": {
