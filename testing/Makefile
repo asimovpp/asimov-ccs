@@ -3,6 +3,8 @@
 # DESCRIPTION: Builds/runs tests/documentation for ASiMoV-CCS
 #
 
+# NOTE: Do not invoke this directly. Call `make tests` from the `src` directory. 
+
 DOCDIR = docs
 TESTDIR = tests
 
@@ -15,11 +17,8 @@ docs :
 	$(MK) -C $(DOCDIR)
 
 .PHONY : tests
-tests : build
+tests : 
 	$(MK) -C $(TESTDIR)
-
-build :
-	$(MK) -C $(TESTDIR) build
 
 clean : clean-docs clean-tests
 clean-docs :

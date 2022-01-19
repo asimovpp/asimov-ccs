@@ -44,8 +44,9 @@ def find_commons(deps):
   return internal_nodes
 
 
+# return a list of nodes that point to one or more other nodes
+# i.e. modules that _are used_ by one or more other modules
 def find_commons_custom(deps):
-  nodes = deps.keys()
   all_inward = [v for k,v in deps.items()]
   all_inward_flattened = [x for l in all_inward for x in l]
   internal_nodes = set(all_inward_flattened)
