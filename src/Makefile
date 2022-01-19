@@ -21,6 +21,7 @@ ifeq ($(CMP),intel)
   FFLAGS += -warn all,noexternals
   FFLAGS += -module $(OBJ_DIR)
   CAFFLAGS = -coarray
+  MPIRUN = mpirun
 endif
 ifeq ($(CMP),intelx)
   FC = mpiifort -fc=ifx
@@ -32,6 +33,7 @@ ifeq ($(CMP),intelx)
   FFLAGS += -warn all,noexternals
   FFLAGS += -module $(OBJ_DIR)
   CAFFLAGS = -coarray
+  MPIRUN = mpirun
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
@@ -44,6 +46,7 @@ ifeq ($(CMP),gnu)
   FFLAGS += -fopenmp
   FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -J$(OBJ_DIR)
+  MPIRUN = mpirun
 endif
 ifeq ($(CMP),cray)
   FC = ftn
@@ -54,6 +57,7 @@ ifeq ($(CMP),cray)
   FFLAGS += -homp
   FFLAGS += -J$(OBJ_DIR)
   CAFFLAGS = -hcaf
+  MPIRUN = srun
 endif
 
 # Only set this value if building a CAF binary
