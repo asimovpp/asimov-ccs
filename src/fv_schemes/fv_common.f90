@@ -5,11 +5,40 @@
 
 submodule (fv) fv_common
 
-  !use fv, only : calc_advection_coeff
-
   implicit none
 
 contains
+
+  module subroutine calc_advection_coeff(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
+    integer(accs_int), intent(in) :: ngb_idx, self_idx
+    real(accs_real), intent(in) :: face_area
+    real(accs_real), intent(inout) :: coeff
+    integer(accs_int), intent(in) :: cps
+    class(field), intent(in) :: u, v
+    integer(accs_int), intent(in) :: BC
+
+    select type(u)
+      type is(central_field)
+        select type(v)
+          type is (central_field)
+            call calc_advection_coeff_cds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
+          class default
+            print *, 'invalid field type'
+            stop
+        end select
+      type is(upwind_field)
+        select type(v)
+          type is (upwind_field)
+            call calc_advection_coeff_uds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
+          class default
+            print *, 'invalid field type'
+            stop
+        end select
+      class default
+        print *, 'invalid field type'
+        stop
+    end select
+  end subroutine calc_advection_coeff
 
   module subroutine compute_fluxes(mat, vec, u, v, cell_mesh)
     use constants, only : insert_mode, add_mode
@@ -18,7 +47,7 @@ contains
 
     class(matrix), intent(inout) :: mat   
     class(vector), intent(inout) :: vec   
-    real(accs_real), dimension(:,:), intent(in) :: u, v
+    class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     
     integer(accs_int) :: cps
@@ -58,7 +87,7 @@ contains
     use utils, only: pack_entries, set_values
 
     class(matrix), intent(inout) :: mat
-    real(accs_real), dimension(:,:), intent(in) :: u, v
+    class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: n_int_cells
     integer(accs_int), intent(in) :: cps
@@ -112,7 +141,7 @@ contains
 
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
-    real(accs_real), dimension(:,:), intent(in) :: u, v
+    class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: n_bc_cells
     integer(accs_int), intent(in) :: cps
@@ -171,29 +200,6 @@ contains
     deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_boundary_coeffs
 
-  ! Calculates advection coefficient for neighbouring cell 
-  !subroutine calc_advection_coeff(ngb_idx, self_idx, face_area, coeff, discretisation, cps, u, v, BC)
-  !  integer(accs_int), intent(in) :: ngb_idx, self_idx
-  !  real(accs_real), intent(in) :: face_area
-  !  real(accs_real), intent(inout) :: coeff
-  !  character(len=3), intent(in) :: discretisation
-  !  integer(accs_int), intent(in) :: cps
-  !  real(accs_real), dimension(:,:) :: u, v
-  !  integer(accs_int), intent(in) :: BC
-
-  !  integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
-  !  integer(accs_int) :: self_row, self_col     ! cell coordinates within grid
-
-  !  ! Find where we are in the grid first
-  !  call calc_cell_coords(ngb_idx, cps, ngb_row, ngb_col)
-  !  call calc_cell_coords(self_idx, cps, self_row, self_col)
-
-  !  coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col, BC)
-  !  if (discretisation == "UDS") then
-  !    coeff = min(coeff, 0.0_accs_real)
-  !  end if
-  !end subroutine calc_advection_coeff
-
   ! Sets diffusion coefficient
   subroutine calc_diffusion_coeff(coeff)
     real(accs_real), intent(inout) :: coeff
@@ -206,7 +212,7 @@ contains
   ! Calculates mass flux across given edge. Note: assuming rho = 1 and uniform grid
   function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col, BC_flag) result(flux)
     real(accs_real), intent(in) :: edge_len
-    real(accs_real), dimension(:,:), intent(in) :: u, v
+    class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_row, ngb_col
     integer(accs_int), intent(in) :: self_row, self_col
     integer(accs_int), intent(in) :: BC_flag
@@ -217,18 +223,18 @@ contains
 
     if (BC_flag == 0) then
       if (ngb_col - self_col == 1) then
-        flux = 0.25*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
+        flux = 0.25*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * edge_len
       else if (ngb_col - self_col == -1) then
-        flux = -0.25*(u(ngb_col, ngb_row) + u(self_col, self_row)) * edge_len
+        flux = -0.25*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * edge_len
       else if (ngb_row - self_row == 1) then
-        flux = 0.25*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
+        flux = 0.25*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * edge_len
       else 
-        flux = -0.25*(v(ngb_col, ngb_row) + v(self_col, self_row)) * edge_len
+        flux = -0.25*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * edge_len
       end if
     else if (BC_flag == -1 .or. BC_flag == -2) then
-      flux = u(self_col, self_row) * edge_len
+      flux = u%val(self_col, self_row) * edge_len
     else if (BC_flag == -3 .or. BC_flag == -4) then
-      flux = v(self_col, self_row) * edge_len
+      flux = v%val(self_col, self_row) * edge_len
     else
       print *, 'invalid BC flag'
       stop

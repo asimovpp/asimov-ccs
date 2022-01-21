@@ -92,6 +92,16 @@ module types
     real(accs_real), dimension(:, :, :), allocatable :: xf   !> Face centres (dimension, face, cell)
   end type mesh
 
+  !> @brief Scalar field type
+  type, public :: field
+    real(accs_real), dimension(:,:), allocatable :: val
+  end type field
+
+  type, public, extends(field) :: upwind_field
+  end type
+  type, public, extends(field) :: central_field
+  end type
+
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
     type(matrix_init_data), intent(inout) :: mat

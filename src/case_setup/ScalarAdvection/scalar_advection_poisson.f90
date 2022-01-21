@@ -7,7 +7,8 @@ program scalar_advection
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-                    linear_system, linear_solver, mesh, set_global_matrix_size, viewer
+                    linear_system, linear_solver, mesh, set_global_matrix_size, &
+                    viewer, field, upwind_field, central_field
   use vec, only : create_vector, axpy, norm, vec_view
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
@@ -35,7 +36,7 @@ program scalar_advection
   type(linear_system) :: scalar_linear_system
   type(mesh) :: square_mesh
 
-  real(accs_real), dimension(:,:), allocatable :: u, v          ! Prescribed x, y velocity fields
+  class(field), allocatable :: u, v          ! Prescribed x, y velocity fields
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
 
@@ -49,6 +50,8 @@ program scalar_advection
   call timer(start_time)
 
   ! Init ICs (velocities, BC scalar, mesh, etc)
+  allocate(central_field :: u)
+  allocate(central_field :: v)
   call initialise_scalar_advection(par_env, u, v)
 
   !! Initialise with default values
@@ -115,23 +118,23 @@ contains
   subroutine initialise_scalar_advection(par_env, u, v)
 
     class(parallel_environment) :: par_env
-    real(accs_real), dimension(:,:), allocatable, intent(inout) :: u, v
+    class(field), intent(inout) :: u, v
 
     integer(accs_int) :: i
 
-    !square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
-    square_mesh = build_square_mesh(cps, 1.0, par_env)
+    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    !square_mesh = build_square_mesh(cps, 1.0, par_env)
 
     ! Allocate velocity and scalar field arrays
-    allocate(u(cps,cps))
-    allocate(v(cps,cps))
+    allocate(u%val(cps,cps))
+    allocate(v%val(cps,cps))
 
     ! Set IC velocity and scalar fields
-    !u = 1.0_accs_real
-    !v = 0.0_accs_real
+    !u%val = 1.0_accs_real
+    !v%val = 0.0_accs_real
     do i = 1, cps
-      u(i,:) = float(i)/float(cps)
-      v(:,i) = -float(i)/float(cps)
+      u%val(i,:) = float(i)/float(cps)
+      v%val(:,i) = -float(i)/float(cps)
     end do
   end subroutine initialise_scalar_advection
 

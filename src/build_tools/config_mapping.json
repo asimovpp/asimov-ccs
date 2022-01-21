@@ -22,7 +22,7 @@
         "parallel_env_error": "parallel_errors_mpi_petsc",
         "parallel_utils": "parallel_utils_mpi",
         "fv_common": "fv_common",
-        "fv": "UDS"
+        "fv": "fv_CDS"
     }
   },
   "parallel_env": {
