@@ -15,6 +15,8 @@ module testing_lib
   integer(accs_err) :: ierr
   integer :: real_type
   character(1024) :: message
+
+  real(accs_real), parameter :: eps = epsilon(0.0_accs_real)
   
 contains
 

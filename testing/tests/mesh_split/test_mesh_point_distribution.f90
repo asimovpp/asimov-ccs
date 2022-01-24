@@ -6,6 +6,8 @@ program test_mesh_point_distribution
 
   use testing_lib
   use mesh_utils, only : build_square_mesh
+
+  implicit none
   
   type(mesh) :: square_mesh
 
@@ -42,12 +44,13 @@ program test_mesh_point_distribution
     end select
     
     if (n_global /= n_expected) then
-      write (message,*) "FAIL: expected ", n_expected, " got ", n_global, " (test_mesh:test_mesh_point_distribution/1)"
+      write (message,*) "FAIL: expected ", n_expected, " got ", n_global, &
+           " (test_mesh:test_mesh_point_distribution/1)"
       call stop_test(message)
     end if
 
     call assert_equal(n_expected, square_mesh%n, &
-    '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
+         '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
 
   end do
 
