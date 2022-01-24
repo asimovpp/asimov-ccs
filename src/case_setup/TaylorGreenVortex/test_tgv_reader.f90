@@ -23,6 +23,7 @@ program test_tgv_reader
   integer, dimension(:), allocatable :: face_cell1, face_cell2
   integer, dimension(:), allocatable :: vtxdist   ! Array that indicates rank of vertices local to the process
   integer, dimension(:), allocatable :: xadj      ! Array that points to where local vertices’ adjacency lists begin/end 
+  integer, dimension(:), allocatable :: globalbnd  ! Global boundaries
   integer, dimension(:), allocatable :: wkint1d   ! 1D integer work array
   integer, dimension(:,:), allocatable :: wkint2d ! 2D integer work array
 
@@ -208,6 +209,7 @@ program test_tgv_reader
      !!!!
      ! NEXT: BUILD PARTITION
      !!!!
+
 
      
      if(allocated(vtxdist)) deallocate(vtxdist)
