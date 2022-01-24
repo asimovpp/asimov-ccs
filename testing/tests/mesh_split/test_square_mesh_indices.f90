@@ -17,6 +17,8 @@ program test_square_mesh_indices
   type(cell_locator) :: cell_location
   integer(accs_int) :: idxg
 
+  call init()
+  
   do n = 1, 100 ! TODO: Investigate how we can replicate nmax=100 across multiple test programs
     l = parallel_random(par_env)
     square_mesh = build_square_mesh(n, l, par_env)
@@ -37,4 +39,6 @@ program test_square_mesh_indices
     end associate
   end do
 
+  call fin()
+  
 end program test_square_mesh_indices
