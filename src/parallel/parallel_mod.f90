@@ -5,6 +5,7 @@
 module parallel
 
   use parallel_types
+  use kinds, only: accs_int
 
   implicit none
 
@@ -13,6 +14,7 @@ module parallel
   public :: initialise_parallel_environment
   public :: cleanup_parallel_environment
   public :: sync
+  public :: read_command_line_arguments
   public :: timer
   public :: allreduce
   
@@ -32,6 +34,12 @@ module parallel
     module subroutine sync(par_env)
       class(parallel_environment), intent(in) :: par_env
     end subroutine
+
+    !> @brief read command line arguments and their values
+    module subroutine read_command_line_arguments(par_env, cps)
+      class(parallel_environment), intent(in) :: par_env
+      integer(accs_int), optional, intent(inout) :: cps
+    end subroutine read_command_line_arguments
 
     !> @brief Timer for parallel environment
     module subroutine timer(tick)

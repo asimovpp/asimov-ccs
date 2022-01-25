@@ -1,5 +1,6 @@
 PY = python3
-OBJ_DIR=obj/
+CCS_DIR ?= ../
+OBJ_DIR=$(CCS_DIR)src/obj/
 BUILD ?= release
 
 # these 2 variables are needed to parse "," and " " correctly
@@ -11,7 +12,7 @@ $(warning "CMP is not set. Please define which compiler should be used.")
 endif
 
 ifeq ($(CMP),intel)
-  FC = mpiifort
+  FC = mpiifort -fc=ifort
   FFLAGS = -cpp -fPIC -g -O3 -stand f18
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
@@ -20,10 +21,23 @@ ifeq ($(CMP),intel)
   FFLAGS += -warn all,noexternals
   FFLAGS += -module $(OBJ_DIR)
   CAFFLAGS = -coarray
+  MPIRUN = mpirun
+endif
+ifeq ($(CMP),intelx)
+  FC = mpiifort -fc=ifx
+  FFLAGS = -cpp -fPIC -g -O3 -stand f18
+  ifeq ($(BUILD),debug)
+    # Add debugging (i.e. expensive) flags
+  endif
+  FFLAGS += -xHOST
+  FFLAGS += -warn all,noexternals
+  FFLAGS += -module $(OBJ_DIR)
+  CAFFLAGS = -coarray
+  MPIRUN = mpirun
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
-  FFLAGS = -cpp -std="f2018"
+  FFLAGS = -cpp -O3 -std=f2018
   CAFFLAGS = -fcoarray=single
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
@@ -35,6 +49,7 @@ ifeq ($(CMP),gnu)
   FFLAGS += -fopenmp
   FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -J$(OBJ_DIR)
+  MPIRUN = mpirun
 endif
 ifeq ($(CMP),cray)
   FC = ftn
@@ -45,6 +60,7 @@ ifeq ($(CMP),cray)
   FFLAGS += -homp
   FFLAGS += -J$(OBJ_DIR)
   CAFFLAGS = -hcaf
+  MPIRUN = srun
 endif
 
 # Only set this value if building a CAF binary
@@ -58,9 +74,9 @@ endif
 
 
 EXE = ccs_app
-TOOLS=build_tools/
+TOOLS=$(CCS_DIR)src/build_tools/
 
-DEP_PREFIX=obj/
+DEP_PREFIX=$(CCS_DIR)src/obj/
 EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
 ALL_DEPS=$(DEP_PREFIX)all.deps
 TAG_DEPS=$(DEP_PREFIX)build_tags.deps
@@ -69,10 +85,8 @@ RULE_DEPS=$(DEP_PREFIX)rules.deps
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
 CASES = poisson
 
-#SRC = $(wildcard *.f90)
-ALL_SRC = $(shell find . -type f -name '*.f90')
+ALL_SRC = $(shell find $(CCS_DIR)src/ -type f -name '*.f90')
 SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
-#OBJ = $(SRC:%.f90=%.o)
 OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
 include $(TAG_DEPS)
@@ -81,20 +95,13 @@ include $(EXE_DEPS)
 FFLAGS += -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+INC += -I${FYAML}/build 
+LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp
 
 all: $(OBJ) $(EXE)
 
-# pFUnit is incompatible with -Wimplicit-procedure, etc.
-tests: all tests_build
+tests: all
 	make -C ../testing tests
-
-tests_build: FFLAGS := $(filter-out -Wimplicit-procedure,$(FFLAGS))
-tests_build: FFLAGS := $(filter-out -Wimplicit-interface,$(FFLAGS))
-tests_build: FFLAGS := $(filter-out -J$(OBJ_DIR),$(FFLAGS))
-tests_build: FFLAGS := $(filter-out -warn$(space)all$(comma)noexternals,$(FFLAGS))
-tests_build: FFLAGS := $(filter-out -module$(space)$(OBJ_DIR),$(FFLAGS))
-tests_build:
-	make -C ../testing build
 
 $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
@@ -110,12 +117,11 @@ clean:
 	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod
 clean-tests:
 	make -C ../testing clean
-clean-full: clean clean-tests
+clean-full: clean clean-tests clean-docs
 	rm -f $(OBJ_DIR)*.deps
 
 $(ALL_DEPS): $(SRC)
-	makedepf90 $(SRC) > $(DEP_PREFIX)tmp_all.deps
-	$(PY) $(TOOLS)send_to_obj.py $(DEP_PREFIX)tmp_all.deps $(ALL_DEPS) 
+	makedepf90 -b $(DEP_PREFIX) $(SRC) > $(ALL_DEPS)
 
 $(RULE_DEPS): $(ALL_DEPS)
 	$(PY) $(TOOLS)fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
@@ -123,8 +129,8 @@ $(RULE_DEPS): $(ALL_DEPS)
 $(TAG_DEPS): $(SRC)
 	$(PY) $(TOOLS)process_build_tags.py $(SRC) > $(TAG_DEPS)
 
-$(EXE_DEPS): config.json $(ALL_DEPS)
-	$(PY) $(TOOLS)generate_link_deps.py config.json $(ALL_DEPS) $(EXE_DEPS)
+$(EXE_DEPS): config.yaml $(ALL_DEPS)
+	$(PY) $(TOOLS)generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
 
 #include $(ALL_DEPS)
 
@@ -133,6 +139,10 @@ include $(RULE_DEPS)
 docs: doxy 
 doxy:
 	doxygen doxygen.cfg
+docs-latex: doxy
+	make -C latex
+clean-docs:
+	rm -rf html latex
 
 #Needed to pass variables to children Makefiles, e.g. for the testing framework
 export
