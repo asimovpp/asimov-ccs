@@ -160,7 +160,7 @@ contains
         associate(x => square_mesh%xc(1, i), &
              y => square_mesh%xc(2, i), &
              V => square_mesh%vol(i))
-          call eval_cell_rhs(x, y, h**2, r)
+          call eval_cell_rhs(real(x, kind=accs_real), real(y, kind=accs_real), h**2, r)
           r = V * r
           call pack_entries(val_dat, 1, idx(i), r)
           call set_values(val_dat, b)
@@ -240,8 +240,6 @@ contains
         call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
 
         !! Set the values
-        print *, 'mat_coeffs rglob', mat_coeffs%rglob
-        print *, 'mat_coeffs cglob', mat_coeffs%cglob
         call set_values(mat_coeffs, M)
 
         deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
@@ -358,7 +356,8 @@ contains
 
     class(parallel_environment) :: par_env
 
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    !square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    square_mesh = build_square_mesh(cps, 1.0, par_env)
     
   end subroutine initialise_poisson
 

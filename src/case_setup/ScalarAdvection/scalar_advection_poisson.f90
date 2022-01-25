@@ -119,12 +119,10 @@ contains
 
     class(parallel_environment) :: par_env
     class(field), intent(inout) :: u, v
-    !type(central_field), intent(inout) :: u, v
 
     integer(accs_int) :: i
 
-    !square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
-    square_mesh = build_square_mesh(cps, 1.0, par_env)
+    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
 
     ! Allocate velocity and scalar field arrays
     allocate(u%val(cps,cps))
@@ -134,8 +132,8 @@ contains
     !u%val = 1.0_accs_real
     !v%val = 0.0_accs_real
     do i = 1, cps
-      u%val(i,:) = float(i)/float(cps)
-      v%val(:,i) = -float(i)/float(cps)
+      u%val(i,:) = real(i, kind=accs_real)/real(cps, kind=accs_real)
+      v%val(:,i) = -real(i, kind=accs_real)/real(cps, kind=accs_real)
     end do
   end subroutine initialise_scalar_advection
 
