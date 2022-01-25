@@ -16,22 +16,13 @@ module fv
   public :: calc_mass_flux
   public :: calc_cell_coords
 
-  !interface calc_advection_coeff
-  !  module procedure calc_advection_coeff_cds
-  !  module procedure calc_advection_coeff_uds
-  !end interface calc_advection_coeff
+  interface calc_advection_coeff
+    module procedure calc_advection_coeff_cds
+    module procedure calc_advection_coeff_uds
+  end interface calc_advection_coeff
 
   interface
 
-  module subroutine calc_advection_coeff(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
-    integer(accs_int), intent(in) :: ngb_idx, self_idx
-    real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(inout) :: coeff
-    integer(accs_int), intent(in) :: cps
-    class(field), intent(in) :: u, v
-    integer(accs_int), intent(in) :: BC
-  end subroutine calc_advection_coeff
-    
   !> @brief Calculates advection coefficient for neighbouring cell using the CDS scheme
   !
   !> @param[in] ngb_idx - neighbour index
@@ -44,7 +35,7 @@ module fv
   module subroutine calc_advection_coeff_cds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(inout) :: coeff
+    real(accs_real), intent(out) :: coeff
     integer(accs_int), intent(in) :: cps
     type(central_field), intent(in) :: u, v
     integer(accs_int), intent(in) :: BC
@@ -62,7 +53,7 @@ module fv
   module subroutine calc_advection_coeff_uds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(inout) :: coeff
+    real(accs_real), intent(out) :: coeff
     integer(accs_int), intent(in) :: cps
     type(upwind_field), intent(in) :: u, v
     integer(accs_int), intent(in) :: BC

@@ -50,8 +50,8 @@ program scalar_advection
   call timer(start_time)
 
   ! Init ICs (velocities, BC scalar, mesh, etc)
-  allocate(central_field :: u)
-  allocate(central_field :: v)
+  allocate(upwind_field :: u)
+  allocate(upwind_field :: v)
   call initialise_scalar_advection(par_env, u, v)
 
   !! Initialise with default values
@@ -119,11 +119,12 @@ contains
 
     class(parallel_environment) :: par_env
     class(field), intent(inout) :: u, v
+    !type(central_field), intent(inout) :: u, v
 
     integer(accs_int) :: i
 
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
-    !square_mesh = build_square_mesh(cps, 1.0, par_env)
+    !square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    square_mesh = build_square_mesh(cps, 1.0, par_env)
 
     ! Allocate velocity and scalar field arrays
     allocate(u%val(cps,cps))

@@ -1,21 +1,29 @@
-!> @brief Submodule file fv_CDS.smod
-!> @build CDS
+!> @brief Submodule file fv_discretisation.smod
+!> @build discretisation
 !
-!> @details An implementation of the finite volume method using the CDS scheme
+!> @details Implementations of the finite volume method using the various discretisation schemes scheme
 
-submodule (fv) fv_CDS
+submodule (fv) fv_discretisation
 
   implicit none
 
 contains
   
-  ! Calculates advection coefficient for neighbouring cell 
+  !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
+  !
+  !> @param[in] ngb_idx   - cell neighbour index
+  !> @param[in] self_idx  - cell index
+  !> @param[in] face_area - area of face between self and neighbour
+  !> @param[in,out] coeff - advection coefficient to be calculated
+  !> @param[in] cps       - number of cells per side in mesh
+  !> @param[in] u, v      - velocity fields in x, y directions
+  !> @param[in] BC        - flag indicating whether cell is on boundary
   module subroutine calc_advection_coeff_cds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(inout) :: coeff
+    real(accs_real), intent(out) :: coeff
     integer(accs_int), intent(in) :: cps
-    class(central_field), intent(in) :: u, v
+    type(central_field), intent(in) :: u, v
     integer(accs_int), intent(in) :: BC
 
     integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
@@ -28,13 +36,21 @@ contains
     coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col, BC)
   end subroutine calc_advection_coeff_cds
   
-  ! Calculates advection coefficient for neighbouring cell 
+  !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
+  !
+  !> @param[in] ngb_idx   - cell neighbour index
+  !> @param[in] self_idx  - cell index
+  !> @param[in] face_area - area of face between self and neighbour
+  !> @param[in,out] coeff - advection coefficient to be calculated
+  !> @param[in] cps       - number of cells per side in mesh
+  !> @param[in] u, v      - velocity fields in x, y directions
+  !> @param[in] BC        - flag indicating whether cell is on boundary
   module subroutine calc_advection_coeff_uds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(inout) :: coeff
+    real(accs_real), intent(out) :: coeff
     integer(accs_int), intent(in) :: cps
-    class(upwind_field), intent(in) :: u, v
+    type(upwind_field), intent(in) :: u, v
     integer(accs_int), intent(in) :: BC
 
     integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
@@ -48,4 +64,4 @@ contains
     coeff = min(coeff, 0.0_accs_real)
   end subroutine calc_advection_coeff_uds
 
-end submodule fv_CDS
+end submodule fv_discretisation

@@ -9,37 +9,12 @@ submodule (fv) fv_common
 
 contains
 
-  module subroutine calc_advection_coeff(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
-    integer(accs_int), intent(in) :: ngb_idx, self_idx
-    real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(inout) :: coeff
-    integer(accs_int), intent(in) :: cps
-    class(field), intent(in) :: u, v
-    integer(accs_int), intent(in) :: BC
-
-    select type(u)
-      type is(central_field)
-        select type(v)
-          type is (central_field)
-            call calc_advection_coeff_cds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
-          class default
-            print *, 'invalid field type'
-            stop
-        end select
-      type is(upwind_field)
-        select type(v)
-          type is (upwind_field)
-            call calc_advection_coeff_uds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
-          class default
-            print *, 'invalid field type'
-            stop
-        end select
-      class default
-        print *, 'invalid field type'
-        stop
-    end select
-  end subroutine calc_advection_coeff
-
+  !> @brief Computes fluxes and assign to matrix and RHS
+  !
+  !> @param[in,out] mat - Data structure containing matrix to be filled
+  !> @param[in,out] vec - Data structure containing RHS vector to be filled
+  !> @param[in] u, v - arrays containing velocity fields in x, y directions
+  !> @param[in] cell_mesh - the mesh being used
   module subroutine compute_fluxes(mat, vec, u, v, cell_mesh)
     use constants, only : insert_mode, add_mode
     use types, only : matrix_values, vector_values
@@ -65,14 +40,22 @@ contains
 
   end subroutine compute_fluxes
 
-  ! Note: this assumes a 2d grid
+  !> @brief Returns the number of entries per row that are non-zero
+  !
+  !> @details Note: this assumes a square 2d grid
+  !
+  !> @param[out] nnz - number of non-zero entries per row
   pure function calc_matrix_nnz() result(nnz)
     integer(accs_int) :: nnz
 
     nnz = 5
   end function calc_matrix_nnz
 
-  ! Note: this assumes a 2d grid
+  !> @brief Returns the number of non-zero entries in RHS vector
+  !
+  !> @details Note: this assumes a square 2d grid
+  !
+  !> @param[out] nnz - number of non-zero entries per row
   pure function calc_rhs_nnz(cps) result(nnz)
     implicit none
     integer(accs_int), intent(in) :: cps
@@ -81,6 +64,13 @@ contains
     nnz = 2*cps
   end function calc_rhs_nnz
 
+  !> @brief Computes the matrix coefficient for cells in the interior of the mesh
+  !
+  !> @param[in,out] mat     - Matrix structure being assigned
+  !> @param[in] u, v        - Field structures containing x, y velocities
+  !> @param[in] cell_mesh   - Mesh structure
+  !> @param[in] n_int_cells - number of cells in the interior of the mesh
+  !> @param[in] cps         - number of cells per side
   subroutine compute_interior_coeffs(mat, u, v, cell_mesh, n_int_cells, cps)
     use constants, only : insert_mode, add_mode
     use types, only: matrix_values
@@ -114,9 +104,30 @@ contains
       do j = 1, cell_mesh%nnb(self_idx)
         ngb_idx = cell_mesh%nbidx(j, self_idx)
         face_area = cell_mesh%Af(j, self_idx)
-        call calc_diffusion_coeff(diff_coeff)
+        diff_coeff = calc_diffusion_coeff()
         if (ngb_idx > 0) then
-          call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, 0)
+          select type(u)
+          type is(central_field)
+            select type(v)
+            type is(central_field)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, 0)
+            class default
+              print *, 'invalid velocity field discretisation'
+              stop
+            end select
+          type is(upwind_field)
+            select type(v)
+            type is(upwind_field)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, 0)
+            class default
+              print *, 'invalid velocity field discretisation'
+              stop
+            end select
+          class default
+            print *, 'invalid velocity field discretisation'
+            stop
+          end select
+
           call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
           mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
@@ -134,6 +145,13 @@ contains
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
   end subroutine compute_interior_coeffs
 
+  !> @brief Computes the matrix coefficient for cells on the boundary of the mesh
+  !
+  !> @param[in,out] mat     - Matrix structure being assigned
+  !> @param[in] u, v        - Field structures containing x, y velocities
+  !> @param[in] cell_mesh   - Mesh structure
+  !> @param[in] n_int_cells - number of cells in the interior of the mesh
+  !> @param[in] cps         - number of cells per side
   subroutine compute_boundary_coeffs(M, b, u, v, cell_mesh, n_bc_cells, cps)
     use constants, only : insert_mode, add_mode
     use types, only: matrix_values, vector_values
@@ -171,7 +189,7 @@ contains
     n_value = 0.0_accs_real
     w_value = 1.0_accs_real
     bc_counter = 1
-    call calc_diffusion_coeff(diff_coeff)
+    diff_coeff = calc_diffusion_coeff()
     do self_idx = 1, cell_mesh%n
       ! Calculate contribution from neighbours
       do j = 1, cell_mesh%nnb(self_idx)
@@ -179,7 +197,28 @@ contains
         face_area = cell_mesh%Af(j, self_idx)
         if (ngb_idx == -1) then
           ! Set Dirichlet BCs at left boundary
-          call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+          select type(u)
+          type is(central_field)
+            select type(v)
+            type is(central_field)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+            class default
+              print *, 'invalid velocity field discretisation'
+              stop
+            end select
+          type is(upwind_field)
+            select type(v)
+            type is(upwind_field)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+            class default
+              print *, 'invalid velocity field discretisation'
+              stop
+            end select
+          class default
+            print *, 'invalid velocity field discretisation'
+            stop
+          end select
+
           call calc_cell_coords(self_idx, cps, row, col)
           BC_value = -(1.0_accs_real - real(row, kind=accs_real)/real(cps, kind=accs_real)) * w_value
           call pack_entries(b_coeffs, bc_counter, self_idx, (adv_coeff + diff_coeff)*BC_value)
@@ -187,7 +226,28 @@ contains
           bc_counter = bc_counter + 1
         else if (ngb_idx == -4) then
           ! Set Dirichlet BCs at top boundary
-          call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+          select type(u)
+          type is(central_field)
+            select type(v)
+            type is(central_field)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+            class default
+              print *, 'invalid velocity field discretisation'
+              stop
+            end select
+          type is(upwind_field)
+            select type(v)
+            type is(upwind_field)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+            class default
+              print *, 'invalid velocity field discretisation'
+              stop
+            end select
+          class default
+            print *, 'invalid velocity field discretisation'
+            stop
+          end select
+
           call pack_entries(b_coeffs, bc_counter, self_idx, (adv_coeff + diff_coeff)*n_value)
           call pack_entries(mat_coeffs, bc_counter, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           bc_counter = bc_counter + 1
@@ -200,16 +260,25 @@ contains
     deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_boundary_coeffs
 
-  ! Sets diffusion coefficient
-  subroutine calc_diffusion_coeff(coeff)
-    real(accs_real), intent(inout) :: coeff
+  !> @brief Sets the diffusion coefficient
+  !
+  !> @param[out] coeff - the diffusion coefficient
+  pure function calc_diffusion_coeff() result(coeff)
+    real(accs_real) :: coeff
 
     real(accs_real), parameter :: diffusion_factor = 1.e-2
 
     coeff = -2.*diffusion_factor
-  end subroutine calc_diffusion_coeff
+  end function calc_diffusion_coeff
 
-  ! Calculates mass flux across given edge. Note: assuming rho = 1 and uniform grid
+  !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
+  !
+  !> @param[in] edge_len           - Edge length
+  !> @param[in] u, v               - Field structures containing x, y velocities
+  !> @param[in] ngb_row, ngb_col   - Row and column of given neighbour in mesh
+  !> @param[in] self_row, self_col - Row and column of given cell in mesh
+  !> @param[in] BC_flag            - Flag to indicate if neighbour is a boundary cell
+  !> @param[out] flux              - The flux across the boundary
   function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col, BC_flag) result(flux)
     real(accs_real), intent(in) :: edge_len
     class(field), intent(in) :: u, v
@@ -241,9 +310,12 @@ contains
     end if
   end function calc_mass_flux
 
-  ! Assigns source vector
-  ! Calculates the row and column indices from flattened vector index
-  ! Note: assumes square mesh
+  !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
+  !
+  !> @param[in] idx  - cell index
+  !> @param[in] cps  - number of cells per side
+  !> @param[out] row - cell row within mesh
+  !> @param[out] col - cell column within mesh
   subroutine calc_cell_coords(idx, cps, row, col)
     integer(accs_int), intent(in) :: idx, cps
     integer(accs_int), intent(out) :: row, col
