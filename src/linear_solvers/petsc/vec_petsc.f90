@@ -298,24 +298,20 @@ contains
   !  end select
   !end subroutine get_array_pointer
 
-  module subroutine vec_view(vec)
-    !use petscvec, only: VecView, PETSC_VIEWER_STDOUT_SELF
-    !use petscvec, only: PetscViewer, PetscViewerBinaryOpen, PETSC_COMM_WORLD, FILE_MODE_WRITE
-    use petscvec
-    class(vector), intent(in) :: vec
-    integer(accs_err) :: ierr
-    type(tPetscViewer) :: output_viewer
+  !module subroutine vec_view(vec)
+  !  use petscvec
+  !  class(vector), intent(in) :: vec
+  !  integer(accs_err) :: ierr
+  !  type(tPetscViewer) :: output_viewer
 
-    !call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "solution.dat", FILE_MODE_WRITE, output_viewer)
-    call PetscViewerASCIIOpen(PETSC_COMM_WORLD, "solution.dat", output_viewer, ierr)
-    select type (vec)
-      type is (vector_petsc)
-        !call VecView(vec%v, PETSC_VIEWER_STDOUT_SELF, ierr)
-        call VecView(vec%v, output_viewer, ierr)
-      class default
-        print *, "Type unhandled 1"
-        stop
-    end select
-  end subroutine vec_view
+  !  select type (vec)
+  !    type is (vector_petsc)
+  !      call PetscViewerASCIIOpen(PETSC_COMM_WORLD, "solution.dat", output_viewer, ierr)
+  !      call VecView(vec%v, output_viewer, ierr)
+  !    class default
+  !      print *, "Type unhandled 1"
+  !      stop
+  !  end select
+  !end subroutine vec_view
 
 end submodule vec_petsc

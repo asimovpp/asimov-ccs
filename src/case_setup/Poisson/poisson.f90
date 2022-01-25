@@ -356,8 +356,7 @@ contains
 
     class(parallel_environment) :: par_env
 
-    !square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
-    square_mesh = build_square_mesh(cps, 1.0, par_env)
+    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
     
   end subroutine initialise_poisson
 
