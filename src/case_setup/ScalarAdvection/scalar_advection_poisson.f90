@@ -122,8 +122,7 @@ contains
 
     integer(accs_int) :: i
 
-    !square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
-    square_mesh = build_square_mesh(cps, 1.0, par_env)
+    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
 
     ! Allocate velocity and scalar field arrays
     allocate(u%val(cps,cps))
