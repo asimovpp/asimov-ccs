@@ -26,7 +26,7 @@ contains
     type(mesh), intent(in) :: cell_mesh
     
     integer(accs_int) :: cps
-    integer(accs_int) :: n_bc_cells, n_int_cells
+    integer(accs_int) :: n_int_cells
     
     cps = int(sqrt(real(cell_mesh%n)))
 
@@ -49,28 +49,6 @@ contains
 
     nnz = 5
   end function calc_matrix_nnz
-
-  !> @brief Returns the number of non-zero entries in RHS vector
-  !
-  !> @details Note: this assumes a square 2d grid
-  !
-  !> @param[out] nnz - number of non-zero entries per row
-  pure function calc_rhs_nnz(cell_mesh) result(nnz)
-    implicit none
-    type(mesh), intent(in) :: cell_mesh
-    integer(accs_int) :: nnz
-    integer(accs_int) :: idx, j
-
-    nnz = 0
-    do idx = 1, cell_mesh%nlocal
-      do j = 1, cell_mesh%nnb(idx)
-        ! Needs to know how many cells have a Dirichlet BC in this setup. Figure out a better way of doing this
-        if (cell_mesh%nbidx(j,idx) == -1 .or. cell_mesh%nbidx(j,idx) == -4) then
-          nnz = nnz + 1
-        end if
-      end do 
-    end do
-  end function calc_rhs_nnz
 
   !> @brief Computes the matrix coefficient for cells in the interior of the mesh
   !
