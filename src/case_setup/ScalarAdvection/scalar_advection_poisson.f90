@@ -9,7 +9,7 @@ program scalar_advection
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
                     linear_system, linear_solver, mesh, set_global_matrix_size, &
                     viewer, field, upwind_field, central_field
-  use vec, only : create_vector, axpy, norm!, vec_view
+  use vec, only : create_vector, axpy, norm, vec_view
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
@@ -84,7 +84,7 @@ program scalar_advection
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
   
-  !call vec_view(scalar)
+  call vec_view(scalar)
 
   !! Check solution
   call set_exact_sol(solution)
@@ -122,7 +122,8 @@ contains
 
     integer(accs_int) :: i
 
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    !square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    square_mesh = build_square_mesh(cps, 1.0, par_env)
 
     ! Allocate velocity and scalar field arrays
     allocate(u%val(cps,cps))

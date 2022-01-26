@@ -35,8 +35,7 @@ contains
     call compute_interior_coeffs(mat, u, v, cell_mesh, n_int_cells, cps)
 
     ! Loop over boundaries
-    n_bc_cells = calc_rhs_nnz(cps)
-    call compute_boundary_coeffs(mat, vec, u, v, cell_mesh, n_bc_cells, cps)
+    call compute_boundary_coeffs(mat, vec, u, v, cell_mesh, cps)
 
   end subroutine compute_fluxes
 
@@ -56,12 +55,21 @@ contains
   !> @details Note: this assumes a square 2d grid
   !
   !> @param[out] nnz - number of non-zero entries per row
-  pure function calc_rhs_nnz(cps) result(nnz)
+  pure function calc_rhs_nnz(cell_mesh) result(nnz)
     implicit none
-    integer(accs_int), intent(in) :: cps
+    type(mesh), intent(in) :: cell_mesh
     integer(accs_int) :: nnz
+    integer(accs_int) :: idx, j
 
-    nnz = 2*cps
+    nnz = 0
+    do idx = 1, cell_mesh%nlocal
+      do j = 1, cell_mesh%nnb(idx)
+        ! Needs to know how many cells have a Dirichlet BC in this setup. Figure out a better way of doing this
+        if (cell_mesh%nbidx(j,idx) == -1 .or. cell_mesh%nbidx(j,idx) == -4) then
+          nnz = nnz + 1
+        end if
+      end do 
+    end do
   end function calc_rhs_nnz
 
   !> @brief Computes the matrix coefficient for cells in the interior of the mesh
@@ -83,7 +91,7 @@ contains
     integer(accs_int), intent(in) :: cps
 
     type(matrix_values) :: mat_coeffs
-    integer(accs_int) :: self_idx, ngb_idx
+    integer(accs_int) :: self_idx, ngb_idx, local_idx
     integer(accs_int) :: j
     real(accs_real) :: face_area
     real(accs_real) :: diff_coeff, diff_coeff_total
@@ -96,14 +104,15 @@ contains
     allocate(mat_coeffs%cglob(n_int_cells))
     allocate(mat_coeffs%val(n_int_cells))
 
-    do self_idx = 1, cell_mesh%n
+    do local_idx = 1, cell_mesh%nlocal
       ! Calculate contribution from neighbours
+      self_idx = cell_mesh%idx_global(local_idx)
       mat_counter = 1
       adv_coeff_total = 0.0_accs_real
       diff_coeff_total = 0.0_accs_real
-      do j = 1, cell_mesh%nnb(self_idx)
-        ngb_idx = cell_mesh%nbidx(j, self_idx)
-        face_area = cell_mesh%Af(j, self_idx)
+      do j = 1, cell_mesh%nnb(local_idx)
+        ngb_idx = cell_mesh%nbidx(j, local_idx)
+        face_area = cell_mesh%Af(j, local_idx)
         diff_coeff = calc_diffusion_coeff()
         if (ngb_idx > 0) then
           select type(u)
@@ -150,9 +159,8 @@ contains
   !> @param[in,out] mat     - Matrix structure being assigned
   !> @param[in] u, v        - Field structures containing x, y velocities
   !> @param[in] cell_mesh   - Mesh structure
-  !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in] cps         - number of cells per side
-  subroutine compute_boundary_coeffs(M, b, u, v, cell_mesh, n_bc_cells, cps)
+  subroutine compute_boundary_coeffs(M, b, u, v, cell_mesh, cps)
     use constants, only : insert_mode, add_mode
     use types, only: matrix_values, vector_values
     use utils, only: pack_entries, set_values
@@ -161,13 +169,12 @@ contains
     class(vector), intent(inout) :: b
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: n_bc_cells
     integer(accs_int), intent(in) :: cps
 
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
 
-    integer(accs_int) :: self_idx, ngb_idx
+    integer(accs_int) :: self_idx, ngb_idx, local_idx
     integer(accs_int) :: j
     integer(accs_int) :: bc_counter
     integer(accs_int) :: row, col
@@ -180,21 +187,22 @@ contains
     mat_coeffs%mode = add_mode
     b_coeffs%mode = add_mode
 
-    allocate(mat_coeffs%rglob(n_bc_cells))
+    allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(n_bc_cells))
-    allocate(b_coeffs%idx(n_bc_cells))
-    allocate(b_coeffs%val(n_bc_cells))
+    allocate(mat_coeffs%val(1))
+    allocate(b_coeffs%idx(1))
+    allocate(b_coeffs%val(1))
 
     n_value = 0.0_accs_real
     w_value = 1.0_accs_real
     bc_counter = 1
     diff_coeff = calc_diffusion_coeff()
-    do self_idx = 1, cell_mesh%n
+    do local_idx = 1, cell_mesh%nlocal
+      self_idx = cell_mesh%idx_global(local_idx)
       ! Calculate contribution from neighbours
-      do j = 1, cell_mesh%nnb(self_idx)
-        ngb_idx = cell_mesh%nbidx(j, self_idx)
-        face_area = cell_mesh%Af(j, self_idx)
+      do j = 1, cell_mesh%nnb(local_idx)
+        ngb_idx = cell_mesh%nbidx(j, local_idx)
+        face_area = cell_mesh%Af(j, local_idx)
         if (ngb_idx == -1) then
           ! Set Dirichlet BCs at left boundary
           select type(u)
@@ -221,8 +229,10 @@ contains
 
           call calc_cell_coords(self_idx, cps, row, col)
           BC_value = -(1.0_accs_real - real(row, kind=accs_real)/real(cps, kind=accs_real)) * w_value
-          call pack_entries(b_coeffs, bc_counter, self_idx, (adv_coeff + diff_coeff)*BC_value)
-          call pack_entries(mat_coeffs, bc_counter, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
+          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*BC_value)
+          call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
+          call set_values(b_coeffs, b)
+          call set_values(mat_coeffs, M)
           bc_counter = bc_counter + 1
         else if (ngb_idx == -4) then
           ! Set Dirichlet BCs at top boundary
@@ -248,14 +258,14 @@ contains
             stop
           end select
 
-          call pack_entries(b_coeffs, bc_counter, self_idx, (adv_coeff + diff_coeff)*n_value)
-          call pack_entries(mat_coeffs, bc_counter, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
+          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*n_value)
+          call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
+          call set_values(b_coeffs, b)
+          call set_values(mat_coeffs, M)
           bc_counter = bc_counter + 1
         end if
       end do
     end do
-    call set_values(b_coeffs, b)
-    call set_values(mat_coeffs, M)
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
     deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_boundary_coeffs
