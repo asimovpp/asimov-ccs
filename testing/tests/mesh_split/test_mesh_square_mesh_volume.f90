@@ -26,7 +26,7 @@ program test_mesh_square_mesh_volume
 
     vol = 0_accs_real
     do i = 1, square_mesh%nlocal
-      vol = vol + square_mesh%vol
+      vol = vol + square_mesh%vol(i)
     end do
     
     select type(par_env)
