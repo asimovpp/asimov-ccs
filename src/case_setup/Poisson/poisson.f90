@@ -332,7 +332,7 @@ contains
           call set_neighbour_location(nb_location, cell_location, j)
           call boundary_status(nb_location, is_boundary)
 
-          if (.not. is_boundary) then
+          if (is_boundary) then
             call set_face_location(face_location, square_mesh, i, j)
             call face_area(face_location, A)
             boundary_coeff = (2.0 / square_mesh%h) * A

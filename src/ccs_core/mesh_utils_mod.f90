@@ -328,13 +328,10 @@ contains
     integer(accs_int), intent(out) :: nbidxg
 
     type(cell_locator) :: nb_cell_location
-
-    associate(mesh => neighbour_location%mesh, &
-         i => neighbour_location%cell_idx, &
-         j => neighbour_location%cell_neighbour_ctr)
-      call set_cell_location(nb_cell_location, mesh, mesh%nbidx(j, i))
-    end associate
-
+    integer(accs_int) :: nbidx
+    
+    call local_index(neighbour_location, nbidx)
+    call set_cell_location(nb_cell_location, neighbour_location%mesh, nbidx)
     call global_index(nb_cell_location, nbidxg)
     
   end subroutine neighbour_global_index
