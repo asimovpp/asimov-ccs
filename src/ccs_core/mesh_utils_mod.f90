@@ -19,6 +19,7 @@ module mesh_utils
   public :: local_index
   public :: count_neighbours
   public :: boundary_status
+  public :: local_status
   
   interface centre
     module procedure cell_centre
@@ -370,6 +371,23 @@ contains
     
   end subroutine boundary_status
 
+  subroutine local_status(neighbour_location, is_local)
+    type(neighbour_locator), intent(in) :: neighbour_location
+    logical, intent(out) :: is_local
+
+    integer :: nbidx
+
+    call neighbour_local_index(neighbour_location, nbidx)
+    associate(mesh => neighbour_location%mesh)
+      if ((nbidx > 0) .and. (nbidx <= mesh%nlocal)) then
+        is_local = .true.
+      else
+        is_local = .false.
+      end if
+    end associate
+    
+  end subroutine local_status
+  
   subroutine cell_local_index(cell_location, idx)
 
     type(cell_locator), intent(in) :: cell_location

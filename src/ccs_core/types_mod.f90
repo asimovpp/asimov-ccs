@@ -206,7 +206,7 @@ module types
     integer(accs_int), intent(in) :: cell_idx
 
     ! XXX: Potentially expensive...
-    if (cell_idx > geometry%nlocal) then
+    if (cell_idx > size(geometry%idx_global)) then
       print *, "ERROR: trying to access cell I don't own!", cell_idx, geometry%nlocal
       stop
     else

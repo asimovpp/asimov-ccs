@@ -89,19 +89,20 @@ contains
 
   subroutine test_mesh_internal_neighbours(nb_location)
 
-    use mesh_utils, only : count_neighbours, local_index, boundary_status
+    use mesh_utils, only : count_neighbours, local_index, boundary_status, local_status
     
     type(neighbour_locator), intent(in) :: nb_location
 
     logical :: passing
     
     integer(accs_int) :: nbidx
-    ! type(cell_locator) :: nb_cell_location
-    ! integer(accs_int) :: nnb
-    ! logical :: found_parent
-    ! integer(accs_int) :: j
-    ! type(neighbour_locator) :: nbnb_location
-    ! logical :: is_boundary
+    type(cell_locator) :: nb_cell_location
+    integer(accs_int) :: nnb
+    logical :: found_parent
+    integer(accs_int) :: j
+    type(neighbour_locator) :: nbnb_location
+    logical :: is_boundary
+    logical :: is_local
     
     passing = .true.
 
@@ -115,27 +116,28 @@ contains
         call stop_test(message)
       end if
 
-      ! if (passing) then ! Doesn't make sense to continue if part1 fails
-      !   ! Parent should be in neighbour's neighbour list
-      !   call set_cell_location(nb_cell_location, mesh, nbidx)
-      !   ! call count_neighbours(nb_cell_location, nnb)
-      !   ! found_parent = .false.
-      !   ! do j = 1, nnb
-      !   !   call set_neighbour_location(nbnb_location, nb_cell_location, j)
-      !   !   call boundary_status(nbnb_location, is_boundary)
-      !   !   if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
-      !   !     call local_index(nbnb_location, nbidx)
-      !   !     if (nbidx == i) then
-      !   !       found_parent = .true.
-      !   !       exit
-      !   !     end if
-      !   !   end if
-      !   ! end do
-      !   ! if (.not. found_parent) then
-      !   !   print *, "FAIL: Couldn't find cell in neighbour's neighbour list!"
-      !   !   passing = .false.
-      !   ! end if
-      ! end if
+      call local_status(nb_location, is_local)
+      if (is_local) then
+        ! Parent should be in neighbour's neighbour list
+        call set_cell_location(nb_cell_location, mesh, nbidx)
+        call count_neighbours(nb_cell_location, nnb)
+        found_parent = .false.
+        do j = 1, nnb
+          call set_neighbour_location(nbnb_location, nb_cell_location, j)
+          call boundary_status(nbnb_location, is_boundary)
+          if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
+            call local_index(nbnb_location, nbidx)
+            if (nbidx == i) then
+              found_parent = .true.
+              exit
+            end if
+          end if
+        end do
+        if (.not. found_parent) then
+          print *, "FAIL: Couldn't find cell in neighbour's neighbour list!"
+          passing = .false.
+        end if
+      end if
       
     end associate
     
