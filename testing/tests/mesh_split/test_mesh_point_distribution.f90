@@ -21,27 +21,35 @@ program test_mesh_point_distribution
   do n = 1, 100
     square_mesh = build_square_mesh(n, 1.0_accs_real, par_env)
 
-    if (square_mesh%nlocal < 0) then
-      ! XXX: Zero cells on a PE is not necessarily invalid...
-      ! ? exit
+    associate(nlocal => square_mesh%nlocal)
+      if (nlocal < 0) then
+        ! XXX: Zero cells on a PE is not necessarily invalid...
+        ! ? exit
+        ! select type(par_env)
+        ! type is(parallel_environment_mpi)
+        !   call MPI_Allreduce(nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
+        ! class default
+        !   write (message,*) "ERROR: Unknown parallel environment!"
+        !   call stop_test(message)
+        ! end select
+      end if
+    
+      n_expected = n**2
+
+      if (nlocal > n_expected) then
+        write (message,*) "FAIL: Local number of cells ", nlocal, &
+             " exceeds requested total!", n
+        call stop_test(message)
+      end if
+
       select type(par_env)
       type is(parallel_environment_mpi)
-        call MPI_Allreduce(square_mesh%nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
+        call MPI_Allreduce(nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
       class default
         write (message,*) "ERROR: Unknown parallel environment!"
         call stop_test(message)
       end select
-    end if
-    
-    n_expected = n**2
-
-    select type(par_env)
-    type is(parallel_environment_mpi)
-      call MPI_Allreduce(square_mesh%nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
-    class default
-      write (message,*) "ERROR: Unknown parallel environment!"
-      call stop_test(message)
-    end select
+    end associate
     
     if (n_global /= n_expected) then
       write (message,*) "FAIL: expected ", n_expected, " got ", n_global, &
