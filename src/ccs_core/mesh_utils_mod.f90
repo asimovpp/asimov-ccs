@@ -80,7 +80,7 @@ contains
           end if
           iend = iend - 1
 
-          square_mesh%nlocal = (iend - istart) + 1
+          square_mesh%nlocal = (iend - (istart - 1))
 
           allocate(square_mesh%idx_global(square_mesh%nlocal))
           allocate(square_mesh%nnb(square_mesh%nlocal))
