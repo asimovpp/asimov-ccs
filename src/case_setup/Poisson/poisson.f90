@@ -59,8 +59,6 @@ program poisson
   double precision :: start_time
   double precision :: end_time
 
-  integer(accs_int) :: global_size
-
   call initialise_parallel_environment(par_env) 
   call read_command_line_arguments(par_env, cps=cps)
 
