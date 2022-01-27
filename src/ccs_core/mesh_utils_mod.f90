@@ -72,14 +72,12 @@ contains
           else
             istart = istart + comm_rank
           end if
-          istart = istart + 1 ! Fortran - 1 indexed
-      
           iend = istart + n / comm_size
           if (modulo(square_mesh%n, comm_size) > comm_rank) then
             iend = iend + 1
           end if
-          iend = iend - 1
 
+          istart = istart + 1 ! Fortran - 1 indexed
           square_mesh%nlocal = (iend - (istart - 1))
 
           allocate(square_mesh%idx_global(square_mesh%nlocal))
