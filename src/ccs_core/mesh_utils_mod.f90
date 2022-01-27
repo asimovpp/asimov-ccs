@@ -52,6 +52,8 @@ contains
     integer(accs_int) :: fctr
     integer(accs_int) :: comm_rank, comm_size
 
+    integer(accs_int) :: nbidx, nbidxg
+
     type(mesh) :: square_mesh
 
     select type(par_env)
@@ -113,14 +115,13 @@ contains
               !! Left neighbour
               fctr = 1
               if (modulo(ii, nps) == 0) then
-                square_mesh%nbidx(fctr, ictr) = -1
+                nbidx = -1
+                nbidxg = -1
               else
-                square_mesh%nbidx(fctr, ictr) = i - 1
-                if (square_mesh%nbidx(fctr, ictr) < 1) then
-                  print *, "ERROR: interior neighbour idx < 1!"
-                  stop
-                end if
+                nbidx = ictr - 1
+                nbidxg = i - 1
               end if
+              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1) - 0.5_accs_real * h
               xf(2, fctr) = xc(2)
               nrm(1, fctr) = -1.0_accs_real
@@ -129,14 +130,13 @@ contains
               !! Right neighbour
               fctr = 2
               if (modulo(ii, nps) == (nps - 1)) then
-                square_mesh%nbidx(fctr, ictr) = -2
+                nbidx = -2
+                nbidxg = -2
               else
-                square_mesh%nbidx(fctr, ictr) = i + 1
-                if (square_mesh%nbidx(fctr, ictr) > n) then
-                  print *, "ERROR: interior neibour idx > N!"
-                  stop
-                end if
+                nbidx = ictr + 1
+                nbidxg = i + 1
               end if
+              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1) + 0.5_accs_real * h
               xf(2, fctr) = xc(2)
               nrm(1, fctr) = 1.0_accs_real
@@ -145,14 +145,13 @@ contains
               !! Down neighbour
               fctr = 3
               if ((ii / nps) == 0) then
-                square_mesh%nbidx(fctr, ictr) = -3
+                nbidx = -3
+                nbidxg = -3
               else
-                square_mesh%nbidx(fctr, ictr) = i - nps
-                if (square_mesh%nbidx(fctr, ictr) < 1) then
-                  print *, "ERROR: interior neighbour idx < 1!"
-                  stop
-                end if
+                nbidx = ictr - nps
+                nbidxg = i - nps
               end if
+              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) - 0.5_accs_real * h
               nrm(1, fctr) = 0.0_accs_real
@@ -161,14 +160,13 @@ contains
               !! Up neighbour
               fctr = 4
               if ((ii / nps) == (nps - 1)) then
-                square_mesh%nbidx(fctr, ictr) = -4
+                nbidx = -4
+                nbidxg = -4
               else
-                square_mesh%nbidx(fctr, ictr) = i + nps
-                if (square_mesh%nbidx(fctr, ictr) > n) then
-                  print *, "ERROR: interior neibour idx > N!"
-                  stop
-                end if
+                nbidx = ictr + nps
+                nbidxg = i + nps
               end if
+              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) + 0.5_accs_real * h
               nrm(1, fctr) = 0.0_accs_real
@@ -186,6 +184,55 @@ contains
     end select    
   end function build_square_mesh
 
+  subroutine build_mesh_add_neighbour(meshobj, cellidx, nbctr, nbidx, nbidxg)
+
+    type(mesh), intent(inout) :: meshobj
+    integer(accs_int), intent(in) :: cellidx
+    integer(accs_int), intent(in) :: nbctr
+    integer(accs_int), intent(in) :: nbidx
+    integer(accs_int), intent(in) :: nbidxg
+
+    integer(accs_int), dimension(:), allocatable :: tmpidx
+    integer(accs_int) :: ng
+    logical :: found
+    integer(accs_int) :: i
+    
+    if ((nbidx >= 1) .and. (nbidx <= meshobj%nlocal)) then
+      meshobj%nbidx(nbctr, cellidx) = nbidx
+    else if (nbidxg < 0) then
+      ! Boundary "neighbour" - local index should also be -ve
+      if (.not. (nbidx < 0)) then
+        print *, "ERROR: boundary neighbours should have -ve indices!"
+        stop
+      end if
+      meshobj%nbidx(nbctr, cellidx) = nbidx
+    else
+      ng = size(meshobj%idx_global)
+      found = .false.
+      do i = meshobj%nlocal, ng
+        if (meshobj%idx_global(i) == nbidxg) then
+          found = .true.
+          meshobj%nbidx(nbctr, cellidx) = i
+          exit
+        end if
+      end do
+
+      if (.not. found) then
+        allocate(tmpidx(ng + 1))
+        tmpidx(1:ng) = meshobj%idx_global(1:ng)
+        ng = ng + 1
+        tmpidx(ng) = nbidxg
+        meshobj%nbidx(nbctr, cellidx) = ng
+        
+        deallocate(meshobj%idx_global)
+        allocate(meshobj%idx_global(ng))
+        meshobj%idx_global(:) = tmpidx(:)
+        deallocate(tmpidx)
+      end if
+    end if
+    
+  end subroutine build_mesh_add_neighbour
+  
   subroutine face_normal(face_location, normal)
 
     type(face_locator), intent(in) :: face_location
@@ -314,8 +361,11 @@ contains
     
     if (nbidx > 0) then
       is_boundary = .false.
-    else
+    else if (nbidx < 0) then
       is_boundary = .true.
+    else
+      print *, "ERROR: neighbour index (0) is invalid"
+      stop
     end if
     
   end subroutine boundary_status
