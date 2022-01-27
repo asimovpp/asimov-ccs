@@ -1,6 +1,6 @@
 PY = python3
 CCS_DIR ?= ../
-OBJ_DIR=$(CCS_DIR)src/obj/
+OBJ_DIR=$(CCS_DIR)/src/obj/
 BUILD ?= release
 
 # these 2 variables are needed to parse "," and " " correctly
@@ -70,19 +70,19 @@ endif
 
 
 EXE = ccs_app
-TOOLS=$(CCS_DIR)src/build_tools/
+TOOLS=$(CCS_DIR)/src/build_tools/
 
-DEP_PREFIX=$(CCS_DIR)src/obj/
-EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
-ALL_DEPS=$(DEP_PREFIX)all.deps
-TAG_DEPS=$(DEP_PREFIX)build_tags.deps
-RULE_DEPS=$(DEP_PREFIX)rules.deps
+DEP_PREFIX=$(CCS_DIR)/src/obj/
+EXE_DEPS=$(DEP_PREFIX)/ccs_app.deps
+ALL_DEPS=$(DEP_PREFIX)/all.deps
+TAG_DEPS=$(DEP_PREFIX)/build_tags.deps
+RULE_DEPS=$(DEP_PREFIX)/rules.deps
 
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
 CASES = poisson
 
-ALL_SRC = $(shell find $(CCS_DIR)src/ -type f -name '*.f90')
-SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
+ALL_SRC = $(shell find $(CCS_DIR)/src/ -type f -name '*.f90')
+SRC = $(shell $(PY) $(TOOLS)/filter-out.py $(IGNORE) "$(ALL_SRC)")
 OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
 include $(TAG_DEPS)
@@ -110,23 +110,23 @@ $(CAF_OBJ): %.o: %.f90
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod
-	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod
+	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs
-	rm -f $(OBJ_DIR)*.deps
+	rm -f $(OBJ_DIR)/*.deps
 
 $(ALL_DEPS): $(SRC)
 	makedepf90 -b $(DEP_PREFIX) $(SRC) > $(ALL_DEPS)
 
 $(RULE_DEPS): $(ALL_DEPS)
-	$(PY) $(TOOLS)fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
+	$(PY) $(TOOLS)/fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
 
 $(TAG_DEPS): $(SRC)
-	$(PY) $(TOOLS)process_build_tags.py $(SRC) > $(TAG_DEPS)
+	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
 
 $(EXE_DEPS): config.yaml $(ALL_DEPS)
-	$(PY) $(TOOLS)generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
+	$(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
 
 #include $(ALL_DEPS)
 
