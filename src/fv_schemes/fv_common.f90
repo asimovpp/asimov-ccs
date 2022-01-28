@@ -5,6 +5,9 @@
 
 submodule (fv) fv_common
 
+  use types, only : face_locator, set_face_location
+  use mesh_utils, only : face_area
+
   implicit none
 
 contains
@@ -87,7 +90,7 @@ contains
       do j = 1, cell_mesh%nnb(local_idx)
         ngb_idx = cell_mesh%nbidx(j, local_idx)
         face_area = cell_mesh%Af(j, local_idx)
-        diff_coeff = calc_diffusion_coeff()
+        diff_coeff = calc_diffusion_coeff(self_idx, ngb_idx, cell_mesh)
         if (ngb_idx > 0) then
           select type(u)
           type is(central_field)
@@ -170,13 +173,13 @@ contains
     n_value = 0.0_accs_real
     w_value = 1.0_accs_real
     bc_counter = 1
-    diff_coeff = calc_diffusion_coeff()
     do local_idx = 1, cell_mesh%nlocal
       self_idx = cell_mesh%idx_global(local_idx)
       ! Calculate contribution from neighbours
       do j = 1, cell_mesh%nnb(local_idx)
         ngb_idx = cell_mesh%nbidx(j, local_idx)
         face_area = cell_mesh%Af(j, local_idx)
+        diff_coeff = calc_diffusion_coeff(self_idx, ngb_idx, cell_mesh)
         if (ngb_idx == -1) then
           ! Set Dirichlet BCs at left boundary
           select type(u)
@@ -246,13 +249,24 @@ contains
 
   !> @brief Sets the diffusion coefficient
   !
-  !> @param[out] coeff - the diffusion coefficient
-  pure function calc_diffusion_coeff() result(coeff)
+  !> @param[in] self_idx - the current cell index
+  !> @param[in] ngb_idx  - the neigbouring cell index
+  !> @param[out] coeff   - the diffusion coefficient
+  function calc_diffusion_coeff(self_idx, ngb_idx, cell_mesh) result(coeff)
+    integer(accs_int), intent(in) :: self_idx
+    integer(accs_int), intent(in) :: ngb_idx
+    type(mesh), intent(in) :: cell_mesh
     real(accs_real) :: coeff
 
-    real(accs_real), parameter :: diffusion_factor = 1.e-2
+    type(face_locator) :: face_location
+    real(accs_real) :: face_surface_area
 
-    coeff = -2.*diffusion_factor
+    real(accs_real), parameter :: diffusion_factor = 1.e-2 
+
+    call set_face_location(face_location, cell_mesh, self_idx, ngb_idx)
+    call face_area(face_location, face_surface_area)
+
+    coeff = -face_surface_area*diffusion_factor/cell_mesh%h
   end function calc_diffusion_coeff
 
   !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
