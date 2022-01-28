@@ -226,7 +226,7 @@ contains
             stop
           end if
 
-          call MatSetValues(M%M, nrows, ridx, ncols, cidx, real(val, kind=accs_real), mode, ierr)
+          call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
 
         class default
           print *, "Unknown matrix type!"

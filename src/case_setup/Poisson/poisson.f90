@@ -160,7 +160,7 @@ contains
         associate(x => square_mesh%xc(1, i), &
              y => square_mesh%xc(2, i), &
              V => square_mesh%vol(i))
-          call eval_cell_rhs(real(x, kind=accs_real), real(y, kind=accs_real), h**2, r)
+          call eval_cell_rhs(x, y, h**2, r)
           r = V * r
           call pack_entries(val_dat, 1, idx(i), r)
           call set_values(val_dat, b)

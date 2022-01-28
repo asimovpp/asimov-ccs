@@ -43,12 +43,12 @@ ifeq ($(CMP),gnu)
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
     FFLAGS += -g -Og
-    FFLAGS += -fcheck=bounds -fsanitize=address
+    FFLAGS += -fcheck=bounds 
   else
     FFLAGS += -O3
   endif
   FFLAGS += -fopenmp
-  FFLAGS += -Wall -Wpedantic -Werror -Wno-error=conversion -Wno-error=maybe-uninitialized -Wimplicit-interface -Wimplicit-procedure
+  FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -J$(OBJ_DIR)
   MPIRUN = mpirun
 endif

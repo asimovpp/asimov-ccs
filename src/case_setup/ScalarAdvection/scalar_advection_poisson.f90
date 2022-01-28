@@ -132,8 +132,8 @@ contains
     !u%val = 1.0_accs_real
     !v%val = 0.0_accs_real
     do i = 1, cps
-      u%val(i,:) = real(i, kind=accs_real)/real(cps, kind=accs_real)
-      v%val(:,i) = -real(i, kind=accs_real)/real(cps, kind=accs_real)
+      u%val(i,:) = real(i, accs_real)/real(cps, accs_real)
+      v%val(:,i) = -real(i, accs_real)/real(cps, accs_real)
     end do
   end subroutine initialise_scalar_advection
 

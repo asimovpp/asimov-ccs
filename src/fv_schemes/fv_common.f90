@@ -202,7 +202,7 @@ contains
           end select
 
           call calc_cell_coords(self_idx, cps, row, col)
-          BC_value = -(1.0_accs_real - real(row, kind=accs_real)/real(cps, kind=accs_real)) * w_value
+          BC_value = -(1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * w_value
           call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*BC_value)
           call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           call set_values(b_coeffs, b)
