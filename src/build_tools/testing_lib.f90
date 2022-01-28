@@ -11,10 +11,12 @@ module testing_lib
 
   implicit none
 
-  class(parallel_environment), allocatable, target :: par_env
+  class(parallel_environment), allocatable, target :: par_env !! XXX: SHOULD this be a target?
   integer(accs_err) :: ierr
   integer :: real_type
   character(1024) :: message
+
+  real(accs_real), parameter :: eps = epsilon(0.0_accs_real)
   
 contains
 
@@ -91,8 +93,10 @@ contains
   subroutine stop_test(message)
 
     character(*), intent(in) :: message
+    character(len=32) :: id_str
 
-    print *, trim(message)
+    write (id_str, "(I0)") par_env%proc_id
+    print *, "("//trim(id_str)//") ", trim(message)
 
     ! other PEs might not have encountered a test failure
     ! fin()
