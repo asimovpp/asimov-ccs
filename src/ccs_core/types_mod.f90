@@ -87,6 +87,13 @@ module types
     real(accs_real), dimension(:, :, :), allocatable :: xf !> Face centres
   end type mesh
 
+  !> @brief IO environment type
+  type, public :: io_environment
+  end type io_environment
+
+  type, public :: io_process
+  end type io_process
+
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
     type(matrix_init_data), intent(inout) :: mat
