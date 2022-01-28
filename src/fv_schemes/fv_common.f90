@@ -16,10 +16,6 @@ contains
   !> @param[in] u, v - arrays containing velocity fields in x, y directions
   !> @param[in] cell_mesh - the mesh being used
   module subroutine compute_fluxes(mat, vec, u, v, cell_mesh)
-    use constants, only : insert_mode, add_mode
-    use types, only : matrix_values, vector_values
-    use utils, only : set_values, pack_entries
-
     class(matrix), intent(inout) :: mat   
     class(vector), intent(inout) :: vec   
     class(field), intent(in) :: u, v
@@ -58,7 +54,7 @@ contains
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in] cps         - number of cells per side
   subroutine compute_interior_coeffs(mat, u, v, cell_mesh, n_int_cells, cps)
-    use constants, only : insert_mode, add_mode
+    use constants, only : add_mode
     use types, only: matrix_values
     use utils, only: pack_entries, set_values
 
@@ -267,7 +263,7 @@ contains
   !> @param[in] self_row, self_col - Row and column of given cell in mesh
   !> @param[in] BC_flag            - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux              - The flux across the boundary
-  function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col, BC_flag) result(flux)
+  module function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col, BC_flag) result(flux)
     real(accs_real), intent(in) :: edge_len
     class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_row, ngb_col
@@ -304,7 +300,7 @@ contains
   !> @param[in] cps  - number of cells per side
   !> @param[out] row - cell row within mesh
   !> @param[out] col - cell column within mesh
-  subroutine calc_cell_coords(idx, cps, row, col)
+  module subroutine calc_cell_coords(idx, cps, row, col)
     integer(accs_int), intent(in) :: idx, cps
     integer(accs_int), intent(out) :: row, col
 
