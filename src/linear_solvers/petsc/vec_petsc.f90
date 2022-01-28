@@ -275,43 +275,4 @@ contains
     
   end function
 
-  !> @brief get pointer to data array 
-  !
-  !> param[in] vec - the vector object
-  !> param[in/out] vec_data - the pointer to data array contained in vec
-  !!
-  !subroutine get_array_pointer(vec, vec_data)
-  !  use petsc
-  !  class(vector), intent(in) :: vec
-  !  !real(accs_real), pointer, dimension(:) :: vec_data
-  !  PetscScalar, pointer, dimension(:) :: vec_data
-
-  !  select type (vec)
-  !    type is (vector_petsc)
-  !      print *, 'here 4'
-  !      call VecGetArray(vec, vec_data)
-  !      print *, 'here 5'
-  !    
-  !    class default
-  !      print *, "Type unhandled"
-  !      stop
-  !  end select
-  !end subroutine get_array_pointer
-
-  !module subroutine vec_view(vec)
-  !  use petscvec
-  !  class(vector), intent(in) :: vec
-  !  integer(accs_err) :: ierr
-  !  type(tPetscViewer) :: output_viewer
-
-  !  select type (vec)
-  !    type is (vector_petsc)
-  !      call PetscViewerASCIIOpen(PETSC_COMM_WORLD, "solution.dat", output_viewer, ierr)
-  !      call VecView(vec%v, output_viewer, ierr)
-  !    class default
-  !      print *, "Type unhandled 1"
-  !      stop
-  !  end select
-  !end subroutine vec_view
-
 end submodule vec_petsc

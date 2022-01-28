@@ -6,20 +6,15 @@
 module petsctypes
 
   use petscksp, only : tKSP
-  use petscvec, only : tVec, tPetscViewer
+  use petscvec, only : tVec
   use petscmat, only : tMat
-  !use petscviewer, only : tPetscViewer
 
   use kinds, only : accs_err
-  use types, only : vector, matrix, linear_solver, viewer
+  use types, only : vector, matrix, linear_solver
   
   implicit none
 
   private
-
-  type, public, extends(viewer) :: viewer_petsc
-     type(tPetscViewer) :: vw
-  end type viewer_petsc
 
   !> @brief Implements the vector class backed by a PETSc vector
   type, public, extends(vector) :: vector_petsc
