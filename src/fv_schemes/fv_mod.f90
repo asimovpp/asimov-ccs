@@ -65,8 +65,8 @@ module fv
     !> @param[in,out] vec - Data structure containing RHS vector to be filled
     !> @param[in] u, v - arrays containing velocity fields in x, y directions
     !> @param[in] cell_mesh - the mesh being used
-    module subroutine compute_fluxes(mat, vec, u, v, cell_mesh)
-      class(matrix), intent(inout) :: mat
+    module subroutine compute_fluxes(M, vec, u, v, cell_mesh)
+      class(matrix), intent(inout), allocatable :: M
       class(vector), intent(inout) :: vec   
       class(field), intent(in) :: u, v
       type(mesh), intent(in) :: cell_mesh

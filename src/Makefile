@@ -16,6 +16,7 @@ ifeq ($(CMP),intel)
   FFLAGS = -cpp -fPIC -g -O3 -stand f18
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
+    -g -Og -traceback -check all -check bounds -check uninit -frapuv -debug all
   endif
   FFLAGS += -xHOST
   FFLAGS += -warn all,noexternals
@@ -42,12 +43,12 @@ ifeq ($(CMP),gnu)
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
     FFLAGS += -g -Og
-    FFLAGS += -fcheck=bounds
+    FFLAGS += -fcheck=bounds -fsanitize=address
   else
     FFLAGS += -O3
   endif
   FFLAGS += -fopenmp
-  FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
+  FFLAGS += -Wall -Wpedantic -Werror -Wno-error=conversion -Wno-error=maybe-uninitialized -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -J$(OBJ_DIR)
   MPIRUN = mpirun
 endif

@@ -15,8 +15,8 @@ contains
   !> @param[in,out] vec - Data structure containing RHS vector to be filled
   !> @param[in] u, v - arrays containing velocity fields in x, y directions
   !> @param[in] cell_mesh - the mesh being used
-  module subroutine compute_fluxes(mat, vec, u, v, cell_mesh)
-    class(matrix), intent(inout) :: mat   
+  module subroutine compute_fluxes(M, vec, u, v, cell_mesh)
+    class(matrix), intent(inout), allocatable :: M   
     class(vector), intent(inout) :: vec   
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
@@ -28,10 +28,10 @@ contains
 
     ! Loop over cells computing advection and diffusion fluxes
     n_int_cells = calc_matrix_nnz()
-    call compute_interior_coeffs(mat, u, v, cell_mesh, n_int_cells, cps)
+    call compute_interior_coeffs(M, u, v, cell_mesh, n_int_cells, cps)
 
     ! Loop over boundaries
-    call compute_boundary_coeffs(mat, vec, u, v, cell_mesh, cps)
+    call compute_boundary_coeffs(M, vec, u, v, cell_mesh, cps)
 
   end subroutine compute_fluxes
 
@@ -53,12 +53,12 @@ contains
   !> @param[in] cell_mesh   - Mesh structure
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in] cps         - number of cells per side
-  subroutine compute_interior_coeffs(mat, u, v, cell_mesh, n_int_cells, cps)
+  subroutine compute_interior_coeffs(M, u, v, cell_mesh, n_int_cells, cps)
     use constants, only : add_mode
     use types, only: matrix_values
     use utils, only: pack_entries, set_values
 
-    class(matrix), intent(inout) :: mat
+    class(matrix), allocatable :: M
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: n_int_cells
@@ -122,7 +122,7 @@ contains
       end do
       call pack_entries(mat_coeffs, 1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
       mat_counter = mat_counter + 1
-      call set_values(mat_coeffs, mat)
+      call set_values(mat_coeffs, M)
     end do
 
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
