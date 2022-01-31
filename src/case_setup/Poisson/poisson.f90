@@ -29,7 +29,8 @@ program poisson
   use utils, only : update, begin_update, end_update, &
                     finalise, initialise, &
                     set_global_size
-  use mesh_utils, only : build_square_mesh, face_area, centre, volume, global_index, &
+  use mesh_utils, only : build_square_mesh
+  use meshing, only : face_area, centre, volume, global_index, &
        count_neighbours, boundary_status
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment

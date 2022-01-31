@@ -8,8 +8,8 @@ program test_mesh_square_mesh_closed
 
   use constants
 
-  use meshing, only : set_face_location
-  use mesh_utils, only : build_square_mesh, face_normal, face_area
+  use meshing, only : set_face_location, face_normal, face_area
+  use mesh_utils, only : build_square_mesh
 
   implicit none
   

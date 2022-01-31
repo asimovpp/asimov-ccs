@@ -7,8 +7,8 @@ program test_square_mesh_centres
   use testing_lib
 
   use constants, only : ndim
-  use meshing, only : set_cell_location, set_face_location
-  use mesh_utils, only : build_square_mesh, centre
+  use meshing, only : set_cell_location, set_face_location, centre
+  use mesh_utils, only : build_square_mesh
 
   implicit none
   

@@ -5,8 +5,8 @@ program test_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only : set_cell_location, set_neighbour_location
-  use mesh_utils, only : build_square_mesh, count_neighbours, boundary_status
+  use meshing, only : set_cell_location, set_neighbour_location, count_neighbours, boundary_status
+  use mesh_utils, only : build_square_mesh
 
   type(mesh), target :: square_mesh
   type(cell_locator) :: cell_location
@@ -90,7 +90,7 @@ contains
 
   subroutine test_mesh_internal_neighbours(nb_location)
 
-    use mesh_utils, only : count_neighbours, local_index, boundary_status, local_status
+    use meshing, only : count_neighbours, local_index, boundary_status, local_status
     
     type(neighbour_locator), intent(in) :: nb_location
 
