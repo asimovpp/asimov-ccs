@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data, vector_values, viewer
+  use types, only : vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none

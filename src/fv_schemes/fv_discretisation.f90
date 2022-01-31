@@ -15,16 +15,16 @@ contains
   !> @param[in] self_idx  - cell index
   !> @param[in] face_area - area of face between self and neighbour
   !> @param[in,out] coeff - advection coefficient to be calculated
-  !> @param[in] cps       - number of cells per side in mesh
+  !> @param[in] cps       - number of cells per side in (square) mesh
   !> @param[in] u, v      - velocity fields in x, y directions
   !> @param[in] BC        - flag indicating whether cell is on boundary
-  module subroutine calc_advection_coeff_cds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
+  module subroutine calc_advection_coeff_cds(ngb_idx, self_idx, face_area, cps, u, v, BC, coeff)
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(out) :: coeff
     integer(accs_int), intent(in) :: cps
     type(central_field), intent(in) :: u, v
     integer(accs_int), intent(in) :: BC
+    real(accs_real), intent(out) :: coeff
 
     integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
     integer(accs_int) :: self_row, self_col     ! cell coordinates within grid
@@ -42,16 +42,16 @@ contains
   !> @param[in] self_idx  - cell index
   !> @param[in] face_area - area of face between self and neighbour
   !> @param[in,out] coeff - advection coefficient to be calculated
-  !> @param[in] cps       - number of cells per side in mesh
+  !> @param[in] cps       - number of cells per side in (square) mesh
   !> @param[in] u, v      - velocity fields in x, y directions
   !> @param[in] BC        - flag indicating whether cell is on boundary
-  module subroutine calc_advection_coeff_uds(ngb_idx, self_idx, face_area, coeff, cps, u, v, BC)
+  module subroutine calc_advection_coeff_uds(ngb_idx, self_idx, face_area, cps, u, v, BC, coeff)
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), intent(out) :: coeff
     integer(accs_int), intent(in) :: cps
     type(upwind_field), intent(in) :: u, v
     integer(accs_int), intent(in) :: BC
+    real(accs_real), intent(out) :: coeff
 
     integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
     integer(accs_int) :: self_row, self_col     ! cell coordinates within grid

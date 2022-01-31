@@ -46,7 +46,7 @@ contains
   pure function calc_matrix_nnz() result(nnz)
     integer(accs_int) :: nnz
 
-    nnz = 5
+    nnz = 5_accs_int
   end function calc_matrix_nnz
 
   !> @brief Computes the matrix coefficient for cells in the interior of the mesh
@@ -70,10 +70,10 @@ contains
     type(matrix_values) :: mat_coeffs
     integer(accs_int) :: self_idx, ngb_idx, local_idx
     integer(accs_int) :: j
+    integer(accs_int) :: mat_counter
     real(accs_real) :: face_area
     real(accs_real) :: diff_coeff, diff_coeff_total
     real(accs_real) :: adv_coeff, adv_coeff_total
-    integer(accs_int) :: mat_counter
 
     mat_coeffs%mode = add_mode
 
@@ -96,7 +96,7 @@ contains
           type is(central_field)
             select type(v)
             type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, 0)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -104,7 +104,7 @@ contains
           type is(upwind_field)
             select type(v)
             type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, 0)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -186,7 +186,7 @@ contains
           type is(central_field)
             select type(v)
             type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -194,7 +194,7 @@ contains
           type is(upwind_field)
             select type(v)
             type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -217,7 +217,7 @@ contains
           type is(central_field)
             select type(v)
             type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -225,7 +225,7 @@ contains
           type is(upwind_field)
             select type(v)
             type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, adv_coeff, cps, u, v, ngb_idx)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -260,7 +260,6 @@ contains
 
     type(face_locator) :: face_location
     real(accs_real) :: face_surface_area
-
     real(accs_real), parameter :: diffusion_factor = 1.e-2 
 
     call set_face_location(face_location, cell_mesh, self_idx, ngb_idx)
@@ -286,7 +285,7 @@ contains
 
     real(accs_real) :: flux
 
-    flux = 0.
+    flux = 0.0_accs_real
 
     if (BC_flag == 0) then
       if (ngb_col - self_col == 1) then

@@ -17,9 +17,6 @@ module types
   public :: set_cell_location
   public :: set_neighbour_location
 
-  type, public :: viewer
-  end type viewer
-
   !> @brief Stub type for vectors to be extended in sub-modules.
   type, public :: vector
   end type vector

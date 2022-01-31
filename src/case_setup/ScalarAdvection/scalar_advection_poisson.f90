@@ -8,7 +8,7 @@ program scalar_advection
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
                     linear_system, linear_solver, mesh, set_global_matrix_size, &
-                    viewer, field, upwind_field, central_field
+                    field, upwind_field, central_field
   use vec, only : create_vector, axpy, norm!, vec_view
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
@@ -18,7 +18,8 @@ program scalar_advection
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, timer
+                      cleanup_parallel_environment, timer, &
+                      read_command_line_arguments
   use fv, only : compute_fluxes
 
   use petsc, only: ADD_VALUES  
@@ -46,7 +47,7 @@ program scalar_advection
   double precision :: end_time
 
   call initialise_parallel_environment(par_env) 
-  call read_command_line_arguments()
+  call read_command_line_arguments(par_env)
   call timer(start_time)
 
   ! Init ICs (velocities, BC scalar, mesh, etc)
@@ -164,31 +165,4 @@ contains
     call update(ustar)
   end subroutine set_exact_sol
 
-  !> @brief read command line arguments and their values
-  subroutine read_command_line_arguments()
-
-    character(len=32) :: arg !> argument string
-    integer(accs_int) :: nargs !> number of arguments
-
-    do nargs = 1, command_argument_count()
-      call get_command_argument(nargs, arg)
-      select case (arg)
-        case ('--ccs_m') !> problems size
-          call get_command_argument(nargs+1, arg)
-          read(arg, '(I5)') cps
-        case ('--ccs_help')
-          if(par_env%proc_id==par_env%root) then
-            print *, "================================"
-            print *, "ASiMoV-CCS command line options:"
-            print *, "================================"
-            print *, "--ccs_help:         This help menu."
-            print *, "--ccs_m <value>:    Problem size."
-          endif
-          stop
-        case default
-      end select
-    end do 
-
-  end subroutine read_command_line_arguments
-  
 end program scalar_advection
