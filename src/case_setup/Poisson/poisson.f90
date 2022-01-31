@@ -21,9 +21,8 @@ program poisson
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
        linear_system, linear_solver, mesh, set_global_matrix_size, &
-       cell_locator, set_cell_location, &
-       face_locator, set_face_location, &
-       neighbour_locator, set_neighbour_location
+       cell_locator, face_locator, neighbour_locator
+  use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system

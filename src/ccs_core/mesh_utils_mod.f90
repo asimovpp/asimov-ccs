@@ -322,7 +322,7 @@ contains
 
   subroutine neighbour_global_index(neighbour_location, nbidxg)
 
-    use types, only : set_cell_location
+    use meshing, only : set_cell_location
     
     type(neighbour_locator), intent(in) :: neighbour_location
     integer(accs_int), intent(out) :: nbidxg

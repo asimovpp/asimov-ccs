@@ -2,7 +2,8 @@
 program test_square_mesh_indices
 
   use testing_lib
-  
+
+  use meshing, only : set_cell_location
   use mesh_utils, only : build_square_mesh, global_index
 
   implicit none

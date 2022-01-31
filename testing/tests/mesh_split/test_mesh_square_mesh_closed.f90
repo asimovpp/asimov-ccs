@@ -7,7 +7,8 @@ program test_mesh_square_mesh_closed
   use testing_lib
 
   use constants
-  
+
+  use meshing, only : set_face_location
   use mesh_utils, only : build_square_mesh, face_normal, face_area
 
   implicit none

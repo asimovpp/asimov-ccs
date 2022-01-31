@@ -4,7 +4,8 @@
 program test_mesh_neighbours
 
   use testing_lib
-  
+
+  use meshing, only : set_cell_location, set_neighbour_location
   use mesh_utils, only : build_square_mesh, count_neighbours, boundary_status
 
   type(mesh), target :: square_mesh

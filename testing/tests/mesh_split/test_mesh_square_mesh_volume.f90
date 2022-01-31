@@ -5,6 +5,7 @@
 program test_mesh_square_mesh_volume
 
   use testing_lib
+  use meshing, only : set_cell_location
   use mesh_utils, only : build_square_mesh, volume
 
   implicit none
