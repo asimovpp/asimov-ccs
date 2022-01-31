@@ -123,7 +123,7 @@ contains
                 nbidx = ictr - 1
                 nbidxg = i - 1
               end if
-              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1) - 0.5_accs_real * h
               xf(2, fctr) = xc(2)
               nrm(1, fctr) = -1.0_accs_real
@@ -138,7 +138,7 @@ contains
                 nbidx = ictr + 1
                 nbidxg = i + 1
               end if
-              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1) + 0.5_accs_real * h
               xf(2, fctr) = xc(2)
               nrm(1, fctr) = 1.0_accs_real
@@ -153,7 +153,7 @@ contains
                 nbidx = ictr - nps
                 nbidxg = i - nps
               end if
-              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) - 0.5_accs_real * h
               nrm(1, fctr) = 0.0_accs_real
@@ -168,7 +168,7 @@ contains
                 nbidx = ictr + nps
                 nbidxg = i + nps
               end if
-              call build_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) + 0.5_accs_real * h
               nrm(1, fctr) = 0.0_accs_real
@@ -203,7 +203,7 @@ contains
   !> @param[in]    integer(accs_int) nbctr   - the cell-relative neighbour index
   !> @param[in]    integer(accs_int) nbidx   - the local index of the neighbour cell
   !> @param[in]    integer(accs_int) nbidxg  - the global index of the neighbour cell
-  subroutine build_mesh_add_neighbour(meshobj, cellidx, nbctr, nbidx, nbidxg)
+  subroutine build_local_mesh_add_neighbour(meshobj, cellidx, nbctr, nbidx, nbidxg)
 
     type(mesh), intent(inout) :: meshobj
     integer(accs_int), intent(in) :: cellidx
@@ -259,6 +259,6 @@ contains
       end if
     end if
     
-  end subroutine build_mesh_add_neighbour
+  end subroutine build_local_mesh_add_neighbour
   
 end module mesh_utils
