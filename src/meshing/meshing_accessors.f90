@@ -1,22 +1,16 @@
 submodule (meshing) meshing_accessors
+
+  implicit none
   
 contains
-  module subroutine set_face_location(face_location, geometry, cell_idx, cell_face_ctr)
-    type(face_locator), intent(out) :: face_location
-    type(mesh), target, intent(in) :: geometry
-    integer(accs_int), intent(in) :: cell_idx
-    integer(accs_int), intent(in) :: cell_face_ctr
-
+  
+  module procedure set_face_location
     face_location%mesh => geometry
     face_location%cell_idx = cell_idx
     face_location%cell_face_ctr = cell_face_ctr
-  end subroutine set_face_location
+  end procedure set_face_location
 
-  module subroutine set_cell_location(cell_location, geometry, cell_idx)
-    type(cell_locator), intent(out) :: cell_location
-    type(mesh), target, intent(in) :: geometry
-    integer(accs_int), intent(in) :: cell_idx
-
+  module procedure set_cell_location
     ! XXX: Potentially expensive...
     if (cell_idx > size(geometry%idx_global)) then
       print *, "ERROR: trying to access cell I don't own!", cell_idx, geometry%nlocal
@@ -25,16 +19,9 @@ contains
       cell_location%mesh => geometry
       cell_location%cell_idx = cell_idx
     end if
-
-  end subroutine set_cell_location
-
-  module subroutine set_neighbour_location(neighbour_location, cell_location, cell_neighbour_ctr)
-    type(neighbour_locator), intent(out) :: neighbour_location
-    type(cell_locator), intent(in) :: cell_location
-    integer(accs_int), intent(in) :: cell_neighbour_ctr
-
-    ! integer(accs_int) :: nnb
-    
+  end procedure set_cell_location
+  
+  module procedure set_neighbour_location
     neighbour_location%mesh => cell_location%mesh
     neighbour_location%cell_idx = cell_location%cell_idx
 
@@ -59,6 +46,6 @@ contains
         print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
       end if
     end associate
-    
-  end subroutine set_neighbour_location
+  end procedure set_neighbour_location
+  
 end submodule meshing_accessors

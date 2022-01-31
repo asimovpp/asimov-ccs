@@ -30,7 +30,7 @@ module meshing
       type(mesh), target, intent(in) :: geometry
       integer(accs_int), intent(in) :: cell_idx
     end subroutine set_cell_location
-
+  
     !> @brief Constructs a face locator object.
     !
     !> @description Creates the association between a face relative to a cell, i.e. to access the
