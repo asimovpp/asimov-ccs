@@ -24,7 +24,7 @@ module vec
   public :: initialise_vector
   public :: set_global_vector_size
   public :: set_local_vector_size
-  !public :: vec_view
+  public :: vec_view
 
   interface
      
@@ -161,9 +161,9 @@ module vec
     !  PetscScalar, pointer, dimension(:) :: vec_data
     !end subroutine
 
-    !module subroutine vec_view(vec)
-    !  class(vector), intent(in) :: vec
-    !end subroutine vec_view
+    module subroutine vec_view(vec)
+      class(vector), intent(in) :: vec
+    end subroutine vec_view
 
     end interface
   

@@ -48,7 +48,7 @@ ifeq ($(CMP),gnu)
     FFLAGS += -O3
   endif
   FFLAGS += -fopenmp
-  FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
+  FFLAGS += -Wall -Wpedantic -Werror #-Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -J$(OBJ_DIR)
   MPIRUN = mpirun
 endif
