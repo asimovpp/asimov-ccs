@@ -7,7 +7,7 @@ bases:
       vec: vec_petsc
       solver_common: solver_common
       solver: solver_petsc
-      parallel_env: parallel_env_mpi_petsc
+      parallel_env: rr_parallel_env_mpi_petsc
       parallel_env_error: parallel_errors_mpi_petsc
       parallel_utils: parallel_utils_mpi
     options:

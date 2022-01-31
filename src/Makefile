@@ -72,6 +72,8 @@ endif
 
 EXE = ccs_app
 TOOLS=$(CCS_DIR)src/build_tools/
+EXTERNAL_SRC=${WORK}/src/asimov-ccs-rr/src/
+EXTERNAL_MAKEFILE=$(EXTERNAL_SRC)Makefile.inc
 
 DEP_PREFIX=$(CCS_DIR)src/obj/
 EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
@@ -82,7 +84,7 @@ RULE_DEPS=$(DEP_PREFIX)rules.deps
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
 CASES = poisson
 
-ALL_SRC = $(shell find $(CCS_DIR)src/ -type f -name '*.f90')
+ALL_SRC = $(shell find $(CCS_DIR)src/ $(EXTERNAL_SRC) -type f -name '*.f90')
 SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
 OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
@@ -94,6 +96,8 @@ INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp
+
+include $(EXTERNAL_MAKEFILE)
 
 all: $(OBJ) $(EXE)
 
@@ -110,8 +114,8 @@ $(CAF_OBJ): %.o: %.f90
 	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
 
 clean:
-	rm -f $(EXE) *.o *.mod *.smod
-	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod
+	rm -f $(EXE) *.o *.mod *.smod *.deps
+	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(OBJ_DIR)*.deps
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs
