@@ -60,23 +60,23 @@ contains
     select type(par_env)
       type is (parallel_environment_mpi)
 
-        square_mesh%n = nps**2            !> Number of cells
+        square_mesh%nglobal = nps**2            !> (global) Number of cells
         square_mesh%h = l / real(nps, accs_real)
 
-        associate(n=>square_mesh%n, &
+        associate(nglobal=>square_mesh%nglobal, &
                   h=>square_mesh%h)
           
           !! Setup ownership range
           comm_rank = par_env%proc_id
           comm_size = par_env%num_procs
-          istart = comm_rank * (n / comm_size)
-          if (modulo(square_mesh%n, comm_size) < comm_rank) then
-            istart = istart + modulo(n, comm_size)
+          istart = comm_rank * (nglobal / comm_size)
+          if (modulo(nglobal, comm_size) < comm_rank) then
+            istart = istart + modulo(nglobal, comm_size)
           else
             istart = istart + comm_rank
           end if
-          iend = istart + n / comm_size
-          if (modulo(square_mesh%n, comm_size) > comm_rank) then
+          iend = istart + nglobal / comm_size
+          if (modulo(nglobal, comm_size) > comm_rank) then
             iend = iend + 1
           end if
 
