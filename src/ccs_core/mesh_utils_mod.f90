@@ -14,31 +14,47 @@ module mesh_utils
   
 contains
 
+  !> @brief Utility constructor to build a square mesh.
+  !
+  !> @description Builds a Cartesian grid of NxN cells on the domain LxL.
+  !
+  !> @param[in] integer(accs_int)    nps         - Number of cells per side of the mesh.
+  !> @param[in] real(accs_real)      l           - The length of each side
+  !> @param[in] parallel_environment par_env     - The parallel environment to construct the mesh.
+  !
+  !> @returns   mesh                 square_mesh - The mesh
   function build_square_mesh(nps, l, par_env) result(square_mesh)
 
     class(parallel_environment) :: par_env
     integer(accs_int), intent(in) :: nps
     real(accs_real), intent(in) :: l
 
-    integer(accs_int) :: istart, iend
-    integer(accs_int) :: i, ii, ictr
-    integer(accs_int) :: fctr
-    integer(accs_int) :: comm_rank, comm_size
-
-    integer(accs_int) :: nbidx, nbidxg
-
     type(mesh) :: square_mesh
+
+    integer(accs_int) :: istart    !> The (global) starting index of a partition
+    integer(accs_int) :: iend      !> The (global) last index of a partition
+    integer(accs_int) :: i         !> Loop counter
+    integer(accs_int) :: ii        !> Zero-indexed loop counter (simplifies some operations)
+    integer(accs_int) :: ictr      !> Local index counter
+    integer(accs_int) :: fctr      !> Cell-local face counter
+    integer(accs_int) :: comm_rank !> The process ID within the parallel environment
+    integer(accs_int) :: comm_size !> The size of the parallel environment
+
+    integer(accs_int) :: nbidx     !> The local index of a neighbour cell
+    integer(accs_int) :: nbidxg    !> The global index of a neighbour cell
 
     select type(par_env)
       type is (parallel_environment_mpi)
 
-        square_mesh%nglobal = nps**2            !> (global) Number of cells
+        ! Set the global mesh parameters
+        square_mesh%nglobal = nps**2            
         square_mesh%h = l / real(nps, accs_real)
 
+        ! Associate aliases to make code easier to read
         associate(nglobal=>square_mesh%nglobal, &
                   h=>square_mesh%h)
           
-          !! Setup ownership range
+          ! Determine ownership range (based on PETSc ex3.c)
           comm_rank = par_env%proc_id
           comm_size = par_env%num_procs
           istart = comm_rank * (nglobal / comm_size)
@@ -52,9 +68,11 @@ contains
             iend = iend + 1
           end if
 
-          istart = istart + 1 ! Fortran - 1 indexed
+          ! Fix indexing and determine size of local partition
+          istart = istart + 1
           square_mesh%nlocal = (iend - (istart - 1))
 
+          ! Allocate mesh arrays
           allocate(square_mesh%idx_global(square_mesh%nlocal))
           allocate(square_mesh%nnb(square_mesh%nlocal))
           allocate(square_mesh%nbidx(4, square_mesh%nlocal))
@@ -63,7 +81,8 @@ contains
           allocate(square_mesh%vol(square_mesh%nlocal))
           allocate(square_mesh%Af(4, square_mesh%nlocal))    
           allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
-          
+
+          ! Initialise mesh arrays
           square_mesh%nnb(:) = 4 ! All cells have 4 neighbours (possibly ghost/boundary cells)
           square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
           square_mesh%Af(:, :) = square_mesh%h  !> @note Mesh is square and 2D
@@ -71,21 +90,31 @@ contains
           square_mesh%xc(:, :) = 0.0_accs_real
           square_mesh%xf(:, :, :) = 0.0_accs_real
           
-          !! Get neighbour indices
-          !! XXX: These are global indices and thus may be off-process
-          ictr = 1
-          do i = istart, iend
+          ! Assemble cells and faces
+          ! XXX: Negative neighbour indices are used to indicate boundaries using the same numbering
+          !      as cell-relative neighbour indexing, i.e.
+          !        -1 = left boundary
+          !        -2 = right boundary
+          !        -3 = down boundary
+          !        -4 = up boundary
+          ictr = 1 ! Set local indexing starting from 1...n
+          do i = istart, iend 
             square_mesh%idx_global(ictr) = i
             ii = i - 1
 
+            ! Create aliases for
+            ! - xc (centre of cell i)
+            ! - xf (centres of faces of cell i)
+            ! - nrm (normals of faces of cell i)
             associate(xc => square_mesh%xc(:, ictr), &
                  xf => square_mesh%xf(:, :, ictr), &
                  nrm => square_mesh%nf(:, :, ictr))
-              !! Set cell centre
+
+              ! Set cell centre
               xc(1) = (modulo(ii, nps) + 0.5_accs_real) * h
               xc(2) = (ii / nps + 0.5_accs_real) * h
-              
-              !! Left neighbour
+
+              ! Construct left (1) face/neighbour
               fctr = 1
               if (modulo(ii, nps) == 0) then
                 nbidx = -1
@@ -100,7 +129,7 @@ contains
               nrm(1, fctr) = -1.0_accs_real
               nrm(2, fctr) = 0.0_accs_real
 
-              !! Right neighbour
+              ! Construct right (2) face/neighbour
               fctr = 2
               if (modulo(ii, nps) == (nps - 1)) then
                 nbidx = -2
@@ -115,7 +144,7 @@ contains
               nrm(1, fctr) = 1.0_accs_real
               nrm(2, fctr) = 0.0_accs_real
 
-              !! Down neighbour
+              ! Construct down (3) face/neighbour
               fctr = 3
               if ((ii / nps) == 0) then
                 nbidx = -3
@@ -130,7 +159,7 @@ contains
               nrm(1, fctr) = 0.0_accs_real
               nrm(2, fctr) = -1.0_accs_real
 
-              !! Up neighbour
+              ! Construct up (4) face/neighbour
               fctr = 4
               if ((ii / nps) == (nps - 1)) then
                 nbidx = -4
@@ -157,6 +186,23 @@ contains
     end select    
   end function build_square_mesh
 
+  !> @brief Helper subroutine to add a neighbour to a cell's neighbour list.
+  !
+  !> @description Given a local and global index for a neighbour there are 3 possibilities:
+  !!              1) the local and the neighbour is added immediately
+  !!              2) the global index is negative indicating it is a boundary and the "neighbour" is
+  !!                 added immediately
+  !!              3) the index is not local:
+  !!                 a) the global index is already in the off-process list (halos), the neighbour
+  !!                    is added immediately
+  !!                 b) this is a new halo cell, the list of global indices must be grown to
+  !!                    accomodate before adding the neighbour.
+  !
+  !> @param[inout] mesh meshobj - the mesh we are assembling neighbours on
+  !> @param[in]    integer(accs_int) cellidx - the index of the cell whose neighbours we are assembling
+  !> @param[in]    integer(accs_int) nbctr   - the cell-relative neighbour index
+  !> @param[in]    integer(accs_int) nbidx   - the local index of the neighbour cell
+  !> @param[in]    integer(accs_int) nbidxg  - the global index of the neighbour cell
   subroutine build_mesh_add_neighbour(meshobj, cellidx, nbctr, nbidx, nbidxg)
 
     type(mesh), intent(inout) :: meshobj
@@ -165,12 +211,14 @@ contains
     integer(accs_int), intent(in) :: nbidx
     integer(accs_int), intent(in) :: nbidxg
 
-    integer(accs_int), dimension(:), allocatable :: tmpidx
-    integer(accs_int) :: ng
-    logical :: found
-    integer(accs_int) :: i
+    integer(accs_int), dimension(:), allocatable :: tmpidx !> Temporary array for growing the global
+                                                           !! index array
+    integer(accs_int) :: ng !> The current number of cells (total = local + halos)
+    logical :: found        !> Indicates whether a halo cell was already present
+    integer(accs_int) :: i  !> Cell iteration counter
     
     if ((nbidx >= 1) .and. (nbidx <= meshobj%nlocal)) then
+      ! Neighbour is local
       meshobj%nbidx(nbctr, cellidx) = nbidx
     else if (nbidxg < 0) then
       ! Boundary "neighbour" - local index should also be -ve
@@ -180,6 +228,9 @@ contains
       end if
       meshobj%nbidx(nbctr, cellidx) = nbidx
     else
+      ! Neighbour is in a halo
+
+      ! First check if neighbour is already present in halo
       ng = size(meshobj%idx_global)
       found = .false.
       do i = meshobj%nlocal, ng
@@ -190,6 +241,10 @@ contains
         end if
       end do
 
+      ! If neighbour was not present append to global index list (the end of the global index list
+      ! becoming its local index).
+      ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
+      !      the (extended) original array.
       if (.not. found) then
         allocate(tmpidx(ng + 1))
         tmpidx(1:ng) = meshobj%idx_global(1:ng)
