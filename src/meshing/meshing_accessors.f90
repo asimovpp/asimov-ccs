@@ -99,7 +99,6 @@ contains
   end procedure get_cell_global_index
 
   module procedure get_neighbour_global_index
-    use meshing, only : set_cell_location
     type(cell_locator) :: nb_cell_location
     integer(accs_int) :: nbidx
     call get_local_index(neighbour_location, nbidx)
