@@ -48,45 +48,45 @@ contains
     end associate
   end procedure set_neighbour_location
 
-  module procedure face_normal
+  module procedure get_face_normal
     associate(mesh => face_location%mesh, &
          cell => face_location%cell_idx, &
          face => face_location%cell_face_ctr)
       normal(:) = mesh%nf(:, face, cell)
     end associate
-  end procedure face_normal
+  end procedure get_face_normal
 
-  module procedure face_area
+  module procedure get_face_area
     associate(mesh => face_location%mesh, &
          cell =>face_location%cell_idx, &
          face =>face_location%cell_face_ctr)
       area = mesh%Af(face, cell)
     end associate
-  end procedure face_area
+  end procedure get_face_area
 
-  module procedure cell_centre
+  module procedure get_cell_centre
     associate(mesh => cell_location%mesh, &
          cell => cell_location%cell_idx)
       x(:) = mesh%xc(:, cell)
     end associate
-  end procedure cell_centre
+  end procedure get_cell_centre
 
-  module procedure face_centre
+  module procedure get_face_centre
     associate(mesh => face_location%mesh, &
          cell => face_location%cell_idx, &
          face => face_location%cell_face_ctr)
       x(:) = mesh%xf(:, face, cell)
     end associate
-  end procedure face_centre
+  end procedure get_face_centre
 
-  module procedure volume
+  module procedure get_volume
     associate(mesh => cell_location%mesh, &
          cell => cell_location%cell_idx)
       V = mesh%vol(cell)
     end associate
-  end procedure volume
+  end procedure get_volume
 
-  module procedure cell_global_index
+  module procedure get_cell_global_index
     associate(mesh => cell_location%mesh)
       if (mesh%nlocal > 0) then ! XXX: Potentially expensive...
         associate(cell => cell_location%cell_idx)
@@ -96,16 +96,16 @@ contains
         idxg = -1 ! XXX: What should we do in case of too many processors for a given mesh?
       end if
     end associate
-  end procedure cell_global_index
+  end procedure get_cell_global_index
 
-  module procedure neighbour_global_index
+  module procedure get_neighbour_global_index
     use meshing, only : set_cell_location
     type(cell_locator) :: nb_cell_location
     integer(accs_int) :: nbidx
-    call local_index(neighbour_location, nbidx)
+    call get_local_index(neighbour_location, nbidx)
     call set_cell_location(nb_cell_location, neighbour_location%mesh, nbidx)
-    call global_index(nb_cell_location, nbidxg)
-  end procedure neighbour_global_index
+    call get_global_index(nb_cell_location, nbidxg)
+  end procedure get_neighbour_global_index
 
   module procedure cell_count_neighbours
     associate(mesh => cell_location%mesh, &
@@ -114,10 +114,10 @@ contains
     end associate
   end procedure cell_count_neighbours
 
-  module procedure boundary_status
+  module procedure get_boundary_status
     integer :: nbidx
 
-    call neighbour_local_index(neighbour_location, nbidx)
+    call get_neighbour_local_index(neighbour_location, nbidx)
 
     if (nbidx > 0) then
       is_boundary = .false.
@@ -127,12 +127,12 @@ contains
       print *, "ERROR: neighbour index (0) is invalid"
       stop
     end if
-  end procedure boundary_status
+  end procedure get_boundary_status
 
-  module procedure local_status
+  module procedure get_local_status
     integer :: nbidx
 
-    call neighbour_local_index(neighbour_location, nbidx)
+    call get_neighbour_local_index(neighbour_location, nbidx)
     associate(mesh => neighbour_location%mesh)
       if ((nbidx > 0) .and. (nbidx <= mesh%nlocal)) then
         is_local = .true.
@@ -140,18 +140,18 @@ contains
         is_local = .false.
       end if
     end associate
-  end procedure local_status
+  end procedure get_local_status
 
-  module procedure cell_local_index
+  module procedure get_cell_local_index
     idx = cell_location%cell_idx
-  end procedure cell_local_index
+  end procedure get_cell_local_index
 
-  module procedure neighbour_local_index
+  module procedure get_neighbour_local_index
     associate(mesh => neighbour_location%mesh, &
          i => neighbour_location%cell_idx, &
          j => neighbour_location%cell_neighbour_ctr)
       nbidx = mesh%nbidx(j, i)
     end associate
-  end procedure neighbour_local_index
+  end procedure get_neighbour_local_index
 
 end submodule meshing_accessors

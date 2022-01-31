@@ -8,7 +8,7 @@ program test_mesh_square_mesh_closed
 
   use constants
 
-  use meshing, only : set_face_location, face_normal, face_area
+  use meshing, only : set_face_location, get_face_normal, get_face_area
   use mesh_utils, only : build_square_mesh
 
   implicit none
@@ -39,8 +39,8 @@ program test_mesh_square_mesh_closed
       do j = 1, square_mesh%nnb(i)
 
         call set_face_location(face_location, square_mesh, i, j)
-        call face_area(face_location, A)
-        call face_normal(face_location, norm)
+        call get_face_area(face_location, A)
+        call get_face_normal(face_location, norm)
         S(:) = S(:) + norm(:) * A
       end do
 

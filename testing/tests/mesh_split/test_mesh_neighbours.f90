@@ -5,7 +5,7 @@ program test_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only : set_cell_location, set_neighbour_location, count_neighbours, boundary_status
+  use meshing, only : set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
   use mesh_utils, only : build_square_mesh
 
   type(mesh), target :: square_mesh
@@ -54,7 +54,7 @@ program test_mesh_neighbours
       ! Loop over neighbours
       do j = 1, nnb
         call set_neighbour_location(nb_location, cell_location, j)
-        call boundary_status(nb_location, is_boundary)
+        call get_boundary_status(nb_location, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
           boundary_ctr = boundary_ctr + 1
@@ -90,7 +90,7 @@ contains
 
   subroutine test_mesh_internal_neighbours(nb_location)
 
-    use meshing, only : count_neighbours, local_index, boundary_status, local_status
+    use meshing, only : count_neighbours, get_local_index, get_boundary_status, get_local_status
     
     type(neighbour_locator), intent(in) :: nb_location
 
@@ -109,7 +109,7 @@ contains
 
     associate(mesh => nb_location%mesh, &
          parent_idx => nb_location%cell_idx)
-      call local_index(nb_location, nbidx)
+      call get_local_index(nb_location, nbidx)
             
       ! Neighbour index should not be its parents
       if (nbidx == parent_idx) then
@@ -117,7 +117,7 @@ contains
         call stop_test(message)
       end if
 
-      call local_status(nb_location, is_local)
+      call get_local_status(nb_location, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
         call set_cell_location(nb_cell_location, mesh, nbidx)
@@ -125,9 +125,9 @@ contains
         found_parent = .false.
         do j = 1, nnb
           call set_neighbour_location(nbnb_location, nb_cell_location, j)
-          call boundary_status(nbnb_location, is_boundary)
+          call get_boundary_status(nbnb_location, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
-            call local_index(nbnb_location, nbidx)
+            call get_local_index(nbnb_location, nbidx)
             if (nbidx == i) then
               found_parent = .true.
               exit

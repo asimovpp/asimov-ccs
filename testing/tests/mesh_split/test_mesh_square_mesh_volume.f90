@@ -5,7 +5,7 @@
 program test_mesh_square_mesh_volume
 
   use testing_lib
-  use meshing, only : set_cell_location, volume
+  use meshing, only : set_cell_location, get_volume
   use mesh_utils, only : build_square_mesh
 
   implicit none
@@ -36,7 +36,7 @@ program test_mesh_square_mesh_volume
     nneg_vol = 0
     do i = 1, square_mesh%nlocal
       call set_cell_location(cell_location, square_mesh, i)
-      call volume(cell_location, V)
+      call get_volume(cell_location, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1
       end if
