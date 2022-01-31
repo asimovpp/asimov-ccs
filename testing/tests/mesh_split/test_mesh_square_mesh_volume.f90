@@ -34,14 +34,11 @@ program test_mesh_square_mesh_volume
     vol = 0.0_accs_real
     nneg_vol = 0
     do i = 1, square_mesh%nlocal
-<<<<<<< HEAD
-=======
       call set_cell_location(cell_location, square_mesh, i)
       call volume(cell_location, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1
       end if
->>>>>>> make-mesh-unstructured
       vol = vol + square_mesh%vol(i)
     end do
     
