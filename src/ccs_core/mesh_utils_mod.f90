@@ -65,12 +65,12 @@ contains
           end if
           iend = istart + nglobal / comm_size
           if (modulo(nglobal, comm_size) > comm_rank) then
-            iend = iend + 1
+            iend = iend + 1_accs_int
           end if
 
           ! Fix indexing and determine size of local partition
-          istart = istart + 1
-          square_mesh%nlocal = (iend - (istart - 1))
+          istart = istart + 1_accs_int
+          square_mesh%nlocal = (iend - (istart - 1_accs_int))
 
           ! Allocate mesh arrays
           allocate(square_mesh%idx_global(square_mesh%nlocal))
@@ -83,7 +83,7 @@ contains
           allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
 
           ! Initialise mesh arrays
-          square_mesh%nnb(:) = 4 ! All cells have 4 neighbours (possibly ghost/boundary cells)
+          square_mesh%nnb(:) = 4_accs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
           square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
           square_mesh%Af(:, :) = square_mesh%h  !> @note Mesh is square and 2D
           square_mesh%nf(:, :, :) = 0.0_accs_real
@@ -97,10 +97,10 @@ contains
           !        -2 = right boundary
           !        -3 = down boundary
           !        -4 = up boundary
-          ictr = 1 ! Set local indexing starting from 1...n
+          ictr = 1_accs_int ! Set local indexing starting from 1...n
           do i = istart, iend 
             square_mesh%idx_global(ictr) = i
-            ii = i - 1
+            ii = i - 1_accs_int
 
             ! Create aliases for
             ! - xc (centre of cell i)
@@ -115,13 +115,13 @@ contains
               xc(2) = (ii / nps + 0.5_accs_real) * h
 
               ! Construct left (1) face/neighbour
-              fctr = 1
-              if (modulo(ii, nps) == 0) then
-                nbidx = -1
-                nbidxg = -1
+              fctr = 1_accs_int
+              if (modulo(ii, nps) == 0_accs_int) then
+                nbidx = -1_accs_int
+                nbidxg = -1_accs_int
               else
-                nbidx = ictr - 1
-                nbidxg = i - 1
+                nbidx = ictr - 1_accs_int
+                nbidxg = i - 1_accs_int
               end if
               call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1) - 0.5_accs_real * h
@@ -130,13 +130,13 @@ contains
               nrm(2, fctr) = 0.0_accs_real
 
               ! Construct right (2) face/neighbour
-              fctr = 2
-              if (modulo(ii, nps) == (nps - 1)) then
-                nbidx = -2
-                nbidxg = -2
+              fctr = 2_accs_int
+              if (modulo(ii, nps) == (nps - 1_accs_int)) then
+                nbidx = -2_accs_int
+                nbidxg = -2_accs_int
               else
-                nbidx = ictr + 1
-                nbidxg = i + 1
+                nbidx = ictr + 1_accs_int
+                nbidxg = i + 1_accs_int
               end if
               call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
               xf(1, fctr) = xc(1) + 0.5_accs_real * h
@@ -145,10 +145,10 @@ contains
               nrm(2, fctr) = 0.0_accs_real
 
               ! Construct down (3) face/neighbour
-              fctr = 3
-              if ((ii / nps) == 0) then
-                nbidx = -3
-                nbidxg = -3
+              fctr = 3_accs_int
+              if ((ii / nps) == 0_accs_int) then
+                nbidx = -3_accs_int
+                nbidxg = -3_accs_int
               else
                 nbidx = ictr - nps
                 nbidxg = i - nps
@@ -160,10 +160,10 @@ contains
               nrm(2, fctr) = -1.0_accs_real
 
               ! Construct up (4) face/neighbour
-              fctr = 4
-              if ((ii / nps) == (nps - 1)) then
-                nbidx = -4
-                nbidxg = -4
+              fctr = 4_accs_int
+              if ((ii / nps) == (nps - 1_accs_int)) then
+                nbidx = -4_accs_int
+                nbidxg = -4_accs_int
               else
                 nbidx = ictr + nps
                 nbidxg = i + nps
@@ -175,7 +175,7 @@ contains
               nrm(2, fctr) = 1.0_accs_real
             end associate
 
-            ictr = ictr + 1
+            ictr = ictr + 1_accs_int
           end do
         end associate
 
@@ -217,12 +217,12 @@ contains
     logical :: found        !> Indicates whether a halo cell was already present
     integer(accs_int) :: i  !> Cell iteration counter
     
-    if ((nbidx >= 1) .and. (nbidx <= meshobj%nlocal)) then
+    if ((nbidx >= 1_accs_int) .and. (nbidx <= meshobj%nlocal)) then
       ! Neighbour is local
       meshobj%nbidx(nbctr, cellidx) = nbidx
-    else if (nbidxg < 0) then
+    else if (nbidxg < 0_accs_int) then
       ! Boundary "neighbour" - local index should also be -ve
-      if (.not. (nbidx < 0)) then
+      if (.not. (nbidx < 0_accs_int)) then
         print *, "ERROR: boundary neighbours should have -ve indices!"
         stop
       end if
@@ -246,9 +246,9 @@ contains
       ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
       !      the (extended) original array.
       if (.not. found) then
-        allocate(tmpidx(ng + 1))
-        tmpidx(1:ng) = meshobj%idx_global(1:ng)
-        ng = ng + 1
+        allocate(tmpidx(ng + 1_accs_int))
+        tmpidx(1_accs_int:ng) = meshobj%idx_global(1_accs_int:ng)
+        ng = ng + 1_accs_int
         tmpidx(ng) = nbidxg
         meshobj%nbidx(nbctr, cellidx) = ng
         
