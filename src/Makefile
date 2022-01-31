@@ -35,7 +35,7 @@ ifeq ($(CMP),intelx)
 endif
 ifeq ($(CMP),gnu)
   FC = mpif90
-  FFLAGS = -cpp -O3 -std=f2018
+  FFLAGS = -cpp -std=f2018
   CAFFLAGS = -fcoarray=single
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags

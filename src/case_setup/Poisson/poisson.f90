@@ -21,17 +21,17 @@ program poisson
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
        linear_system, linear_solver, mesh, set_global_matrix_size, &
-       cell_locator, set_cell_location, &
-       face_locator, set_face_location, &
-       neighbour_locator, set_neighbour_location
+       cell_locator, face_locator, neighbour_locator
+  use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector, axpy, norm
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, &
                     finalise, initialise, &
                     set_global_size
-  use mesh_utils, only : build_square_mesh, face_area, centre, volume, global_index, &
-       count_neighbours, boundary_status
+  use mesh_utils, only : build_square_mesh
+  use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
+       count_neighbours, get_boundary_status
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -73,7 +73,7 @@ program poisson
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_global_size(mat_sizes, square_mesh%n, square_mesh%n, par_env)
+  call set_global_size(mat_sizes, square_mesh%nglobal, square_mesh%nglobal, par_env)
   call set_nnz(mat_sizes, 5)
   call create_matrix(mat_sizes, M)
 
@@ -82,7 +82,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh%n, par_env)
+  call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)
@@ -164,9 +164,9 @@ contains
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
         call set_cell_location(cell_location, square_mesh, i)
-        call centre(cell_location, cc)
-        call volume(cell_location, V)
-        call global_index(cell_location, idxg)
+        call get_centre(cell_location, cc)
+        call get_volume(cell_location, V)
+        call get_global_index(cell_location, idxg)
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
@@ -226,7 +226,7 @@ contains
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
       call set_cell_location(cell_location, square_mesh, i)
-      call global_index(cell_location, idxg)
+      call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
       allocate(mat_coeffs%rglob(1))
@@ -239,16 +239,16 @@ contains
       !! Loop over faces
       do j = 1, nnb
         call set_neighbour_location(nb_location, cell_location, j)
-        call boundary_status(nb_location, is_boundary)
+        call get_boundary_status(nb_location, is_boundary)
 
         if (.not. is_boundary) then
           !! Interior face
         
           call set_face_location(face_location, square_mesh, i, j)
-          call face_area(face_location, A)
+          call get_face_area(face_location, A)
           coeff_f = (1.0 / square_mesh%h) * A
 
-          call global_index(nb_location, nbidxg)
+          call get_global_index(nb_location, nbidxg)
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
@@ -318,7 +318,7 @@ contains
     do i = 1, square_mesh%nlocal
       if (minval(square_mesh%nbidx(:, i)) < 0) then
         call set_cell_location(cell_location, square_mesh, i)
-        call global_index(cell_location, idxg)
+        call get_global_index(cell_location, idxg)
         coeff = 0.0_accs_real 
         r = 0.0_accs_real
           
@@ -330,11 +330,11 @@ contains
         do j = 1, nnb
 
           call set_neighbour_location(nb_location, cell_location, j)
-          call boundary_status(nb_location, is_boundary)
+          call get_boundary_status(nb_location, is_boundary)
 
           if (is_boundary) then
             call set_face_location(face_location, square_mesh, i, j)
-            call face_area(face_location, A)
+            call get_face_area(face_location, A)
             boundary_coeff = (2.0 / square_mesh%h) * A
             boundary_val = rhs_val(i, j)
 
@@ -380,7 +380,7 @@ contains
     vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
       call set_cell_location(cell_location, square_mesh, i)
-      call global_index(cell_location, idxg)
+      call get_global_index(cell_location, idxg)
       call pack_entries(vec_values, 1, idxg, rhs_val(i))
       call set_values(vec_values, ustar)
     end do
@@ -412,14 +412,14 @@ contains
     if (present(f)) then
       !! Face-centred value
       call set_face_location(face_location, square_mesh, i, f)
-      call centre(face_location, x)
+      call get_centre(face_location, x)
       associate(y => x(2))
         r = y
       end associate
     else
       !! Cell-centred value
       call set_cell_location(cell_location, square_mesh, i)
-      call centre(cell_location, x)
+      call get_centre(cell_location, x)
       associate(y => x(2))
         r = y
       end associate
