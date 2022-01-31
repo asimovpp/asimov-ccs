@@ -11,7 +11,7 @@ module testing_lib
 
   implicit none
 
-  class(parallel_environment), allocatable, target :: par_env !! XXX: SHOULD this be a target?
+  class(parallel_environment), allocatable, target :: par_env
   integer(accs_err) :: ierr
   integer :: real_type
   character(1024) :: message
