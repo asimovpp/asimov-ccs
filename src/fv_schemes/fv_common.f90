@@ -14,27 +14,26 @@ contains
 
   !> @brief Computes fluxes and assign to matrix and RHS
   !
-  !> @param[in,out] mat - Data structure containing matrix to be filled
-  !> @param[in,out] vec - Data structure containing RHS vector to be filled
-  !> @param[in] u, v - arrays containing velocity fields in x, y directions
+  !> @param[in] u, v      - arrays containing velocity fields in x, y directions
   !> @param[in] cell_mesh - the mesh being used
-  module subroutine compute_fluxes(M, vec, u, v, cell_mesh)
-    class(matrix), intent(inout), allocatable :: M   
-    class(vector), intent(inout) :: vec   
+  !> @param[in] cps       - the number of cells per side in the (square) mesh
+  !> @param[in,out] mat   - Data structure containing matrix to be filled
+  !> @param[in,out] vec   - Data structure containing RHS vector to be filled
+  module subroutine compute_fluxes(u, v, cell_mesh, cps, M, vec)
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
-    
-    integer(accs_int) :: cps
+    integer(accs_int), intent(in) :: cps
+    class(matrix), intent(inout), allocatable :: M   
+    class(vector), intent(inout) :: vec   
+
     integer(accs_int) :: n_int_cells
     
-    cps = int(sqrt(real(cell_mesh%n)))
-
     ! Loop over cells computing advection and diffusion fluxes
     n_int_cells = calc_matrix_nnz()
-    call compute_interior_coeffs(M, u, v, cell_mesh, n_int_cells, cps)
+    call compute_interior_coeffs(u, v, cell_mesh, n_int_cells, cps, M)
 
     ! Loop over boundaries
-    call compute_boundary_coeffs(M, vec, u, v, cell_mesh, cps)
+    call compute_boundary_coeffs(u, v, cell_mesh, cps, M, vec)
 
   end subroutine compute_fluxes
 
@@ -51,36 +50,35 @@ contains
 
   !> @brief Computes the matrix coefficient for cells in the interior of the mesh
   !
-  !> @param[in,out] mat     - Matrix structure being assigned
   !> @param[in] u, v        - Field structures containing x, y velocities
   !> @param[in] cell_mesh   - Mesh structure
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in] cps         - number of cells per side
-  subroutine compute_interior_coeffs(M, u, v, cell_mesh, n_int_cells, cps)
+  !> @param[in,out] mat     - Matrix structure being assigned
+  subroutine compute_interior_coeffs(u, v, cell_mesh, n_int_cells, cps, M)
     use constants, only : add_mode
     use types, only: matrix_values, cell_locator, face_locator, neighbour_locator, &
                      set_cell_location, set_face_location, set_neighbour_location
     use utils, only: pack_entries, set_values
     use mesh_utils, only:  global_index, count_neighbours, face_area, boundary_status
 
-    class(matrix), allocatable :: M
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: n_int_cells
     integer(accs_int), intent(in) :: cps
+    class(matrix), allocatable :: M
 
     type(matrix_values) :: mat_coeffs
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
-    integer(accs_int) :: j
-    integer(accs_int) :: mat_counter
-    real(accs_real) :: face_surface_area
-    real(accs_real) :: diff_coeff, diff_coeff_total
-    real(accs_real) :: adv_coeff, adv_coeff_total
-
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
+    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: j
+    integer(accs_int) :: mat_counter
     integer(accs_int) :: n_ngb
+    real(accs_real) :: face_surface_area
+    real(accs_real) :: diff_coeff, diff_coeff_total
+    real(accs_real) :: adv_coeff, adv_coeff_total
     logical :: is_boundary
 
     mat_coeffs%mode = add_mode
@@ -148,11 +146,12 @@ contains
 
   !> @brief Computes the matrix coefficient for cells on the boundary of the mesh
   !
-  !> @param[in,out] mat     - Matrix structure being assigned
   !> @param[in] u, v        - Field structures containing x, y velocities
   !> @param[in] cell_mesh   - Mesh structure
   !> @param[in] cps         - number of cells per side
-  subroutine compute_boundary_coeffs(M, b, u, v, cell_mesh, cps)
+  !> @param[in,out] M       - Matrix structure being assigned
+  !> @param[in,out] b       - vector structure being assigned
+  subroutine compute_boundary_coeffs(u, v, cell_mesh, cps, M, b)
     use constants, only : insert_mode, add_mode, ndim
     use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator, &
                      set_cell_location, set_face_location, set_neighbour_location
@@ -160,31 +159,29 @@ contains
     use mesh_utils, only:  global_index, count_neighbours, face_area, &
                            face_normal, boundary_status
 
-    class(matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: cps
+    class(matrix), intent(inout) :: M
+    class(vector), intent(inout) :: b
 
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
-
+    type(cell_locator) :: self_loc
+    type(neighbour_locator) :: ngb_loc
+    type(face_locator) :: face_loc
     integer(accs_int) :: self_idx, ngb_idx, local_idx
     integer(accs_int) :: j
     integer(accs_int) :: bc_counter
     integer(accs_int) :: row, col
+    integer(accs_int) :: n_ngb, mesh_ngb_idx
     real(accs_real) :: face_surface_area
     real(accs_real) :: diff_coeff
     real(accs_real) :: adv_coeff
     real(accs_real) :: BC_value
     real(accs_real) :: n_value, w_value
-
-    type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
-    type(face_locator) :: face_loc
-    integer(accs_int) :: n_ngb, mesh_ngb_idx
-    logical :: is_boundary
     real(accs_real), dimension(ndim) :: normal
+    logical :: is_boundary
 
     mat_coeffs%mode = add_mode
     b_coeffs%mode = add_mode
@@ -318,18 +315,23 @@ contains
     integer(accs_int), intent(in) :: BC_flag
 
     real(accs_real) :: flux
+    real(accs_real) :: face_velocity
 
     flux = 0.0_accs_real
 
     if (BC_flag == 0) then
       if (ngb_col - self_col == 1) then
-        flux = 0.25*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * edge_len
+        face_velocity = 0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) 
+        flux = face_velocity * 0.5_accs_real * edge_len
       else if (ngb_col - self_col == -1) then
-        flux = -0.25*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * edge_len
+        face_velocity = -0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) 
+        flux = face_velocity * 0.5_accs_real * edge_len
       else if (ngb_row - self_row == 1) then
-        flux = 0.25*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * edge_len
+        face_velocity = 0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) 
+        flux = face_velocity * 0.5_accs_real * edge_len
       else 
-        flux = -0.25*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * edge_len
+        face_velocity = -0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) 
+        flux = face_velocity * 0.5_accs_real * edge_len
       end if
     else if (BC_flag == -1 .or. BC_flag == -2) then
       flux = u%val(self_col, self_row) * edge_len
@@ -355,5 +357,4 @@ contains
     row = (idx-1)/cps + 1
   end subroutine calc_cell_coords
   
-
 end submodule fv_common

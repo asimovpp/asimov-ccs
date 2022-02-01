@@ -61,15 +61,17 @@ module fv
 
     !> @brief Computes fluxes and assign to matrix and RHS
     !
-    !> @param[in,out] mat - Data structure containing matrix to be filled
-    !> @param[in,out] vec - Data structure containing RHS vector to be filled
-    !> @param[in] u, v - arrays containing velocity fields in x, y directions
+    !> @param[in] u, v      - arrays containing velocity fields in x, y directions
     !> @param[in] cell_mesh - the mesh being used
-    module subroutine compute_fluxes(M, vec, u, v, cell_mesh)
-      class(matrix), intent(inout), allocatable :: M
-      class(vector), intent(inout) :: vec   
+    !> @param[in] cps       - the number of cells per side in the (square) mesh
+    !> @param[in,out] mat   - Data structure containing matrix to be filled
+    !> @param[in,out] vec   - Data structure containing RHS vector to be filled
+    module subroutine compute_fluxes(u, v, cell_mesh, cps, M, vec)
       class(field), intent(in) :: u, v
       type(mesh), intent(in) :: cell_mesh
+      integer(accs_int), intent(in) :: cps
+      class(matrix), intent(inout), allocatable :: M
+      class(vector), intent(inout) :: vec   
     end subroutine
 
 

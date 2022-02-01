@@ -41,8 +41,6 @@ program scalar_advection
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
 
-  real(accs_real) :: err_norm
-
   double precision :: start_time
   double precision :: end_time
 
@@ -72,7 +70,7 @@ program scalar_advection
   call create_vector(vec_sizes, scalar)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(M, source, u, v, square_mesh)
+  call compute_fluxes(u, v, square_mesh, cps, M, source)
 
   call begin_update(M) ! Start the parallel assembly for M
 
@@ -87,15 +85,6 @@ program scalar_advection
   
   call vec_view(scalar)
 
-  !! Check solution
-  call set_exact_sol(solution)
-  call axpy(-1.0_accs_real, solution, scalar)
-
-  err_norm = norm(scalar, 2) * square_mesh%h
-  if (par_env%proc_id == par_env%root) then
-     print *, "Norm of error = ", err_norm
-  end if
-  
   !! Clean up
   deallocate(scalar)
   deallocate(source)
@@ -130,39 +119,10 @@ contains
     allocate(v%val(cps,cps))
 
     ! Set IC velocity and scalar fields
-    !u%val = 1.0_accs_real
-    !v%val = 0.0_accs_real
     do i = 1, cps
       u%val(i,:) = real(i, accs_real)/real(cps, accs_real)
       v%val(:,i) = -real(i, accs_real)/real(cps, accs_real)
     end do
   end subroutine initialise_scalar_advection
-
-  subroutine set_exact_sol(ustar)
-
-    use constants, only : insert_mode
-    use types, only : vector_values
-    use utils, only : set_values, pack_entries
-    
-    class(vector), intent(inout) :: ustar
-
-    type(vector_values) :: vec_values
-    integer(accs_int) :: i
-    
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-    vec_values%mode = insert_mode
-    do i = 1, square_mesh%nlocal
-       associate(idx=>square_mesh%idx_global(i))
-         !call pack_entries(vec_values, 1, idx, rhs_val(i))
-         call pack_entries(vec_values, 1, idx, 1.0_accs_real)
-         call set_values(vec_values, ustar)
-       end associate
-    end do
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
-
-    call update(ustar)
-  end subroutine set_exact_sol
 
 end program scalar_advection
