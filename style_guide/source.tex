@@ -176,6 +176,46 @@ real(kind=accs_dbl) :: c
 the advantage of this approach is changing the precision of variables requires only a single code
 change.
 
+\subsection{Setting variables}
+
+With the exception of parameters, see \textit{e.g.} listing~\ref{lst:decl_best}, variables should
+not be set in the declaration as otherwise this implies an \textit{implicit} \texttt{SAVE} attribute
+\textit{i.e.}
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+integer :: a = 1
+\end{lstlisting}
+is equivalent to
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+integer, save :: a = 1
+\end{lstlisting}
+which is likely not what is wanted.
+
+\subsubsection{Real number literals}
+
+A real number literal should always be followed by at least one figure after the decimal point, even
+in the case of whole integer values.
+Also, to ensure the kind is correct, it should be added as \texttt{\_kind\_variable}, the example
+below demonstrates both these points.
+
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+real(accs_real) :: a, b, c, d
+
+a = 1              ! Bad - no values after decimal point, nor type specifier
+b = 2.34           ! Bad - no type specifier
+
+c = 1.0_accs_real  ! Good
+d = 2.34_accs_real ! Good
+\end{lstlisting}
+
+Note that Fortran does not do type promotion so this also applies when calling procedures with a
+constant value, this also ensures in the case of a generic interface that the correct implementation
+is used.
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+call foo(a, b, 1.0)           ! May not compile
+
+call foo(a, b, 1.0_accs_real) ! Good
+\end{lstlisting}
+
 \subsection{Array notation}
 In order to make it clear that variables used in an assignment are arrays, always use array notation.
 
