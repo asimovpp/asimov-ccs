@@ -283,7 +283,7 @@ contains
   !> @param[in] self_idx - the current cell index
   !> @param[in] ngb_idx  - the neigbouring cell index
   !> @param[out] coeff   - the diffusion coefficient
-  function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
+  module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
     integer(accs_int), intent(in) :: local_self_idx
     integer(accs_int), intent(in) :: local_ngb_idx
     type(mesh), intent(in) :: cell_mesh
