@@ -1,5 +1,5 @@
 PY = python3
-CCS_DIR ?= ../
+CCS_DIR := $(shell dirname $(shell realpath $(PWD)))/
 OBJ_DIR=$(CCS_DIR)src/obj/
 BUILD ?= release
 
