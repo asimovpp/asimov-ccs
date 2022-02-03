@@ -202,6 +202,7 @@ contains
     coeff_f = (1.0 / square_mesh%h) * square_mesh%Af
 
     !! Loop over cells
+!$OMP SIMD
     do i = 1, square_mesh%nlocal
       !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
       !!        filling from front, and pass the number of coefficients to be set, requires
