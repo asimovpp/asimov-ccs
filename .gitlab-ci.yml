@@ -146,7 +146,7 @@ generate_code_docs:
       - src/latex/refman.pdf
   allow_failure: true
 
-generate_test_docs:
+generate_style_guide:
   extends: .general_setup
   script:
     - cd style_guide
@@ -156,7 +156,7 @@ generate_test_docs:
       - style_guide/source.pdf
   allow_failure: true
 
-generate_style_guide:
+generate_testing_docs:
   extends: .general_setup
   script:
     - cd testing/docs
