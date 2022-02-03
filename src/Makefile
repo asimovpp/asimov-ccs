@@ -18,7 +18,7 @@ ifeq ($(CMP),intel)
     # Add debugging (i.e. expensive) flags
   endif
   ifeq ($(PROFILE),yes)
-    FFLAGS += -qopt-report-per-object -qopt-report=5 -qopt-report-annotate=html -qopt-report-phase=ipo,loop,vec -qopt-report-annotate-position=callee
+    FFLAGS += -qopt-report-per-object -qopt-report=5 -qopt-report-annotate=html -qopt-report-phase=ipo,loop,vec -qopt-report-annotate-position=both
   endif
   FFLAGS += -xHOST
   FFLAGS += -warn all,noexternals
