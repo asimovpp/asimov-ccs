@@ -121,7 +121,7 @@ clean-full: clean clean-tests clean-docs
 	rm -f $(OBJ_DIR)*.deps
 
 $(ALL_DEPS): $(SRC)
-	makedepf90 -b $(DEP_PREFIX) $(SRC) > $(ALL_DEPS)
+	makedepf90 -b $(OBJ_DIR) $(SRC) > $(ALL_DEPS)
 
 $(RULE_DEPS): $(ALL_DEPS)
 	$(PY) $(TOOLS)fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
