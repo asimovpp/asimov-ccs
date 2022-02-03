@@ -95,11 +95,11 @@ module fv
   !> @param[in] ngb_row, ngb_col - row and column index of neighbouring cell
   !> @param[in] self_row, self_col - row and column index of cell
   !> @param[in] BC_flag - indicates whether a cell is on a boundary and which boundary it is.
-  module function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col, BC_flag) result(flux)
-    real(accs_real), intent(in) :: edge_len
+  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, BC_flag) result(flux)
     class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_row, ngb_col
     integer(accs_int), intent(in) :: self_row, self_col
+    real(accs_real), intent(in) :: face_area
     integer(accs_int), intent(in) :: BC_flag
     real(accs_real) :: flux
   end function calc_mass_flux

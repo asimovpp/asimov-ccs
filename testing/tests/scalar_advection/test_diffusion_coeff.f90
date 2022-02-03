@@ -10,7 +10,7 @@ program test_mesh_neighbours
   type(mesh) :: square_mesh
   integer(accs_int), parameter :: cps = 50
   real(accs_real) :: coeff
-  real(accs_real), parameter :: expected_coeff = 2.e-2
+  real(accs_real), parameter :: expected_coeff = -2.e-2
 
   
   call init()
@@ -19,7 +19,7 @@ program test_mesh_neighbours
 
   coeff = calc_diffusion_coeff(1,1,square_mesh)
 
-  if (abs(coeff - expected_coeff) .le. tiny(coeff)) then
+  if (abs(coeff - expected_coeff) .ge. tiny(coeff)) then
     write(message, *) "FAIL: incorrect diffusion coefficient computed. Expected ", expected_coeff, " computed ", coeff
     call stop_test(message)
   end if

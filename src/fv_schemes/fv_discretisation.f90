@@ -11,8 +11,8 @@ contains
   
   !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
-  !> @param[in] ngb_idx   - cell neighbour index
-  !> @param[in] self_idx  - cell index
+  !> @param[in] ngb_idx   - global cell neighbour index
+  !> @param[in] self_idx  - global cell index
   !> @param[in] face_area - area of face between self and neighbour
   !> @param[in,out] coeff - advection coefficient to be calculated
   !> @param[in] cps       - number of cells per side in (square) mesh
@@ -28,18 +28,24 @@ contains
 
     integer(accs_int) :: ngb_row, ngb_col       ! neighbour coordinates within grid
     integer(accs_int) :: self_row, self_col     ! cell coordinates within grid
+    real(accs_real) :: interpolation_factor
 
     ! Find where we are in the grid first
     call calc_cell_coords(ngb_idx, cps, ngb_row, ngb_col)
     call calc_cell_coords(self_idx, cps, self_row, self_col)
 
-    coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col, BC)
+    if (BC == 0) then
+      interpolation_factor = 0.5_accs_real
+    else
+      interpolation_factor = 1.0_accs_real
+    end if
+    coeff = calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, BC) * interpolation_factor
   end subroutine calc_advection_coeff_cds
   
   !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
-  !> @param[in] ngb_idx   - cell neighbour index
-  !> @param[in] self_idx  - cell index
+  !> @param[in] ngb_idx   - global cell neighbour index
+  !> @param[in] self_idx  - global cell index
   !> @param[in] face_area - area of face between self and neighbour
   !> @param[in,out] coeff - advection coefficient to be calculated
   !> @param[in] cps       - number of cells per side in (square) mesh
@@ -60,7 +66,7 @@ contains
     call calc_cell_coords(ngb_idx, cps, ngb_row, ngb_col)
     call calc_cell_coords(self_idx, cps, self_row, self_col)
 
-    coeff = calc_mass_flux(face_area, u, v, ngb_row, ngb_col, self_row, self_col, BC)
+    coeff = calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, BC)
     coeff = min(coeff, 0.0_accs_real)
   end subroutine calc_advection_coeff_uds
 

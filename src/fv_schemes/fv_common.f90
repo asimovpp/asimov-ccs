@@ -157,7 +157,7 @@ contains
                      set_cell_location, set_face_location, set_neighbour_location
     use utils, only: pack_entries, set_values
     use mesh_utils, only:  global_index, count_neighbours, face_area, &
-                           face_normal, boundary_status
+                           boundary_status
 
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
@@ -180,7 +180,6 @@ contains
     real(accs_real) :: adv_coeff
     real(accs_real) :: BC_value
     real(accs_real) :: n_value, w_value
-    real(accs_real), dimension(ndim) :: normal
     logical :: is_boundary
 
     mat_coeffs%mode = add_mode
@@ -208,7 +207,6 @@ contains
         call set_face_location(face_loc, cell_mesh, local_idx, j)
         call face_area(face_loc, face_surface_area)
 
-        call face_normal(face_loc, normal)
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
         if (is_boundary .and. mesh_ngb_idx == -1) then
@@ -307,36 +305,31 @@ contains
   !> @param[in] self_row, self_col - Row and column of given cell in mesh
   !> @param[in] BC_flag            - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux              - The flux across the boundary
-  module function calc_mass_flux(edge_len, u, v, ngb_row, ngb_col, self_row, self_col, BC_flag) result(flux)
-    real(accs_real), intent(in) :: edge_len
+  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, BC_flag) result(flux)
     class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_row, ngb_col
     integer(accs_int), intent(in) :: self_row, self_col
+    real(accs_real), intent(in) :: face_area
     integer(accs_int), intent(in) :: BC_flag
 
     real(accs_real) :: flux
-    real(accs_real) :: face_velocity
 
     flux = 0.0_accs_real
 
     if (BC_flag == 0) then
       if (ngb_col - self_col == 1) then
-        face_velocity = 0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) 
-        flux = face_velocity * 0.5_accs_real * edge_len
+        flux = 0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
       else if (ngb_col - self_col == -1) then
-        face_velocity = -0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) 
-        flux = face_velocity * 0.5_accs_real * edge_len
+        flux = -0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
       else if (ngb_row - self_row == 1) then
-        face_velocity = 0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) 
-        flux = face_velocity * 0.5_accs_real * edge_len
+        flux = 0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
       else 
-        face_velocity = -0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) 
-        flux = face_velocity * 0.5_accs_real * edge_len
+        flux = -0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
       end if
     else if (BC_flag == -1 .or. BC_flag == -2) then
-      flux = u%val(self_col, self_row) * edge_len
+      flux = u%val(self_col, self_row) * face_area
     else if (BC_flag == -3 .or. BC_flag == -4) then
-      flux = v%val(self_col, self_row) * edge_len
+      flux = v%val(self_col, self_row) * face_area
     else
       print *, 'invalid BC flag'
       stop
