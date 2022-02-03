@@ -17,6 +17,9 @@ ifeq ($(CMP),intel)
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
   endif
+  ifeq ($(PROFILE),yes)
+    FFLAGS += -qopt-report-per-object -qopt-report=2 -qopt-report-annotate=html
+  endif
   FFLAGS += -xHOST
   FFLAGS += -warn all,noexternals
   FFLAGS += -module $(OBJ_DIR)
@@ -111,7 +114,7 @@ $(CAF_OBJ): %.o: %.f90
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod
-	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod
+	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(OBJ_DIR)*.html $(OBJ_DIR)*.optrpt 
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs
