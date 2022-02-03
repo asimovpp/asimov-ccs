@@ -13,7 +13,7 @@ endif
 
 ifeq ($(CMP),intel)
   FC = mpiifort -fc=ifort
-  FFLAGS = -cpp -fPIC -g -O3 -stand f18 -ipo
+  FFLAGS = -cpp -fPIC -g -O3 -stand f18
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
   endif
