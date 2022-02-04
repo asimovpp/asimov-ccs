@@ -67,7 +67,6 @@ contains
           !! Get neighbour indices
           !! XXX: These are global indices and thus may be off-process
           ictr = 1
-!$omp simd lastprivate(xc)
           do i = istart, iend
             square_mesh%idx_global(ictr) = i
             ii = i - 1
