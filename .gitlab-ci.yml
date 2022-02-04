@@ -176,3 +176,4 @@ profile_ccs_intel:
   artifacts:
     paths:
       - src/obj/*.html
+      - src/*.html
