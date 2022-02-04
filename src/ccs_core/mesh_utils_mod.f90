@@ -67,6 +67,7 @@ contains
           !! Get neighbour indices
           !! XXX: These are global indices and thus may be off-process
           ictr = 1
+!$omp simd
           do i = istart, iend
             square_mesh%idx_global(ictr) = i
             ii = i - 1
@@ -83,10 +84,10 @@ contains
                 square_mesh%nbidx(fctr, ictr) = -1
               else
                 square_mesh%nbidx(fctr, ictr) = i - 1
-                if (square_mesh%nbidx(fctr, ictr) < 1) then
-                  print *, "ERROR: interior neighbour idx < 1!"
-                  stop
-                end if
+!                if (square_mesh%nbidx(fctr, ictr) < 1) then
+!                  print *, "ERROR: interior neighbour idx < 1!"
+!                  stop
+!                end if
               end if
               xf(1, fctr) = xc(1) - 0.5_accs_real * h
               xf(2, fctr) = xc(2)
@@ -97,10 +98,10 @@ contains
                 square_mesh%nbidx(fctr, ictr) = -2
               else
                 square_mesh%nbidx(fctr, ictr) = i + 1
-                if (square_mesh%nbidx(fctr, ictr) > n) then
-                  print *, "ERROR: interior neibour idx > N!"
-                  stop
-                end if
+!                if (square_mesh%nbidx(fctr, ictr) > n) then
+!                  print *, "ERROR: interior neibour idx > N!"
+!                  stop
+!                end if
               end if
               xf(1, fctr) = xc(1) + 0.5_accs_real * h
               xf(2, fctr) = xc(2)
@@ -111,10 +112,10 @@ contains
                 square_mesh%nbidx(fctr, ictr) = -3
               else
                 square_mesh%nbidx(fctr, ictr) = i - nps
-                if (square_mesh%nbidx(fctr, ictr) < 1) then
-                  print *, "ERROR: interior neighbour idx < 1!"
-                  stop
-                end if
+ !               if (square_mesh%nbidx(fctr, ictr) < 1) then
+ !                 print *, "ERROR: interior neighbour idx < 1!"
+ !                 stop
+ !               end if
               end if
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) - 0.5_accs_real * h
@@ -125,10 +126,10 @@ contains
                 square_mesh%nbidx(fctr, ictr) = -4
               else
                 square_mesh%nbidx(fctr, ictr) = i + nps
-                if (square_mesh%nbidx(fctr, ictr) > n) then
-                  print *, "ERROR: interior neibour idx > N!"
-                  stop
-                end if
+ !               if (square_mesh%nbidx(fctr, ictr) > n) then
+ !                 print *, "ERROR: interior neibour idx > N!"
+ !                 stop
+ !               end if
               end if
               xf(1, fctr) = xc(1)
               xf(2, fctr) = xc(2) + 0.5_accs_real * h
