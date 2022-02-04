@@ -13,12 +13,12 @@ endif
 
 ifeq ($(CMP),intel)
   FC = mpiifort -fc=ifort
-  FFLAGS = -cpp -fPIC -g -O3 -stand f18
+  FFLAGS = -cpp -fPIC -g -O3 -stand f18 -ipo
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
   endif
   ifeq ($(PROFILE),yes)
-    FFLAGS += -qopt-report-per-object -qopt-report=2 -qopt-report-annotate=html
+    FFLAGS += -qopt-report-per-object -qopt-report=5 -qopt-report-annotate=html -qopt-report-phase=cg,ipo,loop,vec -qopt-report-annotate-position=both
   endif
   FFLAGS += -xHOST
   FFLAGS += -warn all,noexternals
