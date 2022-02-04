@@ -20,6 +20,9 @@ ifeq ($(CMP),intel)
   ifeq ($(BUILD),debug)
     # Add debugging (i.e. expensive) flags
   endif
+  ifeq ($(PROFILE),yes)
+    FFLAGS += -qopt-report-per-object -qopt-report=2 -qopt-report-annotate=html
+  endif
   FFLAGS += -xHOST
   FFLAGS += -warn all,noexternals
   FFLAGS += -module $(OBJ_DIR)
@@ -129,14 +132,14 @@ $(CAF_OBJ): %.o: %.f90
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod *.deps
-	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(OBJ_DIR)*.deps
+	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(OBJ_DIR)*.deps $(OBJ_DIR)*.html $(OBJ_DIR)*.optrpt
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs
 	rm -f $(OBJ_DIR)*.deps
 
 $(ALL_DEPS): $(SRC)
-	makedepf90 -b $(DEP_PREFIX) $(SRC) > $(ALL_DEPS)
+	makedepf90 -b $(OBJ_DIR) $(SRC) > $(ALL_DEPS)
 
 $(RULE_DEPS): $(ALL_DEPS)
 	$(PY) $(TOOLS)fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
