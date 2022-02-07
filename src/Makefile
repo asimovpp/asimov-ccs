@@ -81,7 +81,9 @@ TOOLS=$(CCS_DIR)src/build_tools/
 
 # path to proprietary repository
 ifeq ($(CCS_PROPRIETARY),yes)
-  CCS_PROPRIETARY_DIR ?= $(shell dirname $(CCS_DIR))/asimov-ccs-rr/
+  ifndef CCS_PROPRIETARY_DIR
+    $(error Error: Please set CCS_PROPRIETARY_DIR environment variable)
+  endif
 endif
 
 DEP_PREFIX=$(CCS_DIR)src/obj/
