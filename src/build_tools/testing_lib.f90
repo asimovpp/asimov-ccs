@@ -49,7 +49,7 @@ contains
       call MPI_Barrier(par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
-      stop
+      stop 1
     end select
     
   end subroutine init
@@ -80,7 +80,7 @@ contains
       call MPI_Bcast(parallel_random, 1, real_type, par_env%root, par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
-      stop
+      stop 1
     end select
     
   end function parallel_random
