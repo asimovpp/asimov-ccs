@@ -1,7 +1,10 @@
 PY = python3
-CCS_DIR ?= ../
+CCS_DIR ?= $(shell realpath $(PWD)/..)/
 OBJ_DIR=$(CCS_DIR)src/obj/
 BUILD ?= release
+
+# this can be set to 'yes' in order to include proprietary code
+CCS_PROPRIETARY ?= no
 
 # these 2 variables are needed to parse "," and " " correctly
 comma := ,
@@ -76,6 +79,13 @@ endif
 EXE = ccs_app
 TOOLS=$(CCS_DIR)src/build_tools/
 
+# path to proprietary repository
+ifeq ($(CCS_PROPRIETARY),yes)
+  ifndef CCS_PROPRIETARY_DIR
+    $(error Error: Please set CCS_PROPRIETARY_DIR environment variable)
+  endif
+endif
+
 DEP_PREFIX=$(CCS_DIR)src/obj/
 EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
 ALL_DEPS=$(DEP_PREFIX)all.deps
@@ -86,6 +96,9 @@ IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.
 CASES = poisson
 
 ALL_SRC = $(shell find $(CCS_DIR)src/ -type f -name '*.f90')
+ifeq ($(CCS_PROPRIETARY),yes)
+  ALL_SRC += $(shell find $(CCS_PROPRIETARY_DIR)src/ -type f -name '*.f90')
+endif
 SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
 OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
@@ -97,6 +110,13 @@ INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp
+
+# file containing Makefile commands particular to proprietary code
+ifeq ($(CCS_PROPRIETARY),yes)
+  CCS_PROPRIETARY_MAKEFILE=$(CCS_PROPRIETARY_DIR)src/Makefile.inc
+  include $(CCS_PROPRIETARY_MAKEFILE)
+endif
+
 
 all: $(OBJ) $(EXE)
 
@@ -113,8 +133,8 @@ $(CAF_OBJ): %.o: %.f90
 	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
 
 clean:
-	rm -f $(EXE) *.o *.mod *.smod
-	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(OBJ_DIR)*.html $(OBJ_DIR)*.optrpt 
+	rm -f $(EXE) *.o *.mod *.smod *.deps
+	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(OBJ_DIR)*.deps $(OBJ_DIR)*.html $(OBJ_DIR)*.optrpt
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs
