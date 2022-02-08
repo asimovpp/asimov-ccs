@@ -8,12 +8,12 @@ program scalar_advection
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
                     linear_system, linear_solver, mesh, set_global_matrix_size, &
-                    field, upwind_field, central_field
-  use vec, only : create_vector, axpy, norm
+                    field, upwind_field, central_field, BC_config
+  use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_global_size
+                    set_global_size, axpy, norm
   use mesh_utils, only : build_square_mesh
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
@@ -47,6 +47,9 @@ program scalar_advection
   call initialise_parallel_environment(par_env) 
   call read_command_line_arguments(par_env)
   call timer(start_time)
+
+  ! Read BC configuration
+  call read_BC_config("BC_data.yaml")
 
   ! Init ICs (velocities, BC scalar, mesh, etc)
   allocate(upwind_field :: u)
@@ -122,5 +125,32 @@ contains
       v%val(:,i) = -real(i, accs_real)/real(cps, accs_real)
     end do
   end subroutine initialise_scalar_advection
+
+  subroutine read_BC_config(filename) 
+    use yaml, only: parse, error_length
+    character(len=*), intent(in) :: filename
+
+    class(*), pointer :: config_file
+    character(len=error_length) :: error
+    character(len=16), dimension(:), allocatable :: region
+    character(len=16), dimension(:), allocatable :: BC_type
+    real(accs_real), dimension(:,:), allocatable :: BC_data
+    type(BC_config) :: BCs
+
+    config_file => parse(filename, error=error)
+    if (error/='') then
+      print*,trim(error)
+      stop 1
+    endif
+
+    call get_boundaries(config_file, region, BC_type, BC_data)
+    BCs%index(:) = region(:)
+    BCs%BC_type(:) = BC_type(:)
+    BCs%endpoints(:,:) = BC_data(:,:)
+    print *, 'regions ', BCs%index
+    print *, 'types ', BCs%BC_type
+    print *, 'BC_data ', BCs%endpoints
+    stop
+  end subroutine read_BC_config
 
 end program scalar_advection

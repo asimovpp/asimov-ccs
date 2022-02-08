@@ -206,7 +206,7 @@ contains
   !> @param[in]     alpha - a scalar value
   !> @param[in]     x     - a PETSc input vector
   !> @param[in,out] y     - PETSc vector serving as input, overwritten with result
-  module subroutine axpy(alpha, x, y)
+  module subroutine vec_axpy(alpha, x, y)
 
     use petscvec, only : VecAXPY
     
@@ -246,7 +246,7 @@ contains
   !!                         norm_type=2.
   !> @param[out] n         - the computed norm returned as the result of the function
   !!                         call.
-  module function norm(v, norm_type) result(n)
+  module function vec_norm(v, norm_type) result(n)
 
     use petscvec, only : NORM_2, VecNorm
     

@@ -130,6 +130,12 @@ module types
     integer(accs_int) :: cell_idx
     integer(accs_int) :: cell_neighbour_ctr
   end type neighbour_locator
+
+  type, public :: BC_config
+    character(len=16), dimension(4) :: index
+    character(len=16), dimension(4) :: BC_type
+    real(accs_real), dimension(4, 2) :: endpoints
+  end type BC_config
   
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)

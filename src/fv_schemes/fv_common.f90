@@ -210,6 +210,7 @@ contains
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
         if (is_boundary .and. mesh_ngb_idx == -1) then
+        !if (is_boundary) then
           ! Set Dirichlet BCs at left boundary
           select type(u)
           type is(central_field)
@@ -235,6 +236,7 @@ contains
 
           call calc_cell_coords(self_idx, cps, row, col)
           BC_value = -(1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * w_value
+          !BC_value = compute_boundary_values(row, col, mesh_ngb_idx)
           call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*BC_value)
           call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           call set_values(b_coeffs, b)
@@ -275,6 +277,15 @@ contains
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
     deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_boundary_coeffs
+
+  !function compute_boundary_values(row, col, BC_type) return(BC_value)
+  !  integer, intent(in) :: row
+  !  integer, intent(in) :: col
+  !  integer, intent(in) :: BC_type
+  !  real(accs_real) :: BC_value
+
+  !  BC_value = 0.0_accs_real
+  !end function compute_boundary_values
 
   !> @brief Sets the diffusion coefficient
   !

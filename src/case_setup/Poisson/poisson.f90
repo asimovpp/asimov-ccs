@@ -24,12 +24,12 @@ program poisson
        cell_locator, set_cell_location, &
        face_locator, set_face_location, &
        neighbour_locator, set_neighbour_location
-  use vec, only : create_vector, axpy, norm
+  use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
   use utils, only : update, begin_update, end_update, &
                     finalise, initialise, &
-                    set_global_size
+                    set_global_size, axpy, norm
   use mesh_utils, only : build_square_mesh, face_area, centre, volume, global_index, &
        count_neighbours, boundary_status
   use petsctypes, only : matrix_petsc

@@ -18,8 +18,8 @@ module vec
   public :: update_vector
   public :: begin_update_vector
   public :: end_update_vector
-  public :: axpy
-  public :: norm
+  public :: vec_axpy
+  public :: vec_norm
   public :: pack_one_vector_element
   public :: initialise_vector
   public :: set_global_vector_size
@@ -98,7 +98,7 @@ module vec
     !> @param[in]     alpha - a scalar value
     !> @param[in]     x     - an input vector
     !> @param[in,out] y     - vector serving as input, overwritten with result
-    module subroutine axpy(alpha, x, y)
+    module subroutine vec_axpy(alpha, x, y)
       real(accs_real), intent(in) :: alpha
       class(vector), intent(in) :: x
       class(vector), intent(inout) :: y
@@ -111,7 +111,7 @@ module vec
     !!                         norm_type=2.
     !> @param[out] n         - the computed norm returned as the result of the function
     !!                         call.
-    module function norm(v, norm_type) result(n)
+    module function vec_norm(v, norm_type) result(n)
       class(vector), intent(in) :: v
       integer(accs_int), intent(in) :: norm_type
       real(accs_real) :: n
