@@ -13,7 +13,7 @@ program tgv
                    io_process
   use io, only: initialise_io, cleanup_io, configure_io, &
                 open_file, close_file, &
-                read_attribute
+                read_scalar, read_array
 
   implicit none
 
@@ -29,13 +29,23 @@ program tgv
   class(io_environment), allocatable :: io_env
   class(io_process), allocatable :: geo_reader
 
-!  integer(accs_int) :: irank, isize
+  real, dimension(:,:), allocatable :: xyz_coords
+  integer, dimension(:), allocatable :: vtxdist
+  integer(kind=8), dimension(2) :: xyz_sel_start, xyz_sel_count
+
+  integer(accs_int) :: irank, isize, i, j, k  
+  integer(accs_int) :: local_idx_start, local_idx_end
   integer(accs_int) :: max_faces
   integer(accs_int) :: num_faces
   integer(accs_int) :: num_cells
 
+  integer(accs_int) :: dims = 3
+
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
+
+  irank = par_env%proc_id
+  isize = par_env%num_procs
 
   call initialise_io(par_env, "adios2-config.xml", io_env)
 
@@ -48,13 +58,43 @@ program tgv
 
   call open_file(geo_file, "read", geo_reader)
 
-  call read_attribute(geo_reader, "ncel", num_cells)
-  call read_attribute(geo_reader, "nfac", num_faces)
-  call read_attribute(geo_reader, "maxfaces", max_faces)
+  call read_scalar(geo_reader, "ncel", num_cells)
+  call read_scalar(geo_reader, "nfac", num_faces)
+  call read_scalar(geo_reader, "maxfaces", max_faces)
 
   print*, "Max number of faces: ", max_faces
   print*, "Total number of faces: ", num_faces
   print*, "Total number of cells: ", num_cells
+
+  ! Store cell range assigned to each process      
+  allocate(vtxdist(isize+1))
+
+  vtxdist(1) = 1
+  vtxdist(isize + 1) = num_cells + 1
+
+  k = int(real(num_cells) / isize)
+  j = 1
+  do i = 1, isize
+     vtxdist(i) = j
+     j = j + k
+  enddo
+
+  print*, "vtxdist: ", vtxdist
+
+  ! First and last cell index assigned to this process
+  local_idx_start = vtxdist(irank + 1)
+  local_idx_end = vtxdist(irank + 2) - 1
+
+  print*, "Rank ",irank,", local start and end indices: ", local_idx_start," - ", local_idx_end
+
+  ! Starting point for reading chunk of data
+  xyz_sel_start = (/ 0, vtxdist(irank + 1) - 1 /)
+  ! How many data points will be read?
+  xyz_sel_count = (/ dims, vtxdist(irank + 2) - vtxdist(irank + 1)/)
+
+  allocate(xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
+
+  call read_array(geo_reader, "/cell/x", xyz_sel_start , xyz_sel_count, xyz_coords)
 
   call close_file(geo_reader)
 

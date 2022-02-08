@@ -13,11 +13,16 @@ module io
   public :: configure_io
   public :: open_file
   public :: close_file
-  public :: read_attribute
+  public :: read_scalar
+  public :: read_array
 
-  interface read_attribute
-    module procedure read_attribute_integer
-    module procedure read_attribute_real
+  interface read_scalar
+    module procedure read_scalar_integer
+    module procedure read_scalar_real
+  end interface
+
+  interface read_array
+    module procedure read_array_real2D
   end interface
 
   interface 
@@ -60,16 +65,24 @@ module io
   end subroutine
   
 
-  module subroutine read_attribute_integer(io_proc, attr_name, attr)
+  module subroutine read_scalar_integer(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc
     character (len=*), intent(in) :: attr_name
     integer(accs_int), intent(out) :: attr
   end subroutine
 
-  module subroutine read_attribute_real(io_proc, attr_name, attr)
+  module subroutine read_scalar_real(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc
     character (len=*), intent(in) :: attr_name
     real(accs_real), intent(out) :: attr
+  end subroutine
+
+  module subroutine read_array_real2D(io_proc, var_name, start, count, var)
+    class(io_process), intent(in) :: io_proc
+    character (len=*), intent(in) :: var_name
+    integer(kind=8), dimension(2), intent(in) :: start
+    integer(kind=8), dimension(2), intent(in) :: count
+    real, dimension(:,:), intent(inout) :: var
   end subroutine
 
   end interface
