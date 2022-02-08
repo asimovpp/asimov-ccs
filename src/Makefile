@@ -102,8 +102,10 @@ endif
 SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
 OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
-include $(TAG_DEPS)
-include $(EXE_DEPS)
+ifeq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full))
+  include $(TAG_DEPS)
+  include $(EXE_DEPS)
+endif
 
 FFLAGS += -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
@@ -151,9 +153,10 @@ $(TAG_DEPS): $(SRC)
 $(EXE_DEPS): config.yaml $(ALL_DEPS)
 	$(PY) $(TOOLS)generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
 
-#include $(ALL_DEPS)
-
-include $(RULE_DEPS)
+ifeq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full))
+  #include $(ALL_DEPS)
+  include $(RULE_DEPS)
+endif
 
 docs: doxy 
 doxy:
