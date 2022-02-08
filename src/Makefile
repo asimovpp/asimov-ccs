@@ -86,7 +86,7 @@ ifeq ($(CCS_PROPRIETARY),yes)
   endif
 endif
 
-DEP_PREFIX=$(CCS_DIR)src/obj/
+DEP_PREFIX=$(OBJ_DIR)
 EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
 ALL_DEPS=$(DEP_PREFIX)all.deps
 TAG_DEPS=$(DEP_PREFIX)build_tags.deps
@@ -134,11 +134,10 @@ $(CAF_OBJ): %.o: %.f90
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod *.deps
-	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(OBJ_DIR)*.deps $(OBJ_DIR)*.html $(OBJ_DIR)*.optrpt
+	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(DEP_PREFIX)*.deps $(OBJ_DIR)*.html $(OBJ_DIR)*.optrpt
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs
-	rm -f $(OBJ_DIR)*.deps
 
 $(ALL_DEPS): $(SRC)
 	makedepf90 -b $(OBJ_DIR) $(SRC) > $(ALL_DEPS)
