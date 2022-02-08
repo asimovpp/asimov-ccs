@@ -2,6 +2,7 @@ module adios2_types
 
   use adios2
   use types, only: io_environment, io_process
+  use kinds, only: accs_int
 
   implicit none
 
@@ -12,7 +13,7 @@ module adios2_types
   end type
 
   type, public, extends(io_process) :: adios2_io_process
-    type(adios2_io):: io
+    type(adios2_io):: io_task
     type(adios2_engine):: engine
   end type
 
