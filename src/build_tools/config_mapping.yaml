@@ -10,5 +10,8 @@ bases:
       parallel_env: parallel_env_mpi_petsc
       parallel_env_error: parallel_errors_mpi_petsc
       parallel_utils: parallel_utils_mpi
+      read_config: read_config_yaml
+      io: io_adios2
+      io_setup: io_setup_adios2
     options:
       #component: [opt_1, opt_2, opt_3]
