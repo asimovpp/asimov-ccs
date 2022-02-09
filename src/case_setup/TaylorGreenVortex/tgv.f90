@@ -20,12 +20,9 @@ program tgv
   class(*), pointer :: config_file
   character(len=error_length) :: error
 
-  ! Case title
-  character(len=:), allocatable :: case_name
-  ! Geo file name
-  character(len=:), allocatable :: geo_file
-  ! ADIOS2 config file name
-  character(len=:), allocatable :: adios2_file
+  character(len=:), allocatable :: case_name   ! Case title
+  character(len=:), allocatable :: geo_file    ! Geo file name
+  character(len=:), allocatable :: adios2_file ! ADIOS2 config file name
 
   class(parallel_environment), allocatable :: par_env
   class(io_environment), allocatable :: io_env
@@ -35,13 +32,14 @@ program tgv
   integer, dimension(:), allocatable :: vtxdist
   integer(kind=8), dimension(2) :: xyz_sel_start, xyz_sel_count
 
-  integer(accs_int) :: irank, isize, i, j, k  
+  integer(accs_int) :: irank, isize ! MPI rank ID and world size
+  integer(accs_int) :: i, j, k  
   integer(accs_int) :: local_idx_start, local_idx_end
-  integer(accs_int) :: max_faces
-  integer(accs_int) :: num_faces
-  integer(accs_int) :: num_cells
+  integer(accs_int) :: max_faces ! Maximum number of faces
+  integer(accs_int) :: num_faces ! Total number of faces
+  integer(accs_int) :: num_cells ! Total number of cells
 
-  integer(accs_int) :: dims = 3
+  integer(accs_int), parameter :: dims = 3  ! Number of dimensions
 
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
@@ -56,24 +54,24 @@ program tgv
   adios2_file = case_name//"_adios2_config.xml"
   
   call initialise_io(par_env, adios2_file, io_env)
-  call configure_io(io_env, "test_reader", geo_reader)
+  call configure_io(io_env, "geo_reader", geo_reader)
 
   call open_file(geo_file, "read", geo_reader)
 
+  ! Read attributes "ncel", nfac" and "maxfaces"
   call read_scalar(geo_reader, "ncel", num_cells)
   call read_scalar(geo_reader, "nfac", num_faces)
   call read_scalar(geo_reader, "maxfaces", max_faces)
 
-  print*, "Max number of faces: ", max_faces
-  print*, "Total number of faces: ", num_faces
-  print*, "Total number of cells: ", num_cells
-
-  ! Store cell range assigned to each process      
+  ! Array to store cell range assigned to each process      
   allocate(vtxdist(isize+1))
 
+  ! Set for element to 1 and last element to world size + 1
   vtxdist(1) = 1
   vtxdist(isize + 1) = num_cells + 1
 
+  ! Divide the total number of cells by the world size to
+  ! compute the chunk sizes
   k = int(real(num_cells) / isize)
   j = 1
   do i = 1, isize
@@ -81,33 +79,36 @@ program tgv
      j = j + k
   enddo
 
-  print*, "vtxdist: ", vtxdist
-
   ! First and last cell index assigned to this process
   local_idx_start = vtxdist(irank + 1)
   local_idx_end = vtxdist(irank + 2) - 1
-
-  print*, "Rank ",irank,", local start and end indices: ", local_idx_start," - ", local_idx_end
 
   ! Starting point for reading chunk of data
   xyz_sel_start = (/ 0, vtxdist(irank + 1) - 1 /)
   ! How many data points will be read?
   xyz_sel_count = (/ dims, vtxdist(irank + 2) - vtxdist(irank + 1)/)
 
+  ! Allocate memory for XYZ coordinates array on each MPI rank
   allocate(xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
 
+  ! Read XYZ coordinates for variable "/cell/x" 
   call read_array(geo_reader, "/cell/x", xyz_sel_start , xyz_sel_count, xyz_coords)
 
-  print*,xyz_coords(1:3,1)
-
+  ! Close the file and ADIOS2 engine
   call close_file(geo_reader)
 
+  ! Finalise the ADIOS2 IO environment
   call cleanup_io(io_env)
 
+  ! Deallocate memory for XYZ coordinates array
+  deallocate(xyz_coords)
+
+  ! Finalise MPI
   call cleanup_parallel_environment(par_env)
 
   contains
 
+  ! Read YAML configuration file
   subroutine read_configuration()
 
     config_file => parse("./TaylorGreen_config.yaml", error=error)
@@ -116,7 +117,7 @@ program tgv
       stop 1
     endif
     
-    ! Get title
+    ! Get case name
     call get_case_name(config_file, case_name)
 
   end subroutine
