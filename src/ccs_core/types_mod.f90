@@ -132,8 +132,8 @@ module types
   end type neighbour_locator
 
   type, public :: BC_config
-    character(len=16), dimension(4) :: index
-    character(len=16), dimension(4) :: BC_type
+    integer(accs_int), dimension(4) :: region
+    integer(accs_int), dimension(4) :: BC_type
     real(accs_real), dimension(4, 2) :: endpoints
   end type BC_config
   

@@ -19,9 +19,10 @@ contains
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] mat   - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(u, v, cell_mesh, cps, M, vec)
+  module subroutine compute_fluxes(u, v, cell_mesh, BCs, cps, M, vec)
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
+    type(BC_config), intent(in) :: BCs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout), allocatable :: M   
     class(vector), intent(inout) :: vec   
@@ -33,7 +34,7 @@ contains
     call compute_interior_coeffs(u, v, cell_mesh, n_int_cells, cps, M)
 
     ! Loop over boundaries
-    call compute_boundary_coeffs(u, v, cell_mesh, cps, M, vec)
+    call compute_boundary_coeffs(u, v, cell_mesh, BCs, cps, M, vec)
 
   end subroutine compute_fluxes
 
@@ -144,6 +145,19 @@ contains
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
   end subroutine compute_interior_coeffs
 
+  subroutine compute_boundary_values(row, col, BC_type, cps, BC_value)
+    integer, intent(in) :: row
+    integer, intent(in) :: col
+    integer, intent(in) :: BC_type
+    integer, intent(in) :: cps
+    real(accs_real), intent(out) :: BC_value
+
+    BC_value = 0.0_accs_real
+    if (BC_type == BC_type_dirichlet) then
+      BC_value = -(1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) 
+    end if
+  end subroutine compute_boundary_values
+
   !> @brief Computes the matrix coefficient for cells on the boundary of the mesh
   !
   !> @param[in] u, v        - Field structures containing x, y velocities
@@ -151,16 +165,18 @@ contains
   !> @param[in] cps         - number of cells per side
   !> @param[in,out] M       - Matrix structure being assigned
   !> @param[in,out] b       - vector structure being assigned
-  subroutine compute_boundary_coeffs(u, v, cell_mesh, cps, M, b)
+  subroutine compute_boundary_coeffs(u, v, cell_mesh, BCs, cps, M, b)
     use constants, only : insert_mode, add_mode, ndim
     use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator, &
                      set_cell_location, set_face_location, set_neighbour_location
     use utils, only: pack_entries, set_values
     use mesh_utils, only:  global_index, count_neighbours, face_area, &
                            boundary_status
+    use BC_constants
 
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
+    type(BC_config), intent(in) :: BCs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
@@ -209,9 +225,7 @@ contains
 
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
-        if (is_boundary .and. mesh_ngb_idx == -1) then
-        !if (is_boundary) then
-          ! Set Dirichlet BCs at left boundary
+        if (is_boundary .and. BCs%BC_type(j) .ne. BC_type_const_grad) then
           select type(u)
           type is(central_field)
             select type(v)
@@ -235,38 +249,8 @@ contains
           end select
 
           call calc_cell_coords(self_idx, cps, row, col)
-          BC_value = -(1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * w_value
-          !BC_value = compute_boundary_values(row, col, mesh_ngb_idx)
+          call compute_boundary_values(row, col, BCs%BC_type(j), cps, BC_value)
           call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*BC_value)
-          call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
-          call set_values(b_coeffs, b)
-          call set_values(mat_coeffs, M)
-          bc_counter = bc_counter + 1
-        else if (is_boundary .and. mesh_ngb_idx == -4) then
-          ! Set Dirichlet BCs at top boundary
-          select type(u)
-          type is(central_field)
-            select type(v)
-            type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_surface_area, cps, u, v, mesh_ngb_idx, adv_coeff)
-            class default
-              print *, 'invalid velocity field discretisation'
-              stop
-            end select
-          type is(upwind_field)
-            select type(v)
-            type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_surface_area, cps, u, v, mesh_ngb_idx, adv_coeff)
-            class default
-              print *, 'invalid velocity field discretisation'
-              stop
-            end select
-          class default
-            print *, 'invalid velocity field discretisation'
-            stop
-          end select
-
-          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*n_value)
           call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
@@ -277,15 +261,6 @@ contains
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
     deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_boundary_coeffs
-
-  !function compute_boundary_values(row, col, BC_type) return(BC_value)
-  !  integer, intent(in) :: row
-  !  integer, intent(in) :: col
-  !  integer, intent(in) :: BC_type
-  !  real(accs_real) :: BC_value
-
-  !  BC_value = 0.0_accs_real
-  !end function compute_boundary_values
 
   !> @brief Sets the diffusion coefficient
   !

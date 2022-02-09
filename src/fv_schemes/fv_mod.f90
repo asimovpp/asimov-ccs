@@ -5,7 +5,8 @@
 module fv
 
   use kinds, only : accs_real, accs_int
-  use types, only : matrix, vector, mesh, field, upwind_field, central_field
+  use types, only : matrix, vector, mesh, field, upwind_field, central_field, BC_config
+  use BC_constants
 
   implicit none
 
@@ -79,9 +80,10 @@ module fv
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] mat   - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(u, v, cell_mesh, cps, M, vec)
+  module subroutine compute_fluxes(u, v, cell_mesh, BCs, cps, M, vec)
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
+    type(BC_config), intent(in) :: BCs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout), allocatable :: M
     class(vector), intent(inout) :: vec   

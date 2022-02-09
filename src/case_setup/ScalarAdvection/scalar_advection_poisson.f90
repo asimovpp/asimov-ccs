@@ -34,6 +34,7 @@ program scalar_advection
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: scalar_linear_system
   type(mesh) :: square_mesh
+  type(BC_config) :: BCs
 
   class(field), allocatable :: u, v          ! Prescribed x, y velocity fields
 
@@ -47,7 +48,7 @@ program scalar_advection
   call timer(start_time)
 
   ! Read BC configuration
-  call read_BC_config("BC_data.yaml")
+  call read_BC_config("./case_setup/ScalarAdvection/BC_config.yaml", BCs)
 
   ! Init ICs (velocities, BC scalar, mesh, etc)
   allocate(upwind_field :: u)
@@ -71,7 +72,7 @@ program scalar_advection
   call create_vector(vec_sizes, scalar)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(u, v, square_mesh, cps, M, source)
+  call compute_fluxes(u, v, square_mesh, BCs, cps, M, source)
 
   call begin_update(M) ! Start the parallel assembly for M
 
@@ -124,17 +125,13 @@ contains
     end do
   end subroutine initialise_scalar_advection
 
-  subroutine read_BC_config(filename) 
+  subroutine read_BC_config(filename, BCs) 
     use yaml, only: parse, error_length
-    use read_config, only: get_boundaries
     character(len=*), intent(in) :: filename
+    type(BC_config), intent(out) :: BCs
 
     class(*), pointer :: config_file
     character(len=error_length) :: error
-    character(len=16), dimension(:), allocatable :: region
-    character(len=16), dimension(:), allocatable :: BC_type
-    real(accs_real), dimension(:,:), allocatable :: BC_data
-    type(BC_config) :: BCs
 
     config_file => parse(filename, error=error)
     if (error/='') then
@@ -142,14 +139,52 @@ contains
       stop 1
     endif
 
-    call get_boundaries(config_file, region, BC_type, BC_data)
-    BCs%index(:) = region(:)
-    BCs%BC_type(:) = BC_type(:)
-    BCs%endpoints(:,:) = BC_data(:,:)
-    print *, 'regions ', BCs%index
-    print *, 'types ', BCs%BC_type
-    print *, 'BC_data ', BCs%endpoints
-    stop
+    call get_BCs(config_file, BCs)
   end subroutine read_BC_config
+  
+  subroutine get_BCs(config_file, BCs)
+    use BC_constants
+    use read_config, only: get_boundaries
+
+    class(*), pointer, intent(in) :: config_file
+    type(BC_config), intent(out) :: BCs
+    character(len=16), dimension(:), allocatable :: region
+    character(len=16), dimension(:), allocatable :: BC_type
+    real(accs_real), dimension(:,:), allocatable :: BC_data
+    integer(accs_int) :: i
+
+    call get_boundaries(config_file, region, BC_type, BC_data)
+
+    do i = 1, size(region)
+      select case(region(i))
+        case("left")
+          BCs%region(i) = BC_region_left
+        case("right")
+          BCs%region(i) = BC_region_right
+        case("top")
+          BCs%region(i) = BC_region_top
+        case("bottom")
+          BCs%region(i) = BC_region_bottom
+        case default
+          print *, 'invalid BC region selected'
+          stop 
+      end select
+
+      select case(BC_type(i))
+        case("periodic")
+          BCs%BC_type(i) = BC_type_periodic
+        case("sym")
+          BCs%BC_type(i) = BC_type_sym
+        case("dirichlet")
+          BCs%BC_type(i) = BC_type_dirichlet
+        case("const_grad")
+          BCs%BC_type(i) = BC_type_const_grad
+        case default
+          print *, 'invalid BC type selected'
+          stop 
+      end select
+    end do
+      BCs%endpoints(:,:) = BC_data(:,:)
+  end subroutine get_BCs
 
 end program scalar_advection
