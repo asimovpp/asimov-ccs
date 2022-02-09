@@ -12,5 +12,6 @@ bases:
       parallel_utils: parallel_utils_mpi
       fv_common: fv_common
       fv: fv_discretisation
+      read_config: read_config_yaml
     options:
       #component: [opt_1, opt_2, opt_3]

@@ -22,8 +22,6 @@ program scalar_advection
                       read_command_line_arguments
   use fv, only : compute_fluxes
 
-  use petsc, only: ADD_VALUES  
-
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
@@ -128,6 +126,7 @@ contains
 
   subroutine read_BC_config(filename) 
     use yaml, only: parse, error_length
+    use read_config, only: get_boundaries
     character(len=*), intent(in) :: filename
 
     class(*), pointer :: config_file
