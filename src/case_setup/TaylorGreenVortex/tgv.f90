@@ -24,6 +24,8 @@ program tgv
   character(len=:), allocatable :: case_name
   ! Geo file name
   character(len=:), allocatable :: geo_file
+  ! ADIOS2 config file name
+  character(len=:), allocatable :: adios2_file
 
   class(parallel_environment), allocatable :: par_env
   class(io_environment), allocatable :: io_env
@@ -47,13 +49,13 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call initialise_io(par_env, "adios2-config.xml", io_env)
-
   ! Read case name from configuration file
   call read_configuration()
 
   geo_file = case_name//".geo"
+  adios2_file = case_name//"_adios2_config.xml"
   
+  call initialise_io(par_env, adios2_file, io_env)
   call configure_io(io_env, "test_reader", geo_reader)
 
   call open_file(geo_file, "read", geo_reader)
@@ -96,6 +98,8 @@ program tgv
 
   call read_array(geo_reader, "/cell/x", xyz_sel_start , xyz_sel_count, xyz_coords)
 
+  print*,xyz_coords(1:3,1)
+
   call close_file(geo_reader)
 
   call cleanup_io(io_env)
@@ -106,7 +110,7 @@ program tgv
 
   subroutine read_configuration()
 
-    config_file => parse("./tgv_config.yaml", error=error)
+    config_file => parse("./TaylorGreen_config.yaml", error=error)
     if (error/='') then
       print*,trim(error)
       stop 1

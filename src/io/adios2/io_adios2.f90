@@ -52,6 +52,77 @@ submodule (io) io_adios2
 
     end subroutine
 
+    module subroutine read_array_integer1D(io_proc, var_name, start, count, var)
+      class(io_process), intent(in) :: io_proc
+      character (len=*), intent(in) :: var_name
+      integer(kind=8), dimension(1), intent(in) :: start
+      integer(kind=8), dimension(1), intent(in) :: count
+      integer, dimension(:), intent(inout) :: var
+
+      type(adios2_variable):: adios2_var
+      integer(accs_int) :: ierr
+
+      select type(io_proc)
+        type is(adios2_io_process)
+
+          call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
+          call adios2_set_selection(adios2_var, 1, start, count, ierr)
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+      class default
+        print*,"Unknown IO process handler type"
+
+      end select
+
+    end subroutine
+
+    module subroutine read_array_integer2D(io_proc, var_name, start, count, var)
+      class(io_process), intent(in) :: io_proc
+      character (len=*), intent(in) :: var_name
+      integer(kind=8), dimension(2), intent(in) :: start
+      integer(kind=8), dimension(2), intent(in) :: count
+      integer, dimension(:,:), intent(inout) :: var
+
+      type(adios2_variable):: adios2_var
+      integer(accs_int) :: ierr
+
+      select type(io_proc)
+        type is(adios2_io_process)
+
+          call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
+          call adios2_set_selection(adios2_var, 2, start, count, ierr)
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+      class default
+        print*,"Unknown IO process handler type"
+
+      end select
+
+    end subroutine
+
+    module subroutine read_array_real1D(io_proc, var_name, start, count, var)
+      class(io_process), intent(in) :: io_proc
+      character (len=*), intent(in) :: var_name
+      integer(kind=8), dimension(1), intent(in) :: start
+      integer(kind=8), dimension(1), intent(in) :: count
+      real, dimension(:), intent(inout) :: var
+
+      type(adios2_variable):: adios2_var
+      integer(accs_int) :: ierr
+
+      select type(io_proc)
+        type is(adios2_io_process)
+
+          call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
+          call adios2_set_selection(adios2_var, 1, start, count, ierr)
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+      class default
+        print*,"Unknown IO process handler type"
+
+      end select
+
+    end subroutine
 
     module subroutine read_array_real2D(io_proc, var_name, start, count, var)
       class(io_process), intent(in) :: io_proc

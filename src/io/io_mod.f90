@@ -22,6 +22,9 @@ module io
   end interface
 
   interface read_array
+    module procedure read_array_integer1D
+    module procedure read_array_integer2D
+    module procedure read_array_real1D
     module procedure read_array_real2D
   end interface
 
@@ -75,6 +78,30 @@ module io
     class(io_process), intent(in) :: io_proc
     character (len=*), intent(in) :: attr_name
     real(accs_real), intent(out) :: attr
+  end subroutine
+
+  module subroutine read_array_integer1D(io_proc, var_name, start, count, var)
+    class(io_process), intent(in) :: io_proc
+    character (len=*), intent(in) :: var_name
+    integer(kind=8), dimension(1), intent(in) :: start
+    integer(kind=8), dimension(1), intent(in) :: count
+    integer, dimension(:), intent(inout) :: var
+  end subroutine
+
+  module subroutine read_array_integer2D(io_proc, var_name, start, count, var)
+    class(io_process), intent(in) :: io_proc
+    character (len=*), intent(in) :: var_name
+    integer(kind=8), dimension(2), intent(in) :: start
+    integer(kind=8), dimension(2), intent(in) :: count
+    integer, dimension(:,:), intent(inout) :: var
+  end subroutine
+
+  module subroutine read_array_real1D(io_proc, var_name, start, count, var)
+    class(io_process), intent(in) :: io_proc
+    character (len=*), intent(in) :: var_name
+    integer(kind=8), dimension(1), intent(in) :: start
+    integer(kind=8), dimension(1), intent(in) :: count
+    real, dimension(:), intent(inout) :: var
   end subroutine
 
   module subroutine read_array_real2D(io_proc, var_name, start, count, var)
