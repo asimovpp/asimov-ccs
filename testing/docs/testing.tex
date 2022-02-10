@@ -85,8 +85,9 @@
 \accs\ development follows a ``TDD-lite'' approach - new functionality should be developed with
 tests to ensure correctness now and in the future, however you don't need to be doing a test/develop
 every 10 minutes cycle.
-The test system is built and run using \texttt{pFUnit} - installation instructions and an example
-test are given in \S\ref{sec:build-runn-unit}.
+The test system is built and run using \texttt{LLVM LIT} - instructions are given in \S\ref{sec:build-runn-unit}.
+% The test system is built and run using \texttt{pFUnit} - installation instructions and an example
+% test are given in \S\ref{sec:build-runn-unit}.
 
 
 \subsection{Property-based testing}
@@ -173,43 +174,45 @@ scheme:
 \section{Building, running and developing unit tests}
 \label{sec:build-runn-unit}
 
-The testing system for \accs\ is implemented in \texttt{pFUNit} which can be obtained from
-\url{https://github.com/Goddard-Fortran-Ecosystem/pFUnit} and installed with an analogous set of
-commands to
-\begin{lstlisting}[language=sh]
-# Post-cloning pFUnit
-cd /path/to/pFUnit
-mkdir build
-cd build
-FC=gfortran CC=gcc CXX=g++ cmake -DSKIP_FHAMCREST=yes \
-  -DMAX_ASSERT_RANK=<N> \ # Where N=max mpi ranks available
-  -DCMAKE_INSTALL_PREFIX=/path/to/install ../
-make all
-make tests
-make install
-\end{lstlisting}
-this will create several subdirectories under \texttt{/path/to/install}, the most important of which
-is \texttt{PFUNIT-X.Y} which should be stored in an environment variable
-\begin{lstlisting}[language=sh]
-export PFUNIT=/path/to/install/PFUNIT-X.Y
-\end{lstlisting}
+Please refer to the readme at \texttt{src/build\_tools/build\_system\_readme.md}. 
 
-\texttt{pFUnit} tests are defined in \texttt{.pf} files which are pre-processed into \texttt{.F90}
-files using Makefile macros defined in \texttt{\${PFUNIT}/include/PFUNIT.mk}.
-An example Makefile to build a test is shown in listing~\ref{lst:example-makefile}, besides the
-inclusion of the \texttt{pFUnit} macros it also shows how to declare a test suite
-(\texttt{name\_TESTS = test1.pf test2.pf}), source (\texttt{name\_OTHER\_SRCS = dep1.f90 dep2.f90}) and
-library/object dependencies (\texttt{name\_OTHER\_LIBRARIES = -L/path/to/library -llibrary object1.o}).
-\lstinputlisting[language=make,caption=Example makefile\label{lst:example-makefile}]{../tests/discretisation/Makefile}
-
-The test that listing~\ref{lst:example-makefile} builds and runs is defined in \texttt{spatial.pf}
-the contents of which are shown listing~\ref{lst:spatial.pf}.
-To support a property-based testing approach described in~\S\ref{subsec:prop-based-test} the
-compiler macro \texttt{TESTN} is used to define how many random inputs to generate and the utility
-function \texttt{accs\_test\_scale} scales the random variable to have magnitude \texttt{TESTSCALE},
-an additional utility function \texttt{accs\_test\_atol} provides an absolute tolerance for a given
-expected value based on its floating point type.
-\lstinputlisting[language={[90]Fortran},caption=Example test definition\label{lst:spatial.pf}]{../tests/discretisation/spatial.pf}
+% The testing system for \accs\ is implemented in \texttt{pFUNit} which can be obtained from
+% \url{https://github.com/Goddard-Fortran-Ecosystem/pFUnit} and installed with an analogous set of
+% commands to
+% \begin{lstlisting}[language=sh]
+% # Post-cloning pFUnit
+% cd /path/to/pFUnit
+% mkdir build
+% cd build
+% FC=gfortran CC=gcc CXX=g++ cmake -DSKIP_FHAMCREST=yes \
+%   -DMAX_ASSERT_RANK=<N> \ # Where N=max mpi ranks available
+%   -DCMAKE_INSTALL_PREFIX=/path/to/install ../
+% make all
+% make tests
+% make install
+% \end{lstlisting}
+% this will create several subdirectories under \texttt{/path/to/install}, the most important of which
+% is \texttt{PFUNIT-X.Y} which should be stored in an environment variable
+% \begin{lstlisting}[language=sh]
+% export PFUNIT=/path/to/install/PFUNIT-X.Y
+% \end{lstlisting}
+% 
+% \texttt{pFUnit} tests are defined in \texttt{.pf} files which are pre-processed into \texttt{.F90}
+% files using Makefile macros defined in \texttt{\${PFUNIT}/include/PFUNIT.mk}.
+% An example Makefile to build a test is shown in listing~\ref{lst:example-makefile}, besides the
+% inclusion of the \texttt{pFUnit} macros it also shows how to declare a test suite
+% (\texttt{name\_TESTS = test1.pf test2.pf}), source (\texttt{name\_OTHER\_SRCS = dep1.f90 dep2.f90}) and
+% library/object dependencies (\texttt{name\_OTHER\_LIBRARIES = -L/path/to/library -llibrary object1.o}).
+% \lstinputlisting[language=make,caption=Example makefile\label{lst:example-makefile}]{../tests/discretisation/Makefile}
+% 
+% The test that listing~\ref{lst:example-makefile} builds and runs is defined in \texttt{spatial.pf}
+% the contents of which are shown listing~\ref{lst:spatial.pf}.
+% To support a property-based testing approach described in~\S\ref{subsec:prop-based-test} the
+% compiler macro \texttt{TESTN} is used to define how many random inputs to generate and the utility
+% function \texttt{accs\_test\_scale} scales the random variable to have magnitude \texttt{TESTSCALE},
+% an additional utility function \texttt{accs\_test\_atol} provides an absolute tolerance for a given
+% expected value based on its floating point type.
+% \lstinputlisting[language={[90]Fortran},caption=Example test definition\label{lst:spatial.pf}]{../tests/discretisation/spatial.pf}
 
 \end{document}
 %%% Local Variables:

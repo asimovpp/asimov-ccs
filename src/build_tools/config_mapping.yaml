@@ -11,5 +11,17 @@ bases:
       parallel_env_error: parallel_errors_mpi_petsc
       parallel_utils: parallel_utils_mpi
       meshing: meshing_accessors
-    options:
+    #options:
       #component: [opt_1, opt_2, opt_3]
+  mpi:
+    defaults:
+      mat_common: mat_common
+      mat: mat_petsc
+      vec_common: vec_common
+      vec: vec_petsc
+      solver_common: solver_common
+      solver: solver_petsc
+      parallel_env: parallel_env_mpi
+      parallel_env_error: parallel_errors_mpi
+      parallel_utils: parallel_utils_mpi
+      meshing: meshing_accessors
