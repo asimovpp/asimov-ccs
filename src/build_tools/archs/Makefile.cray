@@ -2,6 +2,8 @@ FC = ftn
 FFLAGS = -ef -en -eF -M969
 ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
+  FFLAGS += -G2
+else
 endif
 FFLAGS += -homp
 FFLAGS += -J$(OBJ_DIR)
