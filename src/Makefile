@@ -1,3 +1,6 @@
+# prevent the use of implicit suffix rules
+.SUFFIXES:
+
 PY = python3
 CCS_DIR ?= $(shell realpath $(PWD)/..)/
 OBJ_DIR=$(CCS_DIR)src/obj/
