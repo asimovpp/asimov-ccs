@@ -9,6 +9,23 @@ module mesh_utils
   
   implicit none
 
+  !> @note Named constants for faces of hexahedral cells follow the convention that the lower
+  !!       boundary on a given axis is numbered first, i.e.
+  !!
+  !!           4
+  !!     +----------+
+  !!     |          |
+  !!     |          |
+  !!   1 |          | 2
+  !!     |          |
+  !!     +----------+
+  !!           3
+  !!
+  integer, parameter :: left = 1_accs_int
+  integer, parameter :: right = 2_accs_int
+  integer, parameter :: down = 3_accs_int
+  integer, parameter :: up = 4_accs_int
+  
   private
   public :: build_square_mesh
   
@@ -115,10 +132,10 @@ contains
               xc(2) = (ii / nps + 0.5_accs_real) * h
 
               ! Construct left (1) face/neighbour
-              fctr = 1_accs_int
+              fctr = left
               if (modulo(ii, nps) == 0_accs_int) then
-                nbidx = -1_accs_int
-                nbidxg = -1_accs_int
+                nbidx = -left
+                nbidxg = -left
               else
                 nbidx = ictr - 1_accs_int
                 nbidxg = i - 1_accs_int
@@ -130,10 +147,10 @@ contains
               nrm(2, fctr) = 0.0_accs_real
 
               ! Construct right (2) face/neighbour
-              fctr = 2_accs_int
+              fctr = right
               if (modulo(ii, nps) == (nps - 1_accs_int)) then
-                nbidx = -2_accs_int
-                nbidxg = -2_accs_int
+                nbidx = -right
+                nbidxg = -right
               else
                 nbidx = ictr + 1_accs_int
                 nbidxg = i + 1_accs_int
@@ -145,10 +162,10 @@ contains
               nrm(2, fctr) = 0.0_accs_real
 
               ! Construct down (3) face/neighbour
-              fctr = 3_accs_int
+              fctr = down
               if ((ii / nps) == 0_accs_int) then
-                nbidx = -3_accs_int
-                nbidxg = -3_accs_int
+                nbidx = -down
+                nbidxg = -down
               else
                 nbidx = ictr - nps
                 nbidxg = i - nps
@@ -160,10 +177,10 @@ contains
               nrm(2, fctr) = -1.0_accs_real
 
               ! Construct up (4) face/neighbour
-              fctr = 4_accs_int
+              fctr = up
               if ((ii / nps) == (nps - 1_accs_int)) then
-                nbidx = -4_accs_int
-                nbidxg = -4_accs_int
+                nbidx = -up
+                nbidxg = -up
               else
                 nbidx = ictr + nps
                 nbidxg = i + nps
