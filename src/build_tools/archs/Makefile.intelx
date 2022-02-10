@@ -1,0 +1,10 @@
+FC = mpiifort -fc=ifx
+FFLAGS = -cpp -fPIC -g -O3 -stand f18
+ifeq ($(BUILD),debug)
+  # Add debugging (i.e. expensive) flags
+endif
+FFLAGS += -xHOST
+FFLAGS += -warn all,noexternals
+FFLAGS += -module $(OBJ_DIR)
+CAFFLAGS = -coarray
+MPIRUN = mpirun

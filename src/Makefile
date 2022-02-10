@@ -1,86 +1,23 @@
+# these 2 variables are needed to parse "," and " " correctly
+comma := ,
+space := $(null) $(null)
+
 # prevent the use of implicit suffix rules
 .SUFFIXES:
 
+NEED_CMP = yes
+ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs doxy docs-latex))
+  NEED_CMP = no
+endif
+
 PY = python3
 CCS_DIR ?= $(shell realpath $(PWD)/..)/
+ARCH_DIR=$(CCS_DIR)src/build_tools/archs/
 OBJ_DIR=$(CCS_DIR)src/obj/
 BUILD ?= release
 
 # this can be set to 'yes' in order to include proprietary code
 CCS_PROPRIETARY ?= no
-
-# these 2 variables are needed to parse "," and " " correctly
-comma := ,
-space := $(null) $(null)
-
-ifndef CMP
-$(warning "CMP is not set. Please define which compiler should be used.")
-endif
-
-ifeq ($(CMP),intel)
-  FC = mpiifort -fc=ifort
-  FFLAGS = -cpp -fPIC -g -O3 -stand f18 -ipo
-  ifeq ($(BUILD),debug)
-    # Add debugging (i.e. expensive) flags
-  endif
-  ifeq ($(PROFILE),yes)
-    FFLAGS += -qopt-report-per-object -qopt-report=5 -qopt-report-annotate=html -qopt-report-phase=cg,ipo,loop,vec -qopt-report-annotate-position=both
-  endif
-  FFLAGS += -xHOST
-  FFLAGS += -warn all,noexternals
-  FFLAGS += -module $(OBJ_DIR)
-  CAFFLAGS = -coarray
-  MPIRUN = mpirun
-endif
-ifeq ($(CMP),intelx)
-  FC = mpiifort -fc=ifx
-  FFLAGS = -cpp -fPIC -g -O3 -stand f18
-  ifeq ($(BUILD),debug)
-    # Add debugging (i.e. expensive) flags
-  endif
-  FFLAGS += -xHOST
-  FFLAGS += -warn all,noexternals
-  FFLAGS += -module $(OBJ_DIR)
-  CAFFLAGS = -coarray
-  MPIRUN = mpirun
-endif
-ifeq ($(CMP),gnu)
-  FC = mpif90
-  FFLAGS = -cpp -O3 -std=f2018
-  CAFFLAGS = -fcoarray=single
-  ifeq ($(BUILD),debug)
-    # Add debugging (i.e. expensive) flags
-    FFLAGS += -fcheck=bounds
-  endif
-  FFLAGS += -fopenmp
-  FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
-  FFLAGS += -J$(OBJ_DIR)
-  MPIRUN = mpirun
-endif
-ifeq ($(CMP),cray)
-  FC = ftn
-  FFLAGS = -ef -en -eF -M969
-  ifeq ($(BUILD),debug)
-    # Add debugging (i.e. expensive) flags
-  endif
-  FFLAGS += -homp
-  FFLAGS += -J$(OBJ_DIR)
-  CAFFLAGS = -hcaf
-  MPIRUN = srun
-endif
-
-# Only set this value if building a CAF binary
-# otherwise keep unset
-#ifeq ($(CMP),intel)
-#CAFLINK= #-coarray
-#endif
-#ifeq ($(CMP),gnu)
-#CAFLINK= #-fcoarray=single
-#endif
-
-
-EXE = ccs_app
-TOOLS=$(CCS_DIR)src/build_tools/
 
 # path to proprietary repository
 ifeq ($(CCS_PROPRIETARY),yes)
@@ -88,6 +25,17 @@ ifeq ($(CCS_PROPRIETARY),yes)
     $(error Error: Please set CCS_PROPRIETARY_DIR environment variable)
   endif
 endif
+
+ifeq ($(NEED_CMP),yes)
+  ifndef CMP
+    $(error "Error: CMP is not set. Please define which compiler should be used.")
+  endif
+  include $(ARCH_DIR)Makefile.$(CMP)
+endif
+
+
+EXE = ccs_app
+TOOLS=$(CCS_DIR)src/build_tools/
 
 DEP_PREFIX=$(OBJ_DIR)
 EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
@@ -103,9 +51,9 @@ ifeq ($(CCS_PROPRIETARY),yes)
   ALL_SRC += $(shell find $(CCS_PROPRIETARY_DIR)src/ -type f -name '*.f90')
 endif
 SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
-OBJ=$(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
+OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
-ifeq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full))
+ifeq ($(NEED_CMP),yes)
   include $(TAG_DEPS)
   include $(EXE_DEPS)
 endif
@@ -121,6 +69,8 @@ ifeq ($(CCS_PROPRIETARY),yes)
   CCS_PROPRIETARY_MAKEFILE=$(CCS_PROPRIETARY_DIR)src/Makefile.inc
   include $(CCS_PROPRIETARY_MAKEFILE)
 endif
+
+
 
 
 all: $(OBJ) $(EXE)
@@ -156,7 +106,7 @@ $(TAG_DEPS): $(SRC)
 $(EXE_DEPS): config.yaml $(ALL_DEPS)
 	$(PY) $(TOOLS)generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
 
-ifeq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full))
+ifeq ($(NEED_CMP),yes)
   #include $(ALL_DEPS)
   include $(RULE_DEPS)
 endif
