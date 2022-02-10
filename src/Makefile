@@ -12,8 +12,8 @@ endif
 
 PY = python3
 CCS_DIR ?= $(shell realpath $(PWD)/..)/
-ARCH_DIR=$(CCS_DIR)src/build_tools/archs/
-OBJ_DIR=$(CCS_DIR)src/obj/
+ARCH_DIR=$(CCS_DIR)/src/build_tools/archs/
+OBJ_DIR=$(CCS_DIR)/src/obj/
 BUILD ?= release
 
 # this can be set to 'yes' in order to include proprietary code
@@ -30,27 +30,27 @@ ifeq ($(NEED_CMP),yes)
   ifndef CMP
     $(error "Error: CMP is not set. Please define which compiler should be used.")
   endif
-  include $(ARCH_DIR)Makefile.$(CMP)
+  include $(ARCH_DIR)/Makefile.$(CMP)
 endif
 
 
 EXE = ccs_app
-TOOLS=$(CCS_DIR)src/build_tools/
+TOOLS=$(CCS_DIR)/src/build_tools/
 
 DEP_PREFIX=$(OBJ_DIR)
-EXE_DEPS=$(DEP_PREFIX)ccs_app.deps
-ALL_DEPS=$(DEP_PREFIX)all.deps
-TAG_DEPS=$(DEP_PREFIX)build_tags.deps
-RULE_DEPS=$(DEP_PREFIX)rules.deps
+EXE_DEPS=$(DEP_PREFIX)/ccs_app.deps
+ALL_DEPS=$(DEP_PREFIX)/all.deps
+TAG_DEPS=$(DEP_PREFIX)/build_tags.deps
+RULE_DEPS=$(DEP_PREFIX)/rules.deps
 
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
 CASES = poisson
 
-ALL_SRC = $(shell find $(CCS_DIR)src/ -type f -name '*.f90')
+ALL_SRC = $(shell find $(CCS_DIR)/src/ -type f -name '*.f90')
 ifeq ($(CCS_PROPRIETARY),yes)
-  ALL_SRC += $(shell find $(CCS_PROPRIETARY_DIR)src/ -type f -name '*.f90')
+  ALL_SRC += $(shell find $(CCS_PROPRIETARY_DIR)/src/ -type f -name '*.f90')
 endif
-SRC = $(shell $(PY) $(TOOLS)filter-out.py $(IGNORE) "$(ALL_SRC)")
+SRC = $(shell $(PY) $(TOOLS)/filter-out.py $(IGNORE) "$(ALL_SRC)")
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
 ifeq ($(NEED_CMP),yes)
@@ -66,7 +66,7 @@ LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfort
 
 # file containing Makefile commands particular to proprietary code
 ifeq ($(CCS_PROPRIETARY),yes)
-  CCS_PROPRIETARY_MAKEFILE=$(CCS_PROPRIETARY_DIR)src/Makefile.inc
+  CCS_PROPRIETARY_MAKEFILE=$(CCS_PROPRIETARY_DIR)/src/Makefile.inc
   include $(CCS_PROPRIETARY_MAKEFILE)
 endif
 
@@ -89,7 +89,7 @@ $(CAF_OBJ): %.o: %.f90
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod *.deps
-	rm -f $(OBJ_DIR)*.o $(OBJ_DIR)*.mod $(OBJ_DIR)*.smod $(DEP_PREFIX)*.deps $(OBJ_DIR)*.html $(OBJ_DIR)*.optrpt
+	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs
@@ -98,13 +98,13 @@ $(ALL_DEPS): $(SRC)
 	makedepf90 -b $(OBJ_DIR) $(SRC) > $(ALL_DEPS)
 
 $(RULE_DEPS): $(ALL_DEPS)
-	$(PY) $(TOOLS)fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
+	$(PY) $(TOOLS)/fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
 
 $(TAG_DEPS): $(SRC)
-	$(PY) $(TOOLS)process_build_tags.py $(SRC) > $(TAG_DEPS)
+	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
 
 $(EXE_DEPS): config.yaml $(ALL_DEPS)
-	$(PY) $(TOOLS)generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
+	$(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
 
 ifeq ($(NEED_CMP),yes)
   #include $(ALL_DEPS)
