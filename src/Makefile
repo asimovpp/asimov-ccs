@@ -93,7 +93,7 @@ FFLAGS += -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
-INC += -I${ADIOS2}/bindings/Fortran
+INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
 LIB += $(shell $(ADIOS2)/bin/adios2-config --fortran-libs)
 
