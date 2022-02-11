@@ -1,0 +1,167 @@
+.general_setup:
+  before_script:
+    - export CCS_DIR=${PWD}"/"
+
+.setup_gnu:
+  before_script:
+    - source setup_gitlab_runner_env
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
+    - export CCS_DIR=${PWD}"/"
+    - cd src
+
+.setup_intel:
+  before_script:
+    - source setup_gitlab_runner_env
+    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
+    - export CCS_DIR=${PWD}"/"
+    - cd src
+
+.setup_cray:
+  before_script:
+    - source setup_gitlab_runner_env
+    - export CCS_DIR=${PWD}"/"
+    - cd src
+
+
+build_ccs_gnu:
+  extends: .setup_gnu
+  script:
+    - HOME=${CI_HOME} CMP=gnu make
+    - mv ccs_app ccs_app_gnu
+  artifacts:
+    paths:
+      - src/ccs_app_gnu
+    expire_in: 30 minutes
+
+run_ccs_gnu:
+  needs: 
+    - job: build_ccs_gnu
+  extends: .setup_gnu
+  script:
+    - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
+
+test_ccs_gnu:
+  needs: 
+    - job: build_ccs_gnu
+      artifacts: false
+  extends: .setup_gnu
+  script:
+    - HOME=${CI_HOME} CMP=gnu make all
+    - HOME=${CI_HOME} CMP=gnu make tests
+
+
+build_ccs_intel:
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intel make
+    - mv ccs_app ccs_app_intel
+  artifacts:
+    paths:
+      - src/ccs_app_intel
+    expire_in: 30 minutes
+  
+run_ccs_intel:
+  needs: 
+    - job: build_ccs_intel
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
+
+test_ccs_intel:
+  needs: 
+    - job: build_ccs_intel
+      artifacts: false
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intel make all
+    - HOME=${CI_HOME} CMP=intel make tests
+
+
+build_ccs_intelx:
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intelx make
+    - mv ccs_app ccs_app_intelx
+  artifacts:
+    paths:
+      - src/ccs_app_intelx
+    expire_in: 30 minutes
+ 
+run_ccs_intelx:
+  needs: 
+    - job: build_ccs_intelx
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intelx
+
+test_ccs_intelx:
+  needs: 
+    - job: build_ccs_intelx
+      artifacts: false
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intelx make all
+    - HOME=${CI_HOME} CMP=intelx make tests
+
+
+build_ccs_cray:
+  extends: .setup_cray
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make"
+    - mv ccs_app ccs_app_cray
+  artifacts:
+    paths:
+      - src/ccs_app_cray
+    expire_in: 30 minutes
+  
+run_ccs_cray:
+  needs: 
+    - job: build_ccs_cray
+  extends: .setup_cray
+  script:
+    - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
+    - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
+    - cray_run_command "srun -n 4 ./ccs_app_cray"
+
+test_ccs_cray:
+  needs: 
+    - job: build_ccs_cray
+      artifacts: false
+  extends: .setup_cray
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make all"
+    - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
+    - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
+
+
+generate_code_docs:
+  extends: .general_setup
+  script:
+    - cd src
+    - make docs
+    - make docs-latex
+  artifacts:
+    paths:
+      - src/latex/refman.pdf
+  allow_failure: true
+
+generate_test_docs:
+  extends: .general_setup
+  script:
+    - cd style_guide
+    - make all
+  artifacts:
+    paths:
+      - style_guide/source.pdf
+  allow_failure: true
+
+generate_style_guide:
+  extends: .general_setup
+  script:
+    - cd testing/docs
+    - make all
+  artifacts:
+    paths:
+      - testing/docs/testing.pdf
+  allow_failure: true
