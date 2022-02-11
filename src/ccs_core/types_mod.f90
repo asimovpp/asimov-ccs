@@ -91,6 +91,7 @@ module types
   type, public :: io_environment
   end type io_environment
 
+  !> @brief Process that will perform file IO
   type, public :: io_process
   end type io_process
 
