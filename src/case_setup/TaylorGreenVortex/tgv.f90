@@ -1,4 +1,4 @@
-
+!> @brief Program file for TaylorGreenVortex case
 program tgv
 
   use, intrinsic :: iso_fortran_env, only:  output_unit
@@ -6,6 +6,7 @@ program tgv
   use yaml, only: parse, error_length
   use read_config, only: get_case_name
   use kinds, only : accs_int, accs_real
+  use constants, only: geoext, adiosconfig
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment
   use parallel_types, only: parallel_environment
@@ -20,9 +21,9 @@ program tgv
   class(*), pointer :: config_file
   character(len=error_length) :: error
 
-  character(len=:), allocatable :: case_name   ! Case title
-  character(len=:), allocatable :: geo_file    ! Geo file name
-  character(len=:), allocatable :: adios2_file ! ADIOS2 config file name
+  character(len=:), allocatable :: case_name   !> Case name
+  character(len=:), allocatable :: geo_file    !> Geo file name
+  character(len=:), allocatable :: adios2_file !> ADIOS2 config file name
 
   class(parallel_environment), allocatable :: par_env
   class(io_environment), allocatable :: io_env
@@ -30,14 +31,17 @@ program tgv
 
   real, dimension(:,:), allocatable :: xyz_coords
   integer, dimension(:), allocatable :: vtxdist
-  integer(kind=8), dimension(2) :: xyz_sel_start, xyz_sel_count
+  integer(kind=8), dimension(2) :: xyz_sel_start
+  integer(kind=8), dimension(2) :: xyz_sel_count
 
-  integer(accs_int) :: irank, isize ! MPI rank ID and world size
+  integer(accs_int) :: irank !> MPI rank ID
+  integer(accs_int) :: isize !> Size of MPI world
   integer(accs_int) :: i, j, k  
-  integer(accs_int) :: local_idx_start, local_idx_end
-  integer(accs_int) :: max_faces ! Maximum number of faces
-  integer(accs_int) :: num_faces ! Total number of faces
-  integer(accs_int) :: num_cells ! Total number of cells
+  integer(accs_int) :: local_idx_start
+  integer(accs_int) :: local_idx_end
+  integer(accs_int) :: max_faces !> Maximum number of faces per cell
+  integer(accs_int) :: num_faces !> Total number of faces
+  integer(accs_int) :: num_cells !> Total number of cells
 
   integer(accs_int), parameter :: dims = 3  ! Number of dimensions
 
@@ -50,11 +54,11 @@ program tgv
   ! Read case name from configuration file
   call read_configuration()
 
-  geo_file = case_name//".geo"
-  adios2_file = case_name//"_adios2_config.xml"
+  geo_file = case_name//geoext
+  adios2_file = case_name//adiosconfig
   
   call initialise_io(par_env, adios2_file, io_env)
-  call configure_io(io_env, "geo_reader", geo_reader)
+  call configure_io(io_env, "geo_reader", geo_reader)  
 
   call open_file(geo_file, "read", geo_reader)
 
