@@ -18,4 +18,7 @@ module constants
   character(len=4), public, parameter :: geoext = ".geo" 
   character(len=18), public, parameter :: adiosconfig = "_adios2_config.xml" 
 
+  !> @brief Dimensionality of problems
+  integer(accs_int), public, parameter :: ndim = 3        !> Always 3D
+  
 end module constants

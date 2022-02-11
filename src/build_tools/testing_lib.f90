@@ -15,6 +15,8 @@ module testing_lib
   integer(accs_err) :: ierr
   integer :: real_type
   character(1024) :: message
+
+  real(accs_real), parameter :: eps = epsilon(0.0_accs_real)
   
 contains
 
@@ -49,7 +51,7 @@ contains
       call MPI_Barrier(par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
-      stop
+      stop 1
     end select
     
   end subroutine init
@@ -80,7 +82,7 @@ contains
       call MPI_Bcast(parallel_random, 1, real_type, par_env%root, par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
-      stop
+      stop 1
     end select
     
   end function parallel_random
@@ -91,8 +93,10 @@ contains
   subroutine stop_test(message)
 
     character(*), intent(in) :: message
+    character(len=32) :: id_str
 
-    print *, trim(message)
+    write (id_str, "(I0)") par_env%proc_id
+    print *, "("//trim(id_str)//") ", trim(message)
 
     ! other PEs might not have encountered a test failure
     ! fin()

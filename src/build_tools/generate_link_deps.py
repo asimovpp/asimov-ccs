@@ -91,7 +91,12 @@ if __name__ == "__main__":
 
   # get definition of how to map config options to filenames
   # assume the mapping file is in the same directory as this script
-  with open(sys.path[0] + "/config_mapping.yaml") as f:
+  if os.environ['CCS_PROPRIETARY'] == 'yes':
+    config_mapping_filename = os.environ['CCS_PROPRIETARY_DIR'] + "/src/build_tools/config_mapping.yaml"
+  else:
+   config_mapping_filename = sys.path[0] + "/config_mapping.yaml"
+
+  with open(config_mapping_filename) as f:
     config_mapping = yaml.load(f, Loader=yaml.FullLoader)
   
   with open(sys.argv[1]) as f:
