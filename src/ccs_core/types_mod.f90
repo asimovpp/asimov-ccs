@@ -75,18 +75,49 @@ module types
     type(linear_system) :: eqsys !> System of equations
   end type linear_solver
 
-   !> @brief Mesh type
+  !> @brief Mesh type
   type, public :: mesh
-    integer(accs_int) :: n !> Global mesh size
+    integer(accs_int) :: nglobal !> Global mesh size
     integer(accs_int) :: nlocal !> Local mesh size
-    integer(accs_int), dimension(:), allocatable :: idx_global 
-    integer(accs_int), dimension(:), allocatable :: nnb 
-    integer(accs_int), dimension(:, :), allocatable :: nbidx 
-    real(accs_real) :: h, Af, vol
-    real(accs_real), dimension(:, :), allocatable :: xc !> Cell centres
-    real(accs_real), dimension(:, :, :), allocatable :: xf !> Face centres
+    integer(accs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
+    integer(accs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
+    integer(accs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
+    real(accs_real) :: h                                     !> The (constant) grid spacing XXX: remove!
+    real(accs_real), dimension(:, :), allocatable :: Af      !> Face areas
+    real(accs_real), dimension(:), allocatable :: vol        !> Cell volumes
+    real(accs_real), dimension(:, :), allocatable :: xc      !> Cell centres (dimension, cell)
+    real(accs_real), dimension(:, :, :), allocatable :: xf   !> Face centres (dimension, face, cell)
+    real(accs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
   end type mesh
 
+  !> @brief Cell locator
+  !
+  !> @description Lightweight type to provide easy cell location based on a cell's cell
+  !!              connectivity.
+  type, public :: cell_locator
+    type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
+    integer(accs_int) :: cell_idx      !> Cell index
+  end type cell_locator
+
+  !> @brief Face locator
+  !
+  !> @description Lightweight type to provide easy face location based on a cell's face
+  !!              connectivity.
+  type, public :: face_locator
+    type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
+    integer(accs_int) :: cell_idx      !> Cell index
+    integer(accs_int) :: cell_face_ctr !> Cell-face ctr i.e. I want to access face "3" of the cell.
+  end type face_locator
+
+  !> @brief Neighbour locator
+  !
+  !> @description Lightweight type to provide easy cell-neighbour connection.
+  type, public :: neighbour_locator
+    type(mesh), pointer :: mesh
+    integer(accs_int) :: cell_idx
+    integer(accs_int) :: cell_neighbour_ctr
+  end type neighbour_locator
+  
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
     type(matrix_init_data), intent(inout) :: mat
@@ -103,7 +134,7 @@ module types
     integer(accs_int), intent(in) :: nnz
     class(parallel_environment), allocatable, target, intent(in) :: par_env
   end subroutine set_local_matrix_size
-
+  
   end interface
 
   contains

@@ -14,4 +14,7 @@ module constants
   integer(accs_int), public, parameter :: add_mode = 1    !> Add to existing value
   integer(accs_int), public, parameter :: insert_mode = 2 !> Overwrite existing value
 
+  !> @brief Dimensionality of problems
+  integer(accs_int), public, parameter :: ndim = 3        !> Always 3D
+  
 end module constants
