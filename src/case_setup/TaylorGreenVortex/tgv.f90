@@ -6,7 +6,7 @@ program tgv
   use yaml, only: parse, error_length
   use read_config, only: get_case_name
   use kinds, only : accs_int, accs_real
-  use constants, only: geoext, adiosconfig
+  use constants, only: geoext, adiosconfig, ndim
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment
   use parallel_types, only: parallel_environment
@@ -42,8 +42,6 @@ program tgv
   integer(accs_int) :: max_faces !> Maximum number of faces per cell
   integer(accs_int) :: num_faces !> Total number of faces
   integer(accs_int) :: num_cells !> Total number of cells
-
-  integer(accs_int), parameter :: dims = 3  ! Number of dimensions
 
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
@@ -90,7 +88,7 @@ program tgv
   ! Starting point for reading chunk of data
   xyz_sel_start = (/ 0, vtxdist(irank + 1) - 1 /)
   ! How many data points will be read?
-  xyz_sel_count = (/ dims, vtxdist(irank + 2) - vtxdist(irank + 1)/)
+  xyz_sel_count = (/ ndim, vtxdist(irank + 2) - vtxdist(irank + 1)/)
 
   ! Allocate memory for XYZ coordinates array on each MPI rank
   allocate(xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
