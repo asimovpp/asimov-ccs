@@ -84,7 +84,7 @@ program tgv
 
   subroutine read_configuration()
 
-    config_file => parse("./tgv_config.yaml", error=error)
+    config_file => parse("./case_setup/TaylorGreenVortex/tgv_config.yaml", error=error)
     if (error/='') then
       print*,trim(error)
       stop 1

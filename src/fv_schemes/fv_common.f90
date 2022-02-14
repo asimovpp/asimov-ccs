@@ -145,16 +145,25 @@ contains
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
   end subroutine compute_interior_coeffs
 
-  subroutine compute_boundary_values(row, col, BC_type, cps, BC_value)
+  subroutine compute_boundary_values(ngb_index, row, col, cps, BCs, BC_value)
+    integer, intent(in) :: ngb_index  ! This is the index wrt the CV, not the ngb's cell index (i.e. range 1-4 for a square mesh)
     integer, intent(in) :: row
     integer, intent(in) :: col
-    integer, intent(in) :: BC_type
     integer, intent(in) :: cps
+    type(BC_config), intent(in) :: BCs
     real(accs_real), intent(out) :: BC_value
 
     BC_value = 0.0_accs_real
-    if (BC_type == BC_type_dirichlet) then
-      BC_value = -(1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) 
+    if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
+        (BCs%region(ngb_index) == BC_region_left .or. &
+        BCs%region(ngb_index) == BC_region_right)) then
+      BC_value = (1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * &
+                 (BCs%endpoints(ngb_index, 2) - BCs%endpoints(ngb_index, 1)) + BCs%endpoints(ngb_index, 1)
+    else if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
+             (BCs%region(ngb_index) == BC_region_top .or. &
+             BCs%region(ngb_index) == BC_region_bottom)) then
+      BC_value = (1.0_accs_real - real(col, accs_real)/real(cps, accs_real)) * &
+                 (BCs%endpoints(ngb_index, 2) - BCs%endpoints(ngb_index, 1)) + BCs%endpoints(ngb_index, 1)
     end if
   end subroutine compute_boundary_values
 
@@ -249,7 +258,7 @@ contains
           end select
 
           call calc_cell_coords(self_idx, cps, row, col)
-          call compute_boundary_values(row, col, BCs%BC_type(j), cps, BC_value)
+          call compute_boundary_values(j, row, col, cps, BCs, BC_value)
           call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*BC_value)
           call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           call set_values(b_coeffs, b)
