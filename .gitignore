@@ -17,6 +17,7 @@ auto
 src/html/
 src/latex/
 src/obj/
+src/TAGS
 __pycache__
 
 ccs_app
