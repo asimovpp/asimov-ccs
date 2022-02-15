@@ -113,7 +113,7 @@ program tgv
   ! Read YAML configuration file
   subroutine read_configuration()
 
-    config_file => parse("./TaylorGreen_config.yaml", error=error)
+    config_file => parse("./TaylorGreenVortex_config.yaml", error=error)
     if (error/='') then
       print*,trim(error)
       stop 1
