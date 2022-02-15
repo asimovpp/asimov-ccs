@@ -184,7 +184,7 @@ contains
           stop 
       end select
     end do
-      BCs%endpoints(:,:) = BC_data(:,:)
+    BCs%endpoints(:,:) = BC_data(2:,:2)
   end subroutine get_BCs
 
 end program scalar_advection

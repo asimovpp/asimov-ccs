@@ -55,11 +55,11 @@ post:
   variables: [u, v, w, p]
 
 boundary:
-  region: [left, right, top, bottom]
-  type: [dirichlet, const_grad, dirichlet, const_grad]
+  region: [left, right, bottom, top]
+  type: [dirichlet, const_grad, const_grad, dirichlet]
   vector: 
-  - [ 1, 0 ]
-  - [ 0, 0 ]
-  - [ 0, 0 ]
-  - [ 0, 0 ]
+  - [ 1.0, 0.0, 0.0 ]
+  - [ 0.0, 0.0, 0.0 ]
+  - [ 0.0, 0.0, 0.0 ]
+  - [ 0.0, 0.0, 0.0 ]
   -

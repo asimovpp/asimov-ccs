@@ -157,13 +157,13 @@ contains
     if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
         (BCs%region(ngb_index) == BC_region_left .or. &
         BCs%region(ngb_index) == BC_region_right)) then
-      BC_value = (1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * &
-                 (BCs%endpoints(ngb_index, 2) - BCs%endpoints(ngb_index, 1)) + BCs%endpoints(ngb_index, 1)
+      BC_value = -(1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
+                 real(row, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2)
     else if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
              (BCs%region(ngb_index) == BC_region_top .or. &
              BCs%region(ngb_index) == BC_region_bottom)) then
-      BC_value = (1.0_accs_real - real(col, accs_real)/real(cps, accs_real)) * &
-                 (BCs%endpoints(ngb_index, 2) - BCs%endpoints(ngb_index, 1)) + BCs%endpoints(ngb_index, 1)
+      BC_value = -(1.0_accs_real - real(col, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
+                 real(col, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2)
     end if
   end subroutine compute_boundary_values
 
