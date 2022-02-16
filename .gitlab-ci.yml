@@ -202,7 +202,7 @@ profile_ccs_cray:
       artifacts: false
   extends: .setup_cray
   script:
-    - HOME=${CI_HOME} CMP=cray PROFILE=yes make all
+    - HOME=${CI_HOME} cray_run_command "CMP=cray PROFILE=yes make all"
   artifacts:
     paths:
       - src/obj/*.lst
