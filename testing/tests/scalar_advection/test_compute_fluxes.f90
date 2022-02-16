@@ -1,6 +1,7 @@
-!> @brief Test that cells have correct numbers of neighbours
+!> @brief Test that the flux matrix has been computed correctly
 !
-!> @description for any mesh with >1 cell, every cell must have at least 1 neighbour.
+!> @description Compares the matrix calculated for flows in the +x and +y directions with
+!> central and upwind differencing to the known matrix
 program test_compute_fluxes
 
   use testing_lib
@@ -45,6 +46,12 @@ program test_compute_fluxes
 
   contains
 
+  !> @brief Sets the velocity field in the desired direction and discretisation
+  !
+  !> @param[in] direction      - Integer indicating the direction of the velocity field
+  !> @param[in] cps            - Number of cells per side in (square) mesh
+  !> @param[in] discretisation - Integer indicating which discretisation scheme to use
+  !> @param[out] u, v          - The velocity fields in x and y directions
   subroutine set_velocity_fields(direction, cps, discretisation, u, v)
     integer(accs_int), intent(in) :: direction
     integer(accs_int), intent(in) :: cps
@@ -73,6 +80,9 @@ program test_compute_fluxes
     end if
   end subroutine set_velocity_fields
 
+  !> @brief Deallocates the velocity fields
+  !
+  !> @param[in] u, v - The velocity fields to deallocate
   subroutine tidy_velocity_fields(u, v)
     class(field), allocatable :: u, v
 
@@ -82,6 +92,14 @@ program test_compute_fluxes
     deallocate(v)
   end subroutine tidy_velocity_fields
 
+  !> @brief Compares the matrix computed for a given velocity field and discretisation to the known solution
+  !
+  !> @param[in] u, v           - The velocity fields
+  !> @param[in] BCs            - The BC structure
+  !> @param[in] cell_mesh      - The mesh structure
+  !> @param[in] cps            - The number of cells per side in the (square) mesh 
+  !> @param[in] flow_direction - Integer indicating the direction of the flow 
+  !> @param[in] discretisation - Integer indicating the discretisation scheme being tested 
   subroutine run_compute_fluxes_test(u, v, BCs, cell_mesh, cps, flow_direction, discretisation)
     class(field), intent(in) :: u, v
     class(BC_config), intent(in) :: BCs
@@ -94,15 +112,7 @@ program test_compute_fluxes
     class(vector), allocatable :: b, b_exact
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
-    integer(accs_int) :: ngb
-    integer(accs_int) :: self_row, self_col
-    integer(accs_int) :: ngb_row, ngb_col
-    real(accs_real) :: face_surface_area
-    real(accs_real) :: mat_val
-    real(accs_real) :: mat_expected
     real(accs_real) :: error
-    real(accs_real), dimension(ndim) :: normal
     
     call initialise(mat_sizes)
     call initialise(vec_sizes)
@@ -138,6 +148,12 @@ program test_compute_fluxes
     deallocate(b_exact)
   end subroutine run_compute_fluxes_test
 
+  !> @brief Computes the known flux matrix for the given flow and discretisation
+  !
+  !> @param[in] cell_mesh      - The (square) mesh
+  !> @param[in] flow           - Integer indicating flow direction
+  !> @param[in] discretisation - Integer indicating the discretisation scheme being used
+  !> @param[out] M             - The resulting matrix
   subroutine compute_exact_matrix(cell_mesh, flow, discretisation, M)
     use constants, only: add_mode
     class(mesh), intent(in) :: cell_mesh
@@ -147,12 +163,9 @@ program test_compute_fluxes
 
     type(matrix_init_data) :: mat_sizes
     type(matrix_values) :: mat_coeffs
-    type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
     real(accs_real) :: diff_coeff
     real(accs_real) :: proc_zero_factor ! set to zero for non-zero ranks so that we're not double counting when running in parallel
     integer(accs_int) :: i, j
-    integer(accs_int) :: global_idx, ngb_idx
     integer(accs_int) :: mat_counter
 
     call initialise(mat_sizes)

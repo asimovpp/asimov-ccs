@@ -1,7 +1,9 @@
-!> @brief Test that cells have correct numbers of neighbours
+!> @brief Test that advection coefficients are calculated correctly
 !
-!> @description for any mesh with >1 cell, every cell must have at least 1 neighbour.
-program test_mesh_neighbours
+!> @description Computes the advection coefficients for two flow directions
+!> (in +x, +y directions) for central and upwind differencing and compares to
+!> known values
+program test_advection_coeff
 
   use testing_lib
   use constants, only: ndim
@@ -41,6 +43,15 @@ program test_mesh_neighbours
 
   contains
 
+  !> @brief For a given cell and neighbour computes the global cell and neighbour indices, corresponding face
+  !> area, and normal
+  !
+  !> @param[in] local_idx           - The cell's local index
+  !> @param[in] ngb                 - The neighbour we're interested in (range 1-4)
+  !> @param[out] self_idx           - The cell's global index
+  !> @param[out] ngb_idx            - The neighbour's global index
+  !> @param[out] face_surface_area  - The surface area of the face between the cell and its neighbour
+  !> @param[out] normal             - The face normal between the cell and its neighbour
   subroutine set_cell_indices(local_idx, ngb, self_idx, ngb_idx, face_surface_area, normal)
     integer(accs_int), intent(in) :: local_idx
     integer(accs_int), intent(in) :: ngb
@@ -65,6 +76,12 @@ program test_mesh_neighbours
     call face_normal(face_loc, normal)
   end subroutine set_cell_indices
 
+  !> @brief Sets the velocity field in the desired direction and discretisation
+  !
+  !> @param[in] direction      - Integer indicating the direction of the velocity field
+  !> @param[in] cps            - Number of cells per side in (square) mesh
+  !> @param[in] discretisation - Integer indicating which discretisation scheme to use
+  !> @param[out] u, v          - The velocity fields in x and y directions
   subroutine set_velocity_fields(direction, cps, discretisation, u, v)
     integer(accs_int), intent(in) :: direction
     integer(accs_int), intent(in) :: cps
@@ -93,6 +110,9 @@ program test_mesh_neighbours
     end if
   end subroutine set_velocity_fields
 
+  !> @brief Deallocates the velocity fields
+  !
+  !> @param[in] u, v - The velocity fields to deallocate
   subroutine tidy_velocity_fields(u, v)
     class(field), allocatable :: u, v
 
@@ -102,6 +122,15 @@ program test_mesh_neighbours
     deallocate(v)
   end subroutine tidy_velocity_fields
 
+  !> @brief Checks whether advection coefficient is correct for given velocity fields, cell and neighbour
+  !
+  !> @param[in] u, v              - The velocity fields
+  !> @param[in] self_idx          - The given cell's global index
+  !> @param[in] row               - The given cell's row in spatial mesh
+  !> @param[in] col               - The given cell's column in spatial mesh
+  !> @param[in] ngb_idx           - The neighbour's global index
+  !> @param[in] face_surface_area - The surface area of the face between the cell and neighbour
+  !> @param[in] normal            - The normal to the face between the cell and neighbour
   subroutine run_advection_coeff_test(u, v, self_idx, row, col, ngb_idx, face_surface_area, normal)
     class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: self_idx
@@ -162,8 +191,7 @@ program test_mesh_neighbours
         write(message, *) "FAIL: incorrect velocity field discretisation"
         call stop_test(message)
     end select
-        
 
   end subroutine run_advection_coeff_test
 
-end program test_mesh_neighbours
+end program test_advection_coeff

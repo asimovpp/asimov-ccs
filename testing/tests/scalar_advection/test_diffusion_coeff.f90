@@ -1,7 +1,7 @@
-!> @brief Test that cells have correct numbers of neighbours
+!> @brief Test that the diffusion coefficient is being calculated correctly
 !
-!> @description for any mesh with >1 cell, every cell must have at least 1 neighbour.
-program test_mesh_neighbours
+!> @description Currently hard-coded result, waiting for better treatment of diffusion
+program test_diffusion_coeff
 
   use testing_lib
   use mesh_utils, only : build_square_mesh
@@ -26,4 +26,4 @@ program test_mesh_neighbours
   
   call fin()
 
-end program test_mesh_neighbours
+end program test_diffusion_coeff
