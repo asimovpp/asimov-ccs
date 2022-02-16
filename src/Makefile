@@ -5,6 +5,8 @@ space := $(null) $(null)
 # prevent the use of implicit suffix rules
 .SUFFIXES:
 
+# NEED_CMP decides if full compilation is required or not
+# e.g. if the build is a simple clean, makedepf90 does not need to be invoked
 NEED_CMP = yes
 ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs doxy docs-latex))
   NEED_CMP = no
@@ -63,8 +65,11 @@ INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
-INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
-LIB += $(shell $(ADIOS2)/bin/adios2-config --fortran-libs)
+
+ifeq ($(NEED_CMP),yes)
+  INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
+  LIB += $(shell $(ADIOS2)/bin/adios2-config --fortran-libs)
+endif
 
 # file containing Makefile commands particular to proprietary code
 ifeq ($(CCS_PROPRIETARY),yes)
