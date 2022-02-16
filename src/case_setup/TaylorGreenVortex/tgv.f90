@@ -6,9 +6,10 @@ program tgv
   use yaml, only: parse, error_length
   use read_config, only: get_case_name
   use kinds, only : accs_int, accs_real
-  use constants, only: geoext, adiosconfig, ndim
+  use constants, only: geoext, adiosconfig, ccsconfig, ndim
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment
+                      cleanup_parallel_environment, &
+                      read_command_line_arguments
   use parallel_types, only: parallel_environment
   use types, only: io_environment, &
                    io_process
@@ -18,10 +19,11 @@ program tgv
 
   implicit none
 
-  class(*), pointer :: config_file
+  class(*), pointer :: config_file_pointer  !> Pointer to CCS config file
   character(len=error_length) :: error
 
   character(len=:), allocatable :: case_name   !> Case name
+  character(len=:), allocatable :: ccs_config_file  !> Config file for CCS
   character(len=:), allocatable :: geo_file    !> Geo file name
   character(len=:), allocatable :: adios2_file !> ADIOS2 config file name
 
@@ -48,6 +50,10 @@ program tgv
 
   irank = par_env%proc_id
   isize = par_env%num_procs
+
+  call read_command_line_arguments(par_env, case_name=case_name)
+
+  ccs_config_file = case_name//ccsconfig
 
   ! Read case name from configuration file
   call read_configuration()
@@ -113,14 +119,14 @@ program tgv
   ! Read YAML configuration file
   subroutine read_configuration()
 
-    config_file => parse("./TaylorGreenVortex_config.yaml", error=error)
+    config_file_pointer => parse(ccs_config_file, error=error)
     if (error/='') then
       print*,trim(error)
       stop 1
     endif
     
     ! Get case name
-    call get_case_name(config_file, case_name)
+    call get_case_name(config_file_pointer, case_name)
 
   end subroutine
 
