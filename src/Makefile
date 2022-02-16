@@ -96,7 +96,7 @@ $(CAF_OBJ): %.o: %.f90
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod *.deps
-	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt
+	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt $(OBJ_DIR)/*.lst opt_info.txt
 clean-tests:
 	make -C ../testing clean
 clean-full: clean clean-tests clean-docs

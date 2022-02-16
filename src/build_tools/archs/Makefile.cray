@@ -5,6 +5,9 @@ ifeq ($(BUILD),debug)
   FFLAGS += -G2
 else
 endif
+ifeq ($(PROFILE),yes)
+  FFLAGS += -hlist=msx 
+endif
 FFLAGS += -homp
 FFLAGS += -J$(OBJ_DIR)
 CAFFLAGS = -hcaf

@@ -22,6 +22,7 @@
     - export CCS_DIR=${PWD}"/"
     - cd src
 
+#-----------------------------------------------------------------------------#
 
 build_ccs_gnu:
   extends: .setup_gnu
@@ -49,6 +50,7 @@ test_ccs_gnu:
     - HOME=${CI_HOME} CMP=gnu make all
     - HOME=${CI_HOME} CMP=gnu make tests
 
+#-----------------------------------------------------------------------------#
 
 build_ccs_intel:
   extends: .setup_intel
@@ -76,6 +78,7 @@ test_ccs_intel:
     - HOME=${CI_HOME} CMP=intel make all
     - HOME=${CI_HOME} CMP=intel make tests
 
+#-----------------------------------------------------------------------------#
 
 build_ccs_intelx:
   extends: .setup_intel
@@ -103,6 +106,7 @@ test_ccs_intelx:
     - HOME=${CI_HOME} CMP=intelx make all
     - HOME=${CI_HOME} CMP=intelx make tests
 
+#-----------------------------------------------------------------------------#
 
 build_ccs_cray:
   extends: .setup_cray
@@ -134,6 +138,7 @@ test_ccs_cray:
     - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
 
+#-----------------------------------------------------------------------------#
 
 generate_code_docs:
   extends: .general_setup
@@ -166,6 +171,19 @@ generate_testing_docs:
       - testing/docs/testing.pdf
   allow_failure: true
 
+#-----------------------------------------------------------------------------#
+
+profile_ccs_gnu:
+  needs: 
+    - job: build_ccs_gnu
+      artifacts: false
+  extends: .setup_gnu
+  script:
+    - HOME=${CI_HOME} CMP=gnu PROFILE=yes make all
+  artifacts:
+    paths:
+      - src/opt_info.txt
+
 profile_ccs_intel:
   needs: 
     - job: build_ccs_intel
@@ -177,3 +195,15 @@ profile_ccs_intel:
     paths:
       - src/obj/*.html
       - src/*.html
+
+profile_ccs_cray:
+  needs: 
+    - job: build_ccs_cray
+      artifacts: false
+  extends: .setup_cray
+  script:
+    - HOME=${CI_HOME} CMP=cray PROFILE=yes make all
+  artifacts:
+    paths:
+      - src/obj/*.lst
+      - src/*.lst
