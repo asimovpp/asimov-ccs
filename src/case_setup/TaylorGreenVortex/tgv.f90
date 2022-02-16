@@ -9,7 +9,8 @@ program tgv
   use constants, only: geoext, adiosconfig, ccsconfig, ndim
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
-                      read_command_line_arguments
+                      read_command_line_arguments, &
+                      timer
   use parallel_types, only: parallel_environment
   use types, only: io_environment, &
                    io_process
@@ -45,6 +46,8 @@ program tgv
   integer(accs_int) :: num_faces !> Total number of faces
   integer(accs_int) :: num_cells !> Total number of cells
 
+  double precision :: start_time, end_time
+
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
 
@@ -60,6 +63,8 @@ program tgv
 
   geo_file = case_name//geoext
   adios2_file = case_name//adiosconfig
+
+  call timer(start_time)
   
   call initialise_io(par_env, adios2_file, io_env)
   call configure_io(io_env, "geo_reader", geo_reader)  
@@ -108,6 +113,12 @@ program tgv
   ! Finalise the ADIOS2 IO environment
   call cleanup_io(io_env)
 
+  call timer(end_time)
+
+  if(irank == 0) then
+     print*, "Elapsed time: ", end_time - start_time
+  end if
+  
   ! Deallocate memory for XYZ coordinates array
   deallocate(xyz_coords)
 
