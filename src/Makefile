@@ -5,24 +5,9 @@ space := $(null) $(null)
 # prevent the use of implicit suffix rules
 .SUFFIXES:
 
-<<<<<<< HEAD
-ifeq ($(CMP),intel)
-  FC = mpiifort -fc=ifort
-  FFLAGS = -cpp -fPIC -g -O3 -stand f18
-  ifeq ($(BUILD),debug)
-    # Add debugging (i.e. expensive) flags
-    -g -Og -traceback -check all -check bounds -check uninit -frapuv -debug all
-  endif
-  FFLAGS += -xHOST
-  FFLAGS += -warn all,noexternals
-  FFLAGS += -module $(OBJ_DIR)
-  CAFFLAGS = -coarray
-  MPIRUN = mpirun
-=======
 NEED_CMP = yes
 ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs doxy docs-latex))
   NEED_CMP = no
->>>>>>> develop
 endif
 
 PY = python3
