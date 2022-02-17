@@ -123,7 +123,7 @@ contains
           call get_boundary_status(nbnb_location, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
             call get_local_index(nbnb_location, nbidx)
-            if (nbidx == i) then
+            if (nbidx == parent_idx) then
               found_parent = .true.
               exit
             end if
