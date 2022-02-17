@@ -8,6 +8,8 @@ program test_mesh_neighbours
   use meshing, only : set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
   use mesh_utils, only : build_square_mesh
 
+  implicit none
+  
   type(mesh), target :: square_mesh
   type(cell_locator) :: cell_location
 
