@@ -11,8 +11,6 @@ program test_mesh_neighbours
   type(mesh), target :: square_mesh
   type(cell_locator) :: cell_location
 
-  logical :: passing = .true.
-
   integer(accs_int) :: n
   real(accs_real) :: l
 
@@ -77,7 +75,6 @@ program test_mesh_neighbours
     expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh (square mesh has 2^d sides
                                   !      of length n)
     if (global_boundary_ctr /= expected_boundary_ctr) then
-      passing = .false.
       write(message, *) "FAIL: mesh boundary count is incorrect, expected ", &
            expected_boundary_ctr, " got ", global_boundary_ctr
       call stop_test(message)
@@ -94,8 +91,6 @@ contains
     
     type(neighbour_locator), intent(in) :: nb_location
 
-    logical :: passing
-    
     integer(accs_int) :: nbidx
     type(cell_locator) :: nb_cell_location
     integer(accs_int) :: nnb
@@ -105,8 +100,6 @@ contains
     logical :: is_boundary
     logical :: is_local
     
-    passing = .true.
-
     associate(mesh => nb_location%mesh, &
          parent_idx => nb_location%cell_idx)
       call get_local_index(nb_location, nbidx)
@@ -135,8 +128,8 @@ contains
           end if
         end do
         if (.not. found_parent) then
-          print *, "FAIL: Couldn't find cell in neighbour's neighbour list!"
-          passing = .false.
+          write(message, *) "FAIL: Couldn't find cell in neighbour's neighbour list!"
+          call stop_test(message)
         end if
       end if
       
