@@ -12,7 +12,7 @@ contains
 
   module procedure set_cell_location
     ! XXX: Potentially expensive...
-    if (cell_idx > size(geometry%idx_global)) then
+    if (cell_idx > geometry%nlocal) then
       print *, "ERROR: trying to access cell I don't own!", cell_idx, geometry%nlocal
       stop
     else
