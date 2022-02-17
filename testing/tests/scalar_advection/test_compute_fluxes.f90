@@ -5,16 +5,14 @@
 program test_compute_fluxes
 
   use testing_lib
-  use constants, only: ndim
-  use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator, &
-                   set_cell_location, set_face_location, set_neighbour_location
-  use mesh_utils, only : build_square_mesh, global_index, face_area, face_normal
+  use types, only: field, upwind_field, central_field
+  use mesh_utils, only : build_square_mesh
   use fv, only: compute_fluxes, calc_cell_coords
-  use BC_constants
-  use utils, only : update, finalise, initialise, &
+  use utils, only : update, initialise, &
                 set_global_size, pack_entries, set_values, axpy, norm
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
+  use BC_constants
 
 
   type(mesh) :: square_mesh
@@ -116,8 +114,8 @@ program test_compute_fluxes
     
     call initialise(mat_sizes)
     call initialise(vec_sizes)
-    call set_global_size(mat_sizes, cell_mesh%n, cell_mesh%n, par_env)
-    call set_global_size(vec_sizes, cell_mesh%n, par_env)
+    call set_global_size(mat_sizes, cell_mesh%nglobal, cell_mesh%nglobal, par_env)
+    call set_global_size(vec_sizes, cell_mesh%nglobal, par_env)
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
     call create_vector(vec_sizes, b)
@@ -169,7 +167,7 @@ program test_compute_fluxes
     integer(accs_int) :: mat_counter
 
     call initialise(mat_sizes)
-    call set_global_size(mat_sizes, cell_mesh%n, cell_mesh%n, par_env)
+    call set_global_size(mat_sizes, cell_mesh%nglobal, cell_mesh%nglobal, par_env)
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
 
@@ -188,7 +186,7 @@ program test_compute_fluxes
     ! Advection coefficients first
       if (flow == 1 .and. discretisation == 1) then
         ! CDS and flow along +x direction
-        do i = 1, cell_mesh%n
+        do i = 1, cell_mesh%nglobal
           mat_counter = 1
           if (mod(i, cps) == 1) then
             call pack_entries(mat_coeffs, 1, mat_counter, i, i, -0.3_accs_real*proc_zero_factor) ! Make this more flexible so that the coeffs depend on cps
@@ -210,17 +208,17 @@ program test_compute_fluxes
         end do
       else if (flow == 2 .and. discretisation == 1) then
         ! CDS and flow along +y direction
-        do i = 1, cell_mesh%n
+        do i = 1, cell_mesh%nglobal
           mat_counter = 1
           if (i .le. cps) then
             call pack_entries(mat_coeffs, 1, mat_counter, i, i, -0.3_accs_real*proc_zero_factor)
             mat_counter = mat_counter + 1
-          else if (i > cell_mesh%n - cps) then
+          else if (i > cell_mesh%nglobal - cps) then
             call pack_entries(mat_coeffs, 1, mat_counter, i, i, -0.1_accs_real*proc_zero_factor)
             mat_counter = mat_counter + 1
           end if
 
-          if (i + cps .le. cell_mesh%n) then
+          if (i + cps .le. cell_mesh%nglobal) then
             call pack_entries(mat_coeffs, 1, mat_counter, i, i+cps, 0.1_accs_real*proc_zero_factor)
             mat_counter = mat_counter + 1
           end if
@@ -232,7 +230,7 @@ program test_compute_fluxes
         end do
       else if (flow == 1 .and. discretisation == 2) then
         ! UDS and flow along +x direction
-        do i = 1, cell_mesh%n
+        do i = 1, cell_mesh%nglobal
           mat_counter = 1
           if (mod(i, cps) .ne. 1) then
             call pack_entries(mat_coeffs, 1, mat_counter, i, i, 0.2_accs_real*proc_zero_factor)
@@ -244,7 +242,7 @@ program test_compute_fluxes
         end do
       else if (flow == 2 .and. discretisation == 2) then
         ! UDS and flow along +y direction
-        do i = cps+1, cell_mesh%n
+        do i = cps+1, cell_mesh%nglobal
           mat_counter = 1
           call pack_entries(mat_coeffs, 1, mat_counter, i, i, 0.2_accs_real*proc_zero_factor)
           mat_counter = mat_counter + 1
@@ -262,7 +260,7 @@ program test_compute_fluxes
 
     diff_coeff = -0.02
     ! Diffusion coefficients
-    do i = 1, cell_mesh%n
+    do i = 1, cell_mesh%nglobal
       mat_counter = 1
       call pack_entries(mat_coeffs, 1, mat_counter, i, i, -4*diff_coeff*proc_zero_factor)
       mat_counter = mat_counter + 1
@@ -276,11 +274,11 @@ program test_compute_fluxes
         mat_counter = mat_counter + 1
       end if
 
-      if (i + 1 .le. cell_mesh%n .and. mod(i, cps) .ne. 0) then
+      if (i + 1 .le. cell_mesh%nglobal .and. mod(i, cps) .ne. 0) then
         call pack_entries(mat_coeffs, 1, mat_counter, i, i+1, diff_coeff*proc_zero_factor)
         mat_counter = mat_counter + 1
       end if
-      if (i + cps .le. cell_mesh%n) then
+      if (i + cps .le. cell_mesh%nglobal) then
         call pack_entries(mat_coeffs, 1, mat_counter, i, i+cps, diff_coeff*proc_zero_factor)
         mat_counter = mat_counter + 1
       end if

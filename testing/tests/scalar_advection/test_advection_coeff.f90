@@ -7,10 +7,11 @@ program test_advection_coeff
 
   use testing_lib
   use constants, only: ndim
-  use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator, &
-                   set_cell_location, set_face_location, set_neighbour_location
-  use mesh_utils, only : build_square_mesh, global_index, face_area, face_normal
+  use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
+  use mesh_utils, only : build_square_mesh
   use fv, only: calc_advection_coeff, calc_cell_coords
+  use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
+                     get_global_index, get_face_area, get_face_normal
 
   type(mesh) :: square_mesh
   class(field), allocatable :: u, v
@@ -19,7 +20,7 @@ program test_advection_coeff
   integer(accs_int) :: ngb
   integer(accs_int) :: direction, discretisation
   integer(accs_int) :: row, col
-  real(accs_real) :: face_surface_area
+  real(accs_real) :: face_area
   real(accs_real), dimension(ndim) :: normal
   
   call init()
@@ -31,9 +32,9 @@ program test_advection_coeff
     do discretisation = 1, 2
       call set_velocity_fields(direction, cps, discretisation, u, v)
       do ngb = 1, 4
-        call set_cell_indices(local_idx, ngb, self_idx, ngb_idx, face_surface_area, normal)
+        call set_cell_indices(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
         call calc_cell_coords(self_idx, cps, row, col)
-        call run_advection_coeff_test(u, v, self_idx, row, col, ngb_idx, face_surface_area, normal)
+        call run_advection_coeff_test(u, v, self_idx, row, col, ngb_idx, face_area, normal)
       end do
       call tidy_velocity_fields(u, v)
     end do
@@ -50,14 +51,14 @@ program test_advection_coeff
   !> @param[in] ngb                 - The neighbour we're interested in (range 1-4)
   !> @param[out] self_idx           - The cell's global index
   !> @param[out] ngb_idx            - The neighbour's global index
-  !> @param[out] face_surface_area  - The surface area of the face between the cell and its neighbour
+  !> @param[out] face_area  - The surface area of the face between the cell and its neighbour
   !> @param[out] normal             - The face normal between the cell and its neighbour
-  subroutine set_cell_indices(local_idx, ngb, self_idx, ngb_idx, face_surface_area, normal)
+  subroutine set_cell_indices(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
     integer(accs_int), intent(in) :: local_idx
     integer(accs_int), intent(in) :: ngb
     integer(accs_int), intent(out) :: self_idx
     integer(accs_int), intent(out) :: ngb_idx
-    real(accs_real), intent(out) :: face_surface_area
+    real(accs_real), intent(out) :: face_area
     real(accs_real), intent(out), dimension(ndim) :: normal
 
     type(cell_locator) :: self_loc
@@ -65,15 +66,15 @@ program test_advection_coeff
     type(face_locator) :: face_loc
     
     call set_cell_location(self_loc, square_mesh, local_idx)
-    call global_index(self_loc, self_idx)
+    call get_global_index(self_loc, self_idx)
   
     call set_neighbour_location(ngb_loc, self_loc, ngb)
-    call global_index(ngb_loc, ngb_idx)
+    call get_global_index(ngb_loc, ngb_idx)
 
     call set_face_location(face_loc, square_mesh, local_idx, ngb)
-    call face_area(face_loc, face_surface_area)
+    call get_face_area(face_loc, face_area)
 
-    call face_normal(face_loc, normal)
+    call get_face_normal(face_loc, normal)
   end subroutine set_cell_indices
 
   !> @brief Sets the velocity field in the desired direction and discretisation
@@ -129,14 +130,14 @@ program test_advection_coeff
   !> @param[in] row               - The given cell's row in spatial mesh
   !> @param[in] col               - The given cell's column in spatial mesh
   !> @param[in] ngb_idx           - The neighbour's global index
-  !> @param[in] face_surface_area - The surface area of the face between the cell and neighbour
+  !> @param[in] face_area - The surface area of the face between the cell and neighbour
   !> @param[in] normal            - The normal to the face between the cell and neighbour
-  subroutine run_advection_coeff_test(u, v, self_idx, row, col, ngb_idx, face_surface_area, normal)
+  subroutine run_advection_coeff_test(u, v, self_idx, row, col, ngb_idx, face_area, normal)
     class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: self_idx
     integer(accs_int), intent(in) :: row, col
     integer(accs_int), intent(in) :: ngb_idx
-    real(accs_real), intent(in) :: face_surface_area
+    real(accs_real), intent(in) :: face_area
     real(accs_real), dimension(ndim), intent(in) :: normal
 
     real(accs_real) :: coeff
@@ -146,7 +147,7 @@ program test_advection_coeff
       type is(central_field)
         select type(v)
           type is(central_field)
-            call calc_advection_coeff(self_idx, ngb_idx, face_surface_area, cps, u, v, 0_accs_int, coeff)
+            call calc_advection_coeff(self_idx, ngb_idx, face_area, cps, u, v, 0_accs_int, coeff)
           class default
             write(message, *) "FAIL: incorrect velocity field discretisation"
             call stop_test(message)
@@ -154,7 +155,7 @@ program test_advection_coeff
       type is(upwind_field)
         select type(v)
           type is(upwind_field)
-            call calc_advection_coeff(self_idx, ngb_idx, face_surface_area, cps, u, v, 0_accs_int, coeff)
+            call calc_advection_coeff(self_idx, ngb_idx, face_area, cps, u, v, 0_accs_int, coeff)
           class default
             write(message, *) "FAIL: incorrect velocity field discretisation"
             call stop_test(message)
@@ -166,9 +167,9 @@ program test_advection_coeff
 
     select type(u)
       type is(upwind_field)
-        expected_coeff = min(-face_surface_area*(u%val(col,row)*normal(1) + v%val(col,row)*normal(2)), 0.0_accs_real)
+        expected_coeff = min(-face_area*(u%val(col,row)*normal(1) + v%val(col,row)*normal(2)), 0.0_accs_real)
       type is(central_field)
-        expected_coeff = -face_surface_area*0.5_accs_real*(u%val(col,row)*normal(1) + v%val(col,row)*normal(2))
+        expected_coeff = -face_area*0.5_accs_real*(u%val(col,row)*normal(1) + v%val(col,row)*normal(2))
       class default
         write(message, *) "FAIL: incorrect velocity field discretisation"
         call stop_test(message)
