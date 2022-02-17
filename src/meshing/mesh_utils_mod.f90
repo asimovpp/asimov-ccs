@@ -106,6 +106,13 @@ contains
           square_mesh%nf(:, :, :) = 0.0_accs_real
           square_mesh%xc(:, :) = 0.0_accs_real
           square_mesh%xf(:, :, :) = 0.0_accs_real
+
+          ! First set the global index of local cells
+          ictr = 1_accs_int
+          do i = istart, iend
+            square_mesh%idx_global(ictr) = i
+            ictr = ictr + 1
+          end do
           
           ! Assemble cells and faces
           ! XXX: Negative neighbour indices are used to indicate boundaries using the same numbering
@@ -116,7 +123,6 @@ contains
           !        -4 = up boundary
           ictr = 1_accs_int ! Set local indexing starting from 1...n
           do i = istart, iend 
-            square_mesh%idx_global(ictr) = i
             ii = i - 1_accs_int
 
             ! Create aliases for
@@ -231,8 +237,6 @@ contains
     integer(accs_int), intent(in) :: nbidx
     integer(accs_int), intent(in) :: nbidxg
 
-    integer(accs_int), dimension(:), allocatable :: tmpidx !> Temporary array for growing the global
-                                                           !! index array
     integer(accs_int) :: ng !> The current number of cells (total = local + halos)
     logical :: found        !> Indicates whether a halo cell was already present
     integer(accs_int) :: i  !> Cell iteration counter
@@ -253,7 +257,7 @@ contains
       ! First check if neighbour is already present in halo
       ng = size(meshobj%idx_global)
       found = .false.
-      do i = meshobj%nlocal, ng
+      do i = meshobj%nlocal + 1, ng
         if (meshobj%idx_global(i) == nbidxg) then
           found = .true.
           meshobj%nbidx(nbctr, cellidx) = i
@@ -266,19 +270,42 @@ contains
       ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
       !      the (extended) original array.
       if (.not. found) then
-        allocate(tmpidx(ng + 1_accs_int))
-        tmpidx(1_accs_int:ng) = meshobj%idx_global(1_accs_int:ng)
-        ng = ng + 1_accs_int
-        tmpidx(ng) = nbidxg
-        meshobj%nbidx(nbctr, cellidx) = ng
+        if ((ng + 1) > meshobj%nglobal) then
+          print *, "ERROR: Trying to create halo that exceeds global mesh size!"
+          stop
+        end if
         
-        deallocate(meshobj%idx_global)
-        allocate(meshobj%idx_global(ng))
-        meshobj%idx_global(:) = tmpidx(:)
-        deallocate(tmpidx)
+        call append_to_arr(nbidxg, meshobj%idx_global)
+        ng = size(meshobj%idx_global)
+        meshobj%nbidx(nbctr, cellidx) = ng
       end if
     end if
     
   end subroutine build_local_mesh_add_neighbour
+
+  subroutine append_to_arr(i, arr)
+
+    integer(accs_int), intent(in) :: i
+    integer(accs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
+                                                                       !      dragons!
+
+    integer(accs_int) :: n
+    integer(accs_int), dimension(:), allocatable :: tmp
+
+    n = size(arr)
+
+    allocate(tmp(n + 1))
+
+    tmp(1:n) = arr(1:n)
+
+    n = n + 1
+    tmp(n) = i
+
+    deallocate(arr)
+    allocate(arr(n))
+    arr(:) = tmp(:)
+    deallocate(tmp)
+    
+  end subroutine append_to_arr
   
 end module mesh_utils
