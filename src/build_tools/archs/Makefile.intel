@@ -1,0 +1,19 @@
+FC = mpiifort -fc=ifort
+FFLAGS = -cpp -fPIC -stand f18
+ifeq ($(BUILD),debug)
+  # Add debugging (i.e. expensive) flags
+  FFLAGS += -g
+else
+  FFLAGS += -O3 -ipo
+endif
+ifeq ($(PROFILE),yes)
+  FFLAGS += -qopt-report-per-object -qopt-report=5 -qopt-report-annotate=html -qopt-report-phase=cg,ipo,loop,vec -qopt-report-annotate-position=both
+endif
+FFLAGS += -xHOST
+FFLAGS += -warn all,noexternals
+FFLAGS += -module $(OBJ_DIR)
+CAFFLAGS = -coarray
+MPIRUN = mpirun
+
+# Only set this value if building a CAF binary otherwise keep unset
+#CAFLINK= #-coarray

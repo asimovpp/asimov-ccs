@@ -146,7 +146,7 @@ generate_code_docs:
       - src/latex/refman.pdf
   allow_failure: true
 
-generate_test_docs:
+generate_style_guide:
   extends: .general_setup
   script:
     - cd style_guide
@@ -156,7 +156,7 @@ generate_test_docs:
       - style_guide/source.pdf
   allow_failure: true
 
-generate_style_guide:
+generate_testing_docs:
   extends: .general_setup
   script:
     - cd testing/docs
@@ -166,3 +166,14 @@ generate_style_guide:
       - testing/docs/testing.pdf
   allow_failure: true
 
+profile_ccs_intel:
+  needs: 
+    - job: build_ccs_intel
+      artifacts: false
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intel PROFILE=yes make all
+  artifacts:
+    paths:
+      - src/obj/*.html
+      - src/*.html

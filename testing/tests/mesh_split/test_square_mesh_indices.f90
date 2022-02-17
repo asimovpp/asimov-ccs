@@ -2,8 +2,9 @@
 program test_square_mesh_indices
 
   use testing_lib
-  
-  use mesh_utils, only : build_square_mesh, global_index
+
+  use meshing, only : set_cell_location, get_global_index
+  use mesh_utils, only : build_square_mesh
 
   implicit none
 
@@ -24,10 +25,10 @@ program test_square_mesh_indices
     square_mesh = build_square_mesh(n, l, par_env)
 
     associate(nlocal => square_mesh%nlocal, &
-         nglobal => square_mesh%n)
+         nglobal => square_mesh%nglobal)
       do i = 1, nlocal
         call set_cell_location(cell_location, square_mesh, i)
-        call global_index(cell_location, idxg)
+        call get_global_index(cell_location, idxg)
         if ((idxg < 1) .or. (idxg > nglobal)) then
           if (idxg /= -1) then
             write(message, *) "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", idxg

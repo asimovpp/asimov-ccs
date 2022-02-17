@@ -2,4 +2,4 @@
 # RUN: %mpirun -n 4 %t1
 
 main: test_mesh_point_distribution
-base: mpi_petsc
+base: mpi

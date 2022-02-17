@@ -5,8 +5,8 @@
 
 submodule (fv) fv_common
 
-  use types, only : face_locator, set_face_location
-  use mesh_utils, only : face_area
+  use types, only : face_locator
+  use meshing, only : set_face_location, get_face_area
 
   implicit none
 
@@ -58,10 +58,10 @@ contains
   !> @param[in,out] mat     - Matrix structure being assigned
   subroutine compute_interior_coeffs(u, v, cell_mesh, n_int_cells, cps, M)
     use constants, only : add_mode
-    use types, only: matrix_values, cell_locator, face_locator, neighbour_locator, &
-                     set_cell_location, set_face_location, set_neighbour_location
+    use types, only: matrix_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
-    use mesh_utils, only:  global_index, count_neighbours, face_area, boundary_status
+    use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
+                       get_global_index, count_neighbours, get_boundary_status
 
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
@@ -77,7 +77,7 @@ contains
     integer(accs_int) :: j
     integer(accs_int) :: mat_counter
     integer(accs_int) :: n_ngb
-    real(accs_real) :: face_surface_area
+    real(accs_real) :: face_area
     real(accs_real) :: diff_coeff, diff_coeff_total
     real(accs_real) :: adv_coeff, adv_coeff_total
     logical :: is_boundary
@@ -91,26 +91,26 @@ contains
     do local_idx = 1, cell_mesh%nlocal
       ! Calculate contribution from neighbours
       call set_cell_location(self_loc, cell_mesh, local_idx)
-      call global_index(self_loc, self_idx)
+      call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
       mat_counter = 1
       adv_coeff_total = 0.0_accs_real
       diff_coeff_total = 0.0_accs_real
       do j = 1, n_ngb
         call set_neighbour_location(ngb_loc, self_loc, j)
-        call global_index(ngb_loc, ngb_idx)
-        call boundary_status(ngb_loc, is_boundary)
+        call get_global_index(ngb_loc, ngb_idx)
+        call get_boundary_status(ngb_loc, is_boundary)
 
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
         if (.not. is_boundary) then
           call set_face_location(face_loc, cell_mesh, local_idx, j)
-          call face_area(face_loc, face_surface_area)
+          call get_face_area(face_loc, face_area)
 
           select type(u)
           type is(central_field)
             select type(v)
             type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_surface_area, cps, u, v, 0, adv_coeff)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -118,7 +118,7 @@ contains
           type is(upwind_field)
             select type(v)
             type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_surface_area, cps, u, v, 0, adv_coeff)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -176,11 +176,10 @@ contains
   !> @param[in,out] b       - vector structure being assigned
   subroutine compute_boundary_coeffs(u, v, cell_mesh, BCs, cps, M, b)
     use constants, only : insert_mode, add_mode, ndim
-    use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator, &
-                     set_cell_location, set_face_location, set_neighbour_location
+    use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
-    use mesh_utils, only:  global_index, count_neighbours, face_area, &
-                           boundary_status
+    use meshing, only: get_global_index, count_neighbours, get_boundary_status, &
+                       set_cell_location, set_face_location, set_neighbour_location
     use BC_constants
 
     class(field), intent(in) :: u, v
@@ -200,7 +199,7 @@ contains
     integer(accs_int) :: bc_counter
     integer(accs_int) :: row, col
     integer(accs_int) :: n_ngb, mesh_ngb_idx
-    real(accs_real) :: face_surface_area
+    real(accs_real) :: face_area
     real(accs_real) :: diff_coeff
     real(accs_real) :: adv_coeff
     real(accs_real) :: BC_value
@@ -221,16 +220,16 @@ contains
     bc_counter = 1
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(self_loc, cell_mesh, local_idx)
-      call global_index(self_loc, self_idx)
+      call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
       ! Calculate contribution from neighbours
       do j = 1, n_ngb
         call set_neighbour_location(ngb_loc, self_loc, j)
-        call global_index(ngb_loc, ngb_idx)
-        call boundary_status(ngb_loc, is_boundary)
+        call get_global_index(ngb_loc, ngb_idx)
+        call get_boundary_status(ngb_loc, is_boundary)
 
         call set_face_location(face_loc, cell_mesh, local_idx, j)
-        call face_area(face_loc, face_surface_area)
+        call get_face_area(face_loc, face_area)
 
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
@@ -239,7 +238,7 @@ contains
           type is(central_field)
             select type(v)
             type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_surface_area, cps, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -247,7 +246,7 @@ contains
           type is(upwind_field)
             select type(v)
             type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_surface_area, cps, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -283,13 +282,13 @@ contains
     real(accs_real) :: coeff
 
     type(face_locator) :: face_location
-    real(accs_real) :: face_surface_area
+    real(accs_real) :: face_area
     real(accs_real), parameter :: diffusion_factor = 1.e-2 
 
     call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
-    call face_area(face_location, face_surface_area)
+    call get_face_area(face_location, face_area)
 
-    coeff = -face_surface_area*diffusion_factor/(0.5_accs_real * cell_mesh%h)
+    coeff = -face_area*diffusion_factor/(0.5_accs_real * cell_mesh%h)
   end function calc_diffusion_coeff
 
   !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid

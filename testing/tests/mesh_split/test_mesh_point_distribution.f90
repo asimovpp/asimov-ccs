@@ -57,7 +57,7 @@ program test_mesh_point_distribution
       call stop_test(message)
     end if
 
-    call assert_equal(n_expected, square_mesh%n, &
+    call assert_equal(n_expected, square_mesh%nglobal, &
          '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
 
   end do

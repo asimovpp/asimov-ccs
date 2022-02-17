@@ -11,7 +11,7 @@ module testing_lib
 
   implicit none
 
-  class(parallel_environment), allocatable, target :: par_env !! XXX: SHOULD this be a target?
+  class(parallel_environment), allocatable, target :: par_env
   integer(accs_err) :: ierr
   integer :: real_type
   character(1024) :: message
@@ -51,7 +51,7 @@ contains
       call MPI_Barrier(par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
-      stop
+      stop 1
     end select
     
   end subroutine init
@@ -82,7 +82,7 @@ contains
       call MPI_Bcast(parallel_random, 1, real_type, par_env%root, par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
-      stop
+      stop 1
     end select
     
   end function parallel_random
