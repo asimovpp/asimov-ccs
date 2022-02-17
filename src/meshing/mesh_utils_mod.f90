@@ -196,6 +196,9 @@ contains
           end do
         end associate
 
+        square_mesh%ntotal = size(square_mesh%idx_global)
+        square_mesh%nhalo = square_mesh%ntotal - square_mesh%nlocal
+
       class default
         print *, "Unknown parallel environment type!"
         stop

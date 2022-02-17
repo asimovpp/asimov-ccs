@@ -78,7 +78,9 @@ module types
   !> @brief Mesh type
   type, public :: mesh
     integer(accs_int) :: nglobal !> Global mesh size
-    integer(accs_int) :: nlocal !> Local mesh size
+    integer(accs_int) :: nlocal  !> Local mesh size
+    integer(accs_int) :: nhalo   !> How many cells in my halo?
+    integer(accs_int) :: ntotal  !> How many cells do I interact with (nlocal + nhalo)?
     integer(accs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
     integer(accs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
     integer(accs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
