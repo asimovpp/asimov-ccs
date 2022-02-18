@@ -287,7 +287,9 @@ contains
 
     integer(accs_int), intent(in) :: i
     integer(accs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
-                                                                       !      dragons!
+                                                                       !      dragons! If this were
+                                                                       !      intent(out) it would
+                                                                       !      be deallocated on entry!
 
     integer(accs_int) :: n
     integer(accs_int), dimension(:), allocatable :: tmp
