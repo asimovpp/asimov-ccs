@@ -10,7 +10,7 @@ program test_compute_fluxes
   use fv, only: compute_fluxes, calc_cell_coords
   use utils, only : update, initialise, &
                 set_global_size, pack_entries, set_values, axpy, norm
-  use vec, only : create_vector, vec_view
+  use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use BC_constants
 
@@ -126,8 +126,6 @@ program test_compute_fluxes
 
     call update(M)
     call update(b)
-
-    call vec_view(b)
 
     call compute_exact_matrix(cell_mesh, flow_direction, discretisation, M_exact, b_exact)
 

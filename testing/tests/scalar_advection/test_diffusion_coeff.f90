@@ -10,7 +10,7 @@ program test_diffusion_coeff
   type(mesh) :: square_mesh
   integer(accs_int), parameter :: cps = 50
   real(accs_real) :: coeff
-  real(accs_real), parameter :: expected_coeff = -2.e-2
+  real(accs_real), parameter :: expected_coeff = -2.e-2_accs_real
 
   
   call init()
