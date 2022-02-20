@@ -157,13 +157,13 @@ contains
     if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
         (BCs%region(ngb_index) == BC_region_left .or. &
         BCs%region(ngb_index) == BC_region_right)) then
-      BC_value = -(1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
-                 real(row, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2)
+      BC_value = -((1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
+                 real(row, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2))
     else if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
              (BCs%region(ngb_index) == BC_region_top .or. &
              BCs%region(ngb_index) == BC_region_bottom)) then
-      BC_value = -(1.0_accs_real - real(col, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
-                 real(col, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2)
+      BC_value = -((1.0_accs_real - real(col, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
+                 real(col, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2))
     end if
   end subroutine compute_boundary_values
 
@@ -283,7 +283,7 @@ contains
 
     type(face_locator) :: face_location
     real(accs_real) :: face_area
-    real(accs_real), parameter :: diffusion_factor = 1.e-2 
+    real(accs_real), parameter :: diffusion_factor = 1.e-2_accs_real
 
     call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
     call get_face_area(face_location, face_area)
