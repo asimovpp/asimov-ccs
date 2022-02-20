@@ -32,9 +32,50 @@ submodule (io) io_adios2
       type is(adios2_io_process)
 
         call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
+
+        if (adios2_attr%type == adios2_type_integer8) then
+          print*,"===> IO Error: trying to read an 8-byte INTEGER into a 4-byte INTEGER"
+          print*,"===> Expected attribute type adios2_type_integer8."
+          stop 1
+        end if
+
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
-      class default
+        class default
+        print*,"Unknown IO process handler type"
+
+      end select
+
+  end subroutine
+
+  !> @brief Read a scalar long integer from file
+  !
+  !> param[in]  io_proc   : ADIOS2 IO process used for reading
+  !> param[in]  attr_name : Name of scalar longinteger to read
+  !> param[out] attr      : Value of scalar long integer
+  module subroutine read_scalar_long(io_proc, attr_name, attr)
+    class(io_process), intent(in) :: io_proc
+    character (len=*), intent(in) :: attr_name
+    integer(kind=8), intent(out) :: attr
+
+    type(adios2_attribute) :: adios2_attr
+
+    integer(accs_int) :: ierr
+
+    select type(io_proc)
+      type is(adios2_io_process)
+
+        call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
+
+        if (adios2_attr%type == adios2_type_integer4) then
+          print*,"===> IO Error: trying to read a 4-byte INTEGER into an 8-byte INTEGER"
+          print*,"===> Expected attribute type adios2_type_integer4."
+          stop 1
+        end if
+
+        call adios2_attribute_data(attr, adios2_attr, ierr)
+
+        class default
         print*,"Unknown IO process handler type"
 
       end select
@@ -49,7 +90,7 @@ submodule (io) io_adios2
   module subroutine read_scalar_real(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc
     character (len=*), intent(in) :: attr_name
-    real(accs_real), intent(out) :: attr
+    real, intent(out) :: attr
 
     type(adios2_attribute) :: adios2_attr
 
@@ -59,6 +100,11 @@ submodule (io) io_adios2
       type is(adios2_io_process)
 
         call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
+        if (adios2_attr%type == adios2_type_dp) then
+          print*,"===> IO Error: trying to read a DOUBLE PRECISION REAL into a REAL"
+          print*,"===> Expected attribute type adios2_type_real."
+          stop 1
+        end if
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
       class default
@@ -67,6 +113,39 @@ submodule (io) io_adios2
       end select
 
     end subroutine
+
+  !> @brief Read a scalar double precision real from file
+  !
+  !> param[in]  io_proc   : ADIOS2 IO process used for reading
+  !> param[in]  attr_name : Name of scalar double precision real to read
+  !> param[out] attr      : Value of scalar double precision real
+    module subroutine read_scalar_dp(io_proc, attr_name, attr)
+      class(io_process), intent(in) :: io_proc
+      character (len=*), intent(in) :: attr_name
+      double precision, intent(out) :: attr
+  
+      type(adios2_attribute) :: adios2_attr
+  
+      integer(accs_int) :: ierr
+  
+      select type(io_proc)
+        type is(adios2_io_process)
+  
+          call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
+          if (adios2_attr%type == adios2_type_dp) then
+            print*,"===> IO Error: trying to read a DOUBLE PRECISION REAL into a REAL"
+            print*,"===> Expected attribute type adios2_type_dp."
+            stop 
+          end if
+          call adios2_attribute_data(attr, adios2_attr, ierr)
+  
+        class default
+          print*,"Unknown IO process handler type"
+  
+        end select
+  
+      end subroutine
+  
 
     !> @brief Read a 1D integer array from file
     !

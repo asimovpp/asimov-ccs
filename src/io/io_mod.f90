@@ -21,7 +21,9 @@ module io
 
   interface read_scalar
     module procedure read_scalar_integer
+    module procedure read_scalar_long
     module procedure read_scalar_real
+    module procedure read_scalar_dp
   end interface
 
   interface read_array
@@ -92,6 +94,17 @@ module io
     integer(accs_int), intent(out) :: attr
   end subroutine
 
+    !> @brief Read a scalar long integer from file
+  !
+  !> param[in]  io_proc   : IO process used for reading
+  !> param[in]  attr_name : Name of scalar long integer to read
+  !> param[out] attr      : Value of scalar long integer
+  module subroutine read_scalar_long(io_proc, attr_name, attr)
+    class(io_process), intent(in) :: io_proc
+    character (len=*), intent(in) :: attr_name
+    integer(kind=8), intent(out) :: attr
+  end subroutine
+
   !> @brief Read a scalar real from file
   !
   !> param[in]  io_proc   : IO process used for reading
@@ -100,7 +113,18 @@ module io
   module subroutine read_scalar_real(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc
     character (len=*), intent(in) :: attr_name
-    real(accs_real), intent(out) :: attr
+    real, intent(out) :: attr
+  end subroutine
+
+  !> @brief Read a scalar double precision real from file
+  !
+  !> param[in]  io_proc   : IO process used for reading
+  !> param[in]  attr_name : Name of scalar double precision real to read
+  !> param[out] attr      : Value of scalar double precision real
+  module subroutine read_scalar_dp(io_proc, attr_name, attr)
+    class(io_process), intent(in) :: io_proc
+    character (len=*), intent(in) :: attr_name
+    double precision, intent(out) :: attr
   end subroutine
 
   !> @brief Read a 1D integer array from file
