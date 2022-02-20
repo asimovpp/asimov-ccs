@@ -22,10 +22,10 @@ program test_hdf5_reader
  
    integer(accs_int) :: irank !> MPI rank ID
    integer(accs_int) :: isize !> Size of MPI world
-   integer(accs_int) :: i, j, k , ierror 
+   integer(accs_int) :: i, j, k, ierror 
    integer(accs_int) :: local_start
    integer(accs_int) :: local_end
-   integer(accs_int) :: int_attr
+   integer(kind=8) :: long_int_attr
 
    integer(accs_int), parameter :: num_cells = 10
 
@@ -45,9 +45,13 @@ program test_hdf5_reader
  
    call open_file(test_file, "read", test_reader)
  
-   ! Test reading integer attribute
-   call read_scalar(test_reader, "adios2_schema/mesh/dimension0", int_attr)
- 
+   ! Test reading long integer attribute
+   call read_scalar(test_reader, "adios2_schema/mesh/dimension0", long_int_attr)
+   if(long_int_attr /= 10) then
+    write(message,*) "FAIL: the adios2_schema/mesh/dimension0 attribute should be 10, not ", long_int_attr
+    call stop_test(message)
+  end if   
+
    ! Array to store cell range assigned to each process      
    allocate(dist(isize+1))
  
@@ -67,9 +71,9 @@ program test_hdf5_reader
    ! First and last cell index assigned to this process
    local_start = dist(irank + 1)
    local_end = dist(irank + 2) - 1
- 
+
    ! Starting point for reading chunk of data
-   sel_start = (/ dist(irank + 1) - 1 /)
+   sel_start = (/ dist(irank + 1) - 1/)
    ! How many data points will be read?
    sel_count = (/ dist(irank + 2) - dist(irank + 1)/)
  
@@ -82,7 +86,7 @@ program test_hdf5_reader
    call read_array(test_reader, "h5Ints", sel_start , sel_count, int_var)
 
    loc_sum_int = 0
-   do i = 1, local_end
+   do i = 1, sel_count(1)
       loc_sum_int = loc_sum_int + int_var(i)
    end do
 
