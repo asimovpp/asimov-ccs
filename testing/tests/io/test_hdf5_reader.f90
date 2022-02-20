@@ -86,7 +86,7 @@ program test_hdf5_reader
    call read_array(test_reader, "h5Ints", sel_start , sel_count, int_var)
 
    loc_sum_int = 0
-   do i = 1, sel_count(1)
+   do i = 1, int(sel_count(1))
       loc_sum_int = loc_sum_int + int_var(i)
    end do
 
