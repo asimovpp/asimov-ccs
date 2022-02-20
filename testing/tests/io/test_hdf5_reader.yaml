@@ -1,5 +1,5 @@
 # RUN: %build_test %s %t1
-# RUN: %mpirun -n 1 %t1
+# RUN: %mpirun -n 2 %t1
 
 main: test_hdf5_reader
 base: mpi
