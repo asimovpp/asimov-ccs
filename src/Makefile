@@ -62,7 +62,9 @@ FFLAGS += -DACCS_PETSC
 INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
-LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp
+LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
+INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
+LIB += $(shell $(ADIOS2)/bin/adios2-config --fortran-libs)
 
 # file containing Makefile commands particular to proprietary code
 ifeq ($(CCS_PROPRIETARY),yes)

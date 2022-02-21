@@ -12,8 +12,8 @@ contains
 
   module procedure set_cell_location
     ! XXX: Potentially expensive...
-    if (cell_idx > size(geometry%idx_global)) then
-      print *, "ERROR: trying to access cell I don't own!", cell_idx, geometry%nlocal
+    if (cell_idx > geometry%ntotal) then
+      print *, "ERROR: trying to access cell I don't have access to!", cell_idx, geometry%nlocal
       stop
     else
       cell_location%mesh => geometry

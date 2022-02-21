@@ -78,7 +78,9 @@ module types
   !> @brief Mesh type
   type, public :: mesh
     integer(accs_int) :: nglobal !> Global mesh size
-    integer(accs_int) :: nlocal !> Local mesh size
+    integer(accs_int) :: nlocal  !> Local mesh size
+    integer(accs_int) :: nhalo   !> How many cells in my halo?
+    integer(accs_int) :: ntotal  !> How many cells do I interact with (nlocal + nhalo)?
     integer(accs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
     integer(accs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
     integer(accs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
@@ -118,6 +120,14 @@ module types
     integer(accs_int) :: cell_neighbour_ctr
   end type neighbour_locator
   
+  !> @brief IO environment type
+  type, public :: io_environment
+  end type io_environment
+
+  !> @brief Process that will perform file IO
+  type, public :: io_process
+  end type io_process
+
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
     type(matrix_init_data), intent(inout) :: mat
