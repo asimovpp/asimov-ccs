@@ -12,11 +12,11 @@ program test_compute_fluxes
                 set_global_size, pack_entries, set_values, axpy, norm
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-  use BC_constants
+  use bc_constants
 
 
   type(mesh) :: square_mesh
-  type(BC_config) :: BCs
+  type(bc_config) :: bcs
   class(field), allocatable :: u, v
   integer(accs_int), parameter :: cps = 5
   integer(accs_int) :: direction, discretisation
@@ -25,17 +25,17 @@ program test_compute_fluxes
 
   square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
 
-  BCs%region(1) = BC_region_left
-  BCs%region(2) = BC_region_right
-  BCs%region(3) = BC_region_top
-  BCs%region(4) = BC_region_bottom
-  BCs%BC_type(:) = BC_type_dirichlet
-  BCs%endpoints(:,:) = 1.0_accs_real
+  bcs%region(1) = bc_region_left
+  bcs%region(2) = bc_region_right
+  bcs%region(3) = bc_region_top
+  bcs%region(4) = bc_region_bottom
+  bcs%bc_type(:) = bc_type_dirichlet
+  bcs%endpoints(:,:) = 1.0_accs_real
 
   do direction = 1, 2
     do discretisation = 1, 2
       call set_velocity_fields(direction, cps, discretisation, u, v)
-      call run_compute_fluxes_test(u, v, BCs, square_mesh, cps, direction, discretisation)
+      call run_compute_fluxes_test(u, v, bcs, square_mesh, cps, direction, discretisation)
       call tidy_velocity_fields(u, v)
     end do
   end do
@@ -84,8 +84,6 @@ program test_compute_fluxes
   subroutine tidy_velocity_fields(u, v)
     class(field), allocatable :: u, v
 
-    deallocate(u%val)
-    deallocate(v%val)
     deallocate(u)
     deallocate(v)
   end subroutine tidy_velocity_fields
@@ -93,14 +91,14 @@ program test_compute_fluxes
   !> @brief Compares the matrix computed for a given velocity field and discretisation to the known solution
   !
   !> @param[in] u, v           - The velocity fields
-  !> @param[in] BCs            - The BC structure
+  !> @param[in] bcs            - The BC structure
   !> @param[in] cell_mesh      - The mesh structure
   !> @param[in] cps            - The number of cells per side in the (square) mesh 
   !> @param[in] flow_direction - Integer indicating the direction of the flow 
   !> @param[in] discretisation - Integer indicating the discretisation scheme being tested 
-  subroutine run_compute_fluxes_test(u, v, BCs, cell_mesh, cps, flow_direction, discretisation)
+  subroutine run_compute_fluxes_test(u, v, bcs, cell_mesh, cps, flow_direction, discretisation)
     class(field), intent(in) :: u, v
-    class(BC_config), intent(in) :: BCs
+    class(bc_config), intent(in) :: bcs
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: cps
     integer(accs_int), intent(in) :: flow_direction
@@ -122,7 +120,7 @@ program test_compute_fluxes
     call create_matrix(mat_sizes, M_exact)
     call create_vector(vec_sizes, b_exact)
 
-    call compute_fluxes(u, v, cell_mesh, BCs, cps, M, b)
+    call compute_fluxes(u, v, cell_mesh, bcs, cps, M, b)
 
     call update(M)
     call update(b)
