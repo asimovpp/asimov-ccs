@@ -32,7 +32,7 @@ program tgv
   class(io_environment), allocatable :: io_env
   class(io_process), allocatable :: geo_reader
 
-  real, dimension(:,:), allocatable :: xyz_coords
+  real(accs_real), dimension(:,:), allocatable :: xyz_coords
   integer(accs_int), dimension(:), allocatable :: vtxdist
   integer(kind=8), dimension(2) :: xyz_sel_start
   integer(kind=8), dimension(2) :: xyz_sel_count
