@@ -9,10 +9,10 @@ module utils
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
                   initialise_vector, set_global_vector_size, set_local_vector_size,         &
-                  pack_one_vector_element, vec_axpy, vec_norm
+                  pack_one_vector_element
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
-                  pack_one_matrix_coefficient, mat_axpy, mat_norm
+                  pack_one_matrix_coefficient
   use solver, only: initialise_linear_system
   use types, only : vector, matrix
   
@@ -29,8 +29,6 @@ module utils
   public :: initialise
   public :: set_global_size
   public :: set_local_size
-  public :: axpy
-  public :: norm
 
   public :: accs_init
   public :: accs_finalise
@@ -94,18 +92,6 @@ module utils
     module procedure pack_one_vector_element
     module procedure pack_one_matrix_coefficient
   end interface pack_entries
-  
-  !> @brief Generic interface to perform the AXPY operation (a*x + y)
-  interface axpy
-    module procedure vec_axpy
-    module procedure mat_axpy
-  end interface axpy
-  
-  !> @brief Generic interface to compute the norm of an element
-  interface norm
-    module procedure vec_norm
-    module procedure mat_norm
-  end interface norm
   
 contains
 
