@@ -128,11 +128,11 @@ module types
     integer(accs_int) :: cell_neighbour_ctr
   end type neighbour_locator
 
-  type, public :: BC_config
+  type, public :: bc_config
     integer(accs_int), dimension(4) :: region
-    integer(accs_int), dimension(4) :: BC_type
+    integer(accs_int), dimension(4) :: bc_type
     real(accs_real), dimension(4, 2) :: endpoints
-  end type BC_config
+  end type bc_config
   
   !> @brief IO environment type
   type, public :: io_environment

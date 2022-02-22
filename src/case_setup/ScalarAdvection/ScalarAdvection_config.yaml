@@ -1,5 +1,5 @@
 ---
-title: BC_config
+title: scalar_advection_poisson
 
 reference_numbers:
     pressure: 101325.0

@@ -8,7 +8,7 @@ program scalar_advection
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
                     linear_system, linear_solver, mesh, set_global_matrix_size, &
-                    field, upwind_field, central_field, BC_config
+                    field, upwind_field, central_field, bc_config
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system
@@ -21,7 +21,7 @@ program scalar_advection
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments
   use fv, only : compute_fluxes
-  use BC, only : read_BC_config
+  use boundary_conditions, only : read_bc_config
 
   implicit none
 
@@ -35,7 +35,7 @@ program scalar_advection
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: scalar_linear_system
   type(mesh) :: square_mesh
-  type(BC_config) :: BCs
+  type(bc_config) :: bcs
 
   class(field), allocatable :: u, v          ! Prescribed x, y velocity fields
 
@@ -48,45 +48,45 @@ program scalar_advection
   call read_command_line_arguments(par_env)
   call timer(start_time)
 
-  ! Read BC configuration
-  call read_BC_config("./case_setup/ScalarAdvection/BC_config.yaml", BCs)
+  ! Read bc configuration
+  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
 
   ! Init ICs (velocities, BC scalar, mesh, etc)
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
   call initialise_scalar_advection(par_env, u, v)
 
-  !! Initialise with default values
+  ! Initialise with default values
   call initialise(mat_sizes)
   call initialise(vec_sizes)
   call initialise(scalar_linear_system)
 
-  !! Create stiffness matrix
+  ! Create stiffness matrix
   call set_global_size(mat_sizes, square_mesh%nglobal, square_mesh%nglobal, par_env)
   call set_nnz(mat_sizes, 5) 
   call create_matrix(mat_sizes, M)
 
-  !! Create right-hand-side and solution vectors
+  ! Create right-hand-side and solution vectors
   call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(u, v, square_mesh, BCs, cps, M, source)
+  call compute_fluxes(u, v, square_mesh, bcs, cps, M, source)
 
   call begin_update(M) ! Start the parallel assembly for M
+  call end_update(M) ! Complete the parallel assembly for M
 
   call begin_update(source) ! Start the parallel assembly for source
-  call end_update(M) ! Complete the parallel assembly for M
   call end_update(source) ! Complete the parallel assembly for source
 
-  !! Create linear solver & set options
+  ! Create linear solver & set options
   call set_linear_system(scalar_linear_system, source, scalar, M, par_env)
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
   
-  !! Clean up
+  ! Clean up
   deallocate(scalar)
   deallocate(source)
   deallocate(solution)

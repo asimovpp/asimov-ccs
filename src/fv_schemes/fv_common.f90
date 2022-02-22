@@ -19,12 +19,12 @@ contains
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] mat   - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(u, v, cell_mesh, BCs, cps, M, vec)
+  module subroutine compute_fluxes(u, v, cell_mesh, bcs, cps, M, vec)
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
-    type(BC_config), intent(in) :: BCs
+    type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
-    class(matrix), intent(inout), allocatable :: M   
+    class(matrix), allocatable, intent(inout) :: M   
     class(vector), intent(inout) :: vec   
 
     integer(accs_int) :: n_int_cells
@@ -34,7 +34,7 @@ contains
     call compute_interior_coeffs(u, v, cell_mesh, n_int_cells, cps, M)
 
     ! Loop over boundaries
-    call compute_boundary_coeffs(u, v, cell_mesh, BCs, cps, M, vec)
+    call compute_boundary_coeffs(u, v, cell_mesh, bcs, cps, M, vec)
 
   end subroutine compute_fluxes
 
@@ -145,25 +145,36 @@ contains
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
   end subroutine compute_interior_coeffs
 
-  subroutine compute_boundary_values(ngb_index, row, col, cps, BCs, BC_value)
+  !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
+  !  values provided on box corners
+  !
+  !> @param[in] ngb_index - index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
+  !> @param[in] row       - global row of cell within square mesh
+  !> @param[in] col       - global column of cell within square mesh
+  !> @param[in] cps       - number of cells per side in square mesh
+  !> @param[in] bcs       - BC configuration data structure
+  !> @param[out] bc_value - the value of the scalar field at the specified boundary
+  subroutine compute_boundary_values(ngb_index, row, col, cps, bcs, bc_value)
     integer, intent(in) :: ngb_index  ! This is the index wrt the CV, not the ngb's cell index (i.e. range 1-4 for a square mesh)
     integer, intent(in) :: row
     integer, intent(in) :: col
     integer, intent(in) :: cps
-    type(BC_config), intent(in) :: BCs
-    real(accs_real), intent(out) :: BC_value
+    type(bc_config), intent(in) :: bcs
+    real(accs_real), intent(out) :: bc_value
+    real(accs_real) :: row_cps, col_cps
 
-    BC_value = 0.0_accs_real
-    if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
-        (BCs%region(ngb_index) == BC_region_left .or. &
-        BCs%region(ngb_index) == BC_region_right)) then
-      BC_value = -((1.0_accs_real - real(row, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
-                 real(row, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2))
-    else if (BCs%BC_type(ngb_index) == BC_type_dirichlet .and. &
-             (BCs%region(ngb_index) == BC_region_top .or. &
-             BCs%region(ngb_index) == BC_region_bottom)) then
-      BC_value = -((1.0_accs_real - real(col, accs_real)/real(cps, accs_real)) * BCs%endpoints(ngb_index, 1) + &
-                 real(col, accs_real)/real(cps, accs_real) * BCs%endpoints(ngb_index, 2))
+    row_cps = real(row, accs_real)/real(cps, accs_real)
+    col_cps = real(col, accs_real)/real(cps, accs_real)
+
+    bc_value = 0.0_accs_real
+    if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
+       (bcs%region(ngb_index) == bc_region_left .or. &
+       bcs%region(ngb_index) == bc_region_right)) then
+      bc_value = -((1.0_accs_real - row_cps) * bcs%endpoints(ngb_index, 1) + row_cps * bcs%endpoints(ngb_index, 2))
+    else if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
+            (bcs%region(ngb_index) == bc_region_top .or. &
+            bcs%region(ngb_index) == bc_region_bottom)) then
+      bc_value = -((1.0_accs_real - col_cps) * bcs%endpoints(ngb_index, 1) + col_cps * bcs%endpoints(ngb_index, 2))
     end if
   end subroutine compute_boundary_values
 
@@ -174,17 +185,17 @@ contains
   !> @param[in] cps         - number of cells per side
   !> @param[in,out] M       - Matrix structure being assigned
   !> @param[in,out] b       - vector structure being assigned
-  subroutine compute_boundary_coeffs(u, v, cell_mesh, BCs, cps, M, b)
+  subroutine compute_boundary_coeffs(u, v, cell_mesh, bcs, cps, M, b)
     use constants, only : insert_mode, add_mode, ndim
     use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
     use meshing, only: get_global_index, count_neighbours, get_boundary_status, &
                        set_cell_location, set_face_location, set_neighbour_location
-    use BC_constants
+    use bc_constants
 
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
-    type(BC_config), intent(in) :: BCs
+    type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
@@ -202,7 +213,7 @@ contains
     real(accs_real) :: face_area
     real(accs_real) :: diff_coeff
     real(accs_real) :: adv_coeff
-    real(accs_real) :: BC_value
+    real(accs_real) :: bc_value
     real(accs_real) :: n_value, w_value
     logical :: is_boundary
 
@@ -233,7 +244,7 @@ contains
 
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
-        if (is_boundary .and. BCs%BC_type(j) .ne. BC_type_const_grad) then
+        if (is_boundary .and. bcs%bc_type(j) .ne. bc_type_const_grad) then
           select type(u)
           type is(central_field)
             select type(v)
@@ -257,8 +268,8 @@ contains
           end select
 
           call calc_cell_coords(self_idx, cps, row, col)
-          call compute_boundary_values(j, row, col, cps, BCs, BC_value)
-          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*BC_value)
+          call compute_boundary_values(j, row, col, cps, bcs, bc_value)
+          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*bc_value)
           call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
@@ -297,20 +308,20 @@ contains
   !> @param[in] u, v               - Field structures containing x, y velocities
   !> @param[in] ngb_row, ngb_col   - Row and column of given neighbour in mesh
   !> @param[in] self_row, self_col - Row and column of given cell in mesh
-  !> @param[in] BC_flag            - Flag to indicate if neighbour is a boundary cell
+  !> @param[in] bc_flag            - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux              - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, BC_flag) result(flux)
+  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, bc_flag) result(flux)
     class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_row, ngb_col
     integer(accs_int), intent(in) :: self_row, self_col
     real(accs_real), intent(in) :: face_area
-    integer(accs_int), intent(in) :: BC_flag
+    integer(accs_int), intent(in) :: bc_flag
 
     real(accs_real) :: flux
 
     flux = 0.0_accs_real
 
-    if (BC_flag == 0) then
+    if (bc_flag == 0) then
       if (ngb_col - self_col == 1) then
         flux = 0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
       else if (ngb_col - self_col == -1) then
@@ -320,9 +331,9 @@ contains
       else 
         flux = -0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
       end if
-    else if (BC_flag == -1 .or. BC_flag == -2) then
+    else if (bc_flag == -1 .or. bc_flag == -2) then
       flux = u%val(self_col, self_row) * face_area
-    else if (BC_flag == -3 .or. BC_flag == -4) then
+    else if (bc_flag == -3 .or. bc_flag == -4) then
       flux = v%val(self_col, self_row) * face_area
     else
       print *, 'invalid BC flag'
