@@ -21,6 +21,8 @@ program test_compute_fluxes
   class(field), allocatable :: u, v
   integer(accs_int), parameter :: cps = 5
   integer(accs_int) :: direction, discretisation
+  integer, parameter :: x_dir = 1, y_dir = 2
+  integer, parameter :: central = -1, upwind = -2
 
   call init()
 
@@ -33,8 +35,8 @@ program test_compute_fluxes
   bcs%bc_type(:) = bc_type_dirichlet
   bcs%endpoints(:,:) = 1.0_accs_real
 
-  do direction = 1, 2
-    do discretisation = 1, 2
+  do direction = x_dir, y_dir
+    do discretisation = upwind, central
       call set_velocity_fields(direction, cps, discretisation, u, v)
       call run_compute_fluxes_test(u, v, bcs, square_mesh, cps, direction, discretisation)
       call tidy_velocity_fields(u, v)
@@ -57,10 +59,10 @@ program test_compute_fluxes
     integer(accs_int), intent(in) :: discretisation
     class(field), intent(inout), allocatable :: u, v
 
-    if (discretisation == 1) then
+    if (discretisation == central) then
       allocate(central_field :: u)
       allocate(central_field :: v)
-    else if (discretisation == 2) then
+    else if (discretisation == upwind) then
       allocate(upwind_field :: u)
       allocate(upwind_field :: v)
     else
@@ -202,7 +204,7 @@ program test_compute_fluxes
     end if
 
     ! Advection coefficients first
-    if (flow == 1 .and. discretisation == 1) then
+    if (flow == x_dir .and. discretisation == central) then
       ! CDS and flow along +x direction
       do i = 1, cell_mesh%nglobal
         mat_counter = 1
@@ -224,7 +226,7 @@ program test_compute_fluxes
         end if
         call set_values(mat_coeffs, M)
       end do
-    else if (flow == 2 .and. discretisation == 1) then
+    else if (flow == y_dir .and. discretisation == central) then
       ! CDS and flow along +y direction
       do i = 1, cell_mesh%nglobal
         mat_counter = 1
@@ -246,7 +248,7 @@ program test_compute_fluxes
         end if
         call set_values(mat_coeffs, M)
       end do
-    else if (flow == 1 .and. discretisation == 2) then
+    else if (flow == x_dir .and. discretisation == upwind) then
       ! UDS and flow along +x direction
       do i = 1, cell_mesh%nglobal
         mat_counter = 1
@@ -258,7 +260,7 @@ program test_compute_fluxes
           call set_values(mat_coeffs, M)
         end if
       end do
-    else if (flow == 2 .and. discretisation == 2) then
+    else if (flow == y_dir .and. discretisation == upwind) then
       ! UDS and flow along +y direction
       do i = cps+1, cell_mesh%nglobal
         mat_counter = 1
@@ -320,13 +322,13 @@ program test_compute_fluxes
     allocate(vec_coeffs%val(2*cell_mesh%nglobal/cps))
 
     vec_counter = 1
-    if (discretisation == 1) then
+    if (discretisation == central) then
       adv_coeff = -0.2_accs_real
     else
       adv_coeff = 0.0_accs_real
     endif 
 
-    if (flow == 1) then
+    if (flow == x_dir) then
       do i = 1, cps
         call pack_entries(vec_coeffs, vec_counter, (i-1)*cps + 1, adv_coeff*proc_zero_factor) 
         vec_counter = vec_counter + 1
