@@ -26,7 +26,7 @@ program scalar_advection
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  class(vector), allocatable, target :: scalar, source
+  class(vector), allocatable, target :: source
   class(vector), allocatable :: solution
   class(matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
@@ -38,6 +38,7 @@ program scalar_advection
   type(bc_config) :: bcs
 
   class(field), allocatable :: u, v          ! Prescribed x, y velocity fields
+  class(field), allocatable :: scalar
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
 
@@ -56,6 +57,9 @@ program scalar_advection
   allocate(upwind_field :: v)
   call initialise_scalar_advection(par_env, u, v)
 
+  ! Init scalar field
+  allocate(upwind_field :: scalar)
+
   ! Initialise with default values
   call initialise(mat_sizes)
   call initialise(vec_sizes)
@@ -70,7 +74,7 @@ program scalar_advection
   call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
-  call create_vector(vec_sizes, scalar)
+  call create_vector(vec_sizes, scalar%vec)
 
   ! Actually compute the values to fill the matrix
   call compute_fluxes(u, v, square_mesh, bcs, cps, M, source)
@@ -80,7 +84,7 @@ program scalar_advection
   call update(source) ! parallel assembly for source
 
   ! Create linear solver & set options
-  call set_linear_system(scalar_linear_system, source, scalar, M, par_env)
+  call set_linear_system(scalar_linear_system, source, scalar%vec, M, par_env)
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
   
