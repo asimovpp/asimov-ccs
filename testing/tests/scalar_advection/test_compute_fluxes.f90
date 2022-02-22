@@ -9,9 +9,10 @@ program test_compute_fluxes
   use mesh_utils, only : build_square_mesh
   use fv, only: compute_fluxes, calc_cell_coords
   use utils, only : update, initialise, &
-                set_global_size, pack_entries, set_values, axpy, norm
+                set_global_size, pack_entries, set_values
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
+  use solver, only : axpy, norm
   use bc_constants
 
 
