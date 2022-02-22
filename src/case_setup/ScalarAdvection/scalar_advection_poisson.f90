@@ -75,11 +75,9 @@ program scalar_advection
   ! Actually compute the values to fill the matrix
   call compute_fluxes(u, v, square_mesh, bcs, cps, M, source)
 
-  call begin_update(M) ! Start the parallel assembly for M
-  call end_update(M) ! Complete the parallel assembly for M
+  call update(M) ! parallel assembly for M
 
-  call begin_update(source) ! Start the parallel assembly for source
-  call end_update(source) ! Complete the parallel assembly for source
+  call update(source) ! parallel assembly for source
 
   ! Create linear solver & set options
   call set_linear_system(scalar_linear_system, source, scalar, M, par_env)
