@@ -177,13 +177,13 @@ program test_advection_coeff
         
     select type(u)
       type is(upwind_field)
-        if (abs(coeff - expected_coeff) .ge. tiny(coeff)) then
+        if (abs(coeff - expected_coeff) .ge. eps) then
           write(message, *) "FAIL: incorrect upwind advection coefficient computed. Expected ", expected_coeff, " computed ", &
                             coeff, " normal ", normal, " u ", u%val(col, row), " v ", v%val(col, row)
           call stop_test(message)
         end if
       type is(central_field)
-        if (abs(coeff - expected_coeff) .ge. tiny(coeff)) then
+        if (abs(coeff - expected_coeff) .ge. eps) then
           write(message, *) "FAIL: incorrect central advection coefficient computed. Expected ", expected_coeff, " computed ", &
                             coeff, " normal ", normal, " u ", u%val(col, row), " v ", v%val(col, row)
           call stop_test(message)

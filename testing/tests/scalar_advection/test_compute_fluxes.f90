@@ -136,7 +136,7 @@ program test_compute_fluxes
     call axpy(-1.0_accs_real, M_exact, M)
     error = norm(M, 1)
 
-    if (error .ge. 1.0e-16) then
+    if (error .ge. eps) then
       write(message, *) 'FAIL: matrix difference norm too large ', error
       call stop_test(message)
     end if
@@ -144,7 +144,7 @@ program test_compute_fluxes
     call axpy(-1.0_accs_real, b_exact, b)
     error = norm(b, 2)
 
-    if (error .ge. 1.0e-16) then
+    if (error .ge. eps) then
       write(message, *) 'FAIL: vector difference norm too large ', error
       call stop_test(message)
     end if
