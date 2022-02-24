@@ -10,10 +10,12 @@ submodule (pv_coupling) pv_coupling_simple
 
   contains
 
-  module subroutine solve_nonlinear(u, v, p)
+  module subroutine solve_nonlinear(u, v, p, M, solution, source)
 
     ! Arguments
-    type(field), intent(inout) :: u, v, p
+    class(field), intent(inout) :: u, v, p
+    class(matrix), intent(inout) :: M
+    class(vector), intent(inout) :: solution, source
 
 
     ! Local variables
@@ -38,22 +40,27 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine
 
-  subroutine calculate_momentum(u, v)
+  subroutine calculate_momentum(u, v, cell_mesh, bcs, cps, M, vec)
 
     ! Arguments
-    type(field), intent(inout) :: u, v
+    type(field), intent(inout)    :: u, v
+    type(mesh), intent(in)        :: cell_mesh
+    type(bc_config), intent(in)   :: bcs
+    integer(accs_int), intent(in) :: cps
+    class(matrix), intent(inout)  :: M
+    class(vector), intent(inout)  :: vec
 
     ! Local variables
     
     ! Calculate fluxes
-    call compute_fluxes(u, v, square_mesh, bcs, cps, M, source)
+    call compute_fluxes(u, v, cell_mesh, bcs, cps, M, vec)
 
     ! Assembly of coefficient matrix and source vector
     call update(M)
-    call update(source)
+    call update(vec)
 
     ! Create linear solver
-    call set_linear_system(scalar_linear_system, source, scalar, M, par_env)
+    call set_linear_system(scalar_linear_system, vec, scalar, M, par_env)
     call create_solver(scalar_linear_system, scalar_solver)
 
     ! Solve the linear system

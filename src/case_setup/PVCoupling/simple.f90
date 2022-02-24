@@ -58,7 +58,7 @@ program simple
   call create_vector(vec_sizes, solution)
 
   ! Solve using SIMPLE algorithm
-  call solve_nonlinear(u, v, p)
+  call solve_nonlinear(u, v, p, M, solution, source)
 
   ! Clean-up
   deallocate(source)
