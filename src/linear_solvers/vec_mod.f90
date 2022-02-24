@@ -24,6 +24,8 @@ module vec
   public :: initialise_vector
   public :: set_global_vector_size
   public :: set_local_vector_size
+  public :: get_vector_data
+  public :: reset_vector_data
 
   interface
      
@@ -147,6 +149,24 @@ module vec
       integer(accs_int), intent(in) :: size
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
+
+    !> @brief Gets the data in a given vector
+    !
+    !> @param[in] vec   - the vector to get data from
+    !> @param[in] array - an array to store the data in
+    module subroutine get_vector_data(vec, array)
+      class(vector), intent(in) :: vec
+      real(accs_real), dimension(:), intent(out) :: array
+    end subroutine get_vector_data
+
+    !> @brief Resets the vector data if required for further processing
+    !
+    !> @param[in] vec   - the vector to reset
+    !> @param[in] array - an array storing the data
+    module subroutine reset_vector_data(vec, array)
+      class(vector), intent(in) :: vec
+      real(accs_real), dimension(:), intent(in) :: array
+    end subroutine reset_vector_data
 
     end interface
   

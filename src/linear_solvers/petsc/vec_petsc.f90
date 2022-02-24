@@ -275,4 +275,32 @@ contains
     
   end function
 
+  !> @brief Gets the data in a given vector
+  !
+  !> @param[in] vec   - the vector to get data from
+  !> @param[in] array - an array to store the data in
+  module subroutine get_vector_data(vec, array)
+    use petscvec!, only: VecGetArray
+    class(vector), intent(in) :: vec
+    real(accs_real), dimension(:), intent(out) :: array
+    integer :: offset
+    integer :: ierr
+
+    call VecGetArray(vec, array, offset, ierr)
+  end subroutine get_vector_data
+
+  !> @brief Resets the vector data if required for further processing
+  !
+  !> @param[in] vec - the vector to reset
+  module subroutine reset_vector_data(vec, array)
+    use petscvec!, only: VecRestoreArray
+    class(vector), intent(in) :: vec
+    real(accs_real), dimension(:), intent(in) :: array
+    integer :: offset
+    integer :: ierr
+
+    call VecRestoreArray(vec, array, offset, ierr)
+  end subroutine reset_vector_data
+
+
 end submodule vec_petsc
