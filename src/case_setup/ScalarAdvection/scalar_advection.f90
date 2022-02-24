@@ -9,8 +9,7 @@ program scalar_advection
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
                     linear_system, linear_solver, mesh, set_global_matrix_size, &
                     field, upwind_field, central_field, bc_config
-  !use vec, only : create_vector
-  use vec, only : create_vector, vec_view
+  use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system, axpy, norm
   use utils, only : update, begin_update, end_update, finalise, initialise, &
@@ -93,8 +92,6 @@ program scalar_advection
   call set_linear_system(scalar_linear_system, source, scalar%vec, M, par_env)
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
-
-  call vec_view(scalar%vec)
   
   ! Clean up
   deallocate(scalar)

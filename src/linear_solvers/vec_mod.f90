@@ -26,7 +26,6 @@ module vec
   public :: set_local_vector_size
   public :: get_vector_data
   public :: reset_vector_data
-  public :: vec_view
 
   interface
      
@@ -168,10 +167,6 @@ module vec
       class(vector), intent(in) :: vec
       real(accs_real), dimension(:), intent(in) :: array
     end subroutine reset_vector_data
-
-    module subroutine vec_view(vec)
-      class(vector), intent(in) :: vec
-    end subroutine vec_view
 
     end interface
   
