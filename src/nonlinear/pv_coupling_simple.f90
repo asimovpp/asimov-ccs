@@ -10,19 +10,19 @@ submodule (pv_coupling) pv_coupling_simple
 
   contains
 
-  module subroutine solve_nonlinear(u, v, p, M, solution, source)
+  module subroutine solve_nonlinear(u, v, p, M, solution, source, cell_mesh)
 
     ! Arguments
     class(field), intent(inout) :: u, v, p
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: solution, source
-
+    type(mesh), intent(in) :: cell_mesh
 
     ! Local variables
     integer(accs_int) :: i
 
     outerloop: do i = it_start, it_end
-      call calculate_momentum(u, v)
+      call calculate_momentum(u, v, cell_mesh, bcs, cps, M, source)
 
       call calculate_pressure_correction()
 
