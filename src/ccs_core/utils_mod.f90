@@ -10,8 +10,7 @@ module utils
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
                   initialise_vector, set_global_vector_size, set_local_vector_size,         &
                   set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
-                  clear_vector_values_entries, &
-                  pack_one_vector_element
+                  clear_vector_values_entries
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
                   pack_one_matrix_coefficient
@@ -110,7 +109,6 @@ module utils
   !> @details Stores the entries and elements in an object for later setting, this ensures the
   !!          storage and values of indices in particular are set appropriately for each backend.
   interface pack_entries
-    module procedure pack_one_vector_element
     module procedure pack_one_matrix_coefficient
   end interface pack_entries
   

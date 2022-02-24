@@ -139,7 +139,8 @@ contains
 
     use constants, only : add_mode
     use types, only : vector_values
-    use utils, only : set_values, pack_entries
+    use utils, only : clear_entries, set_values, set_row, set_entry, set_mode
+    use vec, only : create_vector_values
     
     class(vector), intent(inout) :: b
 
@@ -152,17 +153,19 @@ contains
     real(accs_real), dimension(ndim) :: cc
     real(accs_real) :: V
     integer(accs_int) :: idxg
-    
-    val_dat%mode = add_mode
-    allocate(val_dat%idx(1))
-    allocate(val_dat%val(1))
+    integer(accs_int) :: nrows_working_set
 
+    nrows_working_set = 1_accs_int
+    call create_vector_values(nrows_working_set, val_dat)
+    call set_mode(add_mode, val_dat)
     associate(nloc => square_mesh%nlocal, &
          h => square_mesh%h)
       ! this is currently setting 1 vector value at a time
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
+        call clear_entries(val_dat)
+        
         call set_cell_location(cell_location, square_mesh, i)
         call get_centre(cell_location, cc)
         call get_volume(cell_location, V)
@@ -170,7 +173,9 @@ contains
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(val_dat, 1, idxg, r)
+
+          call set_row(idxg, val_dat)
+          call set_entry(r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
@@ -277,11 +282,12 @@ contains
   subroutine apply_dirichlet_bcs(M, b)
 
     use constants, only : add_mode
+    use kinds, only: accs_int, accs_real
     use mat, only : set_eqn
     use types, only : vector_values, matrix_values, matrix, vector, mesh
-    use utils, only : set_values, pack_entries
-    use kinds, only: accs_int, accs_real
-  
+    use utils, only : clear_entries, set_values, set_mode, set_row, set_entry, pack_entries
+    use vec, only : create_vector_values
+    
     implicit none
   
     class(matrix), intent(inout) :: M
@@ -305,18 +311,22 @@ contains
 
     integer(accs_int) :: nnb
     logical :: is_boundary
+
+    integer(accs_int) :: nrows_working_set
     
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
     allocate(mat_coeffs%val(1))
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-
     mat_coeffs%mode = add_mode
-    vec_values%mode = add_mode
 
+    nrows_working_set = 1_accs_int
+    call create_vector_values(nrows_working_set, vec_values)
+    call set_mode(add_mode, vec_values)
     do i = 1, square_mesh%nlocal
+      
       if (minval(square_mesh%nbidx(:, i)) < 0) then
+        call clear_entries(vec_values)
+        
         call set_cell_location(cell_location, square_mesh, i)
         call get_global_index(cell_location, idxg)
         coeff = 0.0_accs_real 
@@ -348,7 +358,9 @@ contains
         end do
 
         call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
-        call pack_entries(vec_values, 1, idx, r)
+
+        call set_row(row, vec_values)
+        call set_entry(r, vec_values)
 
         call set_values(mat_coeffs, M)
         call set_values(vec_values, b)
@@ -365,7 +377,8 @@ contains
 
     use constants, only : insert_mode
     use types, only : vector_values
-    use utils, only : set_values, pack_entries
+    use utils, only : set_values, set_mode, set_row, set_entry, clear_entries
+    use vec, only : create_vector_values
     
     class(vector), intent(inout) :: ustar
 
@@ -374,14 +387,20 @@ contains
 
     type(cell_locator) :: cell_location
     integer(accs_int) :: idxg
+    integer(accs_int) :: nrows_working_set
+
+    nrows_working_set = 1_accs_int
+    call create_vector_values(nrows_working_set, vec_values)
+    call set_mode(insert_mode, vec_values)
     
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-    vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
+      call clear_entries(vec_values)
+      
       call set_cell_location(cell_location, square_mesh, i)
       call get_global_index(cell_location, idxg)
-      call pack_entries(vec_values, 1, idxg, rhs_val(i))
+
+      call set_row(idxg, vec_values)
+      call set_entry(rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%idx)
