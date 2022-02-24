@@ -28,6 +28,8 @@ module mesh_utils
   
   private
   public :: build_square_mesh
+  public :: global_start
+  public :: local_count
   
 contains
 
@@ -71,23 +73,12 @@ contains
         associate(nglobal=>square_mesh%nglobal, &
                   h=>square_mesh%h)
           
-          ! Determine ownership range (based on PETSc ex3.c)
+          ! Determine ownership range
           comm_rank = par_env%proc_id
           comm_size = par_env%num_procs
-          istart = comm_rank * (nglobal / comm_size)
-          if (modulo(nglobal, comm_size) < comm_rank) then
-            istart = istart + modulo(nglobal, comm_size)
-          else
-            istart = istart + comm_rank
-          end if
-          iend = istart + nglobal / comm_size
-          if (modulo(nglobal, comm_size) > comm_rank) then
-            iend = iend + 1_accs_int
-          end if
-
-          ! Fix indexing and determine size of local partition
-          istart = istart + 1_accs_int
-          square_mesh%nlocal = (iend - (istart - 1_accs_int))
+          istart = global_start(nglobal, par_env%proc_id, par_env%num_procs)
+          square_mesh%nlocal = local_count(nglobal, par_env%proc_id, par_env%num_procs)
+          iend = istart + (square_mesh%nlocal - 1)
 
           ! Allocate mesh arrays
           allocate(square_mesh%idx_global(square_mesh%nlocal))
@@ -309,5 +300,39 @@ contains
     deallocate(tmp)
     
   end subroutine append_to_arr
+  
+  integer function global_start(n, procid, nproc)
+
+    integer(accs_int), intent(in) :: n
+    integer(accs_int), intent(in) :: procid
+    integer(accs_int), intent(in) :: nproc
+
+    !! Each PE gets an equal split of the problem with any remainder split equally between the lower
+    !! PEs.
+    global_start = procid * (n / nproc) + min(procid, modulo(n, nproc))
+
+    !! Fortran indexing
+    global_start = global_start + 1
+    
+  end function global_start
+
+  integer function local_count(n, procid, nproc)
+
+    integer(accs_int), intent(in) :: n
+    integer(accs_int), intent(in) :: procid
+    integer(accs_int), intent(in) :: nproc
+
+    if (procid < n) then
+      local_count = global_start(n, procid, nproc)
+      if (procid < (nproc - 1)) then
+        local_count = global_start(n, procid + 1, nproc) - local_count
+      else
+        local_count = n - (local_count - 1)
+      end if
+    else
+      local_count = 0
+    end if
+    
+  end function local_count
   
 end module mesh_utils

@@ -8,6 +8,7 @@ program test_vec_set_entries
 
   use kinds
   use types, only : vector
+  use mesh_utils, only : global_start, local_count
   
   implicit none
 
@@ -114,39 +115,5 @@ contains
     deallocate(v)
     
   end subroutine clean_vector
-  
-  integer function global_start(n, procid, nproc)
-
-    integer(accs_int), intent(in) :: n
-    integer(accs_int), intent(in) :: procid
-    integer(accs_int), intent(in) :: nproc
-
-    !! Each PE gets an equal split of the problem with any remainder split equally between the lower
-    !! PEs.
-    global_start = procid * (n / nproc) + min(procid, modulo(n, nproc))
-
-    !! Fortran indexing
-    global_start = global_start + 1
-    
-  end function global_start
-
-  integer function local_count(n, procid, nproc)
-
-    integer(accs_int), intent(in) :: n
-    integer(accs_int), intent(in) :: procid
-    integer(accs_int), intent(in) :: nproc
-
-    if (procid < n) then
-      local_count = global_start(n, procid, nproc)
-      if (procid < (nproc - 1)) then
-        local_count = global_start(n, procid + 1, nproc) - local_count
-      else
-        local_count = n - (local_count - 1)
-      end if
-    else
-      local_count = 0
-    end if
-    
-  end function local_count
   
 end program test_vec_set_entries
