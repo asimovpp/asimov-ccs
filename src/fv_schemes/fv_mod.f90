@@ -34,11 +34,12 @@ module fv
   !> @param[in] cps - number of cells per side
   !> @param[in] u, v - velocity fields in x, y directions
   !> @param[in] bc - flag to indicate boundary
-  module subroutine calc_advection_coeff_cds(ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+    type(central_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
     integer(accs_int), intent(in) :: cps
-    type(central_field), intent(in) :: u, v
+    real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
   end subroutine calc_advection_coeff_cds
@@ -52,11 +53,12 @@ module fv
   !> @param[in] cps - number of cells per side
   !> @param[in] u, v - velocity fields in x, y directions
   !> @param[in] bc - flag to indicate boundary
-  module subroutine calc_advection_coeff_uds(ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+    type(upwind_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
     integer(accs_int), intent(in) :: cps
-    type(upwind_field), intent(in) :: u, v
+    real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
   end subroutine calc_advection_coeff_uds
@@ -80,7 +82,8 @@ module fv
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] mat   - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(u, v, cell_mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, u, v, cell_mesh, bcs, cps, M, vec)
+    class(field), intent(in) :: phi
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
@@ -97,11 +100,10 @@ module fv
   !> @param[in] ngb_row, ngb_col - row and column index of neighbouring cell
   !> @param[in] self_row, self_col - row and column index of cell
   !> @param[in] bc_flag - indicates whether a cell is on a boundary and which boundary it is.
-  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, &
-                  bc_flag, n_mesh) result(flux)
-    class(field), intent(in) :: u, v
-    integer(accs_int), intent(in) :: ngb_row, ngb_col
-    integer(accs_int), intent(in) :: self_row, self_col
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, bc_flag, n_mesh) result(flux)
+    real(accs_real), dimension(:), intent(in) :: u, v
+    integer(accs_int), intent(in) :: ngb_idx
+    integer(accs_int), intent(in) :: self_idx
     real(accs_real), intent(in) :: face_area
     integer(accs_int), intent(in) :: bc_flag
     integer(accs_int), intent(in) :: n_mesh

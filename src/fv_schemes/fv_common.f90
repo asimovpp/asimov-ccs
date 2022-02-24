@@ -19,7 +19,8 @@ contains
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] mat   - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(u, v, cell_mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, u, v, cell_mesh, bcs, cps, M, vec)
+    class(field), intent(in) :: phi
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
@@ -28,13 +29,30 @@ contains
     class(vector), intent(inout) :: vec   
 
     integer(accs_int) :: n_int_cells
+    integer :: ierr
+    real(accs_real), dimension(:), allocatable :: u_data, v_data
+
+    allocate(u_data(cell_mesh%nlocal))
+    allocate(v_data(cell_mesh%nlocal))
     
+    !call get_vector_data(u%vec, u_data)
+    !call get_vector_data(v%vec, v_data)
+    call VecGetArray(u%vec, u_data, 0, ierr)
+    call VecGetArray(v%vec, v_data, 0, ierr)
+    !print *, 'u v data first elements ', u_data(1), v_data(1)
+
     ! Loop over cells computing advection and diffusion fluxes
     n_int_cells = calc_matrix_nnz()
-    call compute_interior_coeffs(u, v, cell_mesh, n_int_cells, cps, M)
+    call compute_interior_coeffs(phi, u_data, v_data, cell_mesh, n_int_cells, cps, M)
 
     ! Loop over boundaries
-    call compute_boundary_coeffs(u, v, cell_mesh, bcs, cps, M, vec)
+    call compute_boundary_coeffs(phi, u_data, v_data, cell_mesh, bcs, cps, M, vec)
+    
+    call VecRestoreArray(u%vec, u_data, 0, ierr)
+    call VecRestoreArray(v%vec, v_data, 0, ierr)
+    !call reset_vector_data(u%vec, u_data)
+    !call reset_vector_data(v%vec, v_data)
+    deallocate(u_data, v_data)
 
   end subroutine compute_fluxes
 
@@ -56,14 +74,15 @@ contains
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in] cps         - number of cells per side
   !> @param[in,out] mat     - Matrix structure being assigned
-  subroutine compute_interior_coeffs(u, v, cell_mesh, n_int_cells, cps, M)
+  subroutine compute_interior_coeffs(phi, u, v, cell_mesh, n_int_cells, cps, M)
     use constants, only : add_mode
     use types, only: matrix_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
     use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
                        get_global_index, count_neighbours, get_boundary_status
 
-    class(field), intent(in) :: u, v
+    class(field), intent(in) :: phi
+    real(accs_real), dimension(:), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: n_int_cells
     integer(accs_int), intent(in) :: cps
@@ -106,26 +125,14 @@ contains
           call set_face_location(face_loc, cell_mesh, local_idx, j)
           call get_face_area(face_loc, face_area)
 
-          select type(u)
-          type is(central_field)
-            select type(v)
+          select type(phi)
             type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
-            class default
-              print *, 'invalid velocity field discretisation'
-              stop
-            end select
-          type is(upwind_field)
-            select type(v)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
-            end select
-          class default
-            print *, 'invalid velocity field discretisation'
-            stop
           end select
 
           call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
@@ -185,7 +192,7 @@ contains
   !> @param[in] cps         - number of cells per side
   !> @param[in,out] M       - Matrix structure being assigned
   !> @param[in,out] b       - vector structure being assigned
-  subroutine compute_boundary_coeffs(u, v, cell_mesh, bcs, cps, M, b)
+  subroutine compute_boundary_coeffs(phi, u, v, cell_mesh, bcs, cps, M, b)
     use constants, only : insert_mode, add_mode, ndim
     use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
@@ -193,7 +200,8 @@ contains
                        set_cell_location, set_face_location, set_neighbour_location
     use bc_constants
 
-    class(field), intent(in) :: u, v
+    class(field), intent(in) :: phi
+    real(accs_real), dimension(:), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
@@ -245,26 +253,14 @@ contains
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
         if (is_boundary .and. bcs%bc_type(j) .ne. bc_type_const_grad) then
-          select type(u)
-          type is(central_field)
-            select type(v)
+          select type(phi)
             type is(central_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
-            class default
-              print *, 'invalid velocity field discretisation'
-              stop
-            end select
-          type is(upwind_field)
-            select type(v)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
-            end select
-          class default
-            print *, 'invalid velocity field discretisation'
-            stop
           end select
 
           call calc_cell_coords(self_idx, cps, row, col)
@@ -299,7 +295,7 @@ contains
     call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
     call get_face_area(face_location, face_area)
 
-    coeff = -face_area*diffusion_factor/(0.5_accs_real * cell_mesh%h)
+    coeff = -face_area*diffusion_factor/cell_mesh%h
   end function calc_diffusion_coeff
 
   !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
@@ -310,75 +306,37 @@ contains
   !> @param[in] self_row, self_col - Row and column of given cell in mesh
   !> @param[in] bc_flag            - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux              - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, &
-                  bc_flag, n_mesh) result(flux)
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, bc_flag) result(flux)
     use vec, only: get_vector_data, reset_vector_data
     use petscvec
-    class(field), intent(in) :: u, v
-    integer(accs_int), intent(in) :: ngb_row, ngb_col
-    integer(accs_int), intent(in) :: self_row, self_col
+    real(accs_real), dimension(:), intent(in) :: u, v
+    integer(accs_int), intent(in) :: ngb_idx
+    integer(accs_int), intent(in) :: self_idx
     real(accs_real), intent(in) :: face_area
     integer(accs_int), intent(in) :: bc_flag
-    integer(accs_int), intent(in) :: n_mesh
 
     real(accs_real) :: flux
-    real(accs_real), dimension(:), allocatable :: u_data, v_data
-    integer :: ierr
 
     flux = 0.0_accs_real
-
-    allocate(u_data(n_mesh))
-    allocate(v_data(n_mesh))
-    
-    !call get_vector_data(u%vec, u_data)
-    !call get_vector_data(v%vec, v_data)
-    call VecGetArray(u%vec, u_data, 0, ierr)
-    call VecGetArray(v%vec, v_data, 0, ierr)
-    !print *, 'u v data first elements ', u_data(1), v_data(1)
-
-    !if (bc_flag == 0) then
-    !  if (ngb_col - self_col == 1) then
-    !    flux = 0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
-    !  else if (ngb_col - self_col == -1) then
-    !    flux = -0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
-    !  else if (ngb_row - self_row == 1) then
-    !    flux = 0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
-    !  else 
-    !    flux = -0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
-    !  end if
-    !else if (bc_flag == -1 .or. bc_flag == -2) then
-    !  flux = u%val(self_col, self_row) * face_area
-    !else if (bc_flag == -3 .or. bc_flag == -4) then
-    !  flux = v%val(self_col, self_row) * face_area
-    !else
-    !  print *, 'invalid BC flag'
-    !  stop
-    !end if
     
     if (bc_flag == 0) then
       if (ngb_col - self_col == 1) then
-        flux = 0.5_accs_real*(u_data(ngb_row) + u_data(self_row)) * face_area
+        flux = 0.5_accs_real*(u(ngb_row) + u(self_row)) * face_area
       else if (ngb_col - self_col == -1) then
-        flux = -0.5_accs_real*(u_data(ngb_row) + u_data(self_row)) * face_area
+        flux = -0.5_accs_real*(u(ngb_row) + u(self_row)) * face_area
       else if (ngb_row - self_row == 1) then
-        flux = 0.5_accs_real*(v_data(ngb_row) + v_data(self_row)) * face_area
+        flux = 0.5_accs_real*(v(ngb_row) + v(self_row)) * face_area
       else 
-        flux = -0.5_accs_real*(v_data(ngb_row) + v_data(self_row)) * face_area
+        flux = -0.5_accs_real*(v(ngb_row) + v(self_row)) * face_area
       end if
     else if (bc_flag == -1 .or. bc_flag == -2) then
-      flux = u_data(self_row) * face_area
+      flux = u(self_row) * face_area
     else if (bc_flag == -3 .or. bc_flag == -4) then
-      flux = v_data(self_row) * face_area
+      flux = v(self_row) * face_area
     else
       print *, 'invalid BC flag'
       stop
     end if
-    
-    call VecRestoreArray(u%vec, u_data, 0, ierr)
-    call VecRestoreArray(v%vec, v_data, 0, ierr)
-    !call reset_vector_data(u%vec, u_data)
-    !call reset_vector_data(v%vec, v_data)
-    deallocate(u_data, v_data)
   end function calc_mass_flux
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
