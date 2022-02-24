@@ -268,7 +268,8 @@ contains
   module procedure clear_vector_values_entries
 
     val_dat%idx(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-
+    val_dat%val(:) = 0.0_accs_real
+    
   end procedure clear_vector_values_entries
   
   module procedure set_vector_values_row

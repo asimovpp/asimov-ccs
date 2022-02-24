@@ -7,6 +7,7 @@ program test_vec_set_entries
   use testing_lib
 
   use kinds
+  use constants, only : insert_mode, add_mode
   use types, only : vector
   
   implicit none
@@ -19,8 +20,12 @@ program test_vec_set_entries
 
   do n = 1, 100
     call init_vector(n)
-    call set_vector(n)
+
+    call set_vector(n, add_mode)
     call test_vector(n)
+    call set_vector(n, insert_mode)
+    call test_vector(n)
+    
     call clean_vector()
   end do
   
@@ -44,13 +49,13 @@ contains
     
   end subroutine init_vector
 
-  subroutine set_vector(n)
+  subroutine set_vector(n, mode)
 
-    use constants, only : insert_mode
     use utils, only : set_mode, set_row, set_entry, set_values, clear_entries, update
     use vec, only : create_vector_values
     
     integer(accs_int), intent(in) :: n
+    integer(accs_int), intent(in) :: mode
 
     integer(accs_int) :: nblocks !> How many blocks should I split my elements into?
     integer(accs_int) :: nlocal  !> How many elements do I own?
@@ -72,7 +77,7 @@ contains
     nblocks = nlocal / nrows
     
     call create_vector_values(nrows, val_dat)
-    call set_mode(insert_mode, val_dat)
+    call set_mode(mode, val_dat)
     
     do i = 1_accs_int, nblocks
       call clear_entries(val_dat)
