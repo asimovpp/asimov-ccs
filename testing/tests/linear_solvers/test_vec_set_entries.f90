@@ -2,7 +2,7 @@
 !
 !> @description The cell/face centres of a mesh should all fall within the meshed domain, for a
 !!              square mesh \f$x\in[0,1]^d\f$.
-program test_square_mesh_centres
+program test_vec_set_entries
 
   use testing_lib
 
@@ -20,7 +20,7 @@ program test_square_mesh_centres
   do n = 1, 100
     call init_vector(n)
     call set_vector(n)
-    call test_vetor(n)
+    call test_vector(n)
     call clean_vector()
   end do
   
@@ -30,7 +30,7 @@ contains
 
   subroutine init_vector(n)
 
-    use utils, only : set_global_size
+    use utils, only : set_global_size, initialise
     use vec, only : create_vector
     
     integer(accs_int), intent(in) :: n
@@ -46,14 +46,27 @@ contains
 
   subroutine set_vector(n)
 
+    use constants, only : insert_mode
+    use utils, only : set_mode, set_row, set_entry, set_values, clear_entries, update
+    use vec, only : create_vector_values
+    
     integer(accs_int), intent(in) :: n
 
     integer(accs_int) :: nblocks !> How many blocks should I split my elements into?
     integer(accs_int) :: nlocal  !> How many elements do I own?
     integer(accs_int) :: nrows   !> How many rows to set simultaneously?
 
+    type(vector_values) :: val_dat
+    
     integer(accs_int) :: i
     integer(accs_int) :: j
+
+    integer(accs_int) :: idxl
+    integer(accs_int) :: idxg
+    integer(accs_int) :: offset
+
+    offset = global_start(n, par_env%proc_id, par_env%num_procs) - 1
+    nlocal = local_count(n, par_env%proc_id, par_env%num_procs)
     
     nrows = 1_accs_int
     nblocks = nlocal / nrows
@@ -62,17 +75,22 @@ contains
     call set_mode(insert_mode, val_dat)
     
     do i = 1_accs_int, nblocks
+      call clear_entries(val_dat)
+
       do j = 1_accs_int, nrows
-        idxg = i + offset
+        ! Compute local and global indices
+        idxl = j + (i - 1) * nrows
+        idxg = idxl + offset
 
         call set_row(idxg, val_dat) ! TODO: this should work on local indices...
-        call set_val(elt_val, val_dat)
-
-        call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
+        call set_entry(elt_val, val_dat)
       end do
+      
+      call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
     end do
+    ! TODO: remainder loop (required for blocksize > 1)...
 
-    deallocate(val_dat)
+    call update(v)
     
   end subroutine set_vector
 
@@ -84,7 +102,7 @@ contains
 
     real(accs_real) :: expectation
 
-    expectation = real(n, accs_real)
+    expectation = sqrt(real(n, accs_real))
     if (norm(v, 2) /= expectation) then
       stop
     end if
@@ -97,4 +115,38 @@ contains
     
   end subroutine clean_vector
   
-end program test_square_mesh_centres
+  integer function global_start(n, procid, nproc)
+
+    integer(accs_int), intent(in) :: n
+    integer(accs_int), intent(in) :: procid
+    integer(accs_int), intent(in) :: nproc
+
+    !! Each PE gets an equal split of the problem with any remainder split equally between the lower
+    !! PEs.
+    global_start = procid * (n / nproc) + min(procid, modulo(n, nproc))
+
+    !! Fortran indexing
+    global_start = global_start + 1
+    
+  end function global_start
+
+  integer function local_count(n, procid, nproc)
+
+    integer(accs_int), intent(in) :: n
+    integer(accs_int), intent(in) :: procid
+    integer(accs_int), intent(in) :: nproc
+
+    if (procid < n) then
+      local_count = global_start(n, procid, nproc)
+      if (procid < (nproc - 1)) then
+        local_count = global_start(n, procid + 1, nproc) - local_count
+      else
+        local_count = n - (local_count - 1)
+      end if
+    else
+      local_count = 0
+    end if
+    
+  end function local_count
+  
+end program test_vec_set_entries

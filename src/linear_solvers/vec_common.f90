@@ -44,4 +44,31 @@ contains
     vector_descriptor%par_env => par_env
   end subroutine
 
+  module procedure create_vector_values
+    allocate(val_dat%idx(nrows))
+    allocate(val_dat%val(nrows))
+  end procedure create_vector_values
+
+  module procedure set_vector_values_mode
+    val_dat%mode = mode
+  end procedure set_vector_values_mode
+  
+  module procedure set_vector_values_entry
+
+    use constants, only : add_mode, insert_mode
+    
+    associate(x => val_dat%val(val_dat%current_entry), &
+         mode => val_dat%mode)
+      if (mode == insert_mode) then
+        x = val
+      else if (mode == add_mode) then
+        x = x + val
+      else
+        print *, "ERROR: Unrecognised entry mode ", mode
+        stop
+      end if
+    end associate
+    
+  end procedure set_vector_values_entry
+  
 end submodule 

@@ -38,6 +38,7 @@ module types
     real(accs_real), dimension(:), allocatable :: val   !> Array of values, must be same size as
                                                         !! index array.
     integer(accs_int) :: mode                           !> Which mode to use when setting values?
+    integer(accs_int) :: current_entry                  !> Which entry are we currently working on?
   end type vector_values
 
   !> @brief Container type for data required to initialise a matrix.

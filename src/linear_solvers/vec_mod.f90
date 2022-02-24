@@ -15,6 +15,11 @@ module vec
 
   public :: create_vector
   public :: set_vector_values
+  public :: clear_vector_values_entries
+  public :: set_vector_values_entry
+  public :: create_vector_values
+  public :: set_vector_values_mode
+  public :: set_vector_values_row
   public :: update_vector
   public :: begin_update_vector
   public :: end_update_vector
@@ -46,7 +51,43 @@ module vec
     module subroutine set_vector_values(val_dat, v)
       class(*), intent(in) :: val_dat
       class(vector), intent(inout) :: v
-    end subroutine
+    end subroutine set_vector_values
+
+    module subroutine clear_vector_values_entries(val_dat)
+      type(vector_values), intent(inout) :: val_dat
+    end subroutine clear_vector_values_entries
+
+    module subroutine set_vector_values_entry(val, val_dat)
+      real(accs_real), intent(in) :: val
+      type(vector_values), intent(inout) :: val_dat
+    end subroutine set_vector_values_entry
+    
+    !> @brief Interface to create a vector values object.
+    !
+    !> @param[in]  nrows   - how many rows will be set?
+    !> @param[out] val_dat - the vector values object
+    module subroutine create_vector_values(nrows, val_dat)
+      integer(accs_int), intent(in) :: nrows
+      type(vector_values), intent(out) :: val_dat
+    end subroutine create_vector_values
+
+    module subroutine set_vector_values_mode(mode, val_dat)
+      integer(accs_int), intent(in) :: mode
+      type(vector_values), intent(inout) :: val_dat
+    end subroutine set_vector_values_mode
+
+    !> @brief Interface to set the row currently being worked on by vector values.
+    !
+    !> @description Sets the current row in the vector value object, the implementation of this is
+    !!              backend-dependent as it should immediately convert to the correct indexing
+    !!              (whether that's 0, 1 or X-based) as used by the backend.
+    !
+    !> @param[in]     row     - the row
+    !> @param[in,out] val_dat - the vector values object
+    module subroutine set_vector_values_row(row, val_dat)
+      integer(accs_int), intent(in) :: row
+      type(vector_values), intent(inout) :: val_dat
+    end subroutine set_vector_values_row
 
     !> @brief Interface to perform a parallel update of a vector.
     !

@@ -9,6 +9,8 @@ module utils
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
                   initialise_vector, set_global_vector_size, set_local_vector_size,         &
+                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
+                  clear_vector_values_entries, &
                   pack_one_vector_element
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
@@ -21,6 +23,8 @@ module utils
   private
 
   public :: set_values
+  public :: set_entry
+  public :: clear_entries
   public :: begin_update
   public :: end_update
   public :: update
@@ -29,7 +33,8 @@ module utils
   public :: initialise
   public :: set_global_size
   public :: set_local_size
-
+  public :: set_mode
+  public :: set_row
   public :: accs_init
   public :: accs_finalise
 
@@ -39,9 +44,25 @@ module utils
      module procedure set_matrix_values
   end interface set_values
 
+  interface set_entry
+    module procedure set_vector_values_entry
+  end interface set_entry
+ 
+  interface set_mode
+    module procedure set_vector_values_mode
+  end interface set_mode
+
+  interface set_row
+    module procedure set_vector_values_row
+  end interface set_row
+  
   interface finalise
     module procedure finalise_matrix
   end interface finalise
+
+  interface clear_entries
+    module procedure clear_vector_values_entries
+  end interface clear_entries
 
   !> @brief Generic interface to perform parallel update of an object.
   interface update

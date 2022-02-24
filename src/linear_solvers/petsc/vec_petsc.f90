@@ -274,5 +274,42 @@ contains
     end select
     
   end function
+
+
+  module procedure clear_vector_values_entries
+
+    val_dat%idx(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+
+  end procedure clear_vector_values_entries
+  
+  module procedure set_vector_values_row
+
+    integer(accs_int), dimension(rank(val_dat%idx)) :: idxs
+    integer(accs_int) :: i
+    logical :: new_entry
+    integer(accs_int) :: petsc_row
+
+    petsc_row = row - 1 ! PETSc is zero-indexed
+    new_entry = .false.
+    
+    idxs = findloc(val_dat%idx, petsc_row, kind=accs_int)
+    i = idxs(1) ! We want the first entry
+    if (i == 0) then
+      new_entry = .true.
+    end if
+
+    if (new_entry) then
+      idxs = findloc(val_dat%idx, -1_accs_int, kind=accs_int)
+      i = idxs(1) ! We want the first entry
+      if (i == 0) then
+        print *, "ERROR: Couldn't find a free entry in vector values!"
+        stop
+      end if
+    end if
+    
+    val_dat%current_entry = i
+    val_dat%idx(i) = petsc_row
+    
+  end procedure set_vector_values_row
   
 end submodule vec_petsc
