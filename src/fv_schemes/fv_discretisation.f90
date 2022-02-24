@@ -39,7 +39,7 @@ contains
     else
       interpolation_factor = 1.0_accs_real
     end if
-    coeff = calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, bc) * interpolation_factor
+    coeff = calc_mass_flux(u, v, ngb_idx, ngb_col, self_idx, self_col, face_area, bc, cps*cps) * interpolation_factor
   end subroutine calc_advection_coeff_cds
   
   !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
@@ -66,7 +66,7 @@ contains
     call calc_cell_coords(ngb_idx, cps, ngb_row, ngb_col)
     call calc_cell_coords(self_idx, cps, self_row, self_col)
 
-    coeff = calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, bc)
+    coeff = calc_mass_flux(u, v, ngb_idx, ngb_col, self_idx, self_col, face_area, bc, cps*cps)
     coeff = min(coeff, 0.0_accs_real)
   end subroutine calc_advection_coeff_uds
 

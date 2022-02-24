@@ -310,35 +310,75 @@ contains
   !> @param[in] self_row, self_col - Row and column of given cell in mesh
   !> @param[in] bc_flag            - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux              - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, ngb_row, ngb_col, self_row, self_col, face_area, &
+                  bc_flag, n_mesh) result(flux)
+    use vec, only: get_vector_data, reset_vector_data
+    use petscvec
     class(field), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_row, ngb_col
     integer(accs_int), intent(in) :: self_row, self_col
     real(accs_real), intent(in) :: face_area
     integer(accs_int), intent(in) :: bc_flag
+    integer(accs_int), intent(in) :: n_mesh
 
     real(accs_real) :: flux
+    real(accs_real), dimension(:), allocatable :: u_data, v_data
+    integer :: ierr
 
     flux = 0.0_accs_real
 
+    allocate(u_data(n_mesh))
+    allocate(v_data(n_mesh))
+    
+    !call get_vector_data(u%vec, u_data)
+    !call get_vector_data(v%vec, v_data)
+    call VecGetArray(u%vec, u_data, 0, ierr)
+    call VecGetArray(v%vec, v_data, 0, ierr)
+    !print *, 'u v data first elements ', u_data(1), v_data(1)
+
+    !if (bc_flag == 0) then
+    !  if (ngb_col - self_col == 1) then
+    !    flux = 0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
+    !  else if (ngb_col - self_col == -1) then
+    !    flux = -0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
+    !  else if (ngb_row - self_row == 1) then
+    !    flux = 0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
+    !  else 
+    !    flux = -0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
+    !  end if
+    !else if (bc_flag == -1 .or. bc_flag == -2) then
+    !  flux = u%val(self_col, self_row) * face_area
+    !else if (bc_flag == -3 .or. bc_flag == -4) then
+    !  flux = v%val(self_col, self_row) * face_area
+    !else
+    !  print *, 'invalid BC flag'
+    !  stop
+    !end if
+    
     if (bc_flag == 0) then
       if (ngb_col - self_col == 1) then
-        flux = 0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
+        flux = 0.5_accs_real*(u_data(ngb_row) + u_data(self_row)) * face_area
       else if (ngb_col - self_col == -1) then
-        flux = -0.5_accs_real*(u%val(ngb_col, ngb_row) + u%val(self_col, self_row)) * face_area
+        flux = -0.5_accs_real*(u_data(ngb_row) + u_data(self_row)) * face_area
       else if (ngb_row - self_row == 1) then
-        flux = 0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
+        flux = 0.5_accs_real*(v_data(ngb_row) + v_data(self_row)) * face_area
       else 
-        flux = -0.5_accs_real*(v%val(ngb_col, ngb_row) + v%val(self_col, self_row)) * face_area
+        flux = -0.5_accs_real*(v_data(ngb_row) + v_data(self_row)) * face_area
       end if
     else if (bc_flag == -1 .or. bc_flag == -2) then
-      flux = u%val(self_col, self_row) * face_area
+      flux = u_data(self_row) * face_area
     else if (bc_flag == -3 .or. bc_flag == -4) then
-      flux = v%val(self_col, self_row) * face_area
+      flux = v_data(self_row) * face_area
     else
       print *, 'invalid BC flag'
       stop
     end if
+    
+    call VecRestoreArray(u%vec, u_data, 0, ierr)
+    call VecRestoreArray(v%vec, v_data, 0, ierr)
+    !call reset_vector_data(u%vec, u_data)
+    !call reset_vector_data(v%vec, v_data)
+    deallocate(u_data, v_data)
   end function calc_mass_flux
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh

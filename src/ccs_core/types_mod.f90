@@ -92,7 +92,6 @@ module types
 
   !> @brief Scalar field type
   type, public :: field
-    real(accs_real), dimension(:,:), allocatable :: val
     class(vector), allocatable :: vec
   end type field
 
