@@ -315,7 +315,7 @@ contains
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(:), intent(in) :: face_normal
+    real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: bc_flag
 
     real(accs_real) :: flux

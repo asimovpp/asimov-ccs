@@ -22,7 +22,7 @@ contains
     type(central_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(:), intent(in) :: face_normal
+    real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
@@ -51,7 +51,7 @@ contains
     type(upwind_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(:), intent(in) :: face_normal
+    real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
