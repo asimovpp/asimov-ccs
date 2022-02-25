@@ -5,8 +5,9 @@
 
 submodule (fv) fv_common
 
+  use constants, only : ndim
   use types, only : face_locator
-  use meshing, only : set_face_location, get_face_area
+  use meshing, only : set_face_location, get_face_area, get_face_normal
 
   implicit none
 
@@ -99,6 +100,7 @@ contains
     real(accs_real) :: face_area
     real(accs_real) :: diff_coeff, diff_coeff_total
     real(accs_real) :: adv_coeff, adv_coeff_total
+    real(accs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
     mat_coeffs%mode = add_mode
@@ -124,12 +126,13 @@ contains
         if (.not. is_boundary) then
           call set_face_location(face_loc, cell_mesh, local_idx, j)
           call get_face_area(face_loc, face_area)
+          call get_face_normal(face_loc, face_normal)
 
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -222,7 +225,7 @@ contains
     real(accs_real) :: diff_coeff
     real(accs_real) :: adv_coeff
     real(accs_real) :: bc_value
-    real(accs_real) :: n_value, w_value
+    real(accs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
     mat_coeffs%mode = add_mode
@@ -234,8 +237,6 @@ contains
     allocate(b_coeffs%idx(1))
     allocate(b_coeffs%val(1))
 
-    n_value = 0.0_accs_real
-    w_value = 1.0_accs_real
     bc_counter = 1
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(self_loc, cell_mesh, local_idx)
@@ -249,15 +250,16 @@ contains
 
         call set_face_location(face_loc, cell_mesh, local_idx, j)
         call get_face_area(face_loc, face_area)
+        call get_face_normal(face_loc, face_normal)
 
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
         if (is_boundary .and. bcs%bc_type(j) .ne. bc_type_const_grad) then
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, mesh_ngb_idx, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, cps, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, mesh_ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -306,13 +308,14 @@ contains
   !> @param[in] self_row, self_col - Row and column of given cell in mesh
   !> @param[in] bc_flag            - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux              - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
     use vec, only: get_vector_data, reset_vector_data
     use petscvec
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
     real(accs_real), intent(in) :: face_area
+    real(accs_real), dimension(:), intent(in) :: face_normal
     integer(accs_int), intent(in) :: bc_flag
 
     real(accs_real) :: flux
@@ -320,19 +323,22 @@ contains
     flux = 0.0_accs_real
     
     if (bc_flag == 0) then
-      if (ngb_col - self_col == 1) then
-        flux = 0.5_accs_real*(u(ngb_row) + u(self_row)) * face_area
-      else if (ngb_col - self_col == -1) then
-        flux = -0.5_accs_real*(u(ngb_row) + u(self_row)) * face_area
-      else if (ngb_row - self_row == 1) then
-        flux = 0.5_accs_real*(v(ngb_row) + v(self_row)) * face_area
-      else 
-        flux = -0.5_accs_real*(v(ngb_row) + v(self_row)) * face_area
+      if (face_normal(1) == 1 .and. face_normal(2) == 0) then
+        flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area
+      else if (face_normal(1) == -1 .and. face_normal(2) == 0) then
+        flux = -0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area
+      else if (face_normal(2) == 1 .and. face_normal(1) == 0) then
+        flux = 0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area
+      else if (face_normal(2) == -1 .and. face_normal(1) == 0) then
+        flux = -0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area
+      else
+        print *, 'Invalid face normal'
+        stop
       end if
     else if (bc_flag == -1 .or. bc_flag == -2) then
-      flux = u(self_row) * face_area
+      flux = u(self_idx) * face_area
     else if (bc_flag == -3 .or. bc_flag == -4) then
-      flux = v(self_row) * face_area
+      flux = v(self_idx) * face_area
     else
       print *, 'invalid BC flag'
       stop

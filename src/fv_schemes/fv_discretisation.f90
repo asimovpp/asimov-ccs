@@ -18,10 +18,11 @@ contains
   !> @param[in] cps       - number of cells per side in (square) mesh
   !> @param[in] u, v      - velocity fields in x, y directions
   !> @param[in] bc        - flag indicating whether cell is on boundary
-  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
     type(central_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
+    real(accs_real), dimension(:), intent(in) :: face_normal
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
@@ -34,7 +35,7 @@ contains
     else
       interpolation_factor = 1.0_accs_real
     end if
-    coeff = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, bc, cps*cps) * interpolation_factor
+    coeff = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc) * interpolation_factor
   end subroutine calc_advection_coeff_cds
   
   !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
@@ -46,16 +47,17 @@ contains
   !> @param[in] cps       - number of cells per side in (square) mesh
   !> @param[in] u, v      - velocity fields in x, y directions
   !> @param[in] bc        - flag indicating whether cell is on boundary
-  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
     type(upwind_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
+    real(accs_real), dimension(:), intent(in) :: face_normal
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
 
-    coeff = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, bc, cps*cps)
+    coeff = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc)
     coeff = min(coeff, 0.0_accs_real)
   end subroutine calc_advection_coeff_uds
 

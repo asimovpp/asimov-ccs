@@ -4,6 +4,7 @@
 
 module fv
 
+  use constants, only : ndim
   use kinds, only : accs_real, accs_int
   use types, only : matrix, vector, mesh, field, upwind_field, central_field, bc_config
   use bc_constants
@@ -34,10 +35,11 @@ module fv
   !> @param[in] cps - number of cells per side
   !> @param[in] u, v - velocity fields in x, y directions
   !> @param[in] bc - flag to indicate boundary
-  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
     type(central_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
+    real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
@@ -53,10 +55,11 @@ module fv
   !> @param[in] cps - number of cells per side
   !> @param[in] u, v - velocity fields in x, y directions
   !> @param[in] bc - flag to indicate boundary
-  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
     type(upwind_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
+    real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
@@ -100,13 +103,13 @@ module fv
   !> @param[in] ngb_row, ngb_col - row and column index of neighbouring cell
   !> @param[in] self_row, self_col - row and column index of cell
   !> @param[in] bc_flag - indicates whether a cell is on a boundary and which boundary it is.
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, bc_flag, n_mesh) result(flux)
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
     real(accs_real), intent(in) :: face_area
+    real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: bc_flag
-    integer(accs_int), intent(in) :: n_mesh
     real(accs_real) :: flux
   end function calc_mass_flux
 
