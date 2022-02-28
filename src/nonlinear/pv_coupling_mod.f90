@@ -14,8 +14,11 @@ module pv_coupling
 
     interface
 
-    module subroutine solve_nonlinear(u, v, p)
-        type(field), intent(inout) :: u, v, p
+    module subroutine solve_nonlinear(u, v, p, pp, M, solution, source, cell_mesh)
+        class(field), intent(inout) :: u, v, p, pp
+        class(matrix), intent(inout) :: M
+        class(vector), intent(inout) :: solution, source
+        type(mesh), intent(in) :: cell_mesh
     end subroutine solve_nonlinear
 
     end interface

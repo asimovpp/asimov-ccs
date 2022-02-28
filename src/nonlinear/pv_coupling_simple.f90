@@ -10,7 +10,7 @@ submodule (pv_coupling) pv_coupling_simple
 
   contains
 
-  module subroutine solve_nonlinear(u, v, p, M, solution, source, cell_mesh)
+  module subroutine solve_nonlinear(u, v, p, pp, M, solution, source, cell_mesh)
 
     ! Arguments
     class(field), intent(inout) :: u, v, p
@@ -71,8 +71,55 @@ submodule (pv_coupling) pv_coupling_simple
 
   subroutine calculate_pressure_correction()
 
+    mat_coeffs%mode = insert_mode
     
+    ! Loop over cells
+    do i = 1, cell_mesh%nlocal
+      call set_cell_location(cell_location, cell_mesh, i)
+      call get_global_index(cell_location, idxg)
+      call count_neighbours(cell_location, nnb)
 
+      allocate(mat_coeffs%rglob(1))
+      allocate(mat_coeffs%cglob(1 + nnb))
+      allocate(mat_coeffs%val(1 + nnb))
+
+      row = idxg
+      coeff_p = 0.0_accs_real
+
+      ! Loop over faces
+      do j = 1, nnb
+        call set_neighbour_location(nb_location, cell_location, j)
+        call get_boundary_status(nb_location, is_boundary)
+
+        if (.not. is_boundary) then
+          ! Interior face
+          call set_face_location(face_location, cell_mesh, i, j)
+          call get_face_area(face_location, A)
+          coeff_f = (1.0 / cell_mesh%h) * A
+
+          call get_global_index(nb_location, nbidxg)
+
+          coeff_p = coeff_p - coeff_f
+          coeff_nb = coeff_f
+          col = nbidxg
+        else
+          col = -1
+          coeff_nb = 0.0_accs_real
+        endif
+        call pack_entries(mat_coeffs, 1, j+1, row, col, coeff_nb)
+
+      end do
+
+      ! Add the diagonal entry
+      col = row
+      call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+
+      ! Set the values
+      call set_values(mat_coeffs, M)
+
+      deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+
+    end do
 
   end subroutine calculate_pressure_correction
 

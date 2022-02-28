@@ -17,15 +17,15 @@ program simple
   class(vector), allocatable, target :: source
   class(vector), allocatable :: solution
   class(matrix), allocatable, target :: M
-  class(linear_solver), allocatable :: scalar_solver
+  class(linear_solver), allocatable :: simple_solver
 
   type(vector_init_data) :: vec_sizes
   type(matrix_init_data) :: mat_sizes
-  type(linear_system)    :: scalar_linear_system
+  type(linear_system)    :: simple_linear_system
   type(mesh)             :: square_mesh
   type(bc_config)        :: bcs
 
-  class(field), allocatable :: u, v, p
+  class(field), allocatable :: u, v, p, pp
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
 
@@ -34,31 +34,40 @@ program simple
     
   call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env)
+
+  call sync(par_env)
   call timer(start_time)
 
   ! Initialise fields
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
   allocate(central_field :: p)
-  call initialise_fields(par_env, u, v, p)
+  allocate(central_field :: pp)
 
   ! Initialise linear system
   call initialise(mat_sizes)
   call initialise(vec_sizes)
-  call initialise(scalar_linear_system)
+  call initialise(simple_linear_system)
 
   ! Create coefficient matrix
-  call set_global_size(mat_sizes, square_mesh%n, square_mesh%n, par_env)
+  call set_global_size(mat_sizes, square_mesh%nglobal, square_mesh%nglobal, par_env)
   call set_nnz(mat_sizes, 5)
   call create_matrix(mat_sizes, M)
 
   ! Create RHS and solution vectors
-  call set_global_size(vec_sizes, square_mesh%n, par_env)
+  call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
+  call create_vector(vec_sizes, u%vec)
+  call create_vector(vec_sizes, v%vec)
+  call create_vector(vec_sizes, p%vec)
+  call create_vector(vec_sizes, pp%vec)
+
+  ! Initialise fields
+  call initialise_fields(par_env, u, v, p)
 
   ! Solve using SIMPLE algorithm
-  call solve_nonlinear(u, v, p, M, solution, source, square_mesh)
+  call solve_nonlinear(u, v, p, pp, M, solution, source, square_mesh)
 
   ! Clean-up
   deallocate(source)
@@ -67,7 +76,8 @@ program simple
   deallocate(u)
   deallocate(v)
   deallocate(p)
-  deallocate(scalar_solver)
+  deallocate(pp)
+  deallocate(simple_solver)
 
   call timer(end_time)
 
