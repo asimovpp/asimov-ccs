@@ -58,7 +58,7 @@ contains
 
     ! Loop over cells computing advection and diffusion fluxes
     n_int_cells = calc_matrix_nnz()
-    call compute_interior_coeffs(phi, u_data, v_data, cell_mesh, n_int_cells, cps, M)
+    call compute_interior_coeffs(phi, u_data, v_data, cell_mesh, n_int_cells, M)
 
     ! Loop over boundaries
     call compute_boundary_coeffs(phi, u_data, v_data, cell_mesh, bcs, cps, M, vec)
@@ -102,7 +102,7 @@ contains
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in] cps         - number of cells per side
   !> @param[in,out] mat     - Matrix structure being assigned
-  subroutine compute_interior_coeffs(phi, u, v, cell_mesh, n_int_cells, cps, M)
+  subroutine compute_interior_coeffs(phi, u, v, cell_mesh, n_int_cells, M)
     use constants, only : add_mode
     use types, only: matrix_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
@@ -113,7 +113,6 @@ contains
     real(accs_real), dimension(:), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: n_int_cells
-    integer(accs_int), intent(in) :: cps
     class(matrix), allocatable :: M
 
     type(matrix_values) :: mat_coeffs
