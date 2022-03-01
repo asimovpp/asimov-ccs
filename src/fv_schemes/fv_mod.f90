@@ -32,15 +32,13 @@ module fv
   !> @param[in] self_idx - cell index
   !> @param[in] face_area - area of face between cell and neighbour
   !> @param[in,out] coeff - advection coefficient that is computed
-  !> @param[in] cps - number of cells per side
   !> @param[in] u, v - velocity fields in x, y directions
   !> @param[in] bc - flag to indicate boundary
-  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
     type(central_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
     real(accs_real), dimension(ndim), intent(in) :: face_normal
-    integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
@@ -52,15 +50,13 @@ module fv
   !> @param[in] self_idx - cell index
   !> @param[in] face_area - area of face between cell and neighbour
   !> @param[in,out] coeff - advection coefficient that is computed
-  !> @param[in] cps - number of cells per side
   !> @param[in] u, v - velocity fields in x, y directions
   !> @param[in] bc - flag to indicate boundary
-  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
     type(upwind_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
     real(accs_real), intent(in) :: face_area
     real(accs_real), dimension(ndim), intent(in) :: face_normal
-    integer(accs_int), intent(in) :: cps
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff

@@ -157,9 +157,9 @@ contains
 
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -284,9 +284,9 @@ contains
         if (is_boundary .and. bcs%bc_type(j) .ne. bc_type_const_grad) then
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, mesh_ngb_idx, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, mesh_ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
