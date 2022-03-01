@@ -34,9 +34,6 @@ contains
     integer(accs_int) :: ierr
     real(accs_real), dimension(:), pointer :: u_data, v_data
 
-    ! ALEXEI: debugging
-    integer :: i
-
     !allocate(u_data(cell_mesh%nlocal))
     !allocate(v_data(cell_mesh%nlocal))
     
