@@ -10,7 +10,7 @@ program test_compute_fluxes
   use fv, only: compute_fluxes, calc_cell_coords
   use utils, only : update, initialise, &
                 set_global_size, pack_entries, set_values
-  use vec, only : create_vector, vec_view
+  use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
   use constants, only: add_mode, insert_mode
@@ -173,8 +173,6 @@ program test_compute_fluxes
 
     call update(M_exact)
     call update(b_exact)
-
-    call vec_view(b_exact)
 
     call axpy(-1.0_accs_real, M_exact, M)
     error = norm(M, 1)

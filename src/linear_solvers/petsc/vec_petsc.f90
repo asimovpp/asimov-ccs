@@ -279,43 +279,28 @@ contains
   !
   !> @param[in] vec   - the vector to get data from
   !> @param[in] array - an array to store the data in
-  module subroutine get_vector_data(vec, array)
-    use petscvec!, only: VecGetArray
-    class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), intent(out) :: array
-    integer :: offset
-    integer :: ierr
+  !module subroutine get_vector_data(vec, array)
+  !  use petscvec!, only: VecGetArray
+  !  class(vector), intent(in) :: vec
+  !  real(accs_real), dimension(:), intent(out) :: array
+  !  integer :: offset
+  !  integer :: ierr
 
-    call VecGetArray(vec, array, offset, ierr)
-  end subroutine get_vector_data
+  !  call VecGetArray(vec, array, offset, ierr)
+  !end subroutine get_vector_data
 
   !> @brief Resets the vector data if required for further processing
   !
   !> @param[in] vec - the vector to reset
-  module subroutine reset_vector_data(vec, array)
-    use petscvec!, only: VecRestoreArray
-    class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), intent(in) :: array
-    integer :: offset
-    integer :: ierr
+  !module subroutine reset_vector_data(vec, array)
+  !  use petscvec!, only: VecRestoreArray
+  !  class(vector), intent(in) :: vec
+  !  real(accs_real), dimension(:), intent(in) :: array
+  !  integer :: offset
+  !  integer :: ierr
 
-    call VecRestoreArray(vec, array, offset, ierr)
-  end subroutine reset_vector_data
+  !  call VecRestoreArray(vec, array, offset, ierr)
+  !end subroutine reset_vector_data
 
-  module subroutine vec_view(vec)
-    use petscvec
-    class(vector), intent(in) :: vec
-    integer(accs_err) :: ierr
-    type(tPetscViewer) :: output_viewer
-
-    select type (vec)
-      type is (vector_petsc)
-        call PetscViewerASCIIOpen(PETSC_COMM_WORLD, "solution.dat", output_viewer, ierr)
-        call VecView(vec%v, output_viewer, ierr)
-      class default
-        print *, "Type unhandled 1"
-        stop
-    end select
-  end subroutine vec_view
 
 end submodule vec_petsc
