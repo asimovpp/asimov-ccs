@@ -8,6 +8,7 @@ submodule (fv) fv_common
   use constants, only : ndim
   use types, only : face_locator
   use meshing, only : set_face_location, get_face_area, get_face_normal
+  use petscvec
 
   implicit none
 
@@ -21,6 +22,7 @@ contains
   !> @param[in,out] mat   - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
   module subroutine compute_fluxes(phi, u, v, cell_mesh, bcs, cps, M, vec)
+    use petsctypes, only: vector_petsc
     class(field), intent(in) :: phi
     class(field), intent(in) :: u, v
     type(mesh), intent(in) :: cell_mesh
@@ -30,17 +32,33 @@ contains
     class(vector), intent(inout) :: vec   
 
     integer(accs_int) :: n_int_cells
-    integer :: ierr
-    real(accs_real), dimension(:), allocatable :: u_data, v_data
+    integer(accs_int) :: ierr
+    real(accs_real), dimension(:), pointer :: u_data, v_data
 
-    allocate(u_data(cell_mesh%nlocal))
-    allocate(v_data(cell_mesh%nlocal))
+    ! ALEXEI: debugging
+    integer :: i
+
+    !allocate(u_data(cell_mesh%nlocal))
+    !allocate(v_data(cell_mesh%nlocal))
     
     !call get_vector_data(u%vec, u_data)
     !call get_vector_data(v%vec, v_data)
-    call VecGetArray(u%vec, u_data, 0, ierr)
-    call VecGetArray(v%vec, v_data, 0, ierr)
-    !print *, 'u v data first elements ', u_data(1), v_data(1)
+    associate (u_vec => u%vec, v_vec => v%vec)
+    select type(u_vec)
+      type is(vector_petsc)
+        call VecGetArrayF90(u_vec%v, u_data, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
+
+    select type(v_vec)
+      type is(vector_petsc)
+        call VecGetArrayF90(v_vec%v, v_data, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
 
     ! Loop over cells computing advection and diffusion fluxes
     n_int_cells = calc_matrix_nnz()
@@ -49,11 +67,24 @@ contains
     ! Loop over boundaries
     call compute_boundary_coeffs(phi, u_data, v_data, cell_mesh, bcs, cps, M, vec)
     
-    call VecRestoreArray(u%vec, u_data, 0, ierr)
-    call VecRestoreArray(v%vec, v_data, 0, ierr)
+    select type(u_vec)
+      type is(vector_petsc)
+        call VecRestoreArrayF90(u_vec%v, u_data, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
+
+    select type(v_vec)
+      type is(vector_petsc)
+        call VecRestoreArrayF90(v_vec%v, v_data, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
+    end associate
     !call reset_vector_data(u%vec, u_data)
     !call reset_vector_data(v%vec, v_data)
-    deallocate(u_data, v_data)
 
   end subroutine compute_fluxes
 
@@ -310,7 +341,6 @@ contains
   !> @param[out] flux              - The flux across the boundary
   module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
     use vec, only: get_vector_data, reset_vector_data
-    use petscvec
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
@@ -323,18 +353,8 @@ contains
     flux = 0.0_accs_real
     
     if (bc_flag == 0) then
-      if (face_normal(1) == 1 .and. face_normal(2) == 0) then
-        flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area
-      else if (face_normal(1) == -1 .and. face_normal(2) == 0) then
-        flux = -0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area
-      else if (face_normal(2) == 1 .and. face_normal(1) == 0) then
-        flux = 0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area
-      else if (face_normal(2) == -1 .and. face_normal(1) == 0) then
-        flux = -0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area
-      else
-        print *, 'Invalid face normal'
-        stop
-      end if
+      flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area * face_normal(1) + &
+             0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area * face_normal(2)
     else if (bc_flag == -1 .or. bc_flag == -2) then
       flux = u(self_idx) * face_area
     else if (bc_flag == -3 .or. bc_flag == -4) then

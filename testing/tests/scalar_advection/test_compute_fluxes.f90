@@ -10,14 +10,18 @@ program test_compute_fluxes
   use fv, only: compute_fluxes, calc_cell_coords
   use utils, only : update, initialise, &
                 set_global_size, pack_entries, set_values
-  use vec, only : create_vector
+  use vec, only : create_vector, vec_view
   use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
+  use constants, only: add_mode, insert_mode
   use bc_constants
 
+  implicit none
 
   type(mesh) :: square_mesh
   type(bc_config) :: bcs
+  type(vector_init_data) :: vec_sizes
+  class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(accs_int), parameter :: cps = 5
   integer(accs_int) :: direction, discretisation
@@ -34,12 +38,32 @@ program test_compute_fluxes
   bcs%region(4) = bc_region_bottom
   bcs%bc_type(:) = bc_type_dirichlet
   bcs%endpoints(:,:) = 1.0_accs_real
-
+    
   do direction = x_dir, y_dir
     do discretisation = upwind, central
-      call set_velocity_fields(direction, cps, discretisation, u, v)
-      call run_compute_fluxes_test(u, v, bcs, square_mesh, cps, direction, discretisation)
-      call tidy_velocity_fields(u, v)
+    
+      if (discretisation == central) then
+        allocate(central_field :: scalar)
+        allocate(central_field :: u)
+        allocate(central_field :: v)
+      else if (discretisation == upwind) then
+        allocate(upwind_field :: scalar)
+        allocate(upwind_field :: u)
+        allocate(upwind_field :: v)
+      else
+        write(message, *) 'Invalid discretisation type selected'
+        call stop_test(message)
+      end if
+
+      call initialise(vec_sizes)
+      call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+      call create_vector(vec_sizes, scalar%vec)
+      call create_vector(vec_sizes, u%vec)
+      call create_vector(vec_sizes, v%vec)
+
+      call set_velocity_fields(square_mesh, direction, u, v)
+      call run_compute_fluxes_test(scalar, u, v, bcs, square_mesh, cps, direction, discretisation)
+      call tidy_velocity_fields(scalar, u, v)
     end do
   end do
 
@@ -53,40 +77,56 @@ program test_compute_fluxes
   !> @param[in] cps            - Number of cells per side in (square) mesh
   !> @param[in] discretisation - Integer indicating which discretisation scheme to use
   !> @param[out] u, v          - The velocity fields in x and y directions
-  subroutine set_velocity_fields(direction, cps, discretisation, u, v)
+  subroutine set_velocity_fields(cell_mesh, direction, u, v)
+    use meshing, only: set_cell_location, get_global_index
+    class(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: direction
-    integer(accs_int), intent(in) :: cps
-    integer(accs_int), intent(in) :: discretisation
     class(field), intent(inout), allocatable :: u, v
+    type(cell_locator) :: self_loc
+    type(vector_values) :: u_vals, v_vals
+    integer(accs_int) :: local_idx, self_idx
+    real(accs_real) :: u_val, v_val
 
-    if (discretisation == central) then
-      allocate(central_field :: u)
-      allocate(central_field :: v)
-    else if (discretisation == upwind) then
-      allocate(upwind_field :: u)
-      allocate(upwind_field :: v)
-    else
-      write(message, *) 'Invalid discretisation type selected'
-      call stop_test(message)
-    end if
-    allocate(u%val(cps,cps))
-    allocate(v%val(cps,cps))
+    u_vals%mode = insert_mode
+    v_vals%mode = insert_mode
+    
+    associate(n_local => cell_mesh%nlocal)
+      allocate(u_vals%idx(n_local))
+      allocate(v_vals%idx(n_local))
+      allocate(u_vals%val(n_local))
+      allocate(v_vals%val(n_local))
+      
+      ! Set IC velocity fields
+      do local_idx = 1, n_local
+        call set_cell_location(self_loc, cell_mesh, local_idx)
+        call get_global_index(self_loc, self_idx)
 
-    if (direction == 1) then
-       u%val(:,:) = 1.0_accs_real
-       v%val(:,:) = 0.0_accs_real
-    else if (direction == 2) then
-      u%val(:,:) = 0.0_accs_real
-      v%val(:,:) = 1.0_accs_real
-    end if
+        if (direction == x_dir) then
+          u_val = 1.0_accs_real
+          v_val = 0.0_accs_real
+        else if (direction == y_dir) then
+          u_val = 0.0_accs_real
+          v_val = 1.0_accs_real
+        end if
+
+        call pack_entries(u_vals, local_idx, self_idx, u_val)
+        call pack_entries(v_vals, local_idx, self_idx, v_val)
+      end do
+    end associate
+    call set_values(u_vals, u%vec)
+    call set_values(v_vals, v%vec)
+
+    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
   end subroutine set_velocity_fields
 
   !> @brief Deallocates the velocity fields
   !
   !> @param[in] u, v - The velocity fields to deallocate
-  subroutine tidy_velocity_fields(u, v)
+  subroutine tidy_velocity_fields(scalar, u, v)
+    class(field), allocatable :: scalar
     class(field), allocatable :: u, v
 
+    deallocate(scalar)
     deallocate(u)
     deallocate(v)
   end subroutine tidy_velocity_fields
@@ -99,7 +139,8 @@ program test_compute_fluxes
   !> @param[in] cps            - The number of cells per side in the (square) mesh 
   !> @param[in] flow_direction - Integer indicating the direction of the flow 
   !> @param[in] discretisation - Integer indicating the discretisation scheme being tested 
-  subroutine run_compute_fluxes_test(u, v, bcs, cell_mesh, cps, flow_direction, discretisation)
+  subroutine run_compute_fluxes_test(scalar, u, v, bcs, cell_mesh, cps, flow_direction, discretisation)
+    class(field), intent(in) :: scalar
     class(field), intent(in) :: u, v
     class(bc_config), intent(in) :: bcs
     type(mesh), intent(in) :: cell_mesh
@@ -123,15 +164,17 @@ program test_compute_fluxes
     call create_matrix(mat_sizes, M_exact)
     call create_vector(vec_sizes, b_exact)
 
-    call compute_fluxes(u, v, cell_mesh, bcs, cps, M, b)
+    call compute_fluxes(scalar, u, v, cell_mesh, bcs, cps, M, b)
 
     call update(M)
     call update(b)
 
-    call compute_exact_matrix(cell_mesh, flow_direction, discretisation, M_exact, b_exact)
+    call compute_exact_matrix(cell_mesh, flow_direction, discretisation, cps, M_exact, b_exact)
 
     call update(M_exact)
     call update(b_exact)
+
+    call vec_view(b_exact)
 
     call axpy(-1.0_accs_real, M_exact, M)
     error = norm(M, 1)
@@ -162,11 +205,11 @@ program test_compute_fluxes
   !> @param[in] discretisation - Integer indicating the discretisation scheme being used
   !> @param[out] M             - The resulting matrix
   !> @param[out] b             - The resulting RHS vector
-  subroutine compute_exact_matrix(cell_mesh, flow, discretisation, M, b)
-    use constants, only: add_mode
+  subroutine compute_exact_matrix(cell_mesh, flow, discretisation, cps, M, b)
     class(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: flow
     integer(accs_int), intent(in) :: discretisation
+    integer(accs_int), intent(in) :: cps
     class(matrix), allocatable :: M
     class(vector), allocatable :: b
 
@@ -278,7 +321,7 @@ program test_compute_fluxes
     allocate(mat_coeffs%cglob(5))
     allocate(mat_coeffs%val(5))
 
-    diff_coeff = -0.02_accs_real
+    diff_coeff = -0.01_accs_real
     ! Diffusion coefficients
     do i = 1, cell_mesh%nglobal
       mat_counter = 1
@@ -323,7 +366,7 @@ program test_compute_fluxes
 
     vec_counter = 1
     if (discretisation == central) then
-      adv_coeff = -0.2_accs_real
+      adv_coeff = -1.0_accs_real/cps
     else
       adv_coeff = 0.0_accs_real
     endif 
@@ -353,7 +396,7 @@ program test_compute_fluxes
     allocate(vec_coeffs%val(4*cps))
 
     vec_counter = 1
-    diff_coeff = 0.02_accs_real
+    diff_coeff = 0.01_accs_real
     do i = 1, cell_mesh%nglobal
       call calc_cell_coords(i, cps, row, col)
       if (row == 1 .or. row == cps) then
