@@ -5,7 +5,6 @@
 
 submodule (fv) fv_common
 
-  use constants, only : ndim
   use types, only : face_locator
   use meshing, only : set_face_location, get_face_area, get_face_normal
   use petscvec
@@ -227,7 +226,7 @@ contains
   !> @param[in,out] M       - Matrix structure being assigned
   !> @param[in,out] b       - vector structure being assigned
   subroutine compute_boundary_coeffs(phi, u, v, cell_mesh, bcs, cps, M, b)
-    use constants, only : insert_mode, add_mode, ndim
+    use constants, only : insert_mode, add_mode
     use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
     use meshing, only: get_global_index, count_neighbours, get_boundary_status, &
