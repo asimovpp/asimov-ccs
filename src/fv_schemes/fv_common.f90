@@ -7,7 +7,7 @@ submodule (fv) fv_common
 
   use types, only : face_locator
   use meshing, only : set_face_location, get_face_area, get_face_normal
-  use petscvec
+  use vec, only: get_vector_data, reset_vector_data
 
   implicit none
 
@@ -37,24 +37,9 @@ contains
     !allocate(u_data(cell_mesh%nlocal))
     !allocate(v_data(cell_mesh%nlocal))
     
-    !call get_vector_data(u%vec, u_data)
-    !call get_vector_data(v%vec, v_data)
     associate (u_vec => u%vec, v_vec => v%vec)
-    select type(u_vec)
-      type is(vector_petsc)
-        call VecGetArrayF90(u_vec%v, u_data, ierr)
-      class default
-        print *, 'invalid vector type'
-        stop
-    end select
-
-    select type(v_vec)
-      type is(vector_petsc)
-        call VecGetArrayF90(v_vec%v, v_data, ierr)
-      class default
-        print *, 'invalid vector type'
-        stop
-    end select
+    call get_vector_data(u_vec, u_data)
+    call get_vector_data(v_vec, v_data)
 
     ! Loop over cells computing advection and diffusion fluxes
     n_int_cells = calc_matrix_nnz()
@@ -63,24 +48,9 @@ contains
     ! Loop over boundaries
     call compute_boundary_coeffs(phi, u_data, v_data, cell_mesh, bcs, cps, M, vec)
     
-    select type(u_vec)
-      type is(vector_petsc)
-        call VecRestoreArrayF90(u_vec%v, u_data, ierr)
-      class default
-        print *, 'invalid vector type'
-        stop
-    end select
-
-    select type(v_vec)
-      type is(vector_petsc)
-        call VecRestoreArrayF90(v_vec%v, v_data, ierr)
-      class default
-        print *, 'invalid vector type'
-        stop
-    end select
+    call reset_vector_data(u_vec, u_data)
+    call reset_vector_data(v_vec, v_data)
     end associate
-    !call reset_vector_data(u%vec, u_data)
-    !call reset_vector_data(v%vec, v_data)
 
   end subroutine compute_fluxes
 
