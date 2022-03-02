@@ -16,6 +16,7 @@ bases:
       io: io_adios2
       io_setup: io_setup_adios2
       meshing: meshing_accessors
+      pv_coupling: pv_coupling_simple
     #options:
       #component: [opt_1, opt_2, opt_3]
   mpi:
@@ -33,3 +34,4 @@ bases:
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
+      pv_coupling: pv_coupling_simple

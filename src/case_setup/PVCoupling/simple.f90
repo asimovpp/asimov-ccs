@@ -14,14 +14,6 @@ program simple
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  class(vector), allocatable, target :: source
-  class(vector), allocatable :: solution
-  class(matrix), allocatable, target :: M
-  class(linear_solver), allocatable :: simple_solver
-
-  type(vector_init_data) :: vec_sizes
-  type(matrix_init_data) :: mat_sizes
-  type(linear_system)    :: simple_linear_system
   type(mesh)             :: square_mesh
   type(bc_config)        :: bcs
 
@@ -38,46 +30,37 @@ program simple
   call sync(par_env)
   call timer(start_time)
 
+  ! Create a square mesh
+  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+
   ! Initialise fields
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
   allocate(central_field :: p)
   allocate(central_field :: pp)
 
-  ! Initialise linear system
-  call initialise(mat_sizes)
-  call initialise(vec_sizes)
-  call initialise(simple_linear_system)
-
-  ! Create coefficient matrix
-  call set_global_size(mat_sizes, square_mesh%nglobal, square_mesh%nglobal, par_env)
-  call set_nnz(mat_sizes, 5)
-  call create_matrix(mat_sizes, M)
-
-  ! Create RHS and solution vectors
+  ! Create field vectors
   call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
-  call create_vector(vec_sizes, source)
-  call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
   call create_vector(vec_sizes, p%vec)
   call create_vector(vec_sizes, pp%vec)
 
-  ! Initialise fields
-  call initialise_fields(par_env, u, v, p)
+  ! Initialise velocity field
+  call initialise_velocity(square_mesh, u, v)
+
+  ! Initialise pressure and pressure-correction fields
+  p%vec(:)  = 0.0_accs_real
+  pp%vec(:) = 0.0_accs_real
 
   ! Solve using SIMPLE algorithm
-  call solve_nonlinear(u, v, p, pp, M, solution, source, square_mesh)
+  call solve_nonlinear(par_env, square_mesh, u, v, p, pp)
 
   ! Clean-up
-  deallocate(source)
-  deallocate(solution)
-  deallocate(M)
   deallocate(u)
   deallocate(v)
   deallocate(p)
   deallocate(pp)
-  deallocate(simple_solver)
 
   call timer(end_time)
 
@@ -89,30 +72,59 @@ program simple
 
 contains
 
-  subroutine initialise_fields(par_env, u, v, p)
+  subroutine initialise_velocity(cell_mesh, u, v)
+
+    use constants, only: add_mode
+    use types, only: vector_values, cell_locator
+    use meshing, only: set_cell_location, get_global_index
+    use fv, only: calc_cell_coords
+    use utils, only: pack_entries, set_values
 
     ! Arguments
-    class(parallel_environment), intent(in) :: par_env
-    class(field), intent(inout) :: u, v, p
+    class(mesh), intent(in) :: cell_mesh
+    class(field), intent(inout) :: u, v
 
     ! Local variables
     integer(accs_int) :: i
+    integer(accs_int) :: row, col
+    integer(accs_int) :: local_idx, self_idx
+    real(accs_real) :: u_val, v_val
+    type(cell_locator) :: self_loc
+    type(vector_values) :: u_vals, v_vals
 
-    ! Create square mesh
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    ! Set mode
+    u_vals%mode = add_mode
+    v_vals%mode = add_mode
 
-    ! Allocate field arrays
-    allocate(u%val(cps,cps))
-    allocate(v%val(cps,cps))
-    allocate(p%val(cps,cps))
+    ! Set alias
+    associate(n_local => cell_mesh%nlocal)
+      ! Allocate temporary arrays for storing global cell indices 
+      allocate(u_vals%idx(n_local))
+      allocate(v_vals%idx(n_local))
 
-    ! Set initial values for fields
-    do i = 1, cps
-        u%val(i,:) = real(i, accs_real)/real(cps, accs_real)
-        v%val(i,:) = -real(i, accs_real)/real(cps, accs_real)
-        p%val(i,:) = 0.0_accs_real
-    end do
+      ! Allocate temporary arrays for storing values
+      allocate(u_vals%val(n_local))
+      allocate(v_vals%val(n_local))
 
-  end subroutine initialise_fields
+      ! Set initial values for velocity fields
+      do local_idx = 1, n_local
+        call set_cell_location(self_loc, cell_mesh, local_idx)
+        call get_global_index(self_loc, self_idx)
+        call calc_cell_coords(self_idx, cps, row, col)
+
+        u_val = real(col, accs_real)/real(cps, accs_real)
+        v_val = -real(row, accs_real)/real(cps, accs_real)
+
+        call pack_entries(u_vals, local_idx, self_idx, u_val)
+        call pack_entries(v_vals, local_idx, self_idx, v_val)
+      end do
+    end associate
+
+    call set_values(u_vals, u%vec)
+    call set_values(v_vals, v%vec)
+
+    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
+
+  end subroutine initialise_velocity
 
 end program simple

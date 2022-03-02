@@ -10,23 +10,61 @@ submodule (pv_coupling) pv_coupling_simple
 
   contains
 
-  module subroutine solve_nonlinear(u, v, p, pp, M, solution, source, cell_mesh)
+  !> @ brief Solve Navier-Stokes equations using the SIMPLE algorithm
+  !
+  !> @param[in,out] u, v   - arrays containing velocity fields in x, y directions
+  !> @param[in,out] p      - array containing pressure values
+  !> @param[in,out] pp     - array containing pressure-correction values
+  !> @param[in,out] M      - coefficient matrix
+  !> @param[in,out] sol    - solution vector
+  !> @param[in,out] source - source vector
+  !> @param[in]     cell_mesh - the mesh
+
+  module subroutine solve_nonlinear(par_env, cell_mesh, u, v, p, pp)
 
     ! Arguments
-    class(field), intent(inout) :: u, v, p
-    class(matrix), intent(inout) :: M
-    class(vector), intent(inout) :: solution, source
+    class(parallel_environment), intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh
-
+    class(field), intent(inout) :: u, v, p, pp
+    
     ! Local variables
     integer(accs_int) :: i
+    class(vector), allocatable, target :: source
+    class(vector), allocatable :: sol
+    class(matrix), allocatable, target :: M
+    
+
+    type(vector_init_data) :: vec_sizes
+    type(matrix_init_data) :: mat_sizes
+    type(linear_system)    :: lin_system
+
+    ! Initialise linear system
+    call initialise(mat_sizes)
+    call initialise(vec_sizes)
+    call initialise(lin_system)
+
+    ! Create coefficient matrix
+    call set_global_size(mat_sizes, cell_mesh%nglobal, cell_mesh%nglobal, par_env)
+    call set_nnz(mat_sizes, 5)
+    call create_matrix(mat_sizes, M)
+
+    ! Create RHS and solution vectors
+    call set_global_size(vec_sizes, cell_mesh%nglobal, par_env)
+    call create_vector(vec_sizes, source)
+    call create_vector(vec_sizes, sol)
 
     outerloop: do i = it_start, it_end
-      call calculate_momentum(u, v, cell_mesh, bcs, cps, M, source)
+      ! Solve momentum equation with guessed pressure and velocity fields
+      call calculate_velocity(cell_mesh, bcs, cps, M, source, lin_system u, v)
 
+      ! Calculate pressure correction from mass imbalance
       call calculate_pressure_correction()
 
+      ! Update pressure field with pressure correction
       call update_pressure()
+
+      ! Update velocity with velocity correction
+      call update_velocity(u, v, pp)
 
       ! Todo:
       !call calculate_scalars()
@@ -38,21 +76,23 @@ submodule (pv_coupling) pv_coupling_simple
 
     end do outerloop
 
-  end subroutine
+  end subroutine solve_nonlinear
 
-  subroutine calculate_momentum(u, v, cell_mesh, bcs, cps, M, vec)
+  subroutine calculate_velocity(cell_mesh, bcs, cps, M, vec, lin_sys, u, v)
 
     ! Arguments
-    type(field), intent(inout)    :: u, v
     type(mesh), intent(in)        :: cell_mesh
     type(bc_config), intent(in)   :: bcs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout)  :: M
     class(vector), intent(inout)  :: vec
+    type(linear_system), intent(inout) :: lin_sys
+    type(field), intent(inout)    :: u, v
 
     ! Local variables
+    class(linear_solver), allocatable :: lin_solver
     
-    ! Calculate fluxes
+    ! Calculate fluxes and populate coefficient matrix
     call compute_fluxes(u, v, cell_mesh, bcs, cps, M, vec)
 
     ! Assembly of coefficient matrix and source vector
@@ -60,16 +100,27 @@ submodule (pv_coupling) pv_coupling_simple
     call update(vec)
 
     ! Create linear solver
-    call set_linear_system(scalar_linear_system, vec, scalar, M, par_env)
-    call create_solver(scalar_linear_system, scalar_solver)
+    call set_linear_system(lin_sys, vec, u%vec, M, par_env)
+    call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
-    call solve(scalar_solver)
+    call solve(lin_solver)
 
-  end subroutine calculate_momentum
+    ! Clean up
+    deallocate(lin_solver)
+
+  end subroutine calculate_velocity
 
 
-  subroutine calculate_pressure_correction()
+  subroutine calculate_pressure_correction(cell_mesh, u, v, pp)
+
+    ! Arguments
+    class(mesh), intent(in) :: cell_mesh
+    class(field), intent(in) :: u, v
+    class(field), intent(out) :: pp
+
+    ! Local variables
+
 
     mat_coeffs%mode = insert_mode
     
@@ -126,16 +177,58 @@ submodule (pv_coupling) pv_coupling_simple
 
       deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
 
-
     end do
+
+    call update(M)
+    call update(b)
+
+    ! Create linear solver
+    call set_linear_system(lin_system, b, p, M, par_env)
+    call create_solver(lin_system, lin_solver)
+    call solve(lin_solver)
+
 
   end subroutine calculate_pressure_correction
 
 
-  subroutine update_pressure()
+  subroutine update_pressure(cell_mesh, pp, p)
+
+    ! Arguments
+    class(mesh), intent(in) :: cell_mesh
+    class(field), intent(in) :: pp
+    class(field), intent(inout) :: p
 
 
+    ! Local variables
+    integer(accs_int) :: icell
+    real(accs_real) :: alpha   !< Under-relaxation factor
+
+
+    ! Loop over cells
+    do icell = 1, cell_mesh%nlocal
+      p(icell) = p(icell) + alpha*pp(icell)
+    end do
+    
+     
   end subroutine update_pressure
+
+  subroutine update_velocity()
+
+    ! Arguments
+
+
+    ! Local variables
+
+
+    ! Loop over cells
+    do icell = 1, cell_mesh%nlocal
+      
+    end do
+
+
+
+
+  end subroutine update_velocity
 
 
   subroutine calculate_scalars()
