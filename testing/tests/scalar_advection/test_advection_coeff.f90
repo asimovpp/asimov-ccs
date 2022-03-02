@@ -9,20 +9,19 @@ program test_advection_coeff
   use constants, only: ndim, insert_mode
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
   use mesh_utils, only : build_square_mesh
-  use vec, only : create_vector
+  use vec, only : create_vector, get_vector_data, reset_vector_data
   use fv, only: calc_advection_coeff, calc_cell_coords
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
                      get_global_index, get_face_area, get_face_normal
   use utils, only : update, initialise, &
                 set_global_size, pack_entries, set_values
   use petsctypes, only: vector_petsc
-  use petscvec
 
   type(mesh) :: square_mesh
   type(vector_init_data) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
-  integer(accs_int), parameter :: cps = 5
+  integer(accs_int), parameter :: cps = 50
   integer(accs_int) :: self_idx, ngb_idx, local_idx
   integer(accs_int) :: ngb
   integer(accs_int) :: direction, discretisation
@@ -61,42 +60,16 @@ program test_advection_coeff
       call set_velocity_fields(square_mesh, direction, u, v)
 
       associate (u_vec => u%vec, v_vec => v%vec)
-      select type(u_vec)
-        type is(vector_petsc)
-          call VecGetArrayF90(u_vec%v, u_data, ierr)
-        class default
-          print *, 'invalid vector type'
-          stop
-      end select
-
-      select type(v_vec)
-        type is(vector_petsc)
-          call VecGetArrayF90(v_vec%v, v_data, ierr)
-        class default
-          print *, 'invalid vector type'
-          stop
-      end select
+      call get_vector_data(u_vec, u_data)
+      call get_vector_data(v_vec, v_data)
 
       do ngb = 1, 4
         call get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
         call run_advection_coeff_test(scalar, u_data, v_data, self_idx, ngb_idx, face_area, normal)
       end do
-
-      select type(u_vec)
-        type is(vector_petsc)
-          call VecRestoreArrayF90(u_vec%v, u_data, ierr)
-        class default
-          print *, 'invalid vector type'
-          stop
-      end select
-
-      select type(v_vec)
-        type is(vector_petsc)
-          call VecRestoreArrayF90(v_vec%v, v_data, ierr)
-        class default
-          print *, 'invalid vector type'
-          stop
-      end select
+      
+      call reset_vector_data(u_vec, u_data)
+      call reset_vector_data(v_vec, v_data)
       end associate
 
       call tidy_velocity_fields(scalar, u, v)
