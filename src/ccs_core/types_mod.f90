@@ -24,10 +24,8 @@ module types
 
   !> @brief Container type for data required to initialise a vector.
   type, public :: vector_init_data
-    !> The vector size can be specified either globally or per-process
-    integer(accs_int) :: nglob !> The global vector size (set -1 to ignore)
-    integer(accs_int) :: nloc  !> The local vector size (set -1 to ignore)
     class(parallel_environment), pointer :: par_env !> The parallel environment
+    type(mesh), pointer :: mesh !> The mesh object to build the vector on
   end type vector_init_data
 
 

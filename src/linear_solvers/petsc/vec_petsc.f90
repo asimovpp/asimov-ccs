@@ -20,7 +20,7 @@ contains
   module subroutine create_vector(vec_dat, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
-    use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
+    use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
     
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
@@ -34,16 +34,13 @@ contains
 
         select type(par_env => vec_dat%par_env)
         type is(parallel_environment_mpi)
-          call VecCreate(par_env%comm, v%v, ierr)
 
-          if (vec_dat%nloc >= 0) then
-            call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
-          else if (vec_dat%nglob > 0) then
-            call VecSetSizes(v%v, PETSC_DECIDE, vec_dat%nglob, ierr)
-          else
-            print *, "ERROR: invalid vector creation!"
-            stop
-          end if
+          associate(mesh => vec_dat%mesh)
+            call VecCreateGhost(par_env%comm, &
+                 mesh%nlocal, PETSC_DECIDE, &
+                 mesh%nhalo, mesh%idx_global(mesh%nlocal:mesh%ntotal), &
+                 v%v, ierr)
+          end associate
         
           call VecSetFromOptions(v%v, ierr)
           call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
