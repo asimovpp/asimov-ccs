@@ -31,12 +31,8 @@ contains
     class(vector), intent(inout) :: vec   
 
     integer(accs_int) :: n_int_cells
-    integer(accs_int) :: ierr
     real(accs_real), dimension(:), pointer :: u_data, v_data
 
-    !allocate(u_data(cell_mesh%nlocal))
-    !allocate(v_data(cell_mesh%nlocal))
-    
     associate (u_vec => u%vec, v_vec => v%vec)
     call get_vector_data(u_vec, u_data)
     call get_vector_data(v_vec, v_data)
