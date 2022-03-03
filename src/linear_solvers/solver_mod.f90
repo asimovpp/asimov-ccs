@@ -6,6 +6,8 @@ module solver
 
   use types, only : linear_solver, linear_system, vector, matrix
   use parallel_types, only: parallel_environment
+  use vec, only : vec_axpy, vec_norm
+  use mat, only : mat_axpy, mat_norm
   
   implicit none
 
@@ -15,6 +17,8 @@ module solver
   public :: solve
   public :: initialise_linear_system
   public :: set_linear_system
+  public :: axpy
+  public :: norm
   
   interface
 
@@ -56,5 +60,17 @@ module solver
     end subroutine
 
   end interface
+  
+  !> @brief Generic interface to perform the AXPY operation (a*x + y)
+  interface axpy
+    module procedure vec_axpy
+    module procedure mat_axpy
+  end interface axpy
+  
+  !> @brief Generic interface to compute the norm of an element
+  interface norm
+    module procedure vec_norm
+    module procedure mat_norm
+  end interface norm
   
 end module solver

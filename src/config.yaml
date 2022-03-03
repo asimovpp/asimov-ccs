@@ -1,4 +1,4 @@
-main: poisson
+main: scalar_advection
 base: mpi_petsc
 #options:
   #component: opt_2

@@ -18,11 +18,13 @@ module vec
   public :: update_vector
   public :: begin_update_vector
   public :: end_update_vector
-  public :: axpy
-  public :: norm
+  public :: vec_axpy
+  public :: vec_norm
   public :: pack_one_vector_element
   public :: initialise_vector
   public :: set_vector_size
+  public :: get_vector_data
+  public :: restore_vector_data
 
   interface
      
@@ -97,7 +99,7 @@ module vec
     !> @param[in]     alpha - a scalar value
     !> @param[in]     x     - an input vector
     !> @param[in,out] y     - vector serving as input, overwritten with result
-    module subroutine axpy(alpha, x, y)
+    module subroutine vec_axpy(alpha, x, y)
       real(accs_real), intent(in) :: alpha
       class(vector), intent(in) :: x
       class(vector), intent(inout) :: y
@@ -110,7 +112,7 @@ module vec
     !!                         norm_type=2.
     !> @param[out] n         - the computed norm returned as the result of the function
     !!                         call.
-    module function norm(v, norm_type) result(n)
+    module function vec_norm(v, norm_type) result(n)
       class(vector), intent(in) :: v
       integer(accs_int), intent(in) :: norm_type
       real(accs_real) :: n
@@ -136,6 +138,24 @@ module vec
       class(mesh), target, intent(in) :: geometry
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
+
+    !> @brief Gets the data in a given vector
+    !
+    !> @param[in] vec   - the vector to get data from
+    !> @param[in] array - an array to store the data in
+    module subroutine get_vector_data(vec, array)
+      class(vector), intent(in) :: vec
+      real(accs_real), dimension(:), pointer, intent(out) :: array
+    end subroutine get_vector_data
+
+    !> @brief Resets the vector data if required for further processing
+    !
+    !> @param[in] vec   - the vector to reset
+    !> @param[in] array - the array containing the data to restore
+    module subroutine restore_vector_data(vec, array)
+      class(vector), intent(in) :: vec
+      real(accs_real), dimension(:), pointer, intent(in) :: array
+    end subroutine restore_vector_data
 
   end interface
   

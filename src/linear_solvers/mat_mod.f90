@@ -22,6 +22,8 @@ module mat
   public :: initialise_matrix
   public :: set_matrix_size
   public :: set_nnz
+  public :: mat_axpy
+  public :: mat_norm
 
   interface
 
@@ -83,6 +85,33 @@ module mat
        integer(accs_int), intent(in) :: col
        real(accs_real), intent(in) :: coeff
      end subroutine pack_one_matrix_coefficient
+
+    !> @brief Interface to perform the AXPY matrix operation.
+    !
+    !> @details Performs the AXPY operation
+    !!          y[i] = a * x[i] + y[i]
+    !
+    !> @param[in]     alpha - a scalar value
+    !> @param[in]     x     - an input matrix
+    !> @param[in,out] y     - matrix serving as input, overwritten with result
+    module subroutine mat_axpy(alpha, x, y)
+      real(accs_real), intent(in) :: alpha
+      class(matrix), intent(in) :: x
+      class(matrix), intent(inout) :: y
+    end subroutine
+
+    !> @brief Interface to compute the norm of a matrix
+    !
+    !> @param[in]  m         - the matrix
+    !> @param[in]  norm_type - which norm to compute? Currently supported is the 2 norm:
+    !!                         norm_type=2.
+    !> @param[out] n         - the computed norm returned as the result of the function
+    !!                         call.
+    module function mat_norm(M, norm_type) result(n)
+      class(matrix), intent(in) :: M
+      integer(accs_int), intent(in) :: norm_type
+      real(accs_real) :: n
+    end function
      
      !> @brief Interface to set values in a matrix.
      !
