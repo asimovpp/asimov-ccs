@@ -115,10 +115,9 @@ program test_advection_coeff
 
   !> @brief Sets the velocity field in the desired direction and discretisation
   !
-  !> @param[in] direction      - Integer indicating the direction of the velocity field
-  !> @param[in] cps            - Number of cells per side in (square) mesh
-  !> @param[in] discretisation - Integer indicating which discretisation scheme to use
-  !> @param[out] u, v          - The velocity fields in x and y directions
+  !> @param[in] cell_mesh - The mesh structure
+  !> @param[in] direction - Integer indicating the direction of the velocity field
+  !> @param[out] u, v     - The velocity fields in x and y directions
   subroutine set_velocity_fields(cell_mesh, direction, u, v)
     class(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: direction
@@ -162,7 +161,8 @@ program test_advection_coeff
 
   !> @brief Deallocates the velocity fields
   !
-  !> @param[in] u, v - The velocity fields to deallocate
+  !> @param[in] scalar - The scalar field structure
+  !> @param[in] u, v   - The velocity fields to deallocate
   subroutine tidy_velocity_fields(scalar, u, v)
     class(field), allocatable :: scalar
     class(field), allocatable :: u, v
@@ -174,11 +174,12 @@ program test_advection_coeff
 
   !> @brief Checks whether advection coefficient is correct for given velocity fields, cell and neighbour
   !
-  !> @param[in] u, v              - The velocity fields
-  !> @param[in] self_idx          - The given cell's global index
-  !> @param[in] ngb_idx           - The neighbour's global index
-  !> @param[in] face_area - The surface area of the face between the cell and neighbour
-  !> @param[in] normal            - The normal to the face between the cell and neighbour
+  !> @param[in] scalar      - The scalar field structure
+  !> @param[in] u, v        - Arrays containing the velocity fields
+  !> @param[in] self_idx    - The given cell's global index
+  !> @param[in] ngb_idx     - The neighbour's global index
+  !> @param[in] face_area   - The surface area of the face between the cell and neighbour
+  !> @param[in] face_normal - The normal to the face between the cell and neighbour
   subroutine run_advection_coeff_test(phi, u, v, self_idx, ngb_idx, face_area, face_normal)
     class(field), intent(in) :: phi
     real(accs_real), dimension(:), intent(in) :: u, v

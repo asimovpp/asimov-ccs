@@ -13,6 +13,10 @@ module boundary_conditions
 
   contains
 
+  !> @brief Wrapper for reading config file and assigning data to BC structure
+  !
+  !> @param[in] filename - name of config file
+  !> @param[out] bcs     - boundary conditions structure
   subroutine read_bc_config(filename, bcs) 
     use yaml, only: parse, error_length
     character(len=*), intent(in) :: filename
@@ -30,6 +34,10 @@ module boundary_conditions
     call get_bcs(config_file, bcs)
   end subroutine read_bc_config
   
+  !> @brief Assigns bc data to structure
+  !
+  !> @param[in] config_file - pointer to configuration file
+  !> @param[out] bcs        - boundary conditions structure
   subroutine get_bcs(config_file, bcs)
     use bc_constants
     use read_config, only: get_boundaries

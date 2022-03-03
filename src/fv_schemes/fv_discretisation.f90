@@ -11,12 +11,14 @@ contains
   
   !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
-  !> @param[in] ngb_idx   - global cell neighbour index
-  !> @param[in] self_idx  - global cell index
-  !> @param[in] face_area - area of face between self and neighbour
-  !> @param[in,out] coeff - advection coefficient to be calculated
-  !> @param[in] u, v      - velocity fields in x, y directions
-  !> @param[in] bc        - flag indicating whether cell is on boundary
+  !> @param[in] phi         - scalar field
+  !> @param[in] ngb_idx     - global cell neighbour index
+  !> @param[in] self_idx    - global cell index
+  !> @param[in] face_area   - area of face between self and neighbour
+  !> @param[in] face_normal - face normal array
+  !> @param[in] u, v        - arrays of velocity fields in x, y directions
+  !> @param[in] bc          - flag indicating whether cell is on boundary
+  !> @param[out] coeff      - advection coefficient to be calculated
   module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
     type(central_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
@@ -42,12 +44,14 @@ contains
   
   !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
-  !> @param[in] ngb_idx   - global cell neighbour index
-  !> @param[in] self_idx  - global cell index
-  !> @param[in] face_area - area of face between self and neighbour
-  !> @param[in,out] coeff - advection coefficient to be calculated
-  !> @param[in] u, v      - velocity fields in x, y directions
-  !> @param[in] bc        - flag indicating whether cell is on boundary
+  !> @param[in] phi         - scalar field
+  !> @param[in] ngb_idx     - global cell neighbour index
+  !> @param[in] self_idx    - global cell index
+  !> @param[in] face_area   - area of face between self and neighbour
+  !> @param[in] face_normal - face normal array
+  !> @param[in] u, v        - arrays of velocity fields in x, y directions
+  !> @param[in] bc          - flag indicating whether cell is on boundary
+  !> @param[out] coeff      - advection coefficient to be calculated
   module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
     type(upwind_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx

@@ -26,14 +26,16 @@ module fv
 
   interface
 
-  !> @brief Calculates advection coefficient for neighbouring cell using the CDS scheme
+  !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
-  !> @param[in] ngb_idx - neighbour index
-  !> @param[in] self_idx - cell index
-  !> @param[in] face_area - area of face between cell and neighbour
-  !> @param[in,out] coeff - advection coefficient that is computed
-  !> @param[in] u, v - velocity fields in x, y directions
-  !> @param[in] bc - flag to indicate boundary
+  !> @param[in] phi         - scalar field
+  !> @param[in] ngb_idx     - global cell neighbour index
+  !> @param[in] self_idx    - global cell index
+  !> @param[in] face_area   - area of face between self and neighbour
+  !> @param[in] face_normal - face normal array
+  !> @param[in] u, v        - arrays of velocity fields in x, y directions
+  !> @param[in] bc          - flag indicating whether cell is on boundary
+  !> @param[out] coeff      - advection coefficient to be calculated
   module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
     type(central_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
@@ -44,14 +46,16 @@ module fv
     real(accs_real), intent(out) :: coeff
   end subroutine calc_advection_coeff_cds
   
-  !> @brief Calculates advection coefficient for neighbouring cell using the UDS scheme
+  !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
-  !> @param[in] ngb_idx - neighbour index
-  !> @param[in] self_idx - cell index
-  !> @param[in] face_area - area of face between cell and neighbour
-  !> @param[in,out] coeff - advection coefficient that is computed
-  !> @param[in] u, v - velocity fields in x, y directions
-  !> @param[in] bc - flag to indicate boundary
+  !> @param[in] phi         - scalar field
+  !> @param[in] ngb_idx     - global cell neighbour index
+  !> @param[in] self_idx    - global cell index
+  !> @param[in] face_area   - area of face between self and neighbour
+  !> @param[in] face_normal - face normal array
+  !> @param[in] u, v        - arrays of velocity fields in x, y directions
+  !> @param[in] bc          - flag indicating whether cell is on boundary
+  !> @param[out] coeff      - advection coefficient to be calculated
   module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
     type(upwind_field), intent(in) :: phi
     integer(accs_int), intent(in) :: ngb_idx, self_idx
@@ -64,9 +68,10 @@ module fv
 
   !> @brief Sets the diffusion coefficient
   !
-  !> @param[in] self_idx - the current cell index
-  !> @param[in] ngb_idx  - the neigbouring cell index
-  !> @param[out] coeff   - the diffusion coefficient
+  !> @param[in] local_self_idx - the local cell index
+  !> @param[in] local_ngb_idx  - the local neigbouring cell index
+  !> @param[in] cell_mesh      - the mesh structure
+  !> @param[out] coeff         - the diffusion coefficient
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
     integer(accs_int), intent(in) :: local_self_idx
     integer(accs_int), intent(in) :: local_ngb_idx
@@ -76,10 +81,12 @@ module fv
 
   !> @brief Computes fluxes and assign to matrix and RHS
   !
-  !> @param[in] u, v      - arrays containing velocity fields in x, y directions
+  !> @param[in] phi       - scalar field structure
+  !> @param[in] u, v      - field structures in x, y directions
   !> @param[in] cell_mesh - the mesh being used
+  !> @param[in] bcs       - the boundary conditions structure being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
-  !> @param[in,out] mat   - Data structure containing matrix to be filled
+  !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
   module subroutine compute_fluxes(phi, u, v, cell_mesh, bcs, cps, M, vec)
     class(field), intent(in) :: phi
@@ -92,13 +99,13 @@ module fv
   end subroutine
 
 
-  !> @brief Calculates mass flux across given edge. Note: assumes rho = 1 and uniform grid
+  !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   !
-  !> @param[in] edge_len - length of edge
-  !> @param[in] u, v - velocity field in x, y directions
-  !> @param[in] ngb_row, ngb_col - row and column index of neighbouring cell
-  !> @param[in] self_row, self_col - row and column index of cell
-  !> @param[in] bc_flag - indicates whether a cell is on a boundary and which boundary it is.
+  !> @param[in] u, v     - arrays containing x, y velocities
+  !> @param[in] ngb_idx  - Row and column of given neighbour in mesh
+  !> @param[in] self_idx - Row and column of given cell in mesh
+  !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
+  !> @param[out] flux    - The flux across the boundary
   module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
@@ -109,11 +116,12 @@ module fv
     real(accs_real) :: flux
   end function calc_mass_flux
 
-  !> @brief Calculates the row and column indices from flattened vector index
+  !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
-  !> @param[in] idx - cell index
-  !> @param[in] cps - number of cells per side in mesh
-  !> @param[out] row, col - the row and column of the cell in the mesh
+  !> @param[in] idx  - cell index
+  !> @param[in] cps  - number of cells per side
+  !> @param[out] row - cell row within mesh
+  !> @param[out] col - cell column within mesh
   module subroutine calc_cell_coords(idx, cps, row, col)
     integer(accs_int), intent(in) :: idx, cps
     integer(accs_int), intent(out) :: row, col

@@ -15,10 +15,12 @@ contains
 
   !> @brief Computes fluxes and assign to matrix and RHS
   !
-  !> @param[in] u, v      - arrays containing velocity fields in x, y directions
+  !> @param[in] phi       - scalar field structure
+  !> @param[in] u, v      - field structures in x, y directions
   !> @param[in] cell_mesh - the mesh being used
+  !> @param[in] bcs       - the boundary conditions structure being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
-  !> @param[in,out] mat   - Data structure containing matrix to be filled
+  !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
   module subroutine compute_fluxes(phi, u, v, cell_mesh, bcs, cps, M, vec)
     use petsctypes, only: vector_petsc
@@ -63,11 +65,11 @@ contains
 
   !> @brief Computes the matrix coefficient for cells in the interior of the mesh
   !
-  !> @param[in] u, v        - Field structures containing x, y velocities
+  !> @param[in] phi         - scalar field structure
+  !> @param[in] u, v        - arrays containing x, y velocities
   !> @param[in] cell_mesh   - Mesh structure
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
-  !> @param[in] cps         - number of cells per side
-  !> @param[in,out] mat     - Matrix structure being assigned
+  !> @param[in,out] M       - Matrix structure being assigned
   subroutine compute_interior_coeffs(phi, u, v, cell_mesh, n_int_cells, M)
     use constants, only : add_mode
     use types, only: matrix_values, cell_locator, face_locator, neighbour_locator
@@ -182,8 +184,10 @@ contains
 
   !> @brief Computes the matrix coefficient for cells on the boundary of the mesh
   !
-  !> @param[in] u, v        - Field structures containing x, y velocities
+  !> @param[in] phi         - scalar field structure
+  !> @param[in] u, v        - arrays containing x, y velocities
   !> @param[in] cell_mesh   - Mesh structure
+  !> @param[in] bcs         - boundary conditions structure
   !> @param[in] cps         - number of cells per side
   !> @param[in,out] M       - Matrix structure being assigned
   !> @param[in,out] b       - vector structure being assigned
@@ -273,9 +277,10 @@ contains
 
   !> @brief Sets the diffusion coefficient
   !
-  !> @param[in] self_idx - the current cell index
-  !> @param[in] ngb_idx  - the neigbouring cell index
-  !> @param[out] coeff   - the diffusion coefficient
+  !> @param[in] local_self_idx - the local cell index
+  !> @param[in] local_ngb_idx  - the local neigbouring cell index
+  !> @param[in] cell_mesh      - the mesh structure
+  !> @param[out] coeff         - the diffusion coefficient
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
     integer(accs_int), intent(in) :: local_self_idx
     integer(accs_int), intent(in) :: local_ngb_idx
@@ -284,7 +289,7 @@ contains
 
     type(face_locator) :: face_location
     real(accs_real) :: face_area
-    real(accs_real), parameter :: diffusion_factor = 1.e-2_accs_real
+    real(accs_real), parameter :: diffusion_factor = 1.e-2_accs_real ! ALEXEI: temporarily hard-coded
 
     call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
     call get_face_area(face_location, face_area)
@@ -294,12 +299,11 @@ contains
 
   !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   !
-  !> @param[in] edge_len           - Edge length
-  !> @param[in] u, v               - Field structures containing x, y velocities
-  !> @param[in] ngb_row, ngb_col   - Row and column of given neighbour in mesh
-  !> @param[in] self_row, self_col - Row and column of given cell in mesh
-  !> @param[in] bc_flag            - Flag to indicate if neighbour is a boundary cell
-  !> @param[out] flux              - The flux across the boundary
+  !> @param[in] u, v     - arrays containing x, y velocities
+  !> @param[in] ngb_idx  - Row and column of given neighbour in mesh
+  !> @param[in] self_idx - Row and column of given cell in mesh
+  !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
+  !> @param[out] flux    - The flux across the boundary
   module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
@@ -312,6 +316,7 @@ contains
 
     flux = 0.0_accs_real
     
+    ! ALEXEI: Write more general implementation handling BCs
     if (bc_flag == 0) then
       flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area * face_normal(1) + &
              0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area * face_normal(2)

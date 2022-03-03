@@ -73,10 +73,9 @@ program test_compute_fluxes
 
   !> @brief Sets the velocity field in the desired direction and discretisation
   !
-  !> @param[in] direction      - Integer indicating the direction of the velocity field
-  !> @param[in] cps            - Number of cells per side in (square) mesh
-  !> @param[in] discretisation - Integer indicating which discretisation scheme to use
-  !> @param[out] u, v          - The velocity fields in x and y directions
+  !> @param[in] cell_mesh - The mesh structure
+  !> @param[in] direction - Integer indicating the direction of the velocity field
+  !> @param[out] u, v     - The velocity fields in x and y directions
   subroutine set_velocity_fields(cell_mesh, direction, u, v)
     use meshing, only: set_cell_location, get_global_index
     class(mesh), intent(in) :: cell_mesh
@@ -121,7 +120,8 @@ program test_compute_fluxes
 
   !> @brief Deallocates the velocity fields
   !
-  !> @param[in] u, v - The velocity fields to deallocate
+  !> @param[in] scalar - The scalar field structure
+  !> @param[in] u, v   - The velocity fields to deallocate
   subroutine tidy_velocity_fields(scalar, u, v)
     class(field), allocatable :: scalar
     class(field), allocatable :: u, v
@@ -133,7 +133,8 @@ program test_compute_fluxes
 
   !> @brief Compares the matrix computed for a given velocity field and discretisation to the known solution
   !
-  !> @param[in] u, v           - The velocity fields
+  !> @param[in] scalar         - The scalar field structure
+  !> @param[in] u, v           - The velocity field structures
   !> @param[in] bcs            - The BC structure
   !> @param[in] cell_mesh      - The mesh structure
   !> @param[in] cps            - The number of cells per side in the (square) mesh 
@@ -201,6 +202,7 @@ program test_compute_fluxes
   !> @param[in] cell_mesh      - The (square) mesh
   !> @param[in] flow           - Integer indicating flow direction
   !> @param[in] discretisation - Integer indicating the discretisation scheme being used
+  !> @param[in] cps            - Number of cells per side in mesh
   !> @param[out] M             - The resulting matrix
   !> @param[out] b             - The resulting RHS vector
   subroutine compute_exact_matrix(cell_mesh, flow, discretisation, cps, M, b)
