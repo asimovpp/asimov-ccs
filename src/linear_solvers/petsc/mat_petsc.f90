@@ -279,7 +279,7 @@ contains
   !> @param[in,out] y     - PETSc matrix serving as input, overwritten with result
   module subroutine mat_axpy(alpha, x, y)
 
-    use petscmat, only : MatAXPY, UNKNOWN_NONZERO_PATTERN
+    use petscmat, only : MatAXPY, DIFFERENT_NONZERO_PATTERN
     
     real(accs_real), intent(in) :: alpha
     class(matrix), intent(in) :: x
@@ -294,7 +294,7 @@ contains
           type is (matrix_petsc)
 
             ! PETSc performs AXPY as YPAX, with result stored in Y.
-            call MatAXPY(y%M, alpha, x%M, UNKNOWN_NONZERO_PATTERN, ierr)
+            call MatAXPY(y%M, alpha, x%M, DIFFERENT_NONZERO_PATTERN, ierr)
 
           class default
             print *, "Unknown matrix type!"
