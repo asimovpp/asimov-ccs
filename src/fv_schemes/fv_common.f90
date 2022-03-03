@@ -7,7 +7,7 @@ submodule (fv) fv_common
 
   use types, only : face_locator
   use meshing, only : set_face_location, get_face_area, get_face_normal
-  use vec, only: get_vector_data, reset_vector_data
+  use vec, only: get_vector_data, restore_vector_data
 
   implicit none
 
@@ -36,18 +36,18 @@ contains
     real(accs_real), dimension(:), pointer :: u_data, v_data
 
     associate (u_vec => u%vec, v_vec => v%vec)
-    call get_vector_data(u_vec, u_data)
-    call get_vector_data(v_vec, v_data)
+      call get_vector_data(u_vec, u_data)
+      call get_vector_data(v_vec, v_data)
 
-    ! Loop over cells computing advection and diffusion fluxes
-    n_int_cells = calc_matrix_nnz()
-    call compute_interior_coeffs(phi, u_data, v_data, cell_mesh, n_int_cells, M)
+      ! Loop over cells computing advection and diffusion fluxes
+      n_int_cells = calc_matrix_nnz()
+      call compute_interior_coeffs(phi, u_data, v_data, cell_mesh, n_int_cells, M)
 
-    ! Loop over boundaries
-    call compute_boundary_coeffs(phi, u_data, v_data, cell_mesh, bcs, cps, M, vec)
-    
-    call reset_vector_data(u_vec, u_data)
-    call reset_vector_data(v_vec, v_data)
+      ! Loop over boundaries
+      call compute_boundary_coeffs(phi, u_data, v_data, cell_mesh, bcs, cps, M, vec)
+      
+      call restore_vector_data(u_vec, u_data)
+      call restore_vector_data(v_vec, v_data)
     end associate
 
   end subroutine compute_fluxes

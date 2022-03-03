@@ -80,6 +80,7 @@ module boundary_conditions
           stop 
       end select
     end do
+    ! ALEXEI: since we are working in 2D for now we only need a subset of the vectors specified
     bcs%endpoints(:,:) = bc_data(2:,:2)
   end subroutine get_bcs
 end module boundary_conditions

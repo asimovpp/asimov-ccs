@@ -298,7 +298,7 @@ contains
   !
   !> @param[in] vec   - the vector to reset
   !> @param[in] array - the array containing the data to restore
-  module subroutine reset_vector_data(vec, array)
+  module subroutine restore_vector_data(vec, array)
     use petscvec
     class(vector), intent(in) :: vec
     real(accs_real), dimension(:), pointer, intent(in) :: array
@@ -311,7 +311,7 @@ contains
         print *, 'invalid vector type'
         stop
     end select
-  end subroutine reset_vector_data
+  end subroutine restore_vector_data
 
 
 end submodule vec_petsc

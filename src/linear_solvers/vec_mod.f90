@@ -25,7 +25,7 @@ module vec
   public :: set_global_vector_size
   public :: set_local_vector_size
   public :: get_vector_data
-  public :: reset_vector_data
+  public :: restore_vector_data
 
   interface
      
@@ -163,10 +163,10 @@ module vec
     !
     !> @param[in] vec   - the vector to reset
     !> @param[in] array - the array containing the data to restore
-    module subroutine reset_vector_data(vec, array)
+    module subroutine restore_vector_data(vec, array)
       class(vector), intent(in) :: vec
       real(accs_real), dimension(:), pointer, intent(in) :: array
-    end subroutine reset_vector_data
+    end subroutine restore_vector_data
 
     end interface
   
