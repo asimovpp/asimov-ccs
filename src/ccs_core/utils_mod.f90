@@ -10,7 +10,7 @@ module utils
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
                   initialise_vector, set_vector_size, pack_one_vector_element
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
-                  initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
+                  initialise_matrix, finalise_matrix, set_matrix_size, &
                   pack_one_matrix_coefficient
   use solver, only: initialise_linear_system
   use types, only : vector, matrix
@@ -74,13 +74,13 @@ module utils
   !> @brief Generic interface to set global vector and matrix sizes
   interface set_global_size
     module procedure set_vector_size
-    module procedure set_global_matrix_size
+    module procedure set_matrix_size
   end interface set_global_size
 
   !> @brief Generic interface to set local vector and matrix sizes
   interface set_local_size
     module procedure set_vector_size
-    module procedure set_local_matrix_size
+    module procedure set_matrix_size
   end interface set_local_size
 
   !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
