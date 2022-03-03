@@ -351,4 +351,36 @@ contains
     
   end function
 
+  !> @brief Extract the diagonal elements of a matrix and store in a vector
+  !
+  !> @param[in]  M      - the PETSc matrix
+  !> @param[out] D      - the PETSc vector containing matrix diagonal elements
+  module subroutine get_matrix_diagonal(M, D)
+
+    use petscmat, only: MatGetDiagonal
+
+    class(matrix), intent(in)  :: M
+    class(vector), intent(out) :: D
+
+    integer(accs_err) :: ierr !> Error code
+
+    select type (M)
+      type is (matrix_petsc)
+
+        select type (D)
+          type is (vector_petsc)
+            call MatGetDiagonal(M, D, ierr)
+
+          class default
+            print *, "Unknown vector type!"
+            stop
+        end select
+
+      class default
+        print *, "Unknown matrix type!"
+        stop
+    end select
+
+  end subroutine
+
 end submodule mat_petsc

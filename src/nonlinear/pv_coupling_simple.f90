@@ -12,14 +12,11 @@ submodule (pv_coupling) pv_coupling_simple
 
   !> @ brief Solve Navier-Stokes equations using the SIMPLE algorithm
   !
+  !> @param[in]  par_env   - parallel environment
+  !> @param[in]  cell_mesh - the mesh
   !> @param[in,out] u, v   - arrays containing velocity fields in x, y directions
   !> @param[in,out] p      - array containing pressure values
   !> @param[in,out] pp     - array containing pressure-correction values
-  !> @param[in,out] M      - coefficient matrix
-  !> @param[in,out] sol    - solution vector
-  !> @param[in,out] source - source vector
-  !> @param[in]     cell_mesh - the mesh
-
   module subroutine solve_nonlinear(par_env, cell_mesh, u, v, p, pp)
 
     ! Arguments
@@ -32,8 +29,8 @@ submodule (pv_coupling) pv_coupling_simple
     class(vector), allocatable, target :: source
     class(vector), allocatable :: sol
     class(matrix), allocatable, target :: M
+    class(vector), allocatable :: invAu, invAv
     
-
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
     type(linear_system)    :: lin_system
@@ -53,18 +50,22 @@ submodule (pv_coupling) pv_coupling_simple
     call create_vector(vec_sizes, source)
     call create_vector(vec_sizes, sol)
 
+    ! Create vectors for storing inverse of velocity central coefficients
+    call create_vector(vec_sizes, invAu)
+    call create_vector(vec_sizes, invAv)
+
     outerloop: do i = it_start, it_end
       ! Solve momentum equation with guessed pressure and velocity fields
-      call calculate_velocity(cell_mesh, bcs, cps, M, source, lin_system u, v)
+      call calculate_velocity(cell_mesh, bcs, cps, M, source, lin_system u, v, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance
-      call calculate_pressure_correction()
+      call calculate_pressure_correction(cell_mesh, u, v, pp)
 
       ! Update pressure field with pressure correction
-      call update_pressure()
+      call update_pressure(cell_mesh, pp, p)
 
       ! Update velocity with velocity correction
-      call update_velocity(u, v, pp)
+      call update_velocity(u, v, pp, invAu, invAv)
 
       ! Todo:
       !call calculate_scalars()
@@ -78,7 +79,7 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine solve_nonlinear
 
-  subroutine calculate_velocity(cell_mesh, bcs, cps, M, vec, lin_sys, u, v)
+  subroutine calculate_velocity(cell_mesh, bcs, cps, M, vec, lin_sys, u, v, invAu, invAv)
 
     ! Arguments
     type(mesh), intent(in)        :: cell_mesh
@@ -88,12 +89,39 @@ submodule (pv_coupling) pv_coupling_simple
     class(vector), intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     type(field), intent(inout)    :: u, v
+    class(vector), intent(out)    :: invAu, invAv
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    
+
+    ! u-velocity
+    ! ----------
     ! Calculate fluxes and populate coefficient matrix
-    call compute_fluxes(u, v, cell_mesh, bcs, cps, M, vec)
+    call compute_fluxes(u, u, v, cell_mesh, bcs, cps, M, vec)
+
+    ! Store reciprocal of central coefficient
+    invAu = get_matrix_diagonal(M)
+    do i = 1, cell_mesh%nlocal
+      invAu = 1.0_accs_real / invAu(i)
+    end do
+
+    ! Assembly of coefficient matrix and source vector
+    call update(M)
+    call update(vec)
+
+    ! Create linear solver
+    call set_linear_system(lin_sys, vec, u%vec, M, par_env)
+    call create_solver(lin_sys, lin_solver)
+
+    ! Solve the linear system
+    call solve(lin_solver)
+
+    ! v-velocity
+    ! ----------
+    ! Calculate fluxes and populate coefficient matrix
+    call compute_fluxes(v, u, v, cell_mesh, bcs, cps, M, vec)
+
+    ! Store reciprocal of central coefficient
 
     ! Assembly of coefficient matrix and source vector
     call update(M)
@@ -198,31 +226,60 @@ submodule (pv_coupling) pv_coupling_simple
     class(field), intent(in) :: pp
     class(field), intent(inout) :: p
 
-
     ! Local variables
     integer(accs_int) :: icell
     real(accs_real) :: alpha   !< Under-relaxation factor
 
-
     ! Loop over cells
     do icell = 1, cell_mesh%nlocal
-      p(icell) = p(icell) + alpha*pp(icell)
+      p%vec(icell) = p%vec(icell) + alpha*pp%vec(icell)
     end do
-    
-     
+         
   end subroutine update_pressure
 
-  subroutine update_velocity()
+  subroutine update_velocity(cell_mesh, invAu, invAv, pp, u, v)
 
     ! Arguments
-
+    class(mesh), intent(in) :: cell_mesh
+    class(vector), intent(in) :: invAu, invAv
+    class(field), intent(in)  :: pp
+    class(field), intent(inout) :: u, v
 
     ! Local variables
+    integer(accs_int) :: icell
 
-
+     
     ! Loop over cells
     do icell = 1, cell_mesh%nlocal
-      
+      call set_cell_location(cell_location, cell_mesh, icell)
+      call get_global_index(cell_location, idxg)
+      call count_neighbours(cell_location, nnb)
+
+      ! Loop over faces
+      do jface = 1, nnb
+        call set_neighbour_location(nb_location, cell_location, jface)
+        call get_boundary_status(nb_location, is_boundary)
+
+        if (.not. is_boundary) then
+          ! Interior face
+          call set_face_location(face_location, cell_mesh, icell, jface)
+          call get_face_area(face_location, A)
+          
+
+          call get_global_index(nb_location, nbidxg)
+
+
+        else
+          col = -1
+          coeff_nb = 0.0_accs_real
+        endif
+        call pack_entries(mat_coeffs, 1, jface+1, row, col, coeff_nb)
+        call pack_entries(vec_values, 1, idx, r)
+
+      end do
+
+
+
     end do
 
 

@@ -25,6 +25,7 @@ module mat
   public :: set_nnz
   public :: mat_axpy
   public :: mat_norm
+  public :: get_matrix_diagonal
 
   interface
 
@@ -181,6 +182,15 @@ module mat
     module subroutine set_nnz(matrix_descriptor, nnz)
       type(matrix_init_data), intent(inout) :: matrix_descriptor
       integer(accs_int), intent(in) :: nnz
+    end subroutine
+
+    !> @brief Extract matrix diagonal elements into a vector
+    !
+    !> @param[in]  M - the matrix
+    !> @param[out] D - a vector containing the diagonal elements of M
+    module subroutine get_matrix_diagonal(M, D)
+      class(matrix), intent(in)  :: M
+      class(vector), intent(out) :: D
     end subroutine
 
   end interface
