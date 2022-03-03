@@ -55,17 +55,19 @@ submodule (pv_coupling) pv_coupling_simple
     call create_vector(vec_sizes, invAv)
 
     outerloop: do i = it_start, it_end
-      ! Solve momentum equation with guessed pressure and velocity fields
+      ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call calculate_velocity(cell_mesh, bcs, cps, M, source, lin_system u, v, invAu, invAv)
 
-      ! Calculate pressure correction from mass imbalance
+      ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call calculate_pressure_correction(cell_mesh, u, v, pp)
 
       ! Update pressure field with pressure correction
       call update_pressure(cell_mesh, pp, p)
 
-      ! Update velocity with velocity correction
+      ! Update velocity with velocity correction (eq. 6)
       call update_velocity(u, v, pp, invAu, invAv)
+
+      ! Update face velocity (need data type for faces) (eq. 9)
 
       ! Todo:
       !call calculate_scalars()
@@ -128,7 +130,7 @@ submodule (pv_coupling) pv_coupling_simple
     call update(vec)
 
     ! Create linear solver
-    call set_linear_system(lin_sys, vec, u%vec, M, par_env)
+    call set_linear_system(lin_sys, vec, v%vec, M, par_env)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
@@ -175,7 +177,7 @@ submodule (pv_coupling) pv_coupling_simple
           ! Interior face
           call set_face_location(face_location, cell_mesh, icell, jface)
           call get_face_area(face_location, A)
-          coeff_f = (1.0 / cell_mesh%h) * A
+          coeff_f = (1.0 / cell_mesh%h) * A  ! multiply by -d/(1+gam.d)
 
           call get_global_index(nb_location, nbidxg)
 
