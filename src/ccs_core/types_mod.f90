@@ -131,7 +131,8 @@ module types
   type, public :: bc_config
     integer(accs_int), dimension(4) :: region
     integer(accs_int), dimension(4) :: bc_type
-    real(accs_real), dimension(4, 2) :: endpoints
+    real(accs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests, 
+                                                  ! possibly remove/improve for general
   end type bc_config
   
   !> @brief IO environment type

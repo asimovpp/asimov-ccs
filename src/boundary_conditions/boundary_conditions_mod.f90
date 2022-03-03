@@ -80,7 +80,10 @@ module boundary_conditions
           stop 
       end select
     end do
-    ! ALEXEI: since we are working in 2D for now we only need a subset of the vectors specified
+    ! ALEXEI: This specifies the values of the boundary conditions at the corners of the box (if dirichlet, 
+    ! otherwise ignored).This is necessary for the scalar_advection case setup and the tests, but should be 
+    ! generalised in the longer term. Since we are working in 2D for now we only need a subset of the 
+    ! vectors specified
     bcs%endpoints(:,:) = bc_data(2:,:2)
   end subroutine get_bcs
 end module boundary_conditions
