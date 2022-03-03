@@ -82,7 +82,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+  call set_global_size(vec_sizes, square_mesh, par_env)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)

@@ -8,8 +8,7 @@ module utils
   use iso_c_binding
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
-                  initialise_vector, set_global_vector_size, set_local_vector_size,         &
-                  pack_one_vector_element
+                  initialise_vector, set_vector_size, pack_one_vector_element
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
                   pack_one_matrix_coefficient
@@ -74,13 +73,13 @@ module utils
 
   !> @brief Generic interface to set global vector and matrix sizes
   interface set_global_size
-    module procedure set_global_vector_size
+    module procedure set_vector_size
     module procedure set_global_matrix_size
   end interface set_global_size
 
   !> @brief Generic interface to set local vector and matrix sizes
   interface set_local_size
-    module procedure set_local_vector_size
+    module procedure set_vector_size
     module procedure set_local_matrix_size
   end interface set_local_size
 

@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data, vector_values
+  use types, only : mesh, vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -22,8 +22,7 @@ module vec
   public :: norm
   public :: pack_one_vector_element
   public :: initialise_vector
-  public :: set_global_vector_size
-  public :: set_local_vector_size
+  public :: set_vector_size
 
   interface
      
@@ -124,30 +123,20 @@ module vec
       type(vector_init_data), intent(inout) :: vector_descriptor
     end subroutine initialise_vector
 
-    !> @brief Setter for global vector size
+    !> @brief Setter for vector size
     !
     !> param[in/out] vector_descriptor - the vector data object
-    !> param[in] size                  - the global vector size
-    !> param[in] par_env               - the parallel environment 
+    !> param[in]     geometry          - the mesh - contains the
+    !!                                   information to set the
+    !!                                   vector size
+    !> param[in]     par_env           - the parallel environment 
     !!                                   where the vector resides
-    module subroutine set_global_vector_size(vector_descriptor, size, par_env)
+    module subroutine set_vector_size(vector_descriptor, geometry, par_env)
       type(vector_init_data), intent(inout) :: vector_descriptor
-      integer(accs_int), intent(in) :: size
+      class(mesh), target, intent(in) :: geometry
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
 
-    !> @brief Setter for local vector size
-    !
-    !> param[in/out] vvector_descriptor - the vector data object
-    !> param[in] size                   - the local vector size
-    !> param[in] par_env                - the parallel environment 
-    !!                                    where the vector resides
-    module subroutine set_local_vector_size(vector_descriptor, size, par_env)
-      type(vector_init_data), intent(inout) :: vector_descriptor
-      integer(accs_int), intent(in) :: size
-      class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine
-
-    end interface
+  end interface
   
 end module vec

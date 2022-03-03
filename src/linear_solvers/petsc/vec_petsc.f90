@@ -38,7 +38,7 @@ contains
           associate(mesh => vec_dat%mesh)
             call VecCreateGhost(par_env%comm, &
                  mesh%nlocal, PETSC_DECIDE, &
-                 mesh%nhalo, mesh%idx_global(mesh%nlocal:mesh%ntotal), &
+                 mesh%nhalo, mesh%idx_global(mesh%nlocal:mesh%ntotal) - 1_accs_int, &
                  v%v, ierr)
           end associate
         
