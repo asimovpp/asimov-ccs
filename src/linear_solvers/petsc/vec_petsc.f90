@@ -206,7 +206,7 @@ contains
   !> @param[in]     alpha - a scalar value
   !> @param[in]     x     - a PETSc input vector
   !> @param[in,out] y     - PETSc vector serving as input, overwritten with result
-  module subroutine axpy(alpha, x, y)
+  module subroutine vec_axpy(alpha, x, y)
 
     use petscvec, only : VecAXPY
     
@@ -246,7 +246,7 @@ contains
   !!                         norm_type=2.
   !> @param[out] n         - the computed norm returned as the result of the function
   !!                         call.
-  module function norm(v, norm_type) result(n)
+  module function vec_norm(v, norm_type) result(n)
 
     use petscvec, only : NORM_2, VecNorm
     
@@ -274,5 +274,44 @@ contains
     end select
     
   end function
-  
+
+  !> @brief Gets the data in a given vector
+  !
+  !> @param[in] vec   - the vector to get data from
+  !> @param[in] array - an array to store the data in
+  module subroutine get_vector_data(vec, array)
+    use petscvec
+    class(vector), intent(in) :: vec
+    real(accs_real), dimension(:), pointer, intent(out) :: array
+    integer :: ierr
+
+    select type(vec)
+      type is(vector_petsc)
+        call VecGetArrayF90(vec%v, array, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
+  end subroutine get_vector_data
+
+  !> @brief Resets the vector data if required for further processing
+  !
+  !> @param[in] vec   - the vector to reset
+  !> @param[in] array - the array containing the data to restore
+  module subroutine restore_vector_data(vec, array)
+    use petscvec
+    class(vector), intent(in) :: vec
+    real(accs_real), dimension(:), pointer, intent(in) :: array
+    integer :: ierr
+
+    select type(vec)
+      type is(vector_petsc)
+        call VecRestoreArrayF90(vec%v, array, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
+  end subroutine restore_vector_data
+
+
 end submodule vec_petsc

@@ -1,0 +1,65 @@
+---
+title: scalar_advection_poisson
+
+reference_numbers:
+    pressure: 101325.0
+    temperature: 289.0
+    density: 1.0
+    viscosity: 1.0e-05
+    pref_at_cell: 4096
+
+steps: 1000
+
+solve:
+  w: off
+
+solver:
+  u: 12
+  v: 12
+
+init: 
+  type: user
+
+transient:
+  type: quad
+  dt: 0.0001
+  gamma: 1.0
+  max_sub_steps: 10
+
+target_residual: 1.0e-12
+
+monitor_cell: 8094
+
+convection_scheme:
+  u: 1
+  v: 1
+  w: 1
+
+blending_factor:
+  u: 1.0
+  v: 1.0
+  w: 1.0
+  
+relaxation_factor:
+  u: 0.8
+  v: 0.8
+  p: 0.5
+
+output:
+  every: 1000
+
+plot_format: vtk
+
+post:
+  type: center
+  variables: [u, v, w, p]
+
+boundary:
+  region: [left, right, bottom, top]
+  type: [dirichlet, const_grad, const_grad, dirichlet]
+  vector: 
+  - [ 1.0, 0.0, 0.0 ]
+  - [ 0.0, 0.0, 0.0 ]
+  - [ 0.0, 0.0, 0.0 ]
+  - [ 0.0, 0.0, 0.0 ]
+  -

@@ -269,4 +269,85 @@ contains
     
   end subroutine
 
+  !> @brief Perform the AXPY matrix operation using PETSc
+  !
+  !> @details Performs the AXPY operation
+  !!          y[i] = alpha * x[i] + y[i]
+  !
+  !> @param[in]     alpha - a scalar value
+  !> @param[in]     x     - a PETSc input matrix
+  !> @param[in,out] y     - PETSc matrix serving as input, overwritten with result
+  module subroutine mat_axpy(alpha, x, y)
+
+    use petscmat, only : MatAXPY, DIFFERENT_NONZERO_PATTERN
+    
+    real(accs_real), intent(in) :: alpha
+    class(matrix), intent(in) :: x
+    class(matrix), intent(inout) :: y
+
+    integer(accs_err) :: ierr !> Error code
+    
+    select type (x)
+      type is (matrix_petsc)
+
+        select type (y)
+          type is (matrix_petsc)
+
+            ! PETSc performs AXPY as YPAX, with result stored in Y.
+            call MatAXPY(y%M, alpha, x%M, DIFFERENT_NONZERO_PATTERN, ierr)
+
+          class default
+            print *, "Unknown matrix type!"
+            stop
+
+        end select
+
+      class default
+        print *, "Unknown matrix type!"
+        stop
+
+    end select
+    
+  end subroutine
+
+  !> @brief Compute the norm of a PETSc matrix
+  !
+  !> @param[in]  M         - the PETSc matrix
+  !> @param[in]  norm_type - which norm to compute? Currently supported is the 2 norm:
+  !!                         norm_type=2.
+  !> @param[out] n         - the computed norm returned as the result of the function
+  !!                         call.
+  module function mat_norm(M, norm_type) result(n)
+
+    use petscmat, only : NORM_1, NORM_FROBENIUS, NORM_INFINITY, MatNorm
+    
+    class(matrix), intent(in) :: M
+    integer(accs_int), intent(in) :: norm_type
+
+    real(accs_real) :: n      !> The computed norm 
+    integer(accs_err) :: ierr !> Error code
+    
+    n = 0.0_accs_real ! initialise norm to 0
+    
+    select type (M)
+      type is (matrix_petsc)
+
+        if (norm_type == 1) then
+          call MatNorm(M%M, NORM_1, n, ierr)
+        else if (norm_type == 2) then
+          call MatNorm(M%M, NORM_FROBENIUS, n, ierr)
+        else if (norm_type == 3) then
+          call MatNorm(M%M, NORM_INFINITY, n, ierr)
+        else
+          print *, "ERROR: unknown matrix norm type ", norm_type
+          stop
+        end if
+
+      class default
+        print *, "Type unhandled"
+        stop
+    end select
+    
+  end function
+
 end submodule mat_petsc

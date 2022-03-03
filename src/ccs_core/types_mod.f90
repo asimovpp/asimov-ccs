@@ -92,6 +92,16 @@ module types
     real(accs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
   end type mesh
 
+  !> @brief Scalar field type
+  type, public :: field
+    class(vector), allocatable :: vec
+  end type field
+
+  type, public, extends(field) :: upwind_field
+  end type
+  type, public, extends(field) :: central_field
+  end type
+
   !> @brief Cell locator
   !
   !> @description Lightweight type to provide easy cell location based on a cell's cell
@@ -119,6 +129,13 @@ module types
     integer(accs_int) :: cell_idx
     integer(accs_int) :: cell_neighbour_ctr
   end type neighbour_locator
+
+  type, public :: bc_config
+    integer(accs_int), dimension(4) :: region
+    integer(accs_int), dimension(4) :: bc_type
+    real(accs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests, 
+                                                  ! possibly remove/improve for general
+  end type bc_config
   
   !> @brief IO environment type
   type, public :: io_environment
