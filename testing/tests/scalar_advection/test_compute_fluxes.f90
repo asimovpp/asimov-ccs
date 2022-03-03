@@ -115,6 +115,9 @@ program test_compute_fluxes
     call set_values(u_vals, u%vec)
     call set_values(v_vals, v%vec)
 
+    call update(u%vec)
+    call update(v%vec)
+    
     deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
   end subroutine set_velocity_fields
 

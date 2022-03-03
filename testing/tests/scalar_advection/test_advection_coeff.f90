@@ -60,16 +60,16 @@ program test_advection_coeff
       call set_velocity_fields(square_mesh, direction, u, v)
 
       associate (u_vec => u%vec, v_vec => v%vec)
-      call get_vector_data(u_vec, u_data)
-      call get_vector_data(v_vec, v_data)
+        call get_vector_data(u_vec, u_data)
+        call get_vector_data(v_vec, v_data)
 
-      do ngb = 1, 4
-        call get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
-        call run_advection_coeff_test(scalar, u_data, v_data, self_idx, ngb_idx, face_area, normal)
-      end do
+        do ngb = 1, 4
+          call get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
+          call run_advection_coeff_test(scalar, u_data, v_data, self_idx, ngb_idx, face_area, normal)
+        end do
       
-      call restore_vector_data(u_vec, u_data)
-      call restore_vector_data(v_vec, v_data)
+        call restore_vector_data(u_vec, u_data)
+        call restore_vector_data(v_vec, v_data)
       end associate
 
       call tidy_velocity_fields(scalar, u, v)
@@ -156,6 +156,9 @@ program test_advection_coeff
     call set_values(u_vals, u%vec)
     call set_values(v_vals, v%vec)
 
+    call update(u%vec)
+    call update(v%vec)
+    
     deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
   end subroutine set_velocity_fields
 
@@ -189,8 +192,13 @@ program test_advection_coeff
     real(accs_real), dimension(ndim), intent(in) :: face_normal
 
     real(accs_real) :: coeff
+    real(accs_real) :: mf
     real(accs_real) :: expected_coeff
 
+    !! Compute mass flux
+    mf = 0.5_accs_real * (u(self_idx) + u(ngb_idx)) * normal(1) &
+         + 0.5_accs_real * (v(self_idx) + v(ngb_idx)) * normal(2)
+    
     select type(phi)
       type is(central_field)
         call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0_accs_int, coeff)
@@ -203,9 +211,9 @@ program test_advection_coeff
 
     select type(phi)
       type is(upwind_field)
-        expected_coeff = min(face_area*(u(self_idx)*normal(1) + v(self_idx)*normal(2)), 0.0_accs_real)
+        expected_coeff = min(mf * face_area, 0.0_accs_real)
       type is(central_field)
-        expected_coeff = face_area*0.5_accs_real*(u(self_idx)*normal(1) + v(self_idx)*normal(2))
+        expected_coeff = 0.5_accs_real * (mf * face_area)
       class default
         write(message, *) "FAIL: incorrect velocity field discretisation"
         call stop_test(message)
