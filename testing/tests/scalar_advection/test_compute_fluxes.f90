@@ -56,7 +56,7 @@ program test_compute_fluxes
       end if
 
       call initialise(vec_sizes)
-      call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+      call set_global_size(vec_sizes, square_mesh, par_env)
       call create_vector(vec_sizes, scalar%vec)
       call create_vector(vec_sizes, u%vec)
       call create_vector(vec_sizes, v%vec)
@@ -157,8 +157,8 @@ program test_compute_fluxes
     
     call initialise(mat_sizes)
     call initialise(vec_sizes)
-    call set_global_size(mat_sizes, cell_mesh%nglobal, cell_mesh%nglobal, par_env)
-    call set_global_size(vec_sizes, cell_mesh%nglobal, par_env)
+    call set_global_size(mat_sizes, cell_mesh, par_env)
+    call set_global_size(vec_sizes, cell_mesh, par_env)
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
     call create_vector(vec_sizes, b)
@@ -225,12 +225,12 @@ program test_compute_fluxes
     integer(accs_int) :: vec_counter
 
     call initialise(mat_sizes)
-    call set_global_size(mat_sizes, cell_mesh%nglobal, cell_mesh%nglobal, par_env)
+    call set_global_size(mat_sizes, cell_mesh, par_env)
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
     
     call initialise(vec_sizes)
-    call set_global_size(vec_sizes, cell_mesh%nglobal, par_env)
+    call set_global_size(vec_sizes, cell_mesh, par_env)
     call create_vector(vec_sizes, b)
 
     mat_coeffs%mode = add_mode

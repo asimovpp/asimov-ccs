@@ -52,7 +52,7 @@ program test_advection_coeff
       end if
 
       call initialise(vec_sizes)
-      call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+      call set_global_size(vec_sizes, square_mesh, par_env)
       call create_vector(vec_sizes, scalar%vec)
       call create_vector(vec_sizes, u%vec)
       call create_vector(vec_sizes, v%vec)
