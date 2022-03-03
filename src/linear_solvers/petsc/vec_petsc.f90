@@ -15,7 +15,7 @@ contains
 
   !> @brief Create a PETSc-backed vector
   !
-  !> @param[in]  vector_innit_data vec_dat - the data describing how the vector should be created.
+  !> @param[in]  vector_init_data vec_dat - the data describing how the vector should be created.
   !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
 
