@@ -5,6 +5,7 @@
 module pv_coupling
 
     use kinds, only : accs_real, accs_int
+    use types, only: vector, matrix, field, mesh
 
     implicit none
 

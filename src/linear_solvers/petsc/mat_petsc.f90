@@ -1,7 +1,7 @@
 submodule (mat) mat_petsc
 
   use kinds, only : accs_err
-  use petsctypes, only : matrix_petsc
+  use petsctypes, only : matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   
   implicit none

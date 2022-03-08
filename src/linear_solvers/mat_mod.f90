@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : accs_int, accs_real
-  use types, only : matrix, matrix_init_data, matrix_values
+  use types, only : matrix, matrix_init_data, matrix_values, vector
   use parallel_types, only: parallel_environment
 
   implicit none

@@ -7,7 +7,13 @@
 program simple
 
   use kinds, only: accs_real, accs_int
-  use parallel, only: initialise_parallel_environment, &
+  use types, only: field, upwind_field, central_field, mesh, &
+                   vector_init_data, matrix, vector
+  use parallel, only: initialise_parallel_environment
+  use parallel_types, only: parallel_environment
+  use mesh_utils, only: build_square_mesh
+  use vec, only: create_vector
+  use petsctypes, only: matrix_petsc, vector_petsc
                       
 
 
@@ -15,7 +21,7 @@ program simple
 
   class(parallel_environment), allocatable, target :: par_env
   type(mesh)             :: square_mesh
-  type(bc_config)        :: bcs
+  type(vector_init_data) :: vec_sizes
 
   class(field), allocatable :: u, v, p, pp
 
@@ -39,7 +45,7 @@ program simple
   allocate(central_field :: p)
   allocate(central_field :: pp)
 
-  ! Create field vectors
+  ! Create and initialise field vectors
   call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
@@ -48,10 +54,6 @@ program simple
 
   ! Initialise velocity field
   call initialise_velocity(square_mesh, u, v)
-
-  ! Initialise pressure and pressure-correction fields
-  p%vec(:)  = 0.0_accs_real
-  pp%vec(:) = 0.0_accs_real
 
   ! Solve using SIMPLE algorithm
   call solve_nonlinear(par_env, square_mesh, u, v, p, pp)
