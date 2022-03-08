@@ -32,7 +32,10 @@
 
     integer(accs_int) :: sum_int
     integer(accs_int) :: loc_sum_int
-  
+
+    real(accs_real) :: sum_real
+    real(accs_real) :: loc_sum_real
+
     call init()
 
     irank = par_env%proc_id
@@ -88,8 +91,10 @@
     call read_array(test_reader, "h5Ints", sel_start , sel_count, int_var)
 
     loc_sum_int = 0
+    loc_sum_real = 0.0
     do i = 1, int(sel_count(1))
       loc_sum_int = loc_sum_int + int_var(i)
+      loc_sum_real = loc_sum_real + real_var(i)
     end do
 
     select type(par_env)
@@ -104,6 +109,11 @@
       call stop_test(message)
     end if
   
+    if(sum_real /= 45.0) then
+      write(message,*) "FAIL: Sum of real array should be 45.0, not ", sum_real
+      call stop_test(message)
+    end if
+
     ! Close the file and ADIOS2 engine
     call close_file(test_reader)
   
