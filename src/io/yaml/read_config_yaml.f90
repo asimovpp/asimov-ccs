@@ -39,8 +39,8 @@ submodule (read_config) read_config_utils
       print*,"Unknown type"
     end select
    
-    if(associated(io_err) .eqv. .false.) then 
-      print*,keyword," = ",int_val
+    if(associated(io_err) .eqv. .true.) then 
+      print*,"Error reading ",keyword
     end if
 
   end subroutine
@@ -62,8 +62,8 @@ submodule (read_config) read_config_utils
       print*,"Unknown type"
     end select
 
-    if(associated(io_err) .eqv. .false.) then 
-      print*,keyword," = ",real_val
+    if(associated(io_err) .eqv. .true.) then 
+      print*,"Error reading ",keyword
     end if
 
   end subroutine
@@ -85,8 +85,8 @@ submodule (read_config) read_config_utils
       print*,"Unknown type"
     end select
 
-    if(associated(io_err) .eqv. .false.) then 
-      print*,keyword," = ",string_val
+    if(associated(io_err) .eqv. .true.) then 
+      print*,"Error reading ",keyword
     end if
 
   end subroutine
@@ -126,7 +126,6 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: steps
 
-    print*,"*Number of steps: "
     call get_value(config_file, 'steps', steps)
 
   end subroutine
@@ -160,9 +159,6 @@ submodule (read_config) read_config_utils
     type is(type_dictionary)
 
       dict => config_file%get_dictionary('init',required=.true.,error=io_err)
-
-
-    print*,"* Initialisation: "
 
       call get_value(dict, "type", init)
 
@@ -226,8 +222,6 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('reference_numbers',required=.true.,error=io_err)
 
-      print*,"* Reference numbers: "
-      
       ! Pressure
       if(present(p_ref)) then
         call get_value(dict, "pressure", p_ref)
@@ -303,8 +297,6 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('solve',required=.true.,error=io_err)
 
-      print*,"* Solve (on/off): "
-
       ! Solve u?
       if(present(u_sol)) then
         call get_value(dict, "u", u_sol)
@@ -362,8 +354,6 @@ submodule (read_config) read_config_utils
     type is(type_dictionary)
 
       dict => config_file%get_dictionary('solver',required=.true.,error=io_err)
-
-      print*,"* Solver: "
 
       ! Get u_solver
       if(present(u_solver)) then
@@ -425,8 +415,6 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('transient',required=.false.,error=io_err)
 
-      print*,"* Transient: "
-      
       ! Transient type (euler/quad)
       call get_value(dict, "type", transient_type)
       
@@ -502,8 +490,6 @@ submodule (read_config) read_config_utils
     select type(config_file)
     type is(type_dictionary)
 
-      print*,"* Convection scheme: "
-      
       dict => config_file%get_dictionary('convection_scheme',required=.false.,error=io_err)
 
       if(present(u_conv)) then
@@ -555,8 +541,6 @@ submodule (read_config) read_config_utils
 
     select type(config_file)
     type is(type_dictionary)
-
-      print*,"* Blending factor: "
 
       dict => config_file%get_dictionary('blending_factor',required=.false.,error=io_err)
 
@@ -610,8 +594,6 @@ submodule (read_config) read_config_utils
     select type(config_file)
     type is(type_dictionary)
 
-      print*,"* Relaxation factor: "
-
       dict => config_file%get_dictionary('relaxation_factor',required=.false.,error=io_err)
 
       if(present(u_relax)) then
@@ -659,8 +641,6 @@ submodule (read_config) read_config_utils
     select type(config_file)
     type is(type_dictionary)
 
-      print*,"Output frequency: "
-
       dict => config_file%get_dictionary('output',required=.false.,error=io_err)
 
       call get_value(dict, "every", output_freq)
@@ -702,8 +682,6 @@ submodule (read_config) read_config_utils
 
     select type(config_file)
     type is(type_dictionary)
-
-      print*,"* Output type and variables: "
 
       dict => config_file%get_dictionary('post',required=.false.,error=io_err)
 
@@ -781,12 +759,9 @@ submodule (read_config) read_config_utils
       allocate(bnd_type(num_boundaries))
       allocate(bnd_vector(3,num_boundaries))
 
-      print*,"* Boundaries:"
-
       list => dict%get_list('region', required=.false.,error=io_err)
       call error_handler(io_err)  
 
-      print*,"** Regions:"
       item => list%first
       do while(associated(item))
         select type(element => item%node)
@@ -803,7 +778,6 @@ submodule (read_config) read_config_utils
 
       idx = 1 
       
-      print*,"** Types:"
       item => list%first
       do while(associated(item))
         select type(element => item%node)
@@ -820,7 +794,6 @@ submodule (read_config) read_config_utils
 
       idx = 1
 
-      print*,"** Vectors:"
       item => list%first
 
       do while(associated(item))
