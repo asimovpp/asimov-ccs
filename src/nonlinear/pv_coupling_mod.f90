@@ -4,8 +4,9 @@
 
 module pv_coupling
 
-    use kinds, only : accs_real, accs_int
-    use types, only: vector, matrix, field, mesh
+    use kinds, only : accs_int
+    use types, only: field, mesh
+    use parallel_types, only: parallel_environment
 
     implicit none
 
@@ -15,11 +16,11 @@ module pv_coupling
 
     interface
 
-    module subroutine solve_nonlinear(u, v, p, pp, M, solution, source, cell_mesh)
-        class(field), intent(inout) :: u, v, p, pp
-        class(matrix), intent(inout) :: M
-        class(vector), intent(inout) :: solution, source
+    module subroutine solve_nonlinear(par_env, cell_mesh, it_start, it_end, u, v, p, pp)
+        class(parallel_environment), intent(in) :: par_env
         type(mesh), intent(in) :: cell_mesh
+        integer(accs_int), intent(in) :: it_start, it_end
+        class(field), intent(inout) :: u, v, p, pp
     end subroutine solve_nonlinear
 
     end interface

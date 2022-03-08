@@ -27,19 +27,19 @@ submodule (pv_coupling) pv_coupling_simple
   !> @param[in,out] u, v   - arrays containing velocity fields in x, y directions
   !> @param[in,out] p      - array containing pressure values
   !> @param[in,out] pp     - array containing pressure-correction values
-  module subroutine solve_nonlinear(par_env, cell_mesh, u, v, p, pp)
+  module subroutine solve_nonlinear(par_env, cell_mesh, it_start, it_end, u, v, p, pp)
 
     ! Arguments
     class(parallel_environment), intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh
+    integer(accs_int), intent(in) :: it_start, it_end
     class(field), intent(inout) :: u, v, p, pp
     
     ! Local variables
     integer(accs_int) :: i
-    class(vector), allocatable, target :: source
-    class(vector), allocatable :: sol
-    class(matrix), allocatable, target :: M
-    class(vector), allocatable, target :: invAu, invAv
+    class(vector), allocatable :: source
+    class(matrix), allocatable :: M
+    class(vector), allocatable :: invAu, invAv
     
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
@@ -240,6 +240,7 @@ submodule (pv_coupling) pv_coupling_simple
     integer(accs_int) :: j
     integer(accs_int) :: n_ngb
     real(accs_real) :: face_area
+    real(accs_real), dimension(ndim) :: face_normal
     real(accs_real) :: r
     logical :: is_boundary
 
@@ -266,28 +267,28 @@ submodule (pv_coupling) pv_coupling_simple
       ! Loop over faces
       do j = 1, n_ngb
         call set_neighbour_location(ngb_loc, self_loc, j)
-        call get_boundary_status(nb_location, is_boundary)
+        call get_boundary_status(ngb_loc, is_boundary)
+        call get_global_index(ngb_loc, ngb_idx)
 
         if (.not. is_boundary) then
           ! Interior face
-          call set_face_location(face_location, cell_mesh, icell, jface)
-          call get_face_area(face_location, A)
+          call set_face_location(face_loc, cell_mesh, local_idx, j)
+          call get_face_area(face_loc, face_area)
+          call get_face_normal(face_loc, face_normal)
           coeff_f = (1.0 / cell_mesh%h) * A  ! multiply by -d/(1+gam.d)
-
-          call get_global_index(nb_location, nbidxg)
 
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
-          col = nbidxg
+          col = ngb_idx
 
           ! RHS vector
-          r = r + calc_mass_flux(u, v, ngb_idx, self_idx, A, face_normal, bc_flag)
+          r = r + calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag)
 
         else
           col = -1
           coeff_nb = 0.0_accs_real
         endif
-        call pack_entries(mat_coeffs, 1, jface+1, row, col, coeff_nb)
+        call pack_entries(mat_coeffs, 1, j+1, row, col, coeff_nb)
         call pack_entries(vec_values, 1, idx, r)
 
       end do

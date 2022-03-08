@@ -14,9 +14,8 @@ program simple
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector
   use petsctypes, only: matrix_petsc, vector_petsc
+  use pv_coupling, only: solve_nonlinear
                       
-
-
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
@@ -27,9 +26,15 @@ program simple
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
 
+  integer(accs_int) :: it_start, it_end
+
   double precision :: start_time
   double precision :: end_time
-    
+ 
+  ! Set start and end iteration numbers (eventually will be read from input file)
+  it_start = 1
+  it_end   = 10
+
   call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env)
 
@@ -56,7 +61,7 @@ program simple
   call initialise_velocity(square_mesh, u, v)
 
   ! Solve using SIMPLE algorithm
-  call solve_nonlinear(par_env, square_mesh, u, v, p, pp)
+  call solve_nonlinear(par_env, square_mesh, it_start, it_end, u, v, p, pp)
 
   ! Clean-up
   deallocate(u)
