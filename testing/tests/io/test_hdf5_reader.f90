@@ -92,6 +92,8 @@
 
     print*,"Real_var = ", real_var
 
+    print*,"Kind accs_real = ", kind(real_var(1))
+
     loc_sum_int = 0
     loc_sum_real = 0.0
 
@@ -105,7 +107,11 @@
     select type(par_env)
     type is (parallel_environment_mpi)
       call mpi_allreduce(loc_sum_int, sum_int, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierror)
-      call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL8, MPI_SUM, par_env%comm, ierror)
+      if(kind(sum_real) == 4) then
+      call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL4, MPI_SUM, par_env%comm, ierror)
+      else 
+        call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL8, MPI_SUM, par_env%comm, ierror)
+      end if
     class default
       call stop_test("ERROR: Unknown parallel environment!")
     end select
