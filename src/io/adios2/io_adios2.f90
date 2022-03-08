@@ -46,11 +46,13 @@ submodule (io) io_adios2
 
         else
           print*,"===> IO Error: unsuported integer type"
+          stop 1
         end if
 
-        class default
+      class default
         print*,"Unknown IO process handler type"
-
+        stop 1
+      
       end select
 
   end subroutine
@@ -86,10 +88,12 @@ submodule (io) io_adios2
 
         else
           print*,"===> IO Error: unsuported integer type"
+          stop 1
         end if
 
-        class default
+      class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -126,10 +130,12 @@ submodule (io) io_adios2
  
         else
           print*,"===> IO Error: unsuported real type"
+          stop 1
         end if
 
       class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -165,10 +171,12 @@ submodule (io) io_adios2
   
         else
           print*,"===> IO Error: unsuported real type"
+          stop 1
         end if
   
       class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -215,10 +223,12 @@ submodule (io) io_adios2
   
           else
             print*,"===> IO Error: unsuported integer type"
+            stop 1
           end if
   
       class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -263,10 +273,12 @@ submodule (io) io_adios2
   
           else
             print*,"===> IO Error: unsuported integer type"
+            stop 1
           end if
   
       class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -312,10 +324,12 @@ submodule (io) io_adios2
   
           else
             print*,"===> IO Error: unsuported integer type"
+            stop 1
           end if
 
       class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -360,10 +374,12 @@ submodule (io) io_adios2
   
           else
             print*,"===> IO Error: unsuported integer type"
+            stop 1
           end if
 
       class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -409,10 +425,12 @@ submodule (io) io_adios2
 
           else
             print*,"===> IO Error: unsuported real type"
+            stop 1
           end if
 
         class default
           print*,"Unknown IO process handler type"
+          stop 1
 
       end select
 
@@ -457,10 +475,12 @@ submodule (io) io_adios2
 
           else
             print*,"===> IO Error: unsuported real type"
+            stop 1
           end if
 
         class default
           print*,"Unknown IO process handler type"
+          stop 1
 
       end select
 
@@ -506,10 +526,12 @@ submodule (io) io_adios2
 
           else
             print*,"===> IO Error: unsuported real type"
+            stop 1
           end if
 
       class default
         print*,"Unknown IO process handler type"
+        stop 1
 
       end select
 
@@ -555,11 +577,13 @@ submodule (io) io_adios2
 
           else
             print*,"===> IO Error: unsuported real type"
+            stop 1
           end if
 
       class default
         print*,"Unknown IO process handler type"
-
+        stop 1
+        
       end select
 
     end subroutine
