@@ -90,6 +90,8 @@
     call read_array(test_reader, "h5Floats", sel_start , sel_count, real_var)
     call read_array(test_reader, "h5Ints", sel_start , sel_count, int_var)
 
+    print*,"Real_var = ", real_var
+
     loc_sum_int = 0
     loc_sum_real = 0.0
 
@@ -98,13 +100,17 @@
       loc_sum_real = loc_sum_real + real_var(i)
     end do
 
+    print*,"Loc_sum_real = ", loc_sum_real
+
     select type(par_env)
     type is (parallel_environment_mpi)
       call mpi_allreduce(loc_sum_int, sum_int, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierror)
-      call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL, MPI_SUM, par_env%comm, ierror)
+      call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL8, MPI_SUM, par_env%comm, ierror)
     class default
       call stop_test("ERROR: Unknown parallel environment!")
     end select
+
+    print*,"Sum_real = ",sum_real
 
     if(sum_int /= -45) then
       write(message,*) "FAIL: Sum of integer array should be -45, not ", sum_int
