@@ -92,6 +92,7 @@
 
     loc_sum_int = 0
     loc_sum_real = 0.0
+
     do i = 1, int(sel_count(1))
       loc_sum_int = loc_sum_int + int_var(i)
       loc_sum_real = loc_sum_real + real_var(i)
@@ -100,6 +101,7 @@
     select type(par_env)
     type is (parallel_environment_mpi)
       call mpi_allreduce(loc_sum_int, sum_int, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierror)
+      call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL, MPI_SUM, par_env%comm, ierror)
     class default
       call stop_test("ERROR: Unknown parallel environment!")
     end select
