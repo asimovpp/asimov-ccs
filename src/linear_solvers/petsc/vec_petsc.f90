@@ -32,13 +32,14 @@ contains
     select type (v)
       type is (vector_petsc)
 
-        select type(par_env => vec_dat%par_env)
+      select type(par_env => vec_dat%par_env)
         type is(parallel_environment_mpi)
 
           associate(mesh => vec_dat%mesh)
+
             call VecCreateGhost(par_env%comm, &
                  mesh%nlocal, PETSC_DECIDE, &
-                 mesh%nhalo, mesh%idx_global(mesh%nlocal:mesh%ntotal) - 1_accs_int, &
+                 mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
                  v%v, ierr)
           end associate
         
