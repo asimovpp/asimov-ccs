@@ -53,6 +53,7 @@
 \lstset{showstringspaces=false}
 
 %\renewcommand{\refname}{Notes and References}
+\newcommand{\accs}{\texttt{ASiMoV-CCS}}
 
 
 \begin{document}
@@ -61,7 +62,7 @@
 
 \title{ASiMoV CCS Developers' Guide\\\small{Release: v0.2}}
 
-\date{February 2022}
+\date{March 2022}
 \author{EPCC}
 
 \makeEPCCtitle
@@ -79,31 +80,32 @@
 
 % CONTENT HERE
 \chapter{ASiMoV-CSS design considerations}
-ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of cores for the purposes of simulating jet engines. It follows a ``separation of concerns'' design that separates interfaces from implementations, and physics from parallelisation. There is a distinction between ``user'' and ``back-end'' code - i.e. case specific code (such as the setup of a particular test) is the ``user'' code, while the core functionality provided by ASiMoV-CCS is the ``back-end'' code. This is implemented in a modular fashion by separating the interface declarations contained in modules from their implementation in submodules. As a result it is possible to implement multiple physics models and parallelisation strategies by writing separate submodules, each providing a distinct solution. 
+\accs\ is a CFD and combustion code designed to scale to large numbers of cores. It follows a ``separation of concerns'' design that separates interfaces from implementations, and physics from parallelisation. There is a distinction between ``user'' and ``back-end'' code - i.e. case specific code (such as the setup of a particular test) is the ``user'' code, while the core functionality provided by \accs\ is the ``back-end'' code. This is implemented in a modular fashion by separating the interface declarations contained within modules from their implementation in submodules. As a result, it is possible to implement multiple physics models and parallelisation strategies by writing separate submodules, each providing a distinct solution. 
 
 \section{Code structure}
 \label{code_structure}
 \begin{itemize}
-  \item The organisation of these declarations and definitions is as follows:
+  \item The organisation of \accs\ is as follows:
   \begin{itemize}
     \item Code pertaining to a particular functionality should be contained in its own directory (e.g. everything to do with the solver belongs in \texttt{src/linear\_solvers}
     \item Interface declarations are in \texttt{\_mod.f90} files (e.g. declarations pertaining to matrices are found in \texttt{mat\_mod.f90})
-    \item Function definitions that are commonly used among different implementations may be defined in \texttt{\_common.f90} files (e.g. \texttt{mat\_common.f90})
-    \item Function definitions that pertain to a particular implementation should be in submodules, stored in an appropriately named directory (e.g. the PETSc solver implementation is in \texttt{petsc} and the corresponding matrix manipulation functions are defined in \texttt{mat\_petsc.f90})
-    \item Only one implementation of a procedure by a submodule is allowed, with the implementation to be used being specified in the configuration file. 
+    \item Procedure definitions that are commonly used among different implementations may be defined in \texttt{\_common.f90} files (e.g. \texttt{mat\_common.f90})
+    \item Procedure definitions that pertain to a particular implementation should be in submodules, stored in an appropriately named directory (e.g. the PETSc solver implementation is in \texttt{petsc} and the corresponding matrix manipulation functions are defined in \texttt{mat\_petsc.f90})
+    \item Only one implementation of a procedure is allowed per submodule, but multiple implementations can exist in different submodules, each implementing the same interface.
+    \item Only one implementation can be linked to, with the implementation to be used being specified in the \accs\ configuration file. 
   \end{itemize}
   \item Individual test cases and input files are contained in \texttt{src/case\_setup}.
 \end{itemize}
 
 \subsection{Design of interfaces}
 
-A basic design principle of ASiMoV-CCS is that the code should follow a data-in/data-out design, functionally everything looks the same with an object containing input data and an output object from the result of the operation. Consequently, type-bound procedures are to be avoided as they would break this principle, rather a generic interface should be used. As an example to perform a parallel update of a data structure, whether that be a matrix or a
-vector, rather than writing
+A basic design principle of \accs\ is that the code should follow a data-in/data-out design. Functionally everything looks the same, with an object containing input data and an output object from the result of the operation. Consequently, type-bound procedures are to be avoided as they would break this principle; a generic interface should be used instead. Take the example of performing a parallel update of a data structure on either a matrix or a
+vector. Rather than using type-bound procedures and writing
 \begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:tbp} ]
 call M%update()
 call v%update()
 \end{lstlisting}
-a generic interface (resolving to a type-specific procedure at compile-time should be used)
+a generic interface (resolving to a type-specific procedure at compile-time) should be used
 \begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:gen-interface} ]
 call update(M)
 call update(v)
@@ -121,19 +123,20 @@ subroutine update_mat(M)
 end subroutine
 \end{lstlisting}
 
-\subsection{Structure of Poisson solver}
-The goal is to solve the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation. As specified in Section \ref{code_structure}, multiple different solvers and parallelisation methods may be implemented by using different submodules in ASiMoV-CCS, however at present the parallelisation implementation uses MPI and the solver takes advantage of a Krylov method provided by PETSc. The implementation is as follows:
+\subsection{Example: Structure of Poisson solver}
+The goal of the Poisson solver is to compute the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation. As specified in Section \ref{code_structure}, multiple different solvers and parallelisation methods may be implemented by using different submodules in \accs\. At present, the parallelisation uses MPI and the solver takes advantage of a Krylov method provided by PETSc. The implementation is as follows:
 \begin{itemize}
-  \item Start by initialising the relevant parallel environment with \texttt{initialise\_parallel\_environment} (e.g. the MPI implementation is found in \texttt{src/parallel/parallel\_env\_mpi.f90}, which will set the communicator, get the number of ranks, etc, whereas the interface declaration is found in \texttt{src/parallel/parallel\_mod.f90}). 
+  \item Start by creating a parallel environment with \texttt{initialise\_parallel\_environment} (the MPI+PETSc implementation is found in the submodule \texttt{src/parallel/parallel\_env\_mpi\_petsc.f90}, which will set the MPI communicator, get the number of ranks and rank IDs, and initialise PETSc. The interface declaration is found in \texttt{src/parallel/parallel\_mod.f90}). 
   \item The general approach to solving this matrix equation numerically (and in parallel) is to setup the matrix and vector structures split over the number of ranks provided, create the solver structure, and solve it with, for example, a Krylov solver.
-  \item The vectors, $u$ and $b$, matrix $M$, and corresponding linear system are initialised with the \texttt{initialise} interface. This sets their global and local sizes to default values and the parallel environment to \texttt{null}.
+  \item The vectors, $u$ and $b$, matrix $M$, and a corresponding linear system are initialised with the \texttt{initialise} interface. This sets their global and local sizes to default values and the parallel environment to \texttt{null}.
   \item The stiffness matrix, $M$, is created, first by setting the sizes (\texttt{set\_global\_size}), followed by the number of non-zero entries (\texttt{set\_nnz}), creating a PETSc matrix with \texttt{create\_matrix}.
-  \item The matrix values are computed with \texttt{discretise\_poisson}, updated to have Dirichlet BCs with \texttt{apply\_dirichlet\_bcs}, and communicated between the ranks with a combination of \texttt{begin\_update}, and \texttt{end\_update}.
+  \item The matrix values are computed with \texttt{discretise\_poisson}, updated to have Dirichlet BCs with \texttt{apply\_dirichlet\_bcs}, and communicated between the ranks with a combination of \texttt{begin\_update} and \texttt{end\_update}.
   \item The $u$ and $b$ vectors are set in a similar fashion, with the values of \texttt{b} being set with \texttt{eval\_rhs}.
-  \item A linear system object is setup with the \texttt{M}, \texttt{u} and \texttt{b} with \texttt{set\_linear\_system}, for which a PETSc solver object is created (\texttt{create\_solver}), which is solved using the \texttt{solve} interface (in this case this calls \texttt{KSPSolve}). 
-  \item The solution stored in \texttt{u} is compared against the exact solution \texttt{ustar}
+  \item A linear system object is setup with the \texttt{M}, \texttt{u} and \texttt{b} with \texttt{set\_linear\_system}, for which a PETSc solver object is created (\texttt{create\_solver}), which is then solved using the \texttt{solve} interface (in this case this calls \texttt{KSPSolve}). 
+  \item The solution stored in \texttt{u} is compared against the exact solution \texttt{ustar}.
+  \item The PETSC and MPI environments are finalised with a call to \texttt{cleanup\_parallel\_environment}.
 \end{itemize}
-While only the PETSc solver is currently implemented, care has been taken to separate code which is specific to this implementation (i.e. ``user'' code) into its own submodule in the \texttt{src/linear\_solvers/petsc} subdirectory. As a result a user adding a new solver implementation need only write implementations for the functions found in the \texttt{petsc}, rather than having to rewrite the implementations for all the functions declared in \texttt{mat\_mod.f90, vec\_mod.f90,} and \texttt{solver\_mod.f90}. 
+While only the PETSc solver is currently implemented, care has been taken to separate code which is specific to this implementation (i.e. ``user'' code) into its own submodule in the \texttt{src/linear\_solvers/petsc} subdirectory. As a result a user adding a new solver implementation need only write implementations for the functions found in the \texttt{petsc} directory, rather than having to rewrite the implementations for all the functions declared in \texttt{mat\_mod.f90, vec\_mod.f90,} and \texttt{solver\_mod.f90}. 
 
 %\subsection{Notes}
 %\begin{itemize}
@@ -143,14 +146,14 @@ While only the PETSc solver is currently implemented, care has been taken to sep
 
 \section{Configuring the code}
 \begin{itemize}
-  \item The code configuration options are specified in \texttt{src/config.json}, with the list of all possible configurations in \texttt{src/build\_tools/config\_mapping.json}
-  \item At compile time these files as well as compilation dependencies generated by \texttt{makedepf90} are processed by \texttt{src/build\_tools/generate\_link\_deps.py} and appropriate files are chosen for compiling and linking
+  \item The code configuration options are specified in \texttt{src/config.yaml}, with the list of all possible configurations in \texttt{src/build\_tools/config\_mapping.yaml}
+  \item At compile, time these files as well as compilation dependencies generated by \texttt{makedepf90}\footnote{Requires \texttt{makedepf90} version 2.9} are processed by \texttt{src/build\_tools/generate\_link\_deps.py} and appropriate files are chosen for compiling and linking
   \item If the appropriate interfaces with the function declarations exist, after writing the relevant function definitions in a separate directory, the \texttt{config\_mapping.json} file needs to be updated with the names of the new implementation files to take into account the new possible configurations.
-  \item It is important to note that only one module specifying a given procedure may be linked during compilation. Therefore if one needs two implementations of a given algorithm at runtime, they cannot be implemented in separate submodules for a single procedure. 
+  \item It is important to note that only one module specifying a given procedure may be linked during compilation. Therefore if one needs two implementations of a given algorithm at runtime, they \emph{cannot} be implemented in separate submodules for a single procedure. 
 \end{itemize}
 
 \chapter{Style guide}
-This document also describes the coding style and practices that must be adopted for ASiMoV CCS. Following the recommendations in this guide will result in consistent and clear code, with good readability and maintainability. In addition,  some of the practices described below will result in additional compile-time checks that will reduce the number of bugs that are introduced into the code.
+This document also describes the coding style and practices that must be adopted for \accs\. Following the recommendations in this guide will result in consistent and clear code, with good readability and maintainability. In addition,  some of the practices described below will result in additional compile-time checks that will reduce the number of bugs that are introduced into the code.
 
 \section{Fortran standard}
 Adhering to the Fortran standard means the code is portable and can be compiled using a wide range of compilers. 
@@ -185,7 +188,7 @@ The following naming and capitalisation conventions should be followed:
 \end{itemize}
 
 \section{Layout and formatting}
-The following is a list of recommended practices for layout and formatting for ASiMoV CCS.
+The following is a list of recommended practices for layout and formatting for \accs\ .
 
 \begin{itemize}
 \item Templates are provided for modules, submodules, functions, subroutines, and programs. The templates should always be as a 
@@ -211,14 +214,14 @@ Use proper type declarations, rather than the common non-standard style:
 \begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_bad} ]
 integer*4 i ! Bad
 \end{lstlisting}
-prefer (notice also the \texttt{::} separator between the type and variable(s))
+Instead, prefer (notice also the \texttt{::} separator between the type and variable(s)):
 \begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
 use iso_fortran_env
 
 integer(kind=int32) :: i ! Good
 \end{lstlisting}
-note that although the first example is non-standard it does guarantee a 4 byte (32 bit) integer
-type, the second example is commonly written as
+Note that although the first example is non-standard, it does guarantee a 4-byte (32-bit) integer
+type. The second example is commonly written as:
 \begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_ok} ]
 integer(kind=4) :: i ! Good
 \end{lstlisting}
@@ -240,14 +243,14 @@ integer(kind=accs_int) :: a
 real(kind=accs_sgl) :: b
 real(kind=accs_dbl) :: c
 \end{lstlisting}
-the advantage of this approach is changing the precision of variables requires only a single code
+The advantage of this approach is that changing the precision of variables requires only a single code
 change.
 
 \subsection{Setting variables}
 
 With the exception of parameters, see \textit{e.g.} listing~\ref{lst:decl_best}, variables should
-not be set in the declaration as otherwise this implies an \textit{implicit} \texttt{SAVE} attribute
-\textit{i.e.}
+not be set in the declaration as otherwise this implies an \textit{implicit} \texttt{SAVE} attribute,
+\textit{i.e.}:
 \begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
 integer :: a = 1
 \end{lstlisting}
@@ -260,9 +263,8 @@ which is likely not what is wanted.
 \subsubsection{Real number literals}
 
 A real number literal should always be followed by at least one figure after the decimal point, even
-in the case of whole integer values.
-Also, to ensure the kind is correct, it should be added as \texttt{\_kind\_variable}, the example
-below demonstrates both these points.
+in the case of whole integer values. In addition, to ensure the \texttt{kind} is correct, it should be added as \texttt{\_kind\_variable}. The example
+below demonstrates both these points:
 
 \begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
 real(accs_real) :: a, b, c, d
@@ -274,13 +276,13 @@ c = 1.0_accs_real  ! Good
 d = 2.34_accs_real ! Good
 \end{lstlisting}
 
-Note that Fortran does not do type promotion so this also applies when calling procedures with a
-constant value, this also ensures in the case of a generic interface that the correct implementation
-is used.
+Note that Fortran does not do type promotion, which means this also applies when calling procedures with a
+constant value. It is good practice to explicitly add the \texttt{kind} to ensures in the case of a generic 
+interface that the correct implementationis used.
 \begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
-call foo(a, b, 1.0)           ! May not compile
+call foo(a, b, 1.0)           ! May not compile - interface may not resolve
 
-call foo(a, b, 1.0_accs_real) ! Good
+call foo(a, b, 1.0_accs_real) ! Good - interface is explicit
 \end{lstlisting}
 
 \subsection{Array notation}
@@ -341,7 +343,7 @@ a = (b * c) + d ! Good
 True/false conditional statements should use logical rather than relational expressions (i.e. with variables of 
 type \texttt{logical} rather than integers). 
 
-Common practice, bad for readability\footnote{This can also lead to subtle bugs as not all Fortran
+Common practice, bad for readability and not portable across compilers\footnote{This can lead to subtle bugs as not all Fortran
   compilers treat the truth value of non-zeros in the same way (and not necessarily as someone
   familiar with C would expect!)}:
 \begin{lstlisting}[
@@ -358,7 +360,7 @@ if(n) then ! Bad
 end if
 \end{lstlisting}
 
-Better practice for readability:
+Better practice for readability, but still not portable:
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{9}{10}\ttfamily
@@ -373,7 +375,7 @@ if(n == 1) then ! Better
 end if
 \end{lstlisting}
 
-Good practice - unambiguous style for improved readability:
+Good practice - unambiguous style for improved readability and fully portable:
 
 \begin{lstlisting}[
 	language=fortran,
@@ -483,12 +485,14 @@ end subroutine
 
 \textit{\textbf{NOTE:} pay attention to compiler warnings about "unset dummy arguments with intent out" or similar - if unset the value is undefined, this can lead to hard to track down bugs!}
 
+\textit{\textbf{ALSO NOTE:} \texttt{allocatable} \texttt{intent(out)} dummy arguments, and \texttt{allocatable} components of an \texttt{intent(out)} type, are deallocated at the beginning of a procedure. Ensure they are defined as \texttt{intent(inout)} if they are allocated outside the procedure.}
+
 \subsection{Dummy argument order}
-Dummy arguments should consistently for the order \texttt{intent(in)}, \texttt{intent(inout)}, \texttt{intent(out)}. The output from a procedure should be the last arguments.
+Dummy arguments should consistently for the order \texttt{intent(in)}, \texttt{intent(inout)}, \texttt{intent(out)}. The output from a procedure should be the last argument(s).
 \subsection{Optional dummy arguments}
 \label{sec:opt-dummy-args}
 
-Dummy arguments may be declared as \texttt{optional}, \textit{e.g.}
+Dummy arguments may be declared as \texttt{optional}, \textit{e.g.}:
 \begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:intent_good}]
 subroutine example(a, b, opt_c)
 
@@ -508,7 +512,7 @@ This can be a useful way of extending a function/subroutine without affecting th
 existing calls, however it does result in potentially difficult to understand code as the calls
 \texttt{call example(a, b)} and \texttt{call example(a, b, c)} will clearly be very different.
 Therefore, during the \texttt{v0.x} series of releases it is recommended to avoid the use of
-\texttt{optional}.
+\texttt{optional} if at all possible.
 
 \subsection{Accessing struct members}
 Accessing members of structs must be done using the \texttt{\%} operator, even though some compilers will support 
@@ -545,7 +549,7 @@ b = example%a ! Good - Fortran standard member access
 \end{lstlisting}
 
 \subsection{Type selection constructs}
-\texttt{select type} constructs must have default behaviour implemented, in order to avoid errors when there is no match 
+The \texttt{select type} constructs must have default behaviour implemented, in order to avoid errors when there is no match 
 to the selected \texttt{type} or \texttt{class}. In addition, indentation should match that of the example below:
 
 \begin{lstlisting}[
@@ -580,6 +584,7 @@ Other useful tags are:
   \item \texttt{@todo}: Describe functionality that still needs to be implemented.
   \item \texttt{@bug}: Give details of a bug that needs to be fixed, especially non-trivial fixes.
   \item \texttt{@see}: Give reference to another program unit, e.g. to a parent module or a related subroutine.
+  \item \texttt{@build}: Submodule descriptor comments should include this tag if they have third-party dependencies, e.g. \texttt{@build mpi petsc}.
 \end{itemize}
 
 
@@ -611,27 +616,26 @@ end subroutine add
 
 
 \chapter{Development process guide}
-ASiMoV-CCS will follow an internal development and release cycle that is closely aligned with the quarterly project review meetings (QRMs). Ahead of 
+\accs\ follows an internal development and release cycle that is closely aligned with quarterly project review meetings. Ahead of 
 each meeting, a version will tagged with a release number $X.Y$, i.e. the first internal release will start at version $0.1$, which 
-is then incremented by $0.1$ for each subsequent QRM. 
+is then incremented by $0.1$ for each subsequent release. 
 
-Any bug fixes or features that are added to the release between QRMs will be tagged with $X.Y.Z$.
+Any bug fixes or features that are added to the release between quarterly reviews will be tagged with $X.Y.Z$.
 
 \subsection{Git development process}
-As discussed above, ASiMoV-CCS development will follow a release cadence based around the timing of
-QRMs, to support this we will follow the ``git flow'' method.
-The basic principle is that the \texttt{main} branch will contain tagged releases of the code and
+To support the release cycle mentioned above, we follow the ``git flow'' method.
+The basic principle is that the \texttt{master} branch will contain tagged releases of the code and
 must always work (relative to what the goals of that release are), a parallel \texttt{develop}
 branch is where actual development activities will take place - code merged onto this branch should
 be tested but it is accepted the code in this branch may break occasionally.
 To develop a new feature/bugfix ``X'' a developer would create a new branch from \texttt{develop},
-\textit{e.g.}
+\textit{e.g.}:
 \begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:feature-branch}]
 git checkout develop
 git pull                  # Ensure your develop branch is up to date
 git checkout -b feature/X # Create a new branch for feature X
 \end{lstlisting}
-once the feature is complete it is ready to be merged back into \texttt{develop}
+When the feature is complete it is ready to be merged back into \texttt{develop}:
 \begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:feature-merge}]
 git checkout develop
 git pull                  # Ensure your develop branch is up to date
@@ -640,19 +644,19 @@ git merge develop         # Ensure feature branch compatible with develop
 git checkout develop
 git merge feature/X
 \end{lstlisting}
-once it is clear the merge is successful and the feature branch no longer needed, delete the feature
+Once it is clear the merge is successful and the feature branch no longer needed, delete the feature
 branch with \texttt{git branch -D feature/X}.
 
-When the project is ready to start a new release, a release branch is created from \texttt{develop}
+When the project is ready to start a new release, a release branch is created from \texttt{develop}:
 \begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-branch}]
 git checkout develop
 git pull                    # Ensure your develop branch is up to date
 git checkout -b release/X.Y # Create a new branch for release X.Y
 \end{lstlisting}
-this branch can only receive bug fixes or updates to documentation - no new features can be added
+This branch can only receive bug fixes or updates to documentation - no new features can be added
 here.
-Once the release branch is stable, passing all tests, \textit{etc.} it is merged into \texttt{main}
-and tagged to create the new release
+Once the release branch is stable, passing all tests, \textit{etc.} it is merged into \texttt{master}
+and tagged to create the new release:
 \begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-merge}]
 git checkout main
 git pull                  # Ensure your main branch is up to date
@@ -666,14 +670,14 @@ git push --tags           # Push the tagged release to the repository
 This newly released version should be merged back into \texttt{develop} (which may have seen new
 features in the meantime) and development can continue.
 
-In the event that a bug is found in the released version a bugfix branch should be used to resolve
-this, following a similar procedure to above
+In the event that a bug is found in the released version, a bugfix branch should be used to resolve
+this, following a similar procedure to above:
 \begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:bugfix-branch}]
 git checkout main
 git pull                   # Ensure your main branch is up to date
 git checkout -b bugfix/BUG # Create a new branch for bugfix BUG
 \end{lstlisting}
-and this is merged into \texttt{main} similarly to creating a new release
+This is then merged into \texttt{main} similarly to creating a new release:
 \begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-merge}]
 git checkout main
 git pull                  # Ensure your main branch is up to date
@@ -684,14 +688,13 @@ git merge bugfix/BUG
 git tag vX.Y.Z            # Tag the bugfix
 git push --tags           # Push the tagged bugfix to the repository
 \end{lstlisting}
-again, the newly released version should be merged back into \texttt{develop}.
+Again, the newly released version should be merged back into \texttt{develop}.
 
 Further reading on this workflow can be found at
 \url{https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow}.
 
-\textbf{NOTE:} Finally, and importantly, the developer of a feature branch should not merge their
-own branch into \texttt{develop} - when they are ready, notify the project so someone else can
-review and merge it.
+\textbf{NOTE:} Finally, and importantly, the developer of a feature branch should \emph{not} merge their
+own branch into \texttt{develop} - when they are ready, notify the project so someone else can first review and merge the new code.
 
 \subsection{Git commit messages}
 Informative and concise commit messages are important for understanding the context of changes made. 
@@ -708,7 +711,7 @@ Additionally, following these rules will help towards making sure that the commi
 \end{itemize}
 
 \subsection{Issue tracking and bug fixing}
-An issue tracker should be used to keep track of all developments, such as features and bugs fixes. The software release cycle is marked using 
+An issue tracker is used to keep track of all developments, such as features and bugs fixes. The software release cycle is marked using 
 milestones. The following general rules must be adhered to:
 
 \begin{itemize}
@@ -726,7 +729,7 @@ milestones. The following general rules must be adhered to:
   is merged. \texttt{Related to \#5} flags \texttt{\#5} as a related issue, but it is not closed automatically. 
 \end{itemize}
 
-For bugs, the following additonal rules apply:
+For bugs, the following additional rules apply:
 
 \begin{itemize}
   \item Any bugs that are discovered during testing and development must be documented using the issue tracker and marked using the \emph{bug} label.
@@ -734,6 +737,101 @@ For bugs, the following additonal rules apply:
   be documented.
   \item If a bug is critical, it must be marked as such using the \emph{critical} label.
 \end{itemize}
+
+\chapter{Testing}
+\accs\ development follows a ``TDD\footnote{Test Driven Development}-lite'' approach - new functionality should be developed with
+tests to ensure correctness now and in the future, however there is no requirement for a test/develop cycle for every line of code that is written.
+The test system is built and run using \texttt{LLVM LIT} - instructions are given in \S\ref{sec:build-runn-unit}.
+% The test system is built and run using \texttt{pFUnit} - installation instructions and an example
+% test are given in \S\ref{sec:build-runn-unit}.
+
+
+\subsection{Property-based testing}
+\label{subsec:prop-based-test}
+
+A challenge of testing numerical methods is knowing \textit{what is the right answer?}, as typically
+a numerical method is used when a problem cannot be solved analytically.
+Even when a problem can be solved, in a simple case the numerical solution is an approximation and
+the question becomes \textit{is this answer good enough?}
+
+Rather than test specific examples such as
+\begin{equation}
+  f_i=1, f_{i+1}=2, \Delta{}x=1 \Rightarrow \left. \frac{\delta f}{\delta x} \right|_{i+1/2} = 1
+\end{equation}
+property-based testing ensures that an implementation of a function (such as approximating a
+derivative) maintains certain properties, without necessarily needing to know the correct answer ---
+see Table~\ref{tab:cont-vs-disc-derivs} for an example of properties a discrete derivative
+approximation should maintain.
+An additional benefit of this approach is that properties can be tested over a wide range of
+randomly generated inputs, achieving much broader testing than would be possible with specific
+examples such as above.
+
+\section{Discretisation schemes}
+
+For a given discretisation scheme, the properties displayed in Table~\ref{tab:cont-vs-disc-derivs}
+are expected to hold
+
+
+\begin{table}[h]
+  \centering
+  \caption{Comparison of properties of continuous and discrete
+    derivatives}\label{tab:cont-vs-disc-derivs}
+  \begin{tabular}[h]{c|cc}
+    Property & Continuous & Discrete \\
+    \hline
+    Negation & $\dfrac{\partial \left(-f \right)}{\partial x} = - \dfrac{\partial f}{\partial x}$ &
+                                                                                                  $\dfrac{\delta
+                                                                                                  \left(
+                                                                                                  -f
+                                                                                                  \right)}{\delta
+                                                                                                  x}
+                                                                                                  =
+                                                                                                  - \dfrac{\delta
+                                                                                                  f}{\delta
+                                                                                                  x}$
+    \\
+    Scaling & $\dfrac{\partial \alpha f}{\partial x} = \alpha \dfrac{\partial f}{\partial x},\
+              \alpha=const$ & $\dfrac{\delta \alpha f}{\delta x} = \alpha \dfrac{\delta f}{\delta
+                              x},\ \alpha=const$ \\
+    Summation & $\dfrac{\partial \left( \alpha f + \beta g \right)}{\partial x} = \alpha
+                \dfrac{\partial f}{\partial x} + \beta \dfrac{\partial g}{\partial x}$ &
+                                                                                         $\dfrac{\delta
+                                                                                         \left(
+                                                                                         \alpha f +
+                                                                                         \beta g
+                                                                                         \right)}{\delta
+                                                                                         x} =
+                                                                                         \alpha\dfrac{\delta
+                                                                                         f}{\delta
+                                                                                         x} + \beta
+                                                                                         \dfrac{\delta
+                                                                                         g}{\delta x}$ \\
+    Exactness & --- & $\dfrac{\delta f^n\left(x\right)}{\delta x} = \dfrac{\partial
+                    f^n\left(x\right)}{\partial x},\ n < \mathcal{P}$
+  \end{tabular}
+\end{table}
+\textbf{NOTE:} The ``Exactness'' property means that for low-order schemes the product rule only applies
+in the special case that one of the variables is a constant, in which case it reduces to the
+``Scaling'' property.
+Analogous properties also hold for interpolations (the two being related).
+
+\section{Mesh}
+
+\subsection{Mesh partitioning and ordering}
+
+These are both in some sense sorting methods, so should maintain similar properties to a sorting
+scheme:
+\begin{itemize}
+\item a sorted list contains the same elements as an unsorted list
+\item sorting a sorted list should do nothing\footnote{This may not work for mesh
+    partitioning/ordering as often heuristics are involved.}
+\end{itemize}
+
+\section{Building, running and developing unit tests}
+\label{sec:build-runn-unit}
+
+Please refer to the readme at \texttt{src/build\_tools/build\_system\_readme.md}. 
+
 
 \end{document}
 
