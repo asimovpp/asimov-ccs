@@ -125,6 +125,9 @@ contains
         call begin_update_vector(v)
         call end_update_vector(v)
 
+        call begin_ghost_update_vector(v)
+        call end_ghost_update_vector(v)
+        
       class default
         print *, "Unknown vector type!"
         stop
@@ -176,6 +179,58 @@ contains
       type is (vector_petsc)
 
         call VecAssemblyEnd(v%v, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
+    end select
+
+  end subroutine
+
+  !> @brief Begin a ghost update of a PETSc vector
+  !
+  !> @details Begins the ghost update to allow overlapping comms and compute
+  !
+  !> @param[in,out] v - the PETSc vector
+  module subroutine begin_ghost_update_vector(v)
+
+    use petsc, only : VecGhostUpdateBegin, INSERT_VALUES, SCATTER_FORWARD
+    
+    class(vector), intent(inout) :: v
+
+    integer(accs_err) :: ierr !> Error code
+    
+    select type (v)
+      type is (vector_petsc)
+
+        call VecGhostUpdateBegin(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
+    end select
+
+  end subroutine
+
+  !> @brief End a ghost update of a PETSc vector.
+  !
+  !> @details Ends the ghost update to allow overlapping comms and compute.
+  !
+  !> @param[in,out] v - the PETSc vector
+  module subroutine end_ghost_update_vector(v)
+
+    use petsc, only : VecGhostUpdateEnd, INSERT_VALUES, SCATTER_FORWARD
+    
+    class(vector), intent(inout) :: v
+
+    integer(accs_err) :: ierr !> Error code
+    
+    select type (v)
+      type is (vector_petsc)
+
+        call VecGhostUpdateEnd(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
 
       class default
         print *, "Unknown vector type!"
