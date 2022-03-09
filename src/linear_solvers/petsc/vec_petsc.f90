@@ -193,7 +193,7 @@ contains
   !> @details Begins the ghost update to allow overlapping comms and compute
   !
   !> @param[in,out] v - the PETSc vector
-  module subroutine begin_ghost_update_vector(v)
+  subroutine begin_ghost_update_vector(v)
 
     use petsc, only : VecGhostUpdateBegin, INSERT_VALUES, SCATTER_FORWARD
     
@@ -219,7 +219,7 @@ contains
   !> @details Ends the ghost update to allow overlapping comms and compute.
   !
   !> @param[in,out] v - the PETSc vector
-  module subroutine end_ghost_update_vector(v)
+  subroutine end_ghost_update_vector(v)
 
     use petsc, only : VecGhostUpdateEnd, INSERT_VALUES, SCATTER_FORWARD
     
