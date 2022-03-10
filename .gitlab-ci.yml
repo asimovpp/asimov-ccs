@@ -8,6 +8,7 @@
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
     - export CCS_DIR=${PWD}"/"
     - cd src
+    - cp /case_setup/LidDrivenCavity/LidDrivenCavity_config.yaml .
 
 .setup_intel:
   before_script:
@@ -15,13 +16,14 @@
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
     - export CCS_DIR=${PWD}"/"
     - cd src
+    - cp /case_setup/LidDrivenCavity/LidDrivenCavity_config.yaml .
 
 .setup_cray:
   before_script:
     - source setup_gitlab_runner_env
     - export CCS_DIR=${PWD}"/"
     - cd src
-
+    - cp /case_setup/LidDrivenCavity/LidDrivenCavity_config.yaml .
 
 build_ccs_gnu:
   extends: .setup_gnu
