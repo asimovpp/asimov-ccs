@@ -38,7 +38,7 @@ run_ccs_gnu:
     - job: build_ccs_gnu
   extends: .setup_gnu
   script:
-    - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu
+    - HOME=${CI_HOME} mpirun --oversubscribe -n 4 ./ccs_app_gnu --ccs_case LidDrivenCavity
 
 test_ccs_gnu:
   needs: 
@@ -65,7 +65,7 @@ run_ccs_intel:
     - job: build_ccs_intel
   extends: .setup_intel
   script:
-    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel
+    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intel --ccs_case LidDrivenCavity
 
 test_ccs_intel:
   needs: 
@@ -92,7 +92,7 @@ run_ccs_intelx:
     - job: build_ccs_intelx
   extends: .setup_intel
   script:
-    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intelx
+    - HOME=${CI_HOME} mpirun -n 4 ./ccs_app_intelx --ccs_case LidDrivenCavity
 
 test_ccs_intelx:
   needs: 
@@ -121,7 +121,7 @@ run_ccs_cray:
   script:
     - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
     - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
-    - cray_run_command "srun -n 4 ./ccs_app_cray"
+    - cray_run_command "srun -n 4 ./ccs_app_cray --ccs_case LidDrivenCavity"
 
 test_ccs_cray:
   needs: 
