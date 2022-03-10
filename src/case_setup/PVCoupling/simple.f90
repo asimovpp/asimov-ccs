@@ -15,6 +15,7 @@ program simple
   use vec, only: create_vector
   use petsctypes, only: matrix_petsc, vector_petsc
   use pv_coupling, only: solve_nonlinear
+  use mat, only: get_matrix_diagonal
                       
   implicit none
 

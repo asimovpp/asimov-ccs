@@ -7,14 +7,13 @@ submodule (pv_coupling) pv_coupling_simple
   use kinds, only: accs_real, accs_int
   use types, only: vector_init_data, vector, matrix_init_data, matrix, &
                    linear_system, linear_solver, mesh, set_global_matrix_size, &
-                  field, upwind_field, central_field
+                  field, upwind_field, central_field, bc_config
   use fv, only: compute_fluxes
   use vec, only: create_vector
-  use mat, only: create_matrix, set_nnz
+  use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise
   use solver, only: create_solver, solve, set_linear_system
   use parallel_types, only: parallel_environment
-!  use petsctypes, only: matrix_petsc, vector_petsc
 
   implicit none
 
@@ -44,6 +43,7 @@ submodule (pv_coupling) pv_coupling_simple
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
     type(linear_system)    :: lin_system
+    type(bc_config) :: bcs
 
     ! Initialise linear system
     call initialise(mat_sizes)
@@ -55,10 +55,9 @@ submodule (pv_coupling) pv_coupling_simple
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
 
-    ! Create RHS and solution vectors
+    ! Create RHS vector
     call set_global_size(vec_sizes, cell_mesh%nglobal, par_env)
     call create_vector(vec_sizes, source)
-    call create_vector(vec_sizes, sol)
 
     ! Create vectors for storing inverse of velocity central coefficients
     call create_vector(vec_sizes, invAu)

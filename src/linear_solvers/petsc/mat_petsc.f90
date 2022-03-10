@@ -360,7 +360,7 @@ contains
     use petscmat, only: MatGetDiagonal
 
     class(matrix), intent(in)  :: M
-    class(vector), intent(out) :: D
+    class(vector), intent(inout) :: D
 
     integer(accs_err) :: ierr !> Error code
 
@@ -369,7 +369,7 @@ contains
 
         select type (D)
           type is (vector_petsc)
-            call MatGetDiagonal(M, D, ierr)
+            call MatGetDiagonal(M%M, D%v, ierr)
 
           class default
             print *, "Unknown vector type!"

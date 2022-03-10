@@ -190,7 +190,7 @@ module mat
     !> @param[out] D - a vector containing the diagonal elements of M
     module subroutine get_matrix_diagonal(M, D)
       class(matrix), intent(in)  :: M
-      class(vector), intent(out) :: D
+      class(vector), intent(inout) :: D
     end subroutine
 
   end interface
