@@ -208,6 +208,7 @@ program test_advection_coeff
         write(message, *) "FAIL: incorrect velocity field discretisation"
         call stop_test(message)
     end select
+    coeff = coeff * mf * face_area 
 
     select type(phi)
       type is(upwind_field)
