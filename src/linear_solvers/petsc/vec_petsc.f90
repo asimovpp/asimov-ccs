@@ -302,5 +302,26 @@ contains
     call VecRestoreArray(vec, array, offset, ierr)
   end subroutine reset_vector_data
 
+  !> @brief Replaces each component of a vector by its reciprocal
+  !
+  !> @param[inout] vec - the vector
+  module subroutine vec_reciprocal(vec)
+
+    use petscvec, only: VecReciprocal
+
+    class(vector), intent(inout) :: vec
+
+    integer(accs_err) :: ierr !> Error code
+
+    select type (vec)
+      type is (vector_petsc)
+
+       call VecReciprocal(vec%v, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+    end select
+  end subroutine vec_reciprocal
 
 end submodule vec_petsc

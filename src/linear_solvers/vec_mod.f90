@@ -26,6 +26,7 @@ module vec
   public :: set_local_vector_size
   public :: get_vector_data
   public :: reset_vector_data
+  public :: vec_reciprocal
 
   interface
      
@@ -167,6 +168,14 @@ module vec
       class(vector), intent(in) :: vec
       real(accs_real), dimension(:), intent(in) :: array
     end subroutine reset_vector_data
+
+    !> @brief Replace each component of a vector by its reciprocal
+    !
+    !> @param[in]  vec - the vector
+    !> @param[out] vec - the vector reciprocal
+    module subroutine vec_reciprocal(vec)
+      class(vector), intent(inout) :: vec
+    end subroutine vec_reciprocal
 
     end interface
   

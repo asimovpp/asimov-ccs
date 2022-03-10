@@ -15,7 +15,6 @@ program simple
   use vec, only: create_vector
   use petsctypes, only: matrix_petsc, vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use mat, only: get_matrix_diagonal
                       
   implicit none
 
@@ -62,7 +61,7 @@ program simple
   call initialise_velocity(square_mesh, u, v)
 
   ! Solve using SIMPLE algorithm
-  call solve_nonlinear(par_env, square_mesh, it_start, it_end, u, v, p, pp)
+  call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp)
 
   ! Clean-up
   deallocate(u)

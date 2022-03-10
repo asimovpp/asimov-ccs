@@ -7,13 +7,16 @@ submodule (pv_coupling) pv_coupling_simple
   use kinds, only: accs_real, accs_int
   use types, only: vector_init_data, vector, matrix_init_data, matrix, &
                    linear_system, linear_solver, mesh, set_global_matrix_size, &
-                  field, upwind_field, central_field, bc_config
-  use fv, only: compute_fluxes
-  use vec, only: create_vector
+                  field, upwind_field, central_field, bc_config, &
+                  vector_values, cell_locator, face_locator, neighbour_locator, &
+                  matrix_values
+  use fv, only: compute_fluxes, calc_mass_flux
+  use vec, only: create_vector, vec_reciprocal, get_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise
   use solver, only: create_solver, solve, set_linear_system
   use parallel_types, only: parallel_environment
+  use constants, only: insert_mode, add_mode, ndim
 
   implicit none
 
@@ -26,12 +29,12 @@ submodule (pv_coupling) pv_coupling_simple
   !> @param[in,out] u, v   - arrays containing velocity fields in x, y directions
   !> @param[in,out] p      - array containing pressure values
   !> @param[in,out] pp     - array containing pressure-correction values
-  module subroutine solve_nonlinear(par_env, cell_mesh, it_start, it_end, u, v, p, pp)
+  module subroutine solve_nonlinear(par_env, cell_mesh, cps, it_start, it_end, u, v, p, pp)
 
     ! Arguments
-    class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: it_start, it_end
+    integer(accs_int), intent(in) :: cps, it_start, it_end
     class(field), intent(inout) :: u, v, p, pp
     
     ! Local variables
@@ -44,6 +47,8 @@ submodule (pv_coupling) pv_coupling_simple
     type(matrix_init_data) :: mat_sizes
     type(linear_system)    :: lin_system
     type(bc_config) :: bcs
+
+    logical :: converged
 
     ! Initialise linear system
     call initialise(mat_sizes)
@@ -65,7 +70,7 @@ submodule (pv_coupling) pv_coupling_simple
 
     outerloop: do i = it_start, it_end
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
-      call calculate_velocity(cell_mesh, bcs, cps, M, source, lin_system u, v, invAu, invAv)
+      call calculate_velocity(par_env,cell_mesh, bcs, cps, M, source, lin_system, u, v, p, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call calculate_pressure_correction(cell_mesh, M, source, lin_system, u, v, pp)
@@ -74,14 +79,14 @@ submodule (pv_coupling) pv_coupling_simple
       call update_pressure(cell_mesh, pp, p)
 
       ! Update velocity with velocity correction (eq. 6)
-      call update_velocity(u, v, pp, invAu, invAv)
+      call update_velocity(cell_mesh, invAu, invAv, pp, u, v)
 
       ! Update face velocity (need data type for faces) (eq. 9)
 
       ! Todo:
       !call calculate_scalars()
 
-      call check_convergence()
+      call check_convergence(converged)
       if (converged) then
         exit outerloop
       endif
@@ -90,20 +95,22 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine solve_nonlinear
 
-  subroutine calculate_velocity(cell_mesh, bcs, cps, M, vec, lin_sys, u, v, invAu, invAv)
+  subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, p, invAu, invAv)
 
     ! Arguments
+    class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in)        :: cell_mesh
     type(bc_config), intent(in)   :: bcs
     integer(accs_int), intent(in) :: cps
-    class(matrix), intent(inout)  :: M
-    class(vector), intent(inout)  :: vec
+    class(matrix), allocatable, intent(inout)  :: M
+    class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
-    type(field), intent(inout)    :: u, v
+    type(field), intent(inout)    :: u, v, p
     class(vector), intent(inout)    :: invAu, invAv
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
+    integer(accs_int) :: i
 
     ! u-velocity
     ! ----------
@@ -115,10 +122,8 @@ submodule (pv_coupling) pv_coupling_simple
 
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAu)
-    do i = 1, cell_mesh%nlocal
-      invAu(i) = 1.0_accs_real / invAu(i)
-    end do
-
+    call vec_reciprocal(invAu)
+    
     ! Assembly of coefficient matrix and source vector
     call update(M)
     call update(vec)
@@ -137,9 +142,7 @@ submodule (pv_coupling) pv_coupling_simple
 
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAv)
-    do i = 1, cell_mesh_nlocal
-      invAv(i) = 1.0_accs_real / invAv(i)
-    end do
+    call vec_reciprocal(invAv)
 
     ! Assembly of coefficient matrix and source vector
     call update(M)
@@ -174,12 +177,17 @@ submodule (pv_coupling) pv_coupling_simple
     integer(accs_int) :: n_ngb
     real(accs_real) :: face_area
     real(accs_real) :: r
+    real(accs_real), dimension(:), allocatable :: p_data
     logical :: is_boundary
 
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
 
     vec_values%mode = insert_mode
+
+    ! Temporary storage for p values
+    allocate(p_data(cell_mesh%nlocal))
+    call get_vector_data(p%vec, p_data)
 
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
@@ -201,10 +209,10 @@ submodule (pv_coupling) pv_coupling_simple
           call get_face_area(face_loc, face_area)
 
           ! Calculate p at face using CDS
-          r = r - 0.5_accs_real * (p(self_idx) + p(ngb_idx)) * face_area
+          r = r - 0.5_accs_real * (p_data(self_idx) + p_data(ngb_idx)) * face_area
         else
           ! Boundary face (zero gradient?)
-          r = r - p(self_idx) * face_area
+          r = r - p_data(self_idx) * face_area
         endif
       end do
           
@@ -215,6 +223,7 @@ submodule (pv_coupling) pv_coupling_simple
 
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
+    deallocate(p_data)
 
   end subroutine calculate_pressure_source
 
@@ -232,15 +241,19 @@ submodule (pv_coupling) pv_coupling_simple
     ! Local variables
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: vec_values
+    type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
     class(linear_solver), allocatable :: lin_solver
     integer(accs_int) :: self_idx, ngb_idx, local_idx
     integer(accs_int) :: j
     integer(accs_int) :: n_ngb
+    integer(accs_int) :: row, col
+    integer(accs_int) :: bc_flag
     real(accs_real) :: face_area
     real(accs_real), dimension(ndim) :: face_normal
     real(accs_real) :: r
+    real(accs_real) :: coeff_f, coeff_p, coeff_nb
     logical :: is_boundary
 
     allocate(vec_values%idx(1))
@@ -259,7 +272,7 @@ submodule (pv_coupling) pv_coupling_simple
       allocate(mat_coeffs%cglob(1 + n_ngb))
       allocate(mat_coeffs%val(1 + n_ngb))
 
-      row = self_loc
+      row = self_idx
       coeff_p = 0.0_accs_real
       r = 0.0_accs_real
 
@@ -274,13 +287,14 @@ submodule (pv_coupling) pv_coupling_simple
           call set_face_location(face_loc, cell_mesh, local_idx, j)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
-          coeff_f = (1.0 / cell_mesh%h) * A  ! multiply by -d/(1+gam.d)
+          coeff_f = (1.0 / cell_mesh%h) * face_area  ! multiply by -d/(1+gam.d)
 
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
           col = ngb_idx
 
           ! RHS vector
+          bc_flag = 0
           r = r + calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag)
 
         else
@@ -384,11 +398,11 @@ submodule (pv_coupling) pv_coupling_simple
           call set_face_location(face_loc, cell_mesh, local_idx, j)
           call get_face_area(face_loc, face_area)
           
-          up = up - 0.5_accs_real * (pp(self_idx) + pp(ngb_idx)) * face_area
+          up = up - 0.5_accs_real * (pp%vec(self_idx) + pp%vec(ngb_idx)) * face_area
 
         else
           ! Boundary face (zero gradient?)
-          up = up - pp(self_idx) * face_area
+          up = up - pp%vec(self_idx) * face_area
         endif
 
       end do
