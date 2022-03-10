@@ -196,14 +196,14 @@ program test_advection_coeff
     real(accs_real) :: expected_coeff
 
     !! Compute mass flux
-    mf = 0.5_accs_real * (u(self_idx) + u(ngb_idx)) * normal(1) &
-         + 0.5_accs_real * (v(self_idx) + v(ngb_idx)) * normal(2)
+    mf = 0.5_accs_real * (u(self_idx) + u(ngb_idx)) * face_normal(1) &
+         + 0.5_accs_real * (v(self_idx) + v(ngb_idx)) * face_normal(2)
     
     select type(phi)
       type is(central_field)
-        call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0_accs_int, coeff)
+        call calc_advection_coeff(phi, mf, 0_accs_int, coeff)
       type is(upwind_field)
-        call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0_accs_int, coeff)
+        call calc_advection_coeff(phi, mf, 0_accs_int, coeff)
       class default
         write(message, *) "FAIL: incorrect velocity field discretisation"
         call stop_test(message)

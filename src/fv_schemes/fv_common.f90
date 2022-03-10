@@ -97,6 +97,8 @@ contains
     real(accs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
+    real(accs_real) :: mf !> The mass flux at a face
+
     mat_coeffs%mode = add_mode
 
     allocate(mat_coeffs%rglob(1))
@@ -122,26 +124,29 @@ contains
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
 
+          ! XXX: Why won't Fortran interfaces distinguish on extended types...
+          ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
+          !       procedure (should also eliminate the type check).
+          mf = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, 0)
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, mf, 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, mf, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
-
-          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
+          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff * mf + diff_coeff)
           mat_counter = mat_counter + 1
-          adv_coeff_total = adv_coeff_total + adv_coeff
+          adv_coeff_total = adv_coeff_total + (1.0_accs_real - adv_coeff) * mf
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
           call pack_entries(mat_coeffs, 1, mat_counter, self_idx, -1, 0.0_accs_real)
           mat_counter = mat_counter + 1
         end if
       end do
-      call pack_entries(mat_coeffs, 1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
+      call pack_entries(mat_coeffs, 1, mat_counter, self_idx, self_idx, adv_coeff_total - diff_coeff_total)
       mat_counter = mat_counter + 1
       call set_values(mat_coeffs, M)
     end do
@@ -224,6 +229,8 @@ contains
     real(accs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
+    real(accs_real) :: mf !> The mass flux at a face
+    
     mat_coeffs%mode = add_mode
     b_coeffs%mode = add_mode
 
@@ -249,18 +256,20 @@ contains
         call get_face_normal(face_loc, face_normal)
 
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
-        diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
-        if (is_boundary .and. bcs%bc_type(j) .ne. bc_type_const_grad) then
+        if (is_boundary) then
+          diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
+          mf = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, mesh_ngb_idx)
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, mf, mesh_ngb_idx, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, mf, mesh_ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
-
+          adv_coeff = adv_coeff * mf
+          
           call calc_cell_coords(self_idx, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
           call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*bc_value)
