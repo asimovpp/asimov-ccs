@@ -728,7 +728,7 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-    real(accs_real), dimension(:,:), allocatable, intent(inout) :: bnd_vector
+    real(accs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
   
     type(type_error), pointer :: io_err
     integer :: num_boundaries = 0
@@ -788,38 +788,42 @@ submodule (read_config) read_config_utils
           idx = idx + 1
           end select  
       end do
+
+      if(present(bnd_vector)) then
     
-      list => dict%get_list('vector', required=.false.,error=io_err)
-      call error_handler(io_err)  
+        list => dict%get_list('vector', required=.false.,error=io_err)
+        call error_handler(io_err)  
 
-      idx = 1
+        idx = 1
 
-      item => list%first
+        item => list%first
 
-      do while(associated(item))
+        do while(associated(item))
 
-        select type(inner_list => item%node)
-        type is(type_list)
+          select type(inner_list => item%node)
+          type is(type_list)
 
-          inner_item => inner_list%first
-          inner_idx = 1
+            inner_item => inner_list%first
+            inner_idx = 1
 
-          do while(associated(inner_item))
-            select type(inner_element => inner_item%node)
-            class is(type_scalar)
-              inner_item => inner_item%next
-              inner_idx = inner_idx + 1
-              bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
-              print*,bnd_vector(inner_idx,idx)
-            end select
-          end do
+            do while(associated(inner_item))
+              select type(inner_element => inner_item%node)
+              class is(type_scalar)
+                inner_item => inner_item%next
+                inner_idx = inner_idx + 1
+                bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
+                print*,bnd_vector(inner_idx,idx)
+              end select
+            end do
 
-        end select
+          end select
 
-        item => item%next
-        idx = idx + 1
+          item => item%next
+          idx = idx + 1
 
-      end do
+        end do
+
+      end if
 
     class default
       print*,"Unknown type"
