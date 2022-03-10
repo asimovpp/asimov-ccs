@@ -127,7 +127,7 @@ contains
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
           !       procedure (should also eliminate the type check).
-          mf = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, 0)
+          mf = calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, 0)
           select type(phi)
             type is(central_field)
               call calc_advection_coeff(phi, mf, 0, adv_coeff)
@@ -137,9 +137,9 @@ contains
               print *, 'invalid velocity field discretisation'
               stop
           end select
-          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff * mf + diff_coeff)
+          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff * (mf * face_area) + diff_coeff)
           mat_counter = mat_counter + 1
-          adv_coeff_total = adv_coeff_total + (1.0_accs_real - adv_coeff) * mf
+          adv_coeff_total = adv_coeff_total + (1.0_accs_real - adv_coeff) * (mf * face_area)
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
           call pack_entries(mat_coeffs, 1, mat_counter, self_idx, -1, 0.0_accs_real)
@@ -258,7 +258,7 @@ contains
         mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
         if (is_boundary) then
           diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
-          mf = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, mesh_ngb_idx)
+          mf = calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, mesh_ngb_idx)
           select type(phi)
             type is(central_field)
               call calc_advection_coeff(phi, mf, mesh_ngb_idx, adv_coeff)
@@ -268,7 +268,7 @@ contains
               print *, 'invalid velocity field discretisation'
               stop
           end select
-          adv_coeff = adv_coeff * mf
+          adv_coeff = adv_coeff * (mf * face_area)
           
           call calc_cell_coords(self_idx, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
@@ -313,11 +313,10 @@ contains
   !> @param[in] self_idx - Row and column of given cell in mesh
   !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, bc_flag) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
-    real(accs_real), intent(in) :: face_area
     real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: bc_flag
 
@@ -327,12 +326,12 @@ contains
     
     ! ALEXEI: Write more general implementation handling BCs
     if (bc_flag == 0) then
-      flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area * face_normal(1) + &
-             0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area * face_normal(2)
+      flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_normal(1) + &
+             0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_normal(2)
     else if (bc_flag == -1 .or. bc_flag == -2) then
-      flux = u(self_idx) * face_area
+      flux = u(self_idx)
     else if (bc_flag == -3 .or. bc_flag == -4) then
-      flux = v(self_idx) * face_area
+      flux = v(self_idx)
     else
       print *, 'invalid BC flag'
       stop

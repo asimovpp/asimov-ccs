@@ -94,11 +94,10 @@ module fv
   !> @param[in] self_idx - Row and column of given cell in mesh
   !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, bc_flag) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
-    real(accs_real), intent(in) :: face_area
     real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: bc_flag
     real(accs_real) :: flux
