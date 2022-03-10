@@ -21,5 +21,9 @@ module constants
 
   !> @brief Dimensionality of problems
   integer(accs_int), public, parameter :: ndim = 3        !> Always 3D
+
+  !> @brief Discretisation schemes
+  integer(accs_int), public, parameter :: uds = 0
+  integer(accs_int), public, parameter :: cds = 1
   
 end module constants
