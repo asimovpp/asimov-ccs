@@ -9,12 +9,15 @@ program simple
   use kinds, only: accs_real, accs_int
   use types, only: field, upwind_field, central_field, mesh, &
                    vector_init_data, matrix, vector
-  use parallel, only: initialise_parallel_environment
+  use parallel, only: initialise_parallel_environment, &
+                      cleanup_parallel_environment, timer, &
+                      read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector
   use petsctypes, only: matrix_petsc, vector_petsc
   use pv_coupling, only: solve_nonlinear
+  use utils, only: set_global_size
                       
   implicit none
 
