@@ -12,7 +12,7 @@ program test_advection_coeff
   use vec, only : create_vector, get_vector_data, restore_vector_data
   use fv, only: calc_advection_coeff, calc_cell_coords
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
-                     get_global_index, get_face_area, get_face_normal
+                     get_global_index, get_local_index, get_face_area, get_face_normal
   use utils, only : update, initialise, &
                 set_global_size, pack_entries, set_values
   use petsctypes, only: vector_petsc
@@ -102,10 +102,10 @@ program test_advection_coeff
     type(face_locator) :: face_loc
     
     call set_cell_location(self_loc, square_mesh, local_idx)
-    call get_global_index(self_loc, self_idx)
+    call get_local_index(self_loc, self_idx)
   
     call set_neighbour_location(ngb_loc, self_loc, ngb)
-    call get_global_index(ngb_loc, ngb_idx)
+    call get_local_index(ngb_loc, ngb_idx)
 
     call set_face_location(face_loc, square_mesh, local_idx, ngb)
     call get_face_area(face_loc, face_area)
