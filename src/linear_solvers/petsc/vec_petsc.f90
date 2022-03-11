@@ -340,7 +340,8 @@ contains
 
     select type(vec)
       type is(vector_petsc)
-        call VecGetArrayF90(vec%v, array, ierr)
+        call VecGhostGetLocalForm(vec%v, vec%vl, ierr)
+        call VecGetArrayF90(vec%vl, array, ierr)
       class default
         print *, 'invalid vector type'
         stop
@@ -359,7 +360,8 @@ contains
 
     select type(vec)
       type is(vector_petsc)
-        call VecRestoreArrayF90(vec%v, array, ierr)
+        call VecRestoreArrayF90(vec%vl, array, ierr)
+        call VecGhostRestoreLocalForm(vec%v, vec%vl, ierr)
       class default
         print *, 'invalid vector type'
         stop
