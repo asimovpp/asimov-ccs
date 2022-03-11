@@ -137,16 +137,20 @@ contains
               print *, 'invalid velocity field discretisation'
               stop
           end select
-          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff * (mf * face_area) + diff_coeff)
+
+          ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
+          adv_coeff = adv_coeff * (mf * face_area)
+          
+          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
           mat_counter = mat_counter + 1
-          adv_coeff_total = adv_coeff_total + (1.0_accs_real - adv_coeff) * (mf * face_area)
+          adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
           call pack_entries(mat_coeffs, 1, mat_counter, self_idx, -1, 0.0_accs_real)
           mat_counter = mat_counter + 1
         end if
       end do
-      call pack_entries(mat_coeffs, 1, mat_counter, self_idx, self_idx, adv_coeff_total - diff_coeff_total)
+      call pack_entries(mat_coeffs, 1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
       mat_counter = mat_counter + 1
       call set_values(mat_coeffs, M)
     end do
