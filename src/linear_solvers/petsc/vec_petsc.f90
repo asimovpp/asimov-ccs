@@ -368,5 +368,19 @@ contains
     end select
   end subroutine restore_vector_data
 
+  module procedure zero_vector
+    use petscvec
+
+    integer(accs_err) :: ierr
+
+    select type(vec)
+    type is(vector_petsc)
+      call VecZeroEntries(vec%v, ierr)
+    class default
+      print *, "Invalid vector type"
+      stop
+    end select
+    
+  end procedure zero_vector
 
 end submodule vec_petsc

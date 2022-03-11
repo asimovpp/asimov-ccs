@@ -25,7 +25,8 @@ module vec
   public :: set_vector_size
   public :: get_vector_data
   public :: restore_vector_data
-
+  public :: zero_vector
+  
   interface
      
     !> @brief Interface to create a new vector object.
@@ -157,6 +158,10 @@ module vec
       real(accs_real), dimension(:), pointer, intent(in) :: array
     end subroutine restore_vector_data
 
+    module subroutine zero_vector(vec)
+      class(vector), intent(inout) :: vec
+    end subroutine zero_vector
+    
   end interface
   
 end module vec

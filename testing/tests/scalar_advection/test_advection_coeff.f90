@@ -80,13 +80,13 @@ program test_advection_coeff
 
   contains
 
-  !> @brief For a given cell and neighbour computes the global cell and neighbour indices, corresponding face
+  !> @brief For a given cell and neighbour computes the local cell and neighbour indices, corresponding face
   !> area, and normal
   !
   !> @param[in] local_idx           - The cell's local index
   !> @param[in] ngb                 - The neighbour we're interested in (range 1-4)
-  !> @param[out] self_idx           - The cell's global index
-  !> @param[out] ngb_idx            - The neighbour's global index
+  !> @param[out] self_idx           - The cell's local index
+  !> @param[out] ngb_idx            - The neighbour's local index
   !> @param[out] face_area  - The surface area of the face between the cell and its neighbour
   !> @param[out] normal             - The face normal between the cell and its neighbour
   subroutine get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
@@ -179,8 +179,8 @@ program test_advection_coeff
   !
   !> @param[in] scalar      - The scalar field structure
   !> @param[in] u, v        - Arrays containing the velocity fields
-  !> @param[in] self_idx    - The given cell's global index
-  !> @param[in] ngb_idx     - The neighbour's global index
+  !> @param[in] self_idx    - The given cell's local index
+  !> @param[in] ngb_idx     - The neighbour's local index
   !> @param[in] face_area   - The surface area of the face between the cell and neighbour
   !> @param[in] face_normal - The normal to the face between the cell and neighbour
   subroutine run_advection_coeff_test(phi, u, v, self_idx, ngb_idx, face_area, face_normal)

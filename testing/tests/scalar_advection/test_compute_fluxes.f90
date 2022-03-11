@@ -80,7 +80,7 @@ program test_compute_fluxes
     use meshing, only: set_cell_location, get_global_index
     class(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: direction
-    class(field), intent(inout), allocatable :: u, v
+    class(field), intent(inout) :: u, v
     type(cell_locator) :: self_loc
     type(vector_values) :: u_vals, v_vals
     integer(accs_int) :: local_idx, self_idx
@@ -108,6 +108,9 @@ program test_compute_fluxes
           v_val = 1.0_accs_real
         end if
 
+        ! u_val = 0.0_accs_real
+        ! v_val = 0.0_accs_real
+        
         call pack_entries(u_vals, local_idx, self_idx, u_val)
         call pack_entries(v_vals, local_idx, self_idx, v_val)
       end do
@@ -209,160 +212,34 @@ program test_compute_fluxes
   !> @param[out] M             - The resulting matrix
   !> @param[out] b             - The resulting RHS vector
   subroutine compute_exact_matrix(cell_mesh, flow, discretisation, cps, M, b)
+
+    use vec, only : zero_vector
+    
     class(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: flow
     integer(accs_int), intent(in) :: discretisation
     integer(accs_int), intent(in) :: cps
-    class(matrix), allocatable :: M
-    class(vector), allocatable :: b
+    class(matrix), intent(inout) :: M
+    class(vector), intent(inout) :: b
 
-    ! type(matrix_init_data) :: mat_sizes
-    type(matrix_values) :: mat_coeffs
     ! type(vector_init_data) :: vec_sizes
     type(vector_values) :: vec_coeffs
     real(accs_real) :: diff_coeff, adv_coeff
-    real(accs_real) :: proc_zero_factor ! set to zero for non-zero ranks so that we're not double counting when running in parallel
-    integer(accs_int) :: i, j
+    integer(accs_int) :: i, ii
     integer(accs_int) :: row, col
-    integer(accs_int) :: mat_counter
     integer(accs_int) :: vec_counter
 
-    ! call initialise(mat_sizes)
-    ! call set_global_size(mat_sizes, cell_mesh, par_env)
-    ! call set_nnz(mat_sizes, 5)
-    ! call create_matrix(mat_sizes, M)
-    
-    ! call initialise(vec_sizes)
-    ! call set_global_size(vec_sizes, cell_mesh, par_env)
-    ! call create_vector(vec_sizes, b)
+    call initialise(vec_sizes)
+    call set_global_size(vec_sizes, cell_mesh, par_env)
 
-    mat_coeffs%mode = add_mode
     vec_coeffs%mode = add_mode
     
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(2))
-    allocate(mat_coeffs%val(2))
-
-    if (par_env%proc_id == 0) then  ! We only want to assign the values once, and there's no point parallelising the test
-      proc_zero_factor = 1.0_accs_real
-    else 
-      proc_zero_factor = 0.0_accs_real
-    end if
-
-    ! Advection coefficients first
-    if (flow == x_dir .and. discretisation == central) then
-      ! CDS and flow along +x direction
-      do i = 1, cell_mesh%nlocal
-        mat_counter = 1
-        if (mod(i, cps) == 1) then
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i, -0.3_accs_real*proc_zero_factor) ! Make this more flexible so that the coeffs depend on cps
-          mat_counter = mat_counter + 1
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i+1, 0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-        else if (mod(i, cps) == 0) then
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i, -0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i-1, -0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-        else
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i+1, 0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i-1, -0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-        end if
-        call set_values(mat_coeffs, M)
-      end do
-    else if (flow == y_dir .and. discretisation == central) then
-      ! CDS and flow along +y direction
-      do i = 1, cell_mesh%nlocal
-        mat_counter = 1
-        if (i .le. cps) then
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i, -0.3_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-        else if (i > cell_mesh%nglobal - cps) then
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i, -0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-        end if
-
-        if (i + cps .le. cell_mesh%nglobal) then
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i+cps, 0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-        end if
-        if (i - cps > 0) then
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i-cps, -0.1_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-        end if
-        call set_values(mat_coeffs, M)
-      end do
-    else if (flow == x_dir .and. discretisation == upwind) then
-      ! UDS and flow along +x direction
-      do i = 1, cell_mesh%nlocal
-        mat_counter = 1
-        if (mod(i, cps) .ne. 1) then
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i, 0.2_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-          call pack_entries(mat_coeffs, 1, mat_counter, i, i-1, -0.2_accs_real*proc_zero_factor)
-          mat_counter = mat_counter + 1
-          call set_values(mat_coeffs, M)
-        end if
-      end do
-    else if (flow == y_dir .and. discretisation == upwind) then
-      ! UDS and flow along +y direction
-      do i = cps+1, cell_mesh%nlocal
-        mat_counter = 1
-        call pack_entries(mat_coeffs, 1, mat_counter, i, i, 0.2_accs_real*proc_zero_factor)
-        mat_counter = mat_counter + 1
-        call pack_entries(mat_coeffs, 1, mat_counter, i, i-cps, -0.2_accs_real*proc_zero_factor)
-        mat_counter = mat_counter + 1
-        call set_values(mat_coeffs, M)
-      end do
-    end if
-
-    deallocate(mat_coeffs%cglob)
-    deallocate(mat_coeffs%val)
-
-    allocate(mat_coeffs%cglob(5))
-    allocate(mat_coeffs%val(5))
-
-    diff_coeff = -0.01_accs_real
-    ! Diffusion coefficients
-    do i = 1, cell_mesh%nglobal
-      mat_counter = 1
-      call pack_entries(mat_coeffs, 1, mat_counter, i, i, -4*diff_coeff*proc_zero_factor)
-      mat_counter = mat_counter + 1
-
-      if (i - 1 > 0 .and. mod(i, cps) .ne. 1) then
-        call pack_entries(mat_coeffs, 1, mat_counter, i, i-1, diff_coeff*proc_zero_factor)
-        mat_counter = mat_counter + 1
-      end if
-      if (i - cps > 0) then
-        call pack_entries(mat_coeffs, 1, mat_counter, i, i-cps, diff_coeff*proc_zero_factor)
-        mat_counter = mat_counter + 1
-      end if
-
-      if (i + 1 .le. cell_mesh%nglobal .and. mod(i, cps) .ne. 0) then
-        call pack_entries(mat_coeffs, 1, mat_counter, i, i+1, diff_coeff*proc_zero_factor)
-        mat_counter = mat_counter + 1
-      end if
-      if (i + cps .le. cell_mesh%nglobal) then
-        call pack_entries(mat_coeffs, 1, mat_counter, i, i+cps, diff_coeff*proc_zero_factor)
-        mat_counter = mat_counter + 1
-      end if
-
-      if (mat_counter < 6) then
-        do j = mat_counter, cps
-          call pack_entries(mat_coeffs, 1, mat_counter, i, -1, 0.0_accs_real)
-          mat_counter = mat_counter + 1
-        end do
-      end if
-      call set_values(mat_coeffs, M)
-    end do
-
-    deallocate(mat_coeffs%rglob)
-    deallocate(mat_coeffs%cglob)
-    deallocate(mat_coeffs%val)
+    call compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
+    call compute_exact_diffusion_matrix(cell_mesh, cps, M)
     
     ! Now do the RHS
+    call zero_vector(b)
+    
     ! Advection first
     allocate(vec_coeffs%idx(2*cell_mesh%nglobal/cps))
     allocate(vec_coeffs%val(2*cell_mesh%nglobal/cps))
@@ -374,21 +251,27 @@ program test_compute_fluxes
       adv_coeff = 0.0_accs_real
     endif 
 
-    if (flow == x_dir) then
-      do i = 1, cps
-        call pack_entries(vec_coeffs, vec_counter, (i-1)*cps + 1, adv_coeff*proc_zero_factor) 
-        vec_counter = vec_counter + 1
-        call pack_entries(vec_coeffs, vec_counter, i*cps, adv_coeff*proc_zero_factor) 
-        vec_counter = vec_counter + 1
-      end do
+    if (par_env%proc_id == 0) then
+      if (flow == x_dir) then
+        do i = 1, cps
+          ii = cell_mesh%idx_global(i)
+          call pack_entries(vec_coeffs, vec_counter, (i-1)*cps + 1, adv_coeff) 
+          vec_counter = vec_counter + 1
+          call pack_entries(vec_coeffs, vec_counter, i*cps, adv_coeff) 
+          vec_counter = vec_counter + 1
+        end do
+      else
+        do i = 1, cps
+          call pack_entries(vec_coeffs, vec_counter, i, adv_coeff) 
+          vec_counter = vec_counter + 1
+          call pack_entries(vec_coeffs, vec_counter, cell_mesh%nlocal - i + 1, adv_coeff) 
+          vec_counter = vec_counter + 1
+        end do
+      end if
     else
-      do i = 1, cps
-        call pack_entries(vec_coeffs, vec_counter, i, adv_coeff*proc_zero_factor) 
-        vec_counter = vec_counter + 1
-        call pack_entries(vec_coeffs, vec_counter, cell_mesh%nlocal - i + 1, adv_coeff*proc_zero_factor) 
-        vec_counter = vec_counter + 1
-      end do
-    end if
+      vec_coeffs%idx(:) = -1
+      vec_coeffs%val(:) = 0.0_accs_real
+    endif
     call set_values(vec_coeffs, b)
     
     deallocate(vec_coeffs%idx)
@@ -400,17 +283,22 @@ program test_compute_fluxes
 
     vec_counter = 1
     diff_coeff = 0.01_accs_real
-    do i = 1, cell_mesh%nlocal
-      call calc_cell_coords(i, cps, row, col)
-      if (row == 1 .or. row == cps) then
-        call pack_entries(vec_coeffs, vec_counter, i, diff_coeff*proc_zero_factor) 
-        vec_counter = vec_counter + 1
-      end if
-      if (col == 1 .or. col == cps) then
-        call pack_entries(vec_coeffs, vec_counter, i, diff_coeff*proc_zero_factor) 
-        vec_counter = vec_counter + 1
-      end if
-    end do
+    if (par_env%proc_id == 0) then
+      do i = 1, cell_mesh%nglobal
+        call calc_cell_coords(i, cps, row, col)
+        if (row == 1 .or. row == cps) then
+          call pack_entries(vec_coeffs, vec_counter, i, diff_coeff) 
+          vec_counter = vec_counter + 1
+        end if
+        if (col == 1 .or. col == cps) then
+          call pack_entries(vec_coeffs, vec_counter, i, diff_coeff) 
+          vec_counter = vec_counter + 1
+        end if
+      end do
+    else
+      vec_coeffs%idx(:) = -1
+      vec_coeffs%val(:) = 0.0_accs_real
+    end if
     call set_values(vec_coeffs, b)
     
     deallocate(vec_coeffs%idx)
@@ -418,4 +306,176 @@ program test_compute_fluxes
     
   end subroutine compute_exact_matrix
 
+  !> @brief Computes the known diffusion flux matrix for the given flow and discretisation
+  !
+  !> @param[in] cell_mesh      - The (square) mesh
+  !> @param[in] cps            - Number of cells per side in mesh
+  !> @param[out] M             - The resulting matrix
+  subroutine compute_exact_diffusion_matrix(cell_mesh, cps, M)
+
+    class(mesh), intent(in) :: cell_mesh
+    integer(accs_int), intent(in) :: cps
+    class(matrix), intent(inout) :: M
+
+    type(matrix_values) :: mat_coeffs
+
+    real(accs_real) :: diff_coeff
+    
+    integer(accs_int) :: i, ii
+    integer(accs_int) :: j
+    integer(accs_int) :: mat_counter
+
+    allocate(mat_coeffs%rglob(1))
+    allocate(mat_coeffs%cglob(5))
+    allocate(mat_coeffs%val(5))
+    mat_coeffs%mode = add_mode
+
+    j = cps
+    
+    diff_coeff = -0.01_accs_real
+    ! Diffusion coefficients
+    do i = 1, cell_mesh%nlocal
+      mat_counter = 1
+
+      ii = cell_mesh%idx_global(i)
+      call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, -4*diff_coeff)
+      mat_counter = mat_counter + 1
+
+      if (ii - 1 > 0 .and. mod(ii, cps) .ne. 1) then
+        call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-1, diff_coeff)
+        mat_counter = mat_counter + 1
+      end if
+      if (ii - cps > 0) then
+        call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-cps, diff_coeff)
+        mat_counter = mat_counter + 1
+      end if
+
+      if (ii + 1 .le. cell_mesh%nglobal .and. mod(ii, cps) .ne. 0) then
+        call pack_entries(mat_coeffs, 1, mat_counter, ii, ii+1, diff_coeff)
+        mat_counter = mat_counter + 1
+      end if
+      if (ii + cps .le. cell_mesh%nglobal) then
+        call pack_entries(mat_coeffs, 1, mat_counter, ii, ii+cps, diff_coeff)
+        mat_counter = mat_counter + 1
+      end if
+
+      if (mat_counter < 6) then
+        do j = mat_counter, cps
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, -1, 0.0_accs_real)
+          mat_counter = mat_counter + 1
+        end do
+      end if
+
+      call set_values(mat_coeffs, M)
+    end do
+    
+    deallocate(mat_coeffs%rglob)
+    deallocate(mat_coeffs%cglob)
+    deallocate(mat_coeffs%val)
+    
+  end subroutine compute_exact_diffusion_matrix
+
+  !> @brief Computes the known advection flux matrix for the given flow and discretisation
+  !
+  !> @param[in] cell_mesh      - The (square) mesh
+  !> @param[in] cps            - Number of cells per side in mesh
+  !> @param[out] M             - The resulting matrix
+  subroutine compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
+
+    class(mesh), intent(in) :: cell_mesh
+    integer(accs_int), intent(in) :: cps
+    integer(accs_int), intent(in) :: flow
+    integer(accs_int), intent(in) :: discretisation
+    class(matrix), intent(inout) :: M
+
+    type(matrix_values) :: mat_coeffs
+
+    integer(accs_int) :: i, ii
+    integer(accs_int) :: mat_counter
+
+    mat_coeffs%mode = add_mode
+    allocate(mat_coeffs%rglob(1))
+    allocate(mat_coeffs%cglob(2))
+    allocate(mat_coeffs%val(2))
+
+    ! Advection coefficients
+    
+    if (flow == x_dir .and. discretisation == central) then
+      ! CDS and flow along +x direction
+      do i = 1, cell_mesh%nlocal
+        mat_counter = 1
+        ii = cell_mesh%idx_global(i)
+        if (mod(ii, cps) == 1) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, -0.3_accs_real) ! Make this more flexible so that the coeffs depend on cps
+          mat_counter = mat_counter + 1
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii+1, 0.1_accs_real)
+          mat_counter = mat_counter + 1
+        else if (mod(ii, cps) == 0) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, -0.1_accs_real)
+          mat_counter = mat_counter + 1
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-1, -0.1_accs_real)
+          mat_counter = mat_counter + 1
+        else
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii+1, 0.1_accs_real)
+          mat_counter = mat_counter + 1
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-1, -0.1_accs_real)
+          mat_counter = mat_counter + 1
+        end if
+        call set_values(mat_coeffs, M)
+      end do
+    else if (flow == y_dir .and. discretisation == central) then
+      ! CDS and flow along +y direction
+      do i = 1, cell_mesh%nlocal
+        mat_counter = 1
+        ii = cell_mesh%idx_global(i)
+        if (ii .le. cps) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, -0.3_accs_real)
+          mat_counter = mat_counter + 1
+        else if (ii > cell_mesh%nglobal - cps) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, -0.1_accs_real)
+          mat_counter = mat_counter + 1
+        end if
+
+        if (ii + cps .le. cell_mesh%nglobal) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii+cps, 0.1_accs_real)
+          mat_counter = mat_counter + 1
+        end if
+        if (ii - cps > 0) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-cps, -0.1_accs_real)
+          mat_counter = mat_counter + 1
+        end if
+        call set_values(mat_coeffs, M)
+      end do
+    else if (flow == x_dir .and. discretisation == upwind) then
+      ! UDS and flow along +x direction
+      do i = 1, cell_mesh%nlocal
+        mat_counter = 1
+        ii = cell_mesh%idx_global(i)
+        if (mod(ii, cps) .ne. 1) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, 0.2_accs_real)
+          mat_counter = mat_counter + 1
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-1, -0.2_accs_real)
+          mat_counter = mat_counter + 1
+          call set_values(mat_coeffs, M)
+        end if
+      end do
+    else if (flow == y_dir .and. discretisation == upwind) then
+      ! UDS and flow along +y direction
+      do i = 1, cell_mesh%nlocal
+        mat_counter = 1
+        ii = cell_mesh%idx_global(i)
+        if (ii > cps) then
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, 0.2_accs_real)
+          mat_counter = mat_counter + 1
+          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-cps, -0.2_accs_real)
+          mat_counter = mat_counter + 1
+          call set_values(mat_coeffs, M)
+        end if
+      end do
+    end if
+
+    deallocate(mat_coeffs%cglob)
+    deallocate(mat_coeffs%val)
+  end subroutine compute_exact_advection_matrix
+  
 end program test_compute_fluxes
