@@ -29,6 +29,7 @@ submodule (parallel) parallel_utils_mpi
 
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
 
     end select
 
@@ -79,6 +80,7 @@ submodule (parallel) parallel_utils_mpi
 
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
     end select
 
   end subroutine read_command_line_arguments

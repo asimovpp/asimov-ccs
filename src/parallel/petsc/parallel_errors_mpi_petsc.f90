@@ -49,10 +49,12 @@ submodule (parallel) parallel_errors_mpi_petsc
 
         else 
           write(*,*) "Unsupported error categroy" 
+          stop 1
         end if
 
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
 
     end select
 
