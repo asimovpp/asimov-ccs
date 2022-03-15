@@ -47,6 +47,7 @@ submodule (parallel) parallel_env_mpi_petsc
     
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
     
     end select
 
@@ -69,6 +70,7 @@ submodule (parallel) parallel_env_mpi_petsc
     
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
     
     end select
 
