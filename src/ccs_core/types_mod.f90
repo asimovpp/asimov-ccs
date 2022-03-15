@@ -145,6 +145,15 @@ module types
   type, public :: io_process
   end type io_process
 
+  !> @brief Face-centred values of flow variables
+  type, public :: face_data
+    type(field) :: u
+    type(field) :: v
+    type(field) :: w
+    type(field) :: p
+    type(field) :: pp
+  end type face_data
+
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)
     type(matrix_init_data), intent(inout) :: mat

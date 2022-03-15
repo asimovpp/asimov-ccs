@@ -1,4 +1,4 @@
-main: scalar_advection
+main: facevalues
 base: mpi_petsc
 #options:
   #component: opt_2
