@@ -11,54 +11,54 @@ contains
   
   !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
-  !> @param[in] ngb_idx   - global cell neighbour index
-  !> @param[in] self_idx  - global cell index
-  !> @param[in] face_area - area of face between self and neighbour
-  !> @param[in,out] coeff - advection coefficient to be calculated
-  !> @param[in] cps       - number of cells per side in (square) mesh
-  !> @param[in] u, v      - velocity fields in x, y directions
-  !> @param[in] bc        - flag indicating whether cell is on boundary
-  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
+  !> @param[in] phi         - scalar field
+  !> @param[in] mf          - mass flux at the face
+  !> @param[in] bc          - flag indicating whether cell is on boundary
+  !> @param[out] coeff      - advection coefficient to be calculated
+  module subroutine calc_advection_coeff_cds(phi, mf, bc, coeff)
     type(central_field), intent(in) :: phi
-    integer(accs_int), intent(in) :: ngb_idx, self_idx
-    real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(ndim), intent(in) :: face_normal
-    integer(accs_int), intent(in) :: cps
-    real(accs_real), dimension(:), intent(in) :: u, v
+    real(accs_real), intent(in) :: mf
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
 
     real(accs_real) :: interpolation_factor
-
+    
+    ! Dummy usage to prevent unused argument. 
+    associate(scalar => phi)
+    end associate
+    associate(mflux => mf)
+    end associate
+    
     if (bc == 0) then
       interpolation_factor = 0.5_accs_real
     else
       interpolation_factor = 1.0_accs_real
     end if
-    coeff = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc) * interpolation_factor
+    coeff = interpolation_factor
   end subroutine calc_advection_coeff_cds
   
   !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
-  !> @param[in] ngb_idx   - global cell neighbour index
-  !> @param[in] self_idx  - global cell index
-  !> @param[in] face_area - area of face between self and neighbour
-  !> @param[in,out] coeff - advection coefficient to be calculated
-  !> @param[in] cps       - number of cells per side in (square) mesh
-  !> @param[in] u, v      - velocity fields in x, y directions
-  !> @param[in] bc        - flag indicating whether cell is on boundary
-  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, cps, u, v, bc, coeff)
+  !> @param[in] phi         - scalar field
+  !> @param[in] mf          - mass flux at the face
+  !> @param[in] bc          - flag indicating whether cell is on boundary
+  !> @param[out] coeff      - advection coefficient to be calculated
+  module subroutine calc_advection_coeff_uds(phi, mf, bc, coeff)
     type(upwind_field), intent(in) :: phi
-    integer(accs_int), intent(in) :: ngb_idx, self_idx
-    real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(ndim), intent(in) :: face_normal
-    integer(accs_int), intent(in) :: cps
-    real(accs_real), dimension(:), intent(in) :: u, v
+    real(accs_real), intent(in) :: mf
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
 
-    coeff = calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc)
-    coeff = min(coeff, 0.0_accs_real)
+    ! Dummy usage to prevent unused argument. 
+    associate(scalar => phi, foo => bc)
+    end associate
+
+    if (mf < 0.0) then
+      coeff = 1.0_accs_real
+    else
+      coeff = 0.0_accs_real
+    end if
+    
   end subroutine calc_advection_coeff_uds
 
 end submodule fv_discretisation

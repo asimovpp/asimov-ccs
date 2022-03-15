@@ -18,10 +18,11 @@ module petsctypes
 
   !> @brief Implements the vector class backed by a PETSc vector
   type, public, extends(vector) :: vector_petsc
-     type(tVec) :: v      !> The PETSc vector
-     logical :: allocated !> Indicates whether the PETSc vector has been allocated
-   contains
-     final :: free_vector_petsc
+    type(tVec) :: v      !> The PETSc vector
+    type(tVec) :: vl     !> The "local" PETSc vector (inc. ghost points)
+    logical :: allocated !> Indicates whether the PETSc vector has been allocated
+  contains
+    final :: free_vector_petsc
   end type vector_petsc
 
   !> @brief Implements the matrix class backed by a PETSc matrix

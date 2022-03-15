@@ -7,7 +7,7 @@ program scalar_advection
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-                    linear_system, linear_solver, mesh, set_global_matrix_size, &
+                    linear_system, linear_solver, mesh, &
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
@@ -66,12 +66,12 @@ program scalar_advection
   call initialise(scalar_linear_system)
 
   ! Create stiffness matrix
-  call set_global_size(mat_sizes, square_mesh%nglobal, square_mesh%nglobal, par_env)
+  call set_global_size(mat_sizes, square_mesh, par_env)
   call set_nnz(mat_sizes, 5) 
   call create_matrix(mat_sizes, M)
 
   ! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+  call set_global_size(vec_sizes, square_mesh, par_env)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar%vec)
@@ -120,7 +120,6 @@ contains
     use utils, only: pack_entries, set_values
     class(mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: u, v
-    integer(accs_int) :: i
     integer(accs_int) :: row, col
     integer(accs_int) :: local_idx, self_idx
     real(accs_real) :: u_val, v_val

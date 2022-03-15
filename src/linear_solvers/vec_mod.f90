@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data, vector_values
+  use types, only : mesh, vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -22,12 +22,13 @@ module vec
   public :: vec_norm
   public :: pack_one_vector_element
   public :: initialise_vector
-  public :: set_global_vector_size
-  public :: set_local_vector_size
+  public :: set_vector_size
   public :: get_vector_data
+  public :: restore_vector_data
   public :: reset_vector_data
   public :: vec_reciprocal
-
+  public :: zero_vector
+  
   interface
      
     !> @brief Interface to create a new vector object.
@@ -127,27 +128,17 @@ module vec
       type(vector_init_data), intent(inout) :: vector_descriptor
     end subroutine initialise_vector
 
-    !> @brief Setter for global vector size
+    !> @brief Setter for vector size
     !
     !> param[in/out] vector_descriptor - the vector data object
-    !> param[in] size                  - the global vector size
-    !> param[in] par_env               - the parallel environment 
+    !> param[in]     geometry          - the mesh - contains the
+    !!                                   information to set the
+    !!                                   vector size
+    !> param[in]     par_env           - the parallel environment 
     !!                                   where the vector resides
-    module subroutine set_global_vector_size(vector_descriptor, size, par_env)
+    module subroutine set_vector_size(vector_descriptor, geometry, par_env)
       type(vector_init_data), intent(inout) :: vector_descriptor
-      integer(accs_int), intent(in) :: size
-      class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine
-
-    !> @brief Setter for local vector size
-    !
-    !> param[in/out] vvector_descriptor - the vector data object
-    !> param[in] size                   - the local vector size
-    !> param[in] par_env                - the parallel environment 
-    !!                                    where the vector resides
-    module subroutine set_local_vector_size(vector_descriptor, size, par_env)
-      type(vector_init_data), intent(inout) :: vector_descriptor
-      integer(accs_int), intent(in) :: size
+      class(mesh), target, intent(in) :: geometry
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
 
@@ -157,17 +148,17 @@ module vec
     !> @param[in] array - an array to store the data in
     module subroutine get_vector_data(vec, array)
       class(vector), intent(in) :: vec
-      real(accs_real), dimension(:), intent(out) :: array
+      real(accs_real), dimension(:), pointer, intent(out) :: array
     end subroutine get_vector_data
 
     !> @brief Resets the vector data if required for further processing
     !
     !> @param[in] vec   - the vector to reset
-    !> @param[in] array - an array storing the data
-    module subroutine reset_vector_data(vec, array)
+    !> @param[in] array - the array containing the data to restore
+    module subroutine restore_vector_data(vec, array)
       class(vector), intent(in) :: vec
-      real(accs_real), dimension(:), intent(in) :: array
-    end subroutine reset_vector_data
+      real(accs_real), dimension(:), pointer, intent(in) :: array
+    end subroutine restore_vector_data
 
     !> @brief Replace each component of a vector by its reciprocal
     !
@@ -177,6 +168,10 @@ module vec
       class(vector), intent(inout) :: vec
     end subroutine vec_reciprocal
 
-    end interface
+    module subroutine zero_vector(vec)
+      class(vector), intent(inout) :: vec
+    end subroutine zero_vector
+    
+  end interface
   
 end module vec

@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : accs_int, accs_real
-  use types, only : matrix, matrix_init_data, matrix_values, vector
+  use types, only : matrix, matrix_init_data, matrix_values, mesh, vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -20,8 +20,7 @@ module mat
   public :: set_eqn
   public :: pack_one_matrix_coefficient
   public :: initialise_matrix
-  public :: set_global_matrix_size
-  public :: set_local_matrix_size
+  public :: set_matrix_size
   public :: set_nnz
   public :: mat_axpy
   public :: mat_norm
@@ -148,28 +147,12 @@ module mat
     !> @brief Setter for global matrix size
     !
     !> param[in/out] matrix_descriptor  - the matrix data object
-    !> param[in] rows                   - the global number of rows
-    !> param[in] columns                - the global number of columns
+    !> param[in] mesh                   - the mesh object
     !> param[in] par_env                - the parallel environment where 
     !!                                    the matrix resides
-    module subroutine set_global_matrix_size(matrix_descriptor, rows, columns, par_env)
+    module subroutine set_matrix_size(matrix_descriptor, geometry, par_env)
       type(matrix_init_data), intent(inout) :: matrix_descriptor
-      integer(accs_int), intent(in) :: rows
-      integer(accs_int), intent(in) :: columns
-      class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine
-
-    !> @brief Setter for local matrix size
-    !
-    !> param[in/out] matrix_descriptor  - the matrix data object
-    !> param[in] rows                   - the local number of rows
-    !> param[in] columns                - the local number of columns
-    !> param[in] par_env                - the parallel environment where
-    !!                                    the matrix resides
-    module subroutine set_local_matrix_size(matrix_descriptor, rows, columns, par_env)
-      type(matrix_init_data), intent(inout) :: matrix_descriptor
-      integer(accs_int), intent(in) :: rows
-      integer(accs_int), intent(in) :: columns
+      class(mesh), target, intent(in) :: geometry
       class(parallel_environment), allocatable, target, intent(in) :: par_env
     end subroutine
 

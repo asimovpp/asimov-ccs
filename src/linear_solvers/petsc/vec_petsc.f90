@@ -15,12 +15,12 @@ contains
 
   !> @brief Create a PETSc-backed vector
   !
-  !> @param[in]  vector_innit_data vec_dat - the data describing how the vector should be created.
+  !> @param[in]  vector_init_data vec_dat - the data describing how the vector should be created.
   !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
-    use petscvec, only : VecCreate, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
+    use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
     
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
@@ -32,18 +32,16 @@ contains
     select type (v)
       type is (vector_petsc)
 
-        select type(par_env => vec_dat%par_env)
+      select type(par_env => vec_dat%par_env)
         type is(parallel_environment_mpi)
-          call VecCreate(par_env%comm, v%v, ierr)
 
-          if (vec_dat%nloc >= 0) then
-            call VecSetSizes(v%v, vec_dat%nloc, PETSC_DECIDE, ierr)
-          else if (vec_dat%nglob > 0) then
-            call VecSetSizes(v%v, PETSC_DECIDE, vec_dat%nglob, ierr)
-          else
-            print *, "ERROR: invalid vector creation!"
-            stop
-          end if
+          associate(mesh => vec_dat%mesh)
+
+            call VecCreateGhost(par_env%comm, &
+                 mesh%nlocal, PETSC_DECIDE, &
+                 mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
+                 v%v, ierr)
+          end associate
         
           call VecSetFromOptions(v%v, ierr)
           call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
@@ -127,6 +125,9 @@ contains
         call begin_update_vector(v)
         call end_update_vector(v)
 
+        call begin_ghost_update_vector(v)
+        call end_ghost_update_vector(v)
+        
       class default
         print *, "Unknown vector type!"
         stop
@@ -178,6 +179,58 @@ contains
       type is (vector_petsc)
 
         call VecAssemblyEnd(v%v, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
+    end select
+
+  end subroutine
+
+  !> @brief Begin a ghost update of a PETSc vector
+  !
+  !> @details Begins the ghost update to allow overlapping comms and compute
+  !
+  !> @param[in,out] v - the PETSc vector
+  subroutine begin_ghost_update_vector(v)
+
+    use petsc, only : VecGhostUpdateBegin, INSERT_VALUES, SCATTER_FORWARD
+    
+    class(vector), intent(inout) :: v
+
+    integer(accs_err) :: ierr !> Error code
+    
+    select type (v)
+      type is (vector_petsc)
+
+        call VecGhostUpdateBegin(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+
+    end select
+
+  end subroutine
+
+  !> @brief End a ghost update of a PETSc vector.
+  !
+  !> @details Ends the ghost update to allow overlapping comms and compute.
+  !
+  !> @param[in,out] v - the PETSc vector
+  subroutine end_ghost_update_vector(v)
+
+    use petsc, only : VecGhostUpdateEnd, INSERT_VALUES, SCATTER_FORWARD
+    
+    class(vector), intent(inout) :: v
+
+    integer(accs_err) :: ierr !> Error code
+    
+    select type (v)
+      type is (vector_petsc)
+
+        call VecGhostUpdateEnd(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
 
       class default
         print *, "Unknown vector type!"
@@ -280,27 +333,54 @@ contains
   !> @param[in] vec   - the vector to get data from
   !> @param[in] array - an array to store the data in
   module subroutine get_vector_data(vec, array)
-    use petscvec!, only: VecGetArray
+    use petscvec
     class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), intent(out) :: array
-    integer :: offset
+    real(accs_real), dimension(:), pointer, intent(out) :: array
     integer :: ierr
 
-    call VecGetArray(vec, array, offset, ierr)
+    select type(vec)
+      type is(vector_petsc)
+        call VecGhostGetLocalForm(vec%v, vec%vl, ierr)
+        call VecGetArrayF90(vec%vl, array, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
   end subroutine get_vector_data
 
   !> @brief Resets the vector data if required for further processing
   !
-  !> @param[in] vec - the vector to reset
-  module subroutine reset_vector_data(vec, array)
-    use petscvec!, only: VecRestoreArray
+  !> @param[in] vec   - the vector to reset
+  !> @param[in] array - the array containing the data to restore
+  module subroutine restore_vector_data(vec, array)
+    use petscvec
     class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), intent(in) :: array
-    integer :: offset
+    real(accs_real), dimension(:), pointer, intent(in) :: array
     integer :: ierr
 
-    call VecRestoreArray(vec, array, offset, ierr)
-  end subroutine reset_vector_data
+    select type(vec)
+      type is(vector_petsc)
+        call VecRestoreArrayF90(vec%vl, array, ierr)
+        call VecGhostRestoreLocalForm(vec%v, vec%vl, ierr)
+      class default
+        print *, 'invalid vector type'
+        stop
+    end select
+  end subroutine restore_vector_data
+
+  module procedure zero_vector
+    use petscvec
+    integer(accs_err) :: ierr
+
+    select type(vec)
+    type is(vector_petsc)
+      call VecZeroEntries(vec%v, ierr)
+    class default
+      print *, "Invalid vector type"
+      stop
+    end select
+    
+  end procedure zero_vector
 
   !> @brief Replaces each component of a vector by its reciprocal
   !

@@ -20,7 +20,7 @@ program poisson
   
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-       linear_system, linear_solver, mesh, set_global_matrix_size, &
+       linear_system, linear_solver, mesh, &
        cell_locator, face_locator, neighbour_locator
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector
@@ -73,7 +73,7 @@ program poisson
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_global_size(mat_sizes, square_mesh%nglobal, square_mesh%nglobal, par_env)
+  call set_global_size(mat_sizes, square_mesh, par_env)
   call set_nnz(mat_sizes, 5)
   call create_matrix(mat_sizes, M)
 
@@ -82,7 +82,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+  call set_global_size(vec_sizes, square_mesh, par_env)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)
