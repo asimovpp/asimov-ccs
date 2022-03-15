@@ -42,6 +42,11 @@ module meshing
   interface count_neighbours
     module procedure cell_count_neighbours
   end interface count_neighbours
+
+  interface get_boundary_status
+    module procedure get_neighbour_boundary_status
+    module procedure get_face_boundary_status
+  end interface get_boundary_status
   
   interface
 
@@ -170,10 +175,19 @@ module meshing
     !
     !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
     !> @param[out] logical           is_boundary        - the boundary status of the neighbour.
-    module subroutine get_boundary_status(neighbour_location, is_boundary)
+    module subroutine get_neighbour_boundary_status(neighbour_location, is_boundary)
       type(neighbour_locator), intent(in) :: neighbour_location
       logical, intent(out) :: is_boundary
-    end subroutine get_boundary_status
+    end subroutine get_neighbour_boundary_status
+
+    !> @brief Returns the boundary status of a face
+    !
+    !> @param[in]  face_locator face_location - the face locator object.
+    !> @param[out] logical      is_boundary   - the boundary status of the neighbour.
+    module subroutine get_face_boundary_status(face_location, is_boundary)
+      type(face_locator), intent(in) :: face_location
+      logical, intent(out) :: is_boundary
+    end subroutine get_face_boundary_status
 
     !> @brief Returns the local distribution status of a neighbouring cell
     !

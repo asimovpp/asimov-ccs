@@ -358,5 +358,77 @@ contains
     col = modulo(idx-1,cps) + 1 
     row = (idx-1)/cps + 1
   end subroutine calc_cell_coords
+
+  module procedure update_gradient_component
+
+    use constants, only : insert_mode
+    use types, only : cell_locator, face_locator, neighbour_locator, vector_values
+    use meshing, only : set_cell_location, count_neighbours, get_boundary_status, set_neighbour_location, &
+         get_local_index, get_global_index, get_volume
+    use utils, only : pack_entries, set_values
+    
+    type(vector_values) :: grad_values
+    real(accs_real) :: grad
+    real(accs_real), dimension(:), pointer :: phi_data
+    
+    integer(accs_int) :: i
+    integer(accs_int) :: j
+    type(cell_locator) :: loc_p
+    type(face_locator) :: loc_f
+    type(neighbour_locator) :: loc_nb
+    
+    integer(accs_int) :: nnb
+    integer(accs_int) :: nb
+    
+    real(accs_real) :: phif
+
+    logical :: is_boundary
+
+    real(accs_real) :: face_area
+    real(accs_real), dimension(ndim) :: face_norm
+
+    real(accs_real) :: V
+    integer(accs_int) :: idxg
+    
+    allocate(grad_values%idx(1))
+    allocate(grad_values%val(1))
+    grad_values%mode = insert_mode
+
+    call get_vector_data(phi%vec, phi_data)
+    
+    do i = 1, cell_mesh%nlocal
+      grad = 0.0_accs_int
+      
+      call set_cell_location(loc_p, cell_mesh, i)
+      call count_neighbours(loc_p, nnb)
+      do j = 1, nnb
+        call set_face_location(loc_f, cell_mesh, i, j)
+        call get_boundary_status(loc_f, is_boundary)
+
+        if (.not. is_boundary) then
+          call set_neighbour_location(loc_nb, loc_p, j)
+          call get_local_index(loc_nb, nb)
+          phif = 0.5_accs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
+        else
+          phif = phi_data(i)                                  ! XXX: Assuming zero gradient
+        end if
+
+        call get_face_area(loc_f, face_area)
+        call get_face_normal(loc_f, face_norm)
+
+        grad = grad + phif * (face_area * face_norm(component))
+      end do
+
+      call get_volume(loc_p, V)
+      grad = grad / V
+      
+      call get_global_index(loc_p, idxg)
+      call pack_entries(grad_values, 1, idxg, grad)
+      call set_values(grad_values, gradient)
+    end do
+
+    call restore_vector_data(phi%vec, phi_data)
+    
+  end procedure update_gradient_component
   
 end submodule fv_common

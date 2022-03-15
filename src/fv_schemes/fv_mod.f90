@@ -18,7 +18,8 @@ module fv
   public :: calc_diffusion_coeff
   public :: calc_mass_flux
   public :: calc_cell_coords
-
+  public :: update_gradient_component
+  
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
     module procedure calc_advection_coeff_uds
@@ -114,6 +115,13 @@ module fv
     integer(accs_int), intent(out) :: row, col
   end subroutine calc_cell_coords
 
+  module subroutine update_gradient_component(cell_mesh, component, phi, gradient)
+    type(mesh), intent(in) :: cell_mesh
+    integer(accs_int), intent(in) :: component
+    class(field), intent(in) :: phi
+    class(vector), intent(inout) :: gradient
+  end subroutine update_gradient_component
+  
   end interface
 
 end module fv

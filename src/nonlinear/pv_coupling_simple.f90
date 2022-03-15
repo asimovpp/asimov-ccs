@@ -10,7 +10,7 @@ submodule (pv_coupling) pv_coupling_simple
                    field, upwind_field, central_field, bc_config, &
                    vector_values, cell_locator, face_locator, neighbour_locator, &
                    matrix_values
-  use fv, only: compute_fluxes, calc_mass_flux
+  use fv, only: compute_fluxes, calc_mass_flux, update_gradient_component
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_global_size, &
@@ -21,7 +21,8 @@ submodule (pv_coupling) pv_coupling_simple
   use meshing, only: get_face_area, get_global_index, count_neighbours, &
                      get_boundary_status, get_face_normal, &
                      set_neighbour_location, &
-                     set_face_location, set_cell_location
+                     set_face_location, set_cell_location, &
+                     get_volume
 
   implicit none
 
@@ -47,6 +48,10 @@ submodule (pv_coupling) pv_coupling_simple
     class(vector), allocatable :: source
     class(matrix), allocatable :: M
     class(vector), allocatable :: invAu, invAv
+
+    ! This could be done better, but Fortran arrays of allocatable things won't let me...
+    class(vector), allocatable :: pgradx
+    class(vector), allocatable :: pgrady
     
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
@@ -54,7 +59,7 @@ submodule (pv_coupling) pv_coupling_simple
     type(bc_config) :: bcs
 
     logical :: converged
-
+    
     ! Initialise linear system
     call initialise(mat_sizes)
     call initialise(vec_sizes)
@@ -73,9 +78,17 @@ submodule (pv_coupling) pv_coupling_simple
     call create_vector(vec_sizes, invAu)
     call create_vector(vec_sizes, invAv)
 
+    ! Create vectors for pressure gradients
+    call create_vector(vec_sizes, pgradx)
+    call create_vector(vec_sizes, pgrady)
+
     outerloop: do i = it_start, it_end
+
+      call update_gradient_component(cell_mesh, 1, p, pgradx)
+      call update_gradient_component(cell_mesh, 2, p, pgrady)
+      
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
-      call calculate_velocity(par_env,cell_mesh, bcs, cps, M, source, lin_system, u, v, p, invAu, invAv)
+      call calculate_velocity(par_env,cell_mesh, bcs, cps, M, source, lin_system, u, v, pgradx, pgrady, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, u, v, pp)
@@ -100,7 +113,7 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine solve_nonlinear
 
-  subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, p, invAu, invAv)
+  subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, pgradx, pgrady, invAu, invAv)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -111,7 +124,7 @@ submodule (pv_coupling) pv_coupling_simple
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     type(field), intent(inout)    :: u, v
-    type(field), intent(in) :: p
+    class(vector), intent(in) :: pgradx, pgrady
     class(vector), intent(inout)    :: invAu, invAv
 
     ! Local variables
@@ -123,7 +136,7 @@ submodule (pv_coupling) pv_coupling_simple
     call compute_fluxes(u, u, v, cell_mesh, bcs, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
-    call calculate_pressure_source(cell_mesh, p, vec)
+    call calculate_pressure_source(cell_mesh, pgradx, vec)
 
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAu)
@@ -145,6 +158,9 @@ submodule (pv_coupling) pv_coupling_simple
     ! Calculate fluxes and populate coefficient matrix
     call compute_fluxes(v, u, v, cell_mesh, bcs, cps, M, vec)
 
+    ! Calculate pressure source term and populate RHS vector
+    call calculate_pressure_source(cell_mesh, pgrady, vec)
+
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAv)
     call vec_reciprocal(invAv)
@@ -165,61 +181,38 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine calculate_velocity
 
-  subroutine calculate_pressure_source(cell_mesh, p, vec)
+  subroutine calculate_pressure_source(cell_mesh, pgrad, vec)
 
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
-    class(field), intent(in) :: p
+    class(vector), intent(in) :: pgrad
     class(vector), intent(inout) :: vec
 
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
-    type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
-    integer(accs_int) :: j
-    integer(accs_int) :: n_ngb
-    real(accs_real) :: face_area
+    integer(accs_int) :: self_idx, local_idx
     real(accs_real) :: r
-    real(accs_real), dimension(:), pointer :: p_data
-    logical :: is_boundary
+    real(accs_real), dimension(:), pointer :: pgrad_data
 
+    real(accs_real) :: V
+    
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
 
-    vec_values%mode = insert_mode
+    vec_values%mode = add_mode
 
     ! Temporary storage for p values
-    call get_vector_data(p%vec, p_data)
-
+    call get_vector_data(pgrad, pgrad_data)
+    
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(self_loc, cell_mesh, local_idx)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
 
-      r = 0.0_accs_real
-
-      ! Loop over faces
-      do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
-        call get_global_index(ngb_loc, ngb_idx)
-        call get_boundary_status(ngb_loc, is_boundary)
-
-        if (.not. is_boundary) then
-          ! Interior face
-          call set_face_location(face_loc, cell_mesh, local_idx, j)
-          call get_face_area(face_loc, face_area)
-
-          ! Calculate p at face using CDS
-          r = r - 0.5_accs_real * (p_data(self_idx) + p_data(ngb_idx)) * face_area
-        else
-          ! Boundary face (zero gradient?)
-          r = r - p_data(self_idx) * face_area
-        endif
-      end do
-          
+      call get_volume(self_loc, V)
+      
+      r = -pgrad_data(local_idx) * V
       call pack_entries(vec_values, 1, self_idx, r)
       call set_values(vec_values, vec)
 
@@ -228,7 +221,7 @@ submodule (pv_coupling) pv_coupling_simple
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
 
-    call restore_vector_data(p%vec, p_data)
+    call restore_vector_data(pgrad, pgrad_data)
     
   end subroutine calculate_pressure_source
 
