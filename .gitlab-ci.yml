@@ -156,26 +156,6 @@ generate_dev_guide:
       - dev_guide/ccs_dev_guide.pdf
   allow_failure: true
 
-generate_style_guide:
-  extends: .general_setup
-  script:
-    - cd style_guide
-    - make all
-  artifacts:
-    paths:
-      - style_guide/source.pdf
-  allow_failure: true
-
-generate_testing_docs:
-  extends: .general_setup
-  script:
-    - cd testing/docs
-    - make all
-  artifacts:
-    paths:
-      - testing/docs/testing.pdf
-  allow_failure: true
-
 profile_ccs_intel:
   needs: 
     - job: build_ccs_intel
