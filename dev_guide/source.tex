@@ -124,7 +124,7 @@ end subroutine
 \end{lstlisting}
 
 \subsection{Example: Structure of Poisson solver}
-The goal of the Poisson solver is to compute the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation. As specified in Section \ref{code_structure}, multiple different solvers and parallelisation methods may be implemented by using different submodules in \accs\. At present, the parallelisation uses MPI and the solver takes advantage of a Krylov method provided by PETSc. The implementation is as follows:
+The goal of the Poisson solver is to compute the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation. As specified in Section \ref{code_structure}, multiple different solvers and parallelisation methods may be implemented by using different submodules in \accs . At present, the parallelisation uses MPI and the solver takes advantage of a Krylov method provided by PETSc. The implementation is as follows:
 \begin{itemize}
   \item Start by creating a parallel environment with \texttt{initialise\_parallel\_environment} (the MPI+PETSc implementation is found in the submodule \texttt{src/parallel/parallel\_env\_mpi\_petsc.f90}, which will set the MPI communicator, get the number of ranks and rank IDs, and initialise PETSc. The interface declaration is found in \texttt{src/parallel/parallel\_mod.f90}). 
   \item The general approach to solving this matrix equation numerically (and in parallel) is to setup the matrix and vector structures split over the number of ranks provided, create the solver structure, and solve it with, for example, a Krylov solver.
@@ -153,7 +153,7 @@ While only the PETSc solver is currently implemented, care has been taken to sep
 \end{itemize}
 
 \chapter{Style guide}
-This document also describes the coding style and practices that must be adopted for \accs\. Following the recommendations in this guide will result in consistent and clear code, with good readability and maintainability. In addition,  some of the practices described below will result in additional compile-time checks that will reduce the number of bugs that are introduced into the code.
+This document also describes the coding style and practices that must be adopted for \accs . Following the recommendations in this guide will result in consistent and clear code, with good readability and maintainability. In addition,  some of the practices described below will result in additional compile-time checks that will reduce the number of bugs that are introduced into the code.
 
 \section{Fortran standard}
 Adhering to the Fortran standard means the code is portable and can be compiled using a wide range of compilers. 
@@ -188,7 +188,7 @@ The following naming and capitalisation conventions should be followed:
 \end{itemize}
 
 \section{Layout and formatting}
-The following is a list of recommended practices for layout and formatting for \accs\ .
+The following is a list of recommended practices for layout and formatting for \accs .
 
 \begin{itemize}
 \item Templates are provided for modules, submodules, functions, subroutines, and programs. The templates should always be as a 
@@ -204,7 +204,7 @@ comment line. The exception is for one line comments which can be indented withi
 \item Each module should be in a separate file.
 \end{itemize}
 
-\section{Style}
+\section{Code style}
 
 \subsection{Declaring variables}
 Always use \texttt{implicit none} to force variable declaration, this should be applied at the
@@ -622,7 +622,7 @@ is then incremented by $0.1$ for each subsequent release.
 
 Any bug fixes or features that are added to the release between quarterly reviews will be tagged with $X.Y.Z$.
 
-\subsection{Git development process}
+\section{Git development process}
 To support the release cycle mentioned above, we follow the ``git flow'' method.
 The basic principle is that the \texttt{master} branch will contain tagged releases of the code and
 must always work (relative to what the goals of that release are), a parallel \texttt{develop}
@@ -696,7 +696,7 @@ Further reading on this workflow can be found at
 \textbf{NOTE:} Finally, and importantly, the developer of a feature branch should \emph{not} merge their
 own branch into \texttt{develop} - when they are ready, notify the project so someone else can first review and merge the new code.
 
-\subsection{Git commit messages}
+\section{Git commit messages}
 Informative and concise commit messages are important for understanding the context of changes made. 
 Additionally, following these rules will help towards making sure that the commits themselves are targeted in scope and consistent in theme. 
 
@@ -710,7 +710,7 @@ Additionally, following these rules will help towards making sure that the commi
     \item Use the imperative mood in the subject line, e.g. ``Fix initialisation bug'' instead of ``Fixed initialisation bug''.
 \end{itemize}
 
-\subsection{Issue tracking and bug fixing}
+\section{Issue tracking and bug fixing}
 An issue tracker is used to keep track of all developments, such as features and bugs fixes. The software release cycle is marked using 
 milestones. The following general rules must be adhered to:
 
@@ -746,7 +746,7 @@ The test system is built and run using \texttt{LLVM LIT} - instructions are give
 % test are given in \S\ref{sec:build-runn-unit}.
 
 
-\subsection{Property-based testing}
+\section{Property-based testing}
 \label{subsec:prop-based-test}
 
 A challenge of testing numerical methods is knowing \textit{what is the right answer?}, as typically
