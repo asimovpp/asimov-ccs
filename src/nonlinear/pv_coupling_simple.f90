@@ -6,16 +6,16 @@ submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: accs_real, accs_int
   use types, only: vector_init_data, vector, matrix_init_data, matrix, &
-                   linear_system, linear_solver, mesh, set_global_matrix_size, &
-                  field, upwind_field, central_field, bc_config, &
-                  vector_values, cell_locator, face_locator, neighbour_locator, &
-                  matrix_values
+                   linear_system, linear_solver, mesh, &
+                   field, upwind_field, central_field, bc_config, &
+                   vector_values, cell_locator, face_locator, neighbour_locator, &
+                   matrix_values
   use fv, only: compute_fluxes, calc_mass_flux
-  use vec, only: create_vector, vec_reciprocal, get_vector_data
+  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_global_size, &
                    set_values, pack_entries
-  use solver, only: create_solver, solve, set_linear_system
+  use solver, only: create_solver, solve, set_linear_system, axpy
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
   use meshing, only: get_face_area, get_global_index, count_neighbours, &
@@ -61,12 +61,12 @@ submodule (pv_coupling) pv_coupling_simple
     call initialise(lin_system)
 
     ! Create coefficient matrix
-    call set_global_size(mat_sizes, cell_mesh%nglobal, cell_mesh%nglobal, par_env)
+    call set_global_size(mat_sizes, cell_mesh, par_env)
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
 
     ! Create RHS vector
-    call set_global_size(vec_sizes, cell_mesh%nglobal, par_env)
+    call set_global_size(vec_sizes, cell_mesh, par_env)
     call create_vector(vec_sizes, source)
 
     ! Create vectors for storing inverse of velocity central coefficients
@@ -81,7 +81,7 @@ submodule (pv_coupling) pv_coupling_simple
       call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, u, v, pp)
 
       ! Update pressure field with pressure correction
-      call update_pressure(cell_mesh, pp, p)
+      call update_pressure(pp, p)
 
       ! Update velocity with velocity correction (eq. 6)
       call update_velocity(cell_mesh, invAu, invAv, pp, u, v)
@@ -110,12 +110,12 @@ submodule (pv_coupling) pv_coupling_simple
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
-    type(field), intent(inout)    :: u, v, p
+    type(field), intent(inout)    :: u, v
+    type(field), intent(in) :: p
     class(vector), intent(inout)    :: invAu, invAv
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    integer(accs_int) :: i
 
     ! u-velocity
     ! ----------
@@ -182,7 +182,7 @@ submodule (pv_coupling) pv_coupling_simple
     integer(accs_int) :: n_ngb
     real(accs_real) :: face_area
     real(accs_real) :: r
-    real(accs_real), dimension(:), allocatable :: p_data
+    real(accs_real), dimension(:), pointer :: p_data
     logical :: is_boundary
 
     allocate(vec_values%idx(1))
@@ -191,7 +191,6 @@ submodule (pv_coupling) pv_coupling_simple
     vec_values%mode = insert_mode
 
     ! Temporary storage for p values
-    allocate(p_data(cell_mesh%nglobal))
     call get_vector_data(p%vec, p_data)
 
     ! Loop over cells
@@ -228,8 +227,9 @@ submodule (pv_coupling) pv_coupling_simple
 
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
-    deallocate(p_data)
 
+    call restore_vector_data(p%vec, p_data)
+    
   end subroutine calculate_pressure_source
 
 
@@ -260,7 +260,7 @@ submodule (pv_coupling) pv_coupling_simple
     real(accs_real), dimension(ndim) :: face_normal
     real(accs_real) :: r
     real(accs_real) :: coeff_f, coeff_p, coeff_nb
-    real(accs_real), dimension(:), allocatable :: u_data, v_data
+    real(accs_real), dimension(:), pointer :: u_data, v_data
     logical :: is_boundary
 
     allocate(vec_values%idx(1))
@@ -270,10 +270,7 @@ submodule (pv_coupling) pv_coupling_simple
     vec_values%mode = insert_mode
 
     ! Temporary storage
-    allocate(u_data(cell_mesh%nglobal))
     call get_vector_data(u%vec, u_data)
-
-    allocate(v_data(cell_mesh%nglobal))
     call get_vector_data(v%vec, v_data)
     
     ! Loop over cells
@@ -309,7 +306,7 @@ submodule (pv_coupling) pv_coupling_simple
 
           ! RHS vector
           bc_flag = 0
-          r = r + calc_mass_flux(u_data, v_data, ngb_idx, self_idx, face_area, face_normal, bc_flag)
+          r = r + calc_mass_flux(u_data, v_data, ngb_idx, self_idx, face_normal, bc_flag)
 
         else
           col = -1
@@ -344,44 +341,27 @@ submodule (pv_coupling) pv_coupling_simple
     ! Clean up
     deallocate(lin_solver)
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
-    deallocate(u_data)
-    deallocate(v_data)
 
+    call restore_vector_data(u%vec, u_data)
+    call restore_vector_data(v%vec, v_data)
+    
   end subroutine calculate_pressure_correction
 
 
-  subroutine update_pressure(cell_mesh, pp, p)
+  subroutine update_pressure(pp, p)
 
     ! Arguments
-    class(mesh), intent(in) :: cell_mesh
     class(field), intent(in) :: pp
     class(field), intent(inout) :: p
 
     ! Local variables
-    type(cell_locator) :: self_loc
-    integer(accs_int) :: icell
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
     real(accs_real) :: alpha   !< Under-relaxation factor
-    real(accs_real), dimension(:), allocatable :: pp_data, p_data
-
-    ! Temporary storage
-    allocate(pp_data(cell_mesh%nglobal))
-    call get_vector_data(pp%vec, pp_data)
-
-    allocate(p_data(cell_mesh%nglobal))
-    call get_vector_data(p%vec, p_data)
 
     ! Set under-relaxation factor (todo: read this from input file)
     alpha = 0.3_accs_real
 
-    ! Loop over cells
-    do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
-      call get_global_index(self_loc, self_idx)
-
-      p_data(self_idx) = p_data(self_idx) + alpha*pp_data(self_idx)
-    end do
-         
+    call axpy(alpha, pp%vec, p%vec)
+    
   end subroutine update_pressure
 
   subroutine update_velocity(cell_mesh, invAu, invAv, pp, u, v)
@@ -402,7 +382,7 @@ submodule (pv_coupling) pv_coupling_simple
     integer(accs_int) :: n_ngb
     real(accs_real) :: face_area
     real(accs_real) :: up, vp
-    real(accs_real), dimension(:), allocatable :: pp_data, invAu_data, invAv_data
+    real(accs_real), dimension(:), pointer :: pp_data, invAu_data, invAv_data
     logical :: is_boundary
 
     allocate(vec_values%idx(1))
@@ -411,13 +391,8 @@ submodule (pv_coupling) pv_coupling_simple
     vec_values%mode = add_mode
 
     ! Temporary storage
-    allocate(pp_data(cell_mesh%nglobal))
     call get_vector_data(pp%vec, pp_data)
-
-    allocate(invAu_data(cell_mesh%nglobal))
     call get_vector_data(invAu, invAu_data)
-
-    allocate(invAv_data(cell_mesh%nglobal))
     call get_vector_data(invAv, invAv_data)
      
     ! Loop over cells
@@ -465,10 +440,11 @@ submodule (pv_coupling) pv_coupling_simple
 
     deallocate(vec_values%idx)
     deallocate(vec_values%val)
-    deallocate(pp_data)
-    deallocate(invAu_data)
-    deallocate(invAv_data)
 
+    call restore_vector_data(pp%vec, pp_data)
+    call restore_vector_data(invAu, invAu_data)
+    call restore_vector_data(invAv, invAv_data)
+    
   end subroutine update_velocity
 
 
@@ -483,6 +459,8 @@ submodule (pv_coupling) pv_coupling_simple
     ! Arguments
     logical, intent(inout) :: converged
 
+    converged = .true. ! XXX: temporary
+    
   end subroutine check_convergence
 
 end submodule pv_coupling_simple

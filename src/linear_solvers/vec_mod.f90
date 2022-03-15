@@ -25,7 +25,6 @@ module vec
   public :: set_vector_size
   public :: get_vector_data
   public :: restore_vector_data
-  public :: reset_vector_data
   public :: vec_reciprocal
   public :: zero_vector
   
