@@ -8,7 +8,8 @@ module utils
   use iso_c_binding
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
-                  initialise_vector, set_vector_size, pack_one_vector_element
+       initialise_vector, set_vector_size, pack_one_vector_element, &
+       mult_vec_vec
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   pack_one_matrix_coefficient
@@ -28,7 +29,7 @@ module utils
   public :: initialise
   public :: set_global_size
   public :: set_local_size
-
+  public :: mult
   public :: accs_init
   public :: accs_finalise
 
@@ -91,6 +92,11 @@ module utils
     module procedure pack_one_vector_element
     module procedure pack_one_matrix_coefficient
   end interface pack_entries
+
+  !> @brief Generic interface to perform multiplications
+  interface mult
+    module procedure mult_vec_vec
+  end interface mult
   
 contains
 

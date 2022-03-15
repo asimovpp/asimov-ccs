@@ -27,6 +27,7 @@ module vec
   public :: restore_vector_data
   public :: vec_reciprocal
   public :: zero_vector
+  public :: mult_vec_vec
   
   interface
      
@@ -170,6 +171,11 @@ module vec
     module subroutine zero_vector(vec)
       class(vector), intent(inout) :: vec
     end subroutine zero_vector
+
+    module subroutine mult_vec_vec(a, b)
+      class(vector), intent(in) :: a
+      class(vector), intent(inout) :: b
+    end subroutine mult_vec_vec
     
   end interface
   

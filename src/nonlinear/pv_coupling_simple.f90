@@ -14,7 +14,7 @@ submodule (pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_global_size, &
-                   set_values, pack_entries
+                   set_values, pack_entries, mult
   use solver, only: create_solver, solve, set_linear_system, axpy
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
@@ -84,6 +84,7 @@ submodule (pv_coupling) pv_coupling_simple
 
     outerloop: do i = it_start, it_end
 
+      ! Get pressure gradient
       call update_gradient_component(cell_mesh, 1, p, pgradx)
       call update_gradient_component(cell_mesh, 2, p, pgrady)
       
@@ -95,9 +96,9 @@ submodule (pv_coupling) pv_coupling_simple
 
       ! Update pressure field with pressure correction
       call update_pressure(pp, p)
-
+      
       ! Update velocity with velocity correction (eq. 6)
-      call update_velocity(cell_mesh, invAu, invAv, pp, u, v)
+      call update_velocity(cell_mesh, invAu, invAv, pp, pgradx, pgrady, u, v)
 
       ! Update face velocity (need data type for faces) (eq. 9)
 
@@ -357,86 +358,26 @@ submodule (pv_coupling) pv_coupling_simple
     
   end subroutine update_pressure
 
-  subroutine update_velocity(cell_mesh, invAu, invAv, pp, u, v)
+  subroutine update_velocity(cell_mesh, invAu, invAv, pp, ppgradx, ppgrady, u, v)
 
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
     class(vector), intent(in) :: invAu, invAv
-    class(field), intent(in)  :: pp
+    class(field), intent(in) :: pp
+    class(vector), intent(inout)  :: ppgradx, ppgrady
     class(field), intent(inout) :: u, v
 
-    ! Local variables
-    type(vector_values) :: vec_values
-    type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
-    type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
-    integer(accs_int) :: j
-    integer(accs_int) :: n_ngb
-    real(accs_real) :: face_area
-    real(accs_real) :: up, vp
-    real(accs_real), dimension(:), pointer :: pp_data, invAu_data, invAv_data
-    logical :: is_boundary
+    ! First update gradients
+    call update_gradient_component(cell_mesh, 1, pp, ppgradx)
+    call update_gradient_component(cell_mesh, 2, pp, ppgrady)
 
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
+    ! Multiply gradients by inverse diagonal coefficients
+    call mult(invAu, ppgradx)
+    call mult(invAv, ppgrady)
 
-    vec_values%mode = add_mode
-
-    ! Temporary storage
-    call get_vector_data(pp%vec, pp_data)
-    call get_vector_data(invAu, invAu_data)
-    call get_vector_data(invAv, invAv_data)
-     
-    ! Loop over cells
-    do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
-
-      up = 0.0_accs_real
-      vp = 0.0_accs_real
-
-      ! Loop over faces to calculate pressure correction gradient
-      do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
-        call get_global_index(ngb_loc, ngb_idx)
-        call get_boundary_status(ngb_loc, is_boundary)
-
-        if (.not. is_boundary) then
-          ! Interior face
-          call set_face_location(face_loc, cell_mesh, local_idx, j)
-          call get_face_area(face_loc, face_area)
-          
-          up = up - 0.5_accs_real * (pp_data(self_idx) + pp_data(ngb_idx)) * face_area
-
-        else
-          ! Boundary face (zero gradient?)
-          up = up - pp_data(self_idx) * face_area
-        endif
-
-      end do
-
-      vp = up
-
-      up = up * invAu_data(self_idx)
-      vp = vp * invAv_data(self_idx)
-
-      ! Update u and v vectors with velocity correction
-      call pack_entries(vec_values, 1, self_idx, up)
-      call set_values(vec_values, u%vec)
-
-      call pack_entries(vec_values, 1, self_idx, vp)
-      call set_values(vec_values, v%vec)
-
-    end do
-
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
-
-    call restore_vector_data(pp%vec, pp_data)
-    call restore_vector_data(invAu, invAu_data)
-    call restore_vector_data(invAv, invAv_data)
+    ! Compute correction source on velocity
+    call calculate_pressure_source(cell_mesh, ppgradx, u%vec)
+    call calculate_pressure_source(cell_mesh, ppgrady, v%vec)
     
   end subroutine update_velocity
 

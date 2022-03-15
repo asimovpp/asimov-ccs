@@ -404,4 +404,26 @@ contains
     end select
   end subroutine vec_reciprocal
 
+  module procedure mult_vec_vec
+
+    use petscvec, only : VecPointwiseMult
+
+    integer(accs_err) :: ierr
+
+    select type(a)
+    type is (vector_petsc)
+      select type(b)
+      type is (vector_petsc)
+        call VecPointwiseMult(b%v, a%v, b%v, ierr)
+      class default
+        print *, "Unknown vector type!"
+        stop
+      end select
+    class default
+      print *, "Unknown vector type!"
+      stop
+    end select
+      
+  end procedure mult_vec_vec
+  
 end submodule vec_petsc
