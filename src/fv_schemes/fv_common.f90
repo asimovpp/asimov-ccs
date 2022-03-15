@@ -224,7 +224,7 @@ contains
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: self_idx, local_idx
     integer(accs_int) :: j
     integer(accs_int) :: bc_counter
     integer(accs_int) :: row, col

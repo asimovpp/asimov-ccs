@@ -5,7 +5,7 @@
 program test_compute_fluxes
 
   use testing_lib
-  use types, only: field, upwind_field, central_field
+  use types, only: field, central_field
   use mesh_utils, only : build_square_mesh
   use fv, only: compute_fluxes, calc_cell_coords
   use utils, only : update, initialise, &
@@ -26,7 +26,7 @@ program test_compute_fluxes
   integer(accs_int), parameter :: cps = 5
   integer(accs_int) :: direction, discretisation
   integer, parameter :: x_dir = 1, y_dir = 2
-  integer, parameter :: central = -1, upwind = -2
+  integer, parameter :: central = -1
 
   call init()
 
@@ -40,31 +40,26 @@ program test_compute_fluxes
   bcs%endpoints(:,:) = 1.0_accs_real
     
   do direction = x_dir, y_dir
-    do discretisation = upwind, central
-    
-      if (discretisation == central) then
-        allocate(central_field :: scalar)
-        allocate(central_field :: u)
-        allocate(central_field :: v)
-      else if (discretisation == upwind) then
-        allocate(upwind_field :: scalar)
-        allocate(upwind_field :: u)
-        allocate(upwind_field :: v)
-      else
-        write(message, *) 'Invalid discretisation type selected'
-        call stop_test(message)
-      end if
+    discretisation = central
+      
+    if (discretisation == central) then
+      allocate(central_field :: scalar)
+      allocate(central_field :: u)
+      allocate(central_field :: v)
+    else
+      write(message, *) 'Invalid discretisation type selected'
+      call stop_test(message)
+    end if
 
-      call initialise(vec_sizes)
-      call set_global_size(vec_sizes, square_mesh, par_env)
-      call create_vector(vec_sizes, scalar%vec)
-      call create_vector(vec_sizes, u%vec)
-      call create_vector(vec_sizes, v%vec)
+    call initialise(vec_sizes)
+    call set_global_size(vec_sizes, square_mesh, par_env)
+    call create_vector(vec_sizes, scalar%vec)
+    call create_vector(vec_sizes, u%vec)
+    call create_vector(vec_sizes, v%vec)
 
-      call set_velocity_fields(square_mesh, direction, u, v)
-      call run_compute_fluxes_test(scalar, u, v, bcs, square_mesh, cps, direction, discretisation)
-      call tidy_velocity_fields(scalar, u, v)
-    end do
+    call set_velocity_fields(square_mesh, direction, u, v)
+    call run_compute_fluxes_test(scalar, u, v, bcs, square_mesh, cps, direction, discretisation)
+    call tidy_velocity_fields(scalar, u, v)
   end do
 
   call fin()
@@ -108,8 +103,8 @@ program test_compute_fluxes
           v_val = 1.0_accs_real
         end if
 
-        ! u_val = 0.0_accs_real
-        ! v_val = 0.0_accs_real
+        u_val = 0.0_accs_real
+        v_val = 0.0_accs_real
         
         call pack_entries(u_vals, local_idx, self_idx, u_val)
         call pack_entries(v_vals, local_idx, self_idx, v_val)
@@ -232,12 +227,11 @@ program test_compute_fluxes
     call initialise(vec_sizes)
     call set_global_size(vec_sizes, cell_mesh, par_env)
 
-    vec_coeffs%mode = add_mode
-    
-    call compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
-    call compute_exact_diffusion_matrix(cell_mesh, cps, M)
+    ! call compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
+    ! call compute_exact_diffusion_matrix(cell_mesh, cps, M)
     
     ! Now do the RHS
+    vec_coeffs%mode = add_mode
     call zero_vector(b)
     
     ! Advection first
@@ -246,15 +240,15 @@ program test_compute_fluxes
 
     vec_counter = 1
     if (discretisation == central) then
-      adv_coeff = -1.0_accs_real/cps
+      adv_coeff = -1.0_accs_real
     else
       adv_coeff = 0.0_accs_real
-    endif 
+    endif
+    adv_coeff = 0.0_accs_real
 
     if (par_env%proc_id == 0) then
       if (flow == x_dir) then
         do i = 1, cps
-          ii = cell_mesh%idx_global(i)
           call pack_entries(vec_coeffs, vec_counter, (i-1)*cps + 1, adv_coeff) 
           vec_counter = vec_counter + 1
           call pack_entries(vec_coeffs, vec_counter, i*cps, adv_coeff) 
@@ -277,32 +271,32 @@ program test_compute_fluxes
     deallocate(vec_coeffs%idx)
     deallocate(vec_coeffs%val)
 
-    ! And now diffusion
-    allocate(vec_coeffs%idx(4*cps))
-    allocate(vec_coeffs%val(4*cps))
+    ! ! And now diffusion
+    ! allocate(vec_coeffs%idx(4*cps))
+    ! allocate(vec_coeffs%val(4*cps))
 
-    vec_counter = 1
-    diff_coeff = 0.01_accs_real
-    if (par_env%proc_id == 0) then
-      do i = 1, cell_mesh%nglobal
-        call calc_cell_coords(i, cps, row, col)
-        if (row == 1 .or. row == cps) then
-          call pack_entries(vec_coeffs, vec_counter, i, diff_coeff) 
-          vec_counter = vec_counter + 1
-        end if
-        if (col == 1 .or. col == cps) then
-          call pack_entries(vec_coeffs, vec_counter, i, diff_coeff) 
-          vec_counter = vec_counter + 1
-        end if
-      end do
-    else
-      vec_coeffs%idx(:) = -1
-      vec_coeffs%val(:) = 0.0_accs_real
-    end if
-    call set_values(vec_coeffs, b)
-    
-    deallocate(vec_coeffs%idx)
-    deallocate(vec_coeffs%val)
+    ! vec_counter = 1
+    ! diff_coeff = 0.0_accs_real !0.01_accs_real
+    ! if (par_env%proc_id == 0) then
+    !   do i = 1, cell_mesh%nglobal
+    !     call calc_cell_coords(i, cps, row, col)
+    !     if (row == 1 .or. row == cps) then
+    !       call pack_entries(vec_coeffs, vec_counter, i, diff_coeff) 
+    !       vec_counter = vec_counter + 1
+    !     end if
+    !     if (col == 1 .or. col == cps) then
+    !       call pack_entries(vec_coeffs, vec_counter, i, diff_coeff) 
+    !       vec_counter = vec_counter + 1
+    !     end if
+    !   end do
+    ! else
+    !   vec_coeffs%idx(:) = -1
+    !   vec_coeffs%val(:) = 0.0_accs_real
+    ! end if
+    ! call set_values(vec_coeffs, b)
+
+    ! deallocate(vec_coeffs%idx)
+    ! deallocate(vec_coeffs%val)
     
   end subroutine compute_exact_matrix
 
@@ -400,7 +394,7 @@ program test_compute_fluxes
 
     ! Advection coefficients
     
-    if (flow == x_dir .and. discretisation == central) then
+    if (flow == x_dir) then
       ! CDS and flow along +x direction
       do i = 1, cell_mesh%nlocal
         mat_counter = 1
@@ -423,7 +417,7 @@ program test_compute_fluxes
         end if
         call set_values(mat_coeffs, M)
       end do
-    else if (flow == y_dir .and. discretisation == central) then
+    else if (flow == y_dir) then
       ! CDS and flow along +y direction
       do i = 1, cell_mesh%nlocal
         mat_counter = 1
@@ -445,32 +439,6 @@ program test_compute_fluxes
           mat_counter = mat_counter + 1
         end if
         call set_values(mat_coeffs, M)
-      end do
-    else if (flow == x_dir .and. discretisation == upwind) then
-      ! UDS and flow along +x direction
-      do i = 1, cell_mesh%nlocal
-        mat_counter = 1
-        ii = cell_mesh%idx_global(i)
-        if (mod(ii, cps) .ne. 1) then
-          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, 0.2_accs_real)
-          mat_counter = mat_counter + 1
-          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-1, -0.2_accs_real)
-          mat_counter = mat_counter + 1
-          call set_values(mat_coeffs, M)
-        end if
-      end do
-    else if (flow == y_dir .and. discretisation == upwind) then
-      ! UDS and flow along +y direction
-      do i = 1, cell_mesh%nlocal
-        mat_counter = 1
-        ii = cell_mesh%idx_global(i)
-        if (ii > cps) then
-          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii, 0.2_accs_real)
-          mat_counter = mat_counter + 1
-          call pack_entries(mat_coeffs, 1, mat_counter, ii, ii-cps, -0.2_accs_real)
-          mat_counter = mat_counter + 1
-          call set_values(mat_coeffs, M)
-        end if
       end do
     end if
 
