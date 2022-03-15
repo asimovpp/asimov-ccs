@@ -130,7 +130,13 @@ submodule (pv_coupling) pv_coupling_simple
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
+    real(accs_real) :: alpha !> Underrelaxation factor
 
+
+    ! Set underrelaxation factor
+    ! TODO: read from input
+    alpha = 0.7_accs_real
+    
     ! u-velocity
     ! ----------
     ! Calculate fluxes and populate coefficient matrix
@@ -139,6 +145,9 @@ submodule (pv_coupling) pv_coupling_simple
     ! Calculate pressure source term and populate RHS vector
     call calculate_pressure_source(cell_mesh, pgradx, vec)
 
+    ! Underrelax the equations
+    call underrelax(cell_mesh, alpha, u, invAu, M, vec)
+    
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAu)
     call vec_reciprocal(invAu)
@@ -165,6 +174,9 @@ submodule (pv_coupling) pv_coupling_simple
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAv)
     call vec_reciprocal(invAv)
+
+    ! Underrelax the equations
+    call underrelax(cell_mesh, alpha, v, invAv, M, vec)
 
     ! Assembly of coefficient matrix and source vector
     call update(M)
@@ -397,4 +409,41 @@ submodule (pv_coupling) pv_coupling_simple
     
   end subroutine check_convergence
 
+  subroutine underrelax(cell_mesh, alpha, phi, diag, M, b)
+
+    use mat, only : set_matrix_diagonal
+    
+    type(mesh), intent(in) :: cell_mesh
+    real(accs_real), intent(in) :: alpha
+    class(field), intent(in) :: phi
+    class(vector), intent(inout) :: diag
+    class(matrix), intent(inout) :: M
+    class(vector), intent(inout) :: b
+
+    real(accs_real), dimension(:), pointer :: diag_data
+    real(accs_real), dimension(:), pointer :: phi_data
+    real(accs_real), dimension(:), pointer :: b_data
+
+    integer(accs_int) :: i
+    
+    call get_matrix_diagonal(M, diag)
+
+    call get_vector_data(phi%vec, phi_data)
+    call get_vector_data(diag, diag_data)
+    call get_vector_data(b, b_data)
+    
+    do i = 1, cell_mesh%nlocal
+      diag_data(i) = diag_data(i) / alpha
+
+      b_data(i) = b_data(i) + (1.0_accs_real - alpha) * diag_data(i) * phi_data(i)
+    end do
+
+    call restore_vector_data(phi%vec, phi_data)
+    call restore_vector_data(diag, diag_data)
+    call restore_vector_data(b, b_data)
+    
+    call set_matrix_diagonal(diag, M)
+    
+  end subroutine underrelax
+  
 end submodule pv_coupling_simple

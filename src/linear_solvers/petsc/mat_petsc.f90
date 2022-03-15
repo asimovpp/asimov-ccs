@@ -376,4 +376,30 @@ contains
 
   end subroutine
 
+  module procedure set_matrix_diagonal
+
+    use petsc, only : INSERT_VALUES
+    use petscmat, only : MatDiagonalSet
+
+    integer(accs_err) :: ierr
+    
+    select type (M)
+    type is (matrix_petsc)
+
+      select type (D)
+      type is (vector_petsc)
+        call MatDiagonalSet(M%M, D%v, INSERT_VALUES, ierr)
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+      end select
+
+    class default
+      print *, "Unknown matrix type!"
+      stop
+    end select
+
+  end procedure set_matrix_diagonal
+
 end submodule mat_petsc

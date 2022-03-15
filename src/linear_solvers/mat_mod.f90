@@ -25,7 +25,8 @@ module mat
   public :: mat_axpy
   public :: mat_norm
   public :: get_matrix_diagonal
-
+  public :: set_matrix_diagonal
+  
   interface
 
      !> @brief Interface to create a new matrix object.
@@ -174,8 +175,13 @@ module mat
     module subroutine get_matrix_diagonal(M, D)
       class(matrix), intent(in)  :: M
       class(vector), intent(inout) :: D
-    end subroutine
+    end subroutine get_matrix_diagonal
 
+    module subroutine set_matrix_diagonal(D, M)
+      class(vector), intent(in) :: D
+      class(matrix), intent(inout) :: M
+    end subroutine set_matrix_diagonal
+    
   end interface
   
 end module mat
