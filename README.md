@@ -4,7 +4,7 @@
 
 - `MPI`
 - `PETSc`
-- `makedepf90` - version 2.9.0 reqired, source can be obtained at https://salsa.debian.org/science-team/makedepf90
+- `makedepf90` - version 2.9.0 required, source can be obtained at https://salsa.debian.org/science-team/makedepf90
 - `adios2` - with `hdf5` support, https://adios2.readthedocs.io/
 - `fortran-yaml-cpp` - https://github.com/Nicholaswogan/fortran-yaml-cpp
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
