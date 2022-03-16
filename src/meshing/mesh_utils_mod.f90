@@ -206,6 +206,8 @@ contains
         square_mesh%ntotal = size(square_mesh%idx_global)
         square_mesh%nhalo = square_mesh%ntotal - square_mesh%nlocal
 
+        square_mesh%nfaces_local = count_mesh_faces(square_mesh)
+
       class default
         print *, "Unknown parallel environment type!"
         stop
@@ -315,14 +317,16 @@ contains
   !
   !> @param[in]  cell_mesh - the mesh
   !> @param[out] nfaces    - number of cell faces
-  subroutine count_mesh_faces(cell_mesh, nfaces)
+  function count_mesh_faces(cell_mesh) result(nfaces)
 
     use meshing, only: set_cell_location, set_neighbour_location, &
                        get_global_index, count_neighbours, get_boundary_status
 
     ! Arguments
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(out) :: nfaces
+
+    ! Result
+    integer(accs_int) :: nfaces
 
     ! Local variables
     type(cell_locator) :: self_loc
@@ -361,6 +365,6 @@ contains
     ! Interior faces will be counted twice
     nfaces = (nfaces_int / 2) + nfaces_bnd
 
-  end subroutine count_mesh_faces
+  end function count_mesh_faces
   
 end module mesh_utils

@@ -8,6 +8,7 @@ submodule (vec) vec_petsc
   use kinds, only : accs_err
   use petsctypes, only : vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use constants, only: cell, face
 
   implicit none
 
@@ -19,8 +20,9 @@ contains
   !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
 
-    use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
-    use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption
+    use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, PETSC_DETERMINE
+    use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
+                         VecCreateMPI
     
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
@@ -37,10 +39,16 @@ contains
 
           associate(mesh => vec_dat%mesh)
 
-            call VecCreateGhost(par_env%comm, &
-                 mesh%nlocal, PETSC_DECIDE, &
-                 mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
-                 v%v, ierr)
+            select case(vec_dat%loc)
+              case (cell)
+                call VecCreateGhost(par_env%comm, &
+                   mesh%nlocal, PETSC_DECIDE, &
+                   mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
+                   v%v, ierr)
+              case (face)
+                call VecCreateMPI(par_env%comm, &
+                   mesh%nfaces_local, PETSC_DETERMINE, v%v, ierr)
+              end select
           end associate
         
           call VecSetFromOptions(v%v, ierr)
@@ -425,5 +433,40 @@ contains
     end select
       
   end procedure mult_vec_vec
+
+  module subroutine vec_view(vec_dat, vec)
+
+#include <petsc/finclude/petscviewer.h>
+
+    use petscvec, only: VecView
+    use petscsys
+    
+    type(vector_init_data), intent(in) :: vec_dat
+    class(vector), intent(in) :: vec
+
+    PetscViewer :: viewer
+
+    integer(accs_err) :: ierr
+
+    select type (vec)
+      type is (vector_petsc)
+
+      select type(par_env => vec_dat%par_env)
+        type is(parallel_environment_mpi)
+
+          call PetscViewerCreate(par_env%comm, viewer, ierr)
+          call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierr)
+          call VecView(vec%v, viewer, ierr)
+          call PetscViewerDestroy(viewer, ierr)
+
+        class default
+          print *, "Unknown parallel environment"
+      end select
+
+      class default
+        print *, "Unknown vector type!"
+        stop
+    end select
+  end subroutine vec_view
   
 end submodule vec_petsc

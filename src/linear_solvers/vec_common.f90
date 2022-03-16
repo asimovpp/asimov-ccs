@@ -11,6 +11,7 @@ contains
     type(vector_init_data), intent(inout) :: vector_descriptor
     vector_descriptor%par_env => null()
     vector_descriptor%mesh => null()
+    vector_descriptor%loc = cell  ! Default to cell-centre values (so as not to break previous work)
   end subroutine initialise_vector
 
   !> @brief Setter for vector size
@@ -25,5 +26,11 @@ contains
     vector_descriptor%par_env => par_env
     vector_descriptor%mesh => geometry
   end procedure
+
+  module subroutine set_vector_location(vector_descriptor, loc)
+    type(vector_init_data), intent (inout) :: vector_descriptor
+    integer(accs_int), intent(in) :: loc
+    vector_descriptor%loc = loc
+  end subroutine set_vector_location
 
 end submodule 

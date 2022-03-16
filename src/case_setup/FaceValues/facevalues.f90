@@ -10,8 +10,8 @@ program facevalues
     use utils, only: set_global_size, initialise
     use mesh_utils, only: build_square_mesh, &
                           count_mesh_faces
-    use vec, only: create_vector
-    use constants, only: face
+    use vec, only: create_vector, set_vector_location, vec_view
+    use constants, only: face, cell
 
     implicit none
 
@@ -22,7 +22,7 @@ program facevalues
     type(mesh) :: square_mesh
 
     integer(accs_int) :: nfaces
-    integer(accs_int) :: cps = 3 ! Cells per side of the mesh
+    integer(accs_int) :: cps = 2 ! Cells per side of the mesh
 
     call initialise_parallel_environment(par_env)
 
@@ -32,20 +32,15 @@ program facevalues
     allocate(face_field :: mf)
 
     call initialise(vec_sizes)
-    call set_vector_loc(vec_sizes, face)
+
+    ! Setup vector size to store face-centred values (rather than cell-centred values)
+    call set_vector_location(vec_sizes, face)
+
     call set_global_size(vec_sizes, square_mesh, par_env)
     call create_vector(vec_sizes, mf%vec)
 
-    ! Count number of faces
-    call count_mesh_faces(square_mesh, nfaces)
-
-    write(*,'(a,i0,a,i0)') 'cps = ', cps, ' nfaces = ', nfaces
-
-    call initialise(vec_sizes)
-    call set_global_size(vec_sizes, nfaces, par_env)
-
-    call create_vector(vec_sizes, face_vals%u%vec)    
-
+    ! View the contents of the vector
+    call vec_view(vec_sizes, mf%vec)
 
     call cleanup_parallel_environment(par_env)
 
