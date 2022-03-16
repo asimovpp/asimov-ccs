@@ -54,7 +54,7 @@ program simple
   allocate(central_field :: pp)
 
   ! Create and initialise field vectors
-  call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+  call set_global_size(vec_sizes, square_mesh, par_env)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
   call create_vector(vec_sizes, p%vec)
@@ -95,7 +95,6 @@ contains
     class(field), intent(inout) :: u, v
 
     ! Local variables
-    integer(accs_int) :: i
     integer(accs_int) :: row, col
     integer(accs_int) :: local_idx, self_idx
     real(accs_real) :: u_val, v_val

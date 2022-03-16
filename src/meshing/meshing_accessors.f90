@@ -113,7 +113,7 @@ contains
     end associate
   end procedure cell_count_neighbours
 
-  module procedure get_boundary_status
+  module procedure get_neighbour_boundary_status
     integer :: nbidx
 
     call get_neighbour_local_index(neighbour_location, nbidx)
@@ -126,8 +126,22 @@ contains
       print *, "ERROR: neighbour index (0) is invalid"
       stop
     end if
-  end procedure get_boundary_status
+  end procedure get_neighbour_boundary_status
 
+  module procedure get_face_boundary_status
+    type(cell_locator) :: cell_location
+    type(neighbour_locator) :: neighbour_location
+
+    associate(mesh => face_location%mesh, &
+         i => face_location%cell_idx, &
+         j => face_location%cell_face_ctr)
+      call set_cell_location(cell_location, mesh, i)
+      call set_neighbour_location(neighbour_location, cell_location, j)
+    end associate
+    call get_neighbour_boundary_status(neighbour_location, is_boundary)
+  end procedure get_face_boundary_status
+  
+  
   module procedure get_local_status
     integer :: nbidx
 
