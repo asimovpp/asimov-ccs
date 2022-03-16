@@ -6,7 +6,7 @@ module fv
 
   use constants, only : ndim
   use kinds, only : accs_real, accs_int
-  use types, only : matrix, vector, mesh, field, upwind_field, central_field, bc_config
+  use types, only : matrix, vector, mesh, field, upwind_field, central_field, bc_config, face_locator
   use bc_constants
 
   implicit none
@@ -91,16 +91,18 @@ module fv
   !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   !
   !> @param[in] u, v     - arrays containing x, y velocities
-  !> @param[in] ngb_idx  - Row and column of given neighbour in mesh
-  !> @param[in] self_idx - Row and column of given cell in mesh
-  !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
+  !> @param[in] p        - array containing pressure
+  !> @param[in] pgradx   - array containing pressure gradient in x
+  !> @param[in] pgrady   - array containing pressure gradient in y
+  !> @param[in] invAx    - array containing inverse momentum diagonal in x
+  !> @param[in] invAy    - array containing inverse momentum diagonal in y
+  !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, p, pgradx, pgrady, invAu, invAv, loc_f) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
-    integer(accs_int), intent(in) :: ngb_idx
-    integer(accs_int), intent(in) :: self_idx
-    real(accs_real), dimension(ndim), intent(in) :: face_normal
-    integer(accs_int), intent(in) :: bc_flag
+    real(accs_real), dimension(:), intent(in) :: p
+    real(accs_real), dimension(:), intent(in) :: pgradx, pgrady
+    type(face_locator), intent(in) :: loc_f
     real(accs_real) :: flux
   end function calc_mass_flux
 

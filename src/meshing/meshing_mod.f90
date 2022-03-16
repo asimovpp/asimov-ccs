@@ -23,9 +23,11 @@ module meshing
   public :: get_boundary_status
   public :: get_local_status
   public :: count_neighbours
-
+  public :: get_distance
+  
   interface get_centre
     module procedure get_cell_centre
+    module procedure get_neighbour_centre
     module procedure get_face_centre
   end interface get_centre
 
@@ -47,6 +49,15 @@ module meshing
     module procedure get_neighbour_boundary_status
     module procedure get_face_boundary_status
   end interface get_boundary_status
+
+  interface get_volume
+    module procedure get_cell_volume
+    module procedure get_neighbour_volume
+  end interface get_volume
+  
+  interface get_distance
+    module procedure get_neighbour_distance
+  end interface get_distance
   
   interface
 
@@ -126,6 +137,16 @@ module meshing
       real(accs_real), dimension(ndim), intent(out) :: x
     end subroutine get_cell_centre
 
+    !> @brief Returns the centre of a neighbour cell
+    !
+    !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
+    !> @param[out] real(accs_real)   x(ndim)            - an ndimensional array representing the
+    !!                                                    neighbour cell centre.
+    module subroutine get_neighbour_centre(neighbour_location, x)
+      type(neighbour_locator), intent(in) :: neighbour_location
+      real(accs_real), dimension(ndim), intent(out) :: x
+    end subroutine get_neighbour_centre
+
     !> @brief Returns the centre of a face
     !
     !> @param[in]  face_locator     face_location - the face locator object.
@@ -139,10 +160,19 @@ module meshing
     !
     !> @param[in] cell_locator     cell_location - the cell locator object.
     !> @param[out] real(accs_real) V             - the cell volume.
-    module subroutine get_volume(cell_location, V)
+    module subroutine get_cell_volume(cell_location, V)
       type(cell_locator), intent(in) :: cell_location
       real(accs_real), intent(out) :: V
-    end subroutine get_volume
+    end subroutine get_cell_volume
+
+    !> @brief Returns the volume of a neighbour cell
+    !
+    !> @param[in] neighbour_locator neighbour_location - the neighbour locator object.
+    !> @param[out] real(accs_real)  V                  - the neighbour cell volume.
+    module subroutine get_neighbour_volume(neighbour_location, V)
+      type(neighbour_locator), intent(in) :: neighbour_location
+      real(accs_real), intent(out) :: V
+    end subroutine get_neighbour_volume
 
     !> @brief Returns the global index of a cell
     !
@@ -223,6 +253,17 @@ module meshing
       type(neighbour_locator), intent(in) :: neighbour_location
       integer(accs_int), intent(out) :: nbidx
     end subroutine get_neighbour_local_index
+
+    !> @brief Returns the distance between two cell centres
+    !
+    !> @param[in]  cell_locator      loc_p  - The cell distance is measured from.
+    !> @param[in]  neighbour_locator loc_nb - The cell distance is measured to.
+    !> @param[out] accs_real         dx     - The distance.
+    module subroutine get_neighbour_distance(loc_p, loc_nb, dx)
+      type(cell_locator), intent(in) :: loc_p
+      type(neighbour_locator), intent(in) :: loc_nb
+      real(accs_real), intent(out) :: dx
+    end subroutine get_neighbour_distance
   end interface
 
 end module meshing

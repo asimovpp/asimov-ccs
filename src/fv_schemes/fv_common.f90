@@ -316,33 +316,85 @@ contains
   !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   !
   !> @param[in] u, v     - arrays containing x, y velocities
-  !> @param[in] ngb_idx  - Row and column of given neighbour in mesh
-  !> @param[in] self_idx - Row and column of given cell in mesh
-  !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
+  !> @param[in] p        - array containing pressure
+  !> @param[in] pgradx   - array containing pressure gradient in x
+  !> @param[in] pgrady   - array containing pressure gradient in y
+  !> @param[in] invAx    - array containing inverse momentum diagonal in x
+  !> @param[in] invAy    - array containing inverse momentum diagonal in y
+  !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, p, pgradx, pgrady, invAu, invAv, loc_f) result(flux)
+
+    use types, only : cell_locator, neighbour_locator
+    use meshing, only : get_boundary_status, set_cell_location, set_neighbour_location, &
+         get_local_index, get_distance, get_volume
+    
     real(accs_real), dimension(:), intent(in) :: u, v
-    integer(accs_int), intent(in) :: ngb_idx
-    integer(accs_int), intent(in) :: self_idx
-    real(accs_real), dimension(ndim), intent(in) :: face_normal
-    integer(accs_int), intent(in) :: bc_flag
+    real(accs_real), dimension(:), intent(in) :: p
+    real(accs_real), dimension(:), intent(in) :: pgradx, pgrady
+    real(accs_real), dimension(:), intent(in) :: invAu, invAv
+    type(face_locator), intent(in) :: loc_f
 
     real(accs_real) :: flux
 
-    flux = 0.0_accs_real
+    ! Local variables
+    logical :: is_boundary                          !> Boundary indicator
+    type(cell_locator) :: loc_p                     !> Primary cell locator
+    type(neighbour_locator) :: loc_nb               !> Neighbour cell locator
+    integer(accs_int) :: idxnb                      !> Neighbour cell index
+    real(accs_real) :: flux_corr                    !> Flux correction
+    real(accs_real) :: dx                           !> Cell-cell distance
+    real(accs_real), dimension(ndim) :: face_normal !> (local) face-normal array
+    real(accs_real) :: Vp                           !> Primary cell volume
+    real(accs_real) :: Vnb                          !> Neighbour cell volume
+    real(accs_real) :: Vf                           !> Face "volume"
+    real(accs_real) :: invAp                        !> Primary cell inverse momentum coefficient
+    real(accs_real) :: invAnb                       !> Neighbour cell inverse momentum coefficient
+    real(accs_real) :: invAf                        !> Face inverse momentum coefficient
     
-    ! TODO: Write more general implementation handling BCs
-    if (bc_flag == 0) then
-      flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_normal(1) + &
-             0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_normal(2)
-    else if (bc_flag == -1 .or. bc_flag == -2) then
-      flux = u(self_idx)
-    else if (bc_flag == -3 .or. bc_flag == -4) then
-      flux = v(self_idx)
-    else
-      print *, 'invalid BC flag'
-      stop
+    call get_boundary_status(loc_f, is_boundary)
+    if (.not. is_boundary) then
+      associate(mesh => loc_f%mesh, &
+           idxp => loc_f%cell_idx, &
+           j => loc_f%cell_face_ctr)
+        
+        call set_cell_location(loc_p, mesh, idxp)
+        call set_neighbour_location(loc_nb, loc_p, j)
+        call get_local_index(loc_nb, idxnb)
+        if (idxp < idxnb) then
+          ! XXX: making convention to point from low to high cell!
+          flux = 0.5_accs_real * (u(idxp) + u(idxnb) * face_normal(1) &
+               + (v(idxp) + v(idxnb)) * face_normal(2))
+
+          !
+          ! Rhie-Chow correction from Ferziger & Peric
+          !
+          call get_distance(loc_p, loc_nb, dx)
+          call get_face_normal(loc_f, face_normal)
+          flux_corr = -(p(idxp) - p(idxnb)) / dx
+          flux_corr = flux_corr + 0.5_accs_real * ((pgradx(idxp) + pgradx(idxnb)) * face_normal(1) &
+               + (pgrady(idxp) + pgrady(idxnb)) * face_normal(2))
+
+          call get_volume(loc_p, Vp)
+          call get_volume(loc_nb, Vp)
+          Vf = 0.5_accs_real * (Vp + Vnb)
+
+          ! This is probably not quite right ...
+          invAp = 0.5_accs_real * (invAu(idxp) + invAv(idxp))
+          invAnb = 0.5_accs_real * (invAu(idxnb) + invAv(idxnb))
+          invAf = 0.5_accs_real * (invAp + invAnb)
+          
+          flux_corr = (Vf / invAf) * flux_corr
+          
+          ! Apply correction
+          flux = flux + flux_corr
+        end if
+      end associate
+    else 
+      ! TODO: Write more general implementation handling BCs
+      flux = 0.0_accs_real ! XXX: hardcoded zero-flux BC
     end if
+    
   end function calc_mass_flux
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh

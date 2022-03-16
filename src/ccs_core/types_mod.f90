@@ -84,7 +84,10 @@ module types
 
   !> @brief Scalar field type
   type, public :: field
-    class(vector), allocatable :: vec
+    class(vector), allocatable :: vec   !> Vector representing the field
+    class(vector), allocatable :: gradx !> Vector representing the x gradient
+    class(vector), allocatable :: grady !> Vector representing the y gradient
+    class(vector), allocatable :: gradz !> Vector representing the z gradient
   end type field
 
   type, public, extends(field) :: upwind_field

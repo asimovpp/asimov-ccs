@@ -71,6 +71,13 @@ contains
     end associate
   end procedure get_cell_centre
 
+  module procedure get_neighbour_centre
+    type(cell_locator) :: nb_cell_location
+    
+    call get_neighbour_cell_locator(neighbour_location, nb_cell_location)
+    call get_cell_centre(nb_cell_location, x)
+  end procedure get_neighbour_centre
+  
   module procedure get_face_centre
     associate(mesh => face_location%mesh, &
          cell => face_location%cell_idx, &
@@ -79,12 +86,19 @@ contains
     end associate
   end procedure get_face_centre
 
-  module procedure get_volume
+  module procedure get_cell_volume
     associate(mesh => cell_location%mesh, &
          cell => cell_location%cell_idx)
       V = mesh%vol(cell)
     end associate
-  end procedure get_volume
+  end procedure get_cell_volume
+
+  module procedure get_neighbour_volume
+    type(cell_locator) :: nb_cell_location
+
+    call get_neighbour_cell_locator(neighbour_location, nb_cell_location)
+    call get_cell_volume(nb_cell_location, V)
+  end procedure get_neighbour_volume
 
   module procedure get_cell_global_index
     associate(mesh => cell_location%mesh)
@@ -100,9 +114,7 @@ contains
 
   module procedure get_neighbour_global_index
     type(cell_locator) :: nb_cell_location
-    integer(accs_int) :: nbidx
-    call get_local_index(neighbour_location, nbidx)
-    call set_cell_location(nb_cell_location, neighbour_location%mesh, nbidx)
+    call get_neighbour_cell_locator(neighbour_location, nb_cell_location)
     call get_global_index(nb_cell_location, nbidxg)
   end procedure get_neighbour_global_index
 
@@ -167,4 +179,13 @@ contains
     end associate
   end procedure get_neighbour_local_index
 
+  subroutine get_neighbour_cell_locator(neighbour_location, cell_location)
+    type(neighbour_locator), intent(in) :: neighbour_location
+    type(cell_locator), intent(out) :: cell_location
+
+    integer(accs_int) :: nbidx
+    
+    call get_local_index(neighbour_location, nbidx)
+    call set_cell_location(cell_location, neighbour_location%mesh, nbidx)
+  end subroutine get_neighbour_cell_locator
 end submodule meshing_accessors

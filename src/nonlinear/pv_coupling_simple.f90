@@ -92,15 +92,16 @@ submodule (pv_coupling) pv_coupling_simple
       call calculate_velocity(par_env,cell_mesh, bcs, cps, M, source, lin_system, u, v, pgradx, pgrady, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
+      call compute_mass_imbalance(cell_mesh, u, v, mf, pgradx, pgrady, invAu, invAv, source)
       call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, u, v, pp)
-
-      ! Update pressure field with pressure correction
-      call update_pressure(pp, p)
       
       ! Update velocity with velocity correction (eq. 6)
       call update_velocity(cell_mesh, invAu, invAv, pp, pgradx, pgrady, u, v)
-
+      call update_face_velocity(cell_mesh, u, v, pp, mf)
       ! Update face velocity (need data type for faces) (eq. 9)
+
+      ! Update pressure field with pressure correction
+      call update_pressure(pp, p)
 
       ! Todo:
       !call calculate_scalars()
@@ -295,15 +296,15 @@ submodule (pv_coupling) pv_coupling_simple
 
       ! Loop over faces
       do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
-        call get_boundary_status(ngb_loc, is_boundary)
-        call get_global_index(ngb_loc, ngb_idx)
+        call set_face_location(face_loc, cell_mesh, local_idx, j)
+        call get_face_area(face_loc, face_area)
+        call get_face_normal(face_loc, face_normal)
 
         if (.not. is_boundary) then
           ! Interior face
-          call set_face_location(face_loc, cell_mesh, local_idx, j)
-          call get_face_area(face_loc, face_area)
-          call get_face_normal(face_loc, face_normal)
+          call set_neighbour_location(ngb_loc, self_loc, j)
+          call get_boundary_status(ngb_loc, is_boundary)
+          call get_global_index(ngb_loc, ngb_idx)
           coeff_f = (1.0 / cell_mesh%h) * face_area  ! multiply by -d/(1+gam.d)
 
           coeff_p = coeff_p - coeff_f
@@ -353,7 +354,45 @@ submodule (pv_coupling) pv_coupling_simple
     
   end subroutine calculate_pressure_correction
 
+  !> @brief Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
+  subroutine compute_mass_imbalance(cell_mesh, u, v, p, invAu, invAv, mf, b)
 
+    type(mesh), intent(in) :: cell_mesh !> The mesh object
+    class(field), intent(in) :: u       !> The x velocity component
+    class(field), intent(in) :: v       !> The y velocity component
+    class(field), intent(in) :: p       !> The pressure field
+    class(vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
+    class(vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
+    class(vector), intent(inout) :: mf  !> The face velocity flux
+    class(vector), intent(inout) :: b   !> The per-cell mass imbalance
+
+    integer(accs_int) :: i !> Cell counter
+
+    allocate(vec_values%idx(1))
+    allocate(vec_values%val(1))
+    vec_values%mode = insert_mode
+    
+    do i = 1, cell_mesh%nlocal
+      call set_cell_location(loc_p, cell_mesh, i)
+      call get_global_index(loc_p, idxp_g)
+      call count_neighbours(loc_p, nnb)
+
+      do j = 1, nnb
+        call set_face_location(loc_f, cell_mesh, i, j)
+        call get_face_area(loc_f, face_area)
+        call get_local_index(loc_f, idxf)
+
+        ! Compute mass flux through face
+
+        mib = mib + mf * face_area
+      end do
+      
+      call pack_entries(vec_values, 1, idxp_g, r)
+      call set_values(vec_values, vec)
+    end do
+    
+  end subroutine compute_mass_imbalance
+  
   subroutine update_pressure(pp, p)
 
     ! Arguments
