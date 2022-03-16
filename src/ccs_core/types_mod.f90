@@ -27,6 +27,7 @@ module types
     !> The vector size can be specified either globally or per-process
     integer(accs_int) :: nglob !> The global vector size (set -1 to ignore)
     integer(accs_int) :: nloc  !> The local vector size (set -1 to ignore)
+    integer(accs_int) :: loc   !> The location of values (cell or face)
     class(parallel_environment), pointer :: par_env !> The parallel environment
   end type vector_init_data
 
@@ -101,6 +102,8 @@ module types
   end type
   type, public, extends(field) :: central_field
   end type
+  type, public, extends(field) :: face_field
+  end type
 
   !> @brief Cell locator
   !
@@ -144,15 +147,6 @@ module types
   !> @brief Process that will perform file IO
   type, public :: io_process
   end type io_process
-
-  !> @brief Face-centred values of flow variables
-  type, public :: face_data
-    type(field) :: u
-    type(field) :: v
-    type(field) :: w
-    type(field) :: p
-    type(field) :: pp
-  end type face_data
 
   interface
   module subroutine set_global_matrix_size(mat, rows, columns, nnz, par_env)

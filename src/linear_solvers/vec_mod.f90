@@ -26,6 +26,7 @@ module vec
   public :: set_local_vector_size
   public :: get_vector_data
   public :: restore_vector_data
+  public :: set_vector_location
 
   interface
      
@@ -167,6 +168,13 @@ module vec
       class(vector), intent(in) :: vec
       real(accs_real), dimension(:), pointer, intent(in) :: array
     end subroutine restore_vector_data
+
+    !> @brief Set vector values to be located at either cell-centre or face
+    !
+    module subroutine set_vector_location(vector_descriptor, loc)
+      type(vector_init_data), intent(inout) :: vector_descriptor
+      integer(accs_int), intent(in) :: loc
+    end subroutine set_vector_location
 
     end interface
   

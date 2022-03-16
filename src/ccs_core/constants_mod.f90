@@ -21,5 +21,9 @@ module constants
 
   !> @brief Dimensionality of problems
   integer(accs_int), public, parameter :: ndim = 3        !> Always 3D
+
+  !> @brief Location of vector data
+  integer(accs_int), public, parameter :: cell = 1
+  integer(accs_int), public, parameter :: face = 2
   
 end module constants
