@@ -45,7 +45,7 @@ submodule (parallel) parallel_utils_mpi
     integer(accs_int), optional, intent(inout) :: cps
     character(len=:), optional, allocatable, intent(out) :: case_name
 
-    character(len=32) :: arg !> argument string
+    character(len=1024) :: arg !> argument string
     integer(accs_int) :: nargs !> number of arguments
     integer(accs_int) :: arg_len
 

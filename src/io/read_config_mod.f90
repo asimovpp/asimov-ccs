@@ -288,7 +288,7 @@ module read_config
       class(*), pointer, intent(in) :: config_file
       character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
       character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-      real(accs_real), dimension(:,:), allocatable, intent(inout) :: bnd_vector
+      real(accs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
     end subroutine
 
   end interface
