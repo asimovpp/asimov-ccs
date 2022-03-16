@@ -27,6 +27,8 @@ module vec
   public :: get_vector_data
   public :: restore_vector_data
   public :: set_vector_location
+  public :: reset_vector_data
+  public :: vec_reciprocal
 
   interface
      
@@ -175,6 +177,14 @@ module vec
       type(vector_init_data), intent(inout) :: vector_descriptor
       integer(accs_int), intent(in) :: loc
     end subroutine set_vector_location
+
+    !> @brief Replace each component of a vector by its reciprocal
+    !
+    !> @param[in]  vec - the vector
+    !> @param[out] vec - the vector reciprocal
+    module subroutine vec_reciprocal(vec)
+      class(vector), intent(inout) :: vec
+    end subroutine vec_reciprocal
 
     end interface
   
