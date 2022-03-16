@@ -2,17 +2,50 @@
 
 ## Prerequisites
 
-0 `MPI`
-- `PETSc` - we are tracking the latest versions, however a bug in auto-generated Fortran interfaces means it is easiest to get started with the 3.13 series as found in the ARCHER2 modules.
-- `makedepf90` - A version can be found on ARCHER2, otherwise get the patched version from Debian (if using Ubuntu/Debian this can be `apt-get install`'d)
+- `MPI`
+- `PETSc`
+- `makedepf90` - version 2.9.0 required, source can be obtained at https://salsa.debian.org/science-team/makedepf90
+- `adios2` - with `hdf5` support, https://adios2.readthedocs.io/
+- `fortran-yaml-cpp` - https://github.com/Nicholaswogan/fortran-yaml-cpp
+- `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
+
+
 
 ## Building
 
-With the prerequisites in place, ASiMoV-CCS can be built with
-``
-make CMP=<compiler>
-``
-where `<compiler>` is one of: `gnu`, `intel` or `cray` to build with GNU compilers (`mpif90`), Intel (`mpiifort`) or Cray (`ftn`) compilers, respectively. To override the compiler set `FC` on the command line, for instance to build with GNU compilers on a Cray machine
-``
-make CMP=gnu FC=ftn
-``
+Set the following environment variables:
+
+- `PETSC_DIR` to point to the PETSc install directory 
+- `FYAML` to point to the root of your fortran-yaml-cpp build directory
+- `ADIOS2` to point to the ADIOS2 install directory
+
+
+With the prerequisites in place, ASiMoV-CCS can be built from the `src` directory with
+```
+make CMP=<compiler> all
+```
+where `<compiler>` is one of: `gnu`, `intel` or `cray`. `CMP` sets the compilation environment according to files in `src/build_tools/archs/Makefile.<compiler>`, which can be customised according to your environment. 
+
+Tests can be run with
+```
+make CMP=<compiler> tests
+```
+
+
+## Configuring
+
+The executable `ccs_app` that is built/linked is configured by `src/config.yaml`. The Fortran program is specified by `main:` where the available options currently reside in `src/case_setup` and are `poisson`, `tgv` and `scalar_advection`.
+
+The build system automatically links the required modules, but submodules need to be specified in the configuration file. `base:` specifies a collection of basic submodules that work together; available options are `mpi` and `mpi_petsc`. Further customisation is available via the `options:` settings for cases where multiple implementations of the same functionality exist (none at the time of writing). 
+All possible configuration settings can be found in `src/build_tools/config_mapping.yaml`. 
+
+
+## Running
+The generated application can be run as a normal MPI application, for example
+```
+mpirun -n 4 ccs_app
+```
+
+`ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
+If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well.
+
