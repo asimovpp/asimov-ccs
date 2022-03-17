@@ -39,6 +39,7 @@ module meshing
   interface get_local_index
     module procedure get_cell_local_index
     module procedure get_neighbour_local_index
+    module procedure get_face_local_index
   end interface get_local_index
   
   interface count_neighbours
@@ -253,6 +254,15 @@ module meshing
       type(neighbour_locator), intent(in) :: neighbour_location
       integer(accs_int), intent(out) :: nbidx
     end subroutine get_neighbour_local_index
+
+    !> @brief Returns the local index of a face
+    !
+    !> @param[in]  face_locator      face_location - the face locator object.
+    !> @param[out] integer(accs_int) idx           - the local index of the face.
+    module subroutine get_face_local_index(face_location, idx)
+      type(face_locator), intent(in) :: face_location
+      integer(accs_int), intent(out) :: idx
+    end subroutine get_face_local_index
 
     !> @brief Returns the distance between two cell centres
     !

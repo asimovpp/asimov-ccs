@@ -37,7 +37,7 @@ program scalar_advection
   type(mesh) :: square_mesh
   type(bc_config) :: bcs
 
-  class(field), allocatable :: u, v          ! Prescribed x, y velocity fields
+  class(field), allocatable :: mf          ! Prescribed face velocity field
   class(field), allocatable :: scalar
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
@@ -56,8 +56,7 @@ program scalar_advection
   square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
 
   ! Init velocities and scalar
-  allocate(upwind_field :: u)
-  allocate(upwind_field :: v)
+  allocate(central_field :: mf)
   allocate(upwind_field :: scalar)
 
   ! Initialise with default values
@@ -75,14 +74,13 @@ program scalar_advection
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar%vec)
-  call create_vector(vec_sizes, u%vec)
-  call create_vector(vec_sizes, v%vec)
+  call create_vector(vec_sizes, mf%vec)
 
   ! Set advection velocity
-  call set_advection_velocity(square_mesh, u, v)
+  call set_advection_velocity(square_mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, u, v, square_mesh, bcs, cps, M, source)
+  call compute_fluxes(scalar, mf, square_mesh, bcs, cps, M, source)
 
   call update(M) ! parallel assembly for M
 
@@ -98,8 +96,7 @@ program scalar_advection
   deallocate(source)
   deallocate(solution)
   deallocate(M)
-  deallocate(u)
-  deallocate(v)
+  deallocate(mf)
   deallocate(scalar_solver)
 
   call timer(end_time)
@@ -112,28 +109,27 @@ program scalar_advection
 
 contains
 
-  subroutine set_advection_velocity(cell_mesh, u, v)
+  subroutine set_advection_velocity(cell_mesh, mf)
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
     use utils, only: pack_entries, set_values
     class(mesh), intent(in) :: cell_mesh
-    class(field), intent(inout) :: u, v
+    class(field), intent(inout) :: mf
     integer(accs_int) :: row, col
     integer(accs_int) :: local_idx, self_idx
-    real(accs_real) :: u_val, v_val
+    real(accs_real) :: mf_val
     type(cell_locator) :: self_loc
-    type(vector_values) :: u_vals, v_vals
+    type(vector_values) :: mf_vals
 
-    u_vals%mode = add_mode
-    v_vals%mode = add_mode
+    real(accs_real) :: u, v
+
+    mf_vals%mode = add_mode
 
     associate(n_local => cell_mesh%nlocal)
-      allocate(u_vals%idx(n_local))
-      allocate(v_vals%idx(n_local))
-      allocate(u_vals%val(n_local))
-      allocate(v_vals%val(n_local))
+      allocate(mf_vals%idx(n_local))
+      allocate(mf_vals%val(n_local))
       
       ! Set IC velocity and scalar fields
       do local_idx = 1, n_local
@@ -141,17 +137,18 @@ contains
         call get_global_index(self_loc, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 
-        u_val = real(col, accs_real)/real(cps, accs_real)
-        v_val = -real(row, accs_real)/real(cps, accs_real)
+        ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
+        u = real(col, accs_real)/real(cps, accs_real)
+        v = -real(row, accs_real)/real(cps, accs_real)
 
-        call pack_entries(u_vals, local_idx, self_idx, u_val)
-        call pack_entries(v_vals, local_idx, self_idx, v_val)
+        mf_val = u + v
+        
+        call pack_entries(mf_vals, local_idx, self_idx, mf_val)
       end do
     end associate
-    call set_values(u_vals, u%vec)
-    call set_values(v_vals, v%vec)
+    call set_values(mf_vals, mf%vec)
 
-    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
+    deallocate(mf_vals%idx, mf_vals%val)
   end subroutine set_advection_velocity
 
 end program scalar_advection

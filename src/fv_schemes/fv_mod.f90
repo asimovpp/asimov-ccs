@@ -18,7 +18,7 @@ module fv
   public :: calc_diffusion_coeff
   public :: calc_mass_flux
   public :: calc_cell_coords
-  public :: update_gradient_component
+  public :: update_gradient
   
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
@@ -71,15 +71,15 @@ module fv
   !> @brief Computes fluxes and assign to matrix and RHS
   !
   !> @param[in] phi       - scalar field structure
-  !> @param[in] u, v      - field structures in x, y directions
+  !> @param[in] mf        - mass flux field structure (defined at faces)
   !> @param[in] cell_mesh - the mesh being used
   !> @param[in] bcs       - the boundary conditions structure being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(phi, u, v, cell_mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
     class(field), intent(in) :: phi
-    class(field), intent(in) :: u, v
+    class(field), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
@@ -102,6 +102,7 @@ module fv
     real(accs_real), dimension(:), intent(in) :: u, v
     real(accs_real), dimension(:), intent(in) :: p
     real(accs_real), dimension(:), intent(in) :: pgradx, pgrady
+    real(accs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
     real(accs_real) :: flux
   end function calc_mass_flux
@@ -117,12 +118,10 @@ module fv
     integer(accs_int), intent(out) :: row, col
   end subroutine calc_cell_coords
 
-  module subroutine update_gradient_component(cell_mesh, component, phi, gradient)
+  module subroutine update_gradient(cell_mesh, phi)
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: component
-    class(field), intent(in) :: phi
-    class(vector), intent(inout) :: gradient
-  end subroutine update_gradient_component
+    class(field), intent(inout) :: phi
+  end subroutine update_gradient
   
   end interface
 

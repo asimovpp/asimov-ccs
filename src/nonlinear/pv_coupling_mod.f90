@@ -16,11 +16,11 @@ module pv_coupling
 
     interface
 
-    module subroutine solve_nonlinear(par_env, cell_mesh, cps, it_start, it_end, u, v, p, pp)
+    module subroutine solve_nonlinear(par_env, cell_mesh, cps, it_start, it_end, u, v, p, pp, mf)
         class(parallel_environment), allocatable, intent(in) :: par_env
         type(mesh), intent(in) :: cell_mesh
         integer(accs_int), intent(in) :: cps, it_start, it_end
-        class(field), intent(inout) :: u, v, p, pp
+        class(field), intent(inout) :: u, v, p, pp, mf
     end subroutine solve_nonlinear
 
     end interface

@@ -171,6 +171,12 @@ contains
     idx = cell_location%cell_idx
   end procedure get_cell_local_index
 
+  module procedure get_face_local_index
+    idx = -1 ! TODO: this needs to come from the mesh!
+    print *, "GET FACE LOCAL INDEX NOT IMPLEMENTED!"
+    stop
+  end procedure get_face_local_index
+
   module procedure get_neighbour_local_index
     associate(mesh => neighbour_location%mesh, &
          i => neighbour_location%cell_idx, &

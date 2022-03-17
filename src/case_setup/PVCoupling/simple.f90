@@ -25,7 +25,7 @@ program simple
   type(mesh)             :: square_mesh
   type(vector_init_data) :: vec_sizes
 
-  class(field), allocatable :: u, v, p, pp
+  class(field), allocatable :: u, v, p, pp, mf
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
 
@@ -52,6 +52,7 @@ program simple
   allocate(upwind_field :: v)
   allocate(central_field :: p)
   allocate(central_field :: pp)
+  allocate(central_field :: mf)
 
   ! Create and initialise field vectors
   call set_global_size(vec_sizes, square_mesh, par_env)
@@ -64,7 +65,7 @@ program simple
   call initialise_velocity(square_mesh, u, v)
 
   ! Solve using SIMPLE algorithm
-  call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp)
+  call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
 
   ! Clean-up
   deallocate(u)

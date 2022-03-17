@@ -10,7 +10,7 @@ submodule (pv_coupling) pv_coupling_simple
                    field, upwind_field, central_field, bc_config, &
                    vector_values, cell_locator, face_locator, neighbour_locator, &
                    matrix_values
-  use fv, only: compute_fluxes, calc_mass_flux, update_gradient_component
+  use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_global_size, &
@@ -18,7 +18,7 @@ submodule (pv_coupling) pv_coupling_simple
   use solver, only: create_solver, solve, set_linear_system, axpy
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
-  use meshing, only: get_face_area, get_global_index, count_neighbours, &
+  use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, &
                      set_neighbour_location, &
                      set_face_location, set_cell_location, &
@@ -35,23 +35,19 @@ submodule (pv_coupling) pv_coupling_simple
   !> @param[in,out] u, v   - arrays containing velocity fields in x, y directions
   !> @param[in,out] p      - array containing pressure values
   !> @param[in,out] pp     - array containing pressure-correction values
-  module subroutine solve_nonlinear(par_env, cell_mesh, cps, it_start, it_end, u, v, p, pp)
+  module subroutine solve_nonlinear(par_env, cell_mesh, cps, it_start, it_end, u, v, p, pp, mf)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: cps, it_start, it_end
-    class(field), intent(inout) :: u, v, p, pp
+    class(field), intent(inout) :: u, v, p, pp, mf
     
     ! Local variables
     integer(accs_int) :: i
     class(vector), allocatable :: source
     class(matrix), allocatable :: M
     class(vector), allocatable :: invAu, invAv
-
-    ! This could be done better, but Fortran arrays of allocatable things won't let me...
-    class(vector), allocatable :: pgradx
-    class(vector), allocatable :: pgrady
     
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
@@ -77,31 +73,26 @@ submodule (pv_coupling) pv_coupling_simple
     ! Create vectors for storing inverse of velocity central coefficients
     call create_vector(vec_sizes, invAu)
     call create_vector(vec_sizes, invAv)
-
-    ! Create vectors for pressure gradients
-    call create_vector(vec_sizes, pgradx)
-    call create_vector(vec_sizes, pgrady)
+    
+    ! Get pressure gradient
+    call update_gradient(cell_mesh, p)
 
     outerloop: do i = it_start, it_end
-
-      ! Get pressure gradient
-      call update_gradient_component(cell_mesh, 1, p, pgradx)
-      call update_gradient_component(cell_mesh, 2, p, pgrady)
       
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
-      call calculate_velocity(par_env,cell_mesh, bcs, cps, M, source, lin_system, u, v, pgradx, pgrady, invAu, invAv)
+      call calculate_velocity(par_env,cell_mesh, bcs, cps, M, source, lin_system, u, v, mf, p, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
-      call compute_mass_imbalance(cell_mesh, u, v, mf, pgradx, pgrady, invAu, invAv, source)
+      call compute_mass_imbalance(cell_mesh, u, v, p, invAu, invAv, mf, source)
       call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, u, v, pp)
       
       ! Update velocity with velocity correction (eq. 6)
-      call update_velocity(cell_mesh, invAu, invAv, pp, pgradx, pgrady, u, v)
-      call update_face_velocity(cell_mesh, u, v, pp, mf)
-      ! Update face velocity (need data type for faces) (eq. 9)
+      call update_face_velocity(cell_mesh, pp, invAu, invAv, mf)
+      call update_velocity(cell_mesh, invAu, invAv, pp, u, v)
 
       ! Update pressure field with pressure correction
       call update_pressure(pp, p)
+      call update_gradient(cell_mesh, p)
 
       ! Todo:
       !call calculate_scalars()
@@ -115,7 +106,7 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine solve_nonlinear
 
-  subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, pgradx, pgrady, invAu, invAv)
+  subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, mf, p, invAu, invAv)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -125,8 +116,9 @@ submodule (pv_coupling) pv_coupling_simple
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
-    type(field), intent(inout)    :: u, v
-    class(vector), intent(in) :: pgradx, pgrady
+    class(field), intent(inout)    :: u, v
+    class(field), intent(in) :: mf
+    class(field), intent(in) :: p
     class(vector), intent(inout)    :: invAu, invAv
 
     ! Local variables
@@ -141,10 +133,10 @@ submodule (pv_coupling) pv_coupling_simple
     ! u-velocity
     ! ----------
     ! Calculate fluxes and populate coefficient matrix
-    call compute_fluxes(u, u, v, cell_mesh, bcs, cps, M, vec)
+    call compute_fluxes(u, mf, cell_mesh, bcs, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
-    call calculate_pressure_source(cell_mesh, pgradx, vec)
+    call calculate_pressure_source(cell_mesh, p%gradx, vec)
 
     ! Underrelax the equations
     call underrelax(cell_mesh, alpha, u, invAu, M, vec)
@@ -167,10 +159,10 @@ submodule (pv_coupling) pv_coupling_simple
     ! v-velocity
     ! ----------
     ! Calculate fluxes and populate coefficient matrix
-    call compute_fluxes(v, u, v, cell_mesh, bcs, cps, M, vec)
+    call compute_fluxes(v, mf, cell_mesh, bcs, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
-    call calculate_pressure_source(cell_mesh, pgrady, vec)
+    call calculate_pressure_source(cell_mesh, p%grady, vec)
 
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAv)
@@ -262,7 +254,6 @@ submodule (pv_coupling) pv_coupling_simple
     integer(accs_int) :: j
     integer(accs_int) :: n_ngb
     integer(accs_int) :: row, col
-    integer(accs_int) :: bc_flag
     real(accs_real) :: face_area
     real(accs_real), dimension(ndim) :: face_normal
     real(accs_real) :: r
@@ -312,8 +303,6 @@ submodule (pv_coupling) pv_coupling_simple
           col = ngb_idx
 
           ! RHS vector
-          bc_flag = 0
-          r = r + calc_mass_flux(u_data, v_data, ngb_idx, self_idx, face_normal, bc_flag)
 
         else
           col = -1
@@ -363,19 +352,53 @@ submodule (pv_coupling) pv_coupling_simple
     class(field), intent(in) :: p       !> The pressure field
     class(vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
     class(vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
-    class(vector), intent(inout) :: mf  !> The face velocity flux
+    class(field), intent(inout) :: mf  !> The face velocity flux
     class(vector), intent(inout) :: b   !> The per-cell mass imbalance
 
+    type(vector_values) :: vec_values
     integer(accs_int) :: i !> Cell counter
+    integer(accs_int) :: j !> Cell-face counter
+
+    type(cell_locator) :: loc_p !> Central cell locator object
+    type(face_locator) :: loc_f !> Face locator object
+
+    integer(accs_int) :: idxp_g  !> Central cell global index
+    real(accs_real) :: face_area !> Face area
+    integer(accs_int) :: idxf    !> Face index
+    integer(accs_int) :: nnb     !> Cell neighbour count
+
+    real(accs_real), dimension(:), pointer :: mf_data     !> Data array for the mass flux
+    real(accs_real), dimension(:), pointer :: u_data      !> Data array for x velocity component
+    real(accs_real), dimension(:), pointer :: v_data      !> Data array for y velocity component
+    real(accs_real), dimension(:), pointer :: p_data      !> Data array for pressure
+    real(accs_real), dimension(:), pointer :: pgradx_data !> Data array for pressure x gradient
+    real(accs_real), dimension(:), pointer :: pgrady_data !> Data array for pressure y gradient
+    real(accs_real), dimension(:), pointer :: invAu_data  !> Data array for inverse x momentum
+                                                          !! diagonal coefficient
+    real(accs_real), dimension(:), pointer :: invAv_data  !> Data array for inverse y momentum
+                                                          !! diagonal coefficient
+
+    real(accs_real) :: mib                            !> Cell mass imbalance
 
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
+
+    call get_vector_data(mf%vec, mf_data)
+    call get_vector_data(u%vec, u_data)
+    call get_vector_data(v%vec, v_data)
+    call get_vector_data(p%vec, p_data)
+    call get_vector_data(p%gradx, pgradx_data)
+    call get_vector_data(p%grady, pgrady_data)
+    call get_vector_data(invAu, invAu_data)
+    call get_vector_data(invAv, invAv_data)
     
     do i = 1, cell_mesh%nlocal
       call set_cell_location(loc_p, cell_mesh, i)
       call get_global_index(loc_p, idxp_g)
       call count_neighbours(loc_p, nnb)
+
+      mib = 0.0_accs_real
 
       do j = 1, nnb
         call set_face_location(loc_f, cell_mesh, i, j)
@@ -383,13 +406,26 @@ submodule (pv_coupling) pv_coupling_simple
         call get_local_index(loc_f, idxf)
 
         ! Compute mass flux through face
-
-        mib = mib + mf * face_area
+        mf_data(idxf) = calc_mass_flux(u_data, v_data, &
+             p_data, pgradx_data, pgrady_data, &
+             invAu_data, invAv_data, &
+             loc_f)
+        
+        mib = mib + mf_data(idxf) * face_area
       end do
       
-      call pack_entries(vec_values, 1, idxp_g, r)
-      call set_values(vec_values, vec)
+      call pack_entries(vec_values, 1, idxp_g, mib)
+      call set_values(vec_values, b)
     end do
+
+    call restore_vector_data(mf%vec, mf_data)
+    call restore_vector_data(u%vec, u_data)
+    call restore_vector_data(v%vec, v_data)
+    call restore_vector_data(p%vec, p_data)
+    call restore_vector_data(p%gradx, pgradx_data)
+    call restore_vector_data(p%grady, pgrady_data)
+    call restore_vector_data(invAu, invAu_data)
+    call restore_vector_data(invAv, invAv_data)
     
   end subroutine compute_mass_imbalance
   
@@ -409,29 +445,70 @@ submodule (pv_coupling) pv_coupling_simple
     
   end subroutine update_pressure
 
-  subroutine update_velocity(cell_mesh, invAu, invAv, pp, ppgradx, ppgrady, u, v)
+  subroutine update_velocity(cell_mesh, invAu, invAv, pp, u, v)
 
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
     class(vector), intent(in) :: invAu, invAv
-    class(field), intent(in) :: pp
-    class(vector), intent(inout)  :: ppgradx, ppgrady
+    class(field), intent(inout) :: pp
     class(field), intent(inout) :: u, v
 
     ! First update gradients
-    call update_gradient_component(cell_mesh, 1, pp, ppgradx)
-    call update_gradient_component(cell_mesh, 2, pp, ppgrady)
+    call update_gradient(cell_mesh, pp)
 
     ! Multiply gradients by inverse diagonal coefficients
-    call mult(invAu, ppgradx)
-    call mult(invAv, ppgrady)
+    call mult(invAu, pp%gradx)
+    call mult(invAv, pp%grady)
 
     ! Compute correction source on velocity
-    call calculate_pressure_source(cell_mesh, ppgradx, u%vec)
-    call calculate_pressure_source(cell_mesh, ppgrady, v%vec)
+    call calculate_pressure_source(cell_mesh, pp%gradx, u%vec)
+    call calculate_pressure_source(cell_mesh, pp%grady, v%vec)
     
   end subroutine update_velocity
 
+  subroutine update_face_velocity(cell_mesh, pp, invAu, invAv, mf)
+
+    type(mesh), intent(in) :: cell_mesh
+    class(field), intent(in) :: pp
+    class(vector), intent(in) :: invAu
+    class(vector), intent(in) :: invAv
+    class(field), intent(inout) :: mf
+    
+    integer(accs_int) :: i
+
+    real(accs_real) :: mf_prime
+    real(accs_real), dimension(:), allocatable :: zero_arr
+    real(accs_real), dimension(:), pointer :: mf_data
+    real(accs_real), dimension(:), pointer :: pp_data
+    real(accs_real), dimension(:), pointer :: invAu_data
+    real(accs_real), dimension(:), pointer :: invAv_data
+
+    type(face_locator) :: loc_f
+
+    call get_vector_data(pp%vec, pp_data)
+    call get_vector_data(invAu, invAu_data)
+    call get_vector_data(invAv, invAv_data)
+    call get_vector_data(mf%vec, mf_data)
+    
+    allocate(zero_arr(size(pp_data)))
+    zero_arr(:) = 0.0_accs_real
+    
+    do i = 1, cell_mesh%nlocal
+      mf_prime = calc_mass_flux(zero_arr, zero_arr, &
+           pp_data, zero_arr, zero_arr, &
+           invAu_data, invAv_data, &
+           loc_f)
+      mf_data(i) = mf_data(i) + mf_prime
+    end do
+
+    deallocate(zero_arr)
+
+    call restore_vector_data(pp%vec, pp_data)
+    call restore_vector_data(invAu, invAu_data)
+    call restore_vector_data(invAv, invAv_data)
+    call restore_vector_data(mf%vec, mf_data)
+    
+  end subroutine update_face_velocity
 
   subroutine calculate_scalars()
 
