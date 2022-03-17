@@ -85,7 +85,7 @@ contains
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call compute_mass_imbalance(cell_mesh, u, v, p, invAu, invAv, mf, source)
-      call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, u, v, pp)
+      call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, invAu, invAv, pp)
       
       ! Update velocity with velocity correction (eq. 6)
       call update_face_velocity(cell_mesh, pp, invAu, invAv, mf)
@@ -263,8 +263,8 @@ contains
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
-    class(field), intent(in) :: u, v
-    class(field), intent(out) :: pp
+    class(vector), intent(in) :: invAu, invAv
+    class(field), intent(inout) :: pp
 
     ! Local variables
     type(matrix_values) :: mat_coeffs
@@ -281,18 +281,28 @@ contains
     real(accs_real), dimension(ndim) :: face_normal
     real(accs_real) :: r
     real(accs_real) :: coeff_f, coeff_p, coeff_nb
-    real(accs_real), dimension(:), pointer :: u_data, v_data
     logical :: is_boundary
 
+    real(accs_real), dimension(:), pointer :: invAu_data
+    real(accs_real), dimension(:), pointer :: invAv_data
+    
+    real(accs_real) :: Vp
+    real(accs_real) :: Vnb
+    real(accs_real) :: Vf
+    real(accs_real) :: invAp
+    real(accs_real) :: invAnb
+    real(accs_real) :: invAf
+
+    integer(accs_int) :: idxnb
+    
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
 
     mat_coeffs%mode = insert_mode
     vec_values%mode = insert_mode
 
-    ! Temporary storage
-    call get_vector_data(u%vec, u_data)
-    call get_vector_data(v%vec, v_data)
+    call get_vector_data(invAu, invAu_data)
+    call get_vector_data(invAv, invAv_data)
     
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
@@ -319,8 +329,19 @@ contains
           call set_neighbour_location(ngb_loc, self_loc, j)
           call get_boundary_status(ngb_loc, is_boundary)
           call get_global_index(ngb_loc, ngb_idx)
-          coeff_f = (1.0 / cell_mesh%h) * face_area  ! multiply by -d/(1+gam.d)
+          call get_local_index(ngb_loc, idxnb)
+          coeff_f = (1.0 / cell_mesh%h) * face_area
 
+          call get_volume(self_loc, Vp)
+          call get_volume(ngb_loc, Vnb)
+          Vf = 0.5_accs_real * (Vp + Vnb)
+
+          invAp = 0.5_accs_real * (invAu_data(local_idx) + invAv_data(local_idx))
+          invAnb = 0.5_accs_real * (invAu_data(idxnb) + invAv_data(idxnb))
+          invAf = 0.5_accs_real * (invAp + invAnb)
+
+          coeff_f = (Vf * invAf) * coeff_f
+          
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
           col = ngb_idx
@@ -330,6 +351,7 @@ contains
             coeff_p = coeff_p + 1.0e30
           end if
         else
+          ! XXX: Fixed velocity BC - no pressure correction
           col = -1
           coeff_nb = 0.0_accs_real
         endif
@@ -348,6 +370,9 @@ contains
 
     end do
 
+    call restore_vector_data(invAu, invAu_data)
+    call restore_vector_data(invAv, invAv_data)
+
     ! Assembly of coefficient matrix and source vector
     call update(M)
     call update(vec)
@@ -362,9 +387,6 @@ contains
     ! Clean up
     deallocate(lin_solver)
     deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
-
-    call restore_vector_data(u%vec, u_data)
-    call restore_vector_data(v%vec, v_data)
     
   end subroutine calculate_pressure_correction
 
