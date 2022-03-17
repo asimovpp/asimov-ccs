@@ -4,19 +4,26 @@ submodule (meshing) meshing_operators
 
 contains
 
-  module subroutine get_neighbour_distance(loc_p, loc_nb, dx)
-    type(cell_locator), intent(in) :: loc_p
-    type(neighbour_locator), intent(in) :: loc_nb
-    real(accs_real), intent(out) :: dx
-
+  module procedure get_neighbour_distance
     real(accs_real), dimension(ndim) :: xp
     real(accs_real), dimension(ndim) :: xnb
 
     call get_centre(loc_p, xp)
     call get_centre(loc_nb, xnb)
 
-    dx = sqrt(sum((xp - xnb)**2))
+    dx(:) = xnb(:) - xp(:)
     
-  end subroutine get_neighbour_distance
+  end procedure get_neighbour_distance
+
+  module procedure get_face_distance
+    real(accs_real), dimension(ndim) :: xp
+    real(accs_real), dimension(ndim) :: xf
+
+    call get_centre(loc_p, xp)
+    call get_centre(loc_f, xf)
+
+    dx(:) = xf(:) - xp(:)
+    
+  end procedure get_face_distance
     
 end submodule meshing_operators

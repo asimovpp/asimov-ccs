@@ -58,6 +58,7 @@ module meshing
   
   interface get_distance
     module procedure get_neighbour_distance
+    module procedure get_face_distance
   end interface get_distance
   
   interface
@@ -268,12 +269,23 @@ module meshing
     !
     !> @param[in]  cell_locator      loc_p  - The cell distance is measured from.
     !> @param[in]  neighbour_locator loc_nb - The cell distance is measured to.
-    !> @param[out] accs_real         dx     - The distance.
+    !> @param[out] accs_real         dx     - ndim-array of the distance
     module subroutine get_neighbour_distance(loc_p, loc_nb, dx)
       type(cell_locator), intent(in) :: loc_p
       type(neighbour_locator), intent(in) :: loc_nb
-      real(accs_real), intent(out) :: dx
+      real(accs_real), dimension(ndim), intent(out) :: dx
     end subroutine get_neighbour_distance
+
+    !> @brief Returns the distance from cell to face centres
+    !
+    !> @param[in]  cell_locator loc_p - The cell distance is measured from.
+    !> @param[in]  face_locator loc_f - The face distance is measured to.
+    !> @param[out] accs_real    dx    - ndim-array of the distance
+    module subroutine get_face_distance(loc_p, loc_f, dx)
+      type(cell_locator), intent(in) :: loc_p
+      type(face_locator), intent(in) :: loc_f
+      real(accs_real), dimension(ndim), intent(out) :: dx
+    end subroutine get_face_distance
   end interface
 
 end module meshing

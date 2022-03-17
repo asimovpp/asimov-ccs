@@ -342,7 +342,8 @@ contains
     type(neighbour_locator) :: loc_nb               !> Neighbour cell locator
     integer(accs_int) :: idxnb                      !> Neighbour cell index
     real(accs_real) :: flux_corr                    !> Flux correction
-    real(accs_real) :: dx                           !> Cell-cell distance
+    real(accs_real), dimension(ndim) :: dx          !> Cell-cell distance
+    real(accs_real) :: dxmag                        !> Cell-cell distance magnitude
     real(accs_real), dimension(ndim) :: face_normal !> (local) face-normal array
     real(accs_real) :: Vp                           !> Primary cell volume
     real(accs_real) :: Vnb                          !> Neighbour cell volume
@@ -367,8 +368,9 @@ contains
         ! Rhie-Chow correction from Ferziger & Peric
         !
         call get_distance(loc_p, loc_nb, dx)
+        dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(idxp) - p(idxnb)) / dx
+        flux_corr = -(p(idxp) - p(idxnb)) / dxmag
         flux_corr = flux_corr + 0.5_accs_real * ((pgradx(idxp) + pgradx(idxnb)) * face_normal(1) &
              + (pgrady(idxp) + pgrady(idxnb)) * face_normal(2))
 
@@ -422,12 +424,40 @@ contains
   module procedure update_gradient
 
     use utils, only : update
-  
-    call update_gradient_component(cell_mesh, 1, phi%vec, phi%gradx)
-    call update_gradient_component(cell_mesh, 2, phi%vec, phi%grady)
+
+    real(accs_real), dimension(:), pointer :: gradx_data, grady_data, gradz_data
+    real(accs_real), dimension(:), allocatable :: gradx_old, grady_old, gradz_old
+
+    integer(accs_real) :: i
+    
+    call get_vector_data(phi%gradx, gradx_data)
+    call get_vector_data(phi%grady, grady_data)
+    call get_vector_data(phi%gradz, gradz_data)
+
+    associate(ntotal => cell_mesh%ntotal)
+      allocate(gradx_old(ntotal))
+      allocate(grady_old(ntotal))
+      allocate(gradz_old(ntotal))
+      do i = 1, ntotal
+        gradx_old(i) = gradx_data(i)
+        grady_old(i) = grady_data(i)
+        gradz_old(i) = gradz_data(i)
+      end do
+    end associate
+    
+    call restore_vector_data(phi%gradx, gradx_data)
+    call restore_vector_data(phi%grady, grady_data)
+    call restore_vector_data(phi%gradz, gradz_data)
+    
+    call update_gradient_component(cell_mesh, 1, phi%vec, gradx_old, grady_old, gradz_old, phi%gradx)
+    call update_gradient_component(cell_mesh, 2, phi%vec, gradx_old, grady_old, gradz_old, phi%grady)
 
     call update(phi%gradx)
     call update(phi%grady)
+
+    deallocate(gradx_old)
+    deallocate(grady_old)
+    deallocate(gradz_old)
     
   end procedure update_gradient
 
@@ -438,17 +468,21 @@ contains
   !> @param[in] phi         - a cell-centred array of the field whose gradient we
   !!                          want to compute
   !> @param[inout] gradient - a cell-centred array of the gradient
-  module subroutine update_gradient_component(cell_mesh, component, phi, gradient)
+  module subroutine update_gradient_component(cell_mesh, component, phi, gradx_old, grady_old, gradz_old, gradient)
 
     use constants, only : insert_mode
     use types, only : cell_locator, face_locator, neighbour_locator, vector_values
     use meshing, only : set_cell_location, count_neighbours, get_boundary_status, &
-         set_neighbour_location, get_local_index, get_global_index, get_volume
+         set_neighbour_location, get_local_index, get_global_index, get_volume, &
+         get_distance
     use utils, only : pack_entries, set_values
 
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: component
     class(vector), intent(in) :: phi
+    real(accs_real), dimension(:), intent(in) :: gradx_old
+    real(accs_real), dimension(:), intent(in) :: grady_old
+    real(accs_real), dimension(:), intent(in) :: gradz_old
     class(vector), intent(inout) :: gradient
     
     type(vector_values) :: grad_values
@@ -473,6 +507,8 @@ contains
 
     real(accs_real) :: V
     integer(accs_int) :: idxg
+
+    real(accs_real), dimension(ndim) :: dx
     
     allocate(grad_values%idx(1))
     allocate(grad_values%val(1))
@@ -494,7 +530,8 @@ contains
           call get_local_index(loc_nb, nb)
           phif = 0.5_accs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
-          phif = phi_data(i)                                  ! XXX: Assuming zero gradient
+          call get_distance(loc_p, loc_f, dx)
+          phif = phi_data(i) + (gradx_old(i) * dx(1) + grady_old(i) * dx(2) + gradz_old(i) * dx(3))
         end if
 
         call get_face_area(loc_f, face_area)
