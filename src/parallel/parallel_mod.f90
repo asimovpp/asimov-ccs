@@ -36,9 +36,10 @@ module parallel
     end subroutine
 
     !> @brief read command line arguments and their values
-    module subroutine read_command_line_arguments(par_env, cps)
+    module subroutine read_command_line_arguments(par_env, cps, case_name)
       class(parallel_environment), intent(in) :: par_env
       integer(accs_int), optional, intent(inout) :: cps
+      character(len=:), optional, allocatable, intent(out) :: case_name
     end subroutine read_command_line_arguments
 
     !> @brief Timer for parallel environment

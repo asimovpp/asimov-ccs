@@ -52,7 +52,7 @@ The `main` in the configuration has to be equal to the name of the test program 
 The configuration file needs to have one or more comments starting with `RUN:` that say how the test should be executed. 
 The test case fails if any of the RUN commands fail.
 `# RUN: %build_test %s %t1` will compile the test case (identified with the macro `%s`) and store the executable in `t1`.
-This can then be executed with, for example `# RUN: mpirun -n 4 %t1`.
+This can then be executed with, for example `# RUN: %mpirun -n 4 %t1` (note, '%mpirun' is a macro that gets resolved to the mpi invocation command set in the used Makefile arch file).
 If a compiled test case returns non-zero, the test case has failed.
 
 Test cases can `use testing_lib` to included the testing library which contains various utility functions for test initialisation, finalisation, stopping and assertions (not everything has been implemented yet). 

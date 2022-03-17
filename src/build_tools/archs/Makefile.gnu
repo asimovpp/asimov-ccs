@@ -8,6 +8,9 @@ ifeq ($(BUILD),debug)
 else
   FFLAGS += -O3
 endif
+ifeq ($(PROFILE),yes)
+  FFLAGS += -fopt-info-missed-optall=opt_info.txt
+endif
 FFLAGS += -fopenmp
 FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
 FFLAGS += -J$(OBJ_DIR)

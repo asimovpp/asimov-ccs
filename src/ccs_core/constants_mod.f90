@@ -17,8 +17,13 @@ module constants
   !> @brief String constants
   character(len=4), public, parameter :: geoext = ".geo" 
   character(len=18), public, parameter :: adiosconfig = "_adios2_config.xml" 
+  character(len=12), public, parameter :: ccsconfig = "_config.yaml" 
 
   !> @brief Dimensionality of problems
   integer(accs_int), public, parameter :: ndim = 3        !> Always 3D
+
+  !> @brief Discretisation schemes
+  integer(accs_int), public, parameter :: uds = 0
+  integer(accs_int), public, parameter :: cds = 1
   
 end module constants
