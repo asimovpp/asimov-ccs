@@ -325,8 +325,10 @@ contains
           coeff_nb = coeff_f
           col = ngb_idx
 
-          ! RHS vector
-
+          ! XXX: Need to fix pressure somewhere
+          if (row == 1) then
+            coeff_p = coeff_p + 1.0e30
+          end if
         else
           col = -1
           coeff_nb = 0.0_accs_real
