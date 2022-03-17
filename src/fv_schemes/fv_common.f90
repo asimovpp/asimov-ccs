@@ -412,6 +412,13 @@ contains
     row = (idx-1)/cps + 1
   end subroutine calc_cell_coords
 
+  !> @brief Performs an update of the gradients of a field.
+  !
+  !> @param[in]    cell_mesh - the mesh
+  !> @param[inout] phi       - the field whose gradients we want to update
+  !
+  !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
+  !!       correctly updated on other PEs.
   module procedure update_gradient
 
     use utils, only : update
@@ -424,12 +431,19 @@ contains
     
   end procedure update_gradient
 
+  !> @brief Helper subroutine to calculate a gradient component at a time.
+  !
+  !> @param[in] cell_mesh   - the mesh
+  !> @param[in] component   - which vector component (i.e. direction) to update?
+  !> @param[in] phi         - a cell-centred array of the field whose gradient we
+  !!                          want to compute
+  !> @param[inout] gradient - a cell-centred array of the gradient
   module subroutine update_gradient_component(cell_mesh, component, phi, gradient)
 
     use constants, only : insert_mode
     use types, only : cell_locator, face_locator, neighbour_locator, vector_values
-    use meshing, only : set_cell_location, count_neighbours, get_boundary_status, set_neighbour_location, &
-         get_local_index, get_global_index, get_volume
+    use meshing, only : set_cell_location, count_neighbours, get_boundary_status, &
+         set_neighbour_location, get_local_index, get_global_index, get_volume
     use utils, only : pack_entries, set_values
 
     type(mesh), intent(in) :: cell_mesh

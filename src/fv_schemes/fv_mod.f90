@@ -118,6 +118,13 @@ module fv
     integer(accs_int), intent(out) :: row, col
   end subroutine calc_cell_coords
 
+  !> @brief Performs an update of the gradients of a field.
+  !
+  !> @param[in]    cell_mesh - the mesh
+  !> @param[inout] phi       - the field whose gradients we want to update
+  !
+  !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
+  !!       correctly updated on other PEs.
   module subroutine update_gradient(cell_mesh, phi)
     type(mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: phi

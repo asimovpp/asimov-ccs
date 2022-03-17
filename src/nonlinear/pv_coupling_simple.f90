@@ -26,15 +26,16 @@ submodule (pv_coupling) pv_coupling_simple
 
   implicit none
 
-  contains
+contains
 
   !> @ brief Solve Navier-Stokes equations using the SIMPLE algorithm
   !
   !> @param[in]  par_env   - parallel environment
   !> @param[in]  cell_mesh - the mesh
-  !> @param[in,out] u, v   - arrays containing velocity fields in x, y directions
-  !> @param[in,out] p      - array containing pressure values
-  !> @param[in,out] pp     - array containing pressure-correction values
+  !> @param[in,out] u, v   - fields containing velocity fields in x, y directions
+  !> @param[in,out] p      - field containing pressure values
+  !> @param[in,out] pp     - field containing pressure-correction values
+  !> @param[in,out] mf     - field containing the face-centred velocity flux 
   module subroutine solve_nonlinear(par_env, cell_mesh, cps, it_start, it_end, u, v, p, pp, mf)
 
     ! Arguments
@@ -106,6 +107,23 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine solve_nonlinear
 
+  !> @brief Computes the guessed velocity fields based on a frozen pressure field
+  !
+  !> @param[in]    par_env      - the parallel environment
+  !> @param[in]    cell_mesh    - the mesh
+  !> @param[in]    bcs          - boundary conditions
+  !> @param[in]    cps          - cells per side of a square mesh (remove)
+  !> @param[inout] M            - matrix object
+  !> @param[inout] vec          - vector object
+  !> @param[inout] lin_sys      - linear system object
+  !> @param[inout] u, v         - the x and y velocity fields
+  !> @param[in]    mf           - the face velocity flux
+  !> @param[in]    p            - the pressure field
+  !> @param[inout] invAu, invAv - vectors containing the inverse momentum coefficients
+  !
+  !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
+  !!              equations) and solve to obtain an intermediate velocity field u* that will not
+  !!              satisfy continuity.
   subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, mf, p, invAu, invAv)
 
     ! Arguments
@@ -187,7 +205,12 @@ submodule (pv_coupling) pv_coupling_simple
 
   end subroutine calculate_velocity
 
-  subroutine calculate_pressure_source(cell_mesh, pgrad, vec)
+  !> @brief Adds the momentum source due to pressure gradient
+  !
+  !> @param[in]    cell_mesh - the mesh
+  !> @param[in]    pgrad     - the pressure gradient
+  !> @param[inout] vec       - the momentum equation RHS vector
+  subroutine calculate_momentum_pressure_source(cell_mesh, pgrad, vec)
 
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
@@ -428,7 +451,8 @@ submodule (pv_coupling) pv_coupling_simple
     call restore_vector_data(invAv, invAv_data)
     
   end subroutine compute_mass_imbalance
-  
+
+  !> @brief Corrects the pressure field, using explicit underrelaxation
   subroutine update_pressure(pp, p)
 
     ! Arguments
@@ -445,6 +469,7 @@ submodule (pv_coupling) pv_coupling_simple
     
   end subroutine update_pressure
 
+  !> @brief Corrects the velocity field using the pressure correction gradient
   subroutine update_velocity(cell_mesh, invAu, invAv, pp, u, v)
 
     ! Arguments
@@ -466,6 +491,7 @@ submodule (pv_coupling) pv_coupling_simple
     
   end subroutine update_velocity
 
+  !> @brief Corrects the face velocity flux using the pressure correction
   subroutine update_face_velocity(cell_mesh, pp, invAu, invAv, mf)
 
     type(mesh), intent(in) :: cell_mesh
@@ -525,6 +551,10 @@ submodule (pv_coupling) pv_coupling_simple
     
   end subroutine check_convergence
 
+  !> @brief Applies implicit underrelaxation to an equation
+  !
+  !> @description Extracts the diagonal coefficient of a matrix and divides by the URF, adding a
+  !!              proportional explicit term to the RHS vector.
   subroutine underrelax(cell_mesh, alpha, phi, diag, M, b)
 
     use mat, only : set_matrix_diagonal
