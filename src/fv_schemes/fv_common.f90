@@ -75,7 +75,7 @@ contains
     use types, only: matrix_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
     use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
-                       get_global_index, count_neighbours, get_boundary_status
+                       get_global_index, get_local_index, count_neighbours, get_boundary_status
 
     class(field), intent(in) :: phi
     real(accs_real), dimension(:), intent(in) :: u, v
@@ -87,7 +87,7 @@ contains
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: self_idx, ngb_idx, local_idx, ngb_local_idx
     integer(accs_int) :: j
     integer(accs_int) :: mat_counter
     integer(accs_int) :: n_ngb
@@ -96,6 +96,8 @@ contains
     real(accs_real) :: adv_coeff, adv_coeff_total
     real(accs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
+
+    real(accs_real) :: mf !> The mass flux at a face
 
     mat_coeffs%mode = add_mode
 
@@ -113,25 +115,35 @@ contains
       diff_coeff_total = 0.0_accs_real
       do j = 1, n_ngb
         call set_neighbour_location(ngb_loc, self_loc, j)
-        call get_global_index(ngb_loc, ngb_idx)
         call get_boundary_status(ngb_loc, is_boundary)
 
-        diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
         if (.not. is_boundary) then
+          diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
+
+          call get_global_index(ngb_loc, ngb_idx)
+          call get_local_index(ngb_loc, ngb_local_idx)
+
           call set_face_location(face_loc, cell_mesh, local_idx, j)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
 
+          ! XXX: Why won't Fortran interfaces distinguish on extended types...
+          ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
+          !       procedure (should also eliminate the type check).
+          mf = calc_mass_flux(u, v, ngb_local_idx, local_idx, face_normal, 0)
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, mf, 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, 0, adv_coeff)
+              call calc_advection_coeff(phi, mf, 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
 
+          ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
+          adv_coeff = adv_coeff * (mf * face_area)
+          
           call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
           mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
@@ -195,7 +207,7 @@ contains
     use constants, only : insert_mode, add_mode
     use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
-    use meshing, only: get_global_index, count_neighbours, get_boundary_status, &
+    use meshing, only: get_global_index, get_local_index, count_neighbours, get_boundary_status, &
                        set_cell_location, set_face_location, set_neighbour_location
     use bc_constants
 
@@ -212,7 +224,7 @@ contains
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: self_idx, local_idx
     integer(accs_int) :: j
     integer(accs_int) :: bc_counter
     integer(accs_int) :: row, col
@@ -224,6 +236,8 @@ contains
     real(accs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
+    real(accs_real) :: mf !> The mass flux at a face
+    
     mat_coeffs%mode = add_mode
     b_coeffs%mode = add_mode
 
@@ -241,25 +255,27 @@ contains
       ! Calculate contribution from neighbours
       do j = 1, n_ngb
         call set_neighbour_location(ngb_loc, self_loc, j)
-        call get_global_index(ngb_loc, ngb_idx)
         call get_boundary_status(ngb_loc, is_boundary)
+        if (is_boundary) then
+          ! call get_global_index(ngb_loc, ngb_idx)
+          call get_local_index(ngb_loc, mesh_ngb_idx)
 
-        call set_face_location(face_loc, cell_mesh, local_idx, j)
-        call get_face_area(face_loc, face_area)
-        call get_face_normal(face_loc, face_normal)
+          call set_face_location(face_loc, cell_mesh, local_idx, j)
+          call get_face_area(face_loc, face_area)
+          call get_face_normal(face_loc, face_normal)
 
-        mesh_ngb_idx = cell_mesh%nbidx(j, local_idx)
-        diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
-        if (is_boundary .and. bcs%bc_type(j) .ne. bc_type_const_grad) then
+          diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
+          mf = calc_mass_flux(u, v, mesh_ngb_idx, local_idx, face_normal, mesh_ngb_idx)
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, mf, mesh_ngb_idx, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, ngb_idx, self_idx, face_area, face_normal, u, v, mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, mf, mesh_ngb_idx, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
+          adv_coeff = adv_coeff * (mf * face_area)
 
           call calc_cell_coords(self_idx, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
@@ -289,7 +305,7 @@ contains
 
     type(face_locator) :: face_location
     real(accs_real) :: face_area
-    real(accs_real), parameter :: diffusion_factor = 1.e-2_accs_real ! ALEXEI: temporarily hard-coded
+    real(accs_real), parameter :: diffusion_factor = 1.e-2_accs_real ! XXX: temporarily hard-coded
 
     call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
     call get_face_area(face_location, face_area)
@@ -304,11 +320,10 @@ contains
   !> @param[in] self_idx - Row and column of given cell in mesh
   !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, bc_flag) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
-    real(accs_real), intent(in) :: face_area
     real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: bc_flag
 
@@ -316,14 +331,14 @@ contains
 
     flux = 0.0_accs_real
     
-    ! ALEXEI: Write more general implementation handling BCs
+    ! TODO: Write more general implementation handling BCs
     if (bc_flag == 0) then
-      flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_area * face_normal(1) + &
-             0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_area * face_normal(2)
+      flux = 0.5_accs_real*(u(ngb_idx) + u(self_idx)) * face_normal(1) + &
+             0.5_accs_real*(v(ngb_idx) + v(self_idx)) * face_normal(2)
     else if (bc_flag == -1 .or. bc_flag == -2) then
-      flux = u(self_idx) * face_area
+      flux = u(self_idx)
     else if (bc_flag == -3 .or. bc_flag == -4) then
-      flux = v(self_idx) * face_area
+      flux = v(self_idx)
     else
       print *, 'invalid BC flag'
       stop

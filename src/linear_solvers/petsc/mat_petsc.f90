@@ -16,14 +16,13 @@ contains
 
     use mpi
     
-    use petsc, only : PETSC_DECIDE, PETSC_NULL_INTEGER
+    use petsc, only : PETSC_DETERMINE, PETSC_NULL_INTEGER
     use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
     class(matrix), allocatable, intent(out) :: M
 
-!    integer(accs_int) :: nrank !> MPI rank
     integer(accs_err) :: ierr  !> Error code
 
     allocate(matrix_petsc :: M)
@@ -35,15 +34,10 @@ contains
           type is(parallel_environment_mpi)
 
           call MatCreate(par_env%comm, M%M, ierr)
-  
-          if (mat_dat%rloc >= 0) then
-            call MatSetSizes(M%M, mat_dat%rloc, mat_dat%cloc, PETSC_DECIDE, PETSC_DECIDE, ierr)
-          else if (mat_dat%rglob >= 0) then
-            call MatSetSizes(M%M, PETSC_DECIDE, PETSC_DECIDE, mat_dat%rglob, mat_dat%cglob, ierr)
-          else
-            print *, "ERROR: invalid matrix creation!"
-            stop
-          end if
+
+          associate(mesh => mat_dat%mesh)
+            call MatSetSizes(M%M, mesh%nlocal, mesh%nlocal, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+          end associate
           
           if (ierr == 0) then
             M%allocated = .true.

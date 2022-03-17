@@ -29,19 +29,12 @@ module fv
   !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
   !> @param[in] phi         - scalar field
-  !> @param[in] ngb_idx     - global cell neighbour index
-  !> @param[in] self_idx    - global cell index
-  !> @param[in] face_area   - area of face between self and neighbour
-  !> @param[in] face_normal - face normal array
-  !> @param[in] u, v        - arrays of velocity fields in x, y directions
+  !> @param[in] mf          - mass flux at the face
   !> @param[in] bc          - flag indicating whether cell is on boundary
   !> @param[out] coeff      - advection coefficient to be calculated
-  module subroutine calc_advection_coeff_cds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_cds(phi, mf, bc, coeff)
     type(central_field), intent(in) :: phi
-    integer(accs_int), intent(in) :: ngb_idx, self_idx
-    real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(ndim), intent(in) :: face_normal
-    real(accs_real), dimension(:), intent(in) :: u, v
+    real(accs_real), intent(in) :: mf
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
   end subroutine calc_advection_coeff_cds
@@ -49,19 +42,12 @@ module fv
   !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
   !> @param[in] phi         - scalar field
-  !> @param[in] ngb_idx     - global cell neighbour index
-  !> @param[in] self_idx    - global cell index
-  !> @param[in] face_area   - area of face between self and neighbour
-  !> @param[in] face_normal - face normal array
-  !> @param[in] u, v        - arrays of velocity fields in x, y directions
+  !> @param[in] mf          - mass flux at the face
   !> @param[in] bc          - flag indicating whether cell is on boundary
   !> @param[out] coeff      - advection coefficient to be calculated
-  module subroutine calc_advection_coeff_uds(phi, ngb_idx, self_idx, face_area, face_normal, u, v, bc, coeff)
+  module subroutine calc_advection_coeff_uds(phi, mf, bc, coeff)
     type(upwind_field), intent(in) :: phi
-    integer(accs_int), intent(in) :: ngb_idx, self_idx
-    real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(ndim), intent(in) :: face_normal
-    real(accs_real), dimension(:), intent(in) :: u, v
+    real(accs_real), intent(in) :: mf
     integer(accs_int), intent(in) :: bc
     real(accs_real), intent(out) :: coeff
   end subroutine calc_advection_coeff_uds
@@ -72,6 +58,8 @@ module fv
   !> @param[in] local_ngb_idx  - the local neigbouring cell index
   !> @param[in] cell_mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
+  !
+  ! XXX: why is this a function when the equivalent advection ones are subroutines?
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
     integer(accs_int), intent(in) :: local_self_idx
     integer(accs_int), intent(in) :: local_ngb_idx
@@ -106,11 +94,10 @@ module fv
   !> @param[in] self_idx - Row and column of given cell in mesh
   !> @param[in] bc_flag  - Flag to indicate if neighbour is a boundary cell
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_area, face_normal, bc_flag) result(flux)
+  module function calc_mass_flux(u, v, ngb_idx, self_idx, face_normal, bc_flag) result(flux)
     real(accs_real), dimension(:), intent(in) :: u, v
     integer(accs_int), intent(in) :: ngb_idx
     integer(accs_int), intent(in) :: self_idx
-    real(accs_real), intent(in) :: face_area
     real(accs_real), dimension(ndim), intent(in) :: face_normal
     integer(accs_int), intent(in) :: bc_flag
     real(accs_real) :: flux
