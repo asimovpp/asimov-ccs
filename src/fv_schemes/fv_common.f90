@@ -361,6 +361,9 @@ contains
         call set_cell_location(loc_p, mesh, idxp)
         call set_neighbour_location(loc_nb, loc_p, j)
         call get_local_index(loc_nb, idxnb)
+
+        call get_face_normal(loc_f, face_normal)
+        
         flux = 0.5_accs_real * (u(idxp) + u(idxnb) * face_normal(1) &
              + (v(idxp) + v(idxnb)) * face_normal(2))
 
