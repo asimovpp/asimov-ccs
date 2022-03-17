@@ -381,7 +381,7 @@ contains
         invAnb = 0.5_accs_real * (invAu(idxnb) + invAv(idxnb))
         invAf = 0.5_accs_real * (invAp + invAnb)
         
-        flux_corr = (Vf / invAf) * flux_corr
+        flux_corr = (Vf * invAf) * flux_corr
           
         ! Apply correction
         flux = flux + flux_corr
