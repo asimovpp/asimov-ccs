@@ -31,16 +31,25 @@ program test_ghost_cells
 
   cell_mesh = build_square_mesh(11, 1.0_accs_real, par_env)
 
+  ! Specify vector size based on the mesh
   call initialise(vector_data)
   call set_global_size(vector_data, cell_mesh, par_env)
+
+  ! Create the vector
   call create_vector(vector_data, v)
+
+  ! Retried initial vector values
   call get_vector_data(v, values)
 
+  ! Set vector values to global mesh indices
   do i = 1, cell_mesh%nlocal
     values(i) = cell_mesh%idx_global(i)
   end do
 
+  ! Now update the vector (including ghost cells)
   call update(v)
+
+  ! Retrieve the new vector values (including ghost cells)
   call get_vector_data(v, values)
 
   do i = 1, cell_mesh%ntotal
@@ -49,6 +58,9 @@ program test_ghost_cells
       call stop_test(message)
     end if
   end do
+
+  ! Remove reference to the values array
+  call restore_vector_data(v, values)
 
   call fin()
 
