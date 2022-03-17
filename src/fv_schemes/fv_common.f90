@@ -471,7 +471,7 @@ contains
   !> @param[in] phi         - a cell-centred array of the field whose gradient we
   !!                          want to compute
   !> @param[inout] gradient - a cell-centred array of the gradient
-  module subroutine update_gradient_component(cell_mesh, component, phi, gradx_old, grady_old, gradz_old, gradient)
+  subroutine update_gradient_component(cell_mesh, component, phi, gradx_old, grady_old, gradz_old, gradient)
 
     use constants, only : insert_mode
     use types, only : cell_locator, face_locator, neighbour_locator, vector_values
