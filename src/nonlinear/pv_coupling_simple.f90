@@ -23,7 +23,7 @@ submodule (pv_coupling) pv_coupling_simple
                      set_neighbour_location, &
                      set_face_location, set_cell_location, &
                      get_volume
-
+  
   implicit none
 
 contains
@@ -154,7 +154,7 @@ contains
     call compute_fluxes(u, mf, cell_mesh, bcs, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
-    call calculate_pressure_source(cell_mesh, p%gradx, vec)
+    call calculate_momentum_pressure_source(cell_mesh, p%gradx, vec)
 
     ! Underrelax the equations
     call underrelax(cell_mesh, alpha, u, invAu, M, vec)
@@ -180,7 +180,7 @@ contains
     call compute_fluxes(v, mf, cell_mesh, bcs, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
-    call calculate_pressure_source(cell_mesh, p%grady, vec)
+    call calculate_momentum_pressure_source(cell_mesh, p%grady, vec)
 
     ! Store reciprocal of central coefficient
     call get_matrix_diagonal(M, invAv)
@@ -252,10 +252,20 @@ contains
 
     call restore_vector_data(pgrad, pgrad_data)
     
-  end subroutine calculate_pressure_source
+  end subroutine calculate_momentum_pressure_source
 
-
-  subroutine calculate_pressure_correction(par_env, cell_mesh, M, vec, lin_sys, u, v, pp)
+  !> @brief Solves the pressure correction equation
+  !
+  !> @param[in]    par_env      - the parallel environment
+  !> @param[in]    cell_mesh    - the mesh
+  !> @param[inout] M            - matrix object
+  !> @param[inout] vec          - the RHS vector
+  !> @param[inout] lin_sys      - linear system object
+  !> @param[in]    invAu, invAv - inverse diagonal momentum coefficients
+  !> @param[inout] pp           - the pressure correction field
+  !
+  !> @description Solves the pressure correction equation formed by the mass-imbalance.
+  subroutine calculate_pressure_correction(par_env, cell_mesh, M, vec, lin_sys, invAu, invAv, pp)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -510,8 +520,11 @@ contains
     call mult(invAv, pp%grady)
 
     ! Compute correction source on velocity
-    call calculate_pressure_source(cell_mesh, pp%gradx, u%vec)
-    call calculate_pressure_source(cell_mesh, pp%grady, v%vec)
+    call calculate_momentum_pressure_source(cell_mesh, pp%gradx, u%vec)
+    call calculate_momentum_pressure_source(cell_mesh, pp%grady, v%vec)
+
+    call update(u%vec)
+    call update(v%vec)
     
   end subroutine update_velocity
 
