@@ -77,10 +77,11 @@ contains
   end procedure set_matrix_values_mode
   
   module subroutine set_matrix_values_entry(val, val_dat)
-    real(accs_real), intent(in) :: val
-    type(matrix_values), intent(inout) :: val_dat
 
     use constants, only : add_mode, insert_mode
+
+    real(accs_real), intent(in) :: val
+    type(matrix_values), intent(inout) :: val_dat
     
     associate(x => val_dat%val(val_dat%current_entry), &
          mode => val_dat%mode)
