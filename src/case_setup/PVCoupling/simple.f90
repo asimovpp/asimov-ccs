@@ -6,18 +6,19 @@
 
 program simple
 
+  use constants, only : cell, face
   use kinds, only: accs_real, accs_int
-  use types, only: field, upwind_field, central_field, mesh, &
+  use types, only: field, upwind_field, central_field, face_field, mesh, &
                    vector_init_data, matrix, vector
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_square_mesh
-  use vec, only: create_vector
+  use vec, only: create_vector, set_vector_location
   use petsctypes, only: matrix_petsc, vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_global_size
+  use utils, only: set_global_size, initialise
                       
   implicit none
 
@@ -52,15 +53,28 @@ program simple
   allocate(upwind_field :: v)
   allocate(central_field :: p)
   allocate(central_field :: pp)
-  allocate(central_field :: mf)
+  allocate(face_field :: mf)
 
   ! Create and initialise field vectors
+  call initialise(vec_sizes)
+
+  call set_vector_location(vec_sizes, cell)
   call set_global_size(vec_sizes, square_mesh, par_env)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
   call create_vector(vec_sizes, p%vec)
+  call create_vector(vec_sizes, p%gradx)
+  call create_vector(vec_sizes, p%grady)
+  call create_vector(vec_sizes, p%gradz)
   call create_vector(vec_sizes, pp%vec)
+  call create_vector(vec_sizes, pp%gradx)
+  call create_vector(vec_sizes, pp%grady)
+  call create_vector(vec_sizes, pp%gradz)
 
+  call set_vector_location(vec_sizes, face)
+  call set_global_size(vec_sizes, square_mesh, par_env)
+  call create_vector(vec_sizes, mf%vec)
+  
   ! Initialise velocity field
   call initialise_velocity(square_mesh, u, v)
 
