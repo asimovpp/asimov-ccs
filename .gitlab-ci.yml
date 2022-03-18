@@ -23,7 +23,6 @@
     when: always
     reports:
       junit: testing/tests/report.xml
-  allow_failure: true
   
 
 #-----------------------------------------------------------------------------#
