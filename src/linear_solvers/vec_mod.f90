@@ -8,6 +8,7 @@ module vec
   use kinds, only : accs_real, accs_int
   use types, only : mesh, vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
+  use constants, only: cell
   
   implicit none
 
@@ -25,10 +26,12 @@ module vec
   public :: set_vector_size
   public :: get_vector_data
   public :: restore_vector_data
+  public :: set_vector_location
   public :: vec_reciprocal
   public :: zero_vector
   public :: mult_vec_vec
   public :: scale_vec
+  ! public :: vec_view
   
   interface
      
@@ -161,6 +164,13 @@ module vec
       real(accs_real), dimension(:), pointer, intent(in) :: array
     end subroutine restore_vector_data
 
+    !> @brief Set vector values to be located at either cell-centre or face
+    !
+    module subroutine set_vector_location(vector_descriptor, loc)
+      type(vector_init_data), intent(inout) :: vector_descriptor
+      integer(accs_int), intent(in) :: loc
+    end subroutine set_vector_location
+
     !> @brief Replace each component of a vector by its reciprocal
     !
     !> @param[in]  vec - the vector
@@ -183,6 +193,11 @@ module vec
       class(vector), intent(inout) :: v
     end subroutine scale_vec
     
+    ! module subroutine vec_view(vec_dat, vec)
+    !   type(vector_init_data), intent(in) :: vec_dat
+    !   class(vector), intent(in) :: vec
+    ! end subroutine vec_view
+
   end interface
   
 end module vec

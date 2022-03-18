@@ -25,5 +25,9 @@ module constants
   !> @brief Discretisation schemes
   integer(accs_int), public, parameter :: uds = 0
   integer(accs_int), public, parameter :: cds = 1
+
+  !> @brief Location of vector data
+  integer(accs_int), public, parameter :: cell = 1
+  integer(accs_int), public, parameter :: face = 2
   
 end module constants

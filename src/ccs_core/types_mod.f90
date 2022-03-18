@@ -23,6 +23,7 @@ module types
   type, public :: vector_init_data
     class(parallel_environment), pointer :: par_env !> The parallel environment
     type(mesh), pointer :: mesh !> The mesh object to build the vector on
+    integer(accs_int) :: loc !> The location of the vector values (cell or face)
   end type vector_init_data
 
 
@@ -71,6 +72,7 @@ module types
     integer(accs_int) :: nlocal  !> Local mesh size
     integer(accs_int) :: nhalo   !> How many cells in my halo?
     integer(accs_int) :: ntotal  !> How many cells do I interact with (nlocal + nhalo)?
+    integer(accs_int) :: nfaces_local !> Number of faces in local mesh
     integer(accs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
     integer(accs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
     integer(accs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
@@ -93,6 +95,8 @@ module types
   type, public, extends(field) :: upwind_field
   end type
   type, public, extends(field) :: central_field
+  end type
+  type, public, extends(field) :: face_field
   end type
 
   !> @brief Cell locator

@@ -28,6 +28,7 @@ module mesh_utils
   
   private
   public :: build_square_mesh
+  public :: count_mesh_faces
   
 contains
 
@@ -205,6 +206,8 @@ contains
         square_mesh%ntotal = size(square_mesh%idx_global)
         square_mesh%nhalo = square_mesh%ntotal - square_mesh%nlocal
 
+        square_mesh%nfaces_local = count_mesh_faces(square_mesh)
+
       class default
         print *, "Unknown parallel environment type!"
         stop
@@ -309,5 +312,59 @@ contains
     deallocate(tmp)
     
   end subroutine append_to_arr
+
+  !> @brief Count the number of faces in the mesh
+  !
+  !> @param[in]  cell_mesh - the mesh
+  !> @param[out] nfaces    - number of cell faces
+  function count_mesh_faces(cell_mesh) result(nfaces)
+
+    use meshing, only: set_cell_location, set_neighbour_location, &
+                       get_global_index, count_neighbours, get_boundary_status
+
+    ! Arguments
+    type(mesh), intent(in) :: cell_mesh
+
+    ! Result
+    integer(accs_int) :: nfaces
+
+    ! Local variables
+    type(cell_locator) :: self_loc
+    type(neighbour_locator) :: ngb_loc
+    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: j
+    integer(accs_int) :: n_ngb
+    integer(accs_int) :: nfaces_int, nfaces_bnd
+    logical :: is_boundary
+
+    ! Initialise
+    nfaces_int = 0
+    nfaces_bnd = 0
+
+    ! Loop over cells
+    do local_idx = 1, cell_mesh%nlocal
+      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call get_global_index(self_loc, self_idx)
+      call count_neighbours(self_loc, n_ngb)
+
+      do j = 1, n_ngb
+        call set_neighbour_location(ngb_loc, self_loc, j)
+        call get_global_index(ngb_loc, ngb_idx)
+        call get_boundary_status(ngb_loc, is_boundary)
+
+        if (.not. is_boundary) then
+          ! Interior face
+          nfaces_int = nfaces_int + 1
+        else
+          ! Boundary face
+          nfaces_bnd = nfaces_bnd + 1
+        endif
+      end do
+    end do
+
+    ! Interior faces will be counted twice
+    nfaces = (nfaces_int / 2) + nfaces_bnd
+
+  end function count_mesh_faces
   
 end module mesh_utils
