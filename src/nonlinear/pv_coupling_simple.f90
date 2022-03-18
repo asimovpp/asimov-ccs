@@ -365,7 +365,7 @@ contains
           ! XXX: Need to fix pressure somewhere
           !!     Row is the global index - should be unique
           if (row == 1) then
-            coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero (approximately).
+            coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
           end if
         else
           ! XXX: Fixed velocity BC - no pressure correction
@@ -416,7 +416,7 @@ contains
     class(field), intent(in) :: p       !> The pressure field
     class(vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
     class(vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
-    class(field), intent(inout) :: mf  !> The face velocity flux
+    class(field), intent(inout) :: mf   !> The face velocity flux
     class(vector), intent(inout) :: b   !> The per-cell mass imbalance
 
     type(vector_values) :: vec_values
@@ -442,7 +442,11 @@ contains
     real(accs_real), dimension(:), pointer :: invAv_data  !> Data array for inverse y momentum
                                                           !! diagonal coefficient
 
-    real(accs_real) :: mib                            !> Cell mass imbalance
+    logical :: is_boundary            !> Boundary indicator
+    type(neighbour_locator) :: loc_nb !> Neighbour cell locator object
+    integer(accs_int) :: idxnb        !> Neighbour cell index
+    
+    real(accs_real) :: mib !> Cell mass imbalance
 
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
@@ -474,6 +478,16 @@ contains
              p_data, pgradx_data, pgrady_data, &
              invAu_data, invAv_data, &
              loc_f)
+
+        ! Check face orientation
+        call get_boundary_status(loc_f, is_boundary)
+        if (.not. is_boundary) then
+          call set_neighbour_location(loc_nb, loc_p, j)
+          call get_local_index(loc_nb, idxnb)
+          if (idxnb < i) then
+            face_area = - face_area
+          end if
+        end if
         
         mib = mib + mf_data(idxf) * face_area
       end do
@@ -553,7 +567,12 @@ contains
     real(accs_real), dimension(:), pointer :: invAu_data
     real(accs_real), dimension(:), pointer :: invAv_data
 
+    type(cell_locator) :: loc_p
+    integer(accs_int) :: i
+    integer(accs_int) :: nnb
+    integer(accs_int) :: j
     type(face_locator) :: loc_f
+    integer(accs_int) :: idxf
 
     call get_vector_data(pp%vec, pp_data)
     call get_vector_data(invAu, invAu_data)
@@ -562,13 +581,21 @@ contains
     
     allocate(zero_arr(size(pp_data)))
     zero_arr(:) = 0.0_accs_real
-    
+
+    ! XXX: This should really be a face loop
     do i = 1, cell_mesh%nlocal
-      mf_prime = calc_mass_flux(zero_arr, zero_arr, &
-           pp_data, zero_arr, zero_arr, &
-           invAu_data, invAv_data, &
-           loc_f)
-      mf_data(i) = mf_data(i) + mf_prime
+      call set_cell_location(loc_p, cell_mesh, i)
+      call count_neighbours(loc_p, nnb)
+      do j = 1, nnb
+        call set_face_location(loc_f, cell_mesh, i, j)
+        mf_prime = calc_mass_flux(zero_arr, zero_arr, &
+             pp_data, zero_arr, zero_arr, &
+             invAu_data, invAv_data, &
+             loc_f)
+
+        call get_local_index(loc_f, idxf)
+        mf_data(idxf) = mf_data(idxf) + mf_prime
+      end do
     end do
 
     deallocate(zero_arr)
