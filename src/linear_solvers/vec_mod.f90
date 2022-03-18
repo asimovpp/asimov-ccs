@@ -28,6 +28,7 @@ module vec
   public :: vec_reciprocal
   public :: zero_vector
   public :: mult_vec_vec
+  public :: scale_vec
   
   interface
      
@@ -176,6 +177,11 @@ module vec
       class(vector), intent(in) :: a
       class(vector), intent(inout) :: b
     end subroutine mult_vec_vec
+
+    module subroutine scale_vec(alpha, v)
+      real(accs_real), intent(in) :: alpha
+      class(vector), intent(inout) :: v
+    end subroutine scale_vec
     
   end interface
   

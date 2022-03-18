@@ -14,7 +14,7 @@ submodule (pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_global_size, &
-                   set_values, pack_entries, mult
+                   set_values, pack_entries, mult, scale
   use solver, only: create_solver, solve, set_linear_system, axpy
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
@@ -166,6 +166,7 @@ contains
     ! Assembly of coefficient matrix and source vector
     call update(M)
     call update(vec)
+    call update(invAu)
 
     ! Create linear solver
     call set_linear_system(lin_sys, vec, u%vec, M, par_env)
@@ -192,6 +193,7 @@ contains
     ! Assembly of coefficient matrix and source vector
     call update(M)
     call update(vec)
+    call update(invAv)
 
     ! Create linear solver
     call set_linear_system(lin_sys, vec, v%vec, M, par_env)
@@ -304,12 +306,16 @@ contains
     real(accs_real) :: invAf
 
     integer(accs_int) :: idxnb
+
+    ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
+    call scale(-1.0_accs_real, vec)
+    call update(vec)
     
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
 
     mat_coeffs%mode = insert_mode
-    vec_values%mode = insert_mode
+    vec_values%mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
@@ -350,15 +356,16 @@ contains
           invAnb = 0.5_accs_real * (invAu_data(idxnb) + invAv_data(idxnb))
           invAf = 0.5_accs_real * (invAp + invAnb)
 
-          coeff_f = (Vf * invAf) * coeff_f
+          coeff_f = -(Vf * invAf) * coeff_f
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
           col = ngb_idx
 
           ! XXX: Need to fix pressure somewhere
+          !!     Row is the global index - should be unique
           if (row == 1) then
-            coeff_p = coeff_p + 1.0e30
+            coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero (approximately).
           end if
         else
           ! XXX: Fixed velocity BC - no pressure correction

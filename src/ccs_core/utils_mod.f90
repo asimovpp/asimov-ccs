@@ -9,7 +9,7 @@ module utils
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
        initialise_vector, set_vector_size, pack_one_vector_element, &
-       mult_vec_vec
+       mult_vec_vec, scale_vec
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   pack_one_matrix_coefficient
@@ -32,6 +32,7 @@ module utils
   public :: mult
   public :: accs_init
   public :: accs_finalise
+  public :: scale
 
   !> @brief Generic interface to set values on an object.
   interface set_values
@@ -97,6 +98,11 @@ module utils
   interface mult
     module procedure mult_vec_vec
   end interface mult
+
+  !> @brief Generic interface to scale an object by a scalar constant
+  interface scale
+    module procedure scale_vec
+  end interface scale
   
 contains
 

@@ -425,5 +425,21 @@ contains
     end select
       
   end procedure mult_vec_vec
+
+  module procedure scale_vec
+
+    use petscvec, only : VecScale
   
+    integer(accs_err) :: ierr
+
+    select type(v)
+    type is(vector_petsc)
+      call VecScale(v%v, alpha, ierr)
+    class default
+      print *, "Unknown vector type!"
+      stop
+    end select
+  
+  end procedure
+
 end submodule vec_petsc
