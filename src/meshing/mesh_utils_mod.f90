@@ -208,6 +208,8 @@ contains
 
         square_mesh%nfaces_local = count_mesh_faces(square_mesh)
 
+        call set_cell_face_indices()
+
       class default
         print *, "Unknown parallel environment type!"
         stop
@@ -366,5 +368,65 @@ contains
     nfaces = (nfaces_int / 2) + nfaces_bnd
 
   end function count_mesh_faces
+
+  subroutine set_cell_face_indices(cell_mesh)
+
+    ! Arguments
+    type(mesh), intent(inout) :: cell_mesh
+
+    ! Local variables
+    type(cell_locator) :: self_loc !> Current cell
+    type(cell_locator) :: ngb_cell_loc !> Neighbour of current cell
+    type(neighbour_locator) :: ngb_loc !> Neighbour
+    type(neighbour_locator) :: ngb_ngb_loc !> Neighbour of neighbour
+    type(face_locator) :: face_loc
+    integer(accs_int) :: self_idx, ngb_idx, local_idx, ngb_idx
+    integer(accs_int) :: ngb_ngb_idx
+    integer(accs_int) :: n_ngb, n_ngb_ngb
+    integer(accs_int) :: j,k
+    integer(accs_int) :: icnt  !> Face index counter
+
+    icnt = 0
+
+    ! Loop over cells
+    do local_idx = 1, cell_mesh%nlocal
+      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call get_global_index(self_loc, self_idx)
+      call count_neighbours(self_loc, n_ngb)
+
+      do j = 1, n_ngb
+        call set_neighbour_location(ngb_loc, self_loc, j)
+        call get_local_index(ngb_loc, ngb_idx)
+        call get_boundary_status(ngb_loc, is_boundary)
+
+        if (.not. is_boundary) then
+          ! Cell with lowest local index assigns an index to the face
+          if (self_idx < ngb_idx) then
+            icnt = icnt + 1
+            call set_face_index(cell_mesh, self_idx, j, icnt)
+          else
+            ! Find corresponding face in neighbour cell
+            ! (To be improved, this seems inefficient!)
+            call set_cell_location(ngb_cell_loc, cell_mesh, ngb_idx)
+            call count_neighbours(ngb_cell_loc, n_ngb_ngb)
+            do k = 1, n_ngb_ngb
+              call set_neighbour_location(ngb_ngb_loc, ngb_cell_loc, k)
+              call get_local_index(ngb_ngb_loc, ngb_ngb_idx)
+              if (ngb_ngb_idx == self_idx) then
+                call set_face_location(face_loc, cell_mesh, ngb_ngb_idx, k)
+                call get_local_index(face_loc, face_idx)
+                call set_face_index(cell_mesh, self_idx, j, idx)
+                exit ! Exit the loop, as found shared face
+              endif
+            end do
+          endif
+        else
+          icnt = icnt + 1
+          call set_face_index(cell_mesh, self_idx, j, icnt)
+        endif
+      end do  ! End loop over current cell's neighbours
+    end do    ! End loop over local cells
+
+  end subroutine set_cell_face_indices
   
 end module mesh_utils

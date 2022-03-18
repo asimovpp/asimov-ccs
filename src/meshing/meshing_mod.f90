@@ -36,6 +36,7 @@ module meshing
 
   interface get_local_index
     module procedure get_cell_local_index
+    module procedure get_face_local_index
     module procedure get_neighbour_local_index
   end interface get_local_index
   
@@ -97,6 +98,14 @@ module meshing
       type(cell_locator), intent(in) :: cell_location
       integer(accs_int), intent(in) :: cell_neighbour_ctr
     end subroutine set_neighbour_location
+
+    !> @brief Set face index
+    module subroutine set_face_index(geometry, cell_idx, cell_face_ctr, face_idx)
+      type(mesh), target, intent(inout) :: geometry
+      integer(accs_int), intent(in) :: cell_idx
+      integer(accs_int), intent(in) :: cell_face_ctr
+      integer(accs_int), intent(in) :: face_idx
+      end subroutine set_face_index
 
     !> @brief Returns the normal vector of a face
     !
@@ -214,6 +223,12 @@ module meshing
       type(cell_locator), intent(in) :: cell_location
       integer(accs_int), intent(out) :: idx
     end subroutine get_cell_local_index
+
+    !> @brief Returns the local index of a face
+    module subroutine get_face_local_index(face_location, idx)
+      type(face_locator), intent(in) :: face_location
+      integer(accs_int), intent(out) :: idx
+    end subroutine get_face_local_index
 
     !> @brief Returns the local index of a neighbouring cell
     !
