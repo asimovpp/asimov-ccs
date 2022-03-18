@@ -333,7 +333,7 @@ contains
     ! Local variables
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: self_idx, local_idx
     integer(accs_int) :: j
     integer(accs_int) :: n_ngb
     integer(accs_int) :: nfaces_int, nfaces_bnd
@@ -351,7 +351,6 @@ contains
 
       do j = 1, n_ngb
         call set_neighbour_location(ngb_loc, self_loc, j)
-        call get_global_index(ngb_loc, ngb_idx)
         call get_boundary_status(ngb_loc, is_boundary)
 
         if (.not. is_boundary) then
