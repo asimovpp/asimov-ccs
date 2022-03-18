@@ -31,8 +31,11 @@ bases:
       parallel_env: parallel_env_mpi
       parallel_env_error: parallel_errors_mpi
       parallel_utils: parallel_utils_mpi
-      meshing: meshing_accessors
+      fv_common: fv_common
+      fv: fv_discretisation
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
+      meshing: meshing_accessors
+      meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
