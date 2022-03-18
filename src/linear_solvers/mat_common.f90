@@ -70,6 +70,7 @@ contains
   module procedure create_matrix_values
     allocate(val_dat%rglob(nrows))
     allocate(val_dat%cglob(nrows))
+    allocate(val_dat%val(nrows))
   end procedure create_matrix_values
 
   module procedure set_matrix_values_mode
@@ -82,7 +83,7 @@ contains
 
     real(accs_real), intent(in) :: val
     type(matrix_values), intent(inout) :: val_dat
-    
+
     associate(x => val_dat%val(val_dat%current_entry), &
          mode => val_dat%mode)
       if (mode == insert_mode) then
@@ -93,6 +94,7 @@ contains
         print *, "ERROR: Unrecognised entry mode ", mode
         stop
       end if
+
     end associate
     
   end subroutine set_matrix_values_entry
