@@ -434,39 +434,39 @@ contains
       
   end procedure mult_vec_vec
 
-  module subroutine vec_view(vec_dat, vec)
+!   module subroutine vec_view(vec_dat, vec)
 
-#include <petsc/finclude/petscviewer.h>
+! #include <petsc/finclude/petscviewer.h>
 
-    use petscvec, only: VecView
-    use petscsys
+!     use petscvec, only: VecView
+!     use petscsys
     
-    type(vector_init_data), intent(in) :: vec_dat
-    class(vector), intent(in) :: vec
+!     type(vector_init_data), intent(in) :: vec_dat
+!     class(vector), intent(in) :: vec
 
-    PetscViewer :: viewer
+!     PetscViewer :: viewer
 
-    integer(accs_err) :: ierr
+!     integer(accs_err) :: ierr
 
-    select type (vec)
-      type is (vector_petsc)
+!     select type (vec)
+!       type is (vector_petsc)
 
-      select type(par_env => vec_dat%par_env)
-        type is(parallel_environment_mpi)
+!       select type(par_env => vec_dat%par_env)
+!         type is(parallel_environment_mpi)
 
-          call PetscViewerCreate(par_env%comm, viewer, ierr)
-          call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierr)
-          call VecView(vec%v, viewer, ierr)
-          call PetscViewerDestroy(viewer, ierr)
+!           call PetscViewerCreate(par_env%comm, viewer, ierr)
+!           call PetscViewerSetType(viewer, PETSCVIEWERASCII, ierr)
+!           call VecView(vec%v, viewer, ierr)
+!           call PetscViewerDestroy(viewer, ierr)
 
-        class default
-          print *, "Unknown parallel environment"
-      end select
+!         class default
+!           print *, "Unknown parallel environment"
+!       end select
 
-      class default
-        print *, "Unknown vector type!"
-        stop
-    end select
-  end subroutine vec_view
+!       class default
+!         print *, "Unknown vector type!"
+!         stop
+!     end select
+!   end subroutine vec_view
   
 end submodule vec_petsc
