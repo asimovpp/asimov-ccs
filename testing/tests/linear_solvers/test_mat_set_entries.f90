@@ -71,6 +71,11 @@ contains
     nrows = 1_accs_int
     nblocks = nlocal / nrows
     
+    ! print*,"On rank ", par_env%proc_id," offset is ", offset
+    ! print*,"On rank ", par_env%proc_id," nlocal is ", nlocal
+    ! print*,"On rank ", par_env%proc_id," nrows is ", nrows
+    ! print*,"On rank ", par_env%proc_id," nblocks is ", nblocks
+
     call create_matrix_values(nrows, val_dat)
     call set_mode(mode, val_dat)
     
@@ -82,13 +87,17 @@ contains
         idxl = j + (i - 1) * nrows
         idxg = idxl + offset
 
-        call set_row(idxg, val_dat) ! TODO: this should work on local indices...
+        ! print*,"On rank ", par_env%proc_id," idxl is ", idxl
+        ! print*,"On rank ", par_env%proc_id," idxg is ", idxg
+        ! print*,"On rank ", par_env%proc_id," setting row"
+        call set_row(idxl, val_dat) ! TODO: this should work on local indices...
+        ! print*,"On rank ", par_env%proc_id," setting entry"
         call set_entry(elt_val, val_dat)
       end do
       
       call set_values(val_dat, M) ! TODO: this should support setting multiple value simultaneously
     end do
-    ! TODO: remainder loop (required for blocksize > 1)...
+    ! ! TODO: remainder loop (required for blocksize > 1)...
 
     call update(M)
     
