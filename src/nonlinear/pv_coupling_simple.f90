@@ -581,7 +581,6 @@ contains
     real(accs_real), dimension(:), pointer :: invAv_data
 
     type(cell_locator) :: loc_p
-    integer(accs_int) :: i
     integer(accs_int) :: nnb
     integer(accs_int) :: j
     type(face_locator) :: loc_f
