@@ -14,6 +14,7 @@ module meshing
   public :: set_face_location
   public :: set_cell_location
   public :: set_neighbour_location
+  public :: set_face_index
   public :: get_face_normal
   public :: get_face_area
   public :: get_centre

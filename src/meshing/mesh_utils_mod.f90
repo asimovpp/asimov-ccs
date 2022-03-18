@@ -99,6 +99,7 @@ contains
           allocate(square_mesh%vol(square_mesh%nlocal))
           allocate(square_mesh%Af(4, square_mesh%nlocal))    
           allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
+          allocate(square_mesh%faceidx(4, square_mesh%nlocal))
 
           ! Initialise mesh arrays
           square_mesh%nnb(:) = 4_accs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
@@ -370,6 +371,10 @@ contains
 
   subroutine set_cell_face_indices(cell_mesh)
 
+    use meshing, only: get_global_index, get_local_index, count_neighbours, &
+                       set_cell_location, set_neighbour_location, set_face_location, &
+                       set_face_index, get_boundary_status
+
     ! Arguments
     type(mesh), intent(inout) :: cell_mesh
 
@@ -391,7 +396,6 @@ contains
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(self_loc, cell_mesh, local_idx)
-      call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
 
       do j = 1, n_ngb
@@ -401,9 +405,9 @@ contains
 
         if (.not. is_boundary) then
           ! Cell with lowest local index assigns an index to the face
-          if (self_idx < ngb_idx) then
+          if (local_idx < ngb_idx) then
             icnt = icnt + 1
-            call set_face_index(cell_mesh, self_idx, j, icnt)
+            call set_face_index(cell_mesh, local_idx, j, icnt)
           else
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
@@ -412,17 +416,17 @@ contains
             do k = 1, n_ngb_ngb
               call set_neighbour_location(ngb_ngb_loc, ngb_cell_loc, k)
               call get_local_index(ngb_ngb_loc, ngb_ngb_idx)
-              if (ngb_ngb_idx == self_idx) then
-                call set_face_location(face_loc, cell_mesh, ngb_ngb_idx, k)
+              if (ngb_ngb_idx == local_idx) then
+                call set_face_location(face_loc, cell_mesh, ngb_idx, k)
                 call get_local_index(face_loc, face_idx)
-                call set_face_index(cell_mesh, self_idx, j, face_idx)
+                call set_face_index(cell_mesh, local_idx, j, face_idx)
                 exit ! Exit the loop, as found shared face
               endif
             end do
           endif
         else
           icnt = icnt + 1
-          call set_face_index(cell_mesh, self_idx, j, icnt)
+          call set_face_index(cell_mesh, local_idx, j, icnt)
         endif
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells
