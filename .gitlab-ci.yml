@@ -32,6 +32,10 @@ test_ccs_gnu:
   extends: .setup_gnu
   script:
     - HOME=${CI_HOME} CMP=gnu make tests
+  artifacts:
+    when: always
+    reports:
+      junit: testing/tests/report.xml
 
 #-----------------------------------------------------------------------------#
 
