@@ -39,6 +39,7 @@ program simple
   it_start = 1
   it_end   = 10
 
+  print *, "Starting SIMPLE demo"
   call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env)
 
@@ -46,9 +47,11 @@ program simple
   call timer(start_time)
 
   ! Create a square mesh
+  print *, "Building mesh"
   square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
 
   ! Initialise fields
+  print *, "Initialise fields"
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
   allocate(central_field :: p)
@@ -58,6 +61,7 @@ program simple
   ! Create and initialise field vectors
   call initialise(vec_sizes)
 
+  print *, "Create vectors"
   call set_vector_location(vec_sizes, cell)
   call set_global_size(vec_sizes, square_mesh, par_env)
   call create_vector(vec_sizes, u%vec)
@@ -76,9 +80,11 @@ program simple
   call create_vector(vec_sizes, mf%vec)
   
   ! Initialise velocity field
+  print *, "Initialise velocity field"
   call initialise_velocity(square_mesh, u, v)
 
   ! Solve using SIMPLE algorithm
+  print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
 
   ! Clean-up
