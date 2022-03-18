@@ -128,9 +128,9 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(mesh), intent(in)        :: cell_mesh
-    type(bc_config), intent(in)   :: bcs
-    integer(accs_int), intent(in) :: cps
+    type(mesh), intent(in)         :: cell_mesh
+    type(bc_config), intent(inout) :: bcs
+    integer(accs_int), intent(in)  :: cps
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
@@ -150,6 +150,11 @@ contains
     
     ! u-velocity
     ! ----------
+
+    ! TODO: Do boundaries properly
+    bcs%bc_type(:) = 0 !> Fixed zero BC
+    bcs%bc_type(3) = 1 !> Fixed one BC at lid
+
     ! Calculate fluxes and populate coefficient matrix
     call compute_fluxes(u, mf, cell_mesh, bcs, cps, M, vec)
 
@@ -177,6 +182,10 @@ contains
 
     ! v-velocity
     ! ----------
+
+    ! TODO: Do boundaries properly
+    bcs%bc_type(:) = 0 !> Fixed zero BC
+
     ! Calculate fluxes and populate coefficient matrix
     call compute_fluxes(v, mf, cell_mesh, bcs, cps, M, vec)
 

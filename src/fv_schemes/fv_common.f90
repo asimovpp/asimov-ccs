@@ -182,15 +182,24 @@ contains
     col_cps = real(col, accs_real)/real(cps, accs_real)
 
     bc_value = 0.0_accs_real
-    if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
-       (bcs%region(ngb_index) == bc_region_left .or. &
-       bcs%region(ngb_index) == bc_region_right)) then
-      bc_value = -((1.0_accs_real - row_cps) * bcs%endpoints(ngb_index, 1) + row_cps * bcs%endpoints(ngb_index, 2))
-    else if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
-            (bcs%region(ngb_index) == bc_region_top .or. &
-            bcs%region(ngb_index) == bc_region_bottom)) then
-      bc_value = -((1.0_accs_real - col_cps) * bcs%endpoints(ngb_index, 1) + col_cps * bcs%endpoints(ngb_index, 2))
+    ! if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
+    !    (bcs%region(ngb_index) == bc_region_left .or. &
+    !    bcs%region(ngb_index) == bc_region_right)) then
+    !   bc_value = -((1.0_accs_real - row_cps) * bcs%endpoints(ngb_index, 1) + row_cps * bcs%endpoints(ngb_index, 2))
+    ! else if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
+    !         (bcs%region(ngb_index) == bc_region_top .or. &
+    !         bcs%region(ngb_index) == bc_region_bottom)) then
+    !   bc_value = -((1.0_accs_real - col_cps) * bcs%endpoints(ngb_index, 1) + col_cps * bcs%endpoints(ngb_index, 2))
+    ! end if
+
+    if (bcs%bc_type(ngb_index) == 0) then
+      bc_value = 0.0_accs_real
+    else if (bcs%bc_type(ngb_index) == 1) then
+      bc_value = 1.0_accs_real
+    else
+      print *, "ERROR: Unknown boundary type ", bcs%bc_type(ngb_index)
     end if
+    
   end subroutine compute_boundary_values
 
   !> @brief Computes the matrix coefficient for cells on the boundary of the mesh
