@@ -18,6 +18,13 @@
     - source setup_gitlab_runner_env
     - cd src
 
+.xml_artifacts:
+  artifacts:
+    when: always
+    reports:
+      junit: testing/tests/report.xml
+  
+
 #-----------------------------------------------------------------------------#
 
 build_ccs_gnu:
@@ -29,13 +36,11 @@ test_ccs_gnu:
   needs: 
     - job: build_ccs_gnu
       artifacts: false
-  extends: .setup_gnu
+  extends: 
+    - .setup_gnu
+    - .xml_artifacts
   script:
     - HOME=${CI_HOME} CMP=gnu make tests
-  artifacts:
-    when: always
-    reports:
-      junit: testing/tests/report.xml
 
 #-----------------------------------------------------------------------------#
 
@@ -48,13 +53,11 @@ test_ccs_intel:
   needs: 
     - job: build_ccs_intel
       artifacts: false
-  extends: .setup_intel
+  extends: 
+    - .setup_intel
+    - .xml_artifacts
   script:
     - HOME=${CI_HOME} CMP=intel make tests
-  artifacts:
-    when: always
-    reports:
-      junit: testing/tests/report.xml
 
 #-----------------------------------------------------------------------------#
 
@@ -67,13 +70,11 @@ test_ccs_intelx:
   needs: 
     - job: build_ccs_intelx
       artifacts: false
-  extends: .setup_intel
+  extends: 
+    - .setup_intel
+    - .xml_artifacts
   script:
     - HOME=${CI_HOME} CMP=intelx make tests
-  artifacts:
-    when: always
-    reports:
-      junit: testing/tests/report.xml
 
 #-----------------------------------------------------------------------------#
 
@@ -86,15 +87,13 @@ test_ccs_cray:
   needs: 
     - job: build_ccs_cray
       artifacts: false
-  extends: .setup_cray
+  extends: 
+    - .setup_cray
+    - .xml_artifacts
   script:
     - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
     - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
-  artifacts:
-    when: always
-    reports:
-      junit: testing/tests/report.xml
 
 #-----------------------------------------------------------------------------#
 
