@@ -208,7 +208,7 @@ contains
 
         square_mesh%nfaces_local = count_mesh_faces(square_mesh)
 
-        call set_cell_face_indices()
+        call set_cell_face_indices(square_mesh)
 
       class default
         print *, "Unknown parallel environment type!"
@@ -380,11 +380,12 @@ contains
     type(neighbour_locator) :: ngb_loc !> Neighbour
     type(neighbour_locator) :: ngb_ngb_loc !> Neighbour of neighbour
     type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx, ngb_idx
-    integer(accs_int) :: ngb_ngb_idx
+    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: ngb_ngb_idx, face_idx
     integer(accs_int) :: n_ngb, n_ngb_ngb
     integer(accs_int) :: j,k
     integer(accs_int) :: icnt  !> Face index counter
+    logical :: is_boundary
 
     icnt = 0
 
@@ -415,7 +416,7 @@ contains
               if (ngb_ngb_idx == self_idx) then
                 call set_face_location(face_loc, cell_mesh, ngb_ngb_idx, k)
                 call get_local_index(face_loc, face_idx)
-                call set_face_index(cell_mesh, self_idx, j, idx)
+                call set_face_index(cell_mesh, self_idx, j, face_idx)
                 exit ! Exit the loop, as found shared face
               endif
             end do
