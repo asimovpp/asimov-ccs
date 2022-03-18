@@ -5,6 +5,7 @@ ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
   FFLAGS += -g -Og
   FFLAGS += -fcheck=bounds
+  FFLAGS += -fbacktrace
 else
   FFLAGS += -O3
 endif
