@@ -61,6 +61,7 @@ module types
                                                           !! of size = size(rglob) * size(cglob). Uses 
                                                           !! row-major ordering.
     integer(accs_int) :: mode !> Which mode to use when setting values?
+    integer(accs_int) :: current_entry                  !> Which entry are we currently working on?
   end type matrix_values
 
   !> @brief Container type representing a linear system.

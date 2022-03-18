@@ -269,4 +269,45 @@ contains
     
   end subroutine
 
+  module procedure clear_matrix_values_entries
+
+    val_dat%rglob(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%cglob(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%val(:) = 0.0_accs_real
+    
+  end procedure clear_matrix_values_entries
+  
+  module subroutine set_matrix_values_row(row, val_dat)
+    integer(accs_int), intent(in) :: row
+    type(matrix_values), intent(inout) :: val_dat
+
+    integer(accs_int), dimension(rank(val_dat%rglob)) :: rglobs
+    integer(accs_int) :: i
+    logical :: new_entry
+    integer(accs_int) :: petsc_row
+
+    petsc_row = row - 1 ! PETSc is zero-indexed
+    new_entry = .false.
+    
+    rglobs = findloc(val_dat%rglob, petsc_row, kind=accs_int)
+    i = rglobs(1) ! We want the first entry
+    if (i == 0) then
+      new_entry = .true.
+    end if
+
+    if (new_entry) then
+      rglobs = findloc(val_dat%rglob, -1_accs_int, kind=accs_int)
+      i = rglobs(1) ! We want the first entry
+      if (i == 0) then
+        print *, "ERROR: Couldn't find a free entry in matrix values!"
+        stop
+      end if
+    end if
+    
+    val_dat%current_entry = i
+    val_dat%rglob(i) = petsc_row
+    
+  end subroutine set_matrix_values_row
+
+
 end submodule mat_petsc

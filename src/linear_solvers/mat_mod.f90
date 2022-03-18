@@ -13,10 +13,15 @@ module mat
 
   public :: create_matrix
   public :: finalise_matrix
+  public :: set_matrix_values
+  public :: clear_matrix_values_entries
+  public :: set_matrix_values_entry
+  public :: create_matrix_values
+  public :: set_matrix_values_mode
+  public :: set_matrix_values_row
   public :: update_matrix
   public :: begin_update_matrix
   public :: end_update_matrix
-  public :: set_matrix_values
   public :: set_eqn
   public :: pack_one_matrix_coefficient
   public :: initialise_matrix
@@ -39,7 +44,53 @@ module mat
       class(matrix), intent(inout) :: M
     end subroutine
 
-     !> @brief Interface to perform a parallel update of a matrix.
+     !> @brief Interface to set values in a matrix.
+     !
+     !> @param[in]     mat_values - contains the values, their indices and the mode to use when setting
+     !!                             them.
+     !> @param[in/out] M          - the matrix
+    module subroutine set_matrix_values(mat_values, M)
+      type(matrix_values), intent(in) :: mat_values
+      class(matrix), intent(inout) :: M
+    end subroutine
+    
+    module subroutine clear_matrix_values_entries(val_dat)
+      type(matrix_values), intent(inout) ::val_dat
+    end subroutine clear_matrix_values_entries
+
+    module subroutine set_matrix_values_entry(val, val_dat)
+      real(accs_real), intent(in) :: val
+      type(matrix_values), intent(inout) :: val_dat
+    end subroutine set_matrix_values_entry
+
+    module subroutine set_matrix_values_mode(mode, val_dat)
+      integer(accs_int), intent(in) :: mode
+      type(matrix_values), intent(inout) :: val_dat
+    end subroutine set_matrix_values_mode
+
+    !> @brief Interface to set the row currently being worked on by matrix values.
+    !
+    !> @description Sets the current row in the maitrx value object, the implementation of this is
+    !!              backend-dependent as it should immediately convert to the correct indexing
+    !!              (whether that's 0, 1 or X-based) as used by the backend.
+    !
+    !> @param[in]     row     - the row
+    !> @param[in,out] val_dat - the matrix values object
+    module subroutine set_matrix_values_row(row, val_dat)
+      integer(accs_int), intent(in) :: row
+      type(matrix_values), intent(inout) :: val_dat
+    end subroutine set_matrix_values_row
+
+    !> @brief Interface to create a maitrx values object.
+    !
+    !> @param[in]  nrows   - how many rows will be set?
+    !> @param[out] val_dat - the matrix values object
+    module subroutine create_matrix_values(nrows, val_dat)
+      integer(accs_int), intent(in) :: nrows
+      type(matrix_values), intent(out) :: val_dat
+    end subroutine create_matrix_values
+
+    !> @brief Interface to perform a parallel update of a matrix.
      !
      !> @param[in/out] M - the matrix
      module subroutine update_matrix(M)
@@ -77,25 +128,15 @@ module mat
      !> @details Stores a matrix coefficient and associated row and column indices for later
      !!          setting, ensuring they are set appropriately for the backend.
      module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
-       type(matrix_values), intent(inout) :: mat_coeffs
-       integer(accs_int), intent(in) :: row_entry
-       integer(accs_int), intent(in) :: col_entry
-       integer(accs_int), intent(in) :: row
-       integer(accs_int), intent(in) :: col
-       real(accs_real), intent(in) :: coeff
-     end subroutine pack_one_matrix_coefficient
-     
-     !> @brief Interface to set values in a matrix.
-     !
-     !> @param[in]     mat_values - contains the values, their indices and the mode to use when setting
-     !!                             them.
-     !> @param[in/out] M          - the matrix
-     module subroutine set_matrix_values(mat_values, M)
-       type(matrix_values), intent(in) :: mat_values
-       class(matrix), intent(inout) :: M
-     end subroutine
+      type(matrix_values), intent(inout) :: mat_coeffs
+      integer(accs_int), intent(in) :: row_entry
+      integer(accs_int), intent(in) :: col_entry
+      integer(accs_int), intent(in) :: row
+      integer(accs_int), intent(in) :: col
+      real(accs_real), intent(in) :: coeff
+    end subroutine pack_one_matrix_coefficient
 
-     !> @brief Interface to set equation
+    !> @brief Interface to set equation
      !
      !> @param[in]  rows - array of (global) row indices to set the equation on
      !> @param[in/out] M - the matrix

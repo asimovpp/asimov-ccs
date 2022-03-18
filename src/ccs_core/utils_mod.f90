@@ -13,7 +13,8 @@ module utils
                   clear_vector_values_entries
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
-                  pack_one_matrix_coefficient
+                  set_matrix_values_mode, set_matrix_values_row, set_matrix_values_entry, &
+                  clear_matrix_values_entries, pack_one_matrix_coefficient
   use solver, only: initialise_linear_system
   use types, only : vector, matrix
   
@@ -34,8 +35,8 @@ module utils
   public :: set_local_size
   public :: set_mode
   public :: set_row
-  public :: accs_init
-  public :: accs_finalise
+  ! public :: accs_init
+  ! public :: accs_finalise
 
   !> @brief Generic interface to set values on an object.
   interface set_values
@@ -45,14 +46,17 @@ module utils
 
   interface set_entry
     module procedure set_vector_values_entry
+    module procedure set_matrix_values_entry
   end interface set_entry
  
   interface set_mode
     module procedure set_vector_values_mode
+    module procedure set_matrix_values_mode
   end interface set_mode
 
   interface set_row
     module procedure set_vector_values_row
+    module procedure set_matrix_values_row
   end interface set_row
   
   interface finalise
@@ -61,6 +65,7 @@ module utils
 
   interface clear_entries
     module procedure clear_vector_values_entries
+    module procedure clear_matrix_values_entries
   end interface clear_entries
 
   !> @brief Generic interface to perform parallel update of an object.
@@ -103,7 +108,7 @@ module utils
     module procedure set_local_vector_size
     module procedure set_local_matrix_size
   end interface set_local_size
-
+ 
   !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
   !
   !> @details Stores the entries and elements in an object for later setting, this ensures the
@@ -111,42 +116,42 @@ module utils
   interface pack_entries
     module procedure pack_one_matrix_coefficient
   end interface pack_entries
-  
-contains
 
-  !> @brief ASiMoV-CCS initialisation routine.
-  !
-  !> @details Currently implemented by calling PetscInitialize. Symbol must be bound using
-  !!          ISO_C_BINDING to tie into pFUnit initialiser.
-  subroutine accs_init() bind (C, name="accs_init_")
+  ! contains
 
-    use petsc, only : PetscInitialize, PETSC_NULL_CHARACTER
-    use kinds, only : accs_err
+!   !> @brief ASiMoV-CCS initialisation routine.
+!   !
+!   !> @details Currently implemented by calling PetscInitialize. Symbol must be bound using
+!   !!          ISO_C_BINDING to tie into pFUnit initialiser.
+!   subroutine accs_init() bind (C, name="accs_init_")
+
+!     use petsc, only : PetscInitialize, PETSC_NULL_CHARACTER
+!     use kinds, only : accs_err
     
-    integer(accs_err) :: ierr
+!     integer(accs_err) :: ierr
     
-    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+!     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
     
-    if (ierr /= 0) then
-       print *, "Unable to initialise PETSc"
-       stop
-    end if
+!     if (ierr /= 0) then
+!        print *, "Unable to initialise PETSc"
+!        stop
+!     end if
     
-  end subroutine accs_init
+!   end subroutine accs_init
 
-  !> @brief ASiMoV-CCS finalisation routine.
-  !
-  !> @details Currently implemented by calling PetscFinalize. Symbol must be bound using
-  !!          ISO_C_BINDING to tie into pFUnit finaliser.
-  subroutine accs_finalise() bind (C, name="accs_finalise_")
+!   !> @brief ASiMoV-CCS finalisation routine.
+!   !
+!   !> @details Currently implemented by calling PetscFinalize. Symbol must be bound using
+!   !!          ISO_C_BINDING to tie into pFUnit finaliser.
+!   subroutine accs_finalise() bind (C, name="accs_finalise_")
 
-    use petsc, only : PetscFinalize
-    use kinds, only : accs_err
+!     use petsc, only : PetscFinalize
+!     use kinds, only : accs_err
 
-    integer(accs_err) :: ierr
+!     integer(accs_err) :: ierr
 
-    call PetscFinalize(ierr)
+!     call PetscFinalize(ierr)
 
-  end subroutine accs_finalise
+!   end subroutine accs_finalise
   
 end module utils
