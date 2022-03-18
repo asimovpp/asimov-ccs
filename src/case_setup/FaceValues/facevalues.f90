@@ -10,7 +10,7 @@ program facevalues
     use utils, only: set_global_size, initialise
     use mesh_utils, only: build_square_mesh, &
                           count_mesh_faces
-    use vec, only: create_vector, set_vector_location, vec_view
+    use vec, only: create_vector, set_vector_location
     use constants, only: face, cell
 
     implicit none
@@ -21,7 +21,7 @@ program facevalues
     type(vector_init_data) :: vec_sizes
     type(mesh) :: square_mesh
 
-    integer(accs_int) :: nfaces
+    ! integer(accs_int) :: nfaces
     integer(accs_int) :: cps = 2 ! Cells per side of the mesh
 
     call initialise_parallel_environment(par_env)
@@ -39,8 +39,8 @@ program facevalues
     call set_global_size(vec_sizes, square_mesh, par_env)
     call create_vector(vec_sizes, mf%vec)
 
-    ! View the contents of the vector
-    call vec_view(vec_sizes, mf%vec)
+    ! ! View the contents of the vector
+    ! call vec_view(vec_sizes, mf%vec)
 
     call cleanup_parallel_environment(par_env)
 
