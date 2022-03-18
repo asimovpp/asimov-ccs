@@ -97,6 +97,8 @@ contains
 
     integer(accs_int) :: idxf
 
+    real(accs_real) :: sgn !> Sign indicating face orientation
+
     mat_coeffs%mode = add_mode
 
     allocate(mat_coeffs%rglob(1))
@@ -116,8 +118,6 @@ contains
         call get_boundary_status(ngb_loc, is_boundary)
 
         if (.not. is_boundary) then
-          idxf = -1 ! XXX: This should crash - need subroutine to get face index
-          
           diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
 
           call get_global_index(ngb_loc, ngb_idx)
@@ -126,15 +126,21 @@ contains
           call set_face_location(face_loc, cell_mesh, local_idx, j)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
+          call get_local_index(face_loc, idxf)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
           !       procedure (should also eliminate the type check).
+          if (ngb_local_idx < local_idx) then
+            sgn = -1.0_accs_real
+          else
+            sgn = 1.0_accs_real
+          end if
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, mf(idxf), 0, adv_coeff)
+              call calc_advection_coeff(phi, sgn * mf(idxf), 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, mf(idxf), 0, adv_coeff)
+              call calc_advection_coeff(phi, sgn * mf(idxf), 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -271,8 +277,8 @@ contains
           call set_face_location(face_loc, cell_mesh, local_idx, j)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
-
-          idxf = -1 ! XXX: Need to get face index
+          call get_local_index(face_loc, idxf)
+          
           diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
           select type(phi)
             type is(central_field)
