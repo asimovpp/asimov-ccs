@@ -536,6 +536,8 @@ contains
   !> @brief Corrects the velocity field using the pressure correction gradient
   subroutine update_velocity(cell_mesh, invAu, invAv, pp, u, v)
 
+    use vec, only : zero_vector
+    
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
     class(vector), intent(in) :: invAu, invAv
@@ -543,6 +545,8 @@ contains
     class(field), intent(inout) :: u, v
 
     ! First update gradients
+    call zero_vector(pp%gradx)
+    call zero_vector(pp%grady)
     call update_gradient(cell_mesh, pp)
 
     ! Multiply gradients by inverse diagonal coefficients
