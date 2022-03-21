@@ -18,7 +18,7 @@ program simple
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: matrix_petsc, vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_global_size, initialise
+  use utils, only: set_global_size, initialise, update
                       
   implicit none
 
@@ -74,10 +74,21 @@ program simple
   call create_vector(vec_sizes, pp%gradx)
   call create_vector(vec_sizes, pp%grady)
   call create_vector(vec_sizes, pp%gradz)
+  call update(u%vec)
+  call update(v%vec)
+  call update(p%vec)
+  call update(p%gradx)
+  call update(p%grady)
+  call update(p%gradz)
+  call update(pp%vec)
+  call update(pp%gradx)
+  call update(pp%grady)
+  call update(pp%gradz)
 
   call set_vector_location(vec_sizes, face)
   call set_global_size(vec_sizes, square_mesh, par_env)
   call create_vector(vec_sizes, mf%vec)
+  call update(mf%vec)
   
   ! Initialise velocity field
   print *, "Initialise velocity field"
