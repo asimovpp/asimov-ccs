@@ -66,7 +66,6 @@ contains
     call set_global_size(mat_sizes, cell_mesh, par_env)
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
-    call update(M)
 
     ! Create RHS vector
     call set_global_size(vec_sizes, cell_mesh, par_env)
