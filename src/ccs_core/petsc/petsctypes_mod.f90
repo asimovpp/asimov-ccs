@@ -21,6 +21,7 @@ module petsctypes
     type(tVec) :: v      !> The PETSc vector
     type(tVec) :: vl     !> The "local" PETSc vector (inc. ghost points)
     logical :: allocated !> Indicates whether the PETSc vector has been allocated
+    logical :: ghosted   !> Does this vector have ghost points?
   contains
     final :: free_vector_petsc
   end type vector_petsc

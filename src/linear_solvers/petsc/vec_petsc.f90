@@ -45,9 +45,11 @@ contains
                    mesh%nlocal, PETSC_DECIDE, &
                    mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
                    v%v, ierr)
+              v%ghosted = .true.
             case (face)
               call VecCreate(par_env%comm, v%v, ierr)
               call VecSetSizes(v%v, mesh%nfaces_local, PETSC_DECIDE, ierr)
+              v%ghosted = .false.
             end select
           end associate
         
@@ -212,8 +214,10 @@ contains
     select type (v)
       type is (vector_petsc)
 
-        call VecGhostUpdateBegin(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
-
+        if (v%ghosted) then
+          call VecGhostUpdateBegin(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
+        end if
+        
       class default
         print *, "Unknown vector type!"
         stop
@@ -238,8 +242,10 @@ contains
     select type (v)
       type is (vector_petsc)
 
-        call VecGhostUpdateEnd(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
-
+        if (v%ghosted) then
+          call VecGhostUpdateEnd(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
+        end if
+        
       class default
         print *, "Unknown vector type!"
         stop
