@@ -1,5 +1,9 @@
 # ASiMoV-CCS
 
+ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of cores. It follows a "separation of concerns' design that separates interfaces from implementations, and physics from parallelisation. There is a distinction between "user" and "back-end" code, i.e. case specific code (such as the setup of a particular test) is the user code, while the core functionality provided by ASiMoV-CCS is the back-end code.
+
+ASiMoV-CCS is implemented in a modular fashion by separating the interface declarations contained within modules from their implementation in submodules. As a result, it is possible to implement multiple physics models and parallelisation strategies by writing separate submodules, each providing a distinct solution.
+
 ## Prerequisites
 
 - `MPI`
