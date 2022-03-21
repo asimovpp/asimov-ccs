@@ -497,7 +497,7 @@ contains
           call set_neighbour_location(loc_nb, loc_p, j)
           call get_local_index(loc_nb, idxnb)
           if (idxnb < i) then
-            face_area = - face_area
+            face_area = -face_area
           end if
         end if
         
