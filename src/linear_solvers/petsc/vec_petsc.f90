@@ -22,7 +22,7 @@ contains
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, PETSC_DETERMINE
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
-                         VecCreateMPI
+                         VecCreate
     
     type(vector_init_data), intent(in) :: vec_dat
     class(vector), allocatable, intent(out) :: v
@@ -40,15 +40,15 @@ contains
           associate(mesh => vec_dat%mesh)
 
             select case(vec_dat%loc)
-              case (cell)
-                call VecCreateGhost(par_env%comm, &
+            case (cell)
+              call VecCreateGhost(par_env%comm, &
                    mesh%nlocal, PETSC_DECIDE, &
                    mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
                    v%v, ierr)
-              case (face)
-                call VecCreateMPI(par_env%comm, &
-                   mesh%nfaces_local, PETSC_DETERMINE, v%v, ierr)
-              end select
+            case (face)
+              call VecCreate(par_env%comm, v%v, ierr)
+              call VecSetSizes(v%v, mesh%nfaces_local, PETSC_DECIDE, ierr)
+            end select
           end associate
         
           call VecSetFromOptions(v%v, ierr)
