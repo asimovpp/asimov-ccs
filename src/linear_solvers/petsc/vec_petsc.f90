@@ -45,10 +45,14 @@ contains
                    mesh%nlocal, PETSC_DECIDE, &
                    mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
                    v%v, ierr)
+
+              ! Vector has ghost points, store this information
               v%ghosted = .true.
             case (face)
               call VecCreate(par_env%comm, v%v, ierr)
               call VecSetSizes(v%v, mesh%nfaces_local, PETSC_DECIDE, ierr)
+
+              ! Vector doesn't have ghost points, store this information
               v%ghosted = .false.
             end select
           end associate
@@ -215,6 +219,7 @@ contains
       type is (vector_petsc)
 
         if (v%ghosted) then
+          ! Cant update ghosts if not ghost points!
           call VecGhostUpdateBegin(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
         end if
         
@@ -243,6 +248,7 @@ contains
       type is (vector_petsc)
 
         if (v%ghosted) then
+          ! Cant update ghosts if not ghost points!
           call VecGhostUpdateEnd(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
         end if
         
