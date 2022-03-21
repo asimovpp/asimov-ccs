@@ -192,13 +192,14 @@ contains
     ! Calculate pressure source term and populate RHS vector
     call calculate_momentum_pressure_source(cell_mesh, p%grady, vec)
 
-    ! Store reciprocal of central coefficient
-    call get_matrix_diagonal(M, invAv)
-    call vec_reciprocal(invAv)
-
     ! Underrelax the equations
     call underrelax(cell_mesh, alpha, v, invAv, M, vec)
 
+    ! Store reciprocal of central coefficient
+    print *, "GV: get v diag"
+    call get_matrix_diagonal(M, invAv)
+    call vec_reciprocal(invAv)
+    
     ! Assembly of coefficient matrix and source vector
     call update(M)
     call update(vec)
