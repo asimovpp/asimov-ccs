@@ -94,20 +94,10 @@ contains
           allocate(square_mesh%idx_global(square_mesh%nlocal))
           allocate(square_mesh%nnb(square_mesh%nlocal))
           allocate(square_mesh%nbidx(4, square_mesh%nlocal))
-          allocate(square_mesh%xc(ndim, square_mesh%nlocal))    
-          allocate(square_mesh%xf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
-          allocate(square_mesh%vol(square_mesh%nlocal))
-          allocate(square_mesh%Af(4, square_mesh%nlocal))    
-          allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
           allocate(square_mesh%faceidx(4, square_mesh%nlocal))
 
           ! Initialise mesh arrays
           square_mesh%nnb(:) = 4_accs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
-          square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
-          square_mesh%Af(:, :) = square_mesh%h  !> @note Mesh is square and 2D
-          square_mesh%nf(:, :, :) = 0.0_accs_real
-          square_mesh%xc(:, :) = 0.0_accs_real
-          square_mesh%xf(:, :, :) = 0.0_accs_real
 
           ! First set the global index of local cells
           ictr = 1_accs_int
@@ -127,78 +117,49 @@ contains
           do i = istart, iend 
             ii = i - 1_accs_int
 
-            ! Create aliases for
-            ! - xc (centre of cell i)
-            ! - xf (centres of faces of cell i)
-            ! - nrm (normals of faces of cell i)
-            associate(xc => square_mesh%xc(:, ictr), &
-                 xf => square_mesh%xf(:, :, ictr), &
-                 nrm => square_mesh%nf(:, :, ictr))
+            ! Construct left (1) face/neighbour
+            fctr = left
+            if (modulo(ii, nps) == 0_accs_int) then
+              nbidx = -left
+              nbidxg = -left
+            else
+              nbidx = ictr - 1_accs_int
+              nbidxg = i - 1_accs_int
+            end if
+            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
 
-              ! Set cell centre
-              xc(1) = (modulo(ii, nps) + 0.5_accs_real) * h
-              xc(2) = (ii / nps + 0.5_accs_real) * h
+            ! Construct right (2) face/neighbour
+            fctr = right
+            if (modulo(ii, nps) == (nps - 1_accs_int)) then
+              nbidx = -right
+              nbidxg = -right
+            else
+              nbidx = ictr + 1_accs_int
+              nbidxg = i + 1_accs_int
+            end if
+            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
 
-              ! Construct left (1) face/neighbour
-              fctr = left
-              if (modulo(ii, nps) == 0_accs_int) then
-                nbidx = -left
-                nbidxg = -left
-              else
-                nbidx = ictr - 1_accs_int
-                nbidxg = i - 1_accs_int
-              end if
-              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
-              xf(1, fctr) = xc(1) - 0.5_accs_real * h
-              xf(2, fctr) = xc(2)
-              nrm(1, fctr) = -1.0_accs_real
-              nrm(2, fctr) = 0.0_accs_real
+            ! Construct down (3) face/neighbour
+            fctr = down
+            if ((ii / nps) == 0_accs_int) then
+              nbidx = -down
+              nbidxg = -down
+            else
+              nbidx = ictr - nps
+              nbidxg = i - nps
+            end if
+            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
 
-              ! Construct right (2) face/neighbour
-              fctr = right
-              if (modulo(ii, nps) == (nps - 1_accs_int)) then
-                nbidx = -right
-                nbidxg = -right
-              else
-                nbidx = ictr + 1_accs_int
-                nbidxg = i + 1_accs_int
-              end if
-              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
-              xf(1, fctr) = xc(1) + 0.5_accs_real * h
-              xf(2, fctr) = xc(2)
-              nrm(1, fctr) = 1.0_accs_real
-              nrm(2, fctr) = 0.0_accs_real
-
-              ! Construct down (3) face/neighbour
-              fctr = down
-              if ((ii / nps) == 0_accs_int) then
-                nbidx = -down
-                nbidxg = -down
-              else
-                nbidx = ictr - nps
-                nbidxg = i - nps
-              end if
-              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
-              xf(1, fctr) = xc(1)
-              xf(2, fctr) = xc(2) - 0.5_accs_real * h
-              nrm(1, fctr) = 0.0_accs_real
-              nrm(2, fctr) = -1.0_accs_real
-
-              ! Construct up (4) face/neighbour
-              fctr = up
-              if ((ii / nps) == (nps - 1_accs_int)) then
-                nbidx = -up
-                nbidxg = -up
-              else
-                nbidx = ictr + nps
-                nbidxg = i + nps
-              end if
-              call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
-              xf(1, fctr) = xc(1)
-              xf(2, fctr) = xc(2) + 0.5_accs_real * h
-              nrm(1, fctr) = 0.0_accs_real
-              nrm(2, fctr) = 1.0_accs_real
-            end associate
+            ! Construct up (4) face/neighbour
+            fctr = up
+            if ((ii / nps) == (nps - 1_accs_int)) then
+              nbidx = -up
+              nbidxg = -up
+            else
+              nbidx = ictr + nps
+              nbidxg = i + nps
+            end if
+            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
 
             ictr = ictr + 1_accs_int
           end do
@@ -206,6 +167,61 @@ contains
 
         square_mesh%ntotal = size(square_mesh%idx_global)
         square_mesh%nhalo = square_mesh%ntotal - square_mesh%nlocal
+
+        allocate(square_mesh%xc(ndim, square_mesh%ntotal))    
+        allocate(square_mesh%xf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
+        allocate(square_mesh%vol(square_mesh%ntotal))
+        allocate(square_mesh%Af(4, square_mesh%nlocal))    
+        allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
+
+        square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
+        square_mesh%nf(:, :, :) = 0.0_accs_real
+        square_mesh%xc(:, :) = 0.0_accs_real
+        square_mesh%xf(:, :, :) = 0.0_accs_real
+        square_mesh%Af(:, :) = square_mesh%h  !> @note Mesh is square and 2D
+
+        associate(h => square_mesh%h)
+          do i = 1_accs_int, square_mesh%ntotal
+            ii = square_mesh%idx_global(i)
+
+            associate(xc => square_mesh%xc(:, i))
+              ! Set cell centre
+              xc(1) = (modulo(ii, nps) + 0.5_accs_real) * h
+              xc(2) = (ii / nps + 0.5_accs_real) * h
+            end associate
+          end do
+
+          do i = 1_accs_int, square_mesh%nlocal
+            associate(xc => square_mesh%xc(:, i), &
+                 xf => square_mesh%xf(:, :, i), &
+                 nrm => square_mesh%nf(:, :, i))
+
+              fctr = left
+              xf(1, fctr) = xc(1) - 0.5_accs_real * h
+              xf(2, fctr) = xc(2)
+              nrm(1, fctr) = 1.0_accs_real
+              nrm(2, fctr) = 0.0_accs_real
+
+              fctr = right
+              xf(1, fctr) = xc(1) + 0.5_accs_real * h
+              xf(2, fctr) = xc(2)
+              nrm(1, fctr) = -1.0_accs_real
+              nrm(2, fctr) = 0.0_accs_real
+              
+              fctr = down
+              xf(1, fctr) = xc(1)
+              xf(2, fctr) = xc(2) - 0.5_accs_real * h
+              nrm(1, fctr) = 0.0_accs_real
+              nrm(2, fctr) = -1.0_accs_real
+
+              fctr = up
+              xf(1, fctr) = xc(1)
+              xf(2, fctr) = xc(2) + 0.5_accs_real * h
+              nrm(1, fctr) = 0.0_accs_real
+              nrm(2, fctr) = 1.0_accs_real
+            end associate
+          end do
+        end associate
 
         square_mesh%nfaces_local = count_mesh_faces(square_mesh)
 
