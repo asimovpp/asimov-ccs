@@ -635,7 +635,7 @@ contains
     ! Arguments
     logical, intent(inout) :: converged
 
-    converged = .true. ! XXX: temporary
+    converged = .false. ! XXX: temporary - force run for maximum iterations
     
   end subroutine check_convergence
 
