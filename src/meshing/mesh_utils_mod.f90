@@ -421,6 +421,9 @@ contains
                 call get_local_index(face_loc, face_idx)
                 call set_face_index(cell_mesh, local_idx, j, face_idx)
                 exit ! Exit the loop, as found shared face
+              else if (k == n_ngb_ngb) then
+                print *, "ERROR: Failed to find face in owning cell"
+                stop 1
               endif
             end do
           endif
