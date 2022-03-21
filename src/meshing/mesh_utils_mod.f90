@@ -323,7 +323,8 @@ contains
   function count_mesh_faces(cell_mesh) result(nfaces)
 
     use meshing, only: set_cell_location, set_neighbour_location, &
-                       get_global_index, count_neighbours, get_boundary_status
+         get_global_index, count_neighbours, get_boundary_status, &
+         get_local_status
 
     ! Arguments
     type(mesh), intent(in) :: cell_mesh
@@ -337,12 +338,16 @@ contains
     integer(accs_int) :: self_idx, local_idx
     integer(accs_int) :: j
     integer(accs_int) :: n_ngb
-    integer(accs_int) :: nfaces_int, nfaces_bnd
+    integer(accs_int) :: nfaces_int       !> Internal face count
+    integer(accs_int) :: nfaces_bnd       !> Boundary face count
+    integer(accs_int) :: nfaces_interface !> Process interface face count
     logical :: is_boundary
+    logical :: is_local
 
     ! Initialise
     nfaces_int = 0
     nfaces_bnd = 0
+    nfaces_interface = 0
 
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
@@ -355,8 +360,15 @@ contains
         call get_boundary_status(ngb_loc, is_boundary)
 
         if (.not. is_boundary) then
-          ! Interior face
-          nfaces_int = nfaces_int + 1
+          call get_local_status(ngb_loc, is_local)
+          
+          if (is_local) then
+            ! Interior face
+            nfaces_int = nfaces_int + 1
+          else
+            ! Process boundary face
+            nfaces_interface = nfaces_interface + 1
+          end if
         else
           ! Boundary face
           nfaces_bnd = nfaces_bnd + 1
@@ -365,7 +377,7 @@ contains
     end do
 
     ! Interior faces will be counted twice
-    nfaces = (nfaces_int / 2) + nfaces_bnd
+    nfaces = (nfaces_int / 2) + nfaces_interface + nfaces_bnd
 
   end function count_mesh_faces
 
