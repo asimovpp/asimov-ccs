@@ -395,6 +395,9 @@ contains
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
 
+      deallocate(mat_coeffs%rglob)
+      deallocate(mat_coeffs%cglob)
+      deallocate(mat_coeffs%val)
     end do
 
     call restore_vector_data(invAu, invAu_data)
@@ -413,7 +416,6 @@ contains
 
     ! Clean up
     deallocate(lin_solver)
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
     
   end subroutine calculate_pressure_correction
 
