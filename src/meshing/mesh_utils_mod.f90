@@ -384,7 +384,7 @@ contains
     type(neighbour_locator) :: ngb_loc !> Neighbour
     type(neighbour_locator) :: ngb_ngb_loc !> Neighbour of neighbour
     type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
+    integer(accs_int) :: ngb_idx, local_idx
     integer(accs_int) :: ngb_ngb_idx, face_idx
     integer(accs_int) :: n_ngb, n_ngb_ngb
     integer(accs_int) :: j,k
