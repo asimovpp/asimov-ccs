@@ -48,6 +48,12 @@ contains
     end associate
   end procedure set_neighbour_location
 
+  module procedure set_face_index
+    geometry%faceidx(cell_face_ctr, cell_idx) = face_idx
+
+  end procedure set_face_index
+
+
   module procedure get_face_normal
     associate(mesh => face_location%mesh, &
          cell => face_location%cell_idx, &
@@ -172,9 +178,11 @@ contains
   end procedure get_cell_local_index
 
   module procedure get_face_local_index
-    idx = -1 ! TODO: this needs to come from the mesh!
-    print *, "GET FACE LOCAL INDEX NOT IMPLEMENTED!"
-    stop
+    associate(mesh => face_location%mesh, &
+      i => face_location%cell_idx, &
+      j => face_location%cell_face_ctr)
+      idx = mesh%faceidx(j,i)
+    end associate
   end procedure get_face_local_index
 
   module procedure get_neighbour_local_index

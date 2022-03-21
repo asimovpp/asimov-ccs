@@ -76,6 +76,7 @@ module types
     integer(accs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
     integer(accs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
     integer(accs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
+    integer(accs_int), dimension(:, :), allocatable :: faceidx !> Cell face index in local face vector (face, cell)
     real(accs_real) :: h                                     !> The (constant) grid spacing XXX: remove!
     real(accs_real), dimension(:, :), allocatable :: Af      !> Face areas
     real(accs_real), dimension(:), allocatable :: vol        !> Cell volumes

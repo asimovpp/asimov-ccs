@@ -22,7 +22,7 @@ program facevalues
     type(mesh) :: square_mesh
 
     ! integer(accs_int) :: nfaces
-    integer(accs_int) :: cps = 2 ! Cells per side of the mesh
+    integer(accs_int) :: cps = 3 ! Cells per side of the mesh
 
     call initialise_parallel_environment(par_env)
 

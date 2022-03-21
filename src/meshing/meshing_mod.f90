@@ -14,6 +14,7 @@ module meshing
   public :: set_face_location
   public :: set_cell_location
   public :: set_neighbour_location
+  public :: set_face_index
   public :: get_face_normal
   public :: get_face_area
   public :: get_centre
@@ -110,6 +111,14 @@ module meshing
       type(cell_locator), intent(in) :: cell_location
       integer(accs_int), intent(in) :: cell_neighbour_ctr
     end subroutine set_neighbour_location
+
+    !> @brief Set face index
+    module subroutine set_face_index(geometry, cell_idx, cell_face_ctr, face_idx)
+      type(mesh), target, intent(inout) :: geometry
+      integer(accs_int), intent(in) :: cell_idx
+      integer(accs_int), intent(in) :: cell_face_ctr
+      integer(accs_int), intent(in) :: face_idx
+      end subroutine set_face_index
 
     !> @brief Returns the normal vector of a face
     !
