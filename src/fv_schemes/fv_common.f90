@@ -79,7 +79,7 @@ contains
     real(accs_real), dimension(:), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: n_int_cells
-    class(matrix), allocatable :: M
+    class(matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: self_loc
