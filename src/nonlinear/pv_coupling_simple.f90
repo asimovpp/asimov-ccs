@@ -516,6 +516,8 @@ contains
     call restore_vector_data(p%grady, pgrady_data)
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
+
+    call update(b)
     
   end subroutine compute_mass_imbalance
 
