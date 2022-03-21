@@ -656,6 +656,7 @@ contains
 
     integer(accs_int) :: i
     
+    call update(M)
     call get_matrix_diagonal(M, diag)
 
     call get_vector_data(phi%vec, phi_data)
