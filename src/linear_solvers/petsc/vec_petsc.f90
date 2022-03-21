@@ -353,12 +353,16 @@ contains
     integer :: ierr
 
     select type(vec)
-      type is(vector_petsc)
+    type is(vector_petsc)
+      if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%vl, ierr)
         call VecGetArrayF90(vec%vl, array, ierr)
-      class default
-        print *, 'invalid vector type'
-        stop
+      else
+        call VecGetArrayF90(vec%v, array, ierr)
+      end if
+    class default
+      print *, 'invalid vector type'
+      stop
     end select
   end subroutine get_vector_data
 
@@ -373,12 +377,16 @@ contains
     integer :: ierr
 
     select type(vec)
-      type is(vector_petsc)
+    type is(vector_petsc)
+      if (vec%ghosted) then
         call VecRestoreArrayF90(vec%vl, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%vl, ierr)
-      class default
-        print *, 'invalid vector type'
-        stop
+      else
+        call VecRestoreArrayF90(vec%v, array, ierr)
+      end if
+    class default
+      print *, 'invalid vector type'
+      stop
     end select
   end subroutine restore_vector_data
 
