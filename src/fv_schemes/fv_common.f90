@@ -388,7 +388,7 @@ contains
         call get_distance(loc_p, loc_nb, dx)
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(idxp) - p(idxnb)) / dxmag
+        flux_corr = -(p(idxnb) - p(idxp)) / dxmag
         flux_corr = flux_corr + 0.5_accs_real * ((pgradx(idxp) + pgradx(idxnb)) * face_normal(1) &
              + (pgrady(idxp) + pgrady(idxnb)) * face_normal(2))
 
