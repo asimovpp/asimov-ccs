@@ -325,6 +325,9 @@ contains
 
     integer(accs_int) :: idxnb
 
+    integer(accs_int) :: cps   ! Cells per side
+    integer(accs_int) :: rcrit ! Global index of approximate central cell
+    
     ! First zero matrix
     call zero(M)
 
@@ -395,7 +398,10 @@ contains
 
       ! XXX: Need to fix pressure somewhere
       !!     Row is the global index - should be unique
-      if (row == 1) then
+      !!     Locate approximate centre of mesh (assuming a square)
+      cps = int(sqrt(real(cell_mesh%nglobal)), accs_int)
+      rcrit = (cps / 2) * (1 + cps)
+      if (row == rcrit) then
         coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
       end if
       
