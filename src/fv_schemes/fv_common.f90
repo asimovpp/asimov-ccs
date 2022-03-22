@@ -205,7 +205,7 @@ contains
     if (bcs%bc_type(ngb_index) == 0) then
       bc_value = 0.0_accs_real
     else if (bcs%bc_type(ngb_index) == 1) then
-      bc_value = -1.0_accs_real
+      bc_value = -1.0_accs_real ! XXX: might not be correct
     else
       print *, "ERROR: Unknown boundary type ", bcs%bc_type(ngb_index)
     end if
