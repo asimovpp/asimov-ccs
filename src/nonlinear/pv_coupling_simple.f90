@@ -383,12 +383,6 @@ contains
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
           col = ngb_idx
-
-          ! XXX: Need to fix pressure somewhere
-          !!     Row is the global index - should be unique
-          if (row == 1) then
-            coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-          end if
         else
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
@@ -399,6 +393,12 @@ contains
 
       end do
 
+      ! XXX: Need to fix pressure somewhere
+      !!     Row is the global index - should be unique
+      if (row == 1) then
+        coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
+      end if
+      
       ! Add the diagonal entry
       col = row
       call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
