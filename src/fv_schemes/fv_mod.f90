@@ -83,7 +83,7 @@ module fv
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
-    class(matrix), allocatable, intent(inout) :: M
+    class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: vec   
   end subroutine
 
