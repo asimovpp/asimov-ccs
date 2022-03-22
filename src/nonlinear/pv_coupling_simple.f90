@@ -506,12 +506,6 @@ contains
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, idxf)
 
-        ! Compute mass flux through face
-        mf_data(idxf) = calc_mass_flux(u_data, v_data, &
-             p_data, pgradx_data, pgrady_data, &
-             invAu_data, invAv_data, &
-             loc_f)
-
         ! Check face orientation
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
@@ -519,6 +513,12 @@ contains
           call get_local_index(loc_nb, idxnb)
           if (idxnb < i) then
             face_area = -face_area
+          else
+            ! Compute mass flux through face
+            mf_data(idxf) = calc_mass_flux(u_data, v_data, &
+                 p_data, pgradx_data, pgrady_data, &
+                 invAu_data, invAv_data, &
+                 loc_f)
           end if
         end if
         
