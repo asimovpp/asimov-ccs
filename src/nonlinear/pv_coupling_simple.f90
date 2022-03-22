@@ -613,6 +613,10 @@ contains
     type(face_locator) :: loc_f
     integer(accs_int) :: idxf
 
+    logical :: is_boundary
+    type(neighbour_locator) :: loc_nb
+    integer(accs_int) :: idxnb
+    
     call get_vector_data(pp%vec, pp_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
@@ -627,13 +631,20 @@ contains
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call set_face_location(loc_f, cell_mesh, i, j)
-        mf_prime = calc_mass_flux(zero_arr, zero_arr, &
-             pp_data, zero_arr, zero_arr, &
-             invAu_data, invAv_data, &
-             loc_f)
+        call get_boundary_status(loc_f, is_boundary)
+        if (.not. is_boundary) then
+          call set_neighbour_location(loc_nb, loc_p, j)
+          call get_local_index(loc_nb, idxnb)
+          if (i < idxnb) then
+            mf_prime = calc_mass_flux(zero_arr, zero_arr, &
+                 pp_data, zero_arr, zero_arr, &
+                 invAu_data, invAv_data, &
+                 loc_f)
 
-        call get_local_index(loc_f, idxf)
-        mf_data(idxf) = mf_data(idxf) + mf_prime
+            call get_local_index(loc_f, idxf)
+            mf_data(idxf) = mf_data(idxf) + mf_prime
+          end if
+        end if
       end do
     end do
 
