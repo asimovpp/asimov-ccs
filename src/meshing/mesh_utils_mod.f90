@@ -199,13 +199,13 @@ contains
               fctr = left
               xf(1, fctr) = xc(1) - 0.5_accs_real * h
               xf(2, fctr) = xc(2)
-              nrm(1, fctr) = 1.0_accs_real
+              nrm(1, fctr) = -1.0_accs_real
               nrm(2, fctr) = 0.0_accs_real
 
               fctr = right
               xf(1, fctr) = xc(1) + 0.5_accs_real * h
               xf(2, fctr) = xc(2)
-              nrm(1, fctr) = -1.0_accs_real
+              nrm(1, fctr) = 1.0_accs_real
               nrm(2, fctr) = 0.0_accs_real
               
               fctr = down
