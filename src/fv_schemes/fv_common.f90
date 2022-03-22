@@ -151,7 +151,7 @@ contains
           end select
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
-          adv_coeff = adv_coeff * (mf(idxf) * face_area)
+          adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
           
           call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
           mat_counter = mat_counter + 1
@@ -205,7 +205,7 @@ contains
     if (bcs%bc_type(ngb_index) == 0) then
       bc_value = 0.0_accs_real
     else if (bcs%bc_type(ngb_index) == 1) then
-      bc_value = 1.0_accs_real
+      bc_value = -1.0_accs_real
     else
       print *, "ERROR: Unknown boundary type ", bcs%bc_type(ngb_index)
     end if
