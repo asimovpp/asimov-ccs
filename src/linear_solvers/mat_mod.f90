@@ -26,6 +26,7 @@ module mat
   public :: mat_norm
   public :: get_matrix_diagonal
   public :: set_matrix_diagonal
+  public :: zero_matrix
   
   interface
 
@@ -181,6 +182,10 @@ module mat
       class(vector), intent(in) :: D
       class(matrix), intent(inout) :: M
     end subroutine set_matrix_diagonal
+
+    module subroutine zero_matrix(M)
+      class(matrix), intent(inout) :: M
+    end subroutine zero_matrix
     
   end interface
   

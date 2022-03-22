@@ -402,4 +402,24 @@ contains
 
   end procedure set_matrix_diagonal
 
+  module subroutine zero_matrix(M)
+
+    use petscmat
+    
+    class(matrix), intent(inout) :: M
+
+    integer(accs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+      call MatZeroEntries(M%M, ierr)
+    class default
+
+      print *, "Unknown matrix type!"
+      stop
+
+    end select
+    
+  end subroutine zero_matrix
+
 end submodule mat_petsc

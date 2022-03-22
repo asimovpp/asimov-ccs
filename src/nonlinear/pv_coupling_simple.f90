@@ -14,7 +14,7 @@ submodule (pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_global_size, &
-                   set_values, pack_entries, mult, scale
+                   set_values, pack_entries, mult, scale, zero
   use solver, only: create_solver, solve, set_linear_system, axpy
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
@@ -155,6 +155,10 @@ contains
     bcs%bc_type(:) = 0 !> Fixed zero BC
     bcs%bc_type(3) = 1 !> Fixed one BC at lid
 
+    ! First zero matrix/RHS
+    call zero(vec)
+    call zero(M)
+    
     ! Calculate fluxes and populate coefficient matrix
     call compute_fluxes(u, mf, cell_mesh, bcs, cps, M, vec)
 
@@ -183,6 +187,10 @@ contains
     ! v-velocity
     ! ----------
 
+    ! First zero matrix/RHS
+    call zero(vec)
+    call zero(M)
+    
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !> Fixed zero BC
 
@@ -316,6 +324,9 @@ contains
     real(accs_real) :: invAf
 
     integer(accs_int) :: idxnb
+
+    ! First zero matrix
+    call zero(M)
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     call scale(-1.0_accs_real, vec)
@@ -464,6 +475,9 @@ contains
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
+
+    ! First zero RHS
+    call zero(b)
 
     call get_vector_data(mf%vec, mf_data)
     call get_vector_data(u%vec, u_data)
