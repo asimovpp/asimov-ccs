@@ -92,8 +92,11 @@ program simple
   
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(square_mesh, u, v)
-
+  call initialise_velocity(square_mesh, u, v, mf)
+  call update(u%vec)
+  call update(v%vec)
+  call update(mf%vec)
+  
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
@@ -114,17 +117,18 @@ program simple
 
 contains
 
-  subroutine initialise_velocity(cell_mesh, u, v)
+  subroutine initialise_velocity(cell_mesh, u, v, mf)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
     use utils, only: pack_entries, set_values
-
+    use vec, only : get_vector_data, restore_vector_data
+    
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
-    class(field), intent(inout) :: u, v
+    class(field), intent(inout) :: u, v, mf
 
     ! Local variables
     integer(accs_int) :: row, col
@@ -132,6 +136,7 @@ contains
     real(accs_real) :: u_val, v_val
     type(cell_locator) :: self_loc
     type(vector_values) :: u_vals, v_vals
+    real(accs_real), dimension(:), pointer :: u_data, v_data, mf_data
 
     ! Set mode
     u_vals%mode = add_mode
@@ -166,6 +171,18 @@ contains
 
     deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
 
+    call get_vector_data(u%vec, u_data)
+    call get_vector_data(v%vec, v_data)
+    call get_vector_data(mf%vec, mf_data)
+
+    u_data(:) = 0.0_accs_real
+    v_data(:) = 0.0_accs_real
+    mf_data(:) = 0.0_accs_real
+    
+    call restore_vector_data(u%vec, u_data)
+    call restore_vector_data(v%vec, v_data)
+    call restore_vector_data(mf%vec, mf_data)
+    
   end subroutine initialise_velocity
 
 end program simple
