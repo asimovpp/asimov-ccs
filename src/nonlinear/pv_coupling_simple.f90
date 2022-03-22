@@ -167,7 +167,7 @@ contains
 
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !> Fixed zero BC
-    bcs%bc_type(3) = 1 !> Fixed one BC at lid
+    bcs%bc_type(4) = 1 !> Fixed one BC at lid
 
     ! First zero matrix/RHS
     call zero(vec)
