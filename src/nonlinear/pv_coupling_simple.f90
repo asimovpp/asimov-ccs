@@ -350,10 +350,11 @@ contains
         call get_face_area(face_loc, face_area)
         call get_face_normal(face_loc, face_normal)
 
+        call get_boundary_status(face_loc, is_boundary)
+        
         if (.not. is_boundary) then
           ! Interior face
           call set_neighbour_location(ngb_loc, self_loc, j)
-          call get_boundary_status(ngb_loc, is_boundary)
           call get_global_index(ngb_loc, ngb_idx)
           call get_local_index(ngb_loc, idxnb)
           coeff_f = (1.0 / cell_mesh%h) * face_area
