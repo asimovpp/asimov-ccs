@@ -392,7 +392,6 @@ contains
           coeff_nb = 0.0_accs_real
         endif
         call pack_entries(mat_coeffs, 1, j+1, row, col, coeff_nb)
-        call pack_entries(vec_values, 1, self_idx, r)
 
       end do
 
@@ -408,6 +407,8 @@ contains
       ! Add the diagonal entry
       col = row
       call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+
+      call pack_entries(vec_values, 1, self_idx, r)
 
       ! Set the values
       call set_values(mat_coeffs, M)
