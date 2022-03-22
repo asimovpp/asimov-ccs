@@ -6,6 +6,9 @@
 
 program simple
 
+  use petscvec
+  use petscsys
+
   use constants, only : cell, face
   use kinds, only: accs_real, accs_int
   use types, only: field, upwind_field, central_field, face_field, mesh, &
@@ -30,14 +33,16 @@ program simple
 
   integer(accs_int) :: cps = 50 ! Default value for cells per side
 
-  integer(accs_int) :: it_start, it_end
+  integer(accs_int) :: it_start, it_end, ierr
 
   double precision :: start_time
   double precision :: end_time
  
+  type(tPetscViewer) :: viewer
+
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
-  it_end   = 10
+  it_end   = 1000
 
   print *, "Starting SIMPLE demo"
   call initialise_parallel_environment(par_env)
@@ -96,10 +101,39 @@ program simple
   call update(u%vec)
   call update(v%vec)
   call update(mf%vec)
-  
+
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => u%vec)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v",FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => v%vec)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p",FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => p%vec)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerDestroy(viewer,ierr)
 
   ! Clean-up
   deallocate(u)
