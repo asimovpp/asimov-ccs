@@ -6,6 +6,7 @@ ifeq ($(BUILD),debug)
   FFLAGS += -g -Og
   FFLAGS += -fcheck=bounds
   FFLAGS += -fbacktrace
+  FFLAGS += -ffpe-trap=invalid,zero,overflow
 else
   FFLAGS += -O3
 endif
