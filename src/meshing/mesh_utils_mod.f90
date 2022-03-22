@@ -186,8 +186,8 @@ contains
 
             associate(xc => square_mesh%xc(:, i))
               ! Set cell centre
-              xc(1) = (modulo(ii, nps) + 0.5_accs_real) * h
-              xc(2) = (ii / nps + 0.5_accs_real) * h
+              xc(1) = (modulo(ii-1, nps) + 0.5_accs_real) * h
+              xc(2) = ((ii - 1) / nps + 0.5_accs_real) * h
             end associate
           end do
 
