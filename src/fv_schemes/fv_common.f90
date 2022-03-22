@@ -36,15 +36,19 @@ contains
     real(accs_real), dimension(:), pointer :: mf_data
 
     associate (mf_vec => mf%vec)
+      print *, "CF: get mf"
       call get_vector_data(mf_vec, mf_data)
 
       ! Loop over cells computing advection and diffusion fluxes
       n_int_cells = calc_matrix_nnz()
+      print *, "CF: interior"
       call compute_interior_coeffs(phi, mf_data, cell_mesh, n_int_cells, M)
 
       ! Loop over boundaries
+      print *, "CF: boundaries"
       call compute_boundary_coeffs(phi, mf_data, cell_mesh, bcs, cps, M, vec)
-      
+
+      print *, "CF: restore mf"
       call restore_vector_data(mf_vec, mf_data)
     end associate
 
