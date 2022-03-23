@@ -25,24 +25,27 @@ U = reshape(u, cps, cps)';
 V = reshape(v, cps, cps)';
 
 %% Plot
+fig = figure();
+set(fig, "Visible", "Off");
+
 pcolor(P);
 colorbar();
 colormap("jet");
 shading interp;
-print p.png
+print(fig, "p.png", "-dpng")
 
 pcolor(U);
 colorbar();
 colormap("jet");
 shading interp;
-print u.png;
+print(fig, "u.png", "-dpng")
 
 pcolor(V);
 colorbar();
 colormap("jet");
 shading interp;
-print v.png;
+print(fig, "v.png", "-dpng")
 
 quiver(U(1:2:cps, 1:2:cps), V(1:2:cps, 1:2:cps), 5);
 axis tight;
-print quiver.png
+print(fig, "quiver.png", "-dpng")
