@@ -205,7 +205,7 @@ contains
     if (bcs%bc_type(ngb_index) == 0) then
       bc_value = 0.0_accs_real
     else if (bcs%bc_type(ngb_index) == 1) then
-      bc_value = -1.0_accs_real ! XXX: might not be correct
+      bc_value = 1.0_accs_real ! XXX: might not be correct
     else
       print *, "ERROR: Unknown boundary type ", bcs%bc_type(ngb_index)
     end if
@@ -297,7 +297,7 @@ contains
 
           call calc_cell_coords(self_idx, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
-          call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*bc_value)
+          call pack_entries(b_coeffs, 1, self_idx, -(adv_coeff + diff_coeff)*bc_value)
           call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
