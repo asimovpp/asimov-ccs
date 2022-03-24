@@ -46,6 +46,6 @@ colormap("jet");
 shading interp;
 print(fig, "v.png", "-dpng")
 
-quiver(U(1:2:cps, 1:2:cps), V(1:2:cps, 1:2:cps), 5);
+quiver(U(1:3:cps, 1:3:cps), V(1:3:cps, 1:3:cps), 5);
 axis tight;
 print(fig, "quiver.png", "-dpng")
