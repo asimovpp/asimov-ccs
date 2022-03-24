@@ -316,6 +316,10 @@ contains
   !> @param[in] cell_mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
+
+    use types, only : cell_locator, neighbour_locator
+    use meshing, only : get_boundary_status, get_distance, set_cell_location, set_neighbour_location
+    
     integer(accs_int), intent(in) :: local_self_idx
     integer(accs_int), intent(in) :: local_ngb_idx
     type(mesh), intent(in) :: cell_mesh
@@ -324,11 +328,26 @@ contains
     type(face_locator) :: face_location
     real(accs_real) :: face_area
     real(accs_real), parameter :: diffusion_factor = 1.e-2_accs_real ! XXX: temporarily hard-coded
+    logical :: is_boundary
+    real(accs_real), dimension(ndim) :: dx
+    real(accs_real) :: dxmag
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
 
     call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
     call get_face_area(face_location, face_area)
+    call get_boundary_status(face_location, is_boundary)
 
-    coeff = -face_area*diffusion_factor/cell_mesh%h
+    call set_cell_location(loc_p, cell_mesh, local_self_idx)
+    if (.not. is_boundary) then
+      call set_neighbour_location(loc_nb, loc_p, local_ngb_idx)
+      call get_distance(loc_p, loc_nb, dx)
+    else
+      call get_distance(loc_p, face_location, dx)
+    end if
+    dxmag = sqrt(sum(dx**2))
+    
+    coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 
   !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
