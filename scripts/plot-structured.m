@@ -49,3 +49,12 @@ print(fig, "v.png", "-dpng")
 quiver(U(1:3:cps, 1:3:cps), V(1:3:cps, 1:3:cps), 5);
 axis tight;
 print(fig, "quiver.png", "-dpng")
+
+velmag = sqrt(U.**2 + V.**2);
+pcolor(velmag);
+colorbar();
+colormap("jet");
+shading interp;
+print("velmag", "-dpng");
+contour(velmag);
+print contour.png
