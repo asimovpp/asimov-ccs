@@ -35,7 +35,6 @@ program scalar_advection
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: scalar_linear_system
   type(mesh) :: square_mesh
-  type(bc_config) :: bcs
 
   class(field), allocatable :: mf          ! Prescribed face velocity field
   class(field), allocatable :: scalar
@@ -49,15 +48,15 @@ program scalar_advection
   call read_command_line_arguments(par_env)
   call timer(start_time)
 
-  ! Read bc configuration
-  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
-
   ! Set up the square mesh
   square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
 
   ! Init velocities and scalar
   allocate(central_field :: mf)
   allocate(upwind_field :: scalar)
+
+  ! Read bc configuration
+  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", mf%bcs)
 
   ! Initialise with default values
   call initialise(mat_sizes)
@@ -80,7 +79,7 @@ program scalar_advection
   call set_advection_velocity(square_mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, square_mesh, bcs, cps, M, source)
+  call compute_fluxes(scalar, mf, square_mesh, cps, M, source)
 
   call update(M) ! parallel assembly for M
 

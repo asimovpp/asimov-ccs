@@ -85,12 +85,20 @@ module types
     real(accs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
   end type mesh
 
+  type, public :: bc_config
+    integer(accs_int), dimension(4) :: region
+    integer(accs_int), dimension(4) :: bc_type
+    real(accs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests, 
+                                                  ! possibly remove/improve for general
+  end type bc_config
+
   !> @brief Scalar field type
   type, public :: field
     class(vector), allocatable :: vec   !> Vector representing the field
     class(vector), allocatable :: gradx !> Vector representing the x gradient
     class(vector), allocatable :: grady !> Vector representing the y gradient
     class(vector), allocatable :: gradz !> Vector representing the z gradient
+    type(bc_config) :: bcs !> The bcs data structure for the cell XXX: seems like it could be a lot of wasted space since most cells are not on the boundary. 
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -128,13 +136,6 @@ module types
     integer(accs_int) :: cell_neighbour_ctr
   end type neighbour_locator
 
-  type, public :: bc_config
-    integer(accs_int), dimension(4) :: region
-    integer(accs_int), dimension(4) :: bc_type
-    real(accs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests, 
-                                                  ! possibly remove/improve for general
-  end type bc_config
-  
   !> @brief IO environment type
   type, public :: io_environment
   end type io_environment

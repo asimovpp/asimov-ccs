@@ -53,7 +53,6 @@ contains
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
     type(linear_system)    :: lin_system
-    type(bc_config) :: bcs
 
     logical :: converged
     
@@ -89,7 +88,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       print *, "NONLINEAR: guess velocity"
-      call calculate_velocity(par_env, cell_mesh, bcs, cps, M, source, lin_system, u, v, mf, p, invAu, invAv)
+      call calculate_velocity(par_env, cell_mesh, cps, M, source, lin_system, u, v, mf, p, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       print *, "NONLINEAR: mass imbalance"
@@ -125,7 +124,6 @@ contains
   !
   !> @param[in]    par_env      - the parallel environment
   !> @param[in]    cell_mesh    - the mesh
-  !> @param[in]    bcs          - boundary conditions
   !> @param[in]    cps          - cells per side of a square mesh (remove)
   !> @param[inout] M            - matrix object
   !> @param[inout] vec          - vector object
@@ -138,12 +136,11 @@ contains
   !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
   !!              equations) and solve to obtain an intermediate velocity field u* that will not
   !!              satisfy continuity.
-  subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, mf, p, invAu, invAv)
+  subroutine calculate_velocity(par_env, cell_mesh, cps, M, vec, lin_sys, u, v, mf, p, invAu, invAv)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in)         :: cell_mesh
-    type(bc_config), intent(inout) :: bcs
     integer(accs_int), intent(in)  :: cps
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
@@ -166,8 +163,8 @@ contains
     ! ----------
 
     ! TODO: Do boundaries properly
-    bcs%bc_type(:) = 0 !> Fixed zero BC
-    bcs%bc_type(4) = 1 !> Fixed one BC at lid
+    u%bcs%bc_type(:) = 0 !> Fixed zero BC
+    u%bcs%bc_type(4) = 1 !> Fixed one BC at lid
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -175,7 +172,7 @@ contains
     
     ! Calculate fluxes and populate coefficient matrix
     print *, "GV: compute u flux"
-    call compute_fluxes(u, mf, cell_mesh, bcs, cps, M, vec)
+    call compute_fluxes(u, mf, cell_mesh, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     print *, "GV: compute u gradp"
@@ -212,11 +209,11 @@ contains
     call zero(M)
     
     ! TODO: Do boundaries properly
-    bcs%bc_type(:) = 0 !> Fixed zero BC
+    v%bcs%bc_type(:) = 0 !> Fixed zero BC
 
     ! Calculate fluxes and populate coefficient matrix
     print *, "GV: compute v flux"
-    call compute_fluxes(v, mf, cell_mesh, bcs, cps, M, vec)
+    call compute_fluxes(v, mf, cell_mesh, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     print *, "GV: compute v grad p"

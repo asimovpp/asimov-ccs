@@ -77,11 +77,10 @@ module fv
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, cell_mesh, cps, M, vec)
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
-    type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: vec   

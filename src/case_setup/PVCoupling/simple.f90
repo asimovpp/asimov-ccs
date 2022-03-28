@@ -31,7 +31,7 @@ program simple
 
   class(field), allocatable :: u, v, p, pp, mf
 
-  integer(accs_int) :: cps = 50 ! Default value for cells per side
+  integer(accs_int) :: cps = 5 ! Default value for cells per side
 
   integer(accs_int) :: it_start, it_end, ierr
 

@@ -18,16 +18,14 @@ contains
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure
   !> @param[in] cell_mesh - the mesh being used
-  !> @param[in] bcs       - the boundary conditions structure being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, cell_mesh, cps, M, vec)
     use petsctypes, only: vector_petsc
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
-    type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M   
     class(vector), intent(inout) :: vec   
@@ -46,7 +44,7 @@ contains
 
       ! Loop over boundaries
       print *, "CF: boundaries"
-      call compute_boundary_coeffs(phi, mf_data, cell_mesh, bcs, cps, M, vec)
+      call compute_boundary_coeffs(phi, mf_data, cell_mesh, cps, M, vec)
 
       print *, "CF: restore mf"
       call restore_vector_data(mf_vec, mf_data)
@@ -173,18 +171,18 @@ contains
   !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
   !  values provided on box corners
   !
+  !> @param[in] phi       - The field structure we're computing the BC balue for
   !> @param[in] ngb_index - index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
   !> @param[in] row       - global row of cell within square mesh
   !> @param[in] col       - global column of cell within square mesh
   !> @param[in] cps       - number of cells per side in square mesh
-  !> @param[in] bcs       - BC configuration data structure
   !> @param[out] bc_value - the value of the scalar field at the specified boundary
-  subroutine compute_boundary_values(ngb_index, row, col, cps, bcs, bc_value)
+  subroutine compute_boundary_values(phi, ngb_index, row, col, cps, bc_value)
+    class(field), intent(in) :: phi  
     integer, intent(in) :: ngb_index  ! This is the index wrt the CV, not the ngb's cell index (i.e. range 1-4 for a square mesh)
     integer, intent(in) :: row
     integer, intent(in) :: col
     integer, intent(in) :: cps
-    type(bc_config), intent(in) :: bcs
     real(accs_real), intent(out) :: bc_value
     real(accs_real) :: row_cps, col_cps
 
@@ -192,22 +190,22 @@ contains
     col_cps = real(col, accs_real)/real(cps, accs_real)
 
     bc_value = 0.0_accs_real
-    ! if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
-    !    (bcs%region(ngb_index) == bc_region_left .or. &
-    !    bcs%region(ngb_index) == bc_region_right)) then
-    !   bc_value = -((1.0_accs_real - row_cps) * bcs%endpoints(ngb_index, 1) + row_cps * bcs%endpoints(ngb_index, 2))
-    ! else if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
-    !         (bcs%region(ngb_index) == bc_region_top .or. &
-    !         bcs%region(ngb_index) == bc_region_bottom)) then
-    !   bc_value = -((1.0_accs_real - col_cps) * bcs%endpoints(ngb_index, 1) + col_cps * bcs%endpoints(ngb_index, 2))
+    ! if (phi%bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
+    !    (phi%bcs%region(ngb_index) == bc_region_left .or. &
+    !    phi%bcs%region(ngb_index) == bc_region_right)) then
+    !   bc_value = -((1.0_accs_real - row_cps) * phi%bcs%endpoints(ngb_index, 1) + row_cps * phi%bcs%endpoints(ngb_index, 2))
+    ! else if (phi%bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
+    !         (phi%bcs%region(ngb_index) == bc_region_top .or. &
+    !         phi%bcs%region(ngb_index) == bc_region_bottom)) then
+    !   bc_value = -((1.0_accs_real - col_cps) * phi%bcs%endpoints(ngb_index, 1) + col_cps * phi%bcs%endpoints(ngb_index, 2))
     ! end if
 
-    if (bcs%bc_type(ngb_index) == 0) then
+    if (phi%bcs%bc_type(ngb_index) == 0) then
       bc_value = 0.0_accs_real
-    else if (bcs%bc_type(ngb_index) == 1) then
+    else if (phi%bcs%bc_type(ngb_index) == 1) then
       bc_value = -1.0_accs_real ! XXX: might not be correct
     else
-      print *, "ERROR: Unknown boundary type ", bcs%bc_type(ngb_index)
+      print *, "ERROR: Unknown boundary type ", phi%bcs%bc_type(ngb_index)
     end if
     
   end subroutine compute_boundary_values
@@ -217,11 +215,10 @@ contains
   !> @param[in] phi         - scalar field structure
   !> @param[in] mf          - mass flux array defined at faces
   !> @param[in] cell_mesh   - Mesh structure
-  !> @param[in] bcs         - boundary conditions structure
   !> @param[in] cps         - number of cells per side
   !> @param[in,out] M       - Matrix structure being assigned
   !> @param[in,out] b       - vector structure being assigned
-  subroutine compute_boundary_coeffs(phi, mf, cell_mesh, bcs, cps, M, b)
+  subroutine compute_boundary_coeffs(phi, mf, cell_mesh, cps, M, b)
     use constants, only : insert_mode, add_mode
     use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator
     use utils, only: pack_entries, set_values
@@ -232,7 +229,6 @@ contains
     class(field), intent(in) :: phi
     real(accs_real), dimension(:), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
-    type(bc_config), intent(in) :: bcs
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
@@ -296,7 +292,7 @@ contains
           adv_coeff = adv_coeff * (mf(idxf) * face_area)
 
           call calc_cell_coords(self_idx, cps, row, col)
-          call compute_boundary_values(j, row, col, cps, bcs, bc_value)
+          call compute_boundary_values(phi, j, row, col, cps, bc_value)
           call pack_entries(b_coeffs, 1, self_idx, (adv_coeff + diff_coeff)*bc_value)
           call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
           call set_values(b_coeffs, b)
