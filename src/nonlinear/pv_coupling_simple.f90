@@ -23,7 +23,7 @@ submodule (pv_coupling) pv_coupling_simple
                      set_neighbour_location, &
                      set_face_location, set_cell_location, &
                      get_volume
-  
+
   implicit none
 
 contains
@@ -163,8 +163,8 @@ contains
     ! ----------
 
     ! TODO: Do boundaries properly
-    u%bcs%bc_type(:) = 0 !> Fixed zero BC
-    u%bcs%bc_type(4) = 1 !> Fixed one BC at lid
+    !u%bcs%bc_type(:) = 0 !> Fixed zero BC
+    !u%bcs%bc_type(4) = 1 !> Fixed one BC at lid
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -209,7 +209,7 @@ contains
     call zero(M)
     
     ! TODO: Do boundaries properly
-    v%bcs%bc_type(:) = 0 !> Fixed zero BC
+    !v%bcs%bc_type(:) = 0 !> Fixed zero BC
 
     ! Calculate fluxes and populate coefficient matrix
     print *, "GV: compute v flux"

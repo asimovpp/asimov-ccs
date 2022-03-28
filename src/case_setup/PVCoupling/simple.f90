@@ -22,6 +22,7 @@ program simple
   use petsctypes, only: matrix_petsc, vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_global_size, initialise, update
+  use boundary_conditions, only: set_all_bcs, set_region_bcs
                       
   implicit none
 
@@ -101,6 +102,11 @@ program simple
   call update(u%vec)
   call update(v%vec)
   call update(mf%vec)
+
+  ! Set BCs
+  call set_all_bcs(0, u%bcs)
+  call set_region_bcs(-4, 1, u%bcs)
+  call set_all_bcs(0, v%bcs)
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"

@@ -10,8 +10,43 @@ module boundary_conditions
 
   private
   public :: read_bc_config
+  public :: set_all_bcs
+  public :: set_region_bcs
 
   contains
+
+  !> @brief Sets all BCs to the same type
+  !
+  !> @param[in] bc_type - the bc type to set for all regions 
+  !> @param[inout] bcs  - the bc_config struct being set
+  subroutine set_all_bcs(bc_type, bcs)
+    integer(accs_int), intent(in) :: bc_type
+    type(bc_config), intent(inout) :: bcs
+    integer(accs_int) :: i
+
+    do i = 1, size(bcs%region)
+      bcs%region(i) = -i
+      bcs%bc_type(i) = bc_type
+    end do 
+  end subroutine set_all_bcs
+
+  !> @brief Sets individual region's BC type 
+  !
+  !> @param[in] region  - the region being updated 
+  !> @param[in] bc_type - the bc type to set for all regions 
+  !> @param[inout] bcs  - the bc_config struct being set
+  subroutine set_region_bcs(region, bc_type, bcs)
+    integer(accs_int), intent(in) :: region
+    integer(accs_int), intent(in) :: bc_type
+    type(bc_config), intent(inout) :: bcs
+    integer(accs_int) :: i
+
+    do i = 1, size(bcs%region)
+      if (bcs%region(i) == region) then
+        bcs%bc_type(i) = bc_type
+      end if
+    end do 
+  end subroutine set_region_bcs
 
   !> @brief Wrapper for reading config file and assigning data to BC structure
   !
