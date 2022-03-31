@@ -114,7 +114,7 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine begin_update_matrix(M)
 
-    use petscmat, only : MatAssemblyBegin, MAT_FINAL_ASSEMBLY
+    use petscmat, only : MatAssemblyBegin, MAT_FLUSH_ASSEMBLY
     
     class(matrix), intent(inout) :: M
 
@@ -123,7 +123,7 @@ contains
     select type (M)
       type is (matrix_petsc)
 
-        call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyBegin(M%M, MAT_FLUSH_ASSEMBLY, ierr)
 
       class default
         write(*,*) "Unsupported matrix type"
@@ -140,7 +140,7 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine end_update_matrix(M)
 
-    use petscmat, only : MatAssemblyEnd, MAT_FINAL_ASSEMBLY
+    use petscmat, only : MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
     
     class(matrix), intent(inout) :: M
 
@@ -149,7 +149,7 @@ contains
     select type (M)
       type is (matrix_petsc)
 
-        call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyEnd(M%M, MAT_FLUSH_ASSEMBLY, ierr)
 
         M%modeset = .false. ! It's safe to change modes now
       class default

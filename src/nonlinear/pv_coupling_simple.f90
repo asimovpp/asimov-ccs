@@ -195,6 +195,7 @@ contains
     call update(M)
     call update(vec)
     call update(invAu)
+    call finalise(M)
 
     ! Create linear solver
     call set_linear_system(lin_sys, vec, u%vec, M, par_env)
@@ -456,7 +457,8 @@ contains
     print *, "P': assemble matrix, RHS"
     call update(M)
     call update(vec)
-
+    call finalise(M)
+    
     ! Create linear solver
     print *, "P': create lin sys"
     call set_linear_system(lin_sys, vec, pp%vec, M, par_env)
@@ -734,7 +736,7 @@ contains
     integer(accs_int) :: i
 
     print *, "UR: get diagonal vec"
-    call update(M)
+    call finalise(M)
     call get_matrix_diagonal(M, diag)
 
     print *, "UR: get phi, diag, b"
