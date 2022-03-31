@@ -20,7 +20,7 @@ contains
   !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
 
-    use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, PETSC_DETERMINE
+    use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                          VecCreate
     
@@ -45,9 +45,9 @@ contains
             case (cell)
               call VecCreateGhost(par_env%comm, &
                    mesh%nlocal, PETSC_DECIDE, &
-                   mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
+                   mesh%nhalo, &
+                   mesh%idx_global(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_accs_int, &
                    v%v, ierr)
-
               ! Vector has ghost points, store this information
               v%ghosted = .true.
             case (face)
