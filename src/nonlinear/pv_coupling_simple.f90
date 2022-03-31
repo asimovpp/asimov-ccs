@@ -15,7 +15,7 @@ submodule (pv_coupling) pv_coupling_simple
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_global_size, &
                    set_values, pack_entries, mult, scale, zero
-  use solver, only: create_solver, solve, set_linear_system, axpy
+  use solver, only: create_solver, solve, set_linear_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -93,7 +93,7 @@ contains
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       print *, "NONLINEAR: mass imbalance"
-      call compute_mass_imbalance(cell_mesh, u, v, p, invAu, invAv, mf, source)
+      call compute_mass_imbalance(par_env, cell_mesh, u, v, p, invAu, invAv, mf, source)
       print *, "NONLINEAR: compute p'"
       call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, invAu, invAv, pp)
       
@@ -472,8 +472,9 @@ contains
   end subroutine calculate_pressure_correction
 
   !> @brief Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(cell_mesh, u, v, p, invAu, invAv, mf, b)
+  subroutine compute_mass_imbalance(par_env, cell_mesh, u, v, p, invAu, invAv, mf, b)
 
+    class(parallel_environment), intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh !> The mesh object
     class(field), intent(in) :: u       !> The x velocity component
     class(field), intent(in) :: v       !> The y velocity component
@@ -573,6 +574,12 @@ contains
     call restore_vector_data(invAv, invAv_data)
 
     call update(b)
+    call update(mf%vec)
+
+    mib = norm(b, 2)
+    if (par_env%proc_id == par_env%root) then
+      print *, "SIMPLE intermediate mass imbalance: ", mib
+    end if
     
   end subroutine compute_mass_imbalance
 
