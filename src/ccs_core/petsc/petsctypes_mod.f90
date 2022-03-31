@@ -9,7 +9,7 @@ module petsctypes
   use petscvec, only : tVec
   use petscmat, only : tMat
 
-  use kinds, only : accs_err
+  use kinds, only : accs_err, accs_int
   use types, only : vector, matrix, linear_solver
   
   implicit none
@@ -22,6 +22,8 @@ module petsctypes
     type(tVec) :: vl     !> The "local" PETSc vector (inc. ghost points)
     logical :: allocated !> Indicates whether the PETSc vector has been allocated
     logical :: ghosted   !> Does this vector have ghost points?
+    integer(accs_int) :: mode !> Current mode for setting values
+    logical :: modeset        !> Is the current mode still valid? i.e. does vector need updated before switching modes?
   contains
     final :: free_vector_petsc
   end type vector_petsc
@@ -30,6 +32,8 @@ module petsctypes
   type, public, extends(matrix) :: matrix_petsc
      type(tMat) :: M      !> The PETSc matrix
      logical :: allocated !> Indicates whether the PETSc matrix has been allocated
+    integer(accs_int) :: mode !> Current mode for setting values
+    logical :: modeset        !> Is the current mode still valid? i.e. does matrix need updated before switching modes?
    contains
      final :: free_matrix_petsc
   end type matrix_petsc

@@ -30,6 +30,8 @@ contains
     select type (M)
       type is (matrix_petsc)
 
+        M%modeset = .false.
+        
         select type (par_env => mat_dat%par_env)
           type is(parallel_environment_mpi)
 
@@ -149,6 +151,7 @@ contains
 
         call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
 
+        M%modeset = .false. ! It's safe to change modes now
       class default
         write(*,*) "Unsupported matrix type"
         stop
@@ -204,7 +207,17 @@ contains
     
       select type (M)
         type is (matrix_petsc)
-        
+
+          if (M%modeset) then
+            if (matmode /= M%mode) then
+              print *, "ERROR: changing matrix mode without updating"
+              stop 1
+            end if
+          else
+            M%mode = matmode
+            M%modeset = .true.
+          end if
+          
           nrows = size(ridx)
           ncols = size(cidx)
           if (nrows * ncols /= size(val)) then

@@ -34,6 +34,8 @@ contains
     select type (v)
       type is (vector_petsc)
 
+      v%modeset = .false.
+        
       select type(par_env => vec_dat%par_env)
         type is(parallel_environment_mpi)
 
@@ -99,7 +101,18 @@ contains
       
         select type (val_dat)
           type is (vector_values)
-          
+
+            ! First check if safe to set
+            if (v%modeset) then
+              if (val_dat%mode /= v%mode) then
+                print *, "ERROR: trying to set vector using different mode without updating!"
+                stop 1
+              end if
+            else
+              v%mode = val_dat%mode
+              v%modeset = .true.
+            end if
+              
             n = size(val_dat%idx)
             if (val_dat%mode == add_mode) then
               mode = ADD_VALUES
@@ -194,6 +207,8 @@ contains
 
         call VecAssemblyEnd(v%v, ierr)
 
+        v%modeset = .false. ! It is now safe to change value setting mode
+        
       class default
         print *, "Unknown vector type!"
         stop
@@ -360,6 +375,10 @@ contains
 
     select type(vec)
     type is(vector_petsc)
+      if (vec%modeset) then
+        print *, "WARNING: trying to access vector without updating"
+      end if
+      
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%vl, ierr)
         call VecGetArrayF90(vec%vl, array, ierr)
