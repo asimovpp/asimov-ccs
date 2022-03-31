@@ -360,6 +360,8 @@ contains
     mat_coeffs%mode = insert_mode
     vec_values%mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
+    call update(M)
+    
     print *, "P': get invA"
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
@@ -688,6 +690,8 @@ contains
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
     call restore_vector_data(mf%vec, mf_data)
+
+    call update(mf%vec)
     
   end subroutine update_face_velocity
 
@@ -734,6 +738,7 @@ contains
     print *, "UR: get phi, diag, b"
     call get_vector_data(phi%vec, phi_data)
     call get_vector_data(diag, diag_data)
+    call update(b)
     call get_vector_data(b, b_data)
 
     print *, "UR: apply UR"
