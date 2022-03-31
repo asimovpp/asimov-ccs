@@ -491,10 +491,11 @@ contains
     call restore_vector_data(phi%gradz, gradz_data)
     
     call update_gradient_component(cell_mesh, 1, phi%vec, gradx_old, grady_old, gradz_old, phi%gradx)
+    call update(phi%gradx) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
     call update_gradient_component(cell_mesh, 2, phi%vec, gradx_old, grady_old, gradz_old, phi%grady)
-
-    call update(phi%gradx)
-    call update(phi%grady)
+    call update(phi%grady) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(cell_mesh, 3, phi%vec, gradx_old, grady_old, gradz_old, phi%gradz)
+    call update(phi%gradz) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
 
     deallocate(gradx_old)
     deallocate(grady_old)
