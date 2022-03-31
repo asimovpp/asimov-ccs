@@ -153,14 +153,6 @@ contains
     class(field), intent(in) :: p
     class(vector), intent(inout)    :: invAu, invAv
 
-    ! Local variables
-    class(linear_solver), allocatable :: lin_solver
-    real(accs_real) :: alpha !> Underrelaxation factor
-
-
-    ! Set underrelaxation factor
-    ! TODO: read from input
-    alpha = 0.7_accs_real
     
     ! u-velocity
     ! ----------
@@ -168,6 +160,40 @@ contains
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !> Fixed zero BC
     bcs%bc_type(4) = 1 !> Fixed one BC at lid
+    call calculate_velocity_component(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, 1, mf, p, invAu)
+    
+    ! v-velocity
+    ! ----------
+    
+    ! TODO: Do boundaries properly
+    bcs%bc_type(:) = 0 !> Fixed zero BC
+    call calculate_velocity_component(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, v, 2, mf, p, invAv)
+
+  end subroutine calculate_velocity
+
+  subroutine calculate_velocity_component(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, component, mf, p, invAu)
+
+    ! Arguments
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    type(mesh), intent(in)         :: cell_mesh
+    type(bc_config), intent(inout) :: bcs
+    integer(accs_int), intent(in)  :: cps
+    class(matrix), allocatable, intent(inout)  :: M
+    class(vector), allocatable, intent(inout)  :: vec
+    type(linear_system), intent(inout) :: lin_sys
+    class(field), intent(inout)    :: u
+    class(field), intent(in) :: mf
+    class(field), intent(in) :: p
+    class(vector), intent(inout)    :: invAu
+    integer(accs_int), intent(in) :: component
+    
+    ! Local variables
+    class(linear_solver), allocatable :: lin_solver
+    real(accs_real) :: alpha !> Underrelaxation factor
+
+    ! Set underrelaxation factor
+    ! TODO: read from input
+    alpha = 0.3_accs_real
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -179,8 +205,15 @@ contains
 
     ! Calculate pressure source term and populate RHS vector
     print *, "GV: compute u gradp"
-    call calculate_momentum_pressure_source(cell_mesh, p%gradx, vec)
-
+    if (component == 1) then
+      call calculate_momentum_pressure_source(cell_mesh, p%gradx, vec)
+    else if (component == 2) then
+      call calculate_momentum_pressure_source(cell_mesh, p%grady, vec)
+    else
+      print *, "Unsupported vector component: ", component
+      stop 1
+    end if
+    
     ! Underrelax the equations
     print *, "GV: underrelax u"
     call underrelax(cell_mesh, alpha, u, invAu, M, vec)
@@ -205,52 +238,11 @@ contains
     print *, "GV: solve u"
     call solve(lin_solver)
 
-    ! v-velocity
-    ! ----------
-
-    ! First zero matrix/RHS
-    call zero(vec)
-    call zero(M)
-    
-    ! TODO: Do boundaries properly
-    bcs%bc_type(:) = 0 !> Fixed zero BC
-
-    ! Calculate fluxes and populate coefficient matrix
-    print *, "GV: compute v flux"
-    call compute_fluxes(v, mf, cell_mesh, bcs, cps, M, vec)
-
-    ! Calculate pressure source term and populate RHS vector
-    print *, "GV: compute v grad p"
-    call calculate_momentum_pressure_source(cell_mesh, p%grady, vec)
-
-    ! Underrelax the equations
-    print *, "GV: underrelax v"
-    call underrelax(cell_mesh, alpha, v, invAv, M, vec)
-
-    ! Store reciprocal of central coefficient
-    print *, "GV: get v diag"
-    call get_matrix_diagonal(M, invAv)
-    call vec_reciprocal(invAv)
-    
-    ! Assembly of coefficient matrix and source vector
-    print *, "GV: build v lin sys"
-    call update(M)
-    call update(vec)
-    call update(invAv)
-
-    ! Create linear solver
-    call set_linear_system(lin_sys, vec, v%vec, M, par_env)
-    call create_solver(lin_sys, lin_solver)
-
-    ! Solve the linear system
-    print *, "GV: solve v"
-    call solve(lin_solver)
-
     ! Clean up
     deallocate(lin_solver)
-
-  end subroutine calculate_velocity
-
+    
+  end subroutine calculate_velocity_component
+  
   !> @brief Adds the momentum source due to pressure gradient
   !
   !> @param[in]    cell_mesh - the mesh
