@@ -472,9 +472,9 @@ contains
 
     class(parallel_environment), intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh !> The mesh object
-    class(field), intent(in) :: u       !> The x velocity component
-    class(field), intent(in) :: v       !> The y velocity component
-    class(field), intent(in) :: p       !> The pressure field
+    class(field), intent(inout) :: u       !> The x velocity component
+    class(field), intent(inout) :: v       !> The y velocity component
+    class(field), intent(inout) :: p       !> The pressure field
     class(vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
     class(vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
     class(field), intent(inout) :: mf   !> The face velocity flux
@@ -516,6 +516,12 @@ contains
     ! First zero RHS
     call zero(b)
 
+    ! Update vectors to make sure all data is up to date
+    call update(u%vec)
+    call update(v%vec)
+    call update(p%vec)
+    call update(p%gradx)
+    call update(p%grady)
     call get_vector_data(mf%vec, mf_data)
     call get_vector_data(u%vec, u_data)
     call get_vector_data(v%vec, v_data)
@@ -568,6 +574,12 @@ contains
     call restore_vector_data(p%grady, pgrady_data)
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
+    ! Update vectors on exit (just in case)
+    call update(u%vec)
+    call update(v%vec)
+    call update(p%vec)
+    call update(p%gradx)
+    call update(p%grady)
 
     call update(b)
     call update(mf%vec)
@@ -629,7 +641,7 @@ contains
   subroutine update_face_velocity(cell_mesh, pp, invAu, invAv, mf)
 
     type(mesh), intent(in) :: cell_mesh
-    class(field), intent(in) :: pp
+    class(field), intent(inout) :: pp
     class(vector), intent(in) :: invAu
     class(vector), intent(in) :: invAv
     class(field), intent(inout) :: mf
@@ -653,6 +665,8 @@ contains
     type(neighbour_locator) :: loc_nb
     integer(accs_int) :: idxnb
     
+    ! Update vector to make sure data is up to date
+    call update(pp%vec)
     call get_vector_data(pp%vec, pp_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
@@ -692,6 +706,8 @@ contains
     call restore_vector_data(mf%vec, mf_data)
 
     call update(mf%vec)
+    ! Update vector on exit (just in case)
+    call update(pp%vec)
     
   end subroutine update_face_velocity
 

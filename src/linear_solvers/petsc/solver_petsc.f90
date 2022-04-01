@@ -7,6 +7,7 @@ submodule (solver) solver_petsc
   use kinds, only : accs_int, accs_err
   use petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use utils, only: update
   
   implicit none
 
@@ -97,6 +98,7 @@ contains
               select type(u => solver%eqsys%sol)
                 type is(vector_petsc)
                   call KSPSolve(ksp, b%v, u%v, ierr)
+                  call update(u)
                   if (ierr /= 0) then
                     print *, "ERROR in linear solve!"
                   end if
