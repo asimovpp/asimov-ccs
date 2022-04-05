@@ -20,7 +20,7 @@ docs :
 tests : 
 	$(MK) -C $(TESTDIR)
 
-clean : clean-docs clean-tests
+clean : clean-tests
 clean-docs :
 	$(MK) -C $(DOCDIR) clean
 clean-tests :

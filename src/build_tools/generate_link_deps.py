@@ -84,6 +84,53 @@ def apply_config_mapping(config, config_mapping):
   return out
 
 
+def merge_dep_graphs(a, b):
+  c = {}
+  c.update(a)
+  for k,v in b.items():
+    if k not in c:
+      c[k] = v
+    else:
+      c[k] = list(set(c[k] + v))
+  return c
+
+
+def generate_minimal_deps(alldeps, main, submods_filename, config):
+  deps = alldeps
+  submods = pdeps.parse_submodules(submods_filename)
+  deps = pdeps.minimise_deps(deps, main)
+  #print("AAA:", deps)
+  #print("BBB:", submods)
+  psmods = pdeps.find_possible_submods(deps, submods)
+  old_psmods = []
+  #print("CCC:", psmods)
+
+  while len(psmods) != len(old_psmods): 
+    to_add = []
+    for smod in psmods:
+      if os.path.basename(smod) in config["config"].values():
+        to_add.append(smod)
+        if smod not in deps:
+          deps[smod] = [submods[smod]]
+          smod_deps = pdeps.minimise_deps(alldeps, smod)
+          deps = merge_dep_graphs(deps, smod_deps)
+        else:
+          if submods[smod] not in deps[smod]:
+            deps[smod].append(submods[smod])
+    old_psmods = psmods  
+    psmods = pdeps.find_possible_submods(deps, submods)
+
+  #print("TOADD:", to_add)
+  #import pdb; pdb.set_trace()
+  #print("MINIMISED:", deps)
+  #pdeps.draw_dependencies_interactive(deps)
+  return deps
+
+
+def get_min_link_rule(mindeps):
+  return "ccs_app: " + " ".join(["${OBJ_DIR}" + os.path.basename(x) + ".o" for x in mindeps.keys()])
+
+
 if __name__ == "__main__":
   if sys.version_info[0] < 3:
     raise Exception("Must be using Python 3")
@@ -111,6 +158,11 @@ if __name__ == "__main__":
   log.debug("mapped config:\n%s", pretty_print(mapped_config))
   check_for_conflicts(mapped_config)
   link_rule = get_link_rule(mapped_config, deps)
+  
+  if len(sys.argv) > 5:
+    #deps = pdeps.minimise_deps(deps, sys.argv[4])
+    mindeps = generate_minimal_deps(deps, sys.argv[4], sys.argv[5], mapped_config)
+    link_rule = get_min_link_rule(mindeps)
 
   log.debug("Configurator produced link rule:\n%s", link_rule)
   with open(sys.argv[3], "w") as f:

@@ -13,6 +13,26 @@ def parse_dependencies(filename):
   return data
 
 
+def parse_submodules(filename):
+  submods = parse_dependencies(filename)
+  for k,v in submods.items():
+    if len(v) == 1:
+      submods[k] = v[0]
+    else:
+      raise Exception("Unexpected number of elements encountered when parsing submodules")
+  return submods
+
+
+def find_possible_submods(deps, submods):
+  psub = []
+  mods = set(deps.keys())
+  for smod,mod in submods.items():
+    if mod in mods:
+      psub.append(smod)
+
+  return set(psub)
+
+
 def draw_dependencies(deps):
   import matplotlib.pyplot as plt
   import networkx as nx
@@ -29,10 +49,18 @@ def draw_dependencies(deps):
 def draw_dependencies_interactive(deps):
   from pyvis.network import Network
   import networkx as nx
-  g = nx.DiGraph(deps).reverse()
   nt = Network('1000px', '1000px', directed=True)
-  nt.from_nx(g)
   nt.toggle_physics(False)
+  
+  g = nx.DiGraph(deps).reverse()
+  layout = nx.spiral_layout(g)
+  #layout = nx.kamada_kawai_layout(g)
+  
+  nt.from_nx(g)
+  scale = 1000
+  for node in nt.nodes:
+    node["x"] = layout[node["id"]][0] * scale
+    node["y"] = layout[node["id"]][1] * scale
   nt.write_html('deps.html')
 
 
@@ -53,9 +81,33 @@ def find_commons_custom(deps):
   return list(internal_nodes)
 
 
+def minimise_deps(deps, main):
+  min_deps = {}
+  next_deps = [main]
+  while len(next_deps) > 0:
+    dep = next_deps.pop()
+    #if dep is already in min_deps, we have encountered a loop
+    if not dep in min_deps: 
+      min_deps[dep] = deps[dep]
+      for d in deps[dep]:
+        next_deps.append(d)
+    else:
+      pass
+
+  return min_deps
+
 if __name__ == "__main__":
   deps = parse_dependencies(sys.argv[1])
-  print(deps)
-  print("common:", find_commons(deps))
+  #print("ALLDEPS:", deps)
+  print("COMMON:", find_commons(deps))
+
+  main = sys.argv[2]
+  submods = parse_submodules(sys.argv[3])
+  print("SUBMODULES:", submods)
+  min_deps = minimise_deps(deps, main, submods)
+  print("MINIMISED:", min_deps)
+
+  print("POSSIBLE_SUBMODS:", find_possible_submods(deps, submods))
+
   #draw_dependencies(deps)
-  draw_dependencies_interactive(deps)
+  #draw_dependencies_interactive(min_deps)
