@@ -27,7 +27,7 @@ sp.run("makedepf90 ${SRC} " + main + " > " + test_deps + " 2> " + test_deps + ".
        shell=True, check=True)
 
 print("TEST BUILDER: generating link rule for test")
-sp.run("python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " " + os.path.splitext(main)[0] + " submodules.txt",
+sp.run("python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " submodules.txt",
        shell=True, check=True)
 
 print("TEST BUILDER: stripping off target and test object file from link rule")

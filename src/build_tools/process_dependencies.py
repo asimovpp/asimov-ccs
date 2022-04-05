@@ -1,4 +1,4 @@
-import sys
+import sys, os
 
 def trim(s):
   return s[:-2]
@@ -8,8 +8,12 @@ def parse_dependencies(filename):
   data = {}
   with open(filename, "r") as f:
     for line in f:
-      obj_files = [x for x in line.split(" ") if x[-2:] == ".o"]   
-      data[trim(obj_files[0])] = [trim(x) for x in obj_files[1:]] 
+      obj_files = [trim(x) for x in line.split(" ") if x[-2:] == ".o"]   
+      target = os.path.basename(obj_files[0])
+      deps = [os.path.basename(x) for x in obj_files[1:]]
+      if target in data:
+        raise Exception("Error: found duplicate filename in source files:", target)
+      data[target] = deps 
   return data
 
 

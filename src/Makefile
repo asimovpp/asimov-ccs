@@ -111,7 +111,7 @@ $(TAG_DEPS): $(SRC)
 	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
 
 $(EXE_DEPS): config.yaml $(ALL_DEPS)
-	$(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
+	$(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS) submodules.txt
 
 ifeq ($(NEED_CMP),yes)
   #include $(ALL_DEPS)
