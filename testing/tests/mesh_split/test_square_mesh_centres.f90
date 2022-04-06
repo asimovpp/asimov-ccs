@@ -32,7 +32,7 @@ program test_square_mesh_centres
     square_mesh = build_square_mesh(n, l, par_env)
 
     do i = 1, square_mesh%nlocal
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_centre(cell_location, cc)
       associate(x => cc(1), y => cc(2))
         if ((x > l) .or. (x < 0_accs_real) &

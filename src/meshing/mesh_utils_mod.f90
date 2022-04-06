@@ -367,7 +367,7 @@ contains
 
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
 
@@ -423,7 +423,7 @@ contains
 
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call count_neighbours(self_loc, n_ngb)
 
       do j = 1, n_ngb
@@ -439,7 +439,7 @@ contains
           else
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
-            call set_cell_location(ngb_cell_loc, cell_mesh, ngb_idx)
+            call set_cell_location(cell_mesh, ngb_idx, ngb_cell_loc)
             call count_neighbours(ngb_cell_loc, n_ngb_ngb)
             do k = 1, n_ngb_ngb
               call set_neighbour_location(ngb_ngb_loc, ngb_cell_loc, k)

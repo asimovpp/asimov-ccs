@@ -27,7 +27,7 @@ program test_square_mesh_indices
     associate(nlocal => square_mesh%nlocal, &
          nglobal => square_mesh%nglobal)
       do i = 1, nlocal
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call get_global_index(cell_location, idxg)
         if ((idxg < 1) .or. (idxg > nglobal)) then
           if (idxg /= -1) then

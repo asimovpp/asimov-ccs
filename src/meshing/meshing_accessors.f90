@@ -10,7 +10,20 @@ contains
     face_location%cell_face_ctr = cell_face_ctr
   end procedure set_face_location
 
-  module procedure set_cell_location
+  !> @brief Constructs a cell locator object.
+  !
+  !> @description Creates the association between a mesh and cell index, storing it in the
+  !!              returned cell locator object.
+  !
+  !> @param[in]  mesh         geometry      - the mesh object being referred to.
+  !> @param[in]  accs_int     cell_idx      - the cell index. 
+  !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
+  !!                                          the mesh.
+  module subroutine set_cell_location(geometry, cell_idx, cell_location)
+    type(mesh), target, intent(in) :: geometry
+    integer(accs_int), intent(in) :: cell_idx
+    type(cell_locator), intent(out) :: cell_location
+
     ! XXX: Potentially expensive...
     if (cell_idx > geometry%ntotal) then
       print *, "ERROR: trying to access cell I don't have access to!", cell_idx, geometry%nlocal
@@ -19,7 +32,7 @@ contains
       cell_location%mesh => geometry
       cell_location%cell_idx = cell_idx
     end if
-  end procedure set_cell_location
+  end subroutine set_cell_location
   
   module procedure set_neighbour_location
     neighbour_location%mesh => cell_location%mesh
@@ -153,7 +166,7 @@ contains
     associate(mesh => face_location%mesh, &
          i => face_location%cell_idx, &
          j => face_location%cell_face_ctr)
-      call set_cell_location(cell_location, mesh, i)
+      call set_cell_location(mesh, i, cell_location)
       call set_neighbour_location(neighbour_location, cell_location, j)
     end associate
     call get_neighbour_boundary_status(neighbour_location, is_boundary)
@@ -200,6 +213,6 @@ contains
     integer(accs_int) :: nbidx
     
     call get_local_index(neighbour_location, nbidx)
-    call set_cell_location(cell_location, neighbour_location%mesh, nbidx)
+    call set_cell_location(neighbour_location%mesh, nbidx, cell_location)
   end subroutine get_neighbour_cell_locator
 end submodule meshing_accessors

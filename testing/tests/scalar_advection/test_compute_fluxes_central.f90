@@ -92,7 +92,7 @@ program test_compute_fluxes
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(self_loc, cell_mesh, local_idx)
+        call set_cell_location(cell_mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
 
         if (direction == x_dir) then

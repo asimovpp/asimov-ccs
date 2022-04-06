@@ -35,7 +35,7 @@ program test_mesh_square_mesh_volume
     vol = 0.0_accs_real
     nneg_vol = 0
     do i = 1, square_mesh%nlocal
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_volume(cell_location, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1

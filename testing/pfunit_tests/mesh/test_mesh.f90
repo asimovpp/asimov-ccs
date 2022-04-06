@@ -74,7 +74,7 @@ contains
       associate(nlocal => square_mesh%nlocal, &
            nglobal => square_mesh%n)
         do i = 1, nlocal
-          call set_cell_location(cell_location, square_mesh, i)
+          call set_cell_location(square_mesh, i, cell_location)
           call global_index(cell_location, idxg)
           if ((idxg < 1) .or. (idxg > nglobal)) then
             if (idxg /= -1) then
@@ -141,7 +141,7 @@ contains
       square_mesh = build_square_mesh(n, l, par_env)
 
       do i = 1, square_mesh%nlocal
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call centre(cell_location, cc)
         associate(x => cc(1), y => cc(2))
           if ((x > l) .or. (x < 0_accs_real) &
@@ -294,7 +294,7 @@ contains
 
       vol = 0.0_accs_real
       do i = 1, square_mesh%nlocal
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call volume(cell_location, V)
         vol = vol + V
       end do
@@ -448,7 +448,7 @@ contains
       boundary_ctr = 0
       do i = 1, square_mesh%nlocal
 
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call count_neighbours(cell_location, nnb)
 
         if (nnb < 2) then
@@ -554,7 +554,7 @@ contains
 
       ! if (passing) then ! Doesn't make sense to continue if part1 fails
       !   ! Parent should be in neighbour's neighbour list
-      !   call set_cell_location(nb_cell_location, mesh, nbidx)
+      !   call set_cell_location(mesh, nbidx, nb_cell_location)
       !   ! call count_neighbours(nb_cell_location, nnb)
       !   ! found_parent = .false.
       !   ! do j = 1, nnb

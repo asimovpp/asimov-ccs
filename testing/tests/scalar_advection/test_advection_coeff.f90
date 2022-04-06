@@ -101,7 +101,7 @@ program test_advection_coeff
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
     
-    call set_cell_location(self_loc, square_mesh, local_idx)
+    call set_cell_location(square_mesh, local_idx, self_loc)
     call get_local_index(self_loc, self_idx)
   
     call set_neighbour_location(ngb_loc, self_loc, ngb)
@@ -138,7 +138,7 @@ program test_advection_coeff
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(self_loc, cell_mesh, local_idx)
+        call set_cell_location(cell_mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
 
         if (direction == x_dir) then

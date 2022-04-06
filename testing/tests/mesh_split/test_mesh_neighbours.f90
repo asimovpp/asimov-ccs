@@ -36,7 +36,7 @@ program test_mesh_neighbours
     boundary_ctr = 0
     do i = 1, square_mesh%nlocal
 
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call count_neighbours(cell_location, nnb)
 
       if (nnb < 2) then
@@ -115,7 +115,7 @@ contains
       call get_local_status(nb_location, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call set_cell_location(nb_cell_location, mesh, nbidx)
+        call set_cell_location(mesh, nbidx, nb_cell_location)
         call count_neighbours(nb_cell_location, nnb)
         found_parent = .false.
         do j = 1, nnb

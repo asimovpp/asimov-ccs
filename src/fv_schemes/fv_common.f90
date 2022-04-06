@@ -111,7 +111,7 @@ contains
 
     do local_idx = 1, cell_mesh%nlocal
       ! Calculate contribution from neighbours
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
       mat_counter = 1
@@ -267,7 +267,7 @@ contains
 
     bc_counter = 1
     do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
       ! Calculate contribution from neighbours
@@ -338,7 +338,7 @@ contains
     call get_face_area(face_location, face_area)
     call get_boundary_status(face_location, is_boundary)
 
-    call set_cell_location(loc_p, cell_mesh, local_self_idx)
+    call set_cell_location(cell_mesh, local_self_idx, loc_p)
     if (.not. is_boundary) then
       call set_neighbour_location(loc_nb, loc_p, local_ngb_idx)
       call get_distance(loc_p, loc_nb, dx)
@@ -396,7 +396,7 @@ contains
            idxp => loc_f%cell_idx, &
            j => loc_f%cell_face_ctr)
         
-        call set_cell_location(loc_p, mesh, idxp)
+        call set_cell_location(mesh, idxp, loc_p)
         call set_neighbour_location(loc_nb, loc_p, j)
         call get_local_index(loc_nb, idxnb)
 
@@ -561,7 +561,7 @@ contains
     do i = 1, cell_mesh%nlocal
       grad = 0.0_accs_int
       
-      call set_cell_location(loc_p, cell_mesh, i)
+      call set_cell_location(cell_mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call set_face_location(loc_f, cell_mesh, i, j)

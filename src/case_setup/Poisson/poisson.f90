@@ -163,7 +163,7 @@ contains
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call get_centre(cell_location, cc)
         call get_volume(cell_location, V)
         call get_global_index(cell_location, idxg)
@@ -225,7 +225,7 @@ contains
       !!        filling from front, and pass the number of coefficients to be set, requires
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
@@ -317,7 +317,7 @@ contains
 
     do i = 1, square_mesh%nlocal
       if (minval(square_mesh%nbidx(:, i)) < 0) then
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call get_global_index(cell_location, idxg)
         coeff = 0.0_accs_real 
         r = 0.0_accs_real
@@ -379,7 +379,7 @@ contains
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_global_index(cell_location, idxg)
       call pack_entries(1, idxg, rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
@@ -418,7 +418,7 @@ contains
       end associate
     else
       !! Cell-centred value
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_centre(cell_location, x)
       associate(y => x(2))
         r = y

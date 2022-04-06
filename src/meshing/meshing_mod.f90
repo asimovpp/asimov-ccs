@@ -69,14 +69,14 @@ module meshing
     !> @description Creates the association between a mesh and cell index, storing it in the
     !!              returned cell locator object.
     !
-    !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
-    !!                                          the mesh.
     !> @param[in]  mesh         geometry      - the mesh object being referred to.
     !> @param[in]  accs_int     cell_idx      - the cell index. 
-    module subroutine set_cell_location(cell_location, geometry, cell_idx)
-      type(cell_locator), intent(out) :: cell_location
+    !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
+    !!                                          the mesh.
+  module subroutine set_cell_location(geometry, cell_idx, cell_location)
       type(mesh), target, intent(in) :: geometry
       integer(accs_int), intent(in) :: cell_idx
+      type(cell_locator), intent(out) :: cell_location
     end subroutine set_cell_location
   
     !> @brief Constructs a face locator object.

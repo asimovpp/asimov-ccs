@@ -274,7 +274,7 @@ contains
     
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
 
       call get_volume(self_loc, V)
@@ -369,7 +369,7 @@ contains
     ! Loop over cells
     print *, "P': cell loop"
     do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
 
@@ -532,7 +532,7 @@ contains
     call get_vector_data(invAv, invAv_data)
     
     do i = 1, cell_mesh%nlocal
-      call set_cell_location(loc_p, cell_mesh, i)
+      call set_cell_location(cell_mesh, i, loc_p)
       call get_global_index(loc_p, idxp_g)
       call count_neighbours(loc_p, nnb)
 
@@ -677,7 +677,7 @@ contains
 
     ! XXX: This should really be a face loop
     do i = 1, cell_mesh%nlocal
-      call set_cell_location(loc_p, cell_mesh, i)
+      call set_cell_location(cell_mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call set_face_location(loc_f, cell_mesh, i, j)
