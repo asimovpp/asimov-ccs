@@ -74,7 +74,7 @@ program poisson
 
   !! Create stiffness matrix
   call set_global_size(par_env, square_mesh, mat_sizes)
-  call set_nnz(mat_sizes, 5)
+  call set_nnz(5, mat_sizes)
   call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)

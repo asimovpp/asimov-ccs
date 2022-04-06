@@ -160,13 +160,11 @@ module mat
 
     !> @brief Setter for matrix number of non-zeros
     !
-    !> param[in/out] matrix_descriptor - the matrix data object
     !> param[in] nnz                   - the number of non-zeros
-    !> param[in] par_env               - the parallel environment where
-    !!                                   the matrix resides
-    module subroutine set_nnz(matrix_descriptor, nnz)
-      type(matrix_init_data), intent(inout) :: matrix_descriptor
+    !> param[in/out] matrix_descriptor - the matrix data object
+    module subroutine set_nnz(nnz, matrix_descriptor)
       integer(accs_int), intent(in) :: nnz
+      type(matrix_init_data), intent(inout) :: matrix_descriptor
     end subroutine
 
     !> @brief Extract matrix diagonal elements into a vector
