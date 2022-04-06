@@ -80,13 +80,13 @@ module mat
      !
      !> @details Stores a matrix coefficient and associated row and column indices for later
      !!          setting, ensuring they are set appropriately for the backend.
-     module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
-       type(matrix_values), intent(inout) :: mat_coeffs
+     module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
        integer(accs_int), intent(in) :: row_entry
        integer(accs_int), intent(in) :: col_entry
        integer(accs_int), intent(in) :: row
        integer(accs_int), intent(in) :: col
        real(accs_real), intent(in) :: coeff
+       type(matrix_values), intent(inout) :: mat_coeffs
      end subroutine pack_one_matrix_coefficient
 
     !> @brief Interface to perform the AXPY matrix operation.

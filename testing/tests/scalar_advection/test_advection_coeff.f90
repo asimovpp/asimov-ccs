@@ -149,8 +149,8 @@ program test_advection_coeff
           v_val = 1.0_accs_real
         end if
 
-        call pack_entries(u_vals, local_idx, self_idx, u_val)
-        call pack_entries(v_vals, local_idx, self_idx, v_val)
+        call pack_entries(local_idx, self_idx, u_val, u_vals)
+        call pack_entries(local_idx, self_idx, v_val, v_vals)
       end do
     end associate
     call set_values(u_vals, u%vec)

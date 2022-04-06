@@ -170,7 +170,7 @@ contains
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(val_dat, 1, idxg, r)
+          call pack_entries(1, idxg, r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
@@ -257,13 +257,13 @@ contains
           col = -1
           coeff_nb = 0.0_accs_real
         end if
-        call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
+        call pack_entries(1, j + 1, row, col, coeff_nb, mat_coeffs)
 
       end do
 
       !! Add the diagonal entry
       col = row
-      call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+      call pack_entries(1, 1, row, col, coeff_p, mat_coeffs)
       
       !! Set the values
       call set_values(mat_coeffs, M)
@@ -347,8 +347,8 @@ contains
             
         end do
 
-        call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
-        call pack_entries(vec_values, 1, idx, r)
+        call pack_entries(1, 1, row, col, coeff, mat_coeffs)
+        call pack_entries(1, idx, r, vec_values)
 
         call set_values(mat_coeffs, M)
         call set_values(vec_values, b)
@@ -381,7 +381,7 @@ contains
     do i = 1, square_mesh%nlocal
       call set_cell_location(cell_location, square_mesh, i)
       call get_global_index(cell_location, idxg)
-      call pack_entries(vec_values, 1, idxg, rhs_val(i))
+      call pack_entries(1, idxg, rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%idx)

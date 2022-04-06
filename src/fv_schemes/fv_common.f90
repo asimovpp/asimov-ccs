@@ -153,16 +153,16 @@ contains
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
           
-          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
+          call pack_entries(1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff, mat_coeffs)
           mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, -1, 0.0_accs_real)
+          call pack_entries(1, mat_counter, self_idx, -1, 0.0_accs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
       end do
-      call pack_entries(mat_coeffs, 1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
+      call pack_entries(1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total), mat_coeffs)
       mat_counter = mat_counter + 1
       call set_values(mat_coeffs, M)
     end do
@@ -297,8 +297,8 @@ contains
 
           call calc_cell_coords(self_idx, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
-          call pack_entries(b_coeffs, 1, self_idx, -(adv_coeff + diff_coeff)*bc_value)
-          call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
+          call pack_entries(1, self_idx, -(adv_coeff + diff_coeff)*bc_value, b_coeffs)
+          call pack_entries(1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff), mat_coeffs)
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
           bc_counter = bc_counter + 1
@@ -586,7 +586,7 @@ contains
       grad = grad / V
       
       call get_global_index(loc_p, idxg)
-      call pack_entries(grad_values, 1, idxg, grad)
+      call pack_entries(1, idxg, grad, grad_values)
       call set_values(grad_values, gradient)
     end do
 

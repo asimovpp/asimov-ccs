@@ -143,7 +143,7 @@ contains
 
         mf_val = u + v
         
-        call pack_entries(mf_vals, local_idx, self_idx, mf_val)
+        call pack_entries(local_idx, self_idx, mf_val, mf_vals)
       end do
     end associate
     call set_values(mf_vals, mf%vec)

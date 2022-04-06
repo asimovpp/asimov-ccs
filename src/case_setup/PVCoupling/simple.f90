@@ -195,8 +195,8 @@ contains
         u_val = real(col, accs_real)/real(cps, accs_real)
         v_val = -real(row, accs_real)/real(cps, accs_real)
 
-        call pack_entries(u_vals, local_idx, self_idx, u_val)
-        call pack_entries(v_vals, local_idx, self_idx, v_val)
+        call pack_entries(local_idx, self_idx, u_val, u_vals)
+        call pack_entries(local_idx, self_idx, v_val, v_vals)
       end do
     end associate
 

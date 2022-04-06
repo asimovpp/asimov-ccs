@@ -91,11 +91,11 @@ module vec
     !
     !> @details Stores a vector element and associated index for later setting, ensuring they are
     !!          set appropriately for the backend.
-    module subroutine pack_one_vector_element(val_dat, ent, idx, val)
-      type(vector_values), intent(inout) :: val_dat
+    module subroutine pack_one_vector_element(ent, idx, val, val_dat)
       integer(accs_int), intent(in) :: ent
       integer(accs_int), intent(in) :: idx
       real(accs_real), intent(in) :: val
+      type(vector_values), intent(inout) :: val_dat
     end subroutine pack_one_vector_element
 
     !> @brief Interface to perform the AXPY vector operation.
