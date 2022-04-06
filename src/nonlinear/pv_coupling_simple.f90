@@ -65,13 +65,13 @@ contains
 
     ! Create coefficient matrix
     print *, "NONLINEAR: setup matrix"
-    call set_global_size(mat_sizes, cell_mesh, par_env)
+    call set_global_size(par_env, cell_mesh, mat_sizes)
     call set_nnz(mat_sizes, 5)
     call create_matrix(mat_sizes, M)
 
     ! Create RHS vector
     print *, "NONLINEAR: setup RHS"
-    call set_global_size(vec_sizes, cell_mesh, par_env)
+    call set_global_size(par_env, cell_mesh, vec_sizes)
     call create_vector(vec_sizes, source)
 
     ! Create vectors for storing inverse of velocity central coefficients

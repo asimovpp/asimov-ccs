@@ -33,7 +33,7 @@ program test_ghost_cells
 
   ! Specify vector size based on the mesh
   call initialise(vector_data)
-  call set_global_size(vector_data, cell_mesh, par_env)
+  call set_global_size(par_env, cell_mesh, vector_data)
 
   ! Create the vector
   call create_vector(vector_data, v)

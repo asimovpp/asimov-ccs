@@ -16,16 +16,20 @@ contains
 
   !> @brief Setter for vector size
   !
-  !> param[in/out] vector_descriptor - the vector data object
+  !> param[in] par_env               - the parallel environment 
+  !!                                   where the vector resides
   !> param[in] mesh                  - the mesh - contains the
   !!                                   information to set the
   !!                                   vector size
-  !> param[in] par_env               - the parallel environment 
-  !!                                   where the vector resides
-  module procedure set_vector_size
+  !> param[in/out] vector_descriptor - the vector data object
+  module subroutine set_vector_size(par_env, geometry, vector_descriptor)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    class(mesh), target, intent(in) :: geometry
+    type(vector_init_data), intent(inout) :: vector_descriptor
+
     vector_descriptor%par_env => par_env
     vector_descriptor%mesh => geometry
-  end procedure
+  end subroutine set_vector_size
 
   module subroutine set_vector_location(vector_descriptor, loc)
     type(vector_init_data), intent (inout) :: vector_descriptor

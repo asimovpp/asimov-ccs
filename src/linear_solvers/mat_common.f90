@@ -15,13 +15,18 @@ contains
 
   !> @brief Setter for global matrix size
   !
-  !> param[in/out] matrix_descriptor  - the matrix data object
   !> param[in] par_env                - the parallel environment where 
   !!                                    the matrix resides
-  module procedure set_matrix_size
+  !> param[in] geometry               - the mesh object
+  !> param[in/out] matrix_descriptor  - the matrix data object
+  module subroutine set_matrix_size(par_env, geometry, matrix_descriptor)
+    class(mesh), target, intent(in) :: geometry
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    type(matrix_init_data), intent(inout) :: matrix_descriptor
+
     matrix_descriptor%mesh => geometry
     matrix_descriptor%par_env => par_env
-  end procedure
+  end subroutine set_matrix_size
 
   !> @brief Setter for matrix number of non-zeros
   !
@@ -33,6 +38,6 @@ contains
     type(matrix_init_data), intent(inout) :: matrix_descriptor
     integer(accs_int), intent(in) :: nnz
     matrix_descriptor%nnz = nnz
-  end subroutine  
+  end subroutine  set_nnz
 
 end submodule

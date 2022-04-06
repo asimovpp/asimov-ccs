@@ -36,7 +36,7 @@ program facevalues
     ! Setup vector size to store face-centred values (rather than cell-centred values)
     call set_vector_location(vec_sizes, face)
 
-    call set_global_size(vec_sizes, square_mesh, par_env)
+    call set_global_size(par_env, square_mesh, vec_sizes)
     call create_vector(vec_sizes, mf%vec)
 
     ! ! View the contents of the vector

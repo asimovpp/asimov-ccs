@@ -68,7 +68,7 @@ program simple
 
   print *, "Create vectors"
   call set_vector_location(vec_sizes, cell)
-  call set_global_size(vec_sizes, square_mesh, par_env)
+  call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
   call create_vector(vec_sizes, p%vec)
@@ -91,7 +91,7 @@ program simple
   call update(pp%gradz)
 
   call set_vector_location(vec_sizes, face)
-  call set_global_size(vec_sizes, square_mesh, par_env)
+  call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, mf%vec)
   call update(mf%vec)
   

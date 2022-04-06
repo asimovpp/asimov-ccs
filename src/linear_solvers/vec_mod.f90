@@ -134,17 +134,17 @@ module vec
 
     !> @brief Setter for vector size
     !
-    !> param[in/out] vector_descriptor - the vector data object
+    !> param[in]     par_env           - the parallel environment 
+    !!                                   where the vector resides
     !> param[in]     geometry          - the mesh - contains the
     !!                                   information to set the
     !!                                   vector size
-    !> param[in]     par_env           - the parallel environment 
-    !!                                   where the vector resides
-    module subroutine set_vector_size(vector_descriptor, geometry, par_env)
-      type(vector_init_data), intent(inout) :: vector_descriptor
-      class(mesh), target, intent(in) :: geometry
+    !> param[in/out] vector_descriptor - the vector data object
+    module subroutine set_vector_size(par_env, geometry, vector_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine
+      class(mesh), target, intent(in) :: geometry
+      type(vector_init_data), intent(inout) :: vector_descriptor
+    end subroutine set_vector_size
 
     !> @brief Gets the data in a given vector
     !

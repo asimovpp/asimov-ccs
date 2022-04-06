@@ -73,7 +73,7 @@ program poisson
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_global_size(mat_sizes, square_mesh, par_env)
+  call set_global_size(par_env, square_mesh, mat_sizes)
   call set_nnz(mat_sizes, 5)
   call create_matrix(mat_sizes, M)
 
@@ -82,7 +82,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh, par_env)
+  call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)
