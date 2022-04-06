@@ -231,7 +231,7 @@ contains
     call finalise(M)
 
     ! Create linear solver
-    call set_linear_system(lin_sys, vec, u%vec, M, par_env)
+    call set_linear_system(par_env, vec, u%vec, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
@@ -455,7 +455,7 @@ contains
     
     ! Create linear solver
     print *, "P': create lin sys"
-    call set_linear_system(lin_sys, vec, pp%vec, M, par_env)
+    call set_linear_system(par_env, vec, pp%vec, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system

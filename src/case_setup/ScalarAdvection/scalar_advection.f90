@@ -87,7 +87,7 @@ program scalar_advection
   call update(source) ! parallel assembly for source
 
   ! Create linear solver & set options
-  call set_linear_system(scalar_linear_system, source, scalar%vec, M, par_env)
+  call set_linear_system(par_env, source, scalar%vec, M, scalar_linear_system)
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
   
