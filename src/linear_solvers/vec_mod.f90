@@ -166,9 +166,9 @@ module vec
 
     !> @brief Set vector values to be located at either cell-centre or face
     !
-    module subroutine set_vector_location(vector_descriptor, loc)
-      type(vector_init_data), intent(inout) :: vector_descriptor
+    module subroutine set_vector_location(loc, vector_descriptor)
       integer(accs_int), intent(in) :: loc
+      type(vector_init_data), intent(inout) :: vector_descriptor
     end subroutine set_vector_location
 
     !> @brief Replace each component of a vector by its reciprocal

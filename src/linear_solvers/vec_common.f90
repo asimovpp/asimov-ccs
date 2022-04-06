@@ -31,9 +31,12 @@ contains
     vector_descriptor%mesh => geometry
   end subroutine set_vector_size
 
-  module subroutine set_vector_location(vector_descriptor, loc)
-    type(vector_init_data), intent (inout) :: vector_descriptor
+  !> @brief Set vector values to be located at either cell-centre or face
+  !
+  module subroutine set_vector_location(loc, vector_descriptor)
     integer(accs_int), intent(in) :: loc
+    type(vector_init_data), intent (inout) :: vector_descriptor
+
     vector_descriptor%loc = loc
   end subroutine set_vector_location
 

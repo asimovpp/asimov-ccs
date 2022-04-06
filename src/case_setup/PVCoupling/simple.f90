@@ -67,7 +67,7 @@ program simple
   call initialise(vec_sizes)
 
   print *, "Create vectors"
-  call set_vector_location(vec_sizes, cell)
+  call set_vector_location(cell, vec_sizes)
   call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
@@ -90,7 +90,7 @@ program simple
   call update(pp%grady)
   call update(pp%gradz)
 
-  call set_vector_location(vec_sizes, face)
+  call set_vector_location(face, vec_sizes)
   call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, mf%vec)
   call update(mf%vec)
