@@ -193,7 +193,7 @@ contains
 
     ! Set underrelaxation factor
     ! TODO: read from input
-    alpha = 0.3_accs_real
+    alpha = 0.9_accs_real
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -602,7 +602,7 @@ contains
     real(accs_real) :: alpha   !< Under-relaxation factor
 
     ! Set under-relaxation factor (todo: read this from input file)
-    alpha = 0.3_accs_real
+    alpha = 0.1_accs_real
 
     call axpy(alpha, pp%vec, p%vec)
     
