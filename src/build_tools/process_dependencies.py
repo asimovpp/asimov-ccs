@@ -102,16 +102,7 @@ def minimise_deps(deps, main):
 
 if __name__ == "__main__":
   deps = parse_dependencies(sys.argv[1])
-  #print("ALLDEPS:", deps)
-  print("COMMON:", find_commons(deps))
-
   main = sys.argv[2]
   submods = parse_submodules(sys.argv[3])
-  print("SUBMODULES:", submods)
   min_deps = minimise_deps(deps, main, submods)
-  print("MINIMISED:", min_deps)
-
-  print("POSSIBLE_SUBMODS:", find_possible_submods(deps, submods))
-
-  #draw_dependencies(deps)
-  #draw_dependencies_interactive(min_deps)
+  draw_dependencies_interactive(min_deps)

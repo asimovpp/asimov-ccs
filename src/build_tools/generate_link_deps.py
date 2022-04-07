@@ -96,34 +96,22 @@ def merge_dep_graphs(a, b):
 
 
 def generate_minimal_deps(alldeps, main, submods_filename, config):
-  deps = alldeps
+  # minimise the dependnecy graph with modules needed for main
+  deps = pdeps.minimise_deps(alldeps, main)
+
+  # add required submodules and their dependencies to the graph
+  # this may add new modules to the graph, so iterate until convergence
   submods = pdeps.parse_submodules(submods_filename)
-  deps = pdeps.minimise_deps(deps, main)
-  #print("AAA:", deps)
-  #print("BBB:", submods)
   psmods = pdeps.find_possible_submods(deps, submods)
   old_psmods = []
-  #print("CCC:", psmods)
-
   while len(psmods) != len(old_psmods): 
-    to_add = []
     for smod in psmods:
-      if os.path.basename(smod) in config["config"].values():
-        to_add.append(smod)
-        if smod not in deps:
-          deps[smod] = [submods[smod]]
-          smod_deps = pdeps.minimise_deps(alldeps, smod)
-          deps = merge_dep_graphs(deps, smod_deps)
-        else:
-          if submods[smod] not in deps[smod]:
-            deps[smod].append(submods[smod])
+      if smod in config["config"].values():
+        smod_deps = pdeps.minimise_deps(alldeps, smod)
+        deps = merge_dep_graphs(deps, smod_deps)
     old_psmods = psmods  
     psmods = pdeps.find_possible_submods(deps, submods)
 
-  #print("TOADD:", to_add)
-  #import pdb; pdb.set_trace()
-  #print("MINIMISED:", deps)
-  #pdeps.draw_dependencies_interactive(deps)
   return deps
 
 
@@ -160,7 +148,6 @@ if __name__ == "__main__":
   link_rule = get_link_rule(mapped_config, deps)
   
   if len(sys.argv) > 4:
-    #deps = pdeps.minimise_deps(deps, sys.argv[4])
     mindeps = generate_minimal_deps(deps, mapped_config["main"], sys.argv[4], mapped_config)
     link_rule = get_min_link_rule(mindeps)
 
