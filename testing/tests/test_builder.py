@@ -5,38 +5,48 @@ import subprocess as sp
 
 config_file = sys.argv[1]
 output_stub = sys.argv[2]
+test_src_obj = {x: output_stub + os.path.splitext(x)[0] + ".o" for x in sys.argv[3:]}
 
-test_obj = output_stub + ".test_obj.o"
 test_deps = output_stub + ".deps"
 test_link = output_stub + ".link"
 test_exe = output_stub 
 
 print("TEST BUILDER: starting")
 
-print("TEST BUILDER: getting path to test source")
-with open(config_file, "r") as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
-    main = os.path.dirname(config_file) + "/" + config["main"] + ".f90"
-
-print("TEST BUILDER: compiling test object")
-sp.run("${FC} ${FFLAGS} -I${OBJ_DIR} ${INC} -c -o " + test_obj + " " + main,
-       shell=True, check=True)
+print("TEST BUILDER: compiling test objects")
+for src,obj in test_src_obj.items():
+  sp.run("${FC} ${FFLAGS} -I${OBJ_DIR} ${INC} -c -o " + obj + " " + src,
+         shell=True, check=True)
 
 print("TEST BUILDER: evaluating test dependencies")
-sp.run("makedepf90 ${SRC} " + main + " > " + test_deps + " 2> " + test_deps + ".err",
+sp.run("makedepf90 ${SRC} " + " ".join(test_src_obj.keys()) + " > " + test_deps + " 2> " + test_deps + ".err",
        shell=True, check=True)
 
 print("TEST BUILDER: generating link rule for test")
 sp.run("python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " submodules.txt",
        shell=True, check=True)
 
-print("TEST BUILDER: stripping off target and test object file from link rule")
+# getting filename of main
+with open(config_file, "r") as f:
+  config = yaml.load(f, Loader=yaml.FullLoader)
+  main = config["main"]
+
+# stripping off target (and maybe test object file) from link rule
 with open(test_link, "r") as f:
-    link_rule = f.readline().strip()
-link_rule = " ".join(link_rule.split(" ")[2:])
+  link_rule = f.readline().strip().split(" ")
+idx = 0
+if len(test_src_obj) == 0:
+  idx = 1 #main is found in src/obj, e.g. for case_setup tests
+else:
+  if any([main in x for x in test_src_obj.keys()]):
+    idx = 2 #normal test case
+  else:
+    idx = 1 #special case for case_setup tests that also have extra files for the test
+
+link_rule = " ".join(link_rule[idx:])
 
 print("TEST BUILDER: linking test executable")
-sp.run("${FC} ${FFLAGS} -I${OBJ_DIR} ${INC} " + test_obj + " " + link_rule + " -o " + test_exe + " ${LIB}",
+sp.run("${FC} ${FFLAGS} -I${OBJ_DIR} ${INC} " + " ".join(test_src_obj.values()) + " " + link_rule + " -o " + test_exe + " ${LIB}",
        shell=True, check=True)
 
 print("TEST BUILDER: success")
