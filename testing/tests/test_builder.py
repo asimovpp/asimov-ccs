@@ -8,6 +8,7 @@ output_stub = sys.argv[2]
 test_src_obj = {x: output_stub + os.path.splitext(x)[0] + ".o" for x in sys.argv[3:]}
 
 test_deps = output_stub + ".deps"
+smod_deps = output_stub + ".smod.deps"
 test_link = output_stub + ".link"
 test_exe = output_stub 
 
@@ -19,11 +20,15 @@ for src,obj in test_src_obj.items():
          shell=True, check=True)
 
 print("TEST BUILDER: evaluating test dependencies")
-sp.run("makedepf90 ${SRC} " + " ".join(test_src_obj.keys()) + " > " + test_deps + " 2> " + test_deps + ".err",
+submods_supported     = "makedepf90 -S " + smod_deps + " ${SRC} " + " ".join(test_src_obj.keys()) + " > " + test_deps + " 2> " + test_deps + ".err"
+submods_not_supported = "makedepf90"                 + " ${SRC} " + " ".join(test_src_obj.keys()) + " > " + test_deps + " 2> " + test_deps + ".err"
+sp.run("if [ ${MAKEDEPF90_SMODS} = 0 ]; then " + submods_supported + "; else " + submods_not_supported + "; fi",
        shell=True, check=True)
 
 print("TEST BUILDER: generating link rule for test")
-sp.run("python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " submodules.txt",
+submods_supported     = "python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " " + smod_deps
+submods_not_supported = "python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link
+sp.run("if [ ${MAKEDEPF90_SMODS} = 0 ]; then " + submods_supported + "; else " + submods_not_supported + "; fi",
        shell=True, check=True)
 
 # getting filename of main

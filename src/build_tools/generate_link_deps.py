@@ -145,11 +145,12 @@ if __name__ == "__main__":
   mapped_config = apply_config_mapping(config, config_mapping)
   log.debug("mapped config:\n%s", pretty_print(mapped_config))
   check_for_conflicts(mapped_config)
-  link_rule = get_link_rule(mapped_config, deps)
   
   if len(sys.argv) > 4:
     mindeps = generate_minimal_deps(deps, mapped_config["main"], sys.argv[4], mapped_config)
     link_rule = get_min_link_rule(mindeps)
+  else:
+    link_rule = get_link_rule(mapped_config, deps)
 
   log.debug("Configurator produced link rule:\n%s", link_rule)
   with open(sys.argv[3], "w") as f:
