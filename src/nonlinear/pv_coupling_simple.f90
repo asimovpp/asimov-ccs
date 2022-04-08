@@ -89,17 +89,17 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       print *, "NONLINEAR: guess velocity"
-      call calculate_velocity(par_env, cell_mesh, bcs, cps, M, source, lin_system, u, v, mf, p, invAu, invAv)
+      call calculate_velocity(par_env, cell_mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       print *, "NONLINEAR: mass imbalance"
-      call compute_mass_imbalance(par_env, cell_mesh, u, v, p, invAu, invAv, mf, source)
+      call compute_mass_imbalance(par_env, cell_mesh, invAu, invAv, u, v, p, mf, source)
       print *, "NONLINEAR: compute p'"
-      call calculate_pressure_correction(par_env, cell_mesh, M, source, lin_system, invAu, invAv, pp)
+      call calculate_pressure_correction(par_env, cell_mesh, invAu, invAv, M, source, lin_system, pp)
       
       ! Update velocity with velocity correction (eq. 6)
       print *, "NONLINEAR: correct face velocity"
-      call update_face_velocity(cell_mesh, pp, invAu, invAv, mf)
+      call update_face_velocity(cell_mesh, invAu, invAv, pp, mf)
       print *, "NONLINEAR: correct velocity"
       call update_velocity(cell_mesh, invAu, invAv, pp, u, v)
 
@@ -125,32 +125,32 @@ contains
   !
   !> @param[in]    par_env      - the parallel environment
   !> @param[in]    cell_mesh    - the mesh
-  !> @param[in]    bcs          - boundary conditions
   !> @param[in]    cps          - cells per side of a square mesh (remove)
+  !> @param[in]    mf           - the face velocity flux
+  !> @param[in]    p            - the pressure field
+  !> @param[inout] bcs          - boundary conditions
   !> @param[inout] M            - matrix object
   !> @param[inout] vec          - vector object
   !> @param[inout] lin_sys      - linear system object
   !> @param[inout] u, v         - the x and y velocity fields
-  !> @param[in]    mf           - the face velocity flux
-  !> @param[in]    p            - the pressure field
   !> @param[inout] invAu, invAv - vectors containing the inverse momentum coefficients
   !
   !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
   !!              equations) and solve to obtain an intermediate velocity field u* that will not
   !!              satisfy continuity.
-  subroutine calculate_velocity(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, v, mf, p, invAu, invAv)
+  subroutine calculate_velocity(par_env, cell_mesh, cps, mf, p, bcs, M, vec, lin_sys, u, v, invAu, invAv)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in)         :: cell_mesh
-    type(bc_config), intent(inout) :: bcs
     integer(accs_int), intent(in)  :: cps
+    class(field), intent(in) :: mf
+    class(field), intent(in) :: p
+    type(bc_config), intent(inout) :: bcs
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
-    class(field), intent(in) :: mf
-    class(field), intent(in) :: p
     class(vector), intent(inout)    :: invAu, invAv
 
     
@@ -160,32 +160,32 @@ contains
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !> Fixed zero BC
     bcs%bc_type(4) = 1 !> Fixed one BC at lid
-    call calculate_velocity_component(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, 1, mf, p, invAu)
+    call calculate_velocity_component(par_env, cell_mesh, cps, mf, p, 1, bcs, M, vec, lin_sys, u, invAu)
     
     ! v-velocity
     ! ----------
     
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !> Fixed zero BC
-    call calculate_velocity_component(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, v, 2, mf, p, invAv)
+    call calculate_velocity_component(par_env, cell_mesh, cps, mf, p, 2, bcs, M, vec, lin_sys, v, invAv)
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, cell_mesh, bcs, cps, M, vec, lin_sys, u, component, mf, p, invAu)
+  subroutine calculate_velocity_component(par_env, cell_mesh, cps, mf, p, component, bcs, M, vec, lin_sys, u, invAu)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in)         :: cell_mesh
-    type(bc_config), intent(inout) :: bcs
     integer(accs_int), intent(in)  :: cps
+    class(field), intent(in) :: mf
+    class(field), intent(in) :: p
+    integer(accs_int), intent(in) :: component
+    type(bc_config), intent(inout) :: bcs
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
-    class(field), intent(in) :: mf
-    class(field), intent(in) :: p
     class(vector), intent(inout)    :: invAu
-    integer(accs_int), intent(in) :: component
     
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
@@ -296,22 +296,22 @@ contains
   !
   !> @param[in]    par_env      - the parallel environment
   !> @param[in]    cell_mesh    - the mesh
+  !> @param[in]    invAu, invAv - inverse diagonal momentum coefficients
   !> @param[inout] M            - matrix object
   !> @param[inout] vec          - the RHS vector
   !> @param[inout] lin_sys      - linear system object
-  !> @param[in]    invAu, invAv - inverse diagonal momentum coefficients
   !> @param[inout] pp           - the pressure correction field
   !
   !> @description Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, cell_mesh, M, vec, lin_sys, invAu, invAv, pp)
+  subroutine calculate_pressure_correction(par_env, cell_mesh, invAu, invAv, M, vec, lin_sys, pp)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     class(mesh), intent(in) :: cell_mesh
+    class(vector), intent(in) :: invAu, invAv
     class(matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
-    class(vector), intent(in) :: invAu, invAv
     class(field), intent(inout) :: pp
 
     ! Local variables
@@ -468,15 +468,15 @@ contains
   end subroutine calculate_pressure_correction
 
   !> @brief Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(par_env, cell_mesh, u, v, p, invAu, invAv, mf, b)
+  subroutine compute_mass_imbalance(par_env, cell_mesh, invAu, invAv, u, v, p, mf, b)
 
     class(parallel_environment), intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh !> The mesh object
+    class(vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
+    class(vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
     class(field), intent(inout) :: u       !> The x velocity component
     class(field), intent(inout) :: v       !> The y velocity component
     class(field), intent(inout) :: p       !> The pressure field
-    class(vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
-    class(vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
     class(field), intent(inout) :: mf   !> The face velocity flux
     class(vector), intent(inout) :: b   !> The per-cell mass imbalance
 
@@ -638,12 +638,12 @@ contains
   end subroutine update_velocity
 
   !> @brief Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(cell_mesh, pp, invAu, invAv, mf)
+  subroutine update_face_velocity(cell_mesh, invAu, invAv, pp, mf)
 
     type(mesh), intent(in) :: cell_mesh
-    class(field), intent(inout) :: pp
     class(vector), intent(in) :: invAu
     class(vector), intent(in) :: invAv
+    class(field), intent(inout) :: pp
     class(field), intent(inout) :: mf
     
     integer(accs_int) :: i
@@ -711,10 +711,10 @@ contains
     
   end subroutine update_face_velocity
 
-  subroutine calculate_scalars()
+  ! subroutine calculate_scalars()
 
 
-  end subroutine calculate_scalars
+  ! end subroutine calculate_scalars
 
 
   subroutine check_convergence(converged)
