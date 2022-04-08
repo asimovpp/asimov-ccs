@@ -30,7 +30,7 @@ program test_compute_fluxes
 
   call init()
 
-  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
 
   bcs%region(1) = bc_region_left
   bcs%region(2) = bc_region_right

@@ -29,7 +29,7 @@ program test_mesh_square_mesh_volume
   
   do n = 1, 100
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(n, l, par_env)
+    square_mesh = build_square_mesh(par_env, n, l)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
     vol = 0.0_accs_real

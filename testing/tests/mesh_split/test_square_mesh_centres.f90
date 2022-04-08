@@ -29,7 +29,7 @@ program test_square_mesh_centres
   
   do n = 1, 100
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(n, l, par_env)
+    square_mesh = build_square_mesh(par_env, n, l)
 
     do i = 1, square_mesh%nlocal
       call set_cell_location(square_mesh, i, cell_location)

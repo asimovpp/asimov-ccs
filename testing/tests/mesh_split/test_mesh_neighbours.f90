@@ -31,7 +31,7 @@ program test_mesh_neighbours
   
   do n = 1, 100 ! XXX: Need a test-wide variable nmax
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(n, l, par_env)
+    square_mesh = build_square_mesh(par_env, n, l)
 
     boundary_ctr = 0
     do i = 1, square_mesh%nlocal

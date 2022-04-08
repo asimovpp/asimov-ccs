@@ -29,7 +29,7 @@ program test_ghost_cells
   proc_id = par_env%proc_id
   num_procs = par_env%num_procs
 
-  cell_mesh = build_square_mesh(11, 1.0_accs_real, par_env)
+  cell_mesh = build_square_mesh(par_env, 11, 1.0_accs_real)
 
   ! Specify vector size based on the mesh
   call initialise(vector_data)

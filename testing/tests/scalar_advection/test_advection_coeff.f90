@@ -33,7 +33,7 @@ program test_advection_coeff
   
   call init()
 
-  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
 
   local_idx = int(0.5*square_mesh%nlocal + 2, accs_int)
   do direction = x_dir, y_dir

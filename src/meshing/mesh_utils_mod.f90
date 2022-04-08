@@ -41,7 +41,7 @@ contains
   !> @param[in] parallel_environment par_env     - The parallel environment to construct the mesh.
   !
   !> @returns   mesh                 square_mesh - The mesh
-  function build_square_mesh(nps, l, par_env) result(square_mesh)
+  function build_square_mesh(par_env, nps, l) result(square_mesh)
 
     class(parallel_environment), intent(in) :: par_env
     integer(accs_int), intent(in) :: nps

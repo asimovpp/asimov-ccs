@@ -53,7 +53,7 @@ program scalar_advection
   call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
 
   ! Set up the square mesh
-  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
 
   ! Init velocities and scalar
   allocate(central_field :: mf)

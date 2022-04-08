@@ -29,7 +29,7 @@ program test_mesh_square_mesh_closed
   
   do n = 1, 100 ! XXX: Should use some named constant, not just "100"
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(n, l, par_env)
+    square_mesh = build_square_mesh(par_env, n, l)
 
     ! Loop over cells
     do i = 1, square_mesh%nlocal

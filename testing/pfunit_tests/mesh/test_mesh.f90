@@ -69,7 +69,7 @@ contains
 
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
 
       associate(nlocal => square_mesh%nlocal, &
            nglobal => square_mesh%n)
@@ -138,7 +138,7 @@ contains
     
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
 
       do i = 1, square_mesh%nlocal
         call set_cell_location(square_mesh, i, cell_location)
@@ -210,7 +210,7 @@ contains
     integer(accs_int) :: n_global
     
     do n = 1, nmax
-      square_mesh = build_square_mesh(n, 1.0_accs_real, par_env)
+      square_mesh = build_square_mesh(par_env, n, 1.0_accs_real)
 
       if (square_mesh%nlocal < 0) then
         ! XXX: Zero cells on a PE is not necessarily invalid...
@@ -289,7 +289,7 @@ contains
     
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
       expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
       vol = 0.0_accs_real
@@ -362,7 +362,7 @@ contains
 
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
       ndim = size(square_mesh%nf, 1)
       
       ! Loop over cells
@@ -443,7 +443,7 @@ contains
     
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
 
       boundary_ctr = 0
       do i = 1, square_mesh%nlocal
