@@ -19,6 +19,7 @@ submodule (parallel) parallel_utils_mpi
   module subroutine sync(par_env)
   
     class(parallel_environment), intent(in) :: par_env
+    
     integer :: ierr !> Error code
 
     select type (par_env)
