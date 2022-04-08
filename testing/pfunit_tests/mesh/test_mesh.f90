@@ -69,12 +69,12 @@ contains
 
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
 
       associate(nlocal => square_mesh%nlocal, &
            nglobal => square_mesh%n)
         do i = 1, nlocal
-          call set_cell_location(cell_location, square_mesh, i)
+          call set_cell_location(square_mesh, i, cell_location)
           call global_index(cell_location, idxg)
           if ((idxg < 1) .or. (idxg > nglobal)) then
             if (idxg /= -1) then
@@ -138,10 +138,10 @@ contains
     
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
 
       do i = 1, square_mesh%nlocal
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call centre(cell_location, cc)
         associate(x => cc(1), y => cc(2))
           if ((x > l) .or. (x < 0_accs_real) &
@@ -153,7 +153,7 @@ contains
 
         associate(nnb => square_mesh%nnb(i))
           do j = 1, nnb
-            call set_face_location(face_location, square_mesh, i, j)
+            call set_face_location(square_mesh, i, j, face_location)
             call centre(face_location, fc)
             associate(x => fc(1), y => fc(2))
               if ((x > (l + eps)) .or. (x < (0.0_accs_real - eps)) &
@@ -210,7 +210,7 @@ contains
     integer(accs_int) :: n_global
     
     do n = 1, nmax
-      square_mesh = build_square_mesh(n, 1.0_accs_real, par_env)
+      square_mesh = build_square_mesh(par_env, n, 1.0_accs_real)
 
       if (square_mesh%nlocal < 0) then
         ! XXX: Zero cells on a PE is not necessarily invalid...
@@ -289,12 +289,12 @@ contains
     
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
       expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
       vol = 0.0_accs_real
       do i = 1, square_mesh%nlocal
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call volume(cell_location, V)
         vol = vol + V
       end do
@@ -362,7 +362,7 @@ contains
 
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
       ndim = size(square_mesh%nf, 1)
       
       ! Loop over cells
@@ -372,7 +372,7 @@ contains
         ! Loop over neighbours/faces
         do j = 1, square_mesh%nnb(i)
           
-          call set_face_location(face_location, square_mesh, i, j)
+          call set_face_location(square_mesh, i, j, face_location)
           call face_area(face_location, A)
           call face_normal(face_location, norm)
           S(:) = S(:) + norm(:) * A
@@ -443,12 +443,12 @@ contains
     
     do n = 1, nmax
       l = parallel_random(par_env)
-      square_mesh = build_square_mesh(n, l, par_env)
+      square_mesh = build_square_mesh(par_env, n, l)
 
       boundary_ctr = 0
       do i = 1, square_mesh%nlocal
 
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call count_neighbours(cell_location, nnb)
 
         if (nnb < 2) then
@@ -465,7 +465,7 @@ contains
 
         ! Loop over neighbours
         do j = 1, nnb
-          call set_neighbour_location(nb_location, cell_location, j)
+          call set_neighbour_location(cell_location, j, nb_location)
           call boundary_status(nb_location, is_boundary)
           if (is_boundary) then
             ! Boundary neighbour/face
@@ -554,11 +554,11 @@ contains
 
       ! if (passing) then ! Doesn't make sense to continue if part1 fails
       !   ! Parent should be in neighbour's neighbour list
-      !   call set_cell_location(nb_cell_location, mesh, nbidx)
+      !   call set_cell_location(mesh, nbidx, nb_cell_location)
       !   ! call count_neighbours(nb_cell_location, nnb)
       !   ! found_parent = .false.
       !   ! do j = 1, nnb
-      !   !   call set_neighbour_location(nbnb_location, nb_cell_location, j)
+      !   !   call set_neighbour_location(nb_cell_location, j, nbnb_location)
       !   !   call boundary_status(nbnb_location, is_boundary)
       !   !   if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
       !   !     call local_index(nbnb_location, nbidx)

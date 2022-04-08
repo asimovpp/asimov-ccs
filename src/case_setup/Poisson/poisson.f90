@@ -73,8 +73,8 @@ program poisson
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_global_size(mat_sizes, square_mesh, par_env)
-  call set_nnz(mat_sizes, 5)
+  call set_global_size(par_env, square_mesh, mat_sizes)
+  call set_nnz(5, mat_sizes)
   call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)
@@ -82,7 +82,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh, par_env)
+  call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)
@@ -105,7 +105,7 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   !! Create linear solver & set options
-  call set_linear_system(poisson_eq, b, u, M, par_env)
+  call set_linear_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
@@ -163,14 +163,14 @@ contains
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call get_centre(cell_location, cc)
         call get_volume(cell_location, V)
         call get_global_index(cell_location, idxg)
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(val_dat, 1, idxg, r)
+          call pack_entries(1, idxg, r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
@@ -225,7 +225,7 @@ contains
       !!        filling from front, and pass the number of coefficients to be set, requires
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
@@ -238,13 +238,13 @@ contains
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(nb_location, cell_location, j)
+        call set_neighbour_location(cell_location, j, nb_location)
         call get_boundary_status(nb_location, is_boundary)
 
         if (.not. is_boundary) then
           !! Interior face
         
-          call set_face_location(face_location, square_mesh, i, j)
+          call set_face_location(square_mesh, i, j, face_location)
           call get_face_area(face_location, A)
           coeff_f = (1.0 / square_mesh%h) * A
 
@@ -257,13 +257,13 @@ contains
           col = -1
           coeff_nb = 0.0_accs_real
         end if
-        call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
+        call pack_entries(1, j + 1, row, col, coeff_nb, mat_coeffs)
 
       end do
 
       !! Add the diagonal entry
       col = row
-      call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+      call pack_entries(1, 1, row, col, coeff_p, mat_coeffs)
       
       !! Set the values
       call set_values(mat_coeffs, M)
@@ -317,7 +317,7 @@ contains
 
     do i = 1, square_mesh%nlocal
       if (minval(square_mesh%nbidx(:, i)) < 0) then
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call get_global_index(cell_location, idxg)
         coeff = 0.0_accs_real 
         r = 0.0_accs_real
@@ -329,11 +329,11 @@ contains
         call count_neighbours(cell_location, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(nb_location, cell_location, j)
+          call set_neighbour_location(cell_location, j, nb_location)
           call get_boundary_status(nb_location, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(face_location, square_mesh, i, j)
+            call set_face_location(square_mesh, i, j, face_location)
             call get_face_area(face_location, A)
             boundary_coeff = (2.0 / square_mesh%h) * A
             boundary_val = rhs_val(i, j)
@@ -347,8 +347,8 @@ contains
             
         end do
 
-        call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
-        call pack_entries(vec_values, 1, idx, r)
+        call pack_entries(1, 1, row, col, coeff, mat_coeffs)
+        call pack_entries(1, idx, r, vec_values)
 
         call set_values(mat_coeffs, M)
         call set_values(vec_values, b)
@@ -379,9 +379,9 @@ contains
     allocate(vec_values%val(1))
     vec_values%mode = insert_mode
     do i = 1, square_mesh%nlocal
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_global_index(cell_location, idxg)
-      call pack_entries(vec_values, 1, idxg, rhs_val(i))
+      call pack_entries(1, idxg, rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%idx)
@@ -394,7 +394,7 @@ contains
 
     class(parallel_environment) :: par_env
 
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
     
   end subroutine initialise_poisson
 
@@ -411,14 +411,14 @@ contains
 
     if (present(f)) then
       !! Face-centred value
-      call set_face_location(face_location, square_mesh, i, f)
+      call set_face_location(square_mesh, i, f, face_location)
       call get_centre(face_location, x)
       associate(y => x(2))
         r = y
       end associate
     else
       !! Cell-centred value
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_centre(cell_location, x)
       associate(y => x(2))
         r = y

@@ -29,13 +29,13 @@ program test_mesh_square_mesh_volume
   
   do n = 1, 100
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(n, l, par_env)
+    square_mesh = build_square_mesh(par_env, n, l)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
     vol = 0.0_accs_real
     nneg_vol = 0
     do i = 1, square_mesh%nlocal
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_volume(cell_location, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1

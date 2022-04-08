@@ -53,7 +53,7 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -67,8 +67,8 @@ program simple
   call initialise(vec_sizes)
 
   print *, "Create vectors"
-  call set_vector_location(vec_sizes, cell)
-  call set_global_size(vec_sizes, square_mesh, par_env)
+  call set_vector_location(cell, vec_sizes)
+  call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
   call create_vector(vec_sizes, p%vec)
@@ -90,8 +90,8 @@ program simple
   call update(pp%grady)
   call update(pp%gradz)
 
-  call set_vector_location(vec_sizes, face)
-  call set_global_size(vec_sizes, square_mesh, par_env)
+  call set_vector_location(face, vec_sizes)
+  call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, mf%vec)
   call update(mf%vec)
   
@@ -188,15 +188,15 @@ contains
 
       ! Set initial values for velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(self_loc, cell_mesh, local_idx)
+        call set_cell_location(cell_mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 
         u_val = real(col, accs_real)/real(cps, accs_real)
         v_val = -real(row, accs_real)/real(cps, accs_real)
 
-        call pack_entries(u_vals, local_idx, self_idx, u_val)
-        call pack_entries(v_vals, local_idx, self_idx, v_val)
+        call pack_entries(local_idx, self_idx, u_val, u_vals)
+        call pack_entries(local_idx, self_idx, v_val, v_vals)
       end do
     end associate
 

@@ -80,13 +80,13 @@ module mat
      !
      !> @details Stores a matrix coefficient and associated row and column indices for later
      !!          setting, ensuring they are set appropriately for the backend.
-     module subroutine pack_one_matrix_coefficient(mat_coeffs, row_entry, col_entry, row, col, coeff)
-       type(matrix_values), intent(inout) :: mat_coeffs
+     module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
        integer(accs_int), intent(in) :: row_entry
        integer(accs_int), intent(in) :: col_entry
        integer(accs_int), intent(in) :: row
        integer(accs_int), intent(in) :: col
        real(accs_real), intent(in) :: coeff
+       type(matrix_values), intent(inout) :: mat_coeffs
      end subroutine pack_one_matrix_coefficient
 
     !> @brief Interface to perform the AXPY matrix operation.
@@ -148,25 +148,23 @@ module mat
 
     !> @brief Setter for global matrix size
     !
-    !> param[in/out] matrix_descriptor  - the matrix data object
-    !> param[in] mesh                   - the mesh object
     !> param[in] par_env                - the parallel environment where 
     !!                                    the matrix resides
-    module subroutine set_matrix_size(matrix_descriptor, geometry, par_env)
-      type(matrix_init_data), intent(inout) :: matrix_descriptor
-      class(mesh), target, intent(in) :: geometry
+    !> param[in] geometry               - the mesh object
+    !> param[in/out] matrix_descriptor  - the matrix data object
+    module subroutine set_matrix_size(par_env, geometry, matrix_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
+      class(mesh), target, intent(in) :: geometry
+      type(matrix_init_data), intent(inout) :: matrix_descriptor
     end subroutine
 
     !> @brief Setter for matrix number of non-zeros
     !
-    !> param[in/out] matrix_descriptor - the matrix data object
     !> param[in] nnz                   - the number of non-zeros
-    !> param[in] par_env               - the parallel environment where
-    !!                                   the matrix resides
-    module subroutine set_nnz(matrix_descriptor, nnz)
-      type(matrix_init_data), intent(inout) :: matrix_descriptor
+    !> param[in/out] matrix_descriptor - the matrix data object
+    module subroutine set_nnz(nnz, matrix_descriptor)
       integer(accs_int), intent(in) :: nnz
+      type(matrix_init_data), intent(inout) :: matrix_descriptor
     end subroutine
 
     !> @brief Extract matrix diagonal elements into a vector

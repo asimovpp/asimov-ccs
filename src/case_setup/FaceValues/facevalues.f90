@@ -27,16 +27,16 @@ program facevalues
     call initialise_parallel_environment(par_env)
 
     ! Create a square mesh
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
 
     allocate(face_field :: mf)
 
     call initialise(vec_sizes)
 
     ! Setup vector size to store face-centred values (rather than cell-centred values)
-    call set_vector_location(vec_sizes, face)
+    call set_vector_location(face, vec_sizes)
 
-    call set_global_size(vec_sizes, square_mesh, par_env)
+    call set_global_size(par_env, square_mesh, vec_sizes)
     call create_vector(vec_sizes, mf%vec)
 
     ! ! View the contents of the vector

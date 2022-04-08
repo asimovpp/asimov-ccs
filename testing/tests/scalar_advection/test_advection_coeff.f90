@@ -33,7 +33,7 @@ program test_advection_coeff
   
   call init()
 
-  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
 
   local_idx = int(0.5*square_mesh%nlocal + 2, accs_int)
   do direction = x_dir, y_dir
@@ -52,7 +52,7 @@ program test_advection_coeff
       end if
 
       call initialise(vec_sizes)
-      call set_global_size(vec_sizes, square_mesh, par_env)
+      call set_global_size(par_env, square_mesh, vec_sizes)
       call create_vector(vec_sizes, scalar%vec)
       call create_vector(vec_sizes, u%vec)
       call create_vector(vec_sizes, v%vec)
@@ -101,13 +101,13 @@ program test_advection_coeff
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
     
-    call set_cell_location(self_loc, square_mesh, local_idx)
+    call set_cell_location(square_mesh, local_idx, self_loc)
     call get_local_index(self_loc, self_idx)
   
-    call set_neighbour_location(ngb_loc, self_loc, ngb)
+    call set_neighbour_location(self_loc, ngb, ngb_loc)
     call get_local_index(ngb_loc, ngb_idx)
 
-    call set_face_location(face_loc, square_mesh, local_idx, ngb)
+    call set_face_location(square_mesh, local_idx, ngb, face_loc)
     call get_face_area(face_loc, face_area)
 
     call get_face_normal(face_loc, normal)
@@ -138,7 +138,7 @@ program test_advection_coeff
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(self_loc, cell_mesh, local_idx)
+        call set_cell_location(cell_mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
 
         if (direction == x_dir) then
@@ -149,8 +149,8 @@ program test_advection_coeff
           v_val = 1.0_accs_real
         end if
 
-        call pack_entries(u_vals, local_idx, self_idx, u_val)
-        call pack_entries(v_vals, local_idx, self_idx, v_val)
+        call pack_entries(local_idx, self_idx, u_val, u_vals)
+        call pack_entries(local_idx, self_idx, v_val, v_vals)
       end do
     end associate
     call set_values(u_vals, u%vec)
