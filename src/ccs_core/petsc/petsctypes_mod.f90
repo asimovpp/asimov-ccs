@@ -70,7 +70,7 @@ contains
   !> @param[in/out] vector v - the vector to be destroyed.
   module subroutine free_vector_petsc(v)
     
-    use petscvec
+    use petscvec, only: VecDestroy
     
     type(vector_petsc), intent(inout) :: v
 
@@ -93,7 +93,7 @@ contains
   !> @param[in/out] matrix M - the matrix to be destroyed.
   module subroutine free_matrix_petsc(M)
     
-   use petscmat
+   use petscmat, only: MatDestroy
 
     type(matrix_petsc), intent(inout) :: M
 
@@ -117,7 +117,7 @@ contains
   !> @param[in/out] linear_solver solver - the linear solver to be destroyed.
   module subroutine free_linear_solver_petsc(solver)
     
-    use petscksp
+    use petscksp, only: KSPDestroy
 
     type(linear_solver_petsc), intent(inout) :: solver
 
