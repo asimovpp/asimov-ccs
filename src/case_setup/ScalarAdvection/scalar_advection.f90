@@ -11,11 +11,9 @@ program scalar_advection
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve, set_linear_system, axpy, norm
-  use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_global_size
+  use solver, only : create_solver, solve, set_linear_system
+  use utils, only : update, initialise, set_global_size
   use mesh_utils, only : build_square_mesh
-  use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -35,7 +33,7 @@ program scalar_advection
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: scalar_linear_system
   type(mesh) :: square_mesh
-  type(bc_config) :: bcs
+  type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
   class(field), allocatable :: mf          ! Prescribed face velocity field
   class(field), allocatable :: scalar
