@@ -238,7 +238,7 @@ contains
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(nb_location, cell_location, j)
+        call set_neighbour_location(cell_location, j, nb_location)
         call get_boundary_status(nb_location, is_boundary)
 
         if (.not. is_boundary) then
@@ -329,7 +329,7 @@ contains
         call count_neighbours(cell_location, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(nb_location, cell_location, j)
+          call set_neighbour_location(cell_location, j, nb_location)
           call get_boundary_status(nb_location, is_boundary)
 
           if (is_boundary) then

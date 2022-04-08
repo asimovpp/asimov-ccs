@@ -391,7 +391,7 @@ contains
         
         if (.not. is_boundary) then
           ! Interior face
-          call set_neighbour_location(ngb_loc, self_loc, j)
+          call set_neighbour_location(self_loc, j, ngb_loc)
           call get_global_index(ngb_loc, ngb_idx)
           call get_local_index(ngb_loc, idxnb)
           coeff_f = (1.0 / cell_mesh%h) * face_area
@@ -546,7 +546,7 @@ contains
         ! Check face orientation
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
-          call set_neighbour_location(loc_nb, loc_p, j)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, idxnb)
           if (idxnb < i) then
             face_area = -face_area
@@ -683,7 +683,7 @@ contains
         call set_face_location(cell_mesh, i, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
-          call set_neighbour_location(loc_nb, loc_p, j)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, idxnb)
           if (i < idxnb) then
             mf_prime = calc_mass_flux(zero_arr, zero_arr, &

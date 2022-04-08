@@ -118,7 +118,7 @@ contains
       adv_coeff_total = 0.0_accs_real
       diff_coeff_total = 0.0_accs_real
       do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
+        call set_neighbour_location(self_loc, j, ngb_loc)
         call get_boundary_status(ngb_loc, is_boundary)
 
         if (.not. is_boundary) then
@@ -272,7 +272,7 @@ contains
       call count_neighbours(self_loc, n_ngb)
       ! Calculate contribution from neighbours
       do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
+        call set_neighbour_location(self_loc, j, ngb_loc)
         call get_boundary_status(ngb_loc, is_boundary)
         if (is_boundary) then
           ! call get_global_index(ngb_loc, ngb_idx)
@@ -340,7 +340,7 @@ contains
 
     call set_cell_location(cell_mesh, local_self_idx, loc_p)
     if (.not. is_boundary) then
-      call set_neighbour_location(loc_nb, loc_p, local_ngb_idx)
+      call set_neighbour_location(loc_p, local_ngb_idx, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
     else
       call get_distance(loc_p, face_location, dx)
@@ -397,7 +397,7 @@ contains
            j => loc_f%cell_face_ctr)
         
         call set_cell_location(mesh, idxp, loc_p)
-        call set_neighbour_location(loc_nb, loc_p, j)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, idxnb)
 
         call get_face_normal(loc_f, face_normal)
@@ -568,7 +568,7 @@ contains
         call get_boundary_status(loc_f, is_boundary)
 
         if (.not. is_boundary) then
-          call set_neighbour_location(loc_nb, loc_p, j)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, nb)
           phif = 0.5_accs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else

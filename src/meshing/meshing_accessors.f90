@@ -49,7 +49,21 @@ contains
     end if
   end subroutine set_cell_location
   
-  module procedure set_neighbour_location
+  !> @brief Constructs a neighbour locator object.
+  !
+  !> @description Creates the association between a neighbour cell F relative to cell P, i.e. to
+  !!              access the nth neighbour of cell i.
+  !
+  !> @param[in]  cell_locator      cell_location      - the cell locator object of the cell whose
+  !!                                                    neighbour is being accessed.
+  !> @param[in]  accs_int          cell_neighbour_ctr - the cell-local index of the neighbour.
+  !> @param[out] neighbour_locator neighbour_location - the neighbour locator object linking a
+  !!                                                    cell-relative index with the mesh.
+  module subroutine set_neighbour_location(cell_location, cell_neighbour_ctr, neighbour_location)
+    type(cell_locator), intent(in) :: cell_location
+    integer(accs_int), intent(in) :: cell_neighbour_ctr
+    type(neighbour_locator), intent(out) :: neighbour_location
+
     neighbour_location%mesh => cell_location%mesh
     neighbour_location%cell_idx = cell_location%cell_idx
 
@@ -74,7 +88,7 @@ contains
         print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
       end if
     end associate
-  end procedure set_neighbour_location
+  end subroutine set_neighbour_location
 
   module procedure set_face_index
     geometry%faceidx(cell_face_ctr, cell_idx) = face_idx
@@ -182,7 +196,7 @@ contains
          i => face_location%cell_idx, &
          j => face_location%cell_face_ctr)
       call set_cell_location(mesh, i, cell_location)
-      call set_neighbour_location(neighbour_location, cell_location, j)
+      call set_neighbour_location(cell_location, j, neighbour_location)
     end associate
     call get_neighbour_boundary_status(neighbour_location, is_boundary)
   end procedure get_face_boundary_status

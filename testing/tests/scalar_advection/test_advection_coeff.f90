@@ -104,7 +104,7 @@ program test_advection_coeff
     call set_cell_location(square_mesh, local_idx, self_loc)
     call get_local_index(self_loc, self_idx)
   
-    call set_neighbour_location(ngb_loc, self_loc, ngb)
+    call set_neighbour_location(self_loc, ngb, ngb_loc)
     call get_local_index(ngb_loc, ngb_idx)
 
     call set_face_location(square_mesh, local_idx, ngb, face_loc)

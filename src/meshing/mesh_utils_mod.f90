@@ -372,7 +372,7 @@ contains
       call count_neighbours(self_loc, n_ngb)
 
       do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
+        call set_neighbour_location(self_loc, j, ngb_loc)
         call get_boundary_status(ngb_loc, is_boundary)
 
         if (.not. is_boundary) then
@@ -427,7 +427,7 @@ contains
       call count_neighbours(self_loc, n_ngb)
 
       do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
+        call set_neighbour_location(self_loc, j, ngb_loc)
         call get_local_index(ngb_loc, ngb_idx)
         call get_boundary_status(ngb_loc, is_boundary)
 
@@ -442,7 +442,7 @@ contains
             call set_cell_location(cell_mesh, ngb_idx, ngb_cell_loc)
             call count_neighbours(ngb_cell_loc, n_ngb_ngb)
             do k = 1, n_ngb_ngb
-              call set_neighbour_location(ngb_ngb_loc, ngb_cell_loc, k)
+              call set_neighbour_location(ngb_cell_loc, k, ngb_ngb_loc)
               call get_local_index(ngb_ngb_loc, ngb_ngb_idx)
               if (ngb_ngb_idx == local_idx) then
                 call set_face_location(cell_mesh, ngb_idx, k, face_loc)
