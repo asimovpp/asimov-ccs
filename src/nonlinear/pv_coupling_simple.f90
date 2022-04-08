@@ -383,7 +383,7 @@ contains
 
       ! Loop over faces
       do j = 1, n_ngb
-        call set_face_location(face_loc, cell_mesh, local_idx, j)
+        call set_face_location(cell_mesh, local_idx, j, face_loc)
         call get_face_area(face_loc, face_area)
         call get_face_normal(face_loc, face_normal)
 
@@ -539,7 +539,7 @@ contains
       mib = 0.0_accs_real
 
       do j = 1, nnb
-        call set_face_location(loc_f, cell_mesh, i, j)
+        call set_face_location(cell_mesh, i, j, loc_f)
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, idxf)
 
@@ -680,7 +680,7 @@ contains
       call set_cell_location(cell_mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_face_location(loc_f, cell_mesh, i, j)
+        call set_face_location(cell_mesh, i, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
           call set_neighbour_location(loc_nb, loc_p, j)

@@ -4,11 +4,26 @@ submodule (meshing) meshing_accessors
   
 contains
   
-  module procedure set_face_location
+  !> @brief Constructs a face locator object.
+  !
+  !> @description Creates the association between a face relative to a cell, i.e. to access the
+  !!              nth face of cell i.
+  !
+  !> @param[in]  mesh         geometry      - the mesh object being referred to.
+  !> @param[in]  accs_int     cell_idx      - the index of the cell whose face is being accessed.
+  !> @param[in]  accs_int     cell_face_ctr - the cell-local index of the face.
+  !> @param[out] face_locator face_location - the face locator object linking a cell-relative
+  !!                                          index with the mesh.
+  module subroutine set_face_location(geometry, cell_idx, cell_face_ctr, face_location)
+    type(mesh), target, intent(in) :: geometry
+    integer(accs_int), intent(in) :: cell_idx
+    integer(accs_int), intent(in) :: cell_face_ctr
+    type(face_locator), intent(out) :: face_location
+
     face_location%mesh => geometry
     face_location%cell_idx = cell_idx
     face_location%cell_face_ctr = cell_face_ctr
-  end procedure set_face_location
+  end subroutine set_face_location
 
   !> @brief Constructs a cell locator object.
   !

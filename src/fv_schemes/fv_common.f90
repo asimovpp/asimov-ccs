@@ -127,7 +127,7 @@ contains
           call get_global_index(ngb_loc, ngb_idx)
           call get_local_index(ngb_loc, ngb_local_idx)
 
-          call set_face_location(face_loc, cell_mesh, local_idx, j)
+          call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
           call get_local_index(face_loc, idxf)
@@ -278,7 +278,7 @@ contains
           ! call get_global_index(ngb_loc, ngb_idx)
           call get_local_index(ngb_loc, mesh_ngb_idx)
 
-          call set_face_location(face_loc, cell_mesh, local_idx, j)
+          call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
           call get_local_index(face_loc, idxf)
@@ -334,7 +334,7 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
+    call set_face_location(cell_mesh, local_self_idx, local_ngb_idx, face_location)
     call get_face_area(face_location, face_area)
     call get_boundary_status(face_location, is_boundary)
 
@@ -564,7 +564,7 @@ contains
       call set_cell_location(cell_mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_face_location(loc_f, cell_mesh, i, j)
+        call set_face_location(cell_mesh, i, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
 
         if (.not. is_boundary) then

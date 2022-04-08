@@ -38,7 +38,7 @@ program test_mesh_square_mesh_closed
       ! Loop over neighbours/faces
       do j = 1, square_mesh%nnb(i)
 
-        call set_face_location(face_location, square_mesh, i, j)
+        call set_face_location(square_mesh, i, j, face_location)
         call get_face_area(face_location, A)
         call get_face_normal(face_location, norm)
         S(:) = S(:) + norm(:) * A

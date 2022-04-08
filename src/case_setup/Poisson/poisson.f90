@@ -244,7 +244,7 @@ contains
         if (.not. is_boundary) then
           !! Interior face
         
-          call set_face_location(face_location, square_mesh, i, j)
+          call set_face_location(square_mesh, i, j, face_location)
           call get_face_area(face_location, A)
           coeff_f = (1.0 / square_mesh%h) * A
 
@@ -333,7 +333,7 @@ contains
           call get_boundary_status(nb_location, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(face_location, square_mesh, i, j)
+            call set_face_location(square_mesh, i, j, face_location)
             call get_face_area(face_location, A)
             boundary_coeff = (2.0 / square_mesh%h) * A
             boundary_val = rhs_val(i, j)
@@ -411,7 +411,7 @@ contains
 
     if (present(f)) then
       !! Face-centred value
-      call set_face_location(face_location, square_mesh, i, f)
+      call set_face_location(square_mesh, i, f, face_location)
       call get_centre(face_location, x)
       associate(y => x(2))
         r = y

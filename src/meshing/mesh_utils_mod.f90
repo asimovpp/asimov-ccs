@@ -445,7 +445,7 @@ contains
               call set_neighbour_location(ngb_ngb_loc, ngb_cell_loc, k)
               call get_local_index(ngb_ngb_loc, ngb_ngb_idx)
               if (ngb_ngb_idx == local_idx) then
-                call set_face_location(face_loc, cell_mesh, ngb_idx, k)
+                call set_face_location(cell_mesh, ngb_idx, k, face_loc)
                 call get_local_index(face_loc, face_idx)
                 call set_face_index(cell_mesh, local_idx, j, face_idx)
                 exit ! Exit the loop, as found shared face

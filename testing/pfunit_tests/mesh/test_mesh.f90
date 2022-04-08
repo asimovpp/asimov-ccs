@@ -153,7 +153,7 @@ contains
 
         associate(nnb => square_mesh%nnb(i))
           do j = 1, nnb
-            call set_face_location(face_location, square_mesh, i, j)
+            call set_face_location(square_mesh, i, j, face_location)
             call centre(face_location, fc)
             associate(x => fc(1), y => fc(2))
               if ((x > (l + eps)) .or. (x < (0.0_accs_real - eps)) &
@@ -372,7 +372,7 @@ contains
         ! Loop over neighbours/faces
         do j = 1, square_mesh%nnb(i)
           
-          call set_face_location(face_location, square_mesh, i, j)
+          call set_face_location(square_mesh, i, j, face_location)
           call face_area(face_location, A)
           call face_normal(face_location, norm)
           S(:) = S(:) + norm(:) * A
