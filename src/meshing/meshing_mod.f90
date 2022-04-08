@@ -113,12 +113,12 @@ module meshing
     end subroutine set_neighbour_location
 
     !> @brief Set face index
-    module subroutine set_face_index(geometry, cell_idx, cell_face_ctr, face_idx)
-      type(mesh), target, intent(inout) :: geometry
+    module subroutine set_face_index(cell_idx, cell_face_ctr, face_idx, geometry)
       integer(accs_int), intent(in) :: cell_idx
       integer(accs_int), intent(in) :: cell_face_ctr
       integer(accs_int), intent(in) :: face_idx
-      end subroutine set_face_index
+      type(mesh), target, intent(inout) :: geometry
+    end subroutine set_face_index
 
     !> @brief Returns the normal vector of a face
     !

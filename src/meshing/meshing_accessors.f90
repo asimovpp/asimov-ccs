@@ -90,10 +90,15 @@ contains
     end associate
   end subroutine set_neighbour_location
 
-  module procedure set_face_index
-    geometry%faceidx(cell_face_ctr, cell_idx) = face_idx
+  !> @brief Set face index
+  module subroutine set_face_index(cell_idx, cell_face_ctr, face_idx, geometry)
+    integer(accs_int), intent(in) :: cell_idx
+    integer(accs_int), intent(in) :: cell_face_ctr
+    integer(accs_int), intent(in) :: face_idx
+    type(mesh), target, intent(inout) :: geometry
 
-  end procedure set_face_index
+    geometry%faceidx(cell_face_ctr, cell_idx) = face_idx
+  end subroutine set_face_index
 
 
   module procedure get_face_normal

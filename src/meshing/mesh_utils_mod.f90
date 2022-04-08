@@ -435,7 +435,7 @@ contains
           ! Cell with lowest local index assigns an index to the face
           if (local_idx < ngb_idx) then
             icnt = icnt + 1
-            call set_face_index(cell_mesh, local_idx, j, icnt)
+            call set_face_index(local_idx, j, icnt, cell_mesh)
           else
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
@@ -447,7 +447,7 @@ contains
               if (ngb_ngb_idx == local_idx) then
                 call set_face_location(cell_mesh, ngb_idx, k, face_loc)
                 call get_local_index(face_loc, face_idx)
-                call set_face_index(cell_mesh, local_idx, j, face_idx)
+                call set_face_index(local_idx, j, face_idx, cell_mesh)
                 exit ! Exit the loop, as found shared face
               else if (k == n_ngb_ngb) then
                 print *, "ERROR: Failed to find face in owning cell"
@@ -457,7 +457,7 @@ contains
           endif
         else
           icnt = icnt + 1
-          call set_face_index(cell_mesh, local_idx, j, icnt)
+          call set_face_index(local_idx, j, icnt, cell_mesh)
         endif
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells
