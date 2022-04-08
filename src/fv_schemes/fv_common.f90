@@ -5,7 +5,7 @@
 
 submodule (fv) fv_common
 
-  use constants, only : add_mode, insert_mode
+  use constants, only : add_mode, insert_mode, ndim
   use types, only: vector_values, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
   use meshing, only : 
