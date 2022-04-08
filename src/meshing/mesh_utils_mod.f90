@@ -43,7 +43,7 @@ contains
   !> @returns   mesh                 square_mesh - The mesh
   function build_square_mesh(nps, l, par_env) result(square_mesh)
 
-    class(parallel_environment) :: par_env
+    class(parallel_environment), intent(in) :: par_env
     integer(accs_int), intent(in) :: nps
     real(accs_real), intent(in) :: l
 
@@ -126,7 +126,7 @@ contains
               nbidx = ictr - 1_accs_int
               nbidxg = i - 1_accs_int
             end if
-            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, nbidxg, square_mesh)
 
             ! Construct right (2) face/neighbour
             fctr = right
@@ -137,7 +137,7 @@ contains
               nbidx = ictr + 1_accs_int
               nbidxg = i + 1_accs_int
             end if
-            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, nbidxg, square_mesh)
 
             ! Construct down (3) face/neighbour
             fctr = down
@@ -148,7 +148,7 @@ contains
               nbidx = ictr - nps
               nbidxg = i - nps
             end if
-            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, nbidxg, square_mesh)
 
             ! Construct up (4) face/neighbour
             fctr = up
@@ -159,7 +159,7 @@ contains
               nbidx = ictr + nps
               nbidxg = i + nps
             end if
-            call build_local_mesh_add_neighbour(square_mesh, ictr, fctr, nbidx, nbidxg)
+            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, nbidxg, square_mesh)
 
             ictr = ictr + 1_accs_int
           end do
@@ -246,18 +246,18 @@ contains
   !!                 b) this is a new halo cell, the list of global indices must be grown to
   !!                    accomodate before adding the neighbour.
   !
-  !> @param[inout] mesh meshobj - the mesh we are assembling neighbours on
   !> @param[in]    integer(accs_int) cellidx - the index of the cell whose neighbours we are assembling
   !> @param[in]    integer(accs_int) nbctr   - the cell-relative neighbour index
   !> @param[in]    integer(accs_int) nbidx   - the local index of the neighbour cell
   !> @param[in]    integer(accs_int) nbidxg  - the global index of the neighbour cell
-  subroutine build_local_mesh_add_neighbour(meshobj, cellidx, nbctr, nbidx, nbidxg)
+  !> @param[inout] mesh meshobj - the mesh we are assembling neighbours on
+  subroutine build_local_mesh_add_neighbour(cellidx, nbctr, nbidx, nbidxg, meshobj)
 
-    type(mesh), intent(inout) :: meshobj
     integer(accs_int), intent(in) :: cellidx
     integer(accs_int), intent(in) :: nbctr
     integer(accs_int), intent(in) :: nbidx
     integer(accs_int), intent(in) :: nbidxg
+    type(mesh), intent(inout) :: meshobj
 
     integer(accs_int) :: ng !> The current number of cells (total = local + halos)
     logical :: found        !> Indicates whether a halo cell was already present
