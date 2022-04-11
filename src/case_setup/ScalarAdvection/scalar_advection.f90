@@ -124,11 +124,11 @@ contains
 
     real(ccs_real) :: u, v
 
-    mf_vals%mode = add_mode
+    mf_vals%setter_mode = add_mode
 
     associate(n_local => cell_mesh%nlocal)
-      allocate(mf_vals%idx(n_local))
-      allocate(mf_vals%val(n_local))
+      allocate(mf_vals%indices(n_local))
+      allocate(mf_vals%values(n_local))
       
       ! Set IC velocity and scalar fields
       do local_idx = 1, n_local
@@ -147,7 +147,9 @@ contains
     end associate
     call set_values(mf_vals, mf%vec)
 
-    deallocate(mf_vals%idx, mf_vals%val)
+    deallocate(mf_vals%indices)
+    deallocate(mf_vals%values)
+
   end subroutine set_advection_velocity
 
 end program scalar_advection
