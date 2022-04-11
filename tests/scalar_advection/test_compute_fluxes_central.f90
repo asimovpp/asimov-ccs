@@ -151,7 +151,7 @@ program test_compute_fluxes
     integer(accs_int), intent(in) :: discretisation
 
     class(matrix), allocatable :: M, M_exact
-    class(vector), allocatable :: b, b_exact
+    class(ccs_vector), allocatable :: b, b_exact
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
     real(accs_real) :: error
@@ -215,7 +215,7 @@ program test_compute_fluxes
     integer(accs_int), intent(in) :: discretisation
     integer(accs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b
+    class(ccs_vector), intent(inout) :: b
 
     ! type(vector_init_data) :: vec_sizes
     type(vector_values) :: vec_coeffs

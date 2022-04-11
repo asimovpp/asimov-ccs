@@ -6,7 +6,7 @@ program scalar_advection
 
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
-  use types, only : vector_init_data, vector, matrix_init_data, matrix, &
+  use types, only : vector_init_data, ccs_vector, matrix_init_data, matrix, &
                     linear_system, linear_solver, mesh, &
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
@@ -24,8 +24,8 @@ program scalar_advection
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  class(vector), allocatable, target :: source
-  class(vector), allocatable :: solution
+  class(ccs_vector), allocatable, target :: source
+  class(ccs_vector), allocatable :: solution
   class(matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
 

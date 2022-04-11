@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : mesh, vector, vector_init_data, vector_values
+  use types, only : mesh, ccs_vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -42,7 +42,7 @@ module vec
     !> @param[out] vector v - The vector returned allocated, but (potentially) uninitialised.
     module subroutine create_vector(vec_dat, v)
       type(vector_init_data), intent(in) :: vec_dat
-      class(vector), allocatable, intent(out) :: v
+      class(ccs_vector), allocatable, intent(out) :: v
     end subroutine
 
     !> @brief Interface to set values in a vector.
@@ -52,14 +52,14 @@ module vec
     !> @param[in,out] v       - the vector.
     module subroutine set_vector_values(val_dat, v)
       class(*), intent(in) :: val_dat
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine
 
     !> @brief Interface to perform a parallel update of a vector.
     !
     !> @param[in,out] v - the vector
     module subroutine update_vector(v)
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine
 
     !> @brief Interface to begin a parallel update of a vector.
@@ -68,7 +68,7 @@ module vec
     !
     !> @param[in,out] v - the vector
     module subroutine begin_update_vector(v)
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine
     
     !> @brief Interface to end a parallel update of a vector.
@@ -77,7 +77,7 @@ module vec
     !
     !> @param[in,out] v - the vector
     module subroutine end_update_vector(v)
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine end_update_vector
 
     !> @brief Interface to store one vector element and its index for later setting.
@@ -107,8 +107,8 @@ module vec
     !> @param[in,out] y     - vector serving as input, overwritten with result
     module subroutine vec_axpy(alpha, x, y)
       real(accs_real), intent(in) :: alpha
-      class(vector), intent(in) :: x
-      class(vector), intent(inout) :: y
+      class(ccs_vector), intent(in) :: x
+      class(ccs_vector), intent(inout) :: y
     end subroutine
 
     !> @brief Interface to compute the norm of a vector
@@ -119,7 +119,7 @@ module vec
     !> @param[out] n         - the computed norm returned as the result of the function
     !!                         call.
     module function vec_norm(v, norm_type) result(n)
-      class(vector), intent(in) :: v
+      class(ccs_vector), intent(in) :: v
       integer(accs_int), intent(in) :: norm_type
       real(accs_real) :: n
     end function
@@ -150,7 +150,7 @@ module vec
     !> @param[in] vec   - the vector to get data from
     !> @param[in] array - an array to store the data in
     module subroutine get_vector_data(vec, array)
-      class(vector), intent(in) :: vec
+      class(ccs_vector), intent(in) :: vec
       real(accs_real), dimension(:), pointer, intent(out) :: array
     end subroutine get_vector_data
 
@@ -159,7 +159,7 @@ module vec
     !> @param[in] vec   - the vector to reset
     !> @param[in] array - the array containing the data to restore
     module subroutine restore_vector_data(vec, array)
-      class(vector), intent(in) :: vec
+      class(ccs_vector), intent(in) :: vec
       real(accs_real), dimension(:), pointer, intent(in) :: array
     end subroutine restore_vector_data
 
@@ -175,26 +175,26 @@ module vec
     !> @param[in]  vec - the vector
     !> @param[out] vec - the vector reciprocal
     module subroutine vec_reciprocal(vec)
-      class(vector), intent(inout) :: vec
+      class(ccs_vector), intent(inout) :: vec
     end subroutine vec_reciprocal
 
     module subroutine zero_vector(vec)
-      class(vector), intent(inout) :: vec
+      class(ccs_vector), intent(inout) :: vec
     end subroutine zero_vector
 
     module subroutine mult_vec_vec(a, b)
-      class(vector), intent(in) :: a
-      class(vector), intent(inout) :: b
+      class(ccs_vector), intent(in) :: a
+      class(ccs_vector), intent(inout) :: b
     end subroutine mult_vec_vec
 
     module subroutine scale_vec(alpha, v)
       real(accs_real), intent(in) :: alpha
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine scale_vec
     
     ! module subroutine vec_view(vec_dat, vec)
     !   type(vector_init_data), intent(in) :: vec_dat
-    !   class(vector), intent(in) :: vec
+    !   class(ccs_vector), intent(in) :: vec
     ! end subroutine vec_view
 
   end interface

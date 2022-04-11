@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : accs_int, accs_real
-  use types, only : matrix, matrix_init_data, matrix_values, mesh, vector
+  use types, only : matrix, matrix_init_data, matrix_values, mesh, ccs_vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -173,11 +173,11 @@ module mat
     !> @param[out] D - a vector containing the diagonal elements of M
     module subroutine get_matrix_diagonal(M, D)
       class(matrix), intent(in)  :: M
-      class(vector), intent(inout) :: D
+      class(ccs_vector), intent(inout) :: D
     end subroutine get_matrix_diagonal
 
     module subroutine set_matrix_diagonal(D, M)
-      class(vector), intent(in) :: D
+      class(ccs_vector), intent(in) :: D
       class(matrix), intent(inout) :: M
     end subroutine set_matrix_diagonal
 

@@ -12,7 +12,7 @@ program simple
   use constants, only : cell, face
   use kinds, only: accs_real, accs_int
   use types, only: field, upwind_field, central_field, face_field, mesh, &
-                   vector_init_data, vector
+                   vector_init_data, ccs_vector
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync

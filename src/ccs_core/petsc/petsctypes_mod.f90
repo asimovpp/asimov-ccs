@@ -10,14 +10,14 @@ module petsctypes
   use petscmat, only : tMat
 
   use kinds, only : accs_err, accs_int
-  use types, only : vector, matrix, linear_solver
+  use types, only : ccs_vector, matrix, linear_solver
   
   implicit none
 
   private
 
   !> @brief Implements the vector class backed by a PETSc vector
-  type, public, extends(vector) :: vector_petsc
+  type, public, extends(ccs_vector) :: vector_petsc
     type(tVec) :: v      !> The PETSc vector
     type(tVec) :: vl     !> The "local" PETSc vector (inc. ghost points)
     logical :: allocated !> Indicates whether the PETSc vector has been allocated

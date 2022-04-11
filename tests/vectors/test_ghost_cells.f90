@@ -17,7 +17,7 @@ program test_ghost_cells
 
   type(vector_init_data) :: vector_data
   type(mesh) :: cell_mesh
-  class(vector), allocatable :: v
+  class(ccs_vector), allocatable :: v
   real(accs_real), dimension(:), pointer :: values
 
   integer(accs_int) :: i
