@@ -63,12 +63,12 @@ program scalar_advection
   call initialise(scalar_linear_system)
 
   ! Create stiffness matrix
-  call set_global_size(par_env, square_mesh, mat_sizes)
+  call set_size(par_env, square_mesh, mat_sizes)
   call set_nnz(5, mat_sizes) 
   call create_matrix(mat_sizes, M)
 
   ! Create right-hand-side and solution vectors
-  call set_global_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar%vec)
