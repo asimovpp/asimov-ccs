@@ -173,18 +173,18 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
 
     ! Set mode
-    u_vals%mode = add_mode
-    v_vals%mode = add_mode
+    u_vals%setter_mode = add_mode
+    v_vals%setter_mode = add_mode
 
     ! Set alias
     associate(n_local => cell_mesh%nlocal)
       ! Allocate temporary arrays for storing global cell indices 
-      allocate(u_vals%idx(n_local))
-      allocate(v_vals%idx(n_local))
+      allocate(u_vals%indices(n_local))
+      allocate(v_vals%indices(n_local))
 
       ! Allocate temporary arrays for storing values
-      allocate(u_vals%val(n_local))
-      allocate(v_vals%val(n_local))
+      allocate(u_vals%values(n_local))
+      allocate(v_vals%values(n_local))
 
       ! Set initial values for velocity fields
       do local_idx = 1, n_local
@@ -203,7 +203,10 @@ contains
     call set_values(u_vals, u%vec)
     call set_values(v_vals, v%vec)
 
-    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
+    deallocate(u_vals%indices)
+    deallocate(v_vals%indices)
+    deallocate(u_vals%values)
+    deallocate(v_vals%values)
 
     call get_vector_data(u%vec, u_data)
     call get_vector_data(v%vec, v_data)

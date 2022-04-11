@@ -260,10 +260,10 @@ contains
 
     real(ccs_real) :: V
     
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
 
-    vec_values%mode = add_mode
+    vec_values%setter_mode = add_mode
 
     ! Temporary storage for p values
     call get_vector_data(pgrad, pgrad_data)
@@ -281,8 +281,8 @@ contains
 
     end do
 
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
+    deallocate(vec_values%indices)
+    deallocate(vec_values%values)
 
     call restore_vector_data(pgrad, pgrad_data)
     
@@ -350,11 +350,11 @@ contains
     call scale(-1.0_ccs_real, vec)
     call update(vec)
     
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
 
     mat_coeffs%mode = insert_mode
-    vec_values%mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
+    vec_values%setter_mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
     call update(M)
     
@@ -505,9 +505,9 @@ contains
     
     real(ccs_real) :: mib !> Cell mass imbalance
 
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-    vec_values%mode = insert_mode
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
+    vec_values%setter_mode = insert_mode
 
     ! First zero RHS
     call zero(b)

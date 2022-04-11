@@ -144,12 +144,12 @@ contains
 
     type(cell_locator) :: cell_location
     real(ccs_real), dimension(ndim) :: cc
-    real(ccs_real) :: V
+    real(ccs_real) :: V 
     integer(ccs_int) :: idxg
     
-    val_dat%mode = add_mode
-    allocate(val_dat%idx(1))
-    allocate(val_dat%val(1))
+    val_dat%setter_mode = add_mode
+    allocate(val_dat%indices(1))
+    allocate(val_dat%values(1))
 
     associate(nloc => square_mesh%nlocal, &
          h => square_mesh%h)
@@ -170,8 +170,8 @@ contains
       end do
     end associate
     
-    deallocate(val_dat%idx)
-    deallocate(val_dat%val)
+    deallocate(val_dat%indices)
+    deallocate(val_dat%values)
     
   end subroutine eval_rhs
 
@@ -293,11 +293,11 @@ contains
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
     allocate(mat_coeffs%val(1))
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
 
     mat_coeffs%mode = add_mode
-    vec_values%mode = add_mode
+    vec_values%setter_mode = add_mode
 
     do i = 1, square_mesh%nlocal
       if (minval(square_mesh%nbidx(:, i)) < 0) then
@@ -340,8 +340,8 @@ contains
       end if
     end do
   
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
+    deallocate(vec_values%indices)
+    deallocate(vec_values%values)
   
   end subroutine apply_dirichlet_bcs
 
@@ -355,17 +355,17 @@ contains
     type(cell_locator) :: cell_location
     integer(ccs_int) :: idxg
     
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-    vec_values%mode = insert_mode
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
+    vec_values%setter_mode = insert_mode
     do i = 1, square_mesh%nlocal
       call set_cell_location(square_mesh, i, cell_location)
       call get_global_index(cell_location, idxg)
       call pack_entries(1, idxg, rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
+    deallocate(vec_values%indices)
+    deallocate(vec_values%values)
 
     call update(ustar)
   end subroutine set_exact_sol

@@ -127,14 +127,14 @@ program test_advection_coeff
     integer(ccs_int) :: local_idx, self_idx
     real(ccs_real) :: u_val, v_val
 
-    u_vals%mode = insert_mode
-    v_vals%mode = insert_mode
+    u_vals%setter_mode = insert_mode
+    v_vals%setter_mode = insert_mode
     
     associate(n_local => cell_mesh%nlocal)
-      allocate(u_vals%idx(n_local))
-      allocate(v_vals%idx(n_local))
-      allocate(u_vals%val(n_local))
-      allocate(v_vals%val(n_local))
+      allocate(u_vals%indices(n_local))
+      allocate(v_vals%indices(n_local))
+      allocate(u_vals%values(n_local))
+      allocate(v_vals%values(n_local))
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
@@ -159,7 +159,11 @@ program test_advection_coeff
     call update(u%vec)
     call update(v%vec)
     
-    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
+    deallocate(u_vals%indices)
+    deallocate(v_vals%indices)
+    deallocate(u_vals%values)
+    deallocate(v_vals%values)
+    
   end subroutine set_velocity_fields
 
   !> @brief Deallocates the velocity fields
