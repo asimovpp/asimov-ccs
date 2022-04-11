@@ -19,7 +19,7 @@ program poisson
   use constants, only : ndim, add_mode, insert_mode
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-       linear_system, linear_solver, mesh, cell_locator, face_locator, &
+       linear_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
        neighbour_locator, vector_values, matrix_values
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector
