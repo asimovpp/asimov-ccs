@@ -18,6 +18,13 @@
     - source setup_gitlab_runner_env
     - cd src
 
+.test_common:
+  artifacts:
+    when: always
+    reports:
+      junit: testing/tests/report.xml
+  
+
 #-----------------------------------------------------------------------------#
 
 build_ccs_gnu:
@@ -29,7 +36,9 @@ test_ccs_gnu:
   needs: 
     - job: build_ccs_gnu
       artifacts: false
-  extends: .setup_gnu
+  extends: 
+    - .setup_gnu
+    - .test_common
   script:
     - HOME=${CI_HOME} CMP=gnu make tests
 
@@ -44,7 +53,9 @@ test_ccs_intel:
   needs: 
     - job: build_ccs_intel
       artifacts: false
-  extends: .setup_intel
+  extends: 
+    - .setup_intel
+    - .test_common
   script:
     - HOME=${CI_HOME} CMP=intel make tests
 
@@ -59,7 +70,9 @@ test_ccs_intelx:
   needs: 
     - job: build_ccs_intelx
       artifacts: false
-  extends: .setup_intel
+  extends: 
+    - .setup_intel
+    - .test_common
   script:
     - HOME=${CI_HOME} CMP=intelx make tests
 
@@ -74,7 +87,9 @@ test_ccs_cray:
   needs: 
     - job: build_ccs_cray
       artifacts: false
-  extends: .setup_cray
+  extends: 
+    - .setup_cray
+    - .test_common
   script:
     - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
     - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
@@ -115,6 +130,7 @@ profile_ccs_gnu:
   artifacts:
     paths:
       - src/opt_info.txt
+  allow_failure: true
 
 profile_ccs_intel:
   needs: 
@@ -127,6 +143,7 @@ profile_ccs_intel:
     paths:
       - src/obj/*.html
       - src/*.html
+  allow_failure: true
 
 profile_ccs_cray:
   needs: 
@@ -139,3 +156,4 @@ profile_ccs_cray:
     paths:
       - src/obj/*.lst
       - src/*.lst
+  allow_failure: true

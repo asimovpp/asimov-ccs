@@ -42,17 +42,20 @@ TOOLS=$(CCS_DIR)/src/build_tools/
 DEP_PREFIX=$(OBJ_DIR)
 EXE_DEPS=$(DEP_PREFIX)/ccs_app.deps
 ALL_DEPS=$(DEP_PREFIX)/all.deps
+SMOD_DEPS=$(DEP_PREFIX)/submodules.deps
 TAG_DEPS=$(DEP_PREFIX)/build_tags.deps
 RULE_DEPS=$(DEP_PREFIX)/rules.deps
 
+# check makedepf90 version
+MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
+
 IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
-CASES = poisson
 
 ALL_SRC = $(shell find $(CCS_DIR)/src/ -type f -name '*.f90')
 ifeq ($(CCS_PROPRIETARY),yes)
   ALL_SRC += $(shell find $(CCS_PROPRIETARY_DIR)/src/ -type f -name '*.f90')
 endif
-SRC = $(shell $(PY) $(TOOLS)/filter-out.py $(IGNORE) "$(ALL_SRC)")
+SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
 ifeq ($(NEED_CMP),yes)
@@ -102,7 +105,7 @@ clean-tests:
 clean-full: clean clean-tests clean-docs
 
 $(ALL_DEPS): $(SRC)
-	makedepf90 -b $(OBJ_DIR) $(SRC) > $(ALL_DEPS)
+	if [ $(MAKEDEPF90_SMODS) = 0 ]; then makedepf90 -b $(OBJ_DIR) -S $(SMOD_DEPS) $(SRC) > $(ALL_DEPS); else makedepf90 -b $(OBJ_DIR) $(SRC) > $(ALL_DEPS); fi
 
 $(RULE_DEPS): $(ALL_DEPS)
 	$(PY) $(TOOLS)/fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
@@ -111,7 +114,7 @@ $(TAG_DEPS): $(SRC)
 	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
 
 $(EXE_DEPS): config.yaml $(ALL_DEPS)
-	$(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)
+	if [ $(MAKEDEPF90_SMODS) = 0 ]; then $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS) $(SMOD_DEPS); else $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS); fi
 
 ifeq ($(NEED_CMP),yes)
   #include $(ALL_DEPS)
