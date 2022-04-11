@@ -55,7 +55,7 @@ ALL_SRC = $(shell find $(CCS_DIR)/src/ -type f -name '*.f90')
 ifeq ($(CCS_PROPRIETARY),yes)
   ALL_SRC += $(shell find $(CCS_PROPRIETARY_DIR)/src/ -type f -name '*.f90')
 endif
-SRC = $(shell $(PY) $(TOOLS)/filter-out.py $(IGNORE) "$(ALL_SRC)")
+SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
 ifeq ($(NEED_CMP),yes)

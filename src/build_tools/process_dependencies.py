@@ -8,12 +8,12 @@ def parse_dependencies(filename):
   data = {}
   with open(filename, "r") as f:
     for line in f:
-      obj_files = [trim(x) for x in line.split(" ") if x[-2:] == ".o"]   
+      obj_files = [trim(x) for x in line.split(" ") if x[-2:] == ".o"]
       target = os.path.basename(obj_files[0])
       deps = [os.path.basename(x) for x in obj_files[1:]]
       if target in data:
         raise Exception("Error: found duplicate filename in source files:", target)
-      data[target] = deps 
+      data[target] = deps
   return data
 
 
@@ -55,11 +55,11 @@ def draw_dependencies_interactive(deps):
   import networkx as nx
   nt = Network('1000px', '1000px', directed=True)
   nt.toggle_physics(False)
-  
+
   g = nx.DiGraph(deps).reverse()
   layout = nx.spiral_layout(g)
   #layout = nx.kamada_kawai_layout(g)
-  
+
   nt.from_nx(g)
   scale = 1000
   for node in nt.nodes:
@@ -91,7 +91,7 @@ def minimise_deps(deps, main):
   while len(next_deps) > 0:
     dep = next_deps.pop()
     #if dep is already in min_deps, we have encountered a loop
-    if not dep in min_deps: 
+    if not dep in min_deps:
       min_deps[dep] = deps[dep]
       for d in deps[dep]:
         next_deps.append(d)

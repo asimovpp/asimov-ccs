@@ -1,8 +1,7 @@
 import sys
 import os
-import yaml
 import logging as log
-from collections import OrderedDict
+import yaml
 import process_dependencies as pdeps
 
 # define must-appear-together sets
@@ -20,7 +19,7 @@ conflicts = \
 
 
 def pretty_print(d):
-    return yaml.dump(d)
+  return yaml.dump(d)
 
 
 def check_for_conflicts(config):
@@ -42,7 +41,7 @@ def get_link_rule(config, deps):
   link_deps.append(config["main"])
   commons = pdeps.find_commons_custom(deps)
   log.debug("commons: %s", " ".join(commons))
-  link_deps = link_deps + commons 
+  link_deps = link_deps + commons
   # add files that have options
   link_deps = link_deps + [v for k,v in config["config"].items()]
 
@@ -52,18 +51,18 @@ def get_link_rule(config, deps):
 
 def apply_config_mapping(config, config_mapping):
   out = {"main": "", "config": {}}
-  
+
   if "main" in config:
     out["main"] = config["main"]
   else:
     raise Exception("config has to specify a main")
-  
+
   if "base" in config:
     base = config["base"]
     if base in config_mapping["bases"]:
-        out["config"].update(config_mapping["bases"][base]["defaults"])
+      out["config"].update(config_mapping["bases"][base]["defaults"])
     else:
-        raise Exception("base not found in config mapping", base)
+      raise Exception("base not found in config mapping", base)
   else:
     raise Exception("config has to specify a base")
 
@@ -73,14 +72,14 @@ def apply_config_mapping(config, config_mapping):
       for k,v in config["options"].items():
         if k in opts:
           if v in opts[k]:
-            out["config"][k] = v 
+            out["config"][k] = v
           else:
             raise Exception("option choice not found in config mapping", k)
         else:
           raise Exception("option category not found in config mapping", k)
     else:
       raise Exception("base does not allow options", base)
-  
+
   return out
 
 
@@ -104,12 +103,12 @@ def generate_minimal_deps(alldeps, main, submods_filename, config):
   submods = pdeps.parse_submodules(submods_filename)
   psmods = pdeps.find_possible_submods(deps, submods)
   old_psmods = []
-  while len(psmods) != len(old_psmods): 
+  while len(psmods) != len(old_psmods):
     for smod in psmods:
       if smod in config["config"].values():
         smod_deps = pdeps.minimise_deps(alldeps, smod)
         deps = merge_dep_graphs(deps, smod_deps)
-    old_psmods = psmods  
+    old_psmods = psmods
     psmods = pdeps.find_possible_submods(deps, submods)
 
   return deps
@@ -129,11 +128,11 @@ if __name__ == "__main__":
   if os.environ['CCS_PROPRIETARY'] == 'yes':
     config_mapping_filename = os.environ['CCS_PROPRIETARY_DIR'] + "/src/build_tools/config_mapping.yaml"
   else:
-   config_mapping_filename = sys.path[0] + "/config_mapping.yaml"
+    config_mapping_filename = sys.path[0] + "/config_mapping.yaml"
 
   with open(config_mapping_filename) as f:
     config_mapping = yaml.load(f, Loader=yaml.FullLoader)
-  
+
   with open(sys.argv[1]) as f:
     # TODO: make sure yaml dictionaries are loaded in the same order they are written
     # want to preserve the order of the config file so that overwriting behaviour is clear
@@ -145,7 +144,7 @@ if __name__ == "__main__":
   mapped_config = apply_config_mapping(config, config_mapping)
   log.debug("mapped config:\n%s", pretty_print(mapped_config))
   check_for_conflicts(mapped_config)
-  
+
   if len(sys.argv) > 4:
     mindeps = generate_minimal_deps(deps, mapped_config["main"], sys.argv[4], mapped_config)
     link_rule = get_min_link_rule(mindeps)
@@ -154,6 +153,6 @@ if __name__ == "__main__":
 
   log.debug("Configurator produced link rule:\n%s", link_rule)
   with open(sys.argv[3], "w") as f:
-      f.write(link_rule)
+    f.write(link_rule)
 
   sys.exit(0)

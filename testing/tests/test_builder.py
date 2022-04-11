@@ -1,7 +1,7 @@
 import sys
-import yaml
 import os
 import subprocess as sp
+import yaml
 
 config_file = sys.argv[1]
 output_stub = sys.argv[2]
@@ -10,7 +10,7 @@ test_src_obj = {x: output_stub + os.path.splitext(x)[0] + ".o" for x in sys.argv
 test_deps = output_stub + ".deps"
 smod_deps = output_stub + ".smod.deps"
 test_link = output_stub + ".link"
-test_exe = output_stub 
+test_exe = output_stub
 
 print("TEST BUILDER: starting")
 
