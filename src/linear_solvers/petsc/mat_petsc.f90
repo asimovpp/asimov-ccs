@@ -386,7 +386,13 @@ contains
 
   end subroutine
 
+<<<<<<< HEAD
   module subroutine set_matrix_diagonal(D, M)
+=======
+
+  module subroutine set_matrix_diagonal(D, M)
+
+>>>>>>> 26959870aabde93af1f01af6f036c844f41adf6e
     use petscmat, only : MatDiagonalSet
 
     class(vector), intent(in) :: D

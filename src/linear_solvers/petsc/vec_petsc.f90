@@ -415,6 +415,10 @@ contains
     end select
   end subroutine restore_vector_data
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 26959870aabde93af1f01af6f036c844f41adf6e
   module subroutine zero_vector(vec)
     use petscvec, only: VecZeroEntries
 

@@ -444,10 +444,19 @@ contains
   !
   !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !!       correctly updated on other PEs.
+<<<<<<< HEAD
   module subroutine update_gradient(cell_mesh, phi)
+=======
+>>>>>>> 26959870aabde93af1f01af6f036c844f41adf6e
 
+  module subroutine update_gradient(cell_mesh, phi)
+  
     type(mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: phi
+<<<<<<< HEAD
+=======
+
+>>>>>>> 26959870aabde93af1f01af6f036c844f41adf6e
 
     real(accs_real), dimension(:), pointer :: gradx_data, grady_data, gradz_data
     real(accs_real), dimension(:), allocatable :: gradx_old, grady_old, gradz_old
