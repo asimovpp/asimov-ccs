@@ -7,7 +7,7 @@ program facevalues
     use parallel, only: initialise_parallel_environment, &
                         cleanup_parallel_environment
     use types, only: vector_init_data, mesh, field, face_field
-    use utils, only: set_global_size, initialise
+    use utils, only: set_size, initialise
     use mesh_utils, only: build_square_mesh
     use vec, only: create_vector, set_vector_location
     use constants, only: face

@@ -11,19 +11,8 @@ program scalar_advection
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-<<<<<<< HEAD
-<<<<<<< HEAD
   use solver, only : create_solver, solve, set_linear_system
-  use utils, only : update, initialise, set_global_size
-=======
-  use solver, only : create_solver, solve, set_linear_system, axpy, norm
-  use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_size
->>>>>>> release-v0.2
-=======
-  use solver, only : create_solver, solve, set_linear_system
-  use utils, only : update, initialise, set_global_size
->>>>>>> 26959870aabde93af1f01af6f036c844f41adf6e
+  use utils, only : update, initialise, set_size
   use mesh_utils, only : build_square_mesh
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
