@@ -362,13 +362,8 @@ contains
 
     use petscmat, only: MatGetDiagonal
 
-<<<<<<< HEAD
     class(ccs_matrix), intent(in)  :: M
-    class(vector), intent(inout) :: D
-=======
-    class(matrix), intent(in)  :: M
     class(ccs_vector), intent(inout) :: D
->>>>>>> rename_vector
 
     integer(ccs_err) :: ierr !> Error code
 
