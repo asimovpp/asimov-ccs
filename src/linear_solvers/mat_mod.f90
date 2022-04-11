@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : ccs_int, ccs_real
-  use types, only : matrix, matrix_init_data, matrix_values, mesh, vector
+  use types, only : ccs_matrix, matrix_init_data, matrix_values, mesh, vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -36,18 +36,18 @@ module mat
      !> @param[out] M       - the matrix object
      module subroutine create_matrix(mat_dat, M)
        type(matrix_init_data), intent(in) :: mat_dat
-       class(matrix), allocatable, intent(out) :: M
+       class(ccs_matrix), allocatable, intent(out) :: M
      end subroutine
 
     module subroutine finalise_matrix(M)
-      class(matrix), intent(inout) :: M
+      class(ccs_matrix), intent(inout) :: M
     end subroutine
 
      !> @brief Interface to perform a parallel update of a matrix.
      !
      !> @param[in/out] M - the matrix
      module subroutine update_matrix(M)
-       class(matrix), intent(inout) :: M
+       class(ccs_matrix), intent(inout) :: M
      end subroutine
 
      !> @brief Interface to begin a parallel update of a matrix.
@@ -56,7 +56,7 @@ module mat
      !
      !> @details Begins the parallel update to allow overlapping comms and compute.
      module subroutine begin_update_matrix(M)
-       class(matrix), intent(inout) :: M
+       class(ccs_matrix), intent(inout) :: M
      end subroutine
 
      !> @brief Interface to end a parallel update of a matrix.
@@ -65,7 +65,7 @@ module mat
      !
      !> @details Ends the parallel update to allow overlapping comms and compute.
      module subroutine end_update_matrix(M)
-       class(matrix), intent(inout) :: M
+       class(ccs_matrix), intent(inout) :: M
      end subroutine
 
      !> @brief Interface to store one matrix coefficient and its index for later setting.
@@ -99,8 +99,8 @@ module mat
     !> @param[in,out] y     - matrix serving as input, overwritten with result
     module subroutine mat_axpy(alpha, x, y)
       real(ccs_real), intent(in) :: alpha
-      class(matrix), intent(in) :: x
-      class(matrix), intent(inout) :: y
+      class(ccs_matrix), intent(in) :: x
+      class(ccs_matrix), intent(inout) :: y
     end subroutine
 
     !> @brief Interface to compute the norm of a matrix
@@ -111,7 +111,7 @@ module mat
     !> @param[out] n         - the computed norm returned as the result of the function
     !!                         call.
     module function mat_norm(M, norm_type) result(n)
-      class(matrix), intent(in) :: M
+      class(ccs_matrix), intent(in) :: M
       integer(ccs_int), intent(in) :: norm_type
       real(ccs_real) :: n
     end function
@@ -123,7 +123,7 @@ module mat
      !> @param[in/out] M          - the matrix
      module subroutine set_matrix_values(mat_values, M)
        type(matrix_values), intent(in) :: mat_values
-       class(matrix), intent(inout) :: M
+       class(ccs_matrix), intent(inout) :: M
      end subroutine
 
      !> @brief Interface to set equation
@@ -136,7 +136,7 @@ module mat
      !!          the corresponding entry in the right-hand side vector.
      module subroutine set_eqn(rows, M)
        integer(ccs_int), dimension(:), intent(in) :: rows
-       class(matrix), intent(inout) :: M
+       class(ccs_matrix), intent(inout) :: M
      end subroutine
 
     !> @brief Constructor for default matrix values
@@ -172,17 +172,17 @@ module mat
     !> @param[in]  M - the matrix
     !> @param[out] D - a vector containing the diagonal elements of M
     module subroutine get_matrix_diagonal(M, D)
-      class(matrix), intent(in)  :: M
+      class(ccs_matrix), intent(in)  :: M
       class(vector), intent(inout) :: D
     end subroutine get_matrix_diagonal
 
     module subroutine set_matrix_diagonal(D, M)
       class(vector), intent(in) :: D
-      class(matrix), intent(inout) :: M
+      class(ccs_matrix), intent(inout) :: M
     end subroutine set_matrix_diagonal
 
     module subroutine zero_matrix(M)
-      class(matrix), intent(inout) :: M
+      class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix
     
   end interface

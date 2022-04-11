@@ -32,8 +32,8 @@ contains
     class(field), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
-    integer(ccs_int), intent(in) :: cps
-    class(matrix), intent(inout) :: M   
+    integer(ccs_int), intent(in) :: cps  
+    class(ccs_matrix), intent(inout) :: M   
     class(vector), intent(inout) :: vec   
 
     integer(ccs_int) :: n_int_cells
@@ -81,7 +81,7 @@ contains
     real(ccs_real), dimension(:), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: n_int_cells
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: self_loc
@@ -225,7 +225,7 @@ contains
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
 
     type(matrix_values) :: mat_coeffs

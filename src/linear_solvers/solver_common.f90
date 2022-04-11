@@ -26,7 +26,7 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     class(vector), allocatable, target, intent(in) :: rhs
     class(vector), allocatable, target, intent(in) :: solution
-    class(matrix), allocatable, target, intent(in) :: mat
+    class(ccs_matrix), allocatable, target, intent(in) :: mat
     type(linear_system), intent(inout) :: lin_sys
 
     lin_sys%rhs => rhs

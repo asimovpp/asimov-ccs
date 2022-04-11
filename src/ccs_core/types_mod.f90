@@ -16,8 +16,8 @@ module types
   end type vector
 
   !> @brief Stub type for matrices to be extended in sub-modules.
-  type, public :: matrix
-  end type matrix
+  type, public :: ccs_matrix
+  end type ccs_matrix
 
   !> @brief Container type for data required to initialise a vector.
   type, public :: vector_init_data
@@ -57,7 +57,7 @@ module types
   type, public :: linear_system
     class(vector), pointer :: sol !> Solution vector
     class(vector), pointer :: rhs !> Right-hand side vector
-    class(matrix), pointer :: M   !> Matrix
+    class(ccs_matrix), pointer :: M   !> Matrix
     class(parallel_environment), pointer :: par_env !> The parallel environment
   end type linear_system
   

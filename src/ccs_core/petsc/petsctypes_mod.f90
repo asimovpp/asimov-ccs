@@ -10,7 +10,7 @@ module petsctypes
   use petscmat, only : tMat
 
   use kinds, only : ccs_err, ccs_int
-  use types, only : vector, matrix, linear_solver
+  use types, only : vector, ccs_matrix, linear_solver
   
   implicit none
 
@@ -29,7 +29,7 @@ module petsctypes
   end type vector_petsc
 
   !> @brief Implements the matrix class backed by a PETSc matrix
-  type, public, extends(matrix) :: matrix_petsc
+  type, public, extends(ccs_matrix) :: matrix_petsc
      type(tMat) :: M      !> The PETSc matrix
      logical :: allocated !> Indicates whether the PETSc matrix has been allocated
     integer(ccs_int) :: mode !> Current mode for setting values

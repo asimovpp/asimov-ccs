@@ -23,7 +23,7 @@ contains
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
-    class(matrix), allocatable, intent(out) :: M
+    class(ccs_matrix), allocatable, intent(out) :: M
 
     integer(ccs_err) :: ierr  !> Error code
 
@@ -76,7 +76,7 @@ contains
 
     use petscmat, only : MAT_FINAL_ASSEMBLY
     
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr
 
@@ -93,7 +93,7 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine update_matrix(M)
 
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     select type(M)
       type is (matrix_petsc)
@@ -116,7 +116,7 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine begin_update_matrix(M)
 
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr !> Error code
 
@@ -140,7 +140,7 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine end_update_matrix(M)
 
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr !> Error code
 
@@ -190,7 +190,7 @@ contains
     use constants, only : insert_mode, add_mode
     
     type(matrix_values), intent(in) :: mat_values
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_int) :: nrows, ncols !> number of rows/columns
     integer(ccs_int) :: mode !> Add or insert values?
@@ -256,7 +256,7 @@ contains
     use petscmat, only : MatZeroRows
 
     integer(ccs_int), dimension(:), intent(in) :: rows
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr
     
@@ -286,8 +286,8 @@ contains
     use petscmat, only : MatAXPY, DIFFERENT_NONZERO_PATTERN
     
     real(ccs_real), intent(in) :: alpha
-    class(matrix), intent(in) :: x
-    class(matrix), intent(inout) :: y
+    class(ccs_matrix), intent(in) :: x
+    class(ccs_matrix), intent(inout) :: y
 
     integer(ccs_err) :: ierr !> Error code
     
@@ -325,7 +325,7 @@ contains
 
     use petscmat, only : NORM_1, NORM_FROBENIUS, NORM_INFINITY, MatNorm
     
-    class(matrix), intent(in) :: M
+    class(ccs_matrix), intent(in) :: M
     integer(ccs_int), intent(in) :: norm_type
 
     real(ccs_real) :: n      !> The computed norm 
@@ -362,7 +362,7 @@ contains
 
     use petscmat, only: MatGetDiagonal
 
-    class(matrix), intent(in)  :: M
+    class(ccs_matrix), intent(in)  :: M
     class(vector), intent(inout) :: D
 
     integer(ccs_err) :: ierr !> Error code
@@ -390,7 +390,7 @@ contains
     use petscmat, only : MatDiagonalSet
 
     class(vector), intent(in) :: D
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr
     
@@ -417,7 +417,7 @@ contains
 
     use petscmat, only: MatZeroEntries
     
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr
 
