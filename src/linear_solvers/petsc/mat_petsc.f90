@@ -386,9 +386,11 @@ contains
 
   end subroutine
 
-  module procedure set_matrix_diagonal
-
+  module subroutine set_matrix_diagonal(D, M)
     use petscmat, only : MatDiagonalSet
+
+    class(vector), intent(in) :: D
+    class(matrix), intent(inout) :: M
 
     integer(accs_err) :: ierr
     
@@ -409,7 +411,7 @@ contains
       stop
     end select
 
-  end procedure set_matrix_diagonal
+  end subroutine set_matrix_diagonal
 
   module subroutine zero_matrix(M)
 

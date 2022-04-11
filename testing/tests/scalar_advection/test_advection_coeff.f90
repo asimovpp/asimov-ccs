@@ -14,7 +14,7 @@ program test_advection_coeff
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
   use utils, only : update, initialise, &
-                set_global_size, pack_entries, set_values
+                set_size, pack_entries, set_values
   use petsctypes, only: vector_petsc
 
   type(mesh) :: square_mesh
@@ -52,7 +52,7 @@ program test_advection_coeff
       end if
 
       call initialise(vec_sizes)
-      call set_global_size(par_env, square_mesh, vec_sizes)
+      call set_size(par_env, square_mesh, vec_sizes)
       call create_vector(vec_sizes, scalar%vec)
       call create_vector(vec_sizes, u%vec)
       call create_vector(vec_sizes, v%vec)

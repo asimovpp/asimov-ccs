@@ -25,8 +25,14 @@ program poisson
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system, axpy, norm
+<<<<<<< HEAD
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_global_size, set_values, pack_entries
+=======
+  use utils, only : update, begin_update, end_update, &
+                    finalise, initialise, &
+                    set_size
+>>>>>>> release-v0.2
   use mesh_utils, only : build_square_mesh
   use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
        count_neighbours, get_boundary_status
@@ -70,7 +76,7 @@ program poisson
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_global_size(par_env, square_mesh, mat_sizes)
+  call set_size(par_env, square_mesh, mat_sizes)
   call set_nnz(5, mat_sizes)
   call create_matrix(mat_sizes, M)
 
@@ -79,7 +85,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_global_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)
