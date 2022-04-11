@@ -5,13 +5,12 @@
 
 submodule (fv) fv_common
 
-  use constants, only : add_mode, insert_mode, ndim
+  use constants, only: add_mode, insert_mode, ndim
   use types, only: vector_values, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
-  use meshing, only : 
   use vec, only: get_vector_data, restore_vector_data
-  use utils, only : pack_entries, set_values, update
-  use meshing, only : count_neighbours, get_boundary_status, set_neighbour_location, &
+  use utils, only: pack_entries, set_values, update
+  use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
 
