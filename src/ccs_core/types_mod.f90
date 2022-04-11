@@ -45,10 +45,10 @@ module types
 
   !> @brief Container type for setting values in a matrix.
   type, public :: matrix_values
-    integer(ccs_int), dimension(:), allocatable :: rglob !> Array of (global) row indices to set values on.
-    integer(ccs_int), dimension(:), allocatable :: cglob !> Array of (global) column indices to set values on.
-    real(ccs_real), dimension(:), allocatable :: val     !> Array of values, must be logically 2D and 
-                                                          !! of size = size(rglob) * size(cglob). Uses 
+    integer(ccs_int), dimension(:), allocatable :: row_indices !> Array of (global) row indices to set values on.
+    integer(ccs_int), dimension(:), allocatable :: col_indices !> Array of (global) column indices to set values on.
+    real(ccs_real), dimension(:), allocatable :: values     !> Array of values, must be logically 2D and 
+                                                          !! of size = size(row_indices) * size(col_indices). Uses 
                                                           !! row-major ordering.
     integer(ccs_int) :: mode !> Which mode to use when setting values?
   end type matrix_values

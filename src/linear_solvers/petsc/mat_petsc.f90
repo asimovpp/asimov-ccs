@@ -169,13 +169,13 @@ contains
     integer(ccs_int) :: nc
     integer(ccs_int) :: validx
 
-    mat_coeffs%rglob(row_entry) = row - 1
-    mat_coeffs%cglob(col_entry) = col - 1
+    mat_coeffs%row_indices(row_entry) = row - 1
+    mat_coeffs%col_indices(col_entry) = col - 1
 
-    nc = size(mat_coeffs%cglob)
+    nc = size(mat_coeffs%col_indices)
 
     validx = (row_entry - 1) * nc + col_entry
-    mat_coeffs%val(validx) = coeff
+    mat_coeffs%values(validx) = coeff
     
   end subroutine pack_one_matrix_coefficient
 
@@ -197,9 +197,9 @@ contains
     
     integer(ccs_err) :: ierr !> Error code
 
-    associate(ridx    => mat_values%rglob, &
-              cidx    => mat_values%cglob, &
-              val     => mat_values%val, &
+    associate(ridx    => mat_values%row_indices, &
+              cidx    => mat_values%col_indices, &
+              val     => mat_values%values, &
               matmode => mat_values%mode)
     
       select type (M)

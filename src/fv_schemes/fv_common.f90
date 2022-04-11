@@ -103,9 +103,9 @@ contains
 
     mat_coeffs%mode = add_mode
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(n_int_cells))
-    allocate(mat_coeffs%val(n_int_cells))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(n_int_cells))
+    allocate(mat_coeffs%values(n_int_cells))
 
     do local_idx = 1, cell_mesh%nlocal
       ! Calculate contribution from neighbours
@@ -165,7 +165,7 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
   !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
@@ -250,9 +250,9 @@ contains
     mat_coeffs%mode = add_mode
     b_coeffs%mode = add_mode
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%values(1))
     allocate(b_coeffs%idx(1))
     allocate(b_coeffs%val(1))
 
@@ -296,7 +296,7 @@ contains
         end if
       end do
     end do
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
     deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_boundary_coeffs
 

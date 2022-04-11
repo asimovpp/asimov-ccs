@@ -38,9 +38,9 @@ contains
     integer(ccs_int) :: j
     integer(ccs_int) :: idx_range
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(stencil_size))
-    allocate(mat_coeffs%val(stencil_size))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(stencil_size))
+    allocate(mat_coeffs%values(stencil_size))
     
     coeff_p = 0.0
     
@@ -57,21 +57,21 @@ contains
     cidx = 1
     call pack_entries(mat_coeffs, 1, 1, ridx, cidx, coeff_p)
 
-    if (size(mat_coeffs%rglob) > 1) then
-      idx_range = maxval(mat_coeffs%rglob) - (minval(mat_coeffs%rglob) - 1)
+    if (size(mat_coeffs%row_indices) > 1) then
+      idx_range = maxval(mat_coeffs%row_indices) - (minval(mat_coeffs%rglob) - 1)
     else
       idx_range = 0
     end if
     @assertTrue(idx_range <= stencil_size)
 
-    if (size(mat_coeffs%cglob) > 1) then
-      idx_range = maxval(mat_coeffs%cglob) - (minval(mat_coeffs%cglob) - 1)
+    if (size(mat_coeffs%col_indices) > 1) then
+      idx_range = maxval(mat_coeffs%col_indices) - (minval(mat_coeffs%cglob) - 1)
     else
       idx_range = 0
     end if
     @assertTrue(idx_range <= stencil_size)
     
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
     
   end subroutine test_mat_packing
   

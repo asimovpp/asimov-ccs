@@ -219,9 +219,9 @@ contains
       call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
-      allocate(mat_coeffs%rglob(1))
-      allocate(mat_coeffs%cglob(1 + nnb))
-      allocate(mat_coeffs%val(1 + nnb))
+      allocate(mat_coeffs%row_indices(1))
+      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%values(1 + nnb))
 
       row = idxg
       coeff_p = 0.0_ccs_real
@@ -258,7 +258,7 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+      deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
         
     end do
     
@@ -290,9 +290,9 @@ contains
     integer(ccs_int) :: nnb
     logical :: is_boundary
     
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%values(1))
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
 
