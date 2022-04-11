@@ -37,11 +37,11 @@ module types
   end type vector_values
 
   !> @brief Container type for data required to initialise a matrix.
-  type, public :: matrix_init_data
+  type, public :: matrix_spec
     type(ccs_mesh), pointer :: mesh                     !> The mesh
     class(parallel_environment), pointer :: par_env !> The parallel environment
     integer(ccs_int) :: nnz                        !> Non-zeros per row
-  end type matrix_init_data
+  end type matrix_spec
 
   !> @brief Container type for setting values in a matrix.
   type, public :: matrix_values
