@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : accs_real, accs_int
-  use types, only : mesh, vector, vector_init_data, vector_values
+  use types, only : ccs_mesh, vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -141,7 +141,7 @@ module vec
     !> param[in/out] vector_descriptor - the vector data object
     module subroutine set_vector_size(par_env, geometry, vector_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
-      class(mesh), target, intent(in) :: geometry
+      class(ccs_mesh), target, intent(in) :: geometry
       type(vector_init_data), intent(inout) :: vector_descriptor
     end subroutine set_vector_size
 

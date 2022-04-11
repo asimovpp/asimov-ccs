@@ -3,7 +3,7 @@ module mesh_utils
   use constants, only : ndim
   
   use kinds, only: accs_int, accs_real
-  use types, only: mesh, face_locator, cell_locator, neighbour_locator
+  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
@@ -51,7 +51,7 @@ contains
     integer(accs_int), intent(in) :: nps
     real(accs_real), intent(in) :: l
 
-    type(mesh) :: square_mesh
+    type(ccs_mesh) :: square_mesh
 
     integer(accs_int) :: istart    !> The (global) starting index of a partition
     integer(accs_int) :: iend      !> The (global) last index of a partition
@@ -261,7 +261,7 @@ contains
     integer(accs_int), intent(in) :: nbctr
     integer(accs_int), intent(in) :: nbidx
     integer(accs_int), intent(in) :: nbidxg
-    type(mesh), intent(inout) :: meshobj
+    type(ccs_mesh), intent(inout) :: meshobj
 
     integer(accs_int) :: ng !> The current number of cells (total = local + halos)
     logical :: found        !> Indicates whether a halo cell was already present
@@ -343,7 +343,7 @@ contains
   function count_mesh_faces(cell_mesh) result(nfaces)
 
     ! Arguments
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
 
     ! Result
     integer(accs_int) :: nfaces
@@ -400,7 +400,7 @@ contains
   subroutine set_cell_face_indices(cell_mesh)
 
     ! Arguments
-    type(mesh), intent(inout) :: cell_mesh
+    type(ccs_mesh), intent(inout) :: cell_mesh
 
     ! Local variables
     type(cell_locator) :: self_loc !> Current cell

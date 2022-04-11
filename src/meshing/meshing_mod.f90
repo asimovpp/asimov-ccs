@@ -6,7 +6,7 @@ module meshing
 
   use constants, only : ndim
   use kinds, only : accs_int, accs_real
-  use types, only : mesh, face_locator, cell_locator, neighbour_locator
+  use types, only : ccs_mesh, face_locator, cell_locator, neighbour_locator
   
   implicit none
 
@@ -74,7 +74,7 @@ module meshing
     !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
     !!                                          the mesh.
   module subroutine set_cell_location(geometry, cell_idx, cell_location)
-      type(mesh), target, intent(in) :: geometry
+      type(ccs_mesh), target, intent(in) :: geometry
       integer(accs_int), intent(in) :: cell_idx
       type(cell_locator), intent(out) :: cell_location
     end subroutine set_cell_location
@@ -90,7 +90,7 @@ module meshing
     !> @param[out] face_locator face_location - the face locator object linking a cell-relative
     !!                                          index with the mesh.
     module subroutine set_face_location(geometry, cell_idx, cell_face_ctr, face_location)
-      type(mesh), target, intent(in) :: geometry
+      type(ccs_mesh), target, intent(in) :: geometry
       integer(accs_int), intent(in) :: cell_idx
       integer(accs_int), intent(in) :: cell_face_ctr
       type(face_locator), intent(out) :: face_location
@@ -117,7 +117,7 @@ module meshing
       integer(accs_int), intent(in) :: cell_idx
       integer(accs_int), intent(in) :: cell_face_ctr
       integer(accs_int), intent(in) :: face_idx
-      type(mesh), target, intent(inout) :: geometry
+      type(ccs_mesh), target, intent(inout) :: geometry
     end subroutine set_face_index
 
     !> @brief Returns the normal vector of a face

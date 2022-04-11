@@ -7,7 +7,7 @@ program scalar_advection
   !! ASiMoV-CCS uses
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-                    linear_system, linear_solver, mesh, &
+                    linear_system, linear_solver, ccs_mesh, &
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
@@ -32,7 +32,7 @@ program scalar_advection
   type(vector_init_data) :: vec_sizes
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: scalar_linear_system
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
   class(field), allocatable :: mf          ! Prescribed face velocity field
@@ -114,7 +114,7 @@ contains
     use fv, only: calc_cell_coords
     use utils, only: pack_entries, set_values
 
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: mf
     integer(accs_int) :: row, col
     integer(accs_int) :: local_idx, self_idx

@@ -47,7 +47,7 @@ program poisson
   type(vector_init_data) :: vec_sizes
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: poisson_eq
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
 
   integer(accs_int) :: cps = 10 ! Default value for cells per side
 

@@ -5,7 +5,7 @@
 module pv_coupling
 
     use kinds, only : accs_int
-    use types, only: field, mesh
+    use types, only: field, ccs_mesh
     use parallel_types, only: parallel_environment
 
     implicit none
@@ -18,7 +18,7 @@ module pv_coupling
 
     module subroutine solve_nonlinear(par_env, cell_mesh, cps, it_start, it_end, u, v, p, pp, mf)
         class(parallel_environment), allocatable, intent(in) :: par_env
-        type(mesh), intent(in) :: cell_mesh
+        type(ccs_mesh), intent(in) :: cell_mesh
         integer(accs_int), intent(in) :: cps, it_start, it_end
         class(field), intent(inout) :: u, v, p, pp, mf
     end subroutine solve_nonlinear
