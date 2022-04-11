@@ -71,8 +71,8 @@ program scalar_advection
   call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
-  call create_vector(vec_sizes, scalar%vec)
-  call create_vector(vec_sizes, mf%vec)
+  call create_vector(vec_sizes, scalar%values)
+  call create_vector(vec_sizes, mf%values)
 
   ! Set advection velocity
   call set_advection_velocity(square_mesh, mf)
@@ -85,7 +85,7 @@ program scalar_advection
   call update(source) ! parallel assembly for source
 
   ! Create linear solver & set options
-  call set_linear_system(par_env, source, scalar%vec, M, scalar_linear_system)
+  call set_linear_system(par_env, source, scalar%values, M, scalar_linear_system)
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
   
@@ -145,7 +145,7 @@ contains
         call pack_entries(local_idx, self_idx, mf_val, mf_vals)
       end do
     end associate
-    call set_values(mf_vals, mf%vec)
+    call set_values(mf_vals, mf%values)
 
     deallocate(mf_vals%indices)
     deallocate(mf_vals%values)
