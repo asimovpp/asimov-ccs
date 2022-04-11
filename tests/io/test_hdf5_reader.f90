@@ -2,7 +2,7 @@
 
     use iso_fortran_env
     use testing_lib
-    use kinds, only : accs_int, accs_real
+    use kinds, only : ccs_int, ccs_real
     use io, only: initialise_io, cleanup_io, configure_io, &
                 open_file, close_file, &
                 read_scalar, read_array
@@ -15,26 +15,26 @@
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: test_reader
   
-    real(accs_real), dimension(:), allocatable :: real_var
-    integer(accs_int), dimension(:), allocatable :: int_var
+    real(ccs_real), dimension(:), allocatable :: real_var
+    integer(ccs_int), dimension(:), allocatable :: int_var
     integer(kind=8), dimension(1) :: sel_start
     integer(kind=8), dimension(1) :: sel_count
     integer, dimension(:), allocatable :: dist
   
-    integer(accs_int) :: irank !> MPI rank ID
-    integer(accs_int) :: isize !> Size of MPI world
-    integer(accs_int) :: i, j, k, ierror 
-    integer(accs_int) :: local_start
-    integer(accs_int) :: local_end
-    integer(accs_int) :: int_attr
+    integer(ccs_int) :: irank !> MPI rank ID
+    integer(ccs_int) :: isize !> Size of MPI world
+    integer(ccs_int) :: i, j, k, ierror 
+    integer(ccs_int) :: local_start
+    integer(ccs_int) :: local_end
+    integer(ccs_int) :: int_attr
 
-    integer(accs_int), parameter :: num_cells = 10
+    integer(ccs_int), parameter :: num_cells = 10
 
-    integer(accs_int) :: sum_int
-    integer(accs_int) :: loc_sum_int
+    integer(ccs_int) :: sum_int
+    integer(ccs_int) :: loc_sum_int
 
-    real(accs_real) :: sum_real
-    real(accs_real) :: loc_sum_real
+    real(ccs_real) :: sum_real
+    real(ccs_real) :: loc_sum_real
 
     call init()
 
@@ -92,7 +92,7 @@
 
     print*,"Real_var = ", real_var
 
-    print*,"Kind accs_real = ", kind(real_var(1))
+    print*,"Kind ccs_real = ", kind(real_var(1))
 
     loc_sum_int = 0
     loc_sum_real = 0.0

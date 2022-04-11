@@ -47,7 +47,7 @@ submodule (read_config) read_config_utils
   subroutine get_real_value(dict, keyword, real_val)
     class (*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
-    real(accs_real), intent(out)  :: real_val
+    real(ccs_real), intent(out)  :: real_val
 
     type(type_error), pointer :: io_err
 
@@ -204,13 +204,13 @@ submodule (read_config) read_config_utils
   module subroutine get_reference_number(config_file, p_ref, p_total, temp_ref, &
                                           dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), optional, intent(inout) :: p_ref
-    real(accs_real), optional, intent(inout) :: p_total
-    real(accs_real), optional, intent(inout) :: temp_ref
-    real(accs_real), optional, intent(inout) :: dens_ref
-    real(accs_real), optional, intent(inout) :: visc_ref
-    real(accs_real), optional, intent(inout) :: velo_ref
-    real(accs_real), optional, intent(inout) :: len_ref      
+    real(ccs_real), optional, intent(inout) :: p_ref
+    real(ccs_real), optional, intent(inout) :: p_total
+    real(ccs_real), optional, intent(inout) :: temp_ref
+    real(ccs_real), optional, intent(inout) :: dens_ref
+    real(ccs_real), optional, intent(inout) :: visc_ref
+    real(ccs_real), optional, intent(inout) :: velo_ref
+    real(ccs_real), optional, intent(inout) :: len_ref      
     integer, optional, intent(inout) :: pref_at_cell
 
     class(*), pointer :: dict
@@ -402,8 +402,8 @@ submodule (read_config) read_config_utils
   module subroutine get_transient(config_file, transient_type, dt, euler_blend, max_sub_steps)
     class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: transient_type
-    real(accs_real), intent(inout) :: dt
-    real(accs_real), intent(inout) :: euler_blend
+    real(ccs_real), intent(inout) :: dt
+    real(ccs_real), intent(inout) :: euler_blend
     integer, intent(inout) :: max_sub_steps
 
     class(*), pointer :: dict
@@ -442,7 +442,7 @@ submodule (read_config) read_config_utils
   !> @param[in,out] residual - convergence criterion
   module  subroutine get_target_residual(config_file, residual)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), intent(inout) :: residual
+    real(ccs_real), intent(inout) :: residual
 
     call get_value(config_file, "target_residual", residual)
 
@@ -529,11 +529,11 @@ submodule (read_config) read_config_utils
   !> @param[in,out] ed_blend - blending factor for ed
   module subroutine get_blending_factor(config_file, u_blend, v_blend, w_blend, te_blend, ed_blend)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), optional, intent(inout) :: u_blend
-    real(accs_real), optional, intent(inout) :: v_blend
-    real(accs_real), optional, intent(inout) :: w_blend
-    real(accs_real), optional, intent(inout) :: te_blend
-    real(accs_real), optional, intent(inout) :: ed_blend
+    real(ccs_real), optional, intent(inout) :: u_blend
+    real(ccs_real), optional, intent(inout) :: v_blend
+    real(ccs_real), optional, intent(inout) :: w_blend
+    real(ccs_real), optional, intent(inout) :: te_blend
+    real(ccs_real), optional, intent(inout) :: ed_blend
 
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
@@ -581,11 +581,11 @@ submodule (read_config) read_config_utils
   !> @param[in,out] ed_relax - relaxation factor for ed
   module subroutine get_relaxation_factor(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), optional, intent(inout) :: u_relax
-    real(accs_real), optional, intent(inout) :: v_relax
-    real(accs_real), optional, intent(inout) :: p_relax
-    real(accs_real), optional, intent(inout) :: te_relax
-    real(accs_real), optional, intent(inout) :: ed_relax
+    real(ccs_real), optional, intent(inout) :: u_relax
+    real(ccs_real), optional, intent(inout) :: v_relax
+    real(ccs_real), optional, intent(inout) :: p_relax
+    real(ccs_real), optional, intent(inout) :: te_relax
+    real(ccs_real), optional, intent(inout) :: ed_relax
 
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
@@ -727,7 +727,7 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-    real(accs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
+    real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
   
     type(type_error), pointer :: io_err
     integer :: num_boundaries = 0

@@ -14,16 +14,16 @@ program test_square_mesh_centres
   
   type (mesh) :: square_mesh
 
-  real(accs_real) :: l
-  integer(accs_int) :: n
+  real(ccs_real) :: l
+  integer(ccs_int) :: n
 
-  integer(accs_int) :: i
-  integer(accs_int) :: j
+  integer(ccs_int) :: i
+  integer(ccs_int) :: j
   
   type(cell_locator) :: cell_location
-  real(accs_real), dimension(ndim) :: cc
+  real(ccs_real), dimension(ndim) :: cc
   type(face_locator) :: face_location
-  real(accs_real), dimension(ndim) :: fc
+  real(ccs_real), dimension(ndim) :: fc
   
   call init()
   
@@ -35,8 +35,8 @@ program test_square_mesh_centres
       call set_cell_location(square_mesh, i, cell_location)
       call get_centre(cell_location, cc)
       associate(x => cc(1), y => cc(2))
-        if ((x > l) .or. (x < 0_accs_real) &
-             .or. (y > l) .or. (y < 0_accs_real)) then
+        if ((x > l) .or. (x < 0_ccs_real) &
+             .or. (y > l) .or. (y < 0_ccs_real)) then
           write (message,*) "FAIL: expected cell centre 0 <= x,y <= ", l, " got ", x, " ", y
           call stop_test(message)
         end if
@@ -47,8 +47,8 @@ program test_square_mesh_centres
           call set_face_location(square_mesh, i, j, face_location)
           call get_centre(face_location, fc)
           associate(x => fc(1), y => fc(2))
-            if ((x > (l + eps)) .or. (x < (0.0_accs_real - eps)) &
-                 .or. (y > (l + eps)) .or. (y < (0.0_accs_real - eps))) then
+            if ((x > (l + eps)) .or. (x < (0.0_ccs_real - eps)) &
+                 .or. (y > (l + eps)) .or. (y < (0.0_ccs_real - eps))) then
               write(message,*) "FAIL: expected face centre 0 <= x,y <= ", l, " got ", x, " ", y
               call stop_test(message)
             end if

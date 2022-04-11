@@ -13,19 +13,19 @@ program test_mesh_neighbours
   type(mesh), target :: square_mesh
   type(cell_locator) :: cell_location
 
-  integer(accs_int) :: n
-  real(accs_real) :: l
+  integer(ccs_int) :: n
+  real(ccs_real) :: l
 
-  integer(accs_int) :: i
+  integer(ccs_int) :: i
 
-  integer(accs_int) :: nnb
-  integer(accs_int) :: j
+  integer(ccs_int) :: nnb
+  integer(ccs_int) :: j
 
   type(neighbour_locator) :: nb_location
   logical :: is_boundary
-  integer(accs_int) :: boundary_ctr
-  integer(accs_int) :: global_boundary_ctr
-  integer(accs_int) :: expected_boundary_ctr
+  integer(ccs_int) :: boundary_ctr
+  integer(ccs_int) :: global_boundary_ctr
+  integer(ccs_int) :: expected_boundary_ctr
 
   call init()
   
@@ -93,11 +93,11 @@ contains
     
     type(neighbour_locator), intent(in) :: nb_location
 
-    integer(accs_int) :: nbidx
+    integer(ccs_int) :: nbidx
     type(cell_locator) :: nb_cell_location
-    integer(accs_int) :: nnb
+    integer(ccs_int) :: nnb
     logical :: found_parent
-    integer(accs_int) :: j
+    integer(ccs_int) :: j
     type(neighbour_locator) :: nbnb_location
     logical :: is_boundary
     logical :: is_local

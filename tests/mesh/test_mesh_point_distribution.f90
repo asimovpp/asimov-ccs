@@ -11,15 +11,15 @@ program test_mesh_point_distribution
   
   type(mesh) :: square_mesh
 
-  integer(accs_int) :: n
+  integer(ccs_int) :: n
 
-  integer(accs_int) :: n_expected
-  integer(accs_int) :: n_global
+  integer(ccs_int) :: n_expected
+  integer(ccs_int) :: n_global
   
   call init()
   
   do n = 1, 100
-    square_mesh = build_square_mesh(par_env, n, 1.0_accs_real)
+    square_mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
 
     associate(nlocal => square_mesh%nlocal)
       if (nlocal < 0) then

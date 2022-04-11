@@ -23,21 +23,21 @@ program test_compute_fluxes
   type(vector_init_data) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
-  integer(accs_int), parameter :: cps = 5
-  integer(accs_int) :: direction, discretisation
+  integer(ccs_int), parameter :: cps = 5
+  integer(ccs_int) :: direction, discretisation
   integer, parameter :: x_dir = 1, y_dir = 2
   integer, parameter :: central = -1
 
   call init()
 
-  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   bcs%region(1) = bc_region_left
   bcs%region(2) = bc_region_right
   bcs%region(3) = bc_region_top
   bcs%region(4) = bc_region_bottom
   bcs%bc_type(:) = bc_type_dirichlet
-  bcs%endpoints(:,:) = 1.0_accs_real
+  bcs%endpoints(:,:) = 1.0_ccs_real
     
   do direction = x_dir, y_dir
     discretisation = central
@@ -74,12 +74,12 @@ program test_compute_fluxes
   subroutine set_velocity_fields(cell_mesh, direction, u, v)
     use meshing, only: set_cell_location, get_global_index
     class(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: direction
+    integer(ccs_int), intent(in) :: direction
     class(field), intent(inout) :: u, v
     type(cell_locator) :: self_loc
     type(vector_values) :: u_vals, v_vals
-    integer(accs_int) :: local_idx, self_idx
-    real(accs_real) :: u_val, v_val
+    integer(ccs_int) :: local_idx, self_idx
+    real(ccs_real) :: u_val, v_val
 
     u_vals%mode = insert_mode
     v_vals%mode = insert_mode
@@ -96,15 +96,15 @@ program test_compute_fluxes
         call get_global_index(self_loc, self_idx)
 
         if (direction == x_dir) then
-          u_val = 1.0_accs_real
-          v_val = 0.0_accs_real
+          u_val = 1.0_ccs_real
+          v_val = 0.0_ccs_real
         else if (direction == y_dir) then
-          u_val = 0.0_accs_real
-          v_val = 1.0_accs_real
+          u_val = 0.0_ccs_real
+          v_val = 1.0_ccs_real
         end if
 
-        u_val = 0.0_accs_real
-        v_val = 0.0_accs_real
+        u_val = 0.0_ccs_real
+        v_val = 0.0_ccs_real
         
         call pack_entries(local_idx, self_idx, u_val, u_vals)
         call pack_entries(local_idx, self_idx, v_val, v_vals)
@@ -146,15 +146,15 @@ program test_compute_fluxes
     class(field), intent(in) :: u, v
     class(bc_config), intent(in) :: bcs
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: cps
-    integer(accs_int), intent(in) :: flow_direction
-    integer(accs_int), intent(in) :: discretisation
+    integer(ccs_int), intent(in) :: cps
+    integer(ccs_int), intent(in) :: flow_direction
+    integer(ccs_int), intent(in) :: discretisation
 
     class(ccs_matrix), allocatable :: M, M_exact
-    class(vector), allocatable :: b, b_exact
+    class(ccs_vector), allocatable :: b, b_exact
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
-    real(accs_real) :: error
+    real(ccs_real) :: error
     
     call initialise(mat_sizes)
     call initialise(vec_sizes)
@@ -176,7 +176,7 @@ program test_compute_fluxes
     call update(M_exact)
     call update(b_exact)
 
-    call axpy(-1.0_accs_real, M_exact, M)
+    call axpy(-1.0_ccs_real, M_exact, M)
     error = norm(M, 1)
 
     if (error .ge. eps) then
@@ -184,7 +184,7 @@ program test_compute_fluxes
       call stop_test(message)
     end if
     
-    call axpy(-1.0_accs_real, b_exact, b)
+    call axpy(-1.0_ccs_real, b_exact, b)
     error = norm(b, 2)
 
     if (error .ge. eps) then
@@ -211,18 +211,18 @@ program test_compute_fluxes
     use vec, only : zero_vector
     
     class(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: flow
-    integer(accs_int), intent(in) :: discretisation
-    integer(accs_int), intent(in) :: cps
+    integer(ccs_int), intent(in) :: flow
+    integer(ccs_int), intent(in) :: discretisation
+    integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b
+    class(ccs_vector), intent(inout) :: b
 
     ! type(vector_init_data) :: vec_sizes
     type(vector_values) :: vec_coeffs
-    real(accs_real) :: diff_coeff, adv_coeff
-    integer(accs_int) :: i, ii
-    integer(accs_int) :: row, col
-    integer(accs_int) :: vec_counter
+    real(ccs_real) :: diff_coeff, adv_coeff
+    integer(ccs_int) :: i, ii
+    integer(ccs_int) :: row, col
+    integer(ccs_int) :: vec_counter
 
     call initialise(vec_sizes)
     call set_size(par_env, cell_mesh, vec_sizes)
@@ -240,11 +240,11 @@ program test_compute_fluxes
 
     vec_counter = 1
     if (discretisation == central) then
-      adv_coeff = -1.0_accs_real
+      adv_coeff = -1.0_ccs_real
     else
-      adv_coeff = 0.0_accs_real
+      adv_coeff = 0.0_ccs_real
     endif
-    adv_coeff = 0.0_accs_real
+    adv_coeff = 0.0_ccs_real
 
     if (par_env%proc_id == 0) then
       if (flow == x_dir) then
@@ -264,7 +264,7 @@ program test_compute_fluxes
       end if
     else
       vec_coeffs%idx(:) = -1
-      vec_coeffs%val(:) = 0.0_accs_real
+      vec_coeffs%val(:) = 0.0_ccs_real
     endif
     call set_values(vec_coeffs, b)
     
@@ -276,7 +276,7 @@ program test_compute_fluxes
     ! allocate(vec_coeffs%val(4*cps))
 
     ! vec_counter = 1
-    ! diff_coeff = 0.0_accs_real !0.01_accs_real
+    ! diff_coeff = 0.0_ccs_real !0.01_ccs_real
     ! if (par_env%proc_id == 0) then
     !   do i = 1, cell_mesh%nglobal
     !     call calc_cell_coords(i, cps, row, col)
@@ -291,7 +291,7 @@ program test_compute_fluxes
     !   end do
     ! else
     !   vec_coeffs%idx(:) = -1
-    !   vec_coeffs%val(:) = 0.0_accs_real
+    !   vec_coeffs%val(:) = 0.0_ccs_real
     ! end if
     ! call set_values(vec_coeffs, b)
 
@@ -308,16 +308,16 @@ program test_compute_fluxes
   subroutine compute_exact_diffusion_matrix(cell_mesh, cps, M)
 
     class(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: cps
+    integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
 
-    real(accs_real) :: diff_coeff
+    real(ccs_real) :: diff_coeff
     
-    integer(accs_int) :: i, ii
-    integer(accs_int) :: j
-    integer(accs_int) :: mat_counter
+    integer(ccs_int) :: i, ii
+    integer(ccs_int) :: j
+    integer(ccs_int) :: mat_counter
 
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(5))
@@ -326,7 +326,7 @@ program test_compute_fluxes
 
     j = cps
     
-    diff_coeff = -0.01_accs_real
+    diff_coeff = -0.01_ccs_real
     ! Diffusion coefficients
     do i = 1, cell_mesh%nlocal
       mat_counter = 1
@@ -355,7 +355,7 @@ program test_compute_fluxes
 
       if (mat_counter < 6) then
         do j = mat_counter, cps
-          call pack_entries(1, mat_counter, ii, -1, 0.0_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, -1, 0.0_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end do
       end if
@@ -377,15 +377,15 @@ program test_compute_fluxes
   subroutine compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
 
     class(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: cps
-    integer(accs_int), intent(in) :: flow
-    integer(accs_int), intent(in) :: discretisation
+    integer(ccs_int), intent(in) :: cps
+    integer(ccs_int), intent(in) :: flow
+    integer(ccs_int), intent(in) :: discretisation
     class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
 
-    integer(accs_int) :: i, ii
-    integer(accs_int) :: mat_counter
+    integer(ccs_int) :: i, ii
+    integer(ccs_int) :: mat_counter
 
     mat_coeffs%mode = add_mode
     allocate(mat_coeffs%rglob(1))
@@ -400,19 +400,19 @@ program test_compute_fluxes
         mat_counter = 1
         ii = cell_mesh%idx_global(i)
         if (mod(ii, cps) == 1) then
-          call pack_entries(1, mat_counter, ii, ii, -0.3_accs_real, mat_coeffs) ! Make this more flexible so that the coeffs depend on cps
+          call pack_entries(1, mat_counter, ii, ii, -0.3_ccs_real, mat_coeffs) ! Make this more flexible so that the coeffs depend on cps
           mat_counter = mat_counter + 1
-          call pack_entries(1, mat_counter, ii, ii+1, 0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii+1, 0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         else if (mod(ii, cps) == 0) then
-          call pack_entries(1, mat_counter, ii, ii, -0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii, -0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
-          call pack_entries(1, mat_counter, ii, ii-1, -0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii-1, -0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         else
-          call pack_entries(1, mat_counter, ii, ii+1, 0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii+1, 0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
-          call pack_entries(1, mat_counter, ii, ii-1, -0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii-1, -0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
         call set_values(mat_coeffs, M)
@@ -423,19 +423,19 @@ program test_compute_fluxes
         mat_counter = 1
         ii = cell_mesh%idx_global(i)
         if (ii .le. cps) then
-          call pack_entries(1, mat_counter, ii, ii, -0.3_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii, -0.3_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         else if (ii > cell_mesh%nglobal - cps) then
-          call pack_entries(1, mat_counter, ii, ii, -0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii, -0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
 
         if (ii + cps .le. cell_mesh%nglobal) then
-          call pack_entries(1, mat_counter, ii, ii+cps, 0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii+cps, 0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
         if (ii - cps > 0) then
-          call pack_entries(1, mat_counter, ii, ii-cps, -0.1_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, ii, ii-cps, -0.1_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
         call set_values(mat_coeffs, M)

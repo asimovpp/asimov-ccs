@@ -43,12 +43,12 @@ submodule (parallel) parallel_utils_mpi
   module subroutine read_command_line_arguments(par_env, cps, case_name)
 
     class(parallel_environment), intent(in) :: par_env
-    integer(accs_int), optional, intent(inout) :: cps
+    integer(ccs_int), optional, intent(inout) :: cps
     character(len=:), optional, allocatable, intent(out) :: case_name
 
     character(len=1024) :: arg !> argument string
-    integer(accs_int) :: nargs !> number of arguments
-    integer(accs_int) :: arg_len
+    integer(ccs_int) :: nargs !> number of arguments
+    integer(ccs_int) :: arg_len
 
     arg_len = 0
 

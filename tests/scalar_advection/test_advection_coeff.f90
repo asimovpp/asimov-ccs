@@ -21,21 +21,21 @@ program test_advection_coeff
   type(vector_init_data) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
-  integer(accs_int), parameter :: cps = 50
-  integer(accs_int) :: self_idx, ngb_idx, local_idx
-  integer(accs_int) :: ngb
-  integer(accs_int) :: direction, discretisation
+  integer(ccs_int), parameter :: cps = 50
+  integer(ccs_int) :: self_idx, ngb_idx, local_idx
+  integer(ccs_int) :: ngb
+  integer(ccs_int) :: direction, discretisation
   integer, parameter :: x_dir = 1, y_dir = 2
   integer, parameter :: central = -1, upwind = -2
-  real(accs_real) :: face_area
-  real(accs_real), dimension(ndim) :: normal
-  real(accs_real), dimension(:), pointer :: u_data, v_data
+  real(ccs_real) :: face_area
+  real(ccs_real), dimension(ndim) :: normal
+  real(ccs_real), dimension(:), pointer :: u_data, v_data
   
   call init()
 
-  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  local_idx = int(0.5*square_mesh%nlocal + 2, accs_int)
+  local_idx = int(0.5*square_mesh%nlocal + 2, ccs_int)
   do direction = x_dir, y_dir
     do discretisation = upwind, central
       if (discretisation == central) then
@@ -90,12 +90,12 @@ program test_advection_coeff
   !> @param[out] face_area  - The surface area of the face between the cell and its neighbour
   !> @param[out] normal             - The face normal between the cell and its neighbour
   subroutine get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
-    integer(accs_int), intent(in) :: local_idx
-    integer(accs_int), intent(in) :: ngb
-    integer(accs_int), intent(out) :: self_idx
-    integer(accs_int), intent(out) :: ngb_idx
-    real(accs_real), intent(out) :: face_area
-    real(accs_real), intent(out), dimension(ndim) :: normal
+    integer(ccs_int), intent(in) :: local_idx
+    integer(ccs_int), intent(in) :: ngb
+    integer(ccs_int), intent(out) :: self_idx
+    integer(ccs_int), intent(out) :: ngb_idx
+    real(ccs_real), intent(out) :: face_area
+    real(ccs_real), intent(out), dimension(ndim) :: normal
 
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
@@ -120,12 +120,12 @@ program test_advection_coeff
   !> @param[out] u, v     - The velocity fields in x and y directions
   subroutine set_velocity_fields(cell_mesh, direction, u, v)
     class(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: direction
+    integer(ccs_int), intent(in) :: direction
     class(field), intent(inout), allocatable :: u, v
     type(cell_locator) :: self_loc
     type(vector_values) :: u_vals, v_vals
-    integer(accs_int) :: local_idx, self_idx
-    real(accs_real) :: u_val, v_val
+    integer(ccs_int) :: local_idx, self_idx
+    real(ccs_real) :: u_val, v_val
 
     u_vals%mode = insert_mode
     v_vals%mode = insert_mode
@@ -142,11 +142,11 @@ program test_advection_coeff
         call get_global_index(self_loc, self_idx)
 
         if (direction == x_dir) then
-          u_val = 1.0_accs_real
-          v_val = 0.0_accs_real
+          u_val = 1.0_ccs_real
+          v_val = 0.0_ccs_real
         else if (direction == y_dir) then
-          u_val = 0.0_accs_real
-          v_val = 1.0_accs_real
+          u_val = 0.0_ccs_real
+          v_val = 1.0_ccs_real
         end if
 
         call pack_entries(local_idx, self_idx, u_val, u_vals)
@@ -185,25 +185,25 @@ program test_advection_coeff
   !> @param[in] face_normal - The normal to the face between the cell and neighbour
   subroutine run_advection_coeff_test(phi, u, v, self_idx, ngb_idx, face_area, face_normal)
     class(field), intent(in) :: phi
-    real(accs_real), dimension(:), intent(in) :: u, v
-    integer(accs_int), intent(in) :: self_idx
-    integer(accs_int), intent(in) :: ngb_idx
-    real(accs_real), intent(in) :: face_area
-    real(accs_real), dimension(ndim), intent(in) :: face_normal
+    real(ccs_real), dimension(:), intent(in) :: u, v
+    integer(ccs_int), intent(in) :: self_idx
+    integer(ccs_int), intent(in) :: ngb_idx
+    real(ccs_real), intent(in) :: face_area
+    real(ccs_real), dimension(ndim), intent(in) :: face_normal
 
-    real(accs_real) :: coeff
-    real(accs_real) :: mf
-    real(accs_real) :: expected_coeff
+    real(ccs_real) :: coeff
+    real(ccs_real) :: mf
+    real(ccs_real) :: expected_coeff
 
     !! Compute mass flux
-    mf = 0.5_accs_real * (u(self_idx) + u(ngb_idx)) * face_normal(1) &
-         + 0.5_accs_real * (v(self_idx) + v(ngb_idx)) * face_normal(2)
+    mf = 0.5_ccs_real * (u(self_idx) + u(ngb_idx)) * face_normal(1) &
+         + 0.5_ccs_real * (v(self_idx) + v(ngb_idx)) * face_normal(2)
     
     select type(phi)
       type is(central_field)
-        call calc_advection_coeff(phi, mf, 0_accs_int, coeff)
+        call calc_advection_coeff(phi, mf, 0_ccs_int, coeff)
       type is(upwind_field)
-        call calc_advection_coeff(phi, mf, 0_accs_int, coeff)
+        call calc_advection_coeff(phi, mf, 0_ccs_int, coeff)
       class default
         write(message, *) "FAIL: incorrect velocity field discretisation"
         call stop_test(message)
@@ -212,9 +212,9 @@ program test_advection_coeff
 
     select type(phi)
       type is(upwind_field)
-        expected_coeff = min(mf * face_area, 0.0_accs_real)
+        expected_coeff = min(mf * face_area, 0.0_ccs_real)
       type is(central_field)
-        expected_coeff = 0.5_accs_real * (mf * face_area)
+        expected_coeff = 0.5_ccs_real * (mf * face_area)
       class default
         write(message, *) "FAIL: incorrect velocity field discretisation"
         call stop_test(message)

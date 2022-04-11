@@ -9,7 +9,7 @@ submodule (io) io_setup_adios2
   use adios2
   use adios2_types, only: adios2_env, adios2_io_process
   use parallel_types_mpi, only: parallel_environment_mpi
-  use kinds, only: accs_int, accs_real
+  use kinds, only: ccs_int, ccs_real
 
   implicit none
 
@@ -29,7 +29,7 @@ submodule (io) io_setup_adios2
     character (len=*), optional, intent(in) :: config_file
     class(io_environment), allocatable, intent(out) :: io_env
 
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     allocate(adios2_env :: io_env)
     
@@ -63,7 +63,7 @@ submodule (io) io_setup_adios2
   module subroutine cleanup_io(io_env)
     class(io_environment), intent(inout) :: io_env
 
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     select type(io_env)
       type is(adios2_env)
@@ -90,7 +90,7 @@ submodule (io) io_setup_adios2
     character (len=*), intent(in) :: process_name
     class(io_process), allocatable, intent(out) :: io_proc
 
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     allocate(adios2_io_process :: io_proc)
 
@@ -126,7 +126,7 @@ submodule (io) io_setup_adios2
     character (len=*), intent(in) :: mode
     class(io_process), intent(inout) :: io_proc
 
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     select type(io_proc)
       type is(adios2_io_process)
@@ -146,7 +146,7 @@ submodule (io) io_setup_adios2
   module subroutine close_file(io_proc)
     class(io_process), intent(inout) :: io_proc
 
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     select type(io_proc)
       type is(adios2_io_process)
@@ -163,7 +163,7 @@ submodule (io) io_setup_adios2
   ! @brief Return ADIOS2 values for read, write and append modes
   function get_mode(mode_name) result(mode)
     character (len=*), intent(in) :: mode_name
-    integer(accs_int) :: mode
+    integer(ccs_int) :: mode
 
     select case(mode_name)
       case ("read")

@@ -3,8 +3,8 @@
 !> @details Provides the interface to matrix objects.
 module mat
 
-  use kinds, only : accs_int, accs_real
-  use types, only : ccs_matrix, matrix_init_data, matrix_values, mesh, vector
+  use kinds, only : ccs_int, ccs_real
+  use types, only : ccs_matrix, matrix_init_data, matrix_values, mesh, ccs_vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -81,11 +81,11 @@ module mat
      !> @details Stores a matrix coefficient and associated row and column indices for later
      !!          setting, ensuring they are set appropriately for the backend.
      module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
-       integer(accs_int), intent(in) :: row_entry
-       integer(accs_int), intent(in) :: col_entry
-       integer(accs_int), intent(in) :: row
-       integer(accs_int), intent(in) :: col
-       real(accs_real), intent(in) :: coeff
+       integer(ccs_int), intent(in) :: row_entry
+       integer(ccs_int), intent(in) :: col_entry
+       integer(ccs_int), intent(in) :: row
+       integer(ccs_int), intent(in) :: col
+       real(ccs_real), intent(in) :: coeff
        type(matrix_values), intent(inout) :: mat_coeffs
      end subroutine pack_one_matrix_coefficient
 
@@ -98,7 +98,7 @@ module mat
     !> @param[in]     x     - an input matrix
     !> @param[in,out] y     - matrix serving as input, overwritten with result
     module subroutine mat_axpy(alpha, x, y)
-      real(accs_real), intent(in) :: alpha
+      real(ccs_real), intent(in) :: alpha
       class(ccs_matrix), intent(in) :: x
       class(ccs_matrix), intent(inout) :: y
     end subroutine
@@ -112,8 +112,8 @@ module mat
     !!                         call.
     module function mat_norm(M, norm_type) result(n)
       class(ccs_matrix), intent(in) :: M
-      integer(accs_int), intent(in) :: norm_type
-      real(accs_real) :: n
+      integer(ccs_int), intent(in) :: norm_type
+      real(ccs_real) :: n
     end function
      
      !> @brief Interface to set values in a matrix.
@@ -135,7 +135,7 @@ module mat
      !!          system matrix and setting the diagonal to one such that the solution is given by
      !!          the corresponding entry in the right-hand side vector.
      module subroutine set_eqn(rows, M)
-       integer(accs_int), dimension(:), intent(in) :: rows
+       integer(ccs_int), dimension(:), intent(in) :: rows
        class(ccs_matrix), intent(inout) :: M
      end subroutine
 
@@ -163,7 +163,7 @@ module mat
     !> param[in] nnz                   - the number of non-zeros
     !> param[in/out] matrix_descriptor - the matrix data object
     module subroutine set_nnz(nnz, matrix_descriptor)
-      integer(accs_int), intent(in) :: nnz
+      integer(ccs_int), intent(in) :: nnz
       type(matrix_init_data), intent(inout) :: matrix_descriptor
     end subroutine
 
@@ -173,11 +173,11 @@ module mat
     !> @param[out] D - a vector containing the diagonal elements of M
     module subroutine get_matrix_diagonal(M, D)
       class(ccs_matrix), intent(in)  :: M
-      class(vector), intent(inout) :: D
+      class(ccs_vector), intent(inout) :: D
     end subroutine get_matrix_diagonal
 
     module subroutine set_matrix_diagonal(D, M)
-      class(vector), intent(in) :: D
+      class(ccs_vector), intent(in) :: D
       class(ccs_matrix), intent(inout) :: M
     end subroutine set_matrix_diagonal
 
