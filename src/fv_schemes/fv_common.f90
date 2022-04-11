@@ -165,7 +165,9 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
+    deallocate(mat_coeffs%row_indices
+    deallocate(mat_coeffs%col_indices
+    deallocate(mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
   !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
@@ -296,7 +298,9 @@ contains
         end if
       end do
     end do
-    deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices
+    deallocate(mat_coeffs%values)
     deallocate(b_coeffs%idx, b_coeffs%val)
   end subroutine compute_boundary_coeffs
 

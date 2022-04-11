@@ -258,7 +258,9 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
+      deallocate(mat_coeffs%row_indices)
+      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%values)
         
     end do
     
