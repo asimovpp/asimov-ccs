@@ -7,8 +7,7 @@
 submodule (io) io_adios2
 
   use adios2
-  use adios2_types, only: adios2_env, adios2_io_process
-  use parallel_types_mpi, only: parallel_environment_mpi
+  use adios2_types, only: adios2_io_process
 
   implicit none
 
