@@ -17,7 +17,7 @@ contains
 
   !> @brief Create a PETSc-backed vector
   !
-  !> @param[in]  vector_init_data vec_dat - the data describing how the vector should be created.
+  !> @param[in]  vector_spec vec_dat - the data describing how the vector should be created.
   !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
 
@@ -25,7 +25,7 @@ contains
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                          VecCreate
     
-    type(vector_init_data), intent(in) :: vec_dat
+    type(vector_spec), intent(in) :: vec_dat
     class(ccs_vector), allocatable, intent(out) :: v
 
     integer(ccs_err) :: ierr !> Error code
@@ -42,7 +42,7 @@ contains
 
           associate(mesh => vec_dat%mesh)
 
-            select case(vec_dat%loc)
+            select case(vec_dat%storage_location)
             case (cell)
               call VecCreateGhost(par_env%comm, &
                    mesh%nlocal, PETSC_DECIDE, &
@@ -505,7 +505,7 @@ contains
 !     use petscvec, only: VecView
 !     use petscsys
     
-!     type(vector_init_data), intent(in) :: vec_dat
+!     type(vector_spec), intent(in) :: vec_dat
 !     class(ccs_vector), intent(in) :: vec
 
 !     PetscViewer :: viewer

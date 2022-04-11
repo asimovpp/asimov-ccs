@@ -6,7 +6,7 @@ program facevalues
     use parallel_types, only: parallel_environment
     use parallel, only: initialise_parallel_environment, &
                         cleanup_parallel_environment
-    use types, only: vector_init_data, ccs_mesh, field, face_field
+    use types, only: vector_spec, ccs_mesh, field, face_field
     use utils, only: set_size, initialise
     use mesh_utils, only: build_square_mesh
     use vec, only: create_vector, set_vector_location
@@ -17,7 +17,7 @@ program facevalues
     class(parallel_environment), allocatable, target :: par_env
     class(field), allocatable :: mf
 
-    type(vector_init_data) :: vec_sizes
+    type(vector_spec) :: vec_sizes
     type(ccs_mesh) :: square_mesh
 
     ! integer(ccs_int) :: nfaces

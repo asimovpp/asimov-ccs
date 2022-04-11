@@ -5,7 +5,7 @@
 submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: vector_init_data, ccs_vector, matrix_spec, ccs_matrix, linear_system, &
+  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, linear_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
@@ -46,7 +46,7 @@ contains
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invAu, invAv
     
-    type(vector_init_data) :: vec_sizes
+    type(vector_spec) :: vec_sizes
     type(matrix_spec) :: mat_sizes
     type(linear_system)    :: lin_system
     type(bc_config) :: bcs

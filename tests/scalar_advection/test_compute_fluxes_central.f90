@@ -20,7 +20,7 @@ program test_compute_fluxes
 
   type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs
-  type(vector_init_data) :: vec_sizes
+  type(vector_spec) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 5
@@ -152,7 +152,7 @@ program test_compute_fluxes
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
-    type(vector_init_data) :: vec_sizes
+    type(vector_spec) :: vec_sizes
     type(matrix_spec) :: mat_sizes
     real(ccs_real) :: error
     
@@ -217,7 +217,7 @@ program test_compute_fluxes
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b
 
-    ! type(vector_init_data) :: vec_sizes
+    ! type(vector_spec) :: vec_sizes
     type(vector_values) :: vec_coeffs
     real(ccs_real) :: diff_coeff, adv_coeff
     integer(ccs_int) :: i, ii
