@@ -51,7 +51,7 @@ program scalar_advection
   call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
 
   ! Set up the square mesh
-  square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
 
   ! Init velocities and scalar
   allocate(central_field :: mf)
@@ -63,12 +63,12 @@ program scalar_advection
   call initialise(scalar_linear_system)
 
   ! Create stiffness matrix
-  call set_global_size(mat_sizes, square_mesh, par_env)
-  call set_nnz(mat_sizes, 5) 
+  call set_global_size(par_env, square_mesh, mat_sizes)
+  call set_nnz(5, mat_sizes) 
   call create_matrix(mat_sizes, M)
 
   ! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh, par_env)
+  call set_global_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar%vec)
@@ -85,7 +85,7 @@ program scalar_advection
   call update(source) ! parallel assembly for source
 
   ! Create linear solver & set options
-  call set_linear_system(scalar_linear_system, source, scalar%vec, M, par_env)
+  call set_linear_system(par_env, source, scalar%vec, M, scalar_linear_system)
   call create_solver(scalar_linear_system, scalar_solver)
   call solve(scalar_solver)
   
@@ -132,7 +132,7 @@ contains
       
       ! Set IC velocity and scalar fields
       do local_idx = 1, n_local
-        call set_cell_location(self_loc, cell_mesh, local_idx)
+        call set_cell_location(cell_mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 
@@ -142,7 +142,7 @@ contains
 
         mf_val = u + v
         
-        call pack_entries(mf_vals, local_idx, self_idx, mf_val)
+        call pack_entries(local_idx, self_idx, mf_val, mf_vals)
       end do
     end associate
     call set_values(mf_vals, mf%vec)

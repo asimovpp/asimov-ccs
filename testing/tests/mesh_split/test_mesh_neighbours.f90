@@ -31,12 +31,12 @@ program test_mesh_neighbours
   
   do n = 1, 100 ! XXX: Need a test-wide variable nmax
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(n, l, par_env)
+    square_mesh = build_square_mesh(par_env, n, l)
 
     boundary_ctr = 0
     do i = 1, square_mesh%nlocal
 
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call count_neighbours(cell_location, nnb)
 
       if (nnb < 2) then
@@ -53,7 +53,7 @@ program test_mesh_neighbours
 
       ! Loop over neighbours
       do j = 1, nnb
-        call set_neighbour_location(nb_location, cell_location, j)
+        call set_neighbour_location(cell_location, j, nb_location)
         call get_boundary_status(nb_location, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
@@ -115,11 +115,11 @@ contains
       call get_local_status(nb_location, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call set_cell_location(nb_cell_location, mesh, nbidx)
+        call set_cell_location(mesh, nbidx, nb_cell_location)
         call count_neighbours(nb_cell_location, nnb)
         found_parent = .false.
         do j = 1, nnb
-          call set_neighbour_location(nbnb_location, nb_cell_location, j)
+          call set_neighbour_location(nb_cell_location, j, nbnb_location)
           call get_boundary_status(nbnb_location, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
             call get_local_index(nbnb_location, nbidx)

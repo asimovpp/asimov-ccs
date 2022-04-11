@@ -19,7 +19,7 @@ program test_mesh_point_distribution
   call init()
   
   do n = 1, 100
-    square_mesh = build_square_mesh(n, 1.0_accs_real, par_env)
+    square_mesh = build_square_mesh(par_env, n, 1.0_accs_real)
 
     associate(nlocal => square_mesh%nlocal)
       if (nlocal < 0) then

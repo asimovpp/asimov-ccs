@@ -110,14 +110,14 @@ contains
 
     do local_idx = 1, cell_mesh%nlocal
       ! Calculate contribution from neighbours
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
       mat_counter = 1
       adv_coeff_total = 0.0_accs_real
       diff_coeff_total = 0.0_accs_real
       do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
+        call set_neighbour_location(self_loc, j, ngb_loc)
         call get_boundary_status(ngb_loc, is_boundary)
 
         if (.not. is_boundary) then
@@ -126,7 +126,7 @@ contains
           call get_global_index(ngb_loc, ngb_idx)
           call get_local_index(ngb_loc, ngb_local_idx)
 
-          call set_face_location(face_loc, cell_mesh, local_idx, j)
+          call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
           call get_local_index(face_loc, idxf)
@@ -152,16 +152,16 @@ contains
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
           
-          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff)
+          call pack_entries(1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff, mat_coeffs)
           mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          call pack_entries(mat_coeffs, 1, mat_counter, self_idx, -1, 0.0_accs_real)
+          call pack_entries(1, mat_counter, self_idx, -1, 0.0_accs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
       end do
-      call pack_entries(mat_coeffs, 1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total))
+      call pack_entries(1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total), mat_coeffs)
       mat_counter = mat_counter + 1
       call set_values(mat_coeffs, M)
     end do
@@ -259,18 +259,18 @@ contains
 
     bc_counter = 1
     do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(self_loc, cell_mesh, local_idx)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
       ! Calculate contribution from neighbours
       do j = 1, n_ngb
-        call set_neighbour_location(ngb_loc, self_loc, j)
+        call set_neighbour_location(self_loc, j, ngb_loc)
         call get_boundary_status(ngb_loc, is_boundary)
         if (is_boundary) then
           ! call get_global_index(ngb_loc, ngb_idx)
           call get_local_index(ngb_loc, mesh_ngb_idx)
 
-          call set_face_location(face_loc, cell_mesh, local_idx, j)
+          call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
           call get_local_index(face_loc, idxf)
@@ -289,8 +289,8 @@ contains
 
           call calc_cell_coords(self_idx, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
-          call pack_entries(b_coeffs, 1, self_idx, -(adv_coeff + diff_coeff)*bc_value)
-          call pack_entries(mat_coeffs, 1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff))
+          call pack_entries(1, self_idx, -(adv_coeff + diff_coeff)*bc_value, b_coeffs)
+          call pack_entries(1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff), mat_coeffs)
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
           bc_counter = bc_counter + 1
@@ -322,13 +322,13 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call set_face_location(face_location, cell_mesh, local_self_idx, local_ngb_idx)
+    call set_face_location(cell_mesh, local_self_idx, local_ngb_idx, face_location)
     call get_face_area(face_location, face_area)
     call get_boundary_status(face_location, is_boundary)
 
-    call set_cell_location(loc_p, cell_mesh, local_self_idx)
+    call set_cell_location(cell_mesh, local_self_idx, loc_p)
     if (.not. is_boundary) then
-      call set_neighbour_location(loc_nb, loc_p, local_ngb_idx)
+      call set_neighbour_location(loc_p, local_ngb_idx, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
     else
       call get_distance(loc_p, face_location, dx)
@@ -379,8 +379,8 @@ contains
            idxp => loc_f%cell_idx, &
            j => loc_f%cell_face_ctr)
         
-        call set_cell_location(loc_p, mesh, idxp)
-        call set_neighbour_location(loc_nb, loc_p, j)
+        call set_cell_location(mesh, idxp, loc_p)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, idxnb)
 
         call get_face_normal(loc_f, face_normal)
@@ -536,14 +536,14 @@ contains
     do i = 1, cell_mesh%nlocal
       grad = 0.0_accs_int
       
-      call set_cell_location(loc_p, cell_mesh, i)
+      call set_cell_location(cell_mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_face_location(loc_f, cell_mesh, i, j)
+        call set_face_location(cell_mesh, i, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
 
         if (.not. is_boundary) then
-          call set_neighbour_location(loc_nb, loc_p, j)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, nb)
           phif = 0.5_accs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
@@ -561,7 +561,7 @@ contains
       grad = grad / V
       
       call get_global_index(loc_p, idxg)
-      call pack_entries(grad_values, 1, idxg, grad)
+      call pack_entries(1, idxg, grad, grad_values)
       call set_values(grad_values, gradient)
     end do
 

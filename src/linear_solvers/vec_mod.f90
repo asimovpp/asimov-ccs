@@ -90,11 +90,11 @@ module vec
     !
     !> @details Stores a vector element and associated index for later setting, ensuring they are
     !!          set appropriately for the backend.
-    module subroutine pack_one_vector_element(val_dat, ent, idx, val)
-      type(vector_values), intent(inout) :: val_dat
+    module subroutine pack_one_vector_element(ent, idx, val, val_dat)
       integer(accs_int), intent(in) :: ent
       integer(accs_int), intent(in) :: idx
       real(accs_real), intent(in) :: val
+      type(vector_values), intent(inout) :: val_dat
     end subroutine pack_one_vector_element
 
     !> @brief Interface to perform the AXPY vector operation.
@@ -133,17 +133,17 @@ module vec
 
     !> @brief Setter for vector size
     !
-    !> param[in/out] vector_descriptor - the vector data object
+    !> param[in]     par_env           - the parallel environment 
+    !!                                   where the vector resides
     !> param[in]     geometry          - the mesh - contains the
     !!                                   information to set the
     !!                                   vector size
-    !> param[in]     par_env           - the parallel environment 
-    !!                                   where the vector resides
-    module subroutine set_vector_size(vector_descriptor, geometry, par_env)
-      type(vector_init_data), intent(inout) :: vector_descriptor
-      class(mesh), target, intent(in) :: geometry
+    !> param[in/out] vector_descriptor - the vector data object
+    module subroutine set_vector_size(par_env, geometry, vector_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine
+      class(mesh), target, intent(in) :: geometry
+      type(vector_init_data), intent(inout) :: vector_descriptor
+    end subroutine set_vector_size
 
     !> @brief Gets the data in a given vector
     !
@@ -165,9 +165,9 @@ module vec
 
     !> @brief Set vector values to be located at either cell-centre or face
     !
-    module subroutine set_vector_location(vector_descriptor, loc)
-      type(vector_init_data), intent(inout) :: vector_descriptor
+    module subroutine set_vector_location(loc, vector_descriptor)
       integer(accs_int), intent(in) :: loc
+      type(vector_init_data), intent(inout) :: vector_descriptor
     end subroutine set_vector_location
 
     !> @brief Replace each component of a vector by its reciprocal
