@@ -319,10 +319,10 @@ program test_compute_fluxes
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(5))
-    allocate(mat_coeffs%val(5))
-    mat_coeffs%mode = add_mode
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(5))
+    allocate(mat_coeffs%values(5))
+    mat_coeffs%setter_mode = add_mode
 
     j = cps
     
@@ -363,9 +363,9 @@ program test_compute_fluxes
       call set_values(mat_coeffs, M)
     end do
     
-    deallocate(mat_coeffs%rglob)
-    deallocate(mat_coeffs%cglob)
-    deallocate(mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
     
   end subroutine compute_exact_diffusion_matrix
 
@@ -387,10 +387,10 @@ program test_compute_fluxes
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: mat_counter
 
-    mat_coeffs%mode = add_mode
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(2))
-    allocate(mat_coeffs%val(2))
+    mat_coeffs%setter_mode = add_mode
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(2))
+    allocate(mat_coeffs%values(2))
 
     ! Advection coefficients
     
@@ -422,8 +422,8 @@ program test_compute_fluxes
       end do
     end if
 
-    deallocate(mat_coeffs%cglob)
-    deallocate(mat_coeffs%val)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
   end subroutine compute_exact_advection_matrix
   
 end program test_compute_fluxes

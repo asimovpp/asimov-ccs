@@ -353,7 +353,7 @@ contains
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))
 
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%setter_mode = insert_mode
     vec_values%setter_mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
     call update(M)
@@ -369,9 +369,9 @@ contains
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
 
-      allocate(mat_coeffs%rglob(1))
-      allocate(mat_coeffs%cglob(1 + n_ngb))
-      allocate(mat_coeffs%val(1 + n_ngb))
+      allocate(mat_coeffs%row_indices(1))
+      allocate(mat_coeffs%col_indices(1 + n_ngb))
+      allocate(mat_coeffs%values(1 + n_ngb))
 
       row = self_idx
       coeff_p = 0.0_ccs_real
@@ -434,9 +434,9 @@ contains
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
 
-      deallocate(mat_coeffs%rglob)
-      deallocate(mat_coeffs%cglob)
-      deallocate(mat_coeffs%val)
+      deallocate(mat_coeffs%row_indices)
+      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%values)
     end do
 
     print *, "P': restore invA"
