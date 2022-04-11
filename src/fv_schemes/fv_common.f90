@@ -101,11 +101,11 @@ contains
 
     real(ccs_real) :: sgn !> Sign indicating face orientation
 
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(n_int_cells))
-    allocate(mat_coeffs%val(n_int_cells))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(n_int_cells))
+    allocate(mat_coeffs%values(n_int_cells))
 
     do local_idx = 1, cell_mesh%nlocal
       ! Calculate contribution from neighbours
@@ -165,7 +165,9 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
   !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
@@ -247,12 +249,12 @@ contains
 
     integer(ccs_int) :: idxf
     
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
     b_coeffs%setter_mode = add_mode
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%values(1))
     allocate(b_coeffs%indices(1))
     allocate(b_coeffs%values(1))
 
@@ -296,7 +298,9 @@ contains
         end if
       end do
     end do
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
     deallocate(b_coeffs%indices)
     deallocate(b_coeffs%values)
 

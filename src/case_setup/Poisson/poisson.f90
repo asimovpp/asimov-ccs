@@ -19,12 +19,12 @@ program poisson
   use constants, only : ndim, add_mode, insert_mode
   use kinds, only : ccs_real, ccs_int
   use types, only : vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
-       linear_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
+       equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
        neighbour_locator, vector_values, matrix_values
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve, set_linear_system, axpy, norm
+  use solver, only : create_solver, solve, set_equation_system, axpy, norm
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_size, set_values, pack_entries
   use mesh_utils, only : build_square_mesh
@@ -46,7 +46,7 @@ program poisson
 
   type(vector_spec) :: vec_sizes
   type(matrix_spec) :: mat_sizes
-  type(linear_system) :: poisson_eq
+  type(equation_system) :: poisson_eq
   type(ccs_mesh) :: square_mesh
 
   integer(ccs_int) :: cps = 10 ! Default value for cells per side
@@ -102,7 +102,7 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   !! Create linear solver & set options
-  call set_linear_system(par_env, b, u, M, poisson_eq)
+  call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
@@ -207,7 +207,7 @@ contains
     logical :: is_boundary
     integer(ccs_int) :: nbidxg
 
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%setter_mode = insert_mode
 
     !! Loop over cells
     do i = 1, square_mesh%nlocal
@@ -219,9 +219,9 @@ contains
       call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
-      allocate(mat_coeffs%rglob(1))
-      allocate(mat_coeffs%cglob(1 + nnb))
-      allocate(mat_coeffs%val(1 + nnb))
+      allocate(mat_coeffs%row_indices(1))
+      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%values(1 + nnb))
 
       row = idxg
       coeff_p = 0.0_ccs_real
@@ -258,7 +258,9 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+      deallocate(mat_coeffs%row_indices)
+      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%values)
         
     end do
     
@@ -290,13 +292,13 @@ contains
     integer(ccs_int) :: nnb
     logical :: is_boundary
     
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%values(1))
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))
 
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
     vec_values%setter_mode = add_mode
 
     do i = 1, square_mesh%nlocal

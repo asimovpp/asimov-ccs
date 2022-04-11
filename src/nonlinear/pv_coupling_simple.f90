@@ -5,7 +5,7 @@
 submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, linear_system, &
+  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
@@ -13,7 +13,7 @@ submodule (pv_coupling) pv_coupling_simple
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
                    mult, scale, zero
-  use solver, only: create_solver, solve, set_linear_system, axpy, norm
+  use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -48,7 +48,7 @@ contains
     
     type(vector_spec) :: vec_sizes
     type(matrix_spec) :: mat_sizes
-    type(linear_system)    :: lin_system
+    type(equation_system)    :: lin_system
     type(bc_config) :: bcs
 
     logical :: converged
@@ -145,7 +145,7 @@ contains
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
     class(ccs_vector), intent(inout)    :: invAu, invAv
 
@@ -179,7 +179,7 @@ contains
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
     class(ccs_vector), intent(inout)    :: invAu
     
@@ -227,7 +227,7 @@ contains
     call finalise(M)
 
     ! Create linear solver
-    call set_linear_system(par_env, vec, u%values, M, lin_sys)
+    call set_equation_system(par_env, vec, u%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
@@ -307,7 +307,7 @@ contains
     class(ccs_vector), intent(in) :: invAu, invAv
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout) :: pp
 
     ! Local variables
@@ -353,7 +353,7 @@ contains
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))
 
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%setter_mode = insert_mode
     vec_values%setter_mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
     call update(M)
@@ -369,9 +369,9 @@ contains
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
 
-      allocate(mat_coeffs%rglob(1))
-      allocate(mat_coeffs%cglob(1 + n_ngb))
-      allocate(mat_coeffs%val(1 + n_ngb))
+      allocate(mat_coeffs%row_indices(1))
+      allocate(mat_coeffs%col_indices(1 + n_ngb))
+      allocate(mat_coeffs%values(1 + n_ngb))
 
       row = self_idx
       coeff_p = 0.0_ccs_real
@@ -434,9 +434,9 @@ contains
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
 
-      deallocate(mat_coeffs%rglob)
-      deallocate(mat_coeffs%cglob)
-      deallocate(mat_coeffs%val)
+      deallocate(mat_coeffs%row_indices)
+      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%values)
     end do
 
     print *, "P': restore invA"
@@ -451,7 +451,7 @@ contains
     
     ! Create linear solver
     print *, "P': create lin sys"
-    call set_linear_system(par_env, vec, pp%values, M, lin_sys)
+    call set_equation_system(par_env, vec, pp%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system

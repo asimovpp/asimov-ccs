@@ -45,25 +45,25 @@ module types
 
   !> @brief Container type for setting values in a matrix.
   type, public :: matrix_values
-    integer(ccs_int), dimension(:), allocatable :: rglob !> Array of (global) row indices to set values on.
-    integer(ccs_int), dimension(:), allocatable :: cglob !> Array of (global) column indices to set values on.
-    real(ccs_real), dimension(:), allocatable :: val     !> Array of values, must be logically 2D and 
-                                                          !! of size = size(rglob) * size(cglob). Uses 
+    integer(ccs_int), dimension(:), allocatable :: row_indices !> Array of (global) row indices to set values on.
+    integer(ccs_int), dimension(:), allocatable :: col_indices !> Array of (global) column indices to set values on.
+    real(ccs_real), dimension(:), allocatable :: values     !> Array of values, must be logically 2D and 
+                                                          !! of size = size(row_indices) * size(col_indices). Uses 
                                                           !! row-major ordering.
-    integer(ccs_int) :: mode !> Which mode to use when setting values?
+    integer(ccs_int) :: setter_mode !> Which mode to use when setting values?
   end type matrix_values
 
   !> @brief Container type representing a linear system.
-  type, public :: linear_system
-    class(ccs_vector), pointer :: sol !> Solution vector
+  type, public :: equation_system
+    class(ccs_vector), pointer :: solution !> Solution vector
     class(ccs_vector), pointer :: rhs !> Right-hand side vector
-    class(ccs_matrix), pointer :: M   !> Matrix
+    class(ccs_matrix), pointer :: matrix   !> Matrix
     class(parallel_environment), pointer :: par_env !> The parallel environment
-  end type linear_system
+  end type equation_system
   
   !> @brief Stub type for solvers to be extended in sub-modules.
   type, public :: linear_solver
-    type(linear_system) :: eqsys !> System of equations
+    type(equation_system) :: linear_system !> System of equations
   end type linear_solver
 
   !> @brief Mesh type

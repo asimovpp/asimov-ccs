@@ -7,11 +7,11 @@ program scalar_advection
   !! ASiMoV-CCS uses
   use kinds, only : ccs_real, ccs_int
   use types, only : vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
-                    linear_system, linear_solver, ccs_mesh, &
+                    equation_system, linear_solver, ccs_mesh, &
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve, set_linear_system
+  use solver, only : create_solver, solve, set_equation_system
   use utils, only : update, initialise, set_size
   use mesh_utils, only : build_square_mesh
   use parallel_types, only: parallel_environment
@@ -31,7 +31,7 @@ program scalar_advection
 
   type(vector_spec) :: vec_sizes
   type(matrix_spec) :: mat_sizes
-  type(linear_system) :: scalar_linear_system
+  type(equation_system) :: scalar_equation_system
   type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
@@ -60,7 +60,7 @@ program scalar_advection
   ! Initialise with default values
   call initialise(mat_sizes)
   call initialise(vec_sizes)
-  call initialise(scalar_linear_system)
+  call initialise(scalar_equation_system)
 
   ! Create stiffness matrix
   call set_size(par_env, square_mesh, mat_sizes)
@@ -85,8 +85,8 @@ program scalar_advection
   call update(source) ! parallel assembly for source
 
   ! Create linear solver & set options
-  call set_linear_system(par_env, source, scalar%values, M, scalar_linear_system)
-  call create_solver(scalar_linear_system, scalar_solver)
+  call set_equation_system(par_env, source, scalar%values, M, scalar_equation_system)
+  call create_solver(scalar_equation_system, scalar_solver)
   call solve(scalar_solver)
   
   ! Clean up
