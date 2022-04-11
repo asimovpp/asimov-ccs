@@ -104,26 +104,26 @@ contains
 
             ! First check if safe to set
             if (v%modeset) then
-              if (val_dat%mode /= v%mode) then
+              if (val_dat%setter_mode /= v%mode) then
                 print *, "ERROR: trying to set vector using different mode without updating!"
                 stop 1
               end if
             else
-              v%mode = val_dat%mode
+              v%mode = val_dat%setter_mode
               v%modeset = .true.
             end if
               
-            n = size(val_dat%idx)
-            if (val_dat%mode == add_mode) then
+            n = size(val_dat%indices)
+            if (val_dat%setter_mode == add_mode) then
               mode = ADD_VALUES
-            else if (val_dat%mode == insert_mode) then
+            else if (val_dat%setter_mode == insert_mode) then
               mode = INSERT_VALUES
             else
               print *, "Unknown mode!"
               stop
             end if
 
-            call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
+            call VecSetValues(v%v, n, val_dat%indices, val_dat%values, mode, ierr)
 
           class default
             print *, "Unknown vector value type!"
@@ -281,8 +281,8 @@ contains
     real(ccs_real), intent(in) :: val
     type(vector_values), intent(inout) :: val_dat
 
-    val_dat%idx(ent) = idx - 1
-    val_dat%val(ent) = val
+    val_dat%indices(ent) = idx - 1
+    val_dat%values(ent) = val
 
   end subroutine pack_one_vector_element
 

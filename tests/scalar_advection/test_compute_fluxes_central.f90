@@ -231,7 +231,7 @@ program test_compute_fluxes
     ! call compute_exact_diffusion_matrix(cell_mesh, cps, M)
     
     ! Now do the RHS
-    vec_coeffs%mode = add_mode
+    vec_coeffs%setter_mode = add_mode
     call zero_vector(b)
     
     ! Advection first

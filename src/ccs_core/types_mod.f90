@@ -29,11 +29,11 @@ module types
 
   !> @brief Container type for setting values in a vector.
   type, public :: vector_values
-    integer(ccs_int), dimension(:), allocatable :: idx !> Array of (global) indices to set values
+    integer(ccs_int), dimension(:), allocatable :: indices !> Array of (global) indices to set values
                                                         !! on, must be same size as values array.
-    real(ccs_real), dimension(:), allocatable :: val   !> Array of values, must be same size as
+    real(ccs_real), dimension(:), allocatable :: values   !> Array of values, must be same size as
                                                         !! index array.
-    integer(ccs_int) :: mode                           !> Which mode to use when setting values?
+    integer(ccs_int) :: setter_mode                           !> Which mode to use when setting values?
   end type vector_values
 
   !> @brief Container type for data required to initialise a matrix.

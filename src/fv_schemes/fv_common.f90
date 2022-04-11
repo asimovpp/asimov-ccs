@@ -165,8 +165,8 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate(mat_coeffs%row_indices
-    deallocate(mat_coeffs%col_indices
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices)
     deallocate(mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
@@ -250,13 +250,13 @@ contains
     integer(ccs_int) :: idxf
     
     mat_coeffs%setter_mode = add_mode
-    b_coeffs%mode = add_mode
+    b_coeffs%setter_mode = add_mode
 
     allocate(mat_coeffs%row_indices(1))
     allocate(mat_coeffs%col_indices(1))
     allocate(mat_coeffs%values(1))
-    allocate(b_coeffs%idx(1))
-    allocate(b_coeffs%val(1))
+    allocate(b_coeffs%indices(1))
+    allocate(b_coeffs%values(1))
 
     bc_counter = 1
     do local_idx = 1, cell_mesh%nlocal
@@ -299,9 +299,11 @@ contains
       end do
     end do
     deallocate(mat_coeffs%row_indices)
-    deallocate(mat_coeffs%col_indices
+    deallocate(mat_coeffs%col_indices)
     deallocate(mat_coeffs%values)
-    deallocate(b_coeffs%idx, b_coeffs%val)
+    deallocate(b_coeffs%indices)
+    deallocate(b_coeffs%values)
+
   end subroutine compute_boundary_coeffs
 
   !> @brief Sets the diffusion coefficient
@@ -534,9 +536,9 @@ contains
 
     real(ccs_real), dimension(ndim) :: dx
     
-    allocate(grad_values%idx(1))
-    allocate(grad_values%val(1))
-    grad_values%mode = insert_mode
+    allocate(grad_values%indices(1))
+    allocate(grad_values%values(1))
+    grad_values%setter_mode = insert_mode
 
     call get_vector_data(phi, phi_data)
     
