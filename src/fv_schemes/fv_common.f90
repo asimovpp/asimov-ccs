@@ -462,9 +462,11 @@ contains
   !
   !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !!       correctly updated on other PEs.
-  module procedure update_gradient
-
+  module subroutine update_gradient(cell_mesh, phi)
     use utils, only : update
+
+    type(mesh), intent(in) :: cell_mesh
+    class(field), intent(inout) :: phi
 
     real(accs_real), dimension(:), pointer :: gradx_data, grady_data, gradz_data
     real(accs_real), dimension(:), allocatable :: gradx_old, grady_old, gradz_old
@@ -501,7 +503,7 @@ contains
     deallocate(grady_old)
     deallocate(gradz_old)
     
-  end procedure update_gradient
+  end subroutine update_gradient
 
   !> @brief Helper subroutine to calculate a gradient component at a time.
   !

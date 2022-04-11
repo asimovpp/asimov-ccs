@@ -415,8 +415,11 @@ contains
     end select
   end subroutine restore_vector_data
 
-  module procedure zero_vector
+  module subroutine zero_vector(vec)
     use petscvec
+
+    class(vector), intent(inout) :: vec
+
     integer(accs_err) :: ierr
 
     select type(vec)
@@ -427,7 +430,7 @@ contains
       stop
     end select
     
-  end procedure zero_vector
+  end subroutine zero_vector
 
   !> @brief Replaces each component of a vector by its reciprocal
   !
@@ -451,9 +454,11 @@ contains
     end select
   end subroutine vec_reciprocal
 
-  module procedure mult_vec_vec
-
+  module subroutine mult_vec_vec(a, b)
     use petscvec, only : VecPointwiseMult
+
+    class(vector), intent(in) :: a
+    class(vector), intent(inout) :: b
 
     integer(accs_err) :: ierr
 
@@ -471,11 +476,13 @@ contains
       stop
     end select
       
-  end procedure mult_vec_vec
+  end subroutine mult_vec_vec
 
-  module procedure scale_vec
-
+  module subroutine scale_vec(alpha, v)
     use petscvec, only : VecScale
+
+    real(accs_real), intent(in) :: alpha
+    class(vector), intent(inout) :: v
   
     integer(accs_err) :: ierr
 
@@ -487,7 +494,7 @@ contains
       stop
     end select
   
-  end procedure
+  end subroutine
 
 !   module subroutine vec_view(vec_dat, vec)
 
