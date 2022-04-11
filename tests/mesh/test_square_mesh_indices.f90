@@ -8,7 +8,7 @@ program test_square_mesh_indices
 
   implicit none
 
-  type (mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
 
   real(accs_real) :: l
   integer(accs_int) :: n

@@ -7,7 +7,7 @@ program test_diffusion_coeff
   use mesh_utils, only : build_square_mesh
   use fv, only: calc_diffusion_coeff
 
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
   integer(accs_int), parameter :: cps = 50
   real(accs_real) :: coeff
   real(accs_real), parameter :: expected_coeff = -1.e-2_accs_real

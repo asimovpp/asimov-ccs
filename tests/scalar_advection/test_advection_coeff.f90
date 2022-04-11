@@ -17,7 +17,7 @@ program test_advection_coeff
                 set_size, pack_entries, set_values
   use petsctypes, only: vector_petsc
 
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
   type(vector_init_data) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
@@ -119,7 +119,7 @@ program test_advection_coeff
   !> @param[in] direction - Integer indicating the direction of the velocity field
   !> @param[out] u, v     - The velocity fields in x and y directions
   subroutine set_velocity_fields(cell_mesh, direction, u, v)
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: direction
     class(field), intent(inout), allocatable :: u, v
     type(cell_locator) :: self_loc

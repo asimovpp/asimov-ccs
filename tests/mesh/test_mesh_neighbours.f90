@@ -10,7 +10,7 @@ program test_mesh_neighbours
 
   implicit none
   
-  type(mesh), target :: square_mesh
+  type(ccs_mesh), target :: square_mesh
   type(cell_locator) :: cell_location
 
   integer(accs_int) :: n

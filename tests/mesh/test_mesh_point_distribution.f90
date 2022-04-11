@@ -9,7 +9,7 @@ program test_mesh_point_distribution
 
   implicit none
   
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
 
   integer(accs_int) :: n
 
