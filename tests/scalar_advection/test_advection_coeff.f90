@@ -53,13 +53,13 @@ program test_advection_coeff
 
       call initialise(vec_sizes)
       call set_size(par_env, square_mesh, vec_sizes)
-      call create_vector(vec_sizes, scalar%vec)
-      call create_vector(vec_sizes, u%vec)
-      call create_vector(vec_sizes, v%vec)
+      call create_vector(vec_sizes, scalar%values)
+      call create_vector(vec_sizes, u%values)
+      call create_vector(vec_sizes, v%values)
 
       call set_velocity_fields(square_mesh, direction, u, v)
 
-      associate (u_vec => u%vec, v_vec => v%vec)
+      associate (u_vec => u%values, v_vec => v%values)
         call get_vector_data(u_vec, u_data)
         call get_vector_data(v_vec, v_data)
 
@@ -153,11 +153,11 @@ program test_advection_coeff
         call pack_entries(local_idx, self_idx, v_val, v_vals)
       end do
     end associate
-    call set_values(u_vals, u%vec)
-    call set_values(v_vals, v%vec)
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
 
-    call update(u%vec)
-    call update(v%vec)
+    call update(u%values)
+    call update(v%values)
     
     deallocate(u_vals%indices)
     deallocate(v_vals%indices)
