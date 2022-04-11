@@ -227,7 +227,7 @@ contains
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b
-s
+
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
     type(cell_locator) :: self_loc

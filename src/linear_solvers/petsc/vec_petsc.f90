@@ -298,15 +298,9 @@ contains
 
     use petscvec, only : VecAXPY
     
-<<<<<<< HEAD
     real(ccs_real), intent(in) :: alpha
-    class(vector), intent(in) :: x
-    class(vector), intent(inout) :: y
-=======
-    real(accs_real), intent(in) :: alpha
     class(ccs_vector), intent(in) :: x
     class(ccs_vector), intent(inout) :: y
->>>>>>> rename_vector
 
     integer(ccs_err) :: ierr !> Error code
     
@@ -344,13 +338,8 @@ contains
 
     use petscvec, only : NORM_2, VecNorm
     
-<<<<<<< HEAD
-    class(vector), intent(in) :: v
-    integer(ccs_int), intent(in) :: norm_type
-=======
     class(ccs_vector), intent(in) :: v
-    integer(accs_int), intent(in) :: norm_type
->>>>>>> rename_vector
+    integer(ccs_int), intent(in) :: norm_type
 
     real(ccs_real) :: n      !> The computed norm 
     integer(ccs_err) :: ierr !> Error code
@@ -380,13 +369,8 @@ contains
   !> @param[in] array - an array to store the data in
   module subroutine get_vector_data(vec, array)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
-<<<<<<< HEAD
-    class(vector), intent(in) :: vec
-    real(ccs_real), dimension(:), pointer, intent(out) :: array
-=======
     class(ccs_vector), intent(in) :: vec
-    real(accs_real), dimension(:), pointer, intent(out) :: array
->>>>>>> rename_vector
+    real(ccs_real), dimension(:), pointer, intent(out) :: array
     integer :: ierr
 
     select type(vec)
@@ -499,13 +483,8 @@ contains
   module subroutine scale_vec(alpha, v)
     use petscvec, only : VecScale
 
-<<<<<<< HEAD
     real(ccs_real), intent(in) :: alpha
-    class(vector), intent(inout) :: v
-=======
-    real(accs_real), intent(in) :: alpha
     class(ccs_vector), intent(inout) :: v
->>>>>>> rename_vector
   
     integer(ccs_err) :: ierr
 

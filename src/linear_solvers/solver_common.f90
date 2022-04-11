@@ -24,15 +24,9 @@ contains
   !> @param[in/out] lin_sys   - the linear system
   module subroutine set_linear_system(par_env, rhs, solution, mat, lin_sys)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
-<<<<<<< HEAD
-    class(vector), allocatable, target, intent(in) :: rhs
-    class(vector), allocatable, target, intent(in) :: solution
-    class(ccs_matrix), allocatable, target, intent(in) :: mat
-=======
     class(ccs_vector), allocatable, target, intent(in) :: rhs
     class(ccs_vector), allocatable, target, intent(in) :: solution
-    class(matrix), allocatable, target, intent(in) :: mat
->>>>>>> rename_vector
+    class(ccs_matrix), allocatable, target, intent(in) :: mat
     type(linear_system), intent(inout) :: lin_sys
 
     lin_sys%rhs => rhs
