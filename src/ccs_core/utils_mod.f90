@@ -28,8 +28,6 @@ module utils
   public :: initialise
   public :: set_size
   public :: mult
-  public :: ccs_init
-  public :: ccs_finalise
   public :: scale
   public :: zero
 
@@ -105,39 +103,4 @@ module utils
   
 contains
 
-  !> @brief ASiMoV-CCS initialisation routine.
-  !
-  !> @details Currently implemented by calling PetscInitialize. Symbol must be bound using
-  !!          ISO_C_BINDING to tie into pFUnit initialiser.
-  subroutine ccs_init() bind (C, name="ccs_init_")
-
-    use petsc, only : PetscInitialize, PETSC_NULL_CHARACTER
-    use kinds, only : ccs_err
-    
-    integer(ccs_err) :: ierr
-    
-    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-    
-    if (ierr /= 0) then
-       print *, "Unable to initialise PETSc"
-       stop
-    end if
-    
-  end subroutine ccs_init
-
-  !> @brief ASiMoV-CCS finalisation routine.
-  !
-  !> @details Currently implemented by calling PetscFinalize. Symbol must be bound using
-  !!          ISO_C_BINDING to tie into pFUnit finaliser.
-  subroutine ccs_finalise() bind (C, name="ccs_finalise_")
-
-    use petsc, only : PetscFinalize
-    use kinds, only : ccs_err
-
-    integer(ccs_err) :: ierr
-
-    call PetscFinalize(ierr)
-
-  end subroutine ccs_finalise
-  
 end module utils
