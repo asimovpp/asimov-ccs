@@ -6,7 +6,6 @@ submodule (read_config) read_config_utils
 
   use yaml_types, only: type_dictionary, &
                         type_error, &
-                        type_node, &
                         type_list, &
                         type_list_item, &
                         type_scalar
