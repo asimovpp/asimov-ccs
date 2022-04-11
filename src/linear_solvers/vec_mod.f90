@@ -8,7 +8,6 @@ module vec
   use kinds, only : accs_real, accs_int
   use types, only : mesh, vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
-  use constants, only: cell
   
   implicit none
 

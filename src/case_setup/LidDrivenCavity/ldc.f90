@@ -4,11 +4,9 @@
 
 program ldc
 
-  use, intrinsic :: iso_fortran_env, only:  output_unit
-
-  use yaml, only: parse, error_length  
+  use yaml, only: parse, error_length
   use kinds, only : accs_int, accs_real
-  use constants, only: geoext, adiosconfig, ccsconfig, ndim
+  use constants, only: ccsconfig
   use bc_constants, only: bc_region_left, bc_region_right, &
                           bc_region_top, bc_region_bottom, bc_region_live, &
                           bc_type_sym, bc_type_wall
@@ -91,8 +89,7 @@ program ldc
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                            get_boundaries, get_convection_scheme, &
-                            get_relaxation_factor
+                            get_convection_scheme, get_relaxation_factor
 
     character(len=*), intent(in) :: config_filename
     

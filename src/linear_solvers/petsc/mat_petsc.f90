@@ -3,6 +3,8 @@ submodule (mat) mat_petsc
   use kinds, only : accs_err
   use petsctypes, only : matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
+  use petsc, only : ADD_VALUES, INSERT_VALUES
   
   implicit none
 
@@ -72,7 +74,7 @@ contains
 
   module subroutine finalise_matrix(M)
 
-    use petscmat, only : MatAssemblyBegin, MatAssemblyEnd, MAT_FINAL_ASSEMBLY
+    use petscmat, only : MAT_FINAL_ASSEMBLY
     
     class(matrix), intent(inout) :: M
 
@@ -114,8 +116,6 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine begin_update_matrix(M)
 
-    use petscmat, only : MatAssemblyBegin, MAT_FLUSH_ASSEMBLY
-    
     class(matrix), intent(inout) :: M
 
     integer(accs_err) :: ierr !> Error code
@@ -140,8 +140,6 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine end_update_matrix(M)
 
-    use petscmat, only : MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
-    
     class(matrix), intent(inout) :: M
 
     integer(accs_err) :: ierr !> Error code
@@ -188,7 +186,6 @@ contains
   !> @param[in/out] M          - the matrix
   module subroutine set_matrix_values(mat_values, M)
 
-    use petsc, only : ADD_VALUES, INSERT_VALUES
     use petscmat, only : MatSetValues
     use constants, only : insert_mode, add_mode
     
@@ -390,7 +387,6 @@ contains
   end subroutine
 
   module subroutine set_matrix_diagonal(D, M)
-    use petsc, only : INSERT_VALUES
     use petscmat, only : MatDiagonalSet
 
     class(vector), intent(in) :: D
@@ -419,7 +415,7 @@ contains
 
   module subroutine zero_matrix(M)
 
-    use petscmat
+    use petscmat, only: MatZeroEntries
     
     class(matrix), intent(inout) :: M
 

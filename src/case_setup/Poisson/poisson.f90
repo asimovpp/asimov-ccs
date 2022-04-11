@@ -16,23 +16,20 @@
 program poisson
 
   !! ASiMoV-CCS uses
-  use constants, only : ndim
-  
+  use constants, only : ndim, add_mode, insert_mode
   use kinds, only : accs_real, accs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-       linear_system, linear_solver, mesh, &
-       cell_locator, face_locator, neighbour_locator
+       linear_system, linear_solver, mesh, cell_locator, face_locator, &
+       neighbour_locator, vector_values, matrix_values
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system, axpy, norm
-  use utils, only : update, begin_update, end_update, &
-                    finalise, initialise, &
-                    set_size
+  use utils, only : update, begin_update, end_update, finalise, initialise, &
+                    set_size, set_values, pack_entries
   use mesh_utils, only : build_square_mesh
   use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
        count_neighbours, get_boundary_status
-  use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
@@ -137,9 +134,6 @@ contains
 
   subroutine eval_rhs(b)
 
-    use constants, only : add_mode
-    use types, only : vector_values
-    use utils, only : set_values, pack_entries
     
     class(vector), intent(inout) :: b
 
@@ -194,10 +188,6 @@ contains
 
   subroutine discretise_poisson(M)
 
-    use constants, only : insert_mode
-    use types, only : matrix_values
-    use utils, only : set_values, pack_entries
-    
     class(matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
@@ -276,12 +266,6 @@ contains
 
   subroutine apply_dirichlet_bcs(M, b)
 
-    use constants, only : add_mode
-    use mat, only : set_eqn
-    use types, only : vector_values, matrix_values, matrix, vector, mesh
-    use utils, only : set_values, pack_entries
-    use kinds, only: accs_int, accs_real
-  
     implicit none
   
     class(matrix), intent(inout) :: M
@@ -363,10 +347,6 @@ contains
 
   subroutine set_exact_sol(ustar)
 
-    use constants, only : insert_mode
-    use types, only : vector_values
-    use utils, only : set_values, pack_entries
-    
     class(vector), intent(inout) :: ustar
 
     type(vector_values) :: vec_values

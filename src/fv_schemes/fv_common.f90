@@ -5,9 +5,14 @@
 
 submodule (fv) fv_common
 
-  use types, only : face_locator
-  use meshing, only : set_face_location, get_face_area, get_face_normal
+  use constants, only: add_mode, insert_mode, ndim
+  use types, only: vector_values, matrix_values, cell_locator, face_locator, &
+                   neighbour_locator
   use vec, only: get_vector_data, restore_vector_data
+  use utils, only: pack_entries, set_values, update
+  use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
+                      get_local_index, get_global_index, get_volume, get_distance, &
+                      set_face_location, get_face_area, get_face_normal, set_cell_location
 
   implicit none
 
@@ -23,7 +28,6 @@ contains
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
   module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
-    use petsctypes, only: vector_petsc
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
@@ -73,12 +77,6 @@ contains
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in,out] M       - Matrix structure being assigned
   subroutine compute_interior_coeffs(phi, mf, cell_mesh, n_int_cells, M)
-    use constants, only : add_mode
-    use types, only: matrix_values, cell_locator, face_locator, neighbour_locator
-    use utils, only: pack_entries, set_values
-    use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
-                       get_global_index, get_local_index, count_neighbours, get_boundary_status
-
     class(field), intent(in) :: phi
     real(accs_real), dimension(:), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
@@ -222,13 +220,6 @@ contains
   !> @param[in,out] M       - Matrix structure being assigned
   !> @param[in,out] b       - vector structure being assigned
   subroutine compute_boundary_coeffs(phi, mf, cell_mesh, bcs, cps, M, b)
-    use constants, only : insert_mode, add_mode
-    use types, only: matrix_values, vector_values, cell_locator, face_locator, neighbour_locator
-    use utils, only: pack_entries, set_values
-    use meshing, only: get_global_index, get_local_index, count_neighbours, get_boundary_status, &
-                       set_cell_location, set_face_location, set_neighbour_location
-    use bc_constants
-
     class(field), intent(in) :: phi
     real(accs_real), dimension(:), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
@@ -316,10 +307,6 @@ contains
   !> @param[in] cell_mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
-
-    use types, only : cell_locator, neighbour_locator
-    use meshing, only : get_boundary_status, get_distance, set_cell_location, set_neighbour_location
-    
     integer(accs_int), intent(in) :: local_self_idx
     integer(accs_int), intent(in) :: local_ngb_idx
     type(mesh), intent(in) :: cell_mesh
@@ -361,11 +348,6 @@ contains
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
   module function calc_mass_flux(u, v, p, pgradx, pgrady, invAu, invAv, loc_f) result(flux)
-
-    use types, only : cell_locator, neighbour_locator
-    use meshing, only : get_boundary_status, set_cell_location, set_neighbour_location, &
-         get_local_index, get_distance, get_volume
-    
     real(accs_real), dimension(:), intent(in) :: u, v
     real(accs_real), dimension(:), intent(in) :: p
     real(accs_real), dimension(:), intent(in) :: pgradx, pgrady
@@ -462,9 +444,9 @@ contains
   !
   !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !!       correctly updated on other PEs.
-  module subroutine update_gradient(cell_mesh, phi)
-    use utils, only : update
 
+  module subroutine update_gradient(cell_mesh, phi)
+  
     type(mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: phi
 
@@ -514,12 +496,6 @@ contains
   !> @param[inout] gradient - a cell-centred array of the gradient
   subroutine update_gradient_component(cell_mesh, component, phi, gradx_old, grady_old, gradz_old, gradient)
 
-    use constants, only : insert_mode
-    use types, only : cell_locator, face_locator, neighbour_locator, vector_values
-    use meshing, only : set_cell_location, count_neighbours, get_boundary_status, &
-         set_neighbour_location, get_local_index, get_global_index, get_volume, &
-         get_distance
-    use utils, only : pack_entries, set_values
 
     type(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: component

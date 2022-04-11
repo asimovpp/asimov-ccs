@@ -14,7 +14,6 @@ module utils
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   pack_one_matrix_coefficient, zero_matrix
   use solver, only: initialise_linear_system
-  use types, only : vector, matrix
   
   implicit none
 

@@ -2,10 +2,14 @@ module mesh_utils
 
   use constants, only : ndim
   
-  use kinds, only: accs_int, accs_real, accs_err
+  use kinds, only: accs_int, accs_real
   use types, only: mesh, face_locator, cell_locator, neighbour_locator
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
+  use meshing, only: get_global_index, get_local_index, count_neighbours, &
+                     set_cell_location, set_neighbour_location, set_face_location, &
+                     set_face_index, get_boundary_status, get_local_status
+
   
   implicit none
 
@@ -338,10 +342,6 @@ contains
   !> @param[out] nfaces    - number of cell faces
   function count_mesh_faces(cell_mesh) result(nfaces)
 
-    use meshing, only: set_cell_location, set_neighbour_location, &
-         get_global_index, count_neighbours, get_boundary_status, &
-         get_local_status
-
     ! Arguments
     type(mesh), intent(in) :: cell_mesh
 
@@ -398,10 +398,6 @@ contains
   end function count_mesh_faces
 
   subroutine set_cell_face_indices(cell_mesh)
-
-    use meshing, only: get_global_index, get_local_index, count_neighbours, &
-                       set_cell_location, set_neighbour_location, set_face_location, &
-                       set_face_index, get_boundary_status
 
     ! Arguments
     type(mesh), intent(inout) :: cell_mesh

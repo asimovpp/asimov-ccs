@@ -1,8 +1,6 @@
 !> @brief Program file for TaylorGreenVortex case
 program tgv
 
-  use, intrinsic :: iso_fortran_env, only:  output_unit
-
   use yaml, only: parse, error_length
   use read_config, only: get_case_name
   use kinds, only : accs_int, accs_real

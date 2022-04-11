@@ -9,6 +9,7 @@ submodule (vec) vec_petsc
   use petsctypes, only : vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
+  use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
 
   implicit none
 
@@ -84,10 +85,9 @@ contains
   !> @param[in,out] v   - the PETSc vector.
   module subroutine set_vector_values(val_dat, v)
 
-    use petsc, only : VecSetValues, ADD_VALUES, INSERT_VALUES
+    use petsc, only : VecSetValues
 
     use constants, only : insert_mode, add_mode
-    use types, only : vector_values
     
     class(*), intent(in) :: val_dat
     class(vector), intent(inout) :: v
@@ -224,7 +224,7 @@ contains
   !> @param[in,out] v - the PETSc vector
   subroutine begin_ghost_update_vector(v)
 
-    use petsc, only : VecGhostUpdateBegin, INSERT_VALUES, SCATTER_FORWARD
+    use petsc, only : VecGhostUpdateBegin
     
     class(vector), intent(inout) :: v
 
@@ -253,7 +253,7 @@ contains
   !> @param[in,out] v - the PETSc vector
   subroutine end_ghost_update_vector(v)
 
-    use petsc, only : VecGhostUpdateEnd, INSERT_VALUES, SCATTER_FORWARD
+    use petsc, only : VecGhostUpdateEnd
     
     class(vector), intent(inout) :: v
 
@@ -368,7 +368,7 @@ contains
   !> @param[in] vec   - the vector to get data from
   !> @param[in] array - an array to store the data in
   module subroutine get_vector_data(vec, array)
-    use petscvec
+    use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
     class(vector), intent(in) :: vec
     real(accs_real), dimension(:), pointer, intent(out) :: array
     integer :: ierr
@@ -396,7 +396,7 @@ contains
   !> @param[in] vec   - the vector to reset
   !> @param[in] array - the array containing the data to restore
   module subroutine restore_vector_data(vec, array)
-    use petscvec
+    use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
     class(vector), intent(in) :: vec
     real(accs_real), dimension(:), pointer, intent(in) :: array
     integer :: ierr
@@ -416,7 +416,7 @@ contains
   end subroutine restore_vector_data
 
   module subroutine zero_vector(vec)
-    use petscvec
+    use petscvec, only: VecZeroEntries
 
     class(vector), intent(inout) :: vec
 

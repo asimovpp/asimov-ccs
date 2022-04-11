@@ -4,10 +4,8 @@
 
 module fv
 
-  use constants, only : ndim
   use kinds, only : accs_real, accs_int
   use types, only : matrix, vector, mesh, field, upwind_field, central_field, bc_config, face_locator
-  use bc_constants
 
   implicit none
 
@@ -29,7 +27,7 @@ module fv
 
   !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
-  !> @param[in] phi         - scalar field
+  !> @param[in] phi         - scalar (central) field
   !> @param[in] mf          - mass flux at the face
   !> @param[in] bc          - flag indicating whether cell is on boundary
   !> @param[out] coeff      - advection coefficient to be calculated
@@ -42,7 +40,7 @@ module fv
   
   !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
-  !> @param[in] phi         - scalar field
+  !> @param[in] phi         - scalar (upwind) field
   !> @param[in] mf          - mass flux at the face
   !> @param[in] bc          - flag indicating whether cell is on boundary
   !> @param[out] coeff      - advection coefficient to be calculated
