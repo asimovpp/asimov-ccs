@@ -396,7 +396,7 @@ contains
   !> @param[in] vec   - the vector to reset
   !> @param[in] array - the array containing the data to restore
   module subroutine restore_vector_data(vec, array)
-    use petscvec, only: VecRestoreArrayF90, VecGhostGetLocalForm
+    use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
     class(vector), intent(in) :: vec
     real(accs_real), dimension(:), pointer, intent(in) :: array
     integer :: ierr
