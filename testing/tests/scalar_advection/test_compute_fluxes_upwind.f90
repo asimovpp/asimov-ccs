@@ -9,7 +9,7 @@ program test_compute_fluxes
   use mesh_utils, only : build_square_mesh
   use fv, only: compute_fluxes, calc_cell_coords
   use utils, only : update, initialise, &
-                set_global_size, pack_entries, set_values
+                set_size, pack_entries, set_values
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
@@ -52,7 +52,7 @@ program test_compute_fluxes
     end if
 
     call initialise(vec_sizes)
-    call set_global_size(par_env, square_mesh, vec_sizes)
+    call set_size(par_env, square_mesh, vec_sizes)
     call create_vector(vec_sizes, scalar%vec)
     call create_vector(vec_sizes, u%vec)
     call create_vector(vec_sizes, v%vec)
@@ -158,8 +158,8 @@ program test_compute_fluxes
     
     call initialise(mat_sizes)
     call initialise(vec_sizes)
-    call set_global_size(par_env, cell_mesh, mat_sizes)
-    call set_global_size(par_env, cell_mesh, vec_sizes)
+    call set_size(par_env, cell_mesh, mat_sizes)
+    call set_size(par_env, cell_mesh, vec_sizes)
     call set_nnz(5, mat_sizes)
     call create_matrix(mat_sizes, M)
     call create_vector(vec_sizes, b)
@@ -225,7 +225,7 @@ program test_compute_fluxes
     integer(accs_int) :: vec_counter
 
     call initialise(vec_sizes)
-    call set_global_size(par_env, cell_mesh, vec_sizes)
+    call set_size(par_env, cell_mesh, vec_sizes)
 
     ! call compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
     ! call compute_exact_diffusion_matrix(cell_mesh, cps, M)

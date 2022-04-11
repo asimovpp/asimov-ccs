@@ -7,7 +7,7 @@ program facevalues
     use parallel, only: initialise_parallel_environment, &
                         cleanup_parallel_environment
     use types, only: vector_init_data, mesh, field, face_field
-    use utils, only: set_global_size, initialise
+    use utils, only: set_size, initialise
     use mesh_utils, only: build_square_mesh, &
                           count_mesh_faces
     use vec, only: create_vector, set_vector_location
@@ -36,7 +36,7 @@ program facevalues
     ! Setup vector size to store face-centred values (rather than cell-centred values)
     call set_vector_location(face, vec_sizes)
 
-    call set_global_size(par_env, square_mesh, vec_sizes)
+    call set_size(par_env, square_mesh, vec_sizes)
     call create_vector(vec_sizes, mf%vec)
 
     ! ! View the contents of the vector

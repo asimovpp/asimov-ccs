@@ -21,7 +21,7 @@ program simple
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: matrix_petsc, vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_global_size, initialise, update
+  use utils, only: set_size, initialise, update
                       
   implicit none
 
@@ -68,7 +68,7 @@ program simple
 
   print *, "Create vectors"
   call set_vector_location(cell, vec_sizes)
-  call set_global_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, u%vec)
   call create_vector(vec_sizes, v%vec)
   call create_vector(vec_sizes, p%vec)
@@ -91,7 +91,7 @@ program simple
   call update(pp%gradz)
 
   call set_vector_location(face, vec_sizes)
-  call set_global_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, mf%vec)
   call update(mf%vec)
   

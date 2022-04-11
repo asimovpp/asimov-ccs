@@ -13,7 +13,7 @@ submodule (pv_coupling) pv_coupling_simple
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
-  use utils, only: update, initialise, finalise, set_global_size, &
+  use utils, only: update, initialise, finalise, set_size, &
                    set_values, pack_entries, mult, scale, zero
   use solver, only: create_solver, solve, set_linear_system, axpy, norm
   use parallel_types, only: parallel_environment
@@ -65,13 +65,13 @@ contains
 
     ! Create coefficient matrix
     print *, "NONLINEAR: setup matrix"
-    call set_global_size(par_env, cell_mesh, mat_sizes)
+    call set_size(par_env, cell_mesh, mat_sizes)
     call set_nnz(5, mat_sizes)
     call create_matrix(mat_sizes, M)
 
     ! Create RHS vector
     print *, "NONLINEAR: setup RHS"
-    call set_global_size(par_env, cell_mesh, vec_sizes)
+    call set_size(par_env, cell_mesh, vec_sizes)
     call create_vector(vec_sizes, source)
 
     ! Create vectors for storing inverse of velocity central coefficients
