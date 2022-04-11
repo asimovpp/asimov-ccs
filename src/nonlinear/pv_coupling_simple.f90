@@ -5,24 +5,20 @@
 submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: accs_real, accs_int
-  use types, only: vector_init_data, vector, matrix_init_data, matrix, &
-                   linear_system, linear_solver, mesh, &
-                   field, upwind_field, central_field, bc_config, &
-                   vector_values, cell_locator, face_locator, neighbour_locator, &
-                   matrix_values
+  use types, only: vector_init_data, vector, matrix_init_data, matrix, linear_system, &
+                   linear_solver, mesh, field, bc_config, vector_values, cell_locator, &
+                   face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
-  use utils, only: update, initialise, finalise, set_global_size, &
-                   set_values, pack_entries, mult, scale, zero
+  use utils, only: update, initialise, finalise, set_global_size, set_values, pack_entries, &
+                   mult, scale, zero
   use solver, only: create_solver, solve, set_linear_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
-                     get_boundary_status, get_face_normal, &
-                     set_neighbour_location, &
-                     set_face_location, set_cell_location, &
-                     get_volume
+                     get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
+                     set_cell_location, get_volume
   
   implicit none
 
