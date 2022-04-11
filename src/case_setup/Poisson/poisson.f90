@@ -18,7 +18,7 @@ program poisson
   !! ASiMoV-CCS uses
   use constants, only : ndim, add_mode, insert_mode
   use kinds, only : accs_real, accs_int
-  use types, only : vector_init_data, vector, matrix_init_data, matrix, &
+  use types, only : vector_init_data, vector, matrix_init_data, ccs_matrix, &
        linear_system, linear_solver, mesh, cell_locator, face_locator, &
        neighbour_locator, vector_values, matrix_values
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
@@ -41,7 +41,7 @@ program poisson
   class(parallel_environment), allocatable, target :: par_env
   class(vector), allocatable, target :: u, b
   class(vector), allocatable :: ustar
-  class(matrix), allocatable, target :: M
+  class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
   type(vector_init_data) :: vec_sizes
@@ -188,7 +188,7 @@ contains
 
   subroutine discretise_poisson(M)
 
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
     integer(accs_int) :: i, j
@@ -268,7 +268,7 @@ contains
 
     implicit none
   
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
   
     integer(accs_int) :: i, j

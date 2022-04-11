@@ -5,7 +5,7 @@
 submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: accs_real, accs_int
-  use types, only: vector_init_data, vector, matrix_init_data, matrix, linear_system, &
+  use types, only: vector_init_data, vector, matrix_init_data, ccs_matrix, linear_system, &
                    linear_solver, mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
@@ -43,7 +43,7 @@ contains
     ! Local variables
     integer(accs_int) :: i
     class(vector), allocatable :: source
-    class(matrix), allocatable :: M
+    class(ccs_matrix), allocatable :: M
     class(vector), allocatable :: invAu, invAv
     
     type(vector_init_data) :: vec_sizes
@@ -143,7 +143,7 @@ contains
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     type(bc_config), intent(inout) :: bcs
-    class(matrix), allocatable, intent(inout)  :: M
+    class(ccs_matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
@@ -177,7 +177,7 @@ contains
     class(field), intent(in) :: p
     integer(accs_int), intent(in) :: component
     type(bc_config), intent(inout) :: bcs
-    class(matrix), allocatable, intent(inout)  :: M
+    class(ccs_matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
@@ -305,7 +305,7 @@ contains
     class(parallel_environment), allocatable, intent(in) :: par_env
     class(mesh), intent(in) :: cell_mesh
     class(vector), intent(in) :: invAu, invAv
-    class(matrix), allocatable, intent(inout)  :: M
+    class(ccs_matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout) :: pp
@@ -734,7 +734,7 @@ contains
     real(accs_real), intent(in) :: alpha
     class(field), intent(in) :: phi
     class(vector), intent(inout) :: diag
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
 
     real(accs_real), dimension(:), pointer :: diag_data
