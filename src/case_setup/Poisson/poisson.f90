@@ -17,7 +17,7 @@ program poisson
 
   !! ASiMoV-CCS uses
   use constants, only : ndim, add_mode, insert_mode
-  use kinds, only : accs_real, accs_int
+  use kinds, only : ccs_real, ccs_int
   use types, only : vector_init_data, vector, matrix_init_data, matrix, &
        linear_system, linear_solver, mesh, cell_locator, face_locator, &
        neighbour_locator, vector_values, matrix_values
@@ -49,9 +49,9 @@ program poisson
   type(linear_system) :: poisson_eq
   type(mesh) :: square_mesh
 
-  integer(accs_int) :: cps = 10 ! Default value for cells per side
+  integer(ccs_int) :: cps = 10 ! Default value for cells per side
 
-  real(accs_real) :: err_norm
+  real(ccs_real) :: err_norm
 
   double precision :: start_time
   double precision :: end_time
@@ -108,7 +108,7 @@ program poisson
 
   !! Check solution
   call set_exact_sol(ustar)
-  call axpy(-1.0_accs_real, ustar, u)
+  call axpy(-1.0_ccs_real, ustar, u)
 
   err_norm = norm(u, 2) * square_mesh%h
   if (par_env%proc_id == par_env%root) then
@@ -137,15 +137,15 @@ contains
     
     class(vector), intent(inout) :: b
 
-    integer(accs_int) :: i
-    real(accs_real) :: r
+    integer(ccs_int) :: i
+    real(ccs_real) :: r
 
     type(vector_values) :: val_dat
 
     type(cell_locator) :: cell_location
-    real(accs_real), dimension(ndim) :: cc
-    real(accs_real) :: V
-    integer(accs_int) :: idxg
+    real(ccs_real), dimension(ndim) :: cc
+    real(ccs_real) :: V
+    integer(ccs_int) :: idxg
     
     val_dat%mode = add_mode
     allocate(val_dat%idx(1))
@@ -178,11 +178,11 @@ contains
   !> @brief Apply forcing function
   pure subroutine eval_cell_rhs (x, y, H, r)
     
-    real(accs_real), intent(in) :: x, y, H
-    real(accs_real), intent(out) :: r
+    real(ccs_real), intent(in) :: x, y, H
+    real(ccs_real), intent(out) :: r
     
-    r = 0.0_accs_real &
-         + 0.0_accs_real * (x + y + H) ! Silence unused dummy argument error
+    r = 0.0_ccs_real &
+         + 0.0_ccs_real * (x + y + H) ! Silence unused dummy argument error
     
   end subroutine eval_cell_rhs
 
@@ -191,21 +191,21 @@ contains
     class(matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
-    integer(accs_int) :: i, j
+    integer(ccs_int) :: i, j
 
-    integer(accs_int) :: row, col
-    real(accs_real) :: coeff_f, coeff_p, coeff_nb
+    integer(ccs_int) :: row, col
+    real(ccs_real) :: coeff_f, coeff_p, coeff_nb
 
     type(face_locator) :: face_location
-    real(accs_real) :: A
+    real(ccs_real) :: A
 
-    integer(accs_int) :: idxg
+    integer(ccs_int) :: idxg
     type(cell_locator) :: cell_location
-    integer(accs_int) :: nnb
+    integer(ccs_int) :: nnb
 
     type(neighbour_locator) :: nb_location
     logical :: is_boundary
-    integer(accs_int) :: nbidxg
+    integer(ccs_int) :: nbidxg
 
     mat_coeffs%mode = insert_mode
 
@@ -224,7 +224,7 @@ contains
       allocate(mat_coeffs%val(1 + nnb))
 
       row = idxg
-      coeff_p = 0.0_accs_real
+      coeff_p = 0.0_ccs_real
       
       !! Loop over faces
       do j = 1, nnb
@@ -245,7 +245,7 @@ contains
           col = nbidxg
         else
           col = -1
-          coeff_nb = 0.0_accs_real
+          coeff_nb = 0.0_ccs_real
         end if
         call pack_entries(1, j + 1, row, col, coeff_nb, mat_coeffs)
 
@@ -271,23 +271,23 @@ contains
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
   
-    integer(accs_int) :: i, j
-    real(accs_real) :: boundary_coeff, boundary_val
+    integer(ccs_int) :: i, j
+    real(ccs_real) :: boundary_coeff, boundary_val
 
-    integer(accs_int) :: idx, row, col
-    real(accs_real) :: r, coeff
+    integer(ccs_int) :: idx, row, col
+    real(ccs_real) :: r, coeff
     
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
 
     type(face_locator) :: face_location
-    real(accs_real) :: A
+    real(ccs_real) :: A
 
     type(cell_locator) :: cell_location
-    integer(accs_int) :: idxg
+    integer(ccs_int) :: idxg
     type(neighbour_locator) :: nb_location
 
-    integer(accs_int) :: nnb
+    integer(ccs_int) :: nnb
     logical :: is_boundary
     
     allocate(mat_coeffs%rglob(1))
@@ -303,8 +303,8 @@ contains
       if (minval(square_mesh%nbidx(:, i)) < 0) then
         call set_cell_location(square_mesh, i, cell_location)
         call get_global_index(cell_location, idxg)
-        coeff = 0.0_accs_real 
-        r = 0.0_accs_real
+        coeff = 0.0_ccs_real 
+        r = 0.0_ccs_real
           
         row = idxg
         col = idxg
@@ -350,10 +350,10 @@ contains
     class(vector), intent(inout) :: ustar
 
     type(vector_values) :: vec_values
-    integer(accs_int) :: i
+    integer(ccs_int) :: i
 
     type(cell_locator) :: cell_location
-    integer(accs_int) :: idxg
+    integer(ccs_int) :: idxg
     
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
@@ -374,20 +374,20 @@ contains
 
     class(parallel_environment) :: par_env
 
-    square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
+    square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
     
   end subroutine initialise_poisson
 
   function rhs_val(i, f) result(r)
 
-    integer(accs_int), intent(in) :: i !> Cell index
-    integer(accs_int), intent(in), optional :: f !> Face index (local wrt cell)
+    integer(ccs_int), intent(in) :: i !> Cell index
+    integer(ccs_int), intent(in), optional :: f !> Face index (local wrt cell)
 
     type(cell_locator) :: cell_location
     type(face_locator) :: face_location
     
-    real(accs_real), dimension(ndim) :: x
-    real(accs_real) :: r
+    real(ccs_real), dimension(ndim) :: x
+    real(ccs_real) :: r
 
     if (present(f)) then
       !! Face-centred value

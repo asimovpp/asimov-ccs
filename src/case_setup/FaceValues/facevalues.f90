@@ -2,7 +2,7 @@
 
 program facevalues
 
-    use kinds, only: accs_int, accs_real
+    use kinds, only: ccs_int, ccs_real
     use parallel_types, only: parallel_environment
     use parallel, only: initialise_parallel_environment, &
                         cleanup_parallel_environment
@@ -20,13 +20,13 @@ program facevalues
     type(vector_init_data) :: vec_sizes
     type(mesh) :: square_mesh
 
-    ! integer(accs_int) :: nfaces
-    integer(accs_int) :: cps = 3 ! Cells per side of the mesh
+    ! integer(ccs_int) :: nfaces
+    integer(ccs_int) :: cps = 3 ! Cells per side of the mesh
 
     call initialise_parallel_environment(par_env)
 
     ! Create a square mesh
-    square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
+    square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
     allocate(face_field :: mf)
 

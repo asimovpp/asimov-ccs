@@ -5,7 +5,7 @@ module test_vec
 
   use pFUnit
   
-  use kinds, only : accs_int, accs_real
+  use kinds, only : ccs_int, ccs_real
   use types, only : vector_values
   
   use vec
@@ -42,7 +42,7 @@ contains
     allocate(vec_elements%val(N))
 
     do i = 1, N
-      call pack_entries(vec_elements, i, nmin + (i - 1), 1.0_accs_real)
+      call pack_entries(vec_elements, i, nmin + (i - 1), 1.0_ccs_real)
     end do
 
     idx_range = maxval(vec_elements%idx) - (minval(vec_elements%idx) - 1)

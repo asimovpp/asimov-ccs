@@ -32,12 +32,12 @@ contains
     class(field), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
-    integer(accs_int), intent(in) :: cps
+    integer(ccs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M   
     class(vector), intent(inout) :: vec   
 
-    integer(accs_int) :: n_int_cells
-    real(accs_real), dimension(:), pointer :: mf_data
+    integer(ccs_int) :: n_int_cells
+    real(ccs_real), dimension(:), pointer :: mf_data
 
     associate (mf_vec => mf%vec)
       print *, "CF: get mf"
@@ -64,9 +64,9 @@ contains
   !
   !> @param[out] nnz - number of non-zero entries per row
   pure function calc_matrix_nnz() result(nnz)
-    integer(accs_int) :: nnz
+    integer(ccs_int) :: nnz
 
-    nnz = 5_accs_int
+    nnz = 5_ccs_int
   end function calc_matrix_nnz
 
   !> @brief Computes the matrix coefficient for cells in the interior of the mesh
@@ -78,28 +78,28 @@ contains
   !> @param[in,out] M       - Matrix structure being assigned
   subroutine compute_interior_coeffs(phi, mf, cell_mesh, n_int_cells, M)
     class(field), intent(in) :: phi
-    real(accs_real), dimension(:), intent(in) :: mf
+    real(ccs_real), dimension(:), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: n_int_cells
+    integer(ccs_int), intent(in) :: n_int_cells
     class(matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, ngb_idx, local_idx, ngb_local_idx
-    integer(accs_int) :: j
-    integer(accs_int) :: mat_counter
-    integer(accs_int) :: n_ngb
-    real(accs_real) :: face_area
-    real(accs_real) :: diff_coeff, diff_coeff_total
-    real(accs_real) :: adv_coeff, adv_coeff_total
-    real(accs_real), dimension(ndim) :: face_normal
+    integer(ccs_int) :: self_idx, ngb_idx, local_idx, ngb_local_idx
+    integer(ccs_int) :: j
+    integer(ccs_int) :: mat_counter
+    integer(ccs_int) :: n_ngb
+    real(ccs_real) :: face_area
+    real(ccs_real) :: diff_coeff, diff_coeff_total
+    real(ccs_real) :: adv_coeff, adv_coeff_total
+    real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
-    integer(accs_int) :: idxf
+    integer(ccs_int) :: idxf
 
-    real(accs_real) :: sgn !> Sign indicating face orientation
+    real(ccs_real) :: sgn !> Sign indicating face orientation
 
     mat_coeffs%mode = add_mode
 
@@ -113,8 +113,8 @@ contains
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
       mat_counter = 1
-      adv_coeff_total = 0.0_accs_real
-      diff_coeff_total = 0.0_accs_real
+      adv_coeff_total = 0.0_ccs_real
+      diff_coeff_total = 0.0_ccs_real
       do j = 1, n_ngb
         call set_neighbour_location(self_loc, j, ngb_loc)
         call get_boundary_status(ngb_loc, is_boundary)
@@ -134,9 +134,9 @@ contains
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
           !       procedure (should also eliminate the type check).
           if (ngb_local_idx < local_idx) then
-            sgn = -1.0_accs_real
+            sgn = -1.0_ccs_real
           else
-            sgn = 1.0_accs_real
+            sgn = 1.0_ccs_real
           end if
           select type(phi)
             type is(central_field)
@@ -156,7 +156,7 @@ contains
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          call pack_entries(1, mat_counter, self_idx, -1, 0.0_accs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, self_idx, -1, 0.0_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
       end do
@@ -183,27 +183,27 @@ contains
     integer, intent(in) :: col
     integer, intent(in) :: cps
     type(bc_config), intent(in) :: bcs
-    real(accs_real), intent(out) :: bc_value
-    real(accs_real) :: row_cps, col_cps
+    real(ccs_real), intent(out) :: bc_value
+    real(ccs_real) :: row_cps, col_cps
 
-    row_cps = real(row, accs_real)/real(cps, accs_real)
-    col_cps = real(col, accs_real)/real(cps, accs_real)
+    row_cps = real(row, ccs_real)/real(cps, ccs_real)
+    col_cps = real(col, ccs_real)/real(cps, ccs_real)
 
-    bc_value = 0.0_accs_real
+    bc_value = 0.0_ccs_real
     ! if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
     !    (bcs%region(ngb_index) == bc_region_left .or. &
     !    bcs%region(ngb_index) == bc_region_right)) then
-    !   bc_value = -((1.0_accs_real - row_cps) * bcs%endpoints(ngb_index, 1) + row_cps * bcs%endpoints(ngb_index, 2))
+    !   bc_value = -((1.0_ccs_real - row_cps) * bcs%endpoints(ngb_index, 1) + row_cps * bcs%endpoints(ngb_index, 2))
     ! else if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
     !         (bcs%region(ngb_index) == bc_region_top .or. &
     !         bcs%region(ngb_index) == bc_region_bottom)) then
-    !   bc_value = -((1.0_accs_real - col_cps) * bcs%endpoints(ngb_index, 1) + col_cps * bcs%endpoints(ngb_index, 2))
+    !   bc_value = -((1.0_ccs_real - col_cps) * bcs%endpoints(ngb_index, 1) + col_cps * bcs%endpoints(ngb_index, 2))
     ! end if
 
     if (bcs%bc_type(ngb_index) == 0) then
-      bc_value = 0.0_accs_real
+      bc_value = 0.0_ccs_real
     else if (bcs%bc_type(ngb_index) == 1) then
-      bc_value = 1.0_accs_real ! XXX: might not be correct
+      bc_value = 1.0_ccs_real ! XXX: might not be correct
     else
       print *, "ERROR: Unknown boundary type ", bcs%bc_type(ngb_index)
     end if
@@ -221,10 +221,10 @@ contains
   !> @param[in,out] b       - vector structure being assigned
   subroutine compute_boundary_coeffs(phi, mf, cell_mesh, bcs, cps, M, b)
     class(field), intent(in) :: phi
-    real(accs_real), dimension(:), intent(in) :: mf
+    real(ccs_real), dimension(:), intent(in) :: mf
     type(mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
-    integer(accs_int), intent(in) :: cps
+    integer(ccs_int), intent(in) :: cps
     class(matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
 
@@ -233,19 +233,19 @@ contains
     type(cell_locator) :: self_loc
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
-    integer(accs_int) :: self_idx, local_idx
-    integer(accs_int) :: j
-    integer(accs_int) :: bc_counter
-    integer(accs_int) :: row, col
-    integer(accs_int) :: n_ngb, mesh_ngb_idx
-    real(accs_real) :: face_area
-    real(accs_real) :: diff_coeff
-    real(accs_real) :: adv_coeff
-    real(accs_real) :: bc_value
-    real(accs_real), dimension(ndim) :: face_normal
+    integer(ccs_int) :: self_idx, local_idx
+    integer(ccs_int) :: j
+    integer(ccs_int) :: bc_counter
+    integer(ccs_int) :: row, col
+    integer(ccs_int) :: n_ngb, mesh_ngb_idx
+    real(ccs_real) :: face_area
+    real(ccs_real) :: diff_coeff
+    real(ccs_real) :: adv_coeff
+    real(ccs_real) :: bc_value
+    real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
-    integer(accs_int) :: idxf
+    integer(ccs_int) :: idxf
     
     mat_coeffs%mode = add_mode
     b_coeffs%mode = add_mode
@@ -307,17 +307,17 @@ contains
   !> @param[in] cell_mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
-    integer(accs_int), intent(in) :: local_self_idx
-    integer(accs_int), intent(in) :: local_ngb_idx
+    integer(ccs_int), intent(in) :: local_self_idx
+    integer(ccs_int), intent(in) :: local_ngb_idx
     type(mesh), intent(in) :: cell_mesh
-    real(accs_real) :: coeff
+    real(ccs_real) :: coeff
 
     type(face_locator) :: face_location
-    real(accs_real) :: face_area
-    real(accs_real), parameter :: diffusion_factor = 1.e-2_accs_real ! XXX: temporarily hard-coded
+    real(ccs_real) :: face_area
+    real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
-    real(accs_real), dimension(ndim) :: dx
-    real(accs_real) :: dxmag
+    real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real) :: dxmag
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
@@ -348,29 +348,29 @@ contains
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
   module function calc_mass_flux(u, v, p, pgradx, pgrady, invAu, invAv, loc_f) result(flux)
-    real(accs_real), dimension(:), intent(in) :: u, v
-    real(accs_real), dimension(:), intent(in) :: p
-    real(accs_real), dimension(:), intent(in) :: pgradx, pgrady
-    real(accs_real), dimension(:), intent(in) :: invAu, invAv
+    real(ccs_real), dimension(:), intent(in) :: u, v
+    real(ccs_real), dimension(:), intent(in) :: p
+    real(ccs_real), dimension(:), intent(in) :: pgradx, pgrady
+    real(ccs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
 
-    real(accs_real) :: flux
+    real(ccs_real) :: flux
 
     ! Local variables
     logical :: is_boundary                          !> Boundary indicator
     type(cell_locator) :: loc_p                     !> Primary cell locator
     type(neighbour_locator) :: loc_nb               !> Neighbour cell locator
-    integer(accs_int) :: idxnb                      !> Neighbour cell index
-    real(accs_real) :: flux_corr                    !> Flux correction
-    real(accs_real), dimension(ndim) :: dx          !> Cell-cell distance
-    real(accs_real) :: dxmag                        !> Cell-cell distance magnitude
-    real(accs_real), dimension(ndim) :: face_normal !> (local) face-normal array
-    real(accs_real) :: Vp                           !> Primary cell volume
-    real(accs_real) :: Vnb                          !> Neighbour cell volume
-    real(accs_real) :: Vf                           !> Face "volume"
-    real(accs_real) :: invAp                        !> Primary cell inverse momentum coefficient
-    real(accs_real) :: invAnb                       !> Neighbour cell inverse momentum coefficient
-    real(accs_real) :: invAf                        !> Face inverse momentum coefficient
+    integer(ccs_int) :: idxnb                      !> Neighbour cell index
+    real(ccs_real) :: flux_corr                    !> Flux correction
+    real(ccs_real), dimension(ndim) :: dx          !> Cell-cell distance
+    real(ccs_real) :: dxmag                        !> Cell-cell distance magnitude
+    real(ccs_real), dimension(ndim) :: face_normal !> (local) face-normal array
+    real(ccs_real) :: Vp                           !> Primary cell volume
+    real(ccs_real) :: Vnb                          !> Neighbour cell volume
+    real(ccs_real) :: Vf                           !> Face "volume"
+    real(ccs_real) :: invAp                        !> Primary cell inverse momentum coefficient
+    real(ccs_real) :: invAnb                       !> Neighbour cell inverse momentum coefficient
+    real(ccs_real) :: invAf                        !> Face inverse momentum coefficient
     
     call get_boundary_status(loc_f, is_boundary)
     if (.not. is_boundary) then
@@ -384,7 +384,7 @@ contains
 
         call get_face_normal(loc_f, face_normal)
         
-        flux = 0.5_accs_real * ((u(idxp) + u(idxnb)) * face_normal(1) &
+        flux = 0.5_ccs_real * ((u(idxp) + u(idxnb)) * face_normal(1) &
              + (v(idxp) + v(idxnb)) * face_normal(2))
 
         !
@@ -394,17 +394,17 @@ contains
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(idxnb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_accs_real * ((pgradx(idxp) + pgradx(idxnb)) * face_normal(1) &
+        flux_corr = flux_corr + 0.5_ccs_real * ((pgradx(idxp) + pgradx(idxnb)) * face_normal(1) &
              + (pgrady(idxp) + pgrady(idxnb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, Vnb)
-        Vf = 0.5_accs_real * (Vp + Vnb)
+        Vf = 0.5_ccs_real * (Vp + Vnb)
 
         ! This is probably not quite right ...
-        invAp = 0.5_accs_real * (invAu(idxp) + invAv(idxp))
-        invAnb = 0.5_accs_real * (invAu(idxnb) + invAv(idxnb))
-        invAf = 0.5_accs_real * (invAp + invAnb)
+        invAp = 0.5_ccs_real * (invAu(idxp) + invAv(idxp))
+        invAnb = 0.5_ccs_real * (invAu(idxnb) + invAv(idxnb))
+        invAf = 0.5_ccs_real * (invAp + invAnb)
         
         flux_corr = (Vf * invAf) * flux_corr
           
@@ -418,7 +418,7 @@ contains
       end associate
     else 
       ! TODO: Write more general implementation handling BCs
-      flux = 0.0_accs_real ! XXX: hardcoded zero-flux BC
+      flux = 0.0_ccs_real ! XXX: hardcoded zero-flux BC
     end if
     
   end function calc_mass_flux
@@ -430,8 +430,8 @@ contains
   !> @param[out] row - cell row within mesh
   !> @param[out] col - cell column within mesh
   module subroutine calc_cell_coords(idx, cps, row, col)
-    integer(accs_int), intent(in) :: idx, cps
-    integer(accs_int), intent(out) :: row, col
+    integer(ccs_int), intent(in) :: idx, cps
+    integer(ccs_int), intent(out) :: row, col
 
     col = modulo(idx-1,cps) + 1 
     row = (idx-1)/cps + 1
@@ -450,10 +450,10 @@ contains
     type(mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: phi
 
-    real(accs_real), dimension(:), pointer :: gradx_data, grady_data, gradz_data
-    real(accs_real), dimension(:), allocatable :: gradx_old, grady_old, gradz_old
+    real(ccs_real), dimension(:), pointer :: gradx_data, grady_data, gradz_data
+    real(ccs_real), dimension(:), allocatable :: gradx_old, grady_old, gradz_old
 
-    integer(accs_real) :: i
+    integer(ccs_real) :: i
     
     call get_vector_data(phi%gradx, gradx_data)
     call get_vector_data(phi%grady, grady_data)
@@ -498,37 +498,37 @@ contains
 
 
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: component
+    integer(ccs_int), intent(in) :: component
     class(vector), intent(in) :: phi
-    real(accs_real), dimension(:), intent(in) :: gradx_old
-    real(accs_real), dimension(:), intent(in) :: grady_old
-    real(accs_real), dimension(:), intent(in) :: gradz_old
+    real(ccs_real), dimension(:), intent(in) :: gradx_old
+    real(ccs_real), dimension(:), intent(in) :: grady_old
+    real(ccs_real), dimension(:), intent(in) :: gradz_old
     class(vector), intent(inout) :: gradient
     
     type(vector_values) :: grad_values
-    real(accs_real), dimension(:), pointer :: phi_data
-    real(accs_real) :: grad
+    real(ccs_real), dimension(:), pointer :: phi_data
+    real(ccs_real) :: grad
     
-    integer(accs_int) :: i
-    integer(accs_int) :: j
+    integer(ccs_int) :: i
+    integer(ccs_int) :: j
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     
-    integer(accs_int) :: nnb
-    integer(accs_int) :: nb
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: nb
     
-    real(accs_real) :: phif
+    real(ccs_real) :: phif
 
     logical :: is_boundary
 
-    real(accs_real) :: face_area
-    real(accs_real), dimension(ndim) :: face_norm
+    real(ccs_real) :: face_area
+    real(ccs_real), dimension(ndim) :: face_norm
 
-    real(accs_real) :: V
-    integer(accs_int) :: idxg
+    real(ccs_real) :: V
+    integer(ccs_int) :: idxg
 
-    real(accs_real), dimension(ndim) :: dx
+    real(ccs_real), dimension(ndim) :: dx
     
     allocate(grad_values%idx(1))
     allocate(grad_values%val(1))
@@ -537,7 +537,7 @@ contains
     call get_vector_data(phi, phi_data)
     
     do i = 1, cell_mesh%nlocal
-      grad = 0.0_accs_int
+      grad = 0.0_ccs_int
       
       call set_cell_location(cell_mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
@@ -548,7 +548,7 @@ contains
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, nb)
-          phif = 0.5_accs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
+          phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
           call get_distance(loc_p, loc_f, dx)
           phif = phi_data(i) + (gradx_old(i) * dx(1) + grady_old(i) * dx(2) + gradz_old(i) * dx(3))
