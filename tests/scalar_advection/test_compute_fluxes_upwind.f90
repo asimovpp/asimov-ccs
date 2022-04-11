@@ -153,7 +153,7 @@ program test_compute_fluxes
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
     type(vector_spec) :: vec_sizes
-    type(matrix_init_data) :: mat_sizes
+    type(matrix_spec) :: mat_sizes
     real(ccs_real) :: error
     
     call initialise(mat_sizes)
