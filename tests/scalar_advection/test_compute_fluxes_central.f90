@@ -150,7 +150,7 @@ program test_compute_fluxes
     integer(accs_int), intent(in) :: flow_direction
     integer(accs_int), intent(in) :: discretisation
 
-    class(matrix), allocatable :: M, M_exact
+    class(ccs_matrix), allocatable :: M, M_exact
     class(vector), allocatable :: b, b_exact
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
@@ -214,7 +214,7 @@ program test_compute_fluxes
     integer(accs_int), intent(in) :: flow
     integer(accs_int), intent(in) :: discretisation
     integer(accs_int), intent(in) :: cps
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
 
     ! type(vector_init_data) :: vec_sizes
@@ -309,7 +309,7 @@ program test_compute_fluxes
 
     class(mesh), intent(in) :: cell_mesh
     integer(accs_int), intent(in) :: cps
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
 
@@ -380,7 +380,7 @@ program test_compute_fluxes
     integer(accs_int), intent(in) :: cps
     integer(accs_int), intent(in) :: flow
     integer(accs_int), intent(in) :: discretisation
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
 
