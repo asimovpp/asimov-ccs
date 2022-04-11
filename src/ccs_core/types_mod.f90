@@ -50,7 +50,7 @@ module types
     real(ccs_real), dimension(:), allocatable :: values     !> Array of values, must be logically 2D and 
                                                           !! of size = size(row_indices) * size(col_indices). Uses 
                                                           !! row-major ordering.
-    integer(ccs_int) :: mode !> Which mode to use when setting values?
+    integer(ccs_int) :: setter_mode !> Which mode to use when setting values?
   end type matrix_values
 
   !> @brief Container type representing a linear system.

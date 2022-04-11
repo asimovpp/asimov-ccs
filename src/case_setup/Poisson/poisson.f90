@@ -207,7 +207,7 @@ contains
     logical :: is_boundary
     integer(ccs_int) :: nbidxg
 
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%setter_mode = insert_mode
 
     !! Loop over cells
     do i = 1, square_mesh%nlocal
@@ -296,7 +296,7 @@ contains
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
 
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
     vec_values%mode = add_mode
 
     do i = 1, square_mesh%nlocal

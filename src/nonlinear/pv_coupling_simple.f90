@@ -353,7 +353,7 @@ contains
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
 
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%setter_mode = insert_mode
     vec_values%mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
     call update(M)

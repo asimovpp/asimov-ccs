@@ -101,7 +101,7 @@ contains
 
     real(ccs_real) :: sgn !> Sign indicating face orientation
 
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
 
     allocate(mat_coeffs%row_indices(1))
     allocate(mat_coeffs%col_indices(n_int_cells))
@@ -247,7 +247,7 @@ contains
 
     integer(ccs_int) :: idxf
     
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
     b_coeffs%mode = add_mode
 
     allocate(mat_coeffs%row_indices(1))

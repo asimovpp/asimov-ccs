@@ -318,7 +318,7 @@ program test_compute_fluxes
     allocate(mat_coeffs%row_indices(1))
     allocate(mat_coeffs%col_indices(5))
     allocate(mat_coeffs%values(5))
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
 
     j = cps
     
@@ -383,7 +383,7 @@ program test_compute_fluxes
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: mat_counter
 
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
     allocate(mat_coeffs%row_indices(1))
     allocate(mat_coeffs%col_indices(2))
     allocate(mat_coeffs%values(2))

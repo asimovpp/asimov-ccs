@@ -200,7 +200,7 @@ contains
     associate(ridx    => mat_values%row_indices, &
               cidx    => mat_values%col_indices, &
               val     => mat_values%values, &
-              matmode => mat_values%mode)
+              matmode => mat_values%setter_mode)
     
       select type (M)
         type is (matrix_petsc)
