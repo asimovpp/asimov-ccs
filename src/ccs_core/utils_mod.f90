@@ -13,7 +13,7 @@ module utils
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   pack_one_matrix_coefficient, zero_matrix
-  use solver, only: initialise_linear_system
+  use solver, only: initialise_equation_system
   
   implicit none
 
@@ -67,7 +67,7 @@ module utils
   interface initialise
     module procedure initialise_vector
     module procedure initialise_matrix
-    module procedure initialise_linear_system
+    module procedure initialise_equation_system
   end interface initialise
 
   !> @brief Generic interface to set vector and matrix sizes
