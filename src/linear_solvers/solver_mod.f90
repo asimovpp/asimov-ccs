@@ -4,7 +4,7 @@
 
 module solver
 
-  use types, only : linear_solver, linear_system, vector, matrix
+  use types, only : linear_solver, linear_system, vector, ccs_matrix
   use parallel_types, only: parallel_environment
   use vec, only : vec_axpy, vec_norm
   use mat, only : mat_axpy, mat_norm
@@ -55,7 +55,7 @@ module solver
       class(parallel_environment), allocatable, target, intent(in) :: par_env
       class(vector), allocatable, target, intent(in) :: rhs
       class(vector), allocatable, target, intent(in) :: solution
-      class(matrix), allocatable, target, intent(in) :: mat
+      class(ccs_matrix), allocatable, target, intent(in) :: mat
       type(linear_system), intent(inout) :: lin_sys
     end subroutine
 
