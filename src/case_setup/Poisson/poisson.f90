@@ -207,7 +207,7 @@ contains
     logical :: is_boundary
     integer(ccs_int) :: nbidxg
 
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%setter_mode = insert_mode
 
     !! Loop over cells
     do i = 1, square_mesh%nlocal
@@ -219,9 +219,9 @@ contains
       call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
-      allocate(mat_coeffs%rglob(1))
-      allocate(mat_coeffs%cglob(1 + nnb))
-      allocate(mat_coeffs%val(1 + nnb))
+      allocate(mat_coeffs%row_indices(1))
+      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%values(1 + nnb))
 
       row = idxg
       coeff_p = 0.0_ccs_real
@@ -258,7 +258,9 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+      deallocate(mat_coeffs%row_indices)
+      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%values)
         
     end do
     
@@ -290,13 +292,13 @@ contains
     integer(ccs_int) :: nnb
     logical :: is_boundary
     
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%values(1))
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))
 
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
     vec_values%setter_mode = add_mode
 
     do i = 1, square_mesh%nlocal
