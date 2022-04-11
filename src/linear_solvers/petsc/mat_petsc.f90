@@ -22,7 +22,7 @@ contains
     use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
-    type(matrix_init_data), intent(in) :: mat_dat
+    type(matrix_spec), intent(in) :: mat_dat
     class(ccs_matrix), allocatable, intent(out) :: M
 
     integer(ccs_err) :: ierr  !> Error code

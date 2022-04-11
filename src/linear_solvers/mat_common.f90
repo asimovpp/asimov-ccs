@@ -8,7 +8,7 @@ contains
   !
   !> param[in/out] matrix_descriptor - the initialised matrix values
   module subroutine initialise_matrix(matrix_descriptor)
-    type(matrix_init_data), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: matrix_descriptor
     matrix_descriptor%par_env => null()
     matrix_descriptor%par_env => null()
   end subroutine initialise_matrix
@@ -22,7 +22,7 @@ contains
   module subroutine set_matrix_size(par_env, geometry, matrix_descriptor)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     class(ccs_mesh), target, intent(in) :: geometry
-    type(matrix_init_data), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: matrix_descriptor
 
     matrix_descriptor%mesh => geometry
     matrix_descriptor%par_env => par_env
@@ -34,7 +34,7 @@ contains
   !> param[in/out] matrix_descriptor - the matrix data object
   module subroutine set_nnz(nnz, matrix_descriptor)
     integer(ccs_int), intent(in) :: nnz
-    type(matrix_init_data), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: matrix_descriptor
 
     matrix_descriptor%nnz = nnz
   end subroutine  set_nnz
