@@ -4,7 +4,7 @@
 !> @details An implementation of a PETSc solver
 submodule (solver) solver_petsc
 
-  use kinds, only : accs_int, accs_err
+  use kinds, only : accs_err
   use petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use utils, only: update
