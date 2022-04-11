@@ -18,7 +18,7 @@ program test_advection_coeff
   use petsctypes, only: vector_petsc
 
   type(ccs_mesh) :: square_mesh
-  type(vector_init_data) :: vec_sizes
+  type(vector_spec) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 50

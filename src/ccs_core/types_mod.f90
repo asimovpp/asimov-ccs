@@ -20,11 +20,11 @@ module types
   end type ccs_matrix
 
   !> @brief Container type for data required to initialise a vector.
-  type, public :: vector_init_data
+  type, public :: vector_spec
     class(parallel_environment), pointer :: par_env !> The parallel environment
     type(ccs_mesh), pointer :: mesh !> The mesh object to build the vector on
-    integer(ccs_int) :: loc !> The location of the vector values (cell or face)
-  end type vector_init_data
+    integer(ccs_int) :: storage_location !> The storage location of the vector values (cell or face)
+  end type vector_spec
 
 
   !> @brief Container type for setting values in a vector.

@@ -6,7 +6,7 @@ program scalar_advection
 
   !! ASiMoV-CCS uses
   use kinds, only : ccs_real, ccs_int
-  use types, only : vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, &
+  use types, only : vector_spec, ccs_vector, matrix_init_data, ccs_matrix, &
                     linear_system, linear_solver, ccs_mesh, &
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
@@ -29,7 +29,7 @@ program scalar_advection
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
 
-  type(vector_init_data) :: vec_sizes
+  type(vector_spec) :: vec_sizes
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: scalar_linear_system
   type(ccs_mesh) :: square_mesh
