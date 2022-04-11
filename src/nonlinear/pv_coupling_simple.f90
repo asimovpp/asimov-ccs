@@ -5,7 +5,7 @@
 submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, linear_system, &
+  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
@@ -13,7 +13,7 @@ submodule (pv_coupling) pv_coupling_simple
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
                    mult, scale, zero
-  use solver, only: create_solver, solve, set_linear_system, axpy, norm
+  use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -48,7 +48,7 @@ contains
     
     type(vector_spec) :: vec_sizes
     type(matrix_spec) :: mat_sizes
-    type(linear_system)    :: lin_system
+    type(equation_system)    :: lin_system
     type(bc_config) :: bcs
 
     logical :: converged
@@ -145,7 +145,7 @@ contains
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
     class(ccs_vector), intent(inout)    :: invAu, invAv
 
@@ -179,7 +179,7 @@ contains
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
     class(ccs_vector), intent(inout)    :: invAu
     
@@ -227,7 +227,7 @@ contains
     call finalise(M)
 
     ! Create linear solver
-    call set_linear_system(par_env, vec, u%vec, M, lin_sys)
+    call set_equation_system(par_env, vec, u%vec, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
@@ -307,7 +307,7 @@ contains
     class(ccs_vector), intent(in) :: invAu, invAv
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout) :: pp
 
     ! Local variables
@@ -451,7 +451,7 @@ contains
     
     ! Create linear solver
     print *, "P': create lin sys"
-    call set_linear_system(par_env, vec, pp%vec, M, lin_sys)
+    call set_equation_system(par_env, vec, pp%vec, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system

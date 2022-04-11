@@ -15,14 +15,14 @@ contains
 
   !> @brief Create a new PETSc solver object.
   !
-  !> @param[in]  linear_system eqsys   - Data structure containing equation system to be solved.
+  !> @param[in]  equation_system eqsys   - Data structure containing equation system to be solved.
   !> @param[out] linear_solver solver - The linear solver returned allocated.
   module subroutine create_solver(eqsys, solver)
 
     use petsc, only : PETSC_TRUE
     use petscksp, only : KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
 
-    type(linear_system), intent(in) :: eqsys
+    type(equation_system), intent(in) :: eqsys
     class(linear_solver), allocatable, intent(out) :: solver
 
     integer(ccs_err) :: ierr !> Error code
@@ -39,7 +39,7 @@ contains
        
             associate(comm => par_env%comm, &
                       ksp  => solver%KSP, &
-                      M    => solver%eqsys%M)
+                      M    => solver%eqsys%matrix)
 
               select type(M)
                 type is(matrix_petsc)
@@ -95,7 +95,7 @@ contains
           select type (b => solver%eqsys%rhs)
             type is(vector_petsc)
 
-              select type(u => solver%eqsys%sol)
+              select type(u => solver%eqsys%solution)
                 type is(vector_petsc)
                   call KSPSolve(ksp, b%v, u%v, ierr)
                   call update(u)

@@ -54,16 +54,16 @@ module types
   end type matrix_values
 
   !> @brief Container type representing a linear system.
-  type, public :: linear_system
-    class(ccs_vector), pointer :: sol !> Solution vector
+  type, public :: equation_system
+    class(ccs_vector), pointer :: solution !> Solution vector
     class(ccs_vector), pointer :: rhs !> Right-hand side vector
-    class(ccs_matrix), pointer :: M   !> Matrix
+    class(ccs_matrix), pointer :: matrix   !> Matrix
     class(parallel_environment), pointer :: par_env !> The parallel environment
-  end type linear_system
+  end type equation_system
   
   !> @brief Stub type for solvers to be extended in sub-modules.
   type, public :: linear_solver
-    type(linear_system) :: eqsys !> System of equations
+    type(equation_system) :: eqsys !> System of equations
   end type linear_solver
 
   !> @brief Mesh type
