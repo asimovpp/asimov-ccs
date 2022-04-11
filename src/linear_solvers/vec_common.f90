@@ -1,5 +1,6 @@
 submodule (vec) vec_common
 
+  use constants, only: cell
   implicit none 
 
 contains
