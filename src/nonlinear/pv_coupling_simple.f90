@@ -4,7 +4,7 @@
 
 submodule (pv_coupling) pv_coupling_simple
 
-  use kinds, only: accs_real, accs_int
+  use kinds, only: ccs_real, ccs_int
   use types, only: vector_init_data, vector, matrix_init_data, ccs_matrix, linear_system, &
                    linear_solver, mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
@@ -37,11 +37,11 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh
-    integer(accs_int), intent(in) :: cps, it_start, it_end
+    integer(ccs_int), intent(in) :: cps, it_start, it_end
     class(field), intent(inout) :: u, v, p, pp, mf
     
     ! Local variables
-    integer(accs_int) :: i
+    integer(ccs_int) :: i
     class(vector), allocatable :: source
     class(ccs_matrix), allocatable :: M
     class(vector), allocatable :: invAu, invAv
@@ -139,7 +139,7 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in)         :: cell_mesh
-    integer(accs_int), intent(in)  :: cps
+    integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     type(bc_config), intent(inout) :: bcs
@@ -172,10 +172,10 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(mesh), intent(in)         :: cell_mesh
-    integer(accs_int), intent(in)  :: cps
+    integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
-    integer(accs_int), intent(in) :: component
+    integer(ccs_int), intent(in) :: component
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(vector), allocatable, intent(inout)  :: vec
@@ -185,11 +185,11 @@ contains
     
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    real(accs_real) :: alpha !> Underrelaxation factor
+    real(ccs_real) :: alpha !> Underrelaxation factor
 
     ! Set underrelaxation factor
     ! TODO: read from input
-    alpha = 0.9_accs_real
+    alpha = 0.9_ccs_real
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -254,11 +254,11 @@ contains
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: self_loc
-    integer(accs_int) :: self_idx, local_idx
-    real(accs_real) :: r
-    real(accs_real), dimension(:), pointer :: pgrad_data
+    integer(ccs_int) :: self_idx, local_idx
+    real(ccs_real) :: r
+    real(ccs_real), dimension(:), pointer :: pgrad_data
 
-    real(accs_real) :: V
+    real(ccs_real) :: V
     
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
@@ -317,37 +317,37 @@ contains
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
     class(linear_solver), allocatable :: lin_solver
-    integer(accs_int) :: self_idx, ngb_idx, local_idx
-    integer(accs_int) :: j
-    integer(accs_int) :: n_ngb
-    integer(accs_int) :: row, col
-    real(accs_real) :: face_area
-    real(accs_real), dimension(ndim) :: face_normal
-    real(accs_real) :: r
-    real(accs_real) :: coeff_f, coeff_p, coeff_nb
+    integer(ccs_int) :: self_idx, ngb_idx, local_idx
+    integer(ccs_int) :: j
+    integer(ccs_int) :: n_ngb
+    integer(ccs_int) :: row, col
+    real(ccs_real) :: face_area
+    real(ccs_real), dimension(ndim) :: face_normal
+    real(ccs_real) :: r
+    real(ccs_real) :: coeff_f, coeff_p, coeff_nb
     logical :: is_boundary
 
-    real(accs_real), dimension(:), pointer :: invAu_data
-    real(accs_real), dimension(:), pointer :: invAv_data
+    real(ccs_real), dimension(:), pointer :: invAu_data
+    real(ccs_real), dimension(:), pointer :: invAv_data
     
-    real(accs_real) :: Vp
-    real(accs_real) :: Vnb
-    real(accs_real) :: Vf
-    real(accs_real) :: invAp
-    real(accs_real) :: invAnb
-    real(accs_real) :: invAf
+    real(ccs_real) :: Vp
+    real(ccs_real) :: Vnb
+    real(ccs_real) :: Vf
+    real(ccs_real) :: invAp
+    real(ccs_real) :: invAnb
+    real(ccs_real) :: invAf
 
-    integer(accs_int) :: idxnb
+    integer(ccs_int) :: idxnb
 
-    integer(accs_int) :: cps   ! Cells per side
-    integer(accs_int) :: rcrit ! Global index of approximate central cell
+    integer(ccs_int) :: cps   ! Cells per side
+    integer(ccs_int) :: rcrit ! Global index of approximate central cell
     
     ! First zero matrix
     call zero(M)
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     print *, "P': negate RHS"
-    call scale(-1.0_accs_real, vec)
+    call scale(-1.0_ccs_real, vec)
     call update(vec)
     
     allocate(vec_values%idx(1))
@@ -374,8 +374,8 @@ contains
       allocate(mat_coeffs%val(1 + n_ngb))
 
       row = self_idx
-      coeff_p = 0.0_accs_real
-      r = 0.0_accs_real
+      coeff_p = 0.0_ccs_real
+      r = 0.0_ccs_real
 
       ! Loop over faces
       do j = 1, n_ngb
@@ -394,11 +394,11 @@ contains
 
           call get_volume(self_loc, Vp)
           call get_volume(ngb_loc, Vnb)
-          Vf = 0.5_accs_real * (Vp + Vnb)
+          Vf = 0.5_ccs_real * (Vp + Vnb)
 
-          invAp = 0.5_accs_real * (invAu_data(local_idx) + invAv_data(local_idx))
-          invAnb = 0.5_accs_real * (invAu_data(idxnb) + invAv_data(idxnb))
-          invAf = 0.5_accs_real * (invAp + invAnb)
+          invAp = 0.5_ccs_real * (invAu_data(local_idx) + invAv_data(local_idx))
+          invAnb = 0.5_ccs_real * (invAu_data(idxnb) + invAv_data(idxnb))
+          invAf = 0.5_ccs_real * (invAp + invAnb)
 
           coeff_f = -(Vf * invAf) * coeff_f
           
@@ -408,7 +408,7 @@ contains
         else
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
-          coeff_nb = 0.0_accs_real
+          coeff_nb = 0.0_ccs_real
         endif
         call pack_entries(1, j+1, row, col, coeff_nb, mat_coeffs)
 
@@ -417,7 +417,7 @@ contains
       ! XXX: Need to fix pressure somewhere
       !!     Row is the global index - should be unique
       !!     Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(cell_mesh%nglobal)), accs_int)
+      cps = int(sqrt(real(cell_mesh%nglobal)), ccs_int)
       rcrit = (cps / 2) * (1 + cps)
       if (row == rcrit) then
         coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
@@ -477,33 +477,33 @@ contains
     class(vector), intent(inout) :: b   !> The per-cell mass imbalance
 
     type(vector_values) :: vec_values
-    integer(accs_int) :: i !> Cell counter
-    integer(accs_int) :: j !> Cell-face counter
+    integer(ccs_int) :: i !> Cell counter
+    integer(ccs_int) :: j !> Cell-face counter
 
     type(cell_locator) :: loc_p !> Central cell locator object
     type(face_locator) :: loc_f !> Face locator object
 
-    integer(accs_int) :: idxp_g  !> Central cell global index
-    real(accs_real) :: face_area !> Face area
-    integer(accs_int) :: idxf    !> Face index
-    integer(accs_int) :: nnb     !> Cell neighbour count
+    integer(ccs_int) :: idxp_g  !> Central cell global index
+    real(ccs_real) :: face_area !> Face area
+    integer(ccs_int) :: idxf    !> Face index
+    integer(ccs_int) :: nnb     !> Cell neighbour count
 
-    real(accs_real), dimension(:), pointer :: mf_data     !> Data array for the mass flux
-    real(accs_real), dimension(:), pointer :: u_data      !> Data array for x velocity component
-    real(accs_real), dimension(:), pointer :: v_data      !> Data array for y velocity component
-    real(accs_real), dimension(:), pointer :: p_data      !> Data array for pressure
-    real(accs_real), dimension(:), pointer :: pgradx_data !> Data array for pressure x gradient
-    real(accs_real), dimension(:), pointer :: pgrady_data !> Data array for pressure y gradient
-    real(accs_real), dimension(:), pointer :: invAu_data  !> Data array for inverse x momentum
+    real(ccs_real), dimension(:), pointer :: mf_data     !> Data array for the mass flux
+    real(ccs_real), dimension(:), pointer :: u_data      !> Data array for x velocity component
+    real(ccs_real), dimension(:), pointer :: v_data      !> Data array for y velocity component
+    real(ccs_real), dimension(:), pointer :: p_data      !> Data array for pressure
+    real(ccs_real), dimension(:), pointer :: pgradx_data !> Data array for pressure x gradient
+    real(ccs_real), dimension(:), pointer :: pgrady_data !> Data array for pressure y gradient
+    real(ccs_real), dimension(:), pointer :: invAu_data  !> Data array for inverse x momentum
                                                           !! diagonal coefficient
-    real(accs_real), dimension(:), pointer :: invAv_data  !> Data array for inverse y momentum
+    real(ccs_real), dimension(:), pointer :: invAv_data  !> Data array for inverse y momentum
                                                           !! diagonal coefficient
 
     logical :: is_boundary            !> Boundary indicator
     type(neighbour_locator) :: loc_nb !> Neighbour cell locator object
-    integer(accs_int) :: idxnb        !> Neighbour cell index
+    integer(ccs_int) :: idxnb        !> Neighbour cell index
     
-    real(accs_real) :: mib !> Cell mass imbalance
+    real(ccs_real) :: mib !> Cell mass imbalance
 
     allocate(vec_values%idx(1))
     allocate(vec_values%val(1))
@@ -532,7 +532,7 @@ contains
       call get_global_index(loc_p, idxp_g)
       call count_neighbours(loc_p, nnb)
 
-      mib = 0.0_accs_real
+      mib = 0.0_ccs_real
 
       do j = 1, nnb
         call set_face_location(cell_mesh, i, j, loc_f)
@@ -595,10 +595,10 @@ contains
     class(field), intent(inout) :: p
 
     ! Local variables
-    real(accs_real) :: alpha   !< Under-relaxation factor
+    real(ccs_real) :: alpha   !< Under-relaxation factor
 
     ! Set under-relaxation factor (todo: read this from input file)
-    alpha = 0.1_accs_real
+    alpha = 0.1_ccs_real
 
     call axpy(alpha, pp%vec, p%vec)
     
@@ -642,24 +642,24 @@ contains
     class(field), intent(inout) :: pp
     class(field), intent(inout) :: mf
     
-    integer(accs_int) :: i
+    integer(ccs_int) :: i
 
-    real(accs_real) :: mf_prime
-    real(accs_real), dimension(:), allocatable :: zero_arr
-    real(accs_real), dimension(:), pointer :: mf_data
-    real(accs_real), dimension(:), pointer :: pp_data
-    real(accs_real), dimension(:), pointer :: invAu_data
-    real(accs_real), dimension(:), pointer :: invAv_data
+    real(ccs_real) :: mf_prime
+    real(ccs_real), dimension(:), allocatable :: zero_arr
+    real(ccs_real), dimension(:), pointer :: mf_data
+    real(ccs_real), dimension(:), pointer :: pp_data
+    real(ccs_real), dimension(:), pointer :: invAu_data
+    real(ccs_real), dimension(:), pointer :: invAv_data
 
     type(cell_locator) :: loc_p
-    integer(accs_int) :: nnb
-    integer(accs_int) :: j
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: j
     type(face_locator) :: loc_f
-    integer(accs_int) :: idxf
+    integer(ccs_int) :: idxf
 
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
-    integer(accs_int) :: idxnb
+    integer(ccs_int) :: idxnb
     
     ! Update vector to make sure data is up to date
     call update(pp%vec)
@@ -669,7 +669,7 @@ contains
     call get_vector_data(mf%vec, mf_data)
     
     allocate(zero_arr(size(pp_data)))
-    zero_arr(:) = 0.0_accs_real
+    zero_arr(:) = 0.0_ccs_real
 
     ! XXX: This should really be a face loop
     do i = 1, cell_mesh%nlocal
@@ -731,17 +731,17 @@ contains
     use mat, only : set_matrix_diagonal
     
     type(mesh), intent(in) :: cell_mesh
-    real(accs_real), intent(in) :: alpha
+    real(ccs_real), intent(in) :: alpha
     class(field), intent(in) :: phi
     class(vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
     class(vector), intent(inout) :: b
 
-    real(accs_real), dimension(:), pointer :: diag_data
-    real(accs_real), dimension(:), pointer :: phi_data
-    real(accs_real), dimension(:), pointer :: b_data
+    real(ccs_real), dimension(:), pointer :: diag_data
+    real(ccs_real), dimension(:), pointer :: phi_data
+    real(ccs_real), dimension(:), pointer :: b_data
 
-    integer(accs_int) :: i
+    integer(ccs_int) :: i
 
     print *, "UR: get diagonal vec"
     call finalise(M)
@@ -757,7 +757,7 @@ contains
     do i = 1, cell_mesh%nlocal
       diag_data(i) = diag_data(i) / alpha
 
-      b_data(i) = b_data(i) + (1.0_accs_real - alpha) * diag_data(i) * phi_data(i)
+      b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi_data(i)
     end do
 
     print *, "UR: Restore data"

@@ -10,7 +10,7 @@ program simple
   use petscsys
 
   use constants, only : cell, face
-  use kinds, only: accs_real, accs_int
+  use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, mesh, &
                    vector_init_data, vector
   use parallel, only: initialise_parallel_environment, &
@@ -31,9 +31,9 @@ program simple
 
   class(field), allocatable :: u, v, p, pp, mf
 
-  integer(accs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 50 ! Default value for cells per side
 
-  integer(accs_int) :: it_start, it_end, ierr
+  integer(ccs_int) :: it_start, it_end, ierr
 
   double precision :: start_time
   double precision :: end_time
@@ -53,7 +53,7 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -165,12 +165,12 @@ contains
     class(field), intent(inout) :: u, v, mf
 
     ! Local variables
-    integer(accs_int) :: row, col
-    integer(accs_int) :: local_idx, self_idx
-    real(accs_real) :: u_val, v_val
+    integer(ccs_int) :: row, col
+    integer(ccs_int) :: local_idx, self_idx
+    real(ccs_real) :: u_val, v_val
     type(cell_locator) :: self_loc
     type(vector_values) :: u_vals, v_vals
-    real(accs_real), dimension(:), pointer :: u_data, v_data, mf_data
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
 
     ! Set mode
     u_vals%mode = add_mode
@@ -192,8 +192,8 @@ contains
         call get_global_index(self_loc, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 
-        u_val = real(col, accs_real)/real(cps, accs_real)
-        v_val = -real(row, accs_real)/real(cps, accs_real)
+        u_val = real(col, ccs_real)/real(cps, ccs_real)
+        v_val = -real(row, ccs_real)/real(cps, ccs_real)
 
         call pack_entries(local_idx, self_idx, u_val, u_vals)
         call pack_entries(local_idx, self_idx, v_val, v_vals)
@@ -209,9 +209,9 @@ contains
     call get_vector_data(v%vec, v_data)
     call get_vector_data(mf%vec, mf_data)
 
-    u_data(:) = 0.0_accs_real
-    v_data(:) = 0.0_accs_real
-    mf_data(:) = 0.0_accs_real
+    u_data(:) = 0.0_ccs_real
+    v_data(:) = 0.0_ccs_real
+    mf_data(:) = 0.0_ccs_real
     
     call restore_vector_data(u%vec, u_data)
     call restore_vector_data(v%vec, v_data)

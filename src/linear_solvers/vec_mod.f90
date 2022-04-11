@@ -5,7 +5,7 @@
 
 module vec
 
-  use kinds, only : accs_real, accs_int
+  use kinds, only : ccs_real, ccs_int
   use types, only : mesh, vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
@@ -91,9 +91,9 @@ module vec
     !> @details Stores a vector element and associated index for later setting, ensuring they are
     !!          set appropriately for the backend.
     module subroutine pack_one_vector_element(ent, idx, val, val_dat)
-      integer(accs_int), intent(in) :: ent
-      integer(accs_int), intent(in) :: idx
-      real(accs_real), intent(in) :: val
+      integer(ccs_int), intent(in) :: ent
+      integer(ccs_int), intent(in) :: idx
+      real(ccs_real), intent(in) :: val
       type(vector_values), intent(inout) :: val_dat
     end subroutine pack_one_vector_element
 
@@ -106,7 +106,7 @@ module vec
     !> @param[in]     x     - an input vector
     !> @param[in,out] y     - vector serving as input, overwritten with result
     module subroutine vec_axpy(alpha, x, y)
-      real(accs_real), intent(in) :: alpha
+      real(ccs_real), intent(in) :: alpha
       class(vector), intent(in) :: x
       class(vector), intent(inout) :: y
     end subroutine
@@ -120,8 +120,8 @@ module vec
     !!                         call.
     module function vec_norm(v, norm_type) result(n)
       class(vector), intent(in) :: v
-      integer(accs_int), intent(in) :: norm_type
-      real(accs_real) :: n
+      integer(ccs_int), intent(in) :: norm_type
+      real(ccs_real) :: n
     end function
     
     !> @brief Constructor for default vector values
@@ -151,7 +151,7 @@ module vec
     !> @param[in] array - an array to store the data in
     module subroutine get_vector_data(vec, array)
       class(vector), intent(in) :: vec
-      real(accs_real), dimension(:), pointer, intent(out) :: array
+      real(ccs_real), dimension(:), pointer, intent(out) :: array
     end subroutine get_vector_data
 
     !> @brief Resets the vector data if required for further processing
@@ -160,13 +160,13 @@ module vec
     !> @param[in] array - the array containing the data to restore
     module subroutine restore_vector_data(vec, array)
       class(vector), intent(in) :: vec
-      real(accs_real), dimension(:), pointer, intent(in) :: array
+      real(ccs_real), dimension(:), pointer, intent(in) :: array
     end subroutine restore_vector_data
 
     !> @brief Set vector values to be located at either cell-centre or face
     !
     module subroutine set_vector_location(loc, vector_descriptor)
-      integer(accs_int), intent(in) :: loc
+      integer(ccs_int), intent(in) :: loc
       type(vector_init_data), intent(inout) :: vector_descriptor
     end subroutine set_vector_location
 
@@ -188,7 +188,7 @@ module vec
     end subroutine mult_vec_vec
 
     module subroutine scale_vec(alpha, v)
-      real(accs_real), intent(in) :: alpha
+      real(ccs_real), intent(in) :: alpha
       class(vector), intent(inout) :: v
     end subroutine scale_vec
     

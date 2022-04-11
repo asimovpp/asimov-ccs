@@ -5,7 +5,7 @@ module test_mat
 
   use pFUnit
   
-  use kinds, only : accs_int, accs_real
+  use kinds, only : ccs_int, ccs_real
   use types, only : matrix_values
   
   use mat
@@ -28,15 +28,15 @@ contains
 
     use utils, only : pack_entries
 
-    integer(accs_int), parameter :: nnb = 4
-    integer(accs_int), parameter :: stencil_size = 1 + nnb
-    integer(accs_int) :: ridx, cidx
+    integer(ccs_int), parameter :: nnb = 4
+    integer(ccs_int), parameter :: stencil_size = 1 + nnb
+    integer(ccs_int) :: ridx, cidx
 
-    real(accs_real) :: coeff, coeff_nb, coeff_p
+    real(ccs_real) :: coeff, coeff_nb, coeff_p
     type(matrix_values) :: mat_coeffs
 
-    integer(accs_int) :: j
-    integer(accs_int) :: idx_range
+    integer(ccs_int) :: j
+    integer(ccs_int) :: idx_range
 
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(stencil_size))

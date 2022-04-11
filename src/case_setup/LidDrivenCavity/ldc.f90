@@ -5,7 +5,7 @@
 program ldc
 
   use yaml, only: parse, error_length
-  use kinds, only : accs_int, accs_real
+  use kinds, only : ccs_int, ccs_real
   use constants, only: ccsconfig
   use bc_constants, only: bc_region_left, bc_region_right, &
                           bc_region_top, bc_region_bottom, bc_region_live, &
@@ -24,30 +24,30 @@ program ldc
   class(parallel_environment), allocatable :: par_env
 
   ! Reference numbers
-  real(accs_real) :: p_ref
-  real(accs_real) :: temp_ref
-  real(accs_real) :: density
-  real(accs_real) :: viscosity
-  integer(accs_int) :: pref_at_cell
+  real(ccs_real) :: p_ref
+  real(ccs_real) :: temp_ref
+  real(ccs_real) :: density
+  real(ccs_real) :: viscosity
+  integer(ccs_int) :: pref_at_cell
 
   ! Number of steps
-  integer(accs_int) :: num_steps
+  integer(ccs_int) :: num_steps
 
   ! Convection/discretisation scheme
-  integer(accs_int) :: u_conv
-  integer(accs_int) :: v_conv
+  integer(ccs_int) :: u_conv
+  integer(ccs_int) :: v_conv
 
   ! Relation factors
-  real(accs_real) :: u_relax
-  real(accs_real) :: v_relax
-  real(accs_real) :: p_relax
+  real(ccs_real) :: u_relax
+  real(ccs_real) :: v_relax
+  real(ccs_real) :: p_relax
 
   ! Boundary conditions - hardcoded for now
-  integer(accs_int), dimension(5) :: bnd_region
-  integer(accs_int), dimension(5) :: bnd_type
+  integer(ccs_int), dimension(5) :: bnd_region
+  integer(ccs_int), dimension(5) :: bnd_type
   
-  integer(accs_int) :: irank !> MPI rank ID
-  ! integer(accs_int) :: isize !> Size of MPI world
+  integer(ccs_int) :: irank !> MPI rank ID
+  ! integer(ccs_int) :: isize !> Size of MPI world
 
   double precision :: start_time, end_time
 

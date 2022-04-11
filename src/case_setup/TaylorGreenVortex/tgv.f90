@@ -3,7 +3,7 @@ program tgv
 
   use yaml, only: parse, error_length
   use read_config, only: get_case_name
-  use kinds, only : accs_int, accs_real
+  use kinds, only : ccs_int, ccs_real
   use constants, only: geoext, adiosconfig, ccsconfig, ndim
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
@@ -30,19 +30,19 @@ program tgv
   class(io_environment), allocatable :: io_env
   class(io_process), allocatable :: geo_reader
 
-  real(accs_real), dimension(:,:), allocatable :: xyz_coords
-  integer(accs_int), dimension(:), allocatable :: vtxdist
+  real(ccs_real), dimension(:,:), allocatable :: xyz_coords
+  integer(ccs_int), dimension(:), allocatable :: vtxdist
   integer(kind=8), dimension(2) :: xyz_sel_start
   integer(kind=8), dimension(2) :: xyz_sel_count
 
-  integer(accs_int) :: irank !> MPI rank ID
-  integer(accs_int) :: isize !> Size of MPI world
-  integer(accs_int) :: i, j, k  
-  integer(accs_int) :: local_idx_start
-  integer(accs_int) :: local_idx_end
-  integer(accs_int) :: max_faces !> Maximum number of faces per cell
-  integer(accs_int) :: num_faces !> Total number of faces
-  integer(accs_int) :: num_cells !> Total number of cells
+  integer(ccs_int) :: irank !> MPI rank ID
+  integer(ccs_int) :: isize !> Size of MPI world
+  integer(ccs_int) :: i, j, k  
+  integer(ccs_int) :: local_idx_start
+  integer(ccs_int) :: local_idx_end
+  integer(ccs_int) :: max_faces !> Maximum number of faces per cell
+  integer(ccs_int) :: num_faces !> Total number of faces
+  integer(ccs_int) :: num_cells !> Total number of cells
 
   double precision :: start_time, end_time
 

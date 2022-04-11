@@ -33,7 +33,7 @@ contains
   !> param[in] nnz                   - the number of non-zeros
   !> param[in/out] matrix_descriptor - the matrix data object
   module subroutine set_nnz(nnz, matrix_descriptor)
-    integer(accs_int), intent(in) :: nnz
+    integer(ccs_int), intent(in) :: nnz
     type(matrix_init_data), intent(inout) :: matrix_descriptor
 
     matrix_descriptor%nnz = nnz

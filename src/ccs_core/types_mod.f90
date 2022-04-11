@@ -4,7 +4,7 @@
 
 module types
 
-  use kinds, only : accs_int, accs_real
+  use kinds, only : ccs_int, ccs_real
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -23,34 +23,34 @@ module types
   type, public :: vector_init_data
     class(parallel_environment), pointer :: par_env !> The parallel environment
     type(mesh), pointer :: mesh !> The mesh object to build the vector on
-    integer(accs_int) :: loc !> The location of the vector values (cell or face)
+    integer(ccs_int) :: loc !> The location of the vector values (cell or face)
   end type vector_init_data
 
 
   !> @brief Container type for setting values in a vector.
   type, public :: vector_values
-    integer(accs_int), dimension(:), allocatable :: idx !> Array of (global) indices to set values
+    integer(ccs_int), dimension(:), allocatable :: idx !> Array of (global) indices to set values
                                                         !! on, must be same size as values array.
-    real(accs_real), dimension(:), allocatable :: val   !> Array of values, must be same size as
+    real(ccs_real), dimension(:), allocatable :: val   !> Array of values, must be same size as
                                                         !! index array.
-    integer(accs_int) :: mode                           !> Which mode to use when setting values?
+    integer(ccs_int) :: mode                           !> Which mode to use when setting values?
   end type vector_values
 
   !> @brief Container type for data required to initialise a matrix.
   type, public :: matrix_init_data
     type(mesh), pointer :: mesh                     !> The mesh
     class(parallel_environment), pointer :: par_env !> The parallel environment
-    integer(accs_int) :: nnz                        !> Non-zeros per row
+    integer(ccs_int) :: nnz                        !> Non-zeros per row
   end type matrix_init_data
 
   !> @brief Container type for setting values in a matrix.
   type, public :: matrix_values
-    integer(accs_int), dimension(:), allocatable :: rglob !> Array of (global) row indices to set values on.
-    integer(accs_int), dimension(:), allocatable :: cglob !> Array of (global) column indices to set values on.
-    real(accs_real), dimension(:), allocatable :: val     !> Array of values, must be logically 2D and 
+    integer(ccs_int), dimension(:), allocatable :: rglob !> Array of (global) row indices to set values on.
+    integer(ccs_int), dimension(:), allocatable :: cglob !> Array of (global) column indices to set values on.
+    real(ccs_real), dimension(:), allocatable :: val     !> Array of values, must be logically 2D and 
                                                           !! of size = size(rglob) * size(cglob). Uses 
                                                           !! row-major ordering.
-    integer(accs_int) :: mode !> Which mode to use when setting values?
+    integer(ccs_int) :: mode !> Which mode to use when setting values?
   end type matrix_values
 
   !> @brief Container type representing a linear system.
@@ -68,21 +68,21 @@ module types
 
   !> @brief Mesh type
   type, public :: mesh
-    integer(accs_int) :: nglobal !> Global mesh size
-    integer(accs_int) :: nlocal  !> Local mesh size
-    integer(accs_int) :: nhalo   !> How many cells in my halo?
-    integer(accs_int) :: ntotal  !> How many cells do I interact with (nlocal + nhalo)?
-    integer(accs_int) :: nfaces_local !> Number of faces in local mesh
-    integer(accs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
-    integer(accs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
-    integer(accs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
-    integer(accs_int), dimension(:, :), allocatable :: faceidx !> Cell face index in local face vector (face, cell)
-    real(accs_real) :: h                                     !> The (constant) grid spacing XXX: remove!
-    real(accs_real), dimension(:, :), allocatable :: Af      !> Face areas
-    real(accs_real), dimension(:), allocatable :: vol        !> Cell volumes
-    real(accs_real), dimension(:, :), allocatable :: xc      !> Cell centres (dimension, cell)
-    real(accs_real), dimension(:, :, :), allocatable :: xf   !> Face centres (dimension, face, cell)
-    real(accs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
+    integer(ccs_int) :: nglobal !> Global mesh size
+    integer(ccs_int) :: nlocal  !> Local mesh size
+    integer(ccs_int) :: nhalo   !> How many cells in my halo?
+    integer(ccs_int) :: ntotal  !> How many cells do I interact with (nlocal + nhalo)?
+    integer(ccs_int) :: nfaces_local !> Number of faces in local mesh
+    integer(ccs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
+    integer(ccs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
+    integer(ccs_int), dimension(:, :), allocatable :: nbidx !> Cell neighbours (neighbour/face, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: faceidx !> Cell face index in local face vector (face, cell)
+    real(ccs_real) :: h                                     !> The (constant) grid spacing XXX: remove!
+    real(ccs_real), dimension(:, :), allocatable :: Af      !> Face areas
+    real(ccs_real), dimension(:), allocatable :: vol        !> Cell volumes
+    real(ccs_real), dimension(:, :), allocatable :: xc      !> Cell centres (dimension, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: xf   !> Face centres (dimension, face, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
   end type mesh
 
   !> @brief Scalar field type
@@ -106,7 +106,7 @@ module types
   !!              connectivity.
   type, public :: cell_locator
     type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
-    integer(accs_int) :: cell_idx      !> Cell index
+    integer(ccs_int) :: cell_idx      !> Cell index
   end type cell_locator
 
   !> @brief Face locator
@@ -115,8 +115,8 @@ module types
   !!              connectivity.
   type, public :: face_locator
     type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
-    integer(accs_int) :: cell_idx      !> Cell index
-    integer(accs_int) :: cell_face_ctr !> Cell-face ctr i.e. I want to access face "3" of the cell.
+    integer(ccs_int) :: cell_idx      !> Cell index
+    integer(ccs_int) :: cell_face_ctr !> Cell-face ctr i.e. I want to access face "3" of the cell.
   end type face_locator
 
   !> @brief Neighbour locator
@@ -124,14 +124,14 @@ module types
   !> @description Lightweight type to provide easy cell-neighbour connection.
   type, public :: neighbour_locator
     type(mesh), pointer :: mesh
-    integer(accs_int) :: cell_idx
-    integer(accs_int) :: cell_neighbour_ctr
+    integer(ccs_int) :: cell_idx
+    integer(ccs_int) :: cell_neighbour_ctr
   end type neighbour_locator
 
   type, public :: bc_config
-    integer(accs_int), dimension(4) :: region
-    integer(accs_int), dimension(4) :: bc_type
-    real(accs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests, 
+    integer(ccs_int), dimension(4) :: region
+    integer(ccs_int), dimension(4) :: bc_type
+    real(ccs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests, 
                                                   ! possibly remove/improve for general
   end type bc_config
   

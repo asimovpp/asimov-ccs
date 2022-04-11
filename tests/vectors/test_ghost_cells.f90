@@ -3,7 +3,7 @@ program test_ghost_cells
 
   use testing_lib
   use constants, only: insert_mode
-  use kinds, only: accs_int
+  use kinds, only: ccs_int
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
   use mesh_utils, only : build_square_mesh
   use vec, only : create_vector, update_vector, get_vector_data, restore_vector_data
@@ -18,18 +18,18 @@ program test_ghost_cells
   type(vector_init_data) :: vector_data
   type(mesh) :: cell_mesh
   class(vector), allocatable :: v
-  real(accs_real), dimension(:), pointer :: values
+  real(ccs_real), dimension(:), pointer :: values
 
-  integer(accs_int) :: i
-  integer(accs_int) :: proc_id
-  integer(accs_int) :: num_procs
+  integer(ccs_int) :: i
+  integer(ccs_int) :: proc_id
+  integer(ccs_int) :: num_procs
 
   call init()
 
   proc_id = par_env%proc_id
   num_procs = par_env%num_procs
 
-  cell_mesh = build_square_mesh(par_env, 11, 1.0_accs_real)
+  cell_mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
 
   ! Specify vector size based on the mesh
   call initialise(vector_data)

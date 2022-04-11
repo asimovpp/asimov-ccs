@@ -35,7 +35,7 @@ contains
   !> @brief Set vector values to be located at either cell-centre or face
   !
   module subroutine set_vector_location(loc, vector_descriptor)
-    integer(accs_int), intent(in) :: loc
+    integer(ccs_int), intent(in) :: loc
     type(vector_init_data), intent (inout) :: vector_descriptor
 
     vector_descriptor%loc = loc

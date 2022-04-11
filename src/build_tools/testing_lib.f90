@@ -12,11 +12,11 @@ module testing_lib
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  integer(accs_err) :: ierr
+  integer(ccs_err) :: ierr
   integer :: real_type
   character(1024) :: message
 
-  real(accs_real), parameter :: eps = epsilon(0.0_accs_real)
+  real(ccs_real), parameter :: eps = epsilon(0.0_ccs_real)
   
 contains
 
@@ -28,7 +28,7 @@ contains
     integer, allocatable :: seed(:)
     integer :: n
 
-    if (kind(0.0_accs_real) == kind(0.0d0)) then
+    if (kind(0.0_ccs_real) == kind(0.0d0)) then
       real_type = MPI_DOUBLE
     else
       real_type = MPI_FLOAT
@@ -71,7 +71,7 @@ contains
   !! environment, ensuring a uniform value is used.
   !
   !> @note Does this belong in the parallel module?
-  real(accs_real) function parallel_random(par_env)
+  real(ccs_real) function parallel_random(par_env)
 
     class(parallel_environment), intent(in) :: par_env
 
@@ -109,8 +109,8 @@ contains
   !> @description Check whether input integers are equal. If not, construct message, print and stop.
   subroutine assert_equal(a, b, msg_format)
 
-    integer(accs_int), intent(in) :: a
-    integer(accs_int), intent(in) :: b
+    integer(ccs_int), intent(in) :: a
+    integer(ccs_int), intent(in) :: b
     character(*), intent(in) :: msg_format
     character(1024) :: message
 
