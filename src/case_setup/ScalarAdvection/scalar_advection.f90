@@ -13,7 +13,7 @@ program scalar_advection
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system, axpy, norm
   use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_global_size
+                    set_size
   use mesh_utils, only : build_square_mesh
   use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
@@ -65,12 +65,12 @@ program scalar_advection
   call initialise(scalar_linear_system)
 
   ! Create stiffness matrix
-  call set_global_size(par_env, square_mesh, mat_sizes)
+  call set_size(par_env, square_mesh, mat_sizes)
   call set_nnz(5, mat_sizes) 
   call create_matrix(mat_sizes, M)
 
   ! Create right-hand-side and solution vectors
-  call set_global_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar%vec)
