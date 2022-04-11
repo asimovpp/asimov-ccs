@@ -25,19 +25,8 @@ program poisson
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_linear_system, axpy, norm
-<<<<<<< HEAD
-<<<<<<< HEAD
   use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_global_size, set_values, pack_entries
-=======
-  use utils, only : update, begin_update, end_update, &
-                    finalise, initialise, &
-                    set_size
->>>>>>> release-v0.2
-=======
-  use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_global_size, set_values, pack_entries
->>>>>>> 26959870aabde93af1f01af6f036c844f41adf6e
+                    set_size, set_values, pack_entries
   use mesh_utils, only : build_square_mesh
   use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
        count_neighbours, get_boundary_status
