@@ -5,7 +5,7 @@
 submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: vector_init_data, vector, matrix_init_data, ccs_matrix, linear_system, &
+  use types, only: vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, linear_system, &
                    linear_solver, mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
@@ -42,9 +42,9 @@ contains
     
     ! Local variables
     integer(ccs_int) :: i
-    class(vector), allocatable :: source
+    class(ccs_vector), allocatable :: source
     class(ccs_matrix), allocatable :: M
-    class(vector), allocatable :: invAu, invAv
+    class(ccs_vector), allocatable :: invAu, invAv
     
     type(vector_init_data) :: vec_sizes
     type(matrix_init_data) :: mat_sizes
@@ -144,10 +144,10 @@ contains
     class(field), intent(in) :: p
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
-    class(vector), allocatable, intent(inout)  :: vec
+    class(ccs_vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
-    class(vector), intent(inout)    :: invAu, invAv
+    class(ccs_vector), intent(inout)    :: invAu, invAv
 
     
     ! u-velocity
@@ -178,10 +178,10 @@ contains
     integer(ccs_int), intent(in) :: component
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
-    class(vector), allocatable, intent(inout)  :: vec
+    class(ccs_vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
-    class(vector), intent(inout)    :: invAu
+    class(ccs_vector), intent(inout)    :: invAu
     
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
@@ -248,8 +248,8 @@ contains
 
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
-    class(vector), intent(in) :: pgrad
-    class(vector), intent(inout) :: vec
+    class(ccs_vector), intent(in) :: pgrad
+    class(ccs_vector), intent(inout) :: vec
 
     ! Local variables
     type(vector_values) :: vec_values
@@ -304,9 +304,9 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     class(mesh), intent(in) :: cell_mesh
-    class(vector), intent(in) :: invAu, invAv
+    class(ccs_vector), intent(in) :: invAu, invAv
     class(ccs_matrix), allocatable, intent(inout)  :: M
-    class(vector), allocatable, intent(inout)  :: vec
+    class(ccs_vector), allocatable, intent(inout)  :: vec
     type(linear_system), intent(inout) :: lin_sys
     class(field), intent(inout) :: pp
 
@@ -468,13 +468,13 @@ contains
 
     class(parallel_environment), intent(in) :: par_env
     type(mesh), intent(in) :: cell_mesh !> The mesh object
-    class(vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
-    class(vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
+    class(ccs_vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
     class(field), intent(inout) :: u       !> The x velocity component
     class(field), intent(inout) :: v       !> The y velocity component
     class(field), intent(inout) :: p       !> The pressure field
     class(field), intent(inout) :: mf   !> The face velocity flux
-    class(vector), intent(inout) :: b   !> The per-cell mass imbalance
+    class(ccs_vector), intent(inout) :: b   !> The per-cell mass imbalance
 
     type(vector_values) :: vec_values
     integer(ccs_int) :: i !> Cell counter
@@ -611,7 +611,7 @@ contains
     
     ! Arguments
     class(mesh), intent(in) :: cell_mesh
-    class(vector), intent(in) :: invAu, invAv
+    class(ccs_vector), intent(in) :: invAu, invAv
     class(field), intent(inout) :: pp
     class(field), intent(inout) :: u, v
 
@@ -637,8 +637,8 @@ contains
   subroutine update_face_velocity(cell_mesh, invAu, invAv, pp, mf)
 
     type(mesh), intent(in) :: cell_mesh
-    class(vector), intent(in) :: invAu
-    class(vector), intent(in) :: invAv
+    class(ccs_vector), intent(in) :: invAu
+    class(ccs_vector), intent(in) :: invAv
     class(field), intent(inout) :: pp
     class(field), intent(inout) :: mf
     
@@ -733,9 +733,9 @@ contains
     type(mesh), intent(in) :: cell_mesh
     real(ccs_real), intent(in) :: alpha
     class(field), intent(in) :: phi
-    class(vector), intent(inout) :: diag
+    class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b
+    class(ccs_vector), intent(inout) :: b
 
     real(ccs_real), dimension(:), pointer :: diag_data
     real(ccs_real), dimension(:), pointer :: phi_data

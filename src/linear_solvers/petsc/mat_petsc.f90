@@ -362,8 +362,13 @@ contains
 
     use petscmat, only: MatGetDiagonal
 
+<<<<<<< HEAD
     class(ccs_matrix), intent(in)  :: M
     class(vector), intent(inout) :: D
+=======
+    class(matrix), intent(in)  :: M
+    class(ccs_vector), intent(inout) :: D
+>>>>>>> rename_vector
 
     integer(ccs_err) :: ierr !> Error code
 
@@ -389,7 +394,7 @@ contains
   module subroutine set_matrix_diagonal(D, M)
     use petscmat, only : MatDiagonalSet
 
-    class(vector), intent(in) :: D
+    class(ccs_vector), intent(in) :: D
     class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr

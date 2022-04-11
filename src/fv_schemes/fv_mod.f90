@@ -5,7 +5,7 @@
 module fv
 
   use kinds, only : ccs_real, ccs_int
-  use types, only : ccs_matrix, vector, mesh, field, upwind_field, central_field, bc_config, face_locator
+  use types, only : ccs_matrix, ccs_vector, mesh, field, upwind_field, central_field, bc_config, face_locator
 
   implicit none
 
@@ -82,7 +82,7 @@ module fv
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
-    class(vector), intent(inout) :: vec   
+    class(ccs_vector), intent(inout) :: vec   
   end subroutine
 
 

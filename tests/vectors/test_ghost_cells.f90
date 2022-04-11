@@ -17,8 +17,13 @@ program test_ghost_cells
 
   type(vector_init_data) :: vector_data
   type(mesh) :: cell_mesh
+<<<<<<< HEAD
   class(vector), allocatable :: v
   real(ccs_real), dimension(:), pointer :: values
+=======
+  class(ccs_vector), allocatable :: v
+  real(accs_real), dimension(:), pointer :: values
+>>>>>>> rename_vector
 
   integer(ccs_int) :: i
   integer(ccs_int) :: proc_id

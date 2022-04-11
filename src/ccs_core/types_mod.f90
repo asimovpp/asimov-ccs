@@ -12,8 +12,8 @@ module types
   private
 
   !> @brief Stub type for vectors to be extended in sub-modules.
-  type, public :: vector
-  end type vector
+  type, public :: ccs_vector
+  end type ccs_vector
 
   !> @brief Stub type for matrices to be extended in sub-modules.
   type, public :: ccs_matrix
@@ -55,8 +55,8 @@ module types
 
   !> @brief Container type representing a linear system.
   type, public :: linear_system
-    class(vector), pointer :: sol !> Solution vector
-    class(vector), pointer :: rhs !> Right-hand side vector
+    class(ccs_vector), pointer :: sol !> Solution vector
+    class(ccs_vector), pointer :: rhs !> Right-hand side vector
     class(ccs_matrix), pointer :: M   !> Matrix
     class(parallel_environment), pointer :: par_env !> The parallel environment
   end type linear_system
@@ -87,10 +87,10 @@ module types
 
   !> @brief Scalar field type
   type, public :: field
-    class(vector), allocatable :: vec   !> Vector representing the field
-    class(vector), allocatable :: gradx !> Vector representing the x gradient
-    class(vector), allocatable :: grady !> Vector representing the y gradient
-    class(vector), allocatable :: gradz !> Vector representing the z gradient
+    class(ccs_vector), allocatable :: vec   !> Vector representing the field
+    class(ccs_vector), allocatable :: gradx !> Vector representing the x gradient
+    class(ccs_vector), allocatable :: grady !> Vector representing the y gradient
+    class(ccs_vector), allocatable :: gradz !> Vector representing the z gradient
   end type field
 
   type, public, extends(field) :: upwind_field

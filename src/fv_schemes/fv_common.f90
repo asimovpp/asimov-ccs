@@ -34,7 +34,7 @@ contains
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps  
     class(ccs_matrix), intent(inout) :: M   
-    class(vector), intent(inout) :: vec   
+    class(ccs_vector), intent(inout) :: vec   
 
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
@@ -226,8 +226,8 @@ contains
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b
-
+    class(ccs_vector), intent(inout) :: b
+s
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
     type(cell_locator) :: self_loc
@@ -499,11 +499,11 @@ contains
 
     type(mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: component
-    class(vector), intent(in) :: phi
+    class(ccs_vector), intent(in) :: phi
     real(ccs_real), dimension(:), intent(in) :: gradx_old
     real(ccs_real), dimension(:), intent(in) :: grady_old
     real(ccs_real), dimension(:), intent(in) :: gradz_old
-    class(vector), intent(inout) :: gradient
+    class(ccs_vector), intent(inout) :: gradient
     
     type(vector_values) :: grad_values
     real(ccs_real), dimension(:), pointer :: phi_data
