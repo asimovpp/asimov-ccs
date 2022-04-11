@@ -24,10 +24,10 @@ module solver
 
     !> @brief Interface to create a new solver object.
     !
-    !> @param[in]  equation_system eqsys   - Data structure containing equation system to be solved.
+    !> @param[in]  equation_system linear_system   - Data structure containing equation system to be solved.
     !> @param[out] linear_solver solver - The linear solver returned allocated.
-    module subroutine create_solver(eqsys, solver)
-      type(equation_system), intent(in) :: eqsys
+    module subroutine create_solver(linear_system, solver)
+      type(equation_system), intent(in) :: linear_system
       class(linear_solver), allocatable, intent(out) :: solver
     end subroutine
 

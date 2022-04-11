@@ -63,7 +63,7 @@ module types
   
   !> @brief Stub type for solvers to be extended in sub-modules.
   type, public :: linear_solver
-    type(equation_system) :: eqsys !> System of equations
+    type(equation_system) :: linear_system !> System of equations
   end type linear_solver
 
   !> @brief Mesh type
