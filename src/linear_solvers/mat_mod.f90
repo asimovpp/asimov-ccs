@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : ccs_int, ccs_real
-  use types, only : ccs_matrix, matrix_init_data, matrix_values, mesh, ccs_vector
+  use types, only : ccs_matrix, matrix_init_data, matrix_values, ccs_mesh, ccs_vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -154,7 +154,7 @@ module mat
     !> param[in/out] matrix_descriptor  - the matrix data object
     module subroutine set_matrix_size(par_env, geometry, matrix_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
-      class(mesh), target, intent(in) :: geometry
+      class(ccs_mesh), target, intent(in) :: geometry
       type(matrix_init_data), intent(inout) :: matrix_descriptor
     end subroutine
 

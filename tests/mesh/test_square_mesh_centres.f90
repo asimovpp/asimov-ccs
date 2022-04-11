@@ -12,7 +12,7 @@ program test_square_mesh_centres
 
   implicit none
   
-  type (mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
 
   real(ccs_real) :: l
   integer(ccs_int) :: n

@@ -10,7 +10,7 @@ program test_mesh_square_mesh_volume
 
   implicit none
   
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
 
   integer(ccs_int) :: n
   real(ccs_real) :: l

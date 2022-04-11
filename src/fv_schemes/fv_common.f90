@@ -30,7 +30,7 @@ contains
   module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps  
     class(ccs_matrix), intent(inout) :: M   
@@ -79,7 +79,7 @@ contains
   subroutine compute_interior_coeffs(phi, mf, cell_mesh, n_int_cells, M)
     class(field), intent(in) :: phi
     real(ccs_real), dimension(:), intent(in) :: mf
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: n_int_cells
     class(ccs_matrix), intent(inout) :: M
 
@@ -222,7 +222,7 @@ contains
   subroutine compute_boundary_coeffs(phi, mf, cell_mesh, bcs, cps, M, b)
     class(field), intent(in) :: phi
     real(ccs_real), dimension(:), intent(in) :: mf
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
@@ -309,7 +309,7 @@ contains
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
     integer(ccs_int), intent(in) :: local_self_idx
     integer(ccs_int), intent(in) :: local_ngb_idx
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     real(ccs_real) :: coeff
 
     type(face_locator) :: face_location
@@ -447,7 +447,7 @@ contains
 
   module subroutine update_gradient(cell_mesh, phi)
   
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: phi
 
     real(ccs_real), dimension(:), pointer :: gradx_data, grady_data, gradz_data
@@ -497,7 +497,7 @@ contains
   subroutine update_gradient_component(cell_mesh, component, phi, gradx_old, grady_old, gradz_old, gradient)
 
 
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: component
     class(ccs_vector), intent(in) :: phi
     real(ccs_real), dimension(:), intent(in) :: gradx_old

@@ -11,7 +11,7 @@ program simple
 
   use constants, only : cell, face
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, upwind_field, central_field, face_field, mesh, &
+  use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_init_data, ccs_vector
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -26,7 +26,7 @@ program simple
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  type(mesh)             :: square_mesh
+  type(ccs_mesh)             :: square_mesh
   type(vector_init_data) :: vec_sizes
 
   class(field), allocatable :: u, v, p, pp, mf
@@ -161,7 +161,7 @@ contains
     use vec, only : get_vector_data, restore_vector_data
     
     ! Arguments
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: u, v, mf
 
     ! Local variables

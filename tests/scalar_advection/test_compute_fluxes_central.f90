@@ -18,7 +18,7 @@ program test_compute_fluxes
 
   implicit none
 
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs
   type(vector_init_data) :: vec_sizes
   class(field), allocatable :: scalar
@@ -73,7 +73,7 @@ program test_compute_fluxes
   !> @param[out] u, v     - The velocity fields in x and y directions
   subroutine set_velocity_fields(cell_mesh, direction, u, v)
     use meshing, only: set_cell_location, get_global_index
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout) :: u, v
     type(cell_locator) :: self_loc
@@ -145,7 +145,7 @@ program test_compute_fluxes
     class(field), intent(in) :: scalar
     class(field), intent(in) :: u, v
     class(bc_config), intent(in) :: bcs
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: cps
     integer(ccs_int), intent(in) :: flow_direction
     integer(ccs_int), intent(in) :: discretisation
@@ -210,7 +210,7 @@ program test_compute_fluxes
 
     use vec, only : zero_vector
     
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: flow
     integer(ccs_int), intent(in) :: discretisation
     integer(ccs_int), intent(in) :: cps
@@ -307,7 +307,7 @@ program test_compute_fluxes
   !> @param[out] M             - The resulting matrix
   subroutine compute_exact_diffusion_matrix(cell_mesh, cps, M)
 
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
 
@@ -376,7 +376,7 @@ program test_compute_fluxes
   !> @param[out] M             - The resulting matrix
   subroutine compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
 
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: cps
     integer(ccs_int), intent(in) :: flow
     integer(ccs_int), intent(in) :: discretisation

@@ -22,7 +22,7 @@ module types
   !> @brief Container type for data required to initialise a vector.
   type, public :: vector_init_data
     class(parallel_environment), pointer :: par_env !> The parallel environment
-    type(mesh), pointer :: mesh !> The mesh object to build the vector on
+    type(ccs_mesh), pointer :: mesh !> The mesh object to build the vector on
     integer(ccs_int) :: loc !> The location of the vector values (cell or face)
   end type vector_init_data
 
@@ -38,7 +38,7 @@ module types
 
   !> @brief Container type for data required to initialise a matrix.
   type, public :: matrix_init_data
-    type(mesh), pointer :: mesh                     !> The mesh
+    type(ccs_mesh), pointer :: mesh                     !> The mesh
     class(parallel_environment), pointer :: par_env !> The parallel environment
     integer(ccs_int) :: nnz                        !> Non-zeros per row
   end type matrix_init_data
@@ -67,7 +67,7 @@ module types
   end type linear_solver
 
   !> @brief Mesh type
-  type, public :: mesh
+  type, public :: ccs_mesh
     integer(ccs_int) :: nglobal !> Global mesh size
     integer(ccs_int) :: nlocal  !> Local mesh size
     integer(ccs_int) :: nhalo   !> How many cells in my halo?
@@ -83,7 +83,7 @@ module types
     real(ccs_real), dimension(:, :), allocatable :: xc      !> Cell centres (dimension, cell)
     real(ccs_real), dimension(:, :, :), allocatable :: xf   !> Face centres (dimension, face, cell)
     real(ccs_real), dimension(:, :, :), allocatable :: nf   !> Face normals (dimension, face, cell)
-  end type mesh
+  end type ccs_mesh
 
   !> @brief Scalar field type
   type, public :: field
@@ -105,7 +105,7 @@ module types
   !> @description Lightweight type to provide easy cell location based on a cell's cell
   !!              connectivity.
   type, public :: cell_locator
-    type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
+    type(ccs_mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: cell_idx      !> Cell index
   end type cell_locator
 
@@ -114,7 +114,7 @@ module types
   !> @description Lightweight type to provide easy face location based on a cell's face
   !!              connectivity.
   type, public :: face_locator
-    type(mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
+    type(ccs_mesh), pointer :: mesh        !> Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: cell_idx      !> Cell index
     integer(ccs_int) :: cell_face_ctr !> Cell-face ctr i.e. I want to access face "3" of the cell.
   end type face_locator
@@ -123,7 +123,7 @@ module types
   !
   !> @description Lightweight type to provide easy cell-neighbour connection.
   type, public :: neighbour_locator
-    type(mesh), pointer :: mesh
+    type(ccs_mesh), pointer :: mesh
     integer(ccs_int) :: cell_idx
     integer(ccs_int) :: cell_neighbour_ctr
   end type neighbour_locator

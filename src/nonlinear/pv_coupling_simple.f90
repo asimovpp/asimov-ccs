@@ -6,7 +6,7 @@ submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, linear_system, &
-                   linear_solver, mesh, field, bc_config, vector_values, cell_locator, &
+                   linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
@@ -36,7 +36,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: cps, it_start, it_end
     class(field), intent(inout) :: u, v, p, pp, mf
     
@@ -138,7 +138,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(mesh), intent(in)         :: cell_mesh
+    type(ccs_mesh), intent(in)         :: cell_mesh
     integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
@@ -171,7 +171,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(mesh), intent(in)         :: cell_mesh
+    type(ccs_mesh), intent(in)         :: cell_mesh
     integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
@@ -247,7 +247,7 @@ contains
   subroutine calculate_momentum_pressure_source(cell_mesh, pgrad, vec)
 
     ! Arguments
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     class(ccs_vector), intent(in) :: pgrad
     class(ccs_vector), intent(inout) :: vec
 
@@ -303,7 +303,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     class(ccs_vector), intent(in) :: invAu, invAv
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
@@ -467,7 +467,7 @@ contains
   subroutine compute_mass_imbalance(par_env, cell_mesh, invAu, invAv, u, v, p, mf, b)
 
     class(parallel_environment), intent(in) :: par_env
-    type(mesh), intent(in) :: cell_mesh !> The mesh object
+    type(ccs_mesh), intent(in) :: cell_mesh !> The mesh object
     class(ccs_vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
     class(ccs_vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
     class(field), intent(inout) :: u       !> The x velocity component
@@ -610,7 +610,7 @@ contains
     use vec, only : zero_vector
     
     ! Arguments
-    class(mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: cell_mesh
     class(ccs_vector), intent(in) :: invAu, invAv
     class(field), intent(inout) :: pp
     class(field), intent(inout) :: u, v
@@ -636,7 +636,7 @@ contains
   !> @brief Corrects the face velocity flux using the pressure correction
   subroutine update_face_velocity(cell_mesh, invAu, invAv, pp, mf)
 
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     class(ccs_vector), intent(in) :: invAu
     class(ccs_vector), intent(in) :: invAv
     class(field), intent(inout) :: pp
@@ -730,7 +730,7 @@ contains
 
     use mat, only : set_matrix_diagonal
     
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     real(ccs_real), intent(in) :: alpha
     class(field), intent(in) :: phi
     class(ccs_vector), intent(inout) :: diag

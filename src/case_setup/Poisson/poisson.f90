@@ -19,7 +19,7 @@ program poisson
   use constants, only : ndim, add_mode, insert_mode
   use kinds, only : ccs_real, ccs_int
   use types, only : vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, &
-       linear_system, linear_solver, mesh, cell_locator, face_locator, &
+       linear_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
        neighbour_locator, vector_values, matrix_values
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector
@@ -47,7 +47,7 @@ program poisson
   type(vector_init_data) :: vec_sizes
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: poisson_eq
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
 
   integer(ccs_int) :: cps = 10 ! Default value for cells per side
 

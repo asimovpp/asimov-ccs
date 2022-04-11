@@ -13,7 +13,7 @@ program test_mesh_square_mesh_closed
 
   implicit none
   
-  type(mesh), target :: square_mesh
+  type(ccs_mesh), target :: square_mesh
   type(face_locator) :: face_location
 
   integer(ccs_int) :: n

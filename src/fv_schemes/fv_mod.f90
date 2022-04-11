@@ -5,7 +5,7 @@
 module fv
 
   use kinds, only : ccs_real, ccs_int
-  use types, only : ccs_matrix, ccs_vector, mesh, field, upwind_field, central_field, bc_config, face_locator
+  use types, only : ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, bc_config, face_locator
 
   implicit none
 
@@ -62,7 +62,7 @@ module fv
   module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
     integer(ccs_int), intent(in) :: local_self_idx
     integer(ccs_int), intent(in) :: local_ngb_idx
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     real(ccs_real) :: coeff
   end function calc_diffusion_coeff
 
@@ -78,7 +78,7 @@ module fv
   module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
@@ -124,7 +124,7 @@ module fv
   !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !!       correctly updated on other PEs.
   module subroutine update_gradient(cell_mesh, phi)
-    type(mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: phi
   end subroutine update_gradient
   

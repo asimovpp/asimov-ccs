@@ -25,7 +25,7 @@ contains
   !> param[in/out] vector_descriptor - the vector data object
   module subroutine set_vector_size(par_env, geometry, vector_descriptor)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
-    class(mesh), target, intent(in) :: geometry
+    class(ccs_mesh), target, intent(in) :: geometry
     type(vector_init_data), intent(inout) :: vector_descriptor
 
     vector_descriptor%par_env => par_env

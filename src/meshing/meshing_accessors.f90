@@ -15,7 +15,7 @@ contains
   !> @param[out] face_locator face_location - the face locator object linking a cell-relative
   !!                                          index with the mesh.
   module subroutine set_face_location(geometry, cell_idx, cell_face_ctr, face_location)
-    type(mesh), target, intent(in) :: geometry
+    type(ccs_mesh), target, intent(in) :: geometry
     integer(ccs_int), intent(in) :: cell_idx
     integer(ccs_int), intent(in) :: cell_face_ctr
     type(face_locator), intent(out) :: face_location
@@ -35,7 +35,7 @@ contains
   !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
   !!                                          the mesh.
   module subroutine set_cell_location(geometry, cell_idx, cell_location)
-    type(mesh), target, intent(in) :: geometry
+    type(ccs_mesh), target, intent(in) :: geometry
     integer(ccs_int), intent(in) :: cell_idx
     type(cell_locator), intent(out) :: cell_location
 
@@ -95,7 +95,7 @@ contains
     integer(ccs_int), intent(in) :: cell_idx
     integer(ccs_int), intent(in) :: cell_face_ctr
     integer(ccs_int), intent(in) :: face_idx
-    type(mesh), target, intent(inout) :: geometry
+    type(ccs_mesh), target, intent(inout) :: geometry
 
     geometry%faceidx(cell_face_ctr, cell_idx) = face_idx
   end subroutine set_face_index

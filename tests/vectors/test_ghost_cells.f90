@@ -16,7 +16,7 @@ program test_ghost_cells
   implicit none
 
   type(vector_init_data) :: vector_data
-  type(mesh) :: cell_mesh
+  type(ccs_mesh) :: cell_mesh
   class(ccs_vector), allocatable :: v
   real(ccs_real), dimension(:), pointer :: values
 
