@@ -6,9 +6,7 @@
 submodule (parallel) parallel_env_mpi_petsc
 
   use mpi
-  use petsc, only:  PetscInitialize, &
-                    PetscFinalize, &
-                    PETSC_NULL_CHARACTER
+  use petsc, only:  PetscInitialize, PetscFinalize, PETSC_NULL_CHARACTER
   use parallel_types_mpi, only: parallel_environment_mpi
 
   implicit none
