@@ -27,8 +27,7 @@ module utils
   public :: finalise
   public :: pack_entries
   public :: initialise
-  public :: set_global_size
-  public :: set_local_size
+  public :: set_size
   public :: mult
   public :: accs_init
   public :: accs_finalise
@@ -74,17 +73,11 @@ module utils
     module procedure initialise_linear_system
   end interface initialise
 
-  !> @brief Generic interface to set global vector and matrix sizes
-  interface set_global_size
+  !> @brief Generic interface to set vector and matrix sizes
+  interface set_size
     module procedure set_vector_size
     module procedure set_matrix_size
-  end interface set_global_size
-
-  !> @brief Generic interface to set local vector and matrix sizes
-  interface set_local_size
-    module procedure set_vector_size
-    module procedure set_matrix_size
-  end interface set_local_size
+  end interface set_size
 
   !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
   !
