@@ -9,30 +9,30 @@ module petsctypes
   use petscvec, only : tVec
   use petscmat, only : tMat
 
-  use kinds, only : accs_err, accs_int
-  use types, only : vector, matrix, linear_solver
+  use kinds, only : ccs_err, ccs_int
+  use types, only : ccs_vector, ccs_matrix, linear_solver
   
   implicit none
 
   private
 
   !> @brief Implements the vector class backed by a PETSc vector
-  type, public, extends(vector) :: vector_petsc
+  type, public, extends(ccs_vector) :: vector_petsc
     type(tVec) :: v      !> The PETSc vector
     type(tVec) :: vl     !> The "local" PETSc vector (inc. ghost points)
     logical :: allocated !> Indicates whether the PETSc vector has been allocated
     logical :: ghosted   !> Does this vector have ghost points?
-    integer(accs_int) :: mode !> Current mode for setting values
+    integer(ccs_int) :: mode !> Current mode for setting values
     logical :: modeset        !> Is the current mode still valid? i.e. does vector need updated before switching modes?
   contains
     final :: free_vector_petsc
   end type vector_petsc
 
   !> @brief Implements the matrix class backed by a PETSc matrix
-  type, public, extends(matrix) :: matrix_petsc
+  type, public, extends(ccs_matrix) :: matrix_petsc
      type(tMat) :: M      !> The PETSc matrix
      logical :: allocated !> Indicates whether the PETSc matrix has been allocated
-    integer(accs_int) :: mode !> Current mode for setting values
+    integer(ccs_int) :: mode !> Current mode for setting values
     logical :: modeset        !> Is the current mode still valid? i.e. does matrix need updated before switching modes?
    contains
      final :: free_matrix_petsc
@@ -74,7 +74,7 @@ contains
     
     type(vector_petsc), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     if (v%allocated) then
        call VecDestroy(v%v, ierr)
@@ -97,7 +97,7 @@ contains
 
     type(matrix_petsc), intent(inout) :: M
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     if (M%allocated) then
        call MatDestroy(M%M, ierr)
@@ -121,7 +121,7 @@ contains
 
     type(linear_solver_petsc), intent(inout) :: solver
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     if (solver%allocated) then
        call KSPDestroy(solver%KSP, ierr)

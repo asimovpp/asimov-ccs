@@ -5,8 +5,8 @@
 program scalar_advection
 
   !! ASiMoV-CCS uses
-  use kinds, only : accs_real, accs_int
-  use types, only : vector_init_data, vector, matrix_init_data, matrix, &
+  use kinds, only : ccs_real, ccs_int
+  use types, only : vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, &
                     linear_system, linear_solver, ccs_mesh, &
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
@@ -24,9 +24,9 @@ program scalar_advection
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  class(vector), allocatable, target :: source
-  class(vector), allocatable :: solution
-  class(matrix), allocatable, target :: M
+  class(ccs_vector), allocatable, target :: source
+  class(ccs_vector), allocatable :: solution
+  class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
 
   type(vector_init_data) :: vec_sizes
@@ -38,7 +38,7 @@ program scalar_advection
   class(field), allocatable :: mf          ! Prescribed face velocity field
   class(field), allocatable :: scalar
 
-  integer(accs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 50 ! Default value for cells per side
 
   double precision :: start_time
   double precision :: end_time
@@ -51,7 +51,7 @@ program scalar_advection
   call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
 
   ! Set up the square mesh
-  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Init velocities and scalar
   allocate(central_field :: mf)
@@ -116,13 +116,13 @@ contains
 
     class(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: mf
-    integer(accs_int) :: row, col
-    integer(accs_int) :: local_idx, self_idx
-    real(accs_real) :: mf_val
+    integer(ccs_int) :: row, col
+    integer(ccs_int) :: local_idx, self_idx
+    real(ccs_real) :: mf_val
     type(cell_locator) :: self_loc
     type(vector_values) :: mf_vals
 
-    real(accs_real) :: u, v
+    real(ccs_real) :: u, v
 
     mf_vals%mode = add_mode
 
@@ -137,8 +137,8 @@ contains
         call calc_cell_coords(self_idx, cps, row, col)
 
         ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
-        u = real(col, accs_real)/real(cps, accs_real)
-        v = -real(row, accs_real)/real(cps, accs_real)
+        u = real(col, ccs_real)/real(cps, ccs_real)
+        v = -real(row, ccs_real)/real(cps, ccs_real)
 
         mf_val = u + v
         

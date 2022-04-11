@@ -3,7 +3,7 @@
 !> @details Module that defines the parallel environment types for ASiMoV-CCS
 module parallel_types
 
-  use kinds, only: accs_int
+  use kinds, only: ccs_int
   
   implicit none
 
@@ -16,9 +16,9 @@ module parallel_types
   !> @brief parallel environment type with common parameters
   !!        process id, number of processes and root process
   type, public :: parallel_environment
-    integer(accs_int) :: proc_id
-    integer(accs_int) :: num_procs
-    integer(accs_int) :: root
+    integer(ccs_int) :: proc_id
+    integer(ccs_int) :: num_procs
+    integer(ccs_int) :: root
   end type parallel_environment
 
 end module parallel_types

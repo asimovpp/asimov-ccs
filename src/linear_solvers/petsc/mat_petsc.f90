@@ -1,6 +1,6 @@
 submodule (mat) mat_petsc
 
-  use kinds, only : accs_err
+  use kinds, only : ccs_err
   use petsctypes, only : matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
@@ -23,9 +23,9 @@ contains
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
     type(matrix_init_data), intent(in) :: mat_dat
-    class(matrix), allocatable, intent(out) :: M
+    class(ccs_matrix), allocatable, intent(out) :: M
 
-    integer(accs_err) :: ierr  !> Error code
+    integer(ccs_err) :: ierr  !> Error code
 
     allocate(matrix_petsc :: M)
 
@@ -76,9 +76,9 @@ contains
 
     use petscmat, only : MAT_FINAL_ASSEMBLY
     
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
 
     select type (M)
     type is (matrix_petsc)
@@ -93,7 +93,7 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine update_matrix(M)
 
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     select type(M)
       type is (matrix_petsc)
@@ -116,9 +116,9 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine begin_update_matrix(M)
 
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     select type (M)
       type is (matrix_petsc)
@@ -140,9 +140,9 @@ contains
   !> @param[in/out] M - the matrix
   module subroutine end_update_matrix(M)
 
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     select type (M)
       type is (matrix_petsc)
@@ -159,15 +159,15 @@ contains
   end subroutine
 
   module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
-    integer(accs_int), intent(in) :: row_entry
-    integer(accs_int), intent(in) :: col_entry
-    integer(accs_int), intent(in) :: row
-    integer(accs_int), intent(in) :: col
-    real(accs_real), intent(in) :: coeff
+    integer(ccs_int), intent(in) :: row_entry
+    integer(ccs_int), intent(in) :: col_entry
+    integer(ccs_int), intent(in) :: row
+    integer(ccs_int), intent(in) :: col
+    real(ccs_real), intent(in) :: coeff
     type(matrix_values), intent(inout) :: mat_coeffs
 
-    integer(accs_int) :: nc
-    integer(accs_int) :: validx
+    integer(ccs_int) :: nc
+    integer(ccs_int) :: validx
 
     mat_coeffs%rglob(row_entry) = row - 1
     mat_coeffs%cglob(col_entry) = col - 1
@@ -190,12 +190,12 @@ contains
     use constants, only : insert_mode, add_mode
     
     type(matrix_values), intent(in) :: mat_values
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
-    integer(accs_int) :: nrows, ncols !> number of rows/columns
-    integer(accs_int) :: mode !> Add or insert values?
+    integer(ccs_int) :: nrows, ncols !> number of rows/columns
+    integer(ccs_int) :: mode !> Add or insert values?
     
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     associate(ridx    => mat_values%rglob, &
               cidx    => mat_values%cglob, &
@@ -255,15 +255,15 @@ contains
     use petsc, only : PETSC_NULL_VEC
     use petscmat, only : MatZeroRows
 
-    integer(accs_int), dimension(:), intent(in) :: rows
-    class(matrix), intent(inout) :: M
+    integer(ccs_int), dimension(:), intent(in) :: rows
+    class(ccs_matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
     
     select type (M)
       type is (matrix_petsc)
 
-        call MatZeroRows(M%M, size(rows), rows, 1.0_accs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
+        call MatZeroRows(M%M, size(rows), rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
 
       class default
         print *, "Unknown matrix type!"
@@ -285,11 +285,11 @@ contains
 
     use petscmat, only : MatAXPY, DIFFERENT_NONZERO_PATTERN
     
-    real(accs_real), intent(in) :: alpha
-    class(matrix), intent(in) :: x
-    class(matrix), intent(inout) :: y
+    real(ccs_real), intent(in) :: alpha
+    class(ccs_matrix), intent(in) :: x
+    class(ccs_matrix), intent(inout) :: y
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     select type (x)
       type is (matrix_petsc)
@@ -325,13 +325,13 @@ contains
 
     use petscmat, only : NORM_1, NORM_FROBENIUS, NORM_INFINITY, MatNorm
     
-    class(matrix), intent(in) :: M
-    integer(accs_int), intent(in) :: norm_type
+    class(ccs_matrix), intent(in) :: M
+    integer(ccs_int), intent(in) :: norm_type
 
-    real(accs_real) :: n      !> The computed norm 
-    integer(accs_err) :: ierr !> Error code
+    real(ccs_real) :: n      !> The computed norm 
+    integer(ccs_err) :: ierr !> Error code
     
-    n = 0.0_accs_real ! initialise norm to 0
+    n = 0.0_ccs_real ! initialise norm to 0
     
     select type (M)
       type is (matrix_petsc)
@@ -362,10 +362,10 @@ contains
 
     use petscmat, only: MatGetDiagonal
 
-    class(matrix), intent(in)  :: M
-    class(vector), intent(inout) :: D
+    class(ccs_matrix), intent(in)  :: M
+    class(ccs_vector), intent(inout) :: D
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     select type (M)
       type is (matrix_petsc)
@@ -389,10 +389,10 @@ contains
   module subroutine set_matrix_diagonal(D, M)
     use petscmat, only : MatDiagonalSet
 
-    class(vector), intent(in) :: D
-    class(matrix), intent(inout) :: M
+    class(ccs_vector), intent(in) :: D
+    class(ccs_matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
     
     select type (M)
     type is (matrix_petsc)
@@ -417,9 +417,9 @@ contains
 
     use petscmat, only: MatZeroEntries
     
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
 
     select type (M)
     type is (matrix_petsc)

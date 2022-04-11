@@ -8,14 +8,14 @@ program test_diffusion_coeff
   use fv, only: calc_diffusion_coeff
 
   type(ccs_mesh) :: square_mesh
-  integer(accs_int), parameter :: cps = 50
-  real(accs_real) :: coeff
-  real(accs_real), parameter :: expected_coeff = -1.e-2_accs_real
+  integer(ccs_int), parameter :: cps = 50
+  real(ccs_real) :: coeff
+  real(ccs_real), parameter :: expected_coeff = -1.e-2_ccs_real
 
   
   call init()
 
-  square_mesh = build_square_mesh(par_env, cps, 1.0_accs_real)
+  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   coeff = calc_diffusion_coeff(1,1,square_mesh)
 

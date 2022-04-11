@@ -16,10 +16,10 @@ pure subroutine calc_adv_coeffs(coeffL, coeffR, advvel)
 
   implicit none
 
-  real(accs_real), intent(in) :: advvel
-  real(accs_real), intent(out) :: coeffL, coeffR
+  real(ccs_real), intent(in) :: advvel
+  real(ccs_real), intent(out) :: coeffL, coeffR
 
-  coeffL = 0.5_accs_real * advvel
+  coeffL = 0.5_ccs_real * advvel
   coeffR = coeffL
   
 end subroutine calc_adv_coeffs

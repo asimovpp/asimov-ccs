@@ -16,14 +16,14 @@ program test_mesh_square_mesh_closed
   type(ccs_mesh), target :: square_mesh
   type(face_locator) :: face_location
 
-  integer(accs_int) :: n
-  real(accs_real) :: l
+  integer(ccs_int) :: n
+  real(ccs_real) :: l
 
-  real(accs_real), dimension(ndim) :: S
-  real(accs_real), dimension(ndim) :: norm
-  real(accs_real) :: A
+  real(ccs_real), dimension(ndim) :: S
+  real(ccs_real), dimension(ndim) :: norm
+  real(ccs_real) :: A
 
-  integer(accs_int) :: i, j
+  integer(ccs_int) :: i, j
 
   call init()
   
@@ -33,7 +33,7 @@ program test_mesh_square_mesh_closed
 
     ! Loop over cells
     do i = 1, square_mesh%nlocal
-      S(:) = 0.0_accs_real
+      S(:) = 0.0_ccs_real
 
       ! Loop over neighbours/faces
       do j = 1, square_mesh%nnb(i)
@@ -47,8 +47,8 @@ program test_mesh_square_mesh_closed
       ! Loop over axes
       do j = 1, ndim
         print *, S(j), j
-        if (abs(S(j) - 0.0_accs_real) > eps) then
-          write(message, *) "FAIL: expected", 0.0_accs_real, " got ", S(j)
+        if (abs(S(j) - 0.0_ccs_real) > eps) then
+          write(message, *) "FAIL: expected", 0.0_ccs_real, " got ", S(j)
           call stop_test(message)
         end if
       end do

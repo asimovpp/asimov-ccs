@@ -5,7 +5,7 @@
 !!          (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
 
-  use kinds, only : accs_err
+  use kinds, only : ccs_err
   use petsctypes, only : vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
@@ -26,9 +26,9 @@ contains
                          VecCreate
     
     type(vector_init_data), intent(in) :: vec_dat
-    class(vector), allocatable, intent(out) :: v
+    class(ccs_vector), allocatable, intent(out) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     allocate(vector_petsc :: v)
     
@@ -47,7 +47,7 @@ contains
               call VecCreateGhost(par_env%comm, &
                    mesh%nlocal, PETSC_DECIDE, &
                    mesh%nhalo, &
-                   mesh%idx_global(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_accs_int, &
+                   mesh%idx_global(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_ccs_int, &
                    v%v, ierr)
               ! Vector has ghost points, store this information
               v%ghosted = .true.
@@ -62,7 +62,7 @@ contains
         
           call VecSetFromOptions(v%v, ierr)
           call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
-          call VecSet(v%v, 0.0_accs_real, ierr)
+          call VecSet(v%v, 0.0_ccs_real, ierr)
           v%allocated = .true.
 
         class default
@@ -90,11 +90,11 @@ contains
     use constants, only : insert_mode, add_mode
     
     class(*), intent(in) :: val_dat
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_int) :: n    !> Number of elements to add
-    integer(accs_int) :: mode !> Append or insert mode
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_int) :: n    !> Number of elements to add
+    integer(ccs_int) :: mode !> Append or insert mode
+    integer(ccs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -144,7 +144,7 @@ contains
   !> @param[in,out] v - the PETSc vector
   module subroutine update_vector(v)
 
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
     select type(v)
       type is (vector_petsc)
@@ -172,9 +172,9 @@ contains
 
     use petsc, only : VecAssemblyBegin
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -198,9 +198,9 @@ contains
 
     use petsc, only : VecAssemblyEnd
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -226,9 +226,9 @@ contains
 
     use petsc, only : VecGhostUpdateBegin
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -255,9 +255,9 @@ contains
 
     use petsc, only : VecGhostUpdateEnd
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     select type (v)
       type is (vector_petsc)
@@ -276,9 +276,9 @@ contains
   end subroutine
 
   module subroutine pack_one_vector_element(ent, idx, val, val_dat)
-    integer(accs_int), intent(in) :: ent
-    integer(accs_int), intent(in) :: idx
-    real(accs_real), intent(in) :: val
+    integer(ccs_int), intent(in) :: ent
+    integer(ccs_int), intent(in) :: idx
+    real(ccs_real), intent(in) :: val
     type(vector_values), intent(inout) :: val_dat
 
     val_dat%idx(ent) = idx - 1
@@ -298,11 +298,11 @@ contains
 
     use petscvec, only : VecAXPY
     
-    real(accs_real), intent(in) :: alpha
-    class(vector), intent(in) :: x
-    class(vector), intent(inout) :: y
+    real(ccs_real), intent(in) :: alpha
+    class(ccs_vector), intent(in) :: x
+    class(ccs_vector), intent(inout) :: y
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     select type (x)
       type is (vector_petsc)
@@ -338,13 +338,13 @@ contains
 
     use petscvec, only : NORM_2, VecNorm
     
-    class(vector), intent(in) :: v
-    integer(accs_int), intent(in) :: norm_type
+    class(ccs_vector), intent(in) :: v
+    integer(ccs_int), intent(in) :: norm_type
 
-    real(accs_real) :: n      !> The computed norm 
-    integer(accs_err) :: ierr !> Error code
+    real(ccs_real) :: n      !> The computed norm 
+    integer(ccs_err) :: ierr !> Error code
     
-    n = 0.0_accs_real ! initialise norm to 0
+    n = 0.0_ccs_real ! initialise norm to 0
     
     select type (v)
       type is (vector_petsc)
@@ -369,8 +369,8 @@ contains
   !> @param[in] array - an array to store the data in
   module subroutine get_vector_data(vec, array)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
-    class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), pointer, intent(out) :: array
+    class(ccs_vector), intent(in) :: vec
+    real(ccs_real), dimension(:), pointer, intent(out) :: array
     integer :: ierr
 
     select type(vec)
@@ -397,8 +397,10 @@ contains
   !> @param[in] array - the array containing the data to restore
   module subroutine restore_vector_data(vec, array)
     use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
-    class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), pointer, intent(in) :: array
+
+    class(ccs_vector), intent(in) :: vec
+    real(ccs_real), dimension(:), pointer, intent(in) :: array
+
     integer :: ierr
 
     select type(vec)
@@ -418,9 +420,9 @@ contains
   module subroutine zero_vector(vec)
     use petscvec, only: VecZeroEntries
 
-    class(vector), intent(inout) :: vec
+    class(ccs_vector), intent(inout) :: vec
 
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
 
     select type(vec)
     type is(vector_petsc)
@@ -439,9 +441,9 @@ contains
 
     use petscvec, only: VecReciprocal
 
-    class(vector), intent(inout) :: vec
+    class(ccs_vector), intent(inout) :: vec
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
 
     select type (vec)
       type is (vector_petsc)
@@ -457,10 +459,10 @@ contains
   module subroutine mult_vec_vec(a, b)
     use petscvec, only : VecPointwiseMult
 
-    class(vector), intent(in) :: a
-    class(vector), intent(inout) :: b
+    class(ccs_vector), intent(in) :: a
+    class(ccs_vector), intent(inout) :: b
 
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
 
     select type(a)
     type is (vector_petsc)
@@ -481,10 +483,10 @@ contains
   module subroutine scale_vec(alpha, v)
     use petscvec, only : VecScale
 
-    real(accs_real), intent(in) :: alpha
-    class(vector), intent(inout) :: v
+    real(ccs_real), intent(in) :: alpha
+    class(ccs_vector), intent(inout) :: v
   
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
 
     select type(v)
     type is(vector_petsc)
@@ -504,11 +506,11 @@ contains
 !     use petscsys
     
 !     type(vector_init_data), intent(in) :: vec_dat
-!     class(vector), intent(in) :: vec
+!     class(ccs_vector), intent(in) :: vec
 
 !     PetscViewer :: viewer
 
-!     integer(accs_err) :: ierr
+!     integer(ccs_err) :: ierr
 
 !     select type (vec)
 !       type is (vector_petsc)

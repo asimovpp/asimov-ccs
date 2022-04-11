@@ -5,7 +5,7 @@
 module meshing
 
   use constants, only : ndim
-  use kinds, only : accs_int, accs_real
+  use kinds, only : ccs_int, ccs_real
   use types, only : ccs_mesh, face_locator, cell_locator, neighbour_locator
   
   implicit none
@@ -70,12 +70,12 @@ module meshing
     !!              returned cell locator object.
     !
     !> @param[in]  mesh         geometry      - the mesh object being referred to.
-    !> @param[in]  accs_int     cell_idx      - the cell index. 
+    !> @param[in]  ccs_int     cell_idx      - the cell index. 
     !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
     !!                                          the mesh.
   module subroutine set_cell_location(geometry, cell_idx, cell_location)
       type(ccs_mesh), target, intent(in) :: geometry
-      integer(accs_int), intent(in) :: cell_idx
+      integer(ccs_int), intent(in) :: cell_idx
       type(cell_locator), intent(out) :: cell_location
     end subroutine set_cell_location
   
@@ -85,14 +85,14 @@ module meshing
     !!              nth face of cell i.
     !
     !> @param[in]  mesh         geometry      - the mesh object being referred to.
-    !> @param[in]  accs_int     cell_idx      - the index of the cell whose face is being accessed.
-    !> @param[in]  accs_int     cell_face_ctr - the cell-local index of the face.
+    !> @param[in]  ccs_int     cell_idx      - the index of the cell whose face is being accessed.
+    !> @param[in]  ccs_int     cell_face_ctr - the cell-local index of the face.
     !> @param[out] face_locator face_location - the face locator object linking a cell-relative
     !!                                          index with the mesh.
     module subroutine set_face_location(geometry, cell_idx, cell_face_ctr, face_location)
       type(ccs_mesh), target, intent(in) :: geometry
-      integer(accs_int), intent(in) :: cell_idx
-      integer(accs_int), intent(in) :: cell_face_ctr
+      integer(ccs_int), intent(in) :: cell_idx
+      integer(ccs_int), intent(in) :: cell_face_ctr
       type(face_locator), intent(out) :: face_location
     end subroutine set_face_location
 
@@ -103,113 +103,113 @@ module meshing
     !
     !> @param[in]  cell_locator      cell_location      - the cell locator object of the cell whose
     !!                                                    neighbour is being accessed.
-    !> @param[in]  accs_int          cell_neighbour_ctr - the cell-local index of the neighbour.
+    !> @param[in]  ccs_int          cell_neighbour_ctr - the cell-local index of the neighbour.
     !> @param[out] neighbour_locator neighbour_location - the neighbour locator object linking a
     !!                                                    cell-relative index with the mesh.
     module subroutine set_neighbour_location(cell_location, cell_neighbour_ctr, neighbour_location)
       type(cell_locator), intent(in) :: cell_location
-      integer(accs_int), intent(in) :: cell_neighbour_ctr
+      integer(ccs_int), intent(in) :: cell_neighbour_ctr
       type(neighbour_locator), intent(out) :: neighbour_location
     end subroutine set_neighbour_location
 
     !> @brief Set face index
     module subroutine set_face_index(cell_idx, cell_face_ctr, face_idx, geometry)
-      integer(accs_int), intent(in) :: cell_idx
-      integer(accs_int), intent(in) :: cell_face_ctr
-      integer(accs_int), intent(in) :: face_idx
+      integer(ccs_int), intent(in) :: cell_idx
+      integer(ccs_int), intent(in) :: cell_face_ctr
+      integer(ccs_int), intent(in) :: face_idx
       type(ccs_mesh), target, intent(inout) :: geometry
     end subroutine set_face_index
 
     !> @brief Returns the normal vector of a face
     !
     !> @param[in]  face_locator    face_location - the face locator object.
-    !> @param[out] real(accs_real) normal(ndim)  - an ndimensional array representing the face normal
+    !> @param[out] real(ccs_real) normal(ndim)  - an ndimensional array representing the face normal
     !!                                             vector.
     module subroutine get_face_normal(face_location, normal)
       type(face_locator), intent(in) :: face_location
-      real(accs_real), dimension(ndim), intent(out) :: normal
+      real(ccs_real), dimension(ndim), intent(out) :: normal
     end subroutine get_face_normal
 
     !> @brief Returns the area of a face
     !
     !> @param[in]  face_locator    face_location - the face locator object.
-    !> @param[out] real(accs_real) area          - the face area.
+    !> @param[out] real(ccs_real) area          - the face area.
     module subroutine get_face_area(face_location, area)
       type(face_locator), intent(in) :: face_location
-      real(accs_real), intent(out) :: area
+      real(ccs_real), intent(out) :: area
     end subroutine get_face_area
 
     !> @brief Returns the centre of a cell
     !
     !> @param[in]  cell_locator     cell_location - the cell locator object.
-    !> @param[out] real(accs_real)  x(ndim)       - an ndimensional array representing the cell centre.
+    !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the cell centre.
     module subroutine get_cell_centre(cell_location, x)
       type(cell_locator), intent(in) :: cell_location
-      real(accs_real), dimension(ndim), intent(out) :: x
+      real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_cell_centre
 
     !> @brief Returns the centre of a neighbour cell
     !
     !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
-    !> @param[out] real(accs_real)   x(ndim)            - an ndimensional array representing the
+    !> @param[out] real(ccs_real)   x(ndim)            - an ndimensional array representing the
     !!                                                    neighbour cell centre.
     module subroutine get_neighbour_centre(neighbour_location, x)
       type(neighbour_locator), intent(in) :: neighbour_location
-      real(accs_real), dimension(ndim), intent(out) :: x
+      real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_neighbour_centre
 
     !> @brief Returns the centre of a face
     !
     !> @param[in]  face_locator     face_location - the face locator object.
-    !> @param[out] real(accs_real)  x(ndim)       - an ndimensional array representing the face centre.
+    !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the face centre.
     module subroutine get_face_centre(face_location, x)
       type(face_locator), intent(in) :: face_location
-      real(accs_real), dimension(ndim), intent(out) :: x
+      real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_face_centre
 
     !> @brief Returns the volume of a cell
     !
     !> @param[in] cell_locator     cell_location - the cell locator object.
-    !> @param[out] real(accs_real) V             - the cell volume.
+    !> @param[out] real(ccs_real) V             - the cell volume.
     module subroutine get_cell_volume(cell_location, V)
       type(cell_locator), intent(in) :: cell_location
-      real(accs_real), intent(out) :: V
+      real(ccs_real), intent(out) :: V
     end subroutine get_cell_volume
 
     !> @brief Returns the volume of a neighbour cell
     !
     !> @param[in] neighbour_locator neighbour_location - the neighbour locator object.
-    !> @param[out] real(accs_real)  V                  - the neighbour cell volume.
+    !> @param[out] real(ccs_real)  V                  - the neighbour cell volume.
     module subroutine get_neighbour_volume(neighbour_location, V)
       type(neighbour_locator), intent(in) :: neighbour_location
-      real(accs_real), intent(out) :: V
+      real(ccs_real), intent(out) :: V
     end subroutine get_neighbour_volume
 
     !> @brief Returns the global index of a cell
     !
     !> @param[in]  cell_locator      cell_location - the cell locator object.
-    !> @param[out] integer(accs_int) idxg          - the global index of the cell.
+    !> @param[out] integer(ccs_int) idxg          - the global index of the cell.
     module subroutine get_cell_global_index(cell_location, idxg)
       type(cell_locator), intent(in) :: cell_location
-      integer(accs_int), intent(out) :: idxg
+      integer(ccs_int), intent(out) :: idxg
     end subroutine get_cell_global_index
 
     !> @brief Returns the global index of a neighbouring cell
     !
     !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
-    !> @param[out] integer(accs_int) nbidxg             - the global index of the neighbour cell.
+    !> @param[out] integer(ccs_int) nbidxg             - the global index of the neighbour cell.
     module subroutine get_neighbour_global_index(neighbour_location, nbidxg)
       type(neighbour_locator), intent(in) :: neighbour_location
-      integer(accs_int), intent(out) :: nbidxg
+      integer(ccs_int), intent(out) :: nbidxg
     end subroutine get_neighbour_global_index
 
     !> @brief Returns the neighbour count of a cell (including boundary neighbours)
     !
     !> @param[in]  cell_locator      cell_location - the cell locator object.
-    !> @param[out] integer(accs_int) nnb           - the neighbour count of the cell.
+    !> @param[out] integer(ccs_int) nnb           - the neighbour count of the cell.
     module subroutine cell_count_neighbours(cell_location, nnb)
       type(cell_locator), intent(in) :: cell_location
-      integer(accs_int), intent(out) :: nnb
+      integer(ccs_int), intent(out) :: nnb
     end subroutine cell_count_neighbours
 
     !> @brief Returns the boundary status of a neighbouring cell
@@ -250,50 +250,50 @@ module meshing
     !!              limited use and is mostly present for uniformity.
     !
     !> @param[in]  cell_locator      cell_location - the cell locator object.
-    !> @param[out] integer(accs_int) idx           - the local index of the cell.
+    !> @param[out] integer(ccs_int) idx           - the local index of the cell.
     module subroutine get_cell_local_index(cell_location, idx)
       type(cell_locator), intent(in) :: cell_location
-      integer(accs_int), intent(out) :: idx
+      integer(ccs_int), intent(out) :: idx
     end subroutine get_cell_local_index
 
     !> @brief Returns the local index of a neighbouring cell
     !
     !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
-    !> @param[out] integer(accs_int) nbidx              - the local index of the neighbour cell.
+    !> @param[out] integer(ccs_int) nbidx              - the local index of the neighbour cell.
     module subroutine get_neighbour_local_index(neighbour_location, nbidx)
       type(neighbour_locator), intent(in) :: neighbour_location
-      integer(accs_int), intent(out) :: nbidx
+      integer(ccs_int), intent(out) :: nbidx
     end subroutine get_neighbour_local_index
 
     !> @brief Returns the local index of a face
     !
     !> @param[in]  face_locator      face_location - the face locator object.
-    !> @param[out] integer(accs_int) idx           - the local index of the face.
+    !> @param[out] integer(ccs_int) idx           - the local index of the face.
     module subroutine get_face_local_index(face_location, idx)
       type(face_locator), intent(in) :: face_location
-      integer(accs_int), intent(out) :: idx
+      integer(ccs_int), intent(out) :: idx
     end subroutine get_face_local_index
 
     !> @brief Returns the distance between two cell centres
     !
     !> @param[in]  cell_locator      loc_p  - The cell distance is measured from.
     !> @param[in]  neighbour_locator loc_nb - The cell distance is measured to.
-    !> @param[out] accs_real         dx     - ndim-array of the distance
+    !> @param[out] ccs_real         dx     - ndim-array of the distance
     module subroutine get_neighbour_distance(loc_p, loc_nb, dx)
       type(cell_locator), intent(in) :: loc_p
       type(neighbour_locator), intent(in) :: loc_nb
-      real(accs_real), dimension(ndim), intent(out) :: dx
+      real(ccs_real), dimension(ndim), intent(out) :: dx
     end subroutine get_neighbour_distance
 
     !> @brief Returns the distance from cell to face centres
     !
     !> @param[in]  cell_locator loc_p - The cell distance is measured from.
     !> @param[in]  face_locator loc_f - The face distance is measured to.
-    !> @param[out] accs_real    dx    - ndim-array of the distance
+    !> @param[out] ccs_real    dx    - ndim-array of the distance
     module subroutine get_face_distance(loc_p, loc_f, dx)
       type(cell_locator), intent(in) :: loc_p
       type(face_locator), intent(in) :: loc_f
-      real(accs_real), dimension(ndim), intent(out) :: dx
+      real(ccs_real), dimension(ndim), intent(out) :: dx
     end subroutine get_face_distance
   end interface
 

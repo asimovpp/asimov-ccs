@@ -10,13 +10,13 @@ program test_square_mesh_indices
 
   type(ccs_mesh) :: square_mesh
 
-  real(accs_real) :: l
-  integer(accs_int) :: n
+  real(ccs_real) :: l
+  integer(ccs_int) :: n
 
-  integer(accs_int) :: i
+  integer(ccs_int) :: i
 
   type(cell_locator) :: cell_location
-  integer(accs_int) :: idxg
+  integer(ccs_int) :: idxg
 
   call init()
   

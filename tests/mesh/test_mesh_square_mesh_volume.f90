@@ -12,18 +12,18 @@ program test_mesh_square_mesh_volume
   
   type(ccs_mesh) :: square_mesh
 
-  integer(accs_int) :: n
-  real(accs_real) :: l
-  real(accs_real) :: vol
-  real(accs_real) :: vol_global
-  real(accs_real) :: expected_vol
+  integer(ccs_int) :: n
+  real(ccs_real) :: l
+  real(ccs_real) :: vol
+  real(ccs_real) :: vol_global
+  real(ccs_real) :: expected_vol
 
-  integer(accs_int) :: i
+  integer(ccs_int) :: i
   type(cell_locator) :: cell_location
-  real(accs_real) :: V
+  real(ccs_real) :: V
 
-  integer(accs_int) :: nneg_vol
-  integer(accs_int) :: nneg_vol_global
+  integer(ccs_int) :: nneg_vol
+  integer(ccs_int) :: nneg_vol_global
   
   call init()
   
@@ -32,7 +32,7 @@ program test_mesh_square_mesh_volume
     square_mesh = build_square_mesh(par_env, n, l)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
-    vol = 0.0_accs_real
+    vol = 0.0_ccs_real
     nneg_vol = 0
     do i = 1, square_mesh%nlocal
       call set_cell_location(square_mesh, i, cell_location)
