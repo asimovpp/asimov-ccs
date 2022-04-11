@@ -5,7 +5,6 @@ module io
 
   use iso_fortran_env, only: int32, int64, real32, real64
   use types, only: io_environment, io_process
-  use kinds, only: accs_int, accs_real
   use parallel_types, only: parallel_environment
 
   implicit none
