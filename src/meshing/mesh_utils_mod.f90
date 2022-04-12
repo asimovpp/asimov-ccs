@@ -254,39 +254,39 @@ contains
   !> @param[in]    integer(ccs_int) nbctr   - the cell-relative neighbour index
   !> @param[in]    integer(ccs_int) index_nb   - the local index of the neighbour cell
   !> @param[in]    integer(ccs_int) global_index_nb  - the global index of the neighbour cell
-  !> @param[inout] mesh meshobj - the mesh we are assembling neighbours on
-  subroutine build_local_mesh_add_neighbour(cellidx, nbctr, index_nb, global_index_nb, meshobj)
+  !> @param[inout] mesh mesh - the mesh we are assembling neighbours on
+  subroutine build_local_mesh_add_neighbour(cellidx, nbctr, index_nb, global_index_nb, mesh)
 
     integer(ccs_int), intent(in) :: cellidx
     integer(ccs_int), intent(in) :: nbctr
     integer(ccs_int), intent(in) :: index_nb
     integer(ccs_int), intent(in) :: global_index_nb
-    type(ccs_mesh), intent(inout) :: meshobj
+    type(ccs_mesh), intent(inout) :: mesh
 
     integer(ccs_int) :: ng !< The current number of cells (total = local + halos)
     logical :: found        !< Indicates whether a halo cell was already present
     integer(ccs_int) :: i  !< Cell iteration counter
     
-    if ((index_nb >= 1_ccs_int) .and. (index_nb <= meshobj%nlocal)) then
+    if ((index_nb >= 1_ccs_int) .and. (index_nb <= mesh%nlocal)) then
       ! Neighbour is local
-      meshobj%index_nb(nbctr, cellidx) = index_nb
+      mesh%index_nb(nbctr, cellidx) = index_nb
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
       if (.not. (index_nb < 0_ccs_int)) then
         print *, "ERROR: boundary neighbours should have -ve indices!"
         stop
       end if
-      meshobj%index_nb(nbctr, cellidx) = index_nb
+      mesh%index_nb(nbctr, cellidx) = index_nb
     else
       ! Neighbour is in a halo
 
       ! First check if neighbour is already present in halo
-      ng = size(meshobj%idx_global)
+      ng = size(mesh%idx_global)
       found = .false.
-      do i = meshobj%nlocal + 1, ng
-        if (meshobj%idx_global(i) == global_index_nb) then
+      do i = mesh%nlocal + 1, ng
+        if (mesh%idx_global(i) == global_index_nb) then
           found = .true.
-          meshobj%index_nb(nbctr, cellidx) = i
+          mesh%index_nb(nbctr, cellidx) = i
           exit
         end if
       end do
@@ -296,14 +296,14 @@ contains
       ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
       !      the (extended) original array.
       if (.not. found) then
-        if ((ng + 1) > meshobj%nglobal) then
+        if ((ng + 1) > mesh%nglobal) then
           print *, "ERROR: Trying to create halo that exceeds global mesh size!"
           stop
         end if
         
-        call append_to_arr(global_index_nb, meshobj%idx_global)
-        ng = size(meshobj%idx_global)
-        meshobj%index_nb(nbctr, cellidx) = ng
+        call append_to_arr(global_index_nb, mesh%idx_global)
+        ng = size(mesh%idx_global)
+        mesh%index_nb(nbctr, cellidx) = ng
       end if
     end if
     
