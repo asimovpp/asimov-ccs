@@ -1,0 +1,49 @@
+!!! -*- mode: F90 -*-
+!!! vim: set syntax=fortran:
+!!!
+!!!        FILE: mod_ccs_test_utils.f90
+!!! DESCRIPTION: Module providing utility functions/subroutines for the ASiMoV-CCS testing
+!!!              framework.
+
+module ccs_test_utils
+
+  use constants, only : ccs_real, ccs_real_eps
+  
+  implicit none
+
+  private
+
+  public :: ccs_test_scale, ccs_test_atol
+
+contains
+
+  pure real(ccs_real) function ccs_test_scale(input)
+    !! Function returning a variable scaled to the range of TESTSCALE
+    !!
+    !! INPUTS:
+    !! + input - the input variable, expected |input| <= 1.
+    !! RETURNS:
+    !! + ccs_test_scale - the input scaled to the range of TESTSCALE
+    
+    real(ccs_real), intent(in) :: input
+    
+    ccs_test_scale = TESTSCALE * input
+
+  end function ccs_test_scale
+
+  pure real(ccs_real) function ccs_test_atol(input)
+    !! Function returning the absolute tolerance of a variable based on ```ccs_real_eps```,
+    !! this gives the allowable error magnitude of a real calculation.
+    !!
+    !! INPUTS:
+    !! + input - the value being tested for equality
+    !! RETURNS:
+    !! + ccs_test_atol - the allowable error magnitude.
+    
+    real(ccs_real), intent(in) :: input
+
+    ccs_test_atol = ccs_real_eps * abs(input)
+
+  end function ccs_test_atol
+
+end module ccs_test_utils
