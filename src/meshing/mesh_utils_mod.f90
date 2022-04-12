@@ -406,10 +406,10 @@ contains
     type(cell_locator) :: self_loc !> Current cell
     type(cell_locator) :: ngb_cell_loc !> Neighbour of current cell
     type(neighbour_locator) :: loc_nb !> Neighbour
-    type(neighbour_locator) :: ngb_ngb_loc !> Neighbour of neighbour
+    type(neighbour_locator) :: loc_nb_nb !> Neighbour of neighbour
     type(face_locator) :: face_loc
     integer(ccs_int) :: index_nb, local_idx
-    integer(ccs_int) :: ngb_ngb_idx, face_idx
+    integer(ccs_int) :: index_nb_nb, face_idx
     integer(ccs_int) :: nnb, nnb_nb
     integer(ccs_int) :: j,k
     integer(ccs_int) :: icnt  !> Face index counter
@@ -438,9 +438,9 @@ contains
             call set_cell_location(cell_mesh, index_nb, ngb_cell_loc)
             call count_neighbours(ngb_cell_loc, nnb_nb)
             do k = 1, nnb_nb
-              call set_neighbour_location(ngb_cell_loc, k, ngb_ngb_loc)
-              call get_local_index(ngb_ngb_loc, ngb_ngb_idx)
-              if (ngb_ngb_idx == local_idx) then
+              call set_neighbour_location(ngb_cell_loc, k, loc_nb_nb)
+              call get_local_index(loc_nb_nb, index_nb_nb)
+              if (index_nb_nb == local_idx) then
                 call set_face_location(cell_mesh, index_nb, k, face_loc)
                 call get_local_index(face_loc, face_idx)
                 call set_face_index(local_idx, j, face_idx, cell_mesh)
