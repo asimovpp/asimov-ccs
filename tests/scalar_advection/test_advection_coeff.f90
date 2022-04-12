@@ -17,12 +17,14 @@ program test_advection_coeff
                 set_size, set_row, set_entry, set_values
   use petsctypes, only: vector_petsc
 
+  implicit none
+  
   type(ccs_mesh) :: square_mesh
   type(vector_spec) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 50
-  integer(ccs_int) :: self_idx, ngb_idx, local_idx
+  integer(ccs_int) :: self_idx, ngb_idx, index_p
   integer(ccs_int) :: ngb
   integer(ccs_int) :: direction, discretisation
   integer, parameter :: x_dir = 1, y_dir = 2
@@ -35,7 +37,7 @@ program test_advection_coeff
 
   square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  local_idx = int(0.5*square_mesh%nlocal + 2, ccs_int)
+  index_p = int(0.5*square_mesh%nlocal + 2, ccs_int)
   do direction = x_dir, y_dir
     do discretisation = upwind, central
       if (discretisation == central) then
@@ -57,14 +59,16 @@ program test_advection_coeff
       call create_vector(vec_sizes, u%values)
       call create_vector(vec_sizes, v%values)
 
+      print *, "Set velocity fields"
       call set_velocity_fields(square_mesh, direction, u, v)
 
+      print *, "Associate the thing"
       associate (u_vec => u%values, v_vec => v%values)
         call get_vector_data(u_vec, u_data)
         call get_vector_data(v_vec, v_data)
 
         do ngb = 1, 4
-          call get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
+          call get_cell_parameters(index_p, ngb, self_idx, ngb_idx, face_area, normal)
           call run_advection_coeff_test(scalar, u_data, v_data, self_idx, ngb_idx, face_area, normal)
         end do
       
@@ -83,14 +87,14 @@ program test_advection_coeff
   !> @brief For a given cell and neighbour computes the local cell and neighbour indices, corresponding face
   !> area, and normal
   !
-  !> @param[in] local_idx           - The cell's local index
+  !> @param[in] index_p           - The cell's local index
   !> @param[in] ngb                 - The neighbour we're interested in (range 1-4)
   !> @param[out] self_idx           - The cell's local index
   !> @param[out] ngb_idx            - The neighbour's local index
   !> @param[out] face_area  - The surface area of the face between the cell and its neighbour
   !> @param[out] normal             - The face normal between the cell and its neighbour
-  subroutine get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
-    integer(ccs_int), intent(in) :: local_idx
+  subroutine get_cell_parameters(index_p, ngb, self_idx, ngb_idx, face_area, normal)
+    integer(ccs_int), intent(in) :: index_p
     integer(ccs_int), intent(in) :: ngb
     integer(ccs_int), intent(out) :: self_idx
     integer(ccs_int), intent(out) :: ngb_idx
@@ -101,13 +105,13 @@ program test_advection_coeff
     type(neighbour_locator) :: ngb_loc
     type(face_locator) :: face_loc
     
-    call set_cell_location(square_mesh, local_idx, self_loc)
+    call set_cell_location(square_mesh, index_p, self_loc)
     call get_local_index(self_loc, self_idx)
   
     call set_neighbour_location(self_loc, ngb, ngb_loc)
     call get_local_index(ngb_loc, ngb_idx)
 
-    call set_face_location(square_mesh, local_idx, ngb, face_loc)
+    call set_face_location(square_mesh, index_p, ngb, face_loc)
     call get_face_area(face_loc, face_area)
 
     call get_face_normal(face_loc, normal)
@@ -119,27 +123,31 @@ program test_advection_coeff
   !> @param[in] direction - Integer indicating the direction of the velocity field
   !> @param[out] u, v     - The velocity fields in x and y directions
   subroutine set_velocity_fields(cell_mesh, direction, u, v)
+
+    use vec, only : create_vector_values
+    use utils, only : set_mode
+    
     class(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout), allocatable :: u, v
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
-    integer(ccs_int) :: local_idx, self_idx
+    integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
-
-    u_vals%setter_mode = insert_mode
-    v_vals%setter_mode = insert_mode
     
     associate(n_local => cell_mesh%nlocal)
-      allocate(u_vals%indices(n_local))
-      allocate(v_vals%indices(n_local))
-      allocate(u_vals%values(n_local))
-      allocate(v_vals%values(n_local))
+      call create_vector_values(n_local, u_vals)
+      call create_vector_values(n_local, v_vals)
+      call set_mode(insert_mode, u_vals)
+      call set_mode(insert_mode, v_vals)
       
       ! Set IC velocity fields
-      do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
+      do index_p = 1, n_local
+
+        print *, index_p, u_vals%indices
+        
+        call set_cell_location(cell_mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
 
         if (direction == x_dir) then
           u_val = 1.0_ccs_real
@@ -149,23 +157,24 @@ program test_advection_coeff
           v_val = 1.0_ccs_real
         end if
 
-        call set_row(self_idx, u_vals)
+        call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
 
-        call set_row(self_idx, v_vals)
+        call set_row(global_index_p, v_vals)
         call set_entry(v_val, v_vals)
       end do
-    end associate
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
 
-    call update(u%values)
-    call update(v%values)
+      call set_values(u_vals, u%values)
+      call set_values(v_vals, v%values)
+
+      call update(u%values)
+      call update(v%values)
     
-    deallocate(u_vals%indices)
-    deallocate(v_vals%indices)
-    deallocate(u_vals%values)
-    deallocate(v_vals%values)
+      deallocate(u_vals%indices)
+      deallocate(v_vals%indices)
+      deallocate(u_vals%values)
+      deallocate(v_vals%values)
+    end associate
     
   end subroutine set_velocity_fields
 

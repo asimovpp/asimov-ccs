@@ -373,19 +373,14 @@ contains
 
     integer(ccs_int), dimension(rank(val_dat%indices)) :: idxs
     integer(ccs_int) :: i
-    logical :: new_entry
     integer(ccs_int) :: petsc_row
 
     petsc_row = row - 1 ! PETSc is zero-indexed
-    new_entry = .false.
     
     idxs = findloc(val_dat%indices, petsc_row, kind=ccs_int)
     i = idxs(1) ! We want the first entry
     if (i == 0) then
-      new_entry = .true.
-    end if
-
-    if (new_entry) then
+      ! New entry
       idxs = findloc(val_dat%indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
