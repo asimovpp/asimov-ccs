@@ -13,11 +13,6 @@ program test_face_values
   
     implicit none
   
-    call init()
-  
-    implicit none
-
-    class(parallel_environment), allocatable, target :: par_env
     class(field), allocatable :: mf
 
     type(vector_spec) :: vec_sizes
