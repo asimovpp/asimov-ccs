@@ -7,6 +7,7 @@ program ldc
   use petscvec
   use petscsys
 
+  use case_config, only: num_steps, velocity_relax, pressure_relax
   use constants, only : cell, face, ccsconfig
   use bc_constants, only: bc_region_left, bc_region_right, &
                           bc_region_top, bc_region_bottom, &
@@ -29,15 +30,15 @@ program ldc
   implicit none
 
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name   !< Case name
-  character(len=:), allocatable :: ccs_config_file  !< Config file for CCS
+  character(len=:), allocatable :: case_name       !< Case name
+  character(len=:), allocatable :: ccs_config_file !< Config file for CCS
 
   type(ccs_mesh)    :: square_mesh
   type(vector_spec) :: vec_sizes
 
   class(field), allocatable :: u, v, p, pp, mf
 
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end, ierr
   integer(ccs_int) :: irank !< MPI rank ID
@@ -48,30 +49,6 @@ program ldc
 
   type(tPetscViewer) :: viewer
 
-  ! Reference numbers
-  ! real(ccs_real) :: p_ref
-  ! real(ccs_real) :: temp_ref
-  ! real(ccs_real) :: density
-  ! real(ccs_real) :: viscosity
-  ! integer(ccs_int) :: pref_at_cell
-
-  ! Number of steps
-  integer(ccs_int) :: num_steps
-
-  ! Convection/discretisation scheme
-  ! integer(ccs_int) :: u_conv
-  ! integer(ccs_int) :: v_conv
-
-  ! Relation factors
-  real(ccs_real) :: u_relax
-  real(ccs_real) :: p_relax
-
-  ! Boundary conditions - hardcoded for now
-  ! integer(ccs_int), dimension(5) :: bnd_region
-  ! integer(ccs_int), dimension(5) :: bnd_type
-  
-
-  print *, "Starting SIMPLE demo"
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
 
@@ -80,12 +57,17 @@ program ldc
 
   call read_command_line_arguments(par_env, case_name=case_name)
 
+  print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name//ccsconfig
 
   call timer(start_time)
 
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
+
+  if(irank == par_env%root) then
+    call print_configuration()
+  end if
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
@@ -106,7 +88,7 @@ program ldc
   ! Create and initialise field vectors
   call initialise(vec_sizes)
 
-  print *, "Create vectors"
+  ! print *, "Create vectors"
   call set_vector_location(cell, vec_sizes)
   call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, u%values)
@@ -210,55 +192,31 @@ program ldc
     endif
     
     call get_steps(config_file_pointer, num_steps)
-    ! call get_reference_number(config_file_pointer, p_ref=p_ref, temp_ref=temp_ref, &
-    !                           dens_ref=density, visc_ref=viscosity, pref_at_cell=pref_at_cell)
-    ! call get_convection_scheme(config_file_pointer, u_conv=u_conv, v_conv=v_conv)
-    call get_relaxation_factor(config_file_pointer, u_relax=u_relax, p_relax=p_relax)
+    if(num_steps == huge(0)) then
+      print*,"No value assigned to num-steps."
+    end if
+
+    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    if(velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
+      print*,"No values assigned to velocity and pressure underrelaxation."
+    end if
 
   end subroutine
 
   ! Print test case configuration
-  ! subroutine print_config()
+  subroutine print_configuration()
 
-  !   print*,"Solving ", case_name, " case"
+    print*,"Solving ", case_name, " case"
 
-  !   print*,"++++" 
-  !   print*,"SIMULATION LENGTH"
-  !   print*,"Running for ",num_steps, "time steps"
+    print*,"++++" 
+    print*,"SIMULATION LENGTH"
+    print*,"Running for ",num_steps, "iterations"
+    print*,"++++" 
+    print*,"RELAXATION FACTORS"
+    print*,"velocity: ", velocity_relax 
+    print*,"pressure: ", pressure_relax 
 
-  !   print*,"++++"   
-  !   print*,"REFERENCE NUMBERS"
-  !   print*,"Reference pressure ", p_ref, " set a cell ", pref_at_cell
-  !   print*,"Reference temperature ", temp_ref
-  !   print*,"Density ", density
-  !   print*,"Viscocity ", viscosity
-
-  !   print*,"++++" 
-  !   print*,"DISCRETISATION SCHEMES"  
-  !   if(u_conv == 0) then
-  !     print*,"u is upwind" 
-  !   else
-  !     print*,"u is central" 
-  !   end if
-  
-  !   if(v_conv == 0) then
-  !     print*,"v is upwind" 
-  !   else
-  !     print*,"v is central" 
-  !   end if
-
-  !   print*,"++++" 
-  !   print*,"RELAXATION FACTORS"
-  !   print*,"u is ", u_relax 
-  !   print*,"v is ", v_relax 
-  !   print*,"p is ", p_relax 
-
-  !   print*,"++++" 
-  !   print*,"BOUNDARY CONDITIONS"
-  !   print*,"Regions: ", bnd_region
-  !   print*,"Types: ", bnd_type
-
-  ! end subroutine
+  end subroutine
 
   subroutine initialise_velocity(cell_mesh, u, v, mf)
 

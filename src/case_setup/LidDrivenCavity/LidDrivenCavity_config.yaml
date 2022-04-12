@@ -1,15 +1,22 @@
 ---
 title: LidDrivenCavity
 
+# "steps" - currently the number of iterations
+steps: 1000
+
+relaxation_factor:
+  u: 0.9
+  v: 0.9
+  p: 0.1
+
+### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
+
 #reference_numbers:
 #    pressure: 101325.0
 #    temperature: 289.0
 #    density: 1.0
 #    viscosity: 1.0e-03
 #    pref_at_cell: 4096
-
-# "steps" are currently number of itertions
-steps: 1000
 
 #solve:
 #  w: off
@@ -32,10 +39,6 @@ steps: 1000
 #  v: 1.0
 #  w: 1.0
   
-relaxation_factor:
-  u: 0.9
-  p: 0.1
-
 #output:
 #  every: 1000
 
