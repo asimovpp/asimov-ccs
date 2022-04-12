@@ -10,7 +10,7 @@ program test_mesh_neighbours
 
   implicit none
   
-  type(ccs_mesh), target :: square_mesh
+  type(ccs_mesh), target :: mesh
   type(cell_locator) :: cell_location
 
   integer(ccs_int) :: n
@@ -31,12 +31,12 @@ program test_mesh_neighbours
   
   do n = 1, 100 ! XXX: Need a test-wide variable nmax
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, n, l)
 
     boundary_ctr = 0
-    do i = 1, square_mesh%nlocal
+    do i = 1, mesh%nlocal
 
-      call set_cell_location(square_mesh, i, cell_location)
+      call set_cell_location(mesh, i, cell_location)
       call count_neighbours(cell_location, nnb)
 
       if (nnb < 2) then

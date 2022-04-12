@@ -9,18 +9,18 @@ contains
   !> @description Creates the association between a face relative to a cell, i.e. to access the
   !!              nth face of cell i.
   !
-  !> @param[in]  mesh         geometry      - the mesh object being referred to.
+  !> @param[in]  mesh         mesh      - the mesh object being referred to.
   !> @param[in]  ccs_int     cell_idx      - the index of the cell whose face is being accessed.
   !> @param[in]  ccs_int     cell_face_ctr - the cell-local index of the face.
   !> @param[out] face_locator face_location - the face locator object linking a cell-relative
   !!                                          index with the mesh.
-  module subroutine set_face_location(geometry, cell_idx, cell_face_ctr, face_location)
-    type(ccs_mesh), target, intent(in) :: geometry
+  module subroutine set_face_location(mesh, cell_idx, cell_face_ctr, face_location)
+    type(ccs_mesh), target, intent(in) :: mesh
     integer(ccs_int), intent(in) :: cell_idx
     integer(ccs_int), intent(in) :: cell_face_ctr
     type(face_locator), intent(out) :: face_location
 
-    face_location%mesh => geometry
+    face_location%mesh => mesh
     face_location%cell_idx = cell_idx
     face_location%cell_face_ctr = cell_face_ctr
   end subroutine set_face_location
@@ -30,21 +30,21 @@ contains
   !> @description Creates the association between a mesh and cell index, storing it in the
   !!              returned cell locator object.
   !
-  !> @param[in]  mesh         geometry      - the mesh object being referred to.
+  !> @param[in]  mesh         mesh      - the mesh object being referred to.
   !> @param[in]  ccs_int     cell_idx      - the cell index. 
   !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
   !!                                          the mesh.
-  module subroutine set_cell_location(geometry, cell_idx, cell_location)
-    type(ccs_mesh), target, intent(in) :: geometry
+  module subroutine set_cell_location(mesh, cell_idx, cell_location)
+    type(ccs_mesh), target, intent(in) :: mesh
     integer(ccs_int), intent(in) :: cell_idx
     type(cell_locator), intent(out) :: cell_location
 
     ! XXX: Potentially expensive...
-    if (cell_idx > geometry%ntotal) then
-      print *, "ERROR: trying to access cell I don't have access to!", cell_idx, geometry%nlocal
+    if (cell_idx > mesh%ntotal) then
+      print *, "ERROR: trying to access cell I don't have access to!", cell_idx, mesh%nlocal
       stop
     else
-      cell_location%mesh => geometry
+      cell_location%mesh => mesh
       cell_location%cell_idx = cell_idx
     end if
   end subroutine set_cell_location
@@ -91,13 +91,13 @@ contains
   end subroutine set_neighbour_location
 
   !> @brief Set face index
-  module subroutine set_face_index(cell_idx, cell_face_ctr, face_idx, geometry)
+  module subroutine set_face_index(cell_idx, cell_face_ctr, face_idx, mesh)
     integer(ccs_int), intent(in) :: cell_idx
     integer(ccs_int), intent(in) :: cell_face_ctr
     integer(ccs_int), intent(in) :: face_idx
-    type(ccs_mesh), target, intent(inout) :: geometry
+    type(ccs_mesh), target, intent(inout) :: mesh
 
-    geometry%faceidx(cell_face_ctr, cell_idx) = face_idx
+    mesh%faceidx(cell_face_ctr, cell_idx) = face_idx
   end subroutine set_face_index
 
   !> @brief Returns the normal vector of a face

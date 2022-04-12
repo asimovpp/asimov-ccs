@@ -12,7 +12,7 @@ program test_square_mesh_centres
 
   implicit none
   
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
 
   real(ccs_real) :: l
   integer(ccs_int) :: n
@@ -29,10 +29,10 @@ program test_square_mesh_centres
   
   do n = 1, 100
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, n, l)
 
-    do i = 1, square_mesh%nlocal
-      call set_cell_location(square_mesh, i, cell_location)
+    do i = 1, mesh%nlocal
+      call set_cell_location(mesh, i, cell_location)
       call get_centre(cell_location, cc)
       associate(x => cc(1), y => cc(2))
         if ((x > l) .or. (x < 0_ccs_real) &
@@ -42,9 +42,9 @@ program test_square_mesh_centres
         end if
       end associate
 
-      associate(nnb => square_mesh%nnb(i))
+      associate(nnb => mesh%nnb(i))
         do j = 1, nnb
-          call set_face_location(square_mesh, i, j, face_location)
+          call set_face_location(mesh, i, j, face_location)
           call get_centre(face_location, fc)
           associate(x => fc(1), y => fc(2))
             if ((x > (l + eps)) .or. (x < (0.0_ccs_real - eps)) &

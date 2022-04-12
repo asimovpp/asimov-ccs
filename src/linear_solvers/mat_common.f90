@@ -17,14 +17,14 @@ contains
   !
   !> param[in] par_env                - the parallel environment where 
   !!                                    the matrix resides
-  !> param[in] geometry               - the mesh object
+  !> param[in] mesh               - the mesh object
   !> param[in/out] mat_properties  - the matrix data object
-  module subroutine set_matrix_size(par_env, geometry, mat_properties)
+  module subroutine set_matrix_size(par_env, mesh, mat_properties)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
-    class(ccs_mesh), target, intent(in) :: geometry
+    class(ccs_mesh), target, intent(in) :: mesh
     type(matrix_spec), intent(inout) :: mat_properties
 
-    mat_properties%mesh => geometry
+    mat_properties%mesh => mesh
     mat_properties%par_env => par_env
   end subroutine set_matrix_size
 
