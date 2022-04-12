@@ -12,7 +12,7 @@ program simple
   use constants, only : cell, face
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_init_data, ccs_vector
+                   vector_spec, ccs_vector
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -27,7 +27,7 @@ program simple
 
   class(parallel_environment), allocatable, target :: par_env
   type(ccs_mesh)             :: square_mesh
-  type(vector_init_data) :: vec_sizes
+  type(vector_spec) :: vec_sizes
 
   class(field), allocatable :: u, v, p, pp, mf
 
@@ -69,38 +69,38 @@ program simple
   print *, "Create vectors"
   call set_vector_location(cell, vec_sizes)
   call set_size(par_env, square_mesh, vec_sizes)
-  call create_vector(vec_sizes, u%vec)
-  call create_vector(vec_sizes, v%vec)
-  call create_vector(vec_sizes, p%vec)
-  call create_vector(vec_sizes, p%gradx)
-  call create_vector(vec_sizes, p%grady)
-  call create_vector(vec_sizes, p%gradz)
-  call create_vector(vec_sizes, pp%vec)
-  call create_vector(vec_sizes, pp%gradx)
-  call create_vector(vec_sizes, pp%grady)
-  call create_vector(vec_sizes, pp%gradz)
-  call update(u%vec)
-  call update(v%vec)
-  call update(p%vec)
-  call update(p%gradx)
-  call update(p%grady)
-  call update(p%gradz)
-  call update(pp%vec)
-  call update(pp%gradx)
-  call update(pp%grady)
-  call update(pp%gradz)
+  call create_vector(vec_sizes, u%values)
+  call create_vector(vec_sizes, v%values)
+  call create_vector(vec_sizes, p%values)
+  call create_vector(vec_sizes, p%x_gradients)
+  call create_vector(vec_sizes, p%y_gradients)
+  call create_vector(vec_sizes, p%z_gradients)
+  call create_vector(vec_sizes, pp%values)
+  call create_vector(vec_sizes, pp%x_gradients)
+  call create_vector(vec_sizes, pp%y_gradients)
+  call create_vector(vec_sizes, pp%z_gradients)
+  call update(u%values)
+  call update(v%values)
+  call update(p%values)
+  call update(p%x_gradients)
+  call update(p%y_gradients)
+  call update(p%z_gradients)
+  call update(pp%values)
+  call update(pp%x_gradients)
+  call update(pp%y_gradients)
+  call update(pp%z_gradients)
 
   call set_vector_location(face, vec_sizes)
   call set_size(par_env, square_mesh, vec_sizes)
-  call create_vector(vec_sizes, mf%vec)
-  call update(mf%vec)
+  call create_vector(vec_sizes, mf%values)
+  call update(mf%values)
   
   ! Initialise velocity field
   print *, "Initialise velocity field"
   call initialise_velocity(square_mesh, u, v, mf)
-  call update(u%vec)
-  call update(v%vec)
-  call update(mf%vec)
+  call update(u%values)
+  call update(v%values)
+  call update(mf%values)
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
@@ -108,7 +108,7 @@ program simple
 
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 
-  associate (vec => u%vec)
+  associate (vec => u%values)
     select type (vec)
     type is (vector_petsc)
       call VecView(vec%v, viewer, ierr)
@@ -117,7 +117,7 @@ program simple
 
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v",FILE_MODE_WRITE,viewer, ierr)
 
-  associate (vec => v%vec)
+  associate (vec => v%values)
     select type (vec)
     type is (vector_petsc)
       call VecView(vec%v, viewer, ierr)
@@ -126,7 +126,7 @@ program simple
 
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p",FILE_MODE_WRITE,viewer, ierr)
 
-  associate (vec => p%vec)
+  associate (vec => p%values)
     select type (vec)
     type is (vector_petsc)
       call VecView(vec%v, viewer, ierr)
@@ -197,23 +197,26 @@ contains
       end do
     end associate
 
-    call set_values(u_vals, u%vec)
-    call set_values(v_vals, v%vec)
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
 
     ! XXX: make a finaliser for vector values
-    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
+    deallocate(u_vals%indices)
+    deallocate(v_vals%indices)
+    deallocate(u_vals%values)
+    deallocate(v_vals%values)
 
-    call get_vector_data(u%vec, u_data)
-    call get_vector_data(v%vec, v_data)
-    call get_vector_data(mf%vec, mf_data)
+    call get_vector_data(u%values, u_data)
+    call get_vector_data(v%values, v_data)
+    call get_vector_data(mf%values, mf_data)
 
     u_data(:) = 0.0_ccs_real
     v_data(:) = 0.0_ccs_real
     mf_data(:) = 0.0_ccs_real
     
-    call restore_vector_data(u%vec, u_data)
-    call restore_vector_data(v%vec, v_data)
-    call restore_vector_data(mf%vec, mf_data)
+    call restore_vector_data(u%values, u_data)
+    call restore_vector_data(v%values, v_data)
+    call restore_vector_data(mf%values, mf_data)
     
   end subroutine initialise_velocity
 

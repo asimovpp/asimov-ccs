@@ -44,7 +44,7 @@ contains
     use utils, only : set_size, initialise
     use vec, only : create_vector
 
-    type(vector_init_data) :: vec_sizes
+    type(vector_spec) :: vec_sizes
 
     call initialise(vec_sizes)
     call set_size(par_env, mesh, vec_sizes)

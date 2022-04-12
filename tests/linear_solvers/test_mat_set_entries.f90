@@ -36,7 +36,7 @@ contains
     use utils, only : set_size, initialise
     use mat, only : create_matrix
 
-    type(matrix_init_data) :: mat_sizes
+    type(matrix_spec) :: mat_sizes
 
     call initialise(mat_sizes)
     call set_size(par_env, mesh, mat_sizes)

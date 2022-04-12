@@ -16,7 +16,7 @@ module utils
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   set_matrix_values_mode, set_matrix_values_row, set_matrix_values_entry, &
                   clear_matrix_values_entries, pack_one_matrix_coefficient, zero_matrix
-  use solver, only: initialise_linear_system
+  use solver, only: initialise_equation_system
   
   implicit none
 
@@ -94,7 +94,7 @@ module utils
   interface initialise
     module procedure initialise_vector
     module procedure initialise_matrix
-    module procedure initialise_linear_system
+    module procedure initialise_equation_system
   end interface initialise
 
   !> @brief Generic interface to set vector and matrix sizes

@@ -6,7 +6,7 @@
 module vec
 
   use kinds, only : ccs_real, ccs_int
-  use types, only : ccs_mesh, ccs_vector, vector_init_data, vector_values
+  use types, only : ccs_mesh, ccs_vector, vector_spec, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -40,12 +40,12 @@ module vec
      
     !> @brief Interface to create a new vector object.
     !
-    !> @param[in] vector_init_data vec_dat - Data structure containing the global and local sizes
+    !> @param[in] vector_spec vec_dat - Data structure containing the global and local sizes
     !!                                       of the vector, -1 is interpreted as unset. If both
     !!                                       are set the local size is used.
     !> @param[out] vector v - The vector returned allocated, but (potentially) uninitialised.
     module subroutine create_vector(vec_dat, v)
-      type(vector_init_data), intent(in) :: vec_dat
+      type(vector_spec), intent(in) :: vec_dat
       class(ccs_vector), allocatable, intent(out) :: v
     end subroutine
 
@@ -151,7 +151,7 @@ module vec
     !
     !> param[in/out] vector_descriptor - the initialised vector values
     module subroutine initialise_vector(vector_descriptor)
-      type(vector_init_data), intent(inout) :: vector_descriptor
+      type(vector_spec), intent(inout) :: vector_descriptor
     end subroutine initialise_vector
 
     !> @brief Setter for vector size
@@ -165,7 +165,7 @@ module vec
     module subroutine set_vector_size(par_env, geometry, vector_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
       class(ccs_mesh), target, intent(in) :: geometry
-      type(vector_init_data), intent(inout) :: vector_descriptor
+      type(vector_spec), intent(inout) :: vector_descriptor
     end subroutine set_vector_size
 
     !> @brief Gets the data in a given vector
@@ -190,7 +190,7 @@ module vec
     !
     module subroutine set_vector_location(loc, vector_descriptor)
       integer(ccs_int), intent(in) :: loc
-      type(vector_init_data), intent(inout) :: vector_descriptor
+      type(vector_spec), intent(inout) :: vector_descriptor
     end subroutine set_vector_location
 
     !> @brief Replace each component of a vector by its reciprocal
@@ -216,7 +216,7 @@ module vec
     end subroutine scale_vec
     
     ! module subroutine vec_view(vec_dat, vec)
-    !   type(vector_init_data), intent(in) :: vec_dat
+    !   type(vector_spec), intent(in) :: vec_dat
     !   class(ccs_vector), intent(in) :: vec
     ! end subroutine vec_view
 

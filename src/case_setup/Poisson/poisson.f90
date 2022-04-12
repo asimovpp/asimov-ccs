@@ -18,13 +18,13 @@ program poisson
   !! ASiMoV-CCS uses
   use constants, only : ndim, add_mode, insert_mode
   use kinds, only : ccs_real, ccs_int
-  use types, only : vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, &
-       linear_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
+  use types, only : vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
+       equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
        neighbour_locator, vector_values, matrix_values
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve, set_linear_system, axpy, norm
+  use solver, only : create_solver, solve, set_equation_system, axpy, norm
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_size, &
                     set_values, clear_entries, set_values, set_row, set_entry, set_mode, &
@@ -47,9 +47,9 @@ program poisson
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
-  type(vector_init_data) :: vec_sizes
-  type(matrix_init_data) :: mat_sizes
-  type(linear_system) :: poisson_eq
+  type(vector_spec) :: vec_sizes
+  type(matrix_spec) :: mat_sizes
+  type(equation_system) :: poisson_eq
   type(ccs_mesh) :: square_mesh
 
   integer(ccs_int) :: cps = 10 ! Default value for cells per side
@@ -105,7 +105,7 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   !! Create linear solver & set options
-  call set_linear_system(par_env, b, u, M, poisson_eq)
+  call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
@@ -146,13 +146,14 @@ contains
 
     type(cell_locator) :: cell_location
     real(ccs_real), dimension(ndim) :: cc
-    real(ccs_real) :: V
+    real(ccs_real) :: V 
     integer(ccs_int) :: idxg
     integer(ccs_int) :: nrows_working_set
     
     nrows_working_set = 1_ccs_int
     call create_vector_values(nrows_working_set, val_dat)
     call set_mode(add_mode, val_dat)
+    
     associate(nloc => square_mesh%nlocal, &
          h => square_mesh%h)
       ! this is currently setting 1 vector value at a time
@@ -176,8 +177,8 @@ contains
       end do
     end associate
     
-    deallocate(val_dat%idx)
-    deallocate(val_dat%val)
+    deallocate(val_dat%indices)
+    deallocate(val_dat%values)
     
   end subroutine eval_rhs
 
@@ -213,7 +214,7 @@ contains
     logical :: is_boundary
     integer(ccs_int) :: nbidxg
 
-    mat_coeffs%mode = insert_mode
+    mat_coeffs%setter_mode = insert_mode
 
     !! Loop over cells
     do i = 1, square_mesh%nlocal
@@ -225,9 +226,9 @@ contains
       call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
-      allocate(mat_coeffs%rglob(1))
-      allocate(mat_coeffs%cglob(1 + nnb))
-      allocate(mat_coeffs%val(1 + nnb))
+      allocate(mat_coeffs%row_indices(1))
+      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%values(1 + nnb))
 
       row = idxg
       coeff_p = 0.0_ccs_real
@@ -264,7 +265,9 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+      deallocate(mat_coeffs%row_indices)
+      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%values)
         
     end do
     
@@ -298,10 +301,11 @@ contains
 
     integer(ccs_int) :: nrows_working_set
     
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
-    mat_coeffs%mode = add_mode
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%values(1))
+
+    mat_coeffs%setter_mode = add_mode
 
     nrows_working_set = 1_ccs_int
     call create_vector_values(nrows_working_set, vec_values)
@@ -352,8 +356,8 @@ contains
       end if
     end do
   
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
+    deallocate(vec_values%indices)
+    deallocate(vec_values%values)
   
   end subroutine apply_dirichlet_bcs
 
@@ -382,8 +386,8 @@ contains
       call set_entry(rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
+    deallocate(vec_values%indices)
+    deallocate(vec_values%values)
 
     call update(ustar)
   end subroutine set_exact_sol

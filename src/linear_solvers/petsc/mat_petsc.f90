@@ -22,7 +22,7 @@ contains
     use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
-    type(matrix_init_data), intent(in) :: mat_dat
+    type(matrix_spec), intent(in) :: mat_dat
     class(ccs_matrix), allocatable, intent(out) :: M
 
     integer(ccs_err) :: ierr  !> Error code
@@ -169,13 +169,13 @@ contains
     integer(ccs_int) :: nc
     integer(ccs_int) :: validx
 
-    mat_coeffs%rglob(row_entry) = row - 1
-    mat_coeffs%cglob(col_entry) = col - 1
+    mat_coeffs%row_indices(row_entry) = row - 1
+    mat_coeffs%col_indices(col_entry) = col - 1
 
-    nc = size(mat_coeffs%cglob)
+    nc = size(mat_coeffs%col_indices)
 
     validx = (row_entry - 1) * nc + col_entry
-    mat_coeffs%val(validx) = coeff
+    mat_coeffs%values(validx) = coeff
     
   end subroutine pack_one_matrix_coefficient
 
@@ -197,10 +197,10 @@ contains
     
     integer(ccs_err) :: ierr !> Error code
 
-    associate(ridx    => mat_values%rglob, &
-              cidx    => mat_values%cglob, &
-              val     => mat_values%val, &
-              matmode => mat_values%mode)
+    associate(ridx    => mat_values%row_indices, &
+              cidx    => mat_values%col_indices, &
+              val     => mat_values%values, &
+              matmode => mat_values%setter_mode)
     
       select type (M)
         type is (matrix_petsc)
@@ -275,9 +275,9 @@ contains
 
   module procedure clear_matrix_values_entries
 
-    val_dat%rglob(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-    val_dat%cglob(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-    val_dat%val(:) = 0.0_ccs_real
+    val_dat%row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%values(:) = 0.0_ccs_real
     
   end procedure clear_matrix_values_entries
   
@@ -285,7 +285,7 @@ contains
     integer(ccs_int), intent(in) :: row
     type(matrix_values), intent(inout) :: val_dat
 
-    integer(ccs_int), dimension(rank(val_dat%rglob)) :: rglobs
+    integer(ccs_int), dimension(rank(val_dat%row_indices)) :: rglobs
     integer(ccs_int) :: i
     logical :: new_entry
     integer(ccs_int) :: petsc_row
@@ -293,14 +293,14 @@ contains
     petsc_row = row - 1 ! PETSc is zero-indexed
     new_entry = .false.
     
-    rglobs = findloc(val_dat%rglob, petsc_row, kind=ccs_int)
+    rglobs = findloc(val_dat%row_indices, petsc_row, kind=ccs_int)
     i = rglobs(1) ! We want the first entry
     if (i == 0) then
       new_entry = .true.
     end if
 
     if (new_entry) then
-      rglobs = findloc(val_dat%rglob, -1_ccs_int, kind=ccs_int)
+      rglobs = findloc(val_dat%row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
         print *, "ERROR: Couldn't find a free entry in matrix values!"
@@ -309,7 +309,7 @@ contains
     end if
     
     val_dat%current_entry = i
-    val_dat%rglob(i) = petsc_row
+    val_dat%row_indices(i) = petsc_row
     
   end subroutine set_matrix_values_row
 

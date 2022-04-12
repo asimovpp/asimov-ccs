@@ -20,52 +20,53 @@ module types
   end type ccs_matrix
 
   !> @brief Container type for data required to initialise a vector.
-  type, public :: vector_init_data
+  type, public :: vector_spec
     class(parallel_environment), pointer :: par_env !> The parallel environment
     type(ccs_mesh), pointer :: mesh !> The mesh object to build the vector on
-    integer(ccs_int) :: loc !> The location of the vector values (cell or face)
-  end type vector_init_data
+    integer(ccs_int) :: storage_location !> The storage location of the vector values (cell or face)
+  end type vector_spec
 
 
   !> @brief Container type for setting values in a vector.
   type, public :: vector_values
-    integer(ccs_int), dimension(:), allocatable :: idx !> Array of (global) indices to set values
-                                                       !! on, must be same size as values array.
-    real(ccs_real), dimension(:), allocatable :: val   !> Array of values, must be same size as
-                                                       !! index array.
-    integer(ccs_int) :: mode                          !> Which mode to use when setting values?
-    integer(ccs_int) :: current_entry                 !> Which entry are we currently working on?
+    integer(ccs_int), dimension(:), allocatable :: indices !< Array of (global) indices to set values
+                                                           !! on, must be same size as values array.
+    real(ccs_real), dimension(:), allocatable :: values    !< Array of values, must be same size as
+                                                           !! index array.
+    integer(ccs_int) :: setter_mode                        !< Which mode to use when setting values?
+    integer(ccs_int) :: current_entry                      !< Which entry are we currently working on?
   end type vector_values
 
   !> @brief Container type for data required to initialise a matrix.
-  type, public :: matrix_init_data
+  type, public :: matrix_spec
     type(ccs_mesh), pointer :: mesh                     !> The mesh
     class(parallel_environment), pointer :: par_env !> The parallel environment
     integer(ccs_int) :: nnz                        !> Non-zeros per row
-  end type matrix_init_data
+  end type matrix_spec
 
   !> @brief Container type for setting values in a matrix.
   type, public :: matrix_values
-    integer(ccs_int), dimension(:), allocatable :: rglob !> Array of (global) row indices to set values on.
-    integer(ccs_int), dimension(:), allocatable :: cglob !> Array of (global) column indices to set values on.
-    real(ccs_real), dimension(:), allocatable :: val     !> Array of values, must be logically 2D and 
-                                                         !! of size = size(rglob) * size(cglob). Uses 
-                                                         !! row-major ordering.
-    integer(ccs_int) :: mode                             !> Which mode to use when setting values?
-    integer(ccs_int) :: current_entry                    !> Which entry are we currently working on?
+    integer(ccs_int), dimension(:), allocatable :: row_indices !< Array of (global) row indices to set values on.
+    integer(ccs_int), dimension(:), allocatable :: col_indices !< Array of (global) column indices to set values on.
+    real(ccs_real), dimension(:), allocatable :: values        !< Array of values, must be logically 2D and
+                                                               !! of size = size(row_indices) *
+                                                               !! size(col_indices). Uses row-major
+                                                               !! ordering.
+    integer(ccs_int) :: setter_mode                            !< Which mode to use when setting values?
+    integer(ccs_int) :: current_entry                          !< Which entry are we currently working on?
   end type matrix_values
 
   !> @brief Container type representing a linear system.
-  type, public :: linear_system
-    class(ccs_vector), pointer :: sol !> Solution vector
+  type, public :: equation_system
+    class(ccs_vector), pointer :: solution !> Solution vector
     class(ccs_vector), pointer :: rhs !> Right-hand side vector
-    class(ccs_matrix), pointer :: M   !> Matrix
+    class(ccs_matrix), pointer :: matrix   !> Matrix
     class(parallel_environment), pointer :: par_env !> The parallel environment
-  end type linear_system
+  end type equation_system
   
   !> @brief Stub type for solvers to be extended in sub-modules.
   type, public :: linear_solver
-    type(linear_system) :: eqsys !> System of equations
+    type(equation_system) :: linear_system !> System of equations
   end type linear_solver
 
   !> @brief Mesh type
@@ -89,10 +90,10 @@ module types
 
   !> @brief Scalar field type
   type, public :: field
-    class(ccs_vector), allocatable :: vec   !> Vector representing the field
-    class(ccs_vector), allocatable :: gradx !> Vector representing the x gradient
-    class(ccs_vector), allocatable :: grady !> Vector representing the y gradient
-    class(ccs_vector), allocatable :: gradz !> Vector representing the z gradient
+    class(ccs_vector), allocatable :: values   !> Vector representing the field
+    class(ccs_vector), allocatable :: x_gradients !> Vector representing the x gradient
+    class(ccs_vector), allocatable :: y_gradients !> Vector representing the y gradient
+    class(ccs_vector), allocatable :: z_gradients !> Vector representing the z gradient
   end type field
 
   type, public, extends(field) :: upwind_field

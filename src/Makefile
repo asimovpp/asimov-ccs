@@ -49,7 +49,7 @@ RULE_DEPS=$(DEP_PREFIX)/rules.deps
 # check makedepf90 version
 MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
-IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
+IGNORE = " "
 
 ALL_SRC = $(shell find $(CCS_DIR)/src/ -type f -name '*.f90')
 ifeq ($(CCS_PROPRIETARY),yes)

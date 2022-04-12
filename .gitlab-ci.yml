@@ -22,7 +22,7 @@
   artifacts:
     when: always
     reports:
-      junit: testing/tests/report.xml
+      junit: tests/report.xml
   
 
 #-----------------------------------------------------------------------------#

@@ -20,7 +20,7 @@ program test_compute_fluxes
 
   type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs
-  type(vector_init_data) :: vec_sizes
+  type(vector_spec) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 5
@@ -53,9 +53,9 @@ program test_compute_fluxes
 
     call initialise(vec_sizes)
     call set_size(par_env, square_mesh, vec_sizes)
-    call create_vector(vec_sizes, scalar%vec)
-    call create_vector(vec_sizes, u%vec)
-    call create_vector(vec_sizes, v%vec)
+    call create_vector(vec_sizes, scalar%values)
+    call create_vector(vec_sizes, u%values)
+    call create_vector(vec_sizes, v%values)
 
     call set_velocity_fields(square_mesh, direction, u, v)
     call run_compute_fluxes_test(scalar, u, v, bcs, square_mesh, cps, direction, discretisation)
@@ -110,11 +110,11 @@ program test_compute_fluxes
         call pack_entries(local_idx, self_idx, v_val, v_vals)
       end do
     end associate
-    call set_values(u_vals, u%vec)
-    call set_values(v_vals, v%vec)
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
 
-    call update(u%vec)
-    call update(v%vec)
+    call update(u%values)
+    call update(v%values)
     
     deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
   end subroutine set_velocity_fields
@@ -152,8 +152,8 @@ program test_compute_fluxes
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
-    type(vector_init_data) :: vec_sizes
-    type(matrix_init_data) :: mat_sizes
+    type(vector_spec) :: vec_sizes
+    type(matrix_spec) :: mat_sizes
     real(ccs_real) :: error
     
     call initialise(mat_sizes)
@@ -217,7 +217,7 @@ program test_compute_fluxes
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b
 
-    ! type(vector_init_data) :: vec_sizes
+    ! type(vector_spec) :: vec_sizes
     type(vector_values) :: vec_coeffs
     real(ccs_real) :: diff_coeff, adv_coeff
     integer(ccs_int) :: i, ii
@@ -231,7 +231,7 @@ program test_compute_fluxes
     ! call compute_exact_diffusion_matrix(cell_mesh, cps, M)
     
     ! Now do the RHS
-    vec_coeffs%mode = add_mode
+    vec_coeffs%setter_mode = add_mode
     call zero_vector(b)
     
     ! Advection first
@@ -319,10 +319,10 @@ program test_compute_fluxes
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(5))
-    allocate(mat_coeffs%val(5))
-    mat_coeffs%mode = add_mode
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(5))
+    allocate(mat_coeffs%values(5))
+    mat_coeffs%setter_mode = add_mode
 
     j = cps
     
@@ -363,9 +363,9 @@ program test_compute_fluxes
       call set_values(mat_coeffs, M)
     end do
     
-    deallocate(mat_coeffs%rglob)
-    deallocate(mat_coeffs%cglob)
-    deallocate(mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
     
   end subroutine compute_exact_diffusion_matrix
 
@@ -387,10 +387,10 @@ program test_compute_fluxes
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: mat_counter
 
-    mat_coeffs%mode = add_mode
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(2))
-    allocate(mat_coeffs%val(2))
+    mat_coeffs%setter_mode = add_mode
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(2))
+    allocate(mat_coeffs%values(2))
 
     ! Advection coefficients
     
@@ -442,8 +442,8 @@ program test_compute_fluxes
       end do
     end if
 
-    deallocate(mat_coeffs%cglob)
-    deallocate(mat_coeffs%val)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
   end subroutine compute_exact_advection_matrix
   
 end program test_compute_fluxes

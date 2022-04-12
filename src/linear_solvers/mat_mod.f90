@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : ccs_int, ccs_real
-  use types, only : ccs_matrix, matrix_init_data, matrix_values, ccs_mesh, ccs_vector
+  use types, only : ccs_matrix, matrix_spec, matrix_values, ccs_mesh, ccs_vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -40,7 +40,7 @@ module mat
      !> @param[in]  mat_dat - contains information about how the matrix should be allocated
      !> @param[out] M       - the matrix object
      module subroutine create_matrix(mat_dat, M)
-       type(matrix_init_data), intent(in) :: mat_dat
+       type(matrix_spec), intent(in) :: mat_dat
        class(ccs_matrix), allocatable, intent(out) :: M
      end subroutine
 
@@ -184,7 +184,7 @@ module mat
     !
     !> param[in/out] matrix_descriptor - the initialised matrix values
      module subroutine initialise_matrix(matrix_descriptor)
-      type(matrix_init_data), intent(inout) :: matrix_descriptor
+      type(matrix_spec), intent(inout) :: matrix_descriptor
     end subroutine initialise_matrix
 
     !> @brief Setter for global matrix size
@@ -196,7 +196,7 @@ module mat
     module subroutine set_matrix_size(par_env, geometry, matrix_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
       class(ccs_mesh), target, intent(in) :: geometry
-      type(matrix_init_data), intent(inout) :: matrix_descriptor
+      type(matrix_spec), intent(inout) :: matrix_descriptor
     end subroutine
 
     !> @brief Setter for matrix number of non-zeros
@@ -205,7 +205,7 @@ module mat
     !> param[in/out] matrix_descriptor - the matrix data object
     module subroutine set_nnz(nnz, matrix_descriptor)
       integer(ccs_int), intent(in) :: nnz
-      type(matrix_init_data), intent(inout) :: matrix_descriptor
+      type(matrix_spec), intent(inout) :: matrix_descriptor
     end subroutine
 
     !> @brief Extract matrix diagonal elements into a vector

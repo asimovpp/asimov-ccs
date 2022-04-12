@@ -30,8 +30,8 @@ module petsctypes
 
   !> @brief Implements the matrix class backed by a PETSc matrix
   type, public, extends(ccs_matrix) :: matrix_petsc
-     type(tMat) :: M      !> The PETSc matrix
-     logical :: allocated !> Indicates whether the PETSc matrix has been allocated
+    type(tMat) :: M      !> The PETSc matrix
+    logical :: allocated !> Indicates whether the PETSc matrix has been allocated
     integer(ccs_int) :: mode !> Current mode for setting values
     logical :: modeset        !> Is the current mode still valid? i.e. does matrix need updated before switching modes?
    contains

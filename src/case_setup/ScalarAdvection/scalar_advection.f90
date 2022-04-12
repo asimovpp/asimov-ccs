@@ -6,12 +6,12 @@ program scalar_advection
 
   !! ASiMoV-CCS uses
   use kinds, only : ccs_real, ccs_int
-  use types, only : vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, &
-                    linear_system, linear_solver, ccs_mesh, &
+  use types, only : vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
+                    equation_system, linear_solver, ccs_mesh, &
                     field, upwind_field, central_field, bc_config
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve, set_linear_system
+  use solver, only : create_solver, solve, set_equation_system
   use utils, only : update, initialise, set_size
   use mesh_utils, only : build_square_mesh
   use parallel_types, only: parallel_environment
@@ -29,9 +29,9 @@ program scalar_advection
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
 
-  type(vector_init_data) :: vec_sizes
-  type(matrix_init_data) :: mat_sizes
-  type(linear_system) :: scalar_linear_system
+  type(vector_spec) :: vec_sizes
+  type(matrix_spec) :: mat_sizes
+  type(equation_system) :: scalar_equation_system
   type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
@@ -60,7 +60,7 @@ program scalar_advection
   ! Initialise with default values
   call initialise(mat_sizes)
   call initialise(vec_sizes)
-  call initialise(scalar_linear_system)
+  call initialise(scalar_equation_system)
 
   ! Create stiffness matrix
   call set_size(par_env, square_mesh, mat_sizes)
@@ -71,8 +71,8 @@ program scalar_advection
   call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
-  call create_vector(vec_sizes, scalar%vec)
-  call create_vector(vec_sizes, mf%vec)
+  call create_vector(vec_sizes, scalar%values)
+  call create_vector(vec_sizes, mf%values)
 
   ! Set advection velocity
   call set_advection_velocity(square_mesh, mf)
@@ -85,8 +85,8 @@ program scalar_advection
   call update(source) ! parallel assembly for source
 
   ! Create linear solver & set options
-  call set_linear_system(par_env, source, scalar%vec, M, scalar_linear_system)
-  call create_solver(scalar_linear_system, scalar_solver)
+  call set_equation_system(par_env, source, scalar%values, M, scalar_equation_system)
+  call create_solver(scalar_equation_system, scalar_solver)
   call solve(scalar_solver)
   
   ! Clean up
@@ -124,11 +124,11 @@ contains
 
     real(ccs_real) :: u, v
 
-    mf_vals%mode = add_mode
+    mf_vals%setter_mode = add_mode
 
     associate(n_local => cell_mesh%nlocal)
-      allocate(mf_vals%idx(n_local))
-      allocate(mf_vals%val(n_local))
+      allocate(mf_vals%indices(n_local))
+      allocate(mf_vals%values(n_local))
       
       ! Set IC velocity and scalar fields
       do local_idx = 1, n_local
@@ -146,9 +146,11 @@ contains
         call set_entry(mf_val, mf_vals)
       end do
     end associate
-    call set_values(mf_vals, mf%vec)
+    call set_values(mf_vals, mf%values)
 
-    deallocate(mf_vals%idx, mf_vals%val)
+    deallocate(mf_vals%indices)
+    deallocate(mf_vals%values)
+
   end subroutine set_advection_velocity
 
 end program scalar_advection

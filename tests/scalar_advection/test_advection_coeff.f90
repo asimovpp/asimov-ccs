@@ -18,7 +18,7 @@ program test_advection_coeff
   use petsctypes, only: vector_petsc
 
   type(ccs_mesh) :: square_mesh
-  type(vector_init_data) :: vec_sizes
+  type(vector_spec) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 50
@@ -53,13 +53,13 @@ program test_advection_coeff
 
       call initialise(vec_sizes)
       call set_size(par_env, square_mesh, vec_sizes)
-      call create_vector(vec_sizes, scalar%vec)
-      call create_vector(vec_sizes, u%vec)
-      call create_vector(vec_sizes, v%vec)
+      call create_vector(vec_sizes, scalar%values)
+      call create_vector(vec_sizes, u%values)
+      call create_vector(vec_sizes, v%values)
 
       call set_velocity_fields(square_mesh, direction, u, v)
 
-      associate (u_vec => u%vec, v_vec => v%vec)
+      associate (u_vec => u%values, v_vec => v%values)
         call get_vector_data(u_vec, u_data)
         call get_vector_data(v_vec, v_data)
 
@@ -127,14 +127,14 @@ program test_advection_coeff
     integer(ccs_int) :: local_idx, self_idx
     real(ccs_real) :: u_val, v_val
 
-    u_vals%mode = insert_mode
-    v_vals%mode = insert_mode
+    u_vals%setter_mode = insert_mode
+    v_vals%setter_mode = insert_mode
     
     associate(n_local => cell_mesh%nlocal)
-      allocate(u_vals%idx(n_local))
-      allocate(v_vals%idx(n_local))
-      allocate(u_vals%val(n_local))
-      allocate(v_vals%val(n_local))
+      allocate(u_vals%indices(n_local))
+      allocate(v_vals%indices(n_local))
+      allocate(u_vals%values(n_local))
+      allocate(v_vals%values(n_local))
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
@@ -156,13 +156,17 @@ program test_advection_coeff
         call set_entry(v_val, v_vals)
       end do
     end associate
-    call set_values(u_vals, u%vec)
-    call set_values(v_vals, v%vec)
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
 
-    call update(u%vec)
-    call update(v%vec)
+    call update(u%values)
+    call update(v%values)
     
-    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
+    deallocate(u_vals%indices)
+    deallocate(v_vals%indices)
+    deallocate(u_vals%values)
+    deallocate(v_vals%values)
+    
   end subroutine set_velocity_fields
 
   !> @brief Deallocates the velocity fields

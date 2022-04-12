@@ -8,8 +8,8 @@ submodule (fv) fv_common
   use constants, only: add_mode, insert_mode, ndim
   use types, only: vector_values, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
-  use vec, only: get_vector_data, restore_vector_data
-  use utils, only: pack_entries, set_entry, set_row, set_values, update
+  use vec, only: get_vector_data, restore_vector_data, create_vector_values
+  use utils, only: pack_entries, set_entry, set_row, set_values, set_mode, update
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
@@ -39,9 +39,9 @@ contains
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
 
-    associate (mf_vec => mf%vec)
+    associate (mf_values => mf%values)
       print *, "CF: get mf"
-      call get_vector_data(mf_vec, mf_data)
+      call get_vector_data(mf_values, mf_data)
 
       ! Loop over cells computing advection and diffusion fluxes
       n_int_cells = calc_matrix_nnz()
@@ -53,7 +53,7 @@ contains
       call compute_boundary_coeffs(phi, mf_data, cell_mesh, bcs, cps, M, vec)
 
       print *, "CF: restore mf"
-      call restore_vector_data(mf_vec, mf_data)
+      call restore_vector_data(mf_values, mf_data)
     end associate
 
   end subroutine compute_fluxes
@@ -101,11 +101,11 @@ contains
 
     real(ccs_real) :: sgn !> Sign indicating face orientation
 
-    mat_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(n_int_cells))
-    allocate(mat_coeffs%val(n_int_cells))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(n_int_cells))
+    allocate(mat_coeffs%values(n_int_cells))
 
     do local_idx = 1, cell_mesh%nlocal
       ! Calculate contribution from neighbours
@@ -165,7 +165,9 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
   !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
@@ -247,14 +249,14 @@ contains
 
     integer(ccs_int) :: idxf
     
-    mat_coeffs%mode = add_mode
-    b_coeffs%mode = add_mode
+    mat_coeffs%setter_mode = add_mode
+    b_coeffs%setter_mode = add_mode
 
-    allocate(mat_coeffs%rglob(1))
-    allocate(mat_coeffs%cglob(1))
-    allocate(mat_coeffs%val(1))
-    allocate(b_coeffs%idx(1))
-    allocate(b_coeffs%val(1))
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%values(1))
+    allocate(b_coeffs%indices(1))
+    allocate(b_coeffs%values(1))
 
     bc_counter = 1
     do local_idx = 1, cell_mesh%nlocal
@@ -299,8 +301,12 @@ contains
         end if
       end do
     end do
-    deallocate(mat_coeffs%rglob, mat_coeffs%cglob, mat_coeffs%val)
-    deallocate(b_coeffs%idx, b_coeffs%val)
+    deallocate(mat_coeffs%row_indices)
+    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%values)
+    deallocate(b_coeffs%indices)
+    deallocate(b_coeffs%values)
+
   end subroutine compute_boundary_coeffs
 
   !> @brief Sets the diffusion coefficient
@@ -344,16 +350,16 @@ contains
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
-  !> @param[in] pgradx   - array containing pressure gradient in x
-  !> @param[in] pgrady   - array containing pressure gradient in y
+  !> @param[in] p_x_gradients   - array containing pressure gradient in x
+  !> @param[in] p_y_gradients   - array containing pressure gradient in y
   !> @param[in] invAu    - array containing inverse momentum diagonal in x
   !> @param[in] invAv    - array containing inverse momentum diagonal in y
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, p, pgradx, pgrady, invAu, invAv, loc_f) result(flux)
+  module function calc_mass_flux(u, v, p, p_x_gradients, p_y_gradients, invAu, invAv, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: u, v
     real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: pgradx, pgrady
+    real(ccs_real), dimension(:), intent(in) :: p_x_gradients, p_y_gradients
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
 
@@ -397,8 +403,8 @@ contains
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(idxnb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((pgradx(idxp) + pgradx(idxnb)) * face_normal(1) &
-             + (pgrady(idxp) + pgrady(idxnb)) * face_normal(2))
+        flux_corr = flux_corr + 0.5_ccs_real * ((p_x_gradients(idxp) + p_x_gradients(idxnb)) * face_normal(1) &
+             + (p_y_gradients(idxp) + p_y_gradients(idxnb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, Vnb)
@@ -453,40 +459,40 @@ contains
     type(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: phi
 
-    real(ccs_real), dimension(:), pointer :: gradx_data, grady_data, gradz_data
-    real(ccs_real), dimension(:), allocatable :: gradx_old, grady_old, gradz_old
+    real(ccs_real), dimension(:), pointer :: x_gradients_data, y_gradients_data, z_gradients_data
+    real(ccs_real), dimension(:), allocatable :: x_gradients_old, y_gradients_old, z_gradients_old
 
     integer(ccs_real) :: i
     
-    call get_vector_data(phi%gradx, gradx_data)
-    call get_vector_data(phi%grady, grady_data)
-    call get_vector_data(phi%gradz, gradz_data)
+    call get_vector_data(phi%x_gradients, x_gradients_data)
+    call get_vector_data(phi%y_gradients, y_gradients_data)
+    call get_vector_data(phi%z_gradients, z_gradients_data)
 
     associate(ntotal => cell_mesh%ntotal)
-      allocate(gradx_old(ntotal))
-      allocate(grady_old(ntotal))
-      allocate(gradz_old(ntotal))
+      allocate(x_gradients_old(ntotal))
+      allocate(y_gradients_old(ntotal))
+      allocate(z_gradients_old(ntotal))
       do i = 1, ntotal
-        gradx_old(i) = gradx_data(i)
-        grady_old(i) = grady_data(i)
-        gradz_old(i) = gradz_data(i)
+        x_gradients_old(i) = x_gradients_data(i)
+        y_gradients_old(i) = y_gradients_data(i)
+        z_gradients_old(i) = z_gradients_data(i)
       end do
     end associate
     
-    call restore_vector_data(phi%gradx, gradx_data)
-    call restore_vector_data(phi%grady, grady_data)
-    call restore_vector_data(phi%gradz, gradz_data)
+    call restore_vector_data(phi%x_gradients, x_gradients_data)
+    call restore_vector_data(phi%y_gradients, y_gradients_data)
+    call restore_vector_data(phi%z_gradients, z_gradients_data)
     
-    call update_gradient_component(cell_mesh, 1, phi%vec, gradx_old, grady_old, gradz_old, phi%gradx)
-    call update(phi%gradx) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
-    call update_gradient_component(cell_mesh, 2, phi%vec, gradx_old, grady_old, gradz_old, phi%grady)
-    call update(phi%grady) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
-    call update_gradient_component(cell_mesh, 3, phi%vec, gradx_old, grady_old, gradz_old, phi%gradz)
-    call update(phi%gradz) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(cell_mesh, 1, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
+    call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(cell_mesh, 2, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%y_gradients)
+    call update(phi%y_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(cell_mesh, 3, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
+    call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
 
-    deallocate(gradx_old)
-    deallocate(grady_old)
-    deallocate(gradz_old)
+    deallocate(x_gradients_old)
+    deallocate(y_gradients_old)
+    deallocate(z_gradients_old)
     
   end subroutine update_gradient
 
@@ -496,17 +502,16 @@ contains
   !> @param[in] component   - which vector component (i.e. direction) to update?
   !> @param[in] phi         - a cell-centred array of the field whose gradient we
   !!                          want to compute
-  !> @param[inout] gradient - a cell-centred array of the gradient
-  subroutine update_gradient_component(cell_mesh, component, phi, gradx_old, grady_old, gradz_old, gradient)
-
+  !> @param[inout] gradients - a cell-centred array of the gradient
+  subroutine update_gradient_component(cell_mesh, component, phi, x_gradients_old, y_gradients_old, z_gradients_old, gradients)
 
     type(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: component
     class(ccs_vector), intent(in) :: phi
-    real(ccs_real), dimension(:), intent(in) :: gradx_old
-    real(ccs_real), dimension(:), intent(in) :: grady_old
-    real(ccs_real), dimension(:), intent(in) :: gradz_old
-    class(ccs_vector), intent(inout) :: gradient
+    real(ccs_real), dimension(:), intent(in) :: x_gradients_old
+    real(ccs_real), dimension(:), intent(in) :: y_gradients_old
+    real(ccs_real), dimension(:), intent(in) :: z_gradients_old
+    class(ccs_vector), intent(inout) :: gradients
     
     type(vector_values) :: grad_values
     real(ccs_real), dimension(:), pointer :: phi_data
@@ -532,10 +537,9 @@ contains
     integer(ccs_int) :: idxg
 
     real(ccs_real), dimension(ndim) :: dx
-    
-    allocate(grad_values%idx(1))
-    allocate(grad_values%val(1))
-    grad_values%mode = insert_mode
+
+    call create_vector_values(1_ccs_int, grad_values)
+    call set_mode(insert_mode, grad_values)
 
     call get_vector_data(phi, phi_data)
     
@@ -554,7 +558,7 @@ contains
           phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
           call get_distance(loc_p, loc_f, dx)
-          phif = phi_data(i) + (gradx_old(i) * dx(1) + grady_old(i) * dx(2) + gradz_old(i) * dx(3))
+          phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + z_gradients_old(i) * dx(3))
         end if
 
         call get_face_area(loc_f, face_area)
@@ -569,13 +573,13 @@ contains
       call get_global_index(loc_p, idxg)
       call set_row(idxg, grad_values)
       call set_entry(grad, grad_values)
-      call set_values(grad_values, gradient)
+      call set_values(grad_values, gradients)
     end do
 
     call restore_vector_data(phi, phi_data)
 
-    deallocate(grad_values%idx)
-    deallocate(grad_values%val)
+    deallocate(grad_values%indices)
+    deallocate(grad_values%values)
     
   end subroutine update_gradient_component
   

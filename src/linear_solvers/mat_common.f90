@@ -8,7 +8,7 @@ contains
   !
   !> param[in/out] matrix_descriptor - the initialised matrix values
   module subroutine initialise_matrix(matrix_descriptor)
-    type(matrix_init_data), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: matrix_descriptor
     matrix_descriptor%par_env => null()
     matrix_descriptor%par_env => null()
   end subroutine initialise_matrix
@@ -22,7 +22,7 @@ contains
   module subroutine set_matrix_size(par_env, geometry, matrix_descriptor)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     class(ccs_mesh), target, intent(in) :: geometry
-    type(matrix_init_data), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: matrix_descriptor
 
     matrix_descriptor%mesh => geometry
     matrix_descriptor%par_env => par_env
@@ -34,19 +34,19 @@ contains
   !> param[in/out] matrix_descriptor - the matrix data object
   module subroutine set_nnz(nnz, matrix_descriptor)
     integer(ccs_int), intent(in) :: nnz
-    type(matrix_init_data), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: matrix_descriptor
 
     matrix_descriptor%nnz = nnz
   end subroutine  set_nnz
 
   module procedure create_matrix_values
-    allocate(val_dat%rglob(nrows))
-    allocate(val_dat%cglob(nrows))
-    allocate(val_dat%val(nrows))
+    allocate(val_dat%row_indices(nrows))
+    allocate(val_dat%col_indices(nrows))
+    allocate(val_dat%values(nrows))
   end procedure create_matrix_values
 
   module procedure set_matrix_values_mode
-    val_dat%mode = mode
+    val_dat%setter_mode = mode
   end procedure set_matrix_values_mode
   
   module subroutine set_matrix_values_entry(val, val_dat)
@@ -56,8 +56,8 @@ contains
     real(ccs_real), intent(in) :: val
     type(matrix_values), intent(inout) :: val_dat
 
-    associate(x => val_dat%val(val_dat%current_entry), &
-         mode => val_dat%mode)
+    associate(x => val_dat%values(val_dat%current_entry), &
+         mode => val_dat%setter_mode)
       if (mode == insert_mode) then
         x = val
       else if (mode == add_mode) then

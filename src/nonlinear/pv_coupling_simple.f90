@@ -5,7 +5,7 @@
 submodule (pv_coupling) pv_coupling_simple
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, linear_system, &
+  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
@@ -13,7 +13,7 @@ submodule (pv_coupling) pv_coupling_simple
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
                    mult, scale, zero, set_entry, set_row
-  use solver, only: create_solver, solve, set_linear_system, axpy, norm
+  use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -46,9 +46,9 @@ contains
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invAu, invAv
     
-    type(vector_init_data) :: vec_sizes
-    type(matrix_init_data) :: mat_sizes
-    type(linear_system)    :: lin_system
+    type(vector_spec) :: vec_sizes
+    type(matrix_spec) :: mat_sizes
+    type(equation_system)    :: lin_system
     type(bc_config) :: bcs
 
     logical :: converged
@@ -145,7 +145,7 @@ contains
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
     class(ccs_vector), intent(inout)    :: invAu, invAv
 
@@ -179,7 +179,7 @@ contains
     type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
     class(ccs_vector), intent(inout)    :: invAu
     
@@ -202,9 +202,9 @@ contains
     ! Calculate pressure source term and populate RHS vector
     print *, "GV: compute u gradp"
     if (component == 1) then
-      call calculate_momentum_pressure_source(cell_mesh, p%gradx, vec)
+      call calculate_momentum_pressure_source(cell_mesh, p%x_gradients, vec)
     else if (component == 2) then
-      call calculate_momentum_pressure_source(cell_mesh, p%grady, vec)
+      call calculate_momentum_pressure_source(cell_mesh, p%y_gradients, vec)
     else
       print *, "Unsupported vector component: ", component
       stop 1
@@ -227,7 +227,7 @@ contains
     call finalise(M)
 
     ! Create linear solver
-    call set_linear_system(par_env, vec, u%vec, M, lin_sys)
+    call set_equation_system(par_env, vec, u%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
@@ -260,10 +260,10 @@ contains
 
     real(ccs_real) :: V
     
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
 
-    vec_values%mode = add_mode
+    vec_values%setter_mode = add_mode
 
     ! Temporary storage for p values
     call get_vector_data(pgrad, pgrad_data)
@@ -282,8 +282,8 @@ contains
 
     end do
 
-    deallocate(vec_values%idx)
-    deallocate(vec_values%val)
+    deallocate(vec_values%indices)
+    deallocate(vec_values%values)
 
     call restore_vector_data(pgrad, pgrad_data)
     
@@ -308,7 +308,7 @@ contains
     class(ccs_vector), intent(in) :: invAu, invAv
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(linear_system), intent(inout) :: lin_sys
+    type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout) :: pp
 
     ! Local variables
@@ -351,11 +351,11 @@ contains
     call scale(-1.0_ccs_real, vec)
     call update(vec)
     
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
 
-    mat_coeffs%mode = insert_mode
-    vec_values%mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
+    mat_coeffs%setter_mode = insert_mode
+    vec_values%setter_mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
     call update(M)
     
@@ -370,9 +370,9 @@ contains
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, n_ngb)
 
-      allocate(mat_coeffs%rglob(1))
-      allocate(mat_coeffs%cglob(1 + n_ngb))
-      allocate(mat_coeffs%val(1 + n_ngb))
+      allocate(mat_coeffs%row_indices(1))
+      allocate(mat_coeffs%col_indices(1 + n_ngb))
+      allocate(mat_coeffs%values(1 + n_ngb))
 
       row = self_idx
       coeff_p = 0.0_ccs_real
@@ -436,9 +436,9 @@ contains
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
 
-      deallocate(mat_coeffs%rglob)
-      deallocate(mat_coeffs%cglob)
-      deallocate(mat_coeffs%val)
+      deallocate(mat_coeffs%row_indices)
+      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%values)
     end do
 
     print *, "P': restore invA"
@@ -453,7 +453,7 @@ contains
     
     ! Create linear solver
     print *, "P': create lin sys"
-    call set_linear_system(par_env, vec, pp%vec, M, lin_sys)
+    call set_equation_system(par_env, vec, pp%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
@@ -494,8 +494,8 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data      !> Data array for x velocity component
     real(ccs_real), dimension(:), pointer :: v_data      !> Data array for y velocity component
     real(ccs_real), dimension(:), pointer :: p_data      !> Data array for pressure
-    real(ccs_real), dimension(:), pointer :: pgradx_data !> Data array for pressure x gradient
-    real(ccs_real), dimension(:), pointer :: pgrady_data !> Data array for pressure y gradient
+    real(ccs_real), dimension(:), pointer :: p_x_gradients_data !> Data array for pressure x gradient
+    real(ccs_real), dimension(:), pointer :: p_y_gradients_data !> Data array for pressure y gradient
     real(ccs_real), dimension(:), pointer :: invAu_data  !> Data array for inverse x momentum
                                                           !! diagonal coefficient
     real(ccs_real), dimension(:), pointer :: invAv_data  !> Data array for inverse y momentum
@@ -507,25 +507,25 @@ contains
     
     real(ccs_real) :: mib !> Cell mass imbalance
 
-    allocate(vec_values%idx(1))
-    allocate(vec_values%val(1))
-    vec_values%mode = insert_mode
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
+    vec_values%setter_mode = insert_mode
 
     ! First zero RHS
     call zero(b)
 
     ! Update vectors to make sure all data is up to date
-    call update(u%vec)
-    call update(v%vec)
-    call update(p%vec)
-    call update(p%gradx)
-    call update(p%grady)
-    call get_vector_data(mf%vec, mf_data)
-    call get_vector_data(u%vec, u_data)
-    call get_vector_data(v%vec, v_data)
-    call get_vector_data(p%vec, p_data)
-    call get_vector_data(p%gradx, pgradx_data)
-    call get_vector_data(p%grady, pgrady_data)
+    call update(u%values)
+    call update(v%values)
+    call update(p%values)
+    call update(p%x_gradients)
+    call update(p%y_gradients)
+    call get_vector_data(mf%values, mf_data)
+    call get_vector_data(u%values, u_data)
+    call get_vector_data(v%values, v_data)
+    call get_vector_data(p%values, p_data)
+    call get_vector_data(p%x_gradients, p_x_gradients_data)
+    call get_vector_data(p%y_gradients, p_y_gradients_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
     
@@ -551,7 +551,7 @@ contains
           else
             ! Compute mass flux through face
             mf_data(idxf) = calc_mass_flux(u_data, v_data, &
-                 p_data, pgradx_data, pgrady_data, &
+                 p_data, p_x_gradients_data, p_y_gradients_data, &
                  invAu_data, invAv_data, &
                  loc_f)
           end if
@@ -565,23 +565,23 @@ contains
       call set_values(vec_values, b)
     end do
 
-    call restore_vector_data(mf%vec, mf_data)
-    call restore_vector_data(u%vec, u_data)
-    call restore_vector_data(v%vec, v_data)
-    call restore_vector_data(p%vec, p_data)
-    call restore_vector_data(p%gradx, pgradx_data)
-    call restore_vector_data(p%grady, pgrady_data)
+    call restore_vector_data(mf%values, mf_data)
+    call restore_vector_data(u%values, u_data)
+    call restore_vector_data(v%values, v_data)
+    call restore_vector_data(p%values, p_data)
+    call restore_vector_data(p%x_gradients, p_x_gradients_data)
+    call restore_vector_data(p%y_gradients, p_y_gradients_data)
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
     ! Update vectors on exit (just in case)
-    call update(u%vec)
-    call update(v%vec)
-    call update(p%vec)
-    call update(p%gradx)
-    call update(p%grady)
+    call update(u%values)
+    call update(v%values)
+    call update(p%values)
+    call update(p%x_gradients)
+    call update(p%y_gradients)
 
     call update(b)
-    call update(mf%vec)
+    call update(mf%values)
 
     mib = norm(b, 2)
     if (par_env%proc_id == par_env%root) then
@@ -603,7 +603,7 @@ contains
     ! Set under-relaxation factor (todo: read this from input file)
     alpha = 0.1_ccs_real
 
-    call axpy(alpha, pp%vec, p%vec)
+    call axpy(alpha, pp%values, p%values)
     
   end subroutine update_pressure
 
@@ -619,20 +619,20 @@ contains
     class(field), intent(inout) :: u, v
 
     ! First update gradients
-    call zero_vector(pp%gradx)
-    call zero_vector(pp%grady)
+    call zero_vector(pp%x_gradients)
+    call zero_vector(pp%y_gradients)
     call update_gradient(cell_mesh, pp)
 
     ! Multiply gradients by inverse diagonal coefficients
-    call mult(invAu, pp%gradx)
-    call mult(invAv, pp%grady)
+    call mult(invAu, pp%x_gradients)
+    call mult(invAv, pp%y_gradients)
 
     ! Compute correction source on velocity
-    call calculate_momentum_pressure_source(cell_mesh, pp%gradx, u%vec)
-    call calculate_momentum_pressure_source(cell_mesh, pp%grady, v%vec)
+    call calculate_momentum_pressure_source(cell_mesh, pp%x_gradients, u%values)
+    call calculate_momentum_pressure_source(cell_mesh, pp%y_gradients, v%values)
 
-    call update(u%vec)
-    call update(v%vec)
+    call update(u%values)
+    call update(v%values)
     
   end subroutine update_velocity
 
@@ -665,11 +665,11 @@ contains
     integer(ccs_int) :: idxnb
     
     ! Update vector to make sure data is up to date
-    call update(pp%vec)
-    call get_vector_data(pp%vec, pp_data)
+    call update(pp%values)
+    call get_vector_data(pp%values, pp_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
-    call get_vector_data(mf%vec, mf_data)
+    call get_vector_data(mf%values, mf_data)
     
     allocate(zero_arr(size(pp_data)))
     zero_arr(:) = 0.0_ccs_real
@@ -699,14 +699,14 @@ contains
 
     deallocate(zero_arr)
 
-    call restore_vector_data(pp%vec, pp_data)
+    call restore_vector_data(pp%values, pp_data)
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
-    call restore_vector_data(mf%vec, mf_data)
+    call restore_vector_data(mf%values, mf_data)
 
-    call update(mf%vec)
+    call update(mf%values)
     ! Update vector on exit (just in case)
-    call update(pp%vec)
+    call update(pp%values)
     
   end subroutine update_face_velocity
 
@@ -751,7 +751,7 @@ contains
     call get_matrix_diagonal(M, diag)
 
     print *, "UR: get phi, diag, b"
-    call get_vector_data(phi%vec, phi_data)
+    call get_vector_data(phi%values, phi_data)
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
@@ -764,7 +764,7 @@ contains
     end do
 
     print *, "UR: Restore data"
-    call restore_vector_data(phi%vec, phi_data)
+    call restore_vector_data(phi%values, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
 

@@ -17,7 +17,7 @@ contains
 
   !> @brief Create a PETSc-backed vector
   !
-  !> @param[in]  vector_init_data vec_dat - the data describing how the vector should be created.
+  !> @param[in]  vector_spec vec_dat - the data describing how the vector should be created.
   !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_dat, v)
 
@@ -25,7 +25,7 @@ contains
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                          VecCreate
     
-    type(vector_init_data), intent(in) :: vec_dat
+    type(vector_spec), intent(in) :: vec_dat
     class(ccs_vector), allocatable, intent(out) :: v
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
@@ -44,7 +44,7 @@ contains
 
           associate(mesh => vec_dat%mesh)
 
-            select case(vec_dat%loc)
+            select case(vec_dat%storage_location)
             case (cell)
               associate(nhalo => mesh%nhalo, &
                    nlocal => mesh%nlocal, &
@@ -114,26 +114,26 @@ contains
 
             ! First check if safe to set
             if (v%modeset) then
-              if (val_dat%mode /= v%mode) then
+              if (val_dat%setter_mode /= v%mode) then
                 print *, "ERROR: trying to set vector using different mode without updating!"
                 stop 1
               end if
             else
-              v%mode = val_dat%mode
+              v%mode = val_dat%setter_mode
               v%modeset = .true.
             end if
               
-            n = size(val_dat%idx)
-            if (val_dat%mode == add_mode) then
+            n = size(val_dat%indices)
+            if (val_dat%setter_mode == add_mode) then
               mode = ADD_VALUES
-            else if (val_dat%mode == insert_mode) then
+            else if (val_dat%setter_mode == insert_mode) then
               mode = INSERT_VALUES
             else
               print *, "Unknown mode!"
               stop
             end if
 
-            call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
+            call VecSetValues(v%v, n, val_dat%indices, val_dat%values, mode, ierr)
 
           class default
             print *, "Unknown vector value type!"
@@ -364,14 +364,14 @@ contains
 
   module procedure clear_vector_values_entries
 
-    val_dat%idx(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-    val_dat%val(:) = 0.0_ccs_real
+    val_dat%indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%values(:) = 0.0_ccs_real
     
   end procedure clear_vector_values_entries
   
   module procedure set_vector_values_row
 
-    integer(ccs_int), dimension(rank(val_dat%idx)) :: idxs
+    integer(ccs_int), dimension(rank(val_dat%indices)) :: idxs
     integer(ccs_int) :: i
     logical :: new_entry
     integer(ccs_int) :: petsc_row
@@ -379,14 +379,14 @@ contains
     petsc_row = row - 1 ! PETSc is zero-indexed
     new_entry = .false.
     
-    idxs = findloc(val_dat%idx, petsc_row, kind=ccs_int)
+    idxs = findloc(val_dat%indices, petsc_row, kind=ccs_int)
     i = idxs(1) ! We want the first entry
     if (i == 0) then
       new_entry = .true.
     end if
 
     if (new_entry) then
-      idxs = findloc(val_dat%idx, -1_ccs_int, kind=ccs_int)
+      idxs = findloc(val_dat%indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
         print *, "ERROR: Couldn't find a free entry in vector values!"
@@ -395,7 +395,7 @@ contains
     end if
     
     val_dat%current_entry = i
-    val_dat%idx(i) = petsc_row
+    val_dat%indices(i) = petsc_row
     
   end procedure set_vector_values_row
 
@@ -541,7 +541,7 @@ contains
 !     use petscvec, only: VecView
 !     use petscsys
     
-!     type(vector_init_data), intent(in) :: vec_dat
+!     type(vector_spec), intent(in) :: vec_dat
 !     class(ccs_vector), intent(in) :: vec
 
 !     PetscViewer :: viewer
