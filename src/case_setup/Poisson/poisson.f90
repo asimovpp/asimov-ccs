@@ -44,7 +44,7 @@ program poisson
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
-  type(vector_spec) :: vec_sizes
+  type(vector_spec) :: vec_properties
   type(matrix_spec) :: mat_properties
   type(equation_system) :: poisson_eq
   type(ccs_mesh) :: square_mesh
@@ -65,8 +65,8 @@ program poisson
   call initialise_poisson(par_env)
 
   !! Initialise with default values
+  call initialise(vec_properties)
   call initialise(mat_properties)
-  call initialise(vec_sizes)
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
@@ -79,10 +79,10 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_size(par_env, square_mesh, vec_sizes)
-  call create_vector(vec_sizes, b)
-  call create_vector(vec_sizes, ustar)
-  call create_vector(vec_sizes, u)
+  call set_size(par_env, square_mesh, vec_properties)
+  call create_vector(vec_properties, b)
+  call create_vector(vec_properties, ustar)
+  call create_vector(vec_properties, u)
 
   call begin_update(u) ! Start the parallel assembly for u
 
