@@ -12,9 +12,9 @@ contains
 
   !> @brief Create a new PETSc matrix object.
   !
-  !> @param[in]  mat_dat - contains information about how the matrix should be allocated
+  !> @param[in]  mat_properties - contains information about how the matrix should be allocated
   !> @param[out] M       - the matrix object
-  module subroutine create_matrix(mat_dat, M)
+  module subroutine create_matrix(mat_properties, M)
 
     use mpi
     
@@ -22,7 +22,7 @@ contains
     use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
-    type(matrix_spec), intent(in) :: mat_dat
+    type(matrix_spec), intent(in) :: mat_properties
     class(ccs_matrix), allocatable, intent(out) :: M
 
     integer(ccs_err) :: ierr  !< Error code
@@ -34,12 +34,12 @@ contains
 
         M%modeset = .false.
         
-        select type (par_env => mat_dat%par_env)
+        select type (par_env => mat_properties%par_env)
           type is(parallel_environment_mpi)
 
           call MatCreate(par_env%comm, M%M, ierr)
 
-          associate(mesh => mat_dat%mesh)
+          associate(mesh => mat_properties%mesh)
             call MatSetSizes(M%M, mesh%nlocal, mesh%nlocal, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
           end associate
           
@@ -49,14 +49,15 @@ contains
 
           call MatSetFromOptions(M%M, ierr)
           
-          if (mat_dat%nnz < 1) then
+          if (mat_properties%nnz < 1) then
             if (par_env%proc_id == par_env%root) then
               print *, "WARNING: No matrix preallocation set, potentially inefficient!"
             end if
             call MatSetUp(M%M, ierr)
           else
-            call MatSeqAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, ierr)
-            call MatMPIAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, mat_dat%nnz - 1, PETSC_NULL_INTEGER, ierr)
+            call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, ierr)
+            call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, mat_properties%nnz - 1, &
+                                           PETSC_NULL_INTEGER, ierr)
           end if
 
           class default

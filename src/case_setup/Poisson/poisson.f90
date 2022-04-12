@@ -45,7 +45,7 @@ program poisson
   class(linear_solver), allocatable :: poisson_solver
 
   type(vector_spec) :: vec_sizes
-  type(matrix_spec) :: mat_sizes
+  type(matrix_spec) :: mat_properties
   type(equation_system) :: poisson_eq
   type(ccs_mesh) :: square_mesh
 
@@ -65,14 +65,14 @@ program poisson
   call initialise_poisson(par_env)
 
   !! Initialise with default values
-  call initialise(mat_sizes)
+  call initialise(mat_properties)
   call initialise(vec_sizes)
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_size(par_env, square_mesh, mat_sizes)
-  call set_nnz(5, mat_sizes)
-  call create_matrix(mat_sizes, M)
+  call set_size(par_env, square_mesh, mat_properties)
+  call set_nnz(5, mat_properties)
+  call create_matrix(mat_properties, M)
 
   call discretise_poisson(M)
 

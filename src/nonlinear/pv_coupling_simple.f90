@@ -47,7 +47,7 @@ contains
     class(ccs_vector), allocatable :: invAu, invAv
     
     type(vector_spec) :: vec_sizes
-    type(matrix_spec) :: mat_sizes
+    type(matrix_spec) :: mat_properties
     type(equation_system)    :: lin_system
     type(bc_config) :: bcs
 
@@ -55,15 +55,15 @@ contains
     
     ! Initialise linear system
     print *, "NONLINEAR: init"
-    call initialise(mat_sizes)
+    call initialise(mat_properties)
     call initialise(vec_sizes)
     call initialise(lin_system)
 
     ! Create coefficient matrix
     print *, "NONLINEAR: setup matrix"
-    call set_size(par_env, cell_mesh, mat_sizes)
-    call set_nnz(5, mat_sizes)
-    call create_matrix(mat_sizes, M)
+    call set_size(par_env, cell_mesh, mat_properties)
+    call set_nnz(5, mat_properties)
+    call create_matrix(mat_properties, M)
 
     ! Create RHS vector
     print *, "NONLINEAR: setup RHS"
