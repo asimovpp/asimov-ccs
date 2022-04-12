@@ -28,7 +28,7 @@ contains
     type(vector_spec), intent(in) :: vec_dat
     class(ccs_vector), allocatable, intent(out) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     allocate(vector_petsc :: v)
     
@@ -92,9 +92,9 @@ contains
     class(*), intent(in) :: val_dat
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_int) :: n    !> Number of elements to add
-    integer(ccs_int) :: mode !> Append or insert mode
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_int) :: n    !< Number of elements to add
+    integer(ccs_int) :: mode !< Append or insert mode
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -174,7 +174,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -200,7 +200,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -228,7 +228,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -257,7 +257,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -302,7 +302,7 @@ contains
     class(ccs_vector), intent(in) :: x
     class(ccs_vector), intent(inout) :: y
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (x)
       type is (vector_petsc)
@@ -341,8 +341,8 @@ contains
     class(ccs_vector), intent(in) :: v
     integer(ccs_int), intent(in) :: norm_type
 
-    real(ccs_real) :: n      !> The computed norm 
-    integer(ccs_err) :: ierr !> Error code
+    real(ccs_real) :: n      !< The computed norm 
+    integer(ccs_err) :: ierr !< Error code
     
     n = 0.0_ccs_real ! initialise norm to 0
     
@@ -443,7 +443,7 @@ contains
 
     class(ccs_vector), intent(inout) :: vec
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     select type (vec)
       type is (vector_petsc)

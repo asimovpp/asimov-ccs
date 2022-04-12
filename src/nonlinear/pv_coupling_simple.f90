@@ -154,15 +154,15 @@ contains
     ! ----------
 
     ! TODO: Do boundaries properly
-    bcs%bc_type(:) = 0 !> Fixed zero BC
-    bcs%bc_type(4) = 1 !> Fixed one BC at lid
+    bcs%bc_type(:) = 0 !< Fixed zero BC
+    bcs%bc_type(4) = 1 !< Fixed one BC at lid
     call calculate_velocity_component(par_env, cell_mesh, cps, mf, p, 1, bcs, M, vec, lin_sys, u, invAu)
     
     ! v-velocity
     ! ----------
     
     ! TODO: Do boundaries properly
-    bcs%bc_type(:) = 0 !> Fixed zero BC
+    bcs%bc_type(:) = 0 !< Fixed zero BC
     call calculate_velocity_component(par_env, cell_mesh, cps, mf, p, 2, bcs, M, vec, lin_sys, v, invAv)
 
   end subroutine calculate_velocity
@@ -185,7 +185,7 @@ contains
     
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    real(ccs_real) :: alpha !> Underrelaxation factor
+    real(ccs_real) :: alpha !< Underrelaxation factor
 
     ! Set underrelaxation factor
     ! TODO: read from input
@@ -467,43 +467,43 @@ contains
   subroutine compute_mass_imbalance(par_env, cell_mesh, invAu, invAv, u, v, p, mf, b)
 
     class(parallel_environment), intent(in) :: par_env
-    type(ccs_mesh), intent(in) :: cell_mesh !> The mesh object
-    class(ccs_vector), intent(in) :: invAu  !> The inverse x momentum equation diagonal coefficient
-    class(ccs_vector), intent(in) :: invAv  !> The inverse y momentum equation diagonal coefficient
-    class(field), intent(inout) :: u       !> The x velocity component
-    class(field), intent(inout) :: v       !> The y velocity component
-    class(field), intent(inout) :: p       !> The pressure field
-    class(field), intent(inout) :: mf   !> The face velocity flux
-    class(ccs_vector), intent(inout) :: b   !> The per-cell mass imbalance
+    type(ccs_mesh), intent(in) :: cell_mesh !< The mesh object
+    class(ccs_vector), intent(in) :: invAu  !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(in) :: invAv  !< The inverse y momentum equation diagonal coefficient
+    class(field), intent(inout) :: u       !< The x velocity component
+    class(field), intent(inout) :: v       !< The y velocity component
+    class(field), intent(inout) :: p       !< The pressure field
+    class(field), intent(inout) :: mf   !< The face velocity flux
+    class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
 
     type(vector_values) :: vec_values
-    integer(ccs_int) :: i !> Cell counter
-    integer(ccs_int) :: j !> Cell-face counter
+    integer(ccs_int) :: i !< Cell counter
+    integer(ccs_int) :: j !< Cell-face counter
 
-    type(cell_locator) :: loc_p !> Central cell locator object
-    type(face_locator) :: loc_f !> Face locator object
+    type(cell_locator) :: loc_p !< Central cell locator object
+    type(face_locator) :: loc_f !< Face locator object
 
-    integer(ccs_int) :: idxp_g  !> Central cell global index
-    real(ccs_real) :: face_area !> Face area
-    integer(ccs_int) :: idxf    !> Face index
-    integer(ccs_int) :: nnb     !> Cell neighbour count
+    integer(ccs_int) :: idxp_g  !< Central cell global index
+    real(ccs_real) :: face_area !< Face area
+    integer(ccs_int) :: idxf    !< Face index
+    integer(ccs_int) :: nnb     !< Cell neighbour count
 
-    real(ccs_real), dimension(:), pointer :: mf_data     !> Data array for the mass flux
-    real(ccs_real), dimension(:), pointer :: u_data      !> Data array for x velocity component
-    real(ccs_real), dimension(:), pointer :: v_data      !> Data array for y velocity component
-    real(ccs_real), dimension(:), pointer :: p_data      !> Data array for pressure
-    real(ccs_real), dimension(:), pointer :: p_x_gradients_data !> Data array for pressure x gradient
-    real(ccs_real), dimension(:), pointer :: p_y_gradients_data !> Data array for pressure y gradient
-    real(ccs_real), dimension(:), pointer :: invAu_data  !> Data array for inverse x momentum
+    real(ccs_real), dimension(:), pointer :: mf_data     !< Data array for the mass flux
+    real(ccs_real), dimension(:), pointer :: u_data      !< Data array for x velocity component
+    real(ccs_real), dimension(:), pointer :: v_data      !< Data array for y velocity component
+    real(ccs_real), dimension(:), pointer :: p_data      !< Data array for pressure
+    real(ccs_real), dimension(:), pointer :: p_x_gradients_data !< Data array for pressure x gradient
+    real(ccs_real), dimension(:), pointer :: p_y_gradients_data !< Data array for pressure y gradient
+    real(ccs_real), dimension(:), pointer :: invAu_data  !< Data array for inverse x momentum
                                                           !! diagonal coefficient
-    real(ccs_real), dimension(:), pointer :: invAv_data  !> Data array for inverse y momentum
+    real(ccs_real), dimension(:), pointer :: invAv_data  !< Data array for inverse y momentum
                                                           !! diagonal coefficient
 
-    logical :: is_boundary            !> Boundary indicator
-    type(neighbour_locator) :: loc_nb !> Neighbour cell locator object
-    integer(ccs_int) :: idxnb        !> Neighbour cell index
+    logical :: is_boundary            !< Boundary indicator
+    type(neighbour_locator) :: loc_nb !< Neighbour cell locator object
+    integer(ccs_int) :: idxnb        !< Neighbour cell index
     
-    real(ccs_real) :: mib !> Cell mass imbalance
+    real(ccs_real) :: mib !< Cell mass imbalance
 
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))

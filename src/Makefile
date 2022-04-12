@@ -8,7 +8,7 @@ space := $(null) $(null)
 # NEED_CMP decides if full compilation is required or not
 # e.g. if the build is a simple clean, makedepf90 does not need to be invoked
 NEED_CMP = yes
-ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs doxy docs-latex))
+ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs ford doxy docs-latex))
   NEED_CMP = no
 endif
 
@@ -123,7 +123,9 @@ endif
 
 docs: doxy 
 doxy:
-	doxygen doxygen.cfg
+	doxygen .doxygen.cfg
+ford:
+	ford -d $(CCS_DIR)/src --exclude_dir doc .documentation_settings.ford
 docs-latex: doxy
 	make -C latex
 clean-docs:

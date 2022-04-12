@@ -18,13 +18,13 @@ program tgv
 
   implicit none
 
-  class(*), pointer :: config_file_pointer  !> Pointer to CCS config file
+  class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
   character(len=error_length) :: error
 
-  character(len=:), allocatable :: case_name   !> Case name
-  character(len=:), allocatable :: ccs_config_file  !> Config file for CCS
-  character(len=:), allocatable :: geo_file    !> Geo file name
-  character(len=:), allocatable :: adios2_file !> ADIOS2 config file name
+  character(len=:), allocatable :: case_name   !< Case name
+  character(len=:), allocatable :: ccs_config_file  !< Config file for CCS
+  character(len=:), allocatable :: geo_file    !< Geo file name
+  character(len=:), allocatable :: adios2_file !< ADIOS2 config file name
 
   class(parallel_environment), allocatable :: par_env
   class(io_environment), allocatable :: io_env
@@ -35,14 +35,14 @@ program tgv
   integer(kind=8), dimension(2) :: xyz_sel_start
   integer(kind=8), dimension(2) :: xyz_sel_count
 
-  integer(ccs_int) :: irank !> MPI rank ID
-  integer(ccs_int) :: isize !> Size of MPI world
+  integer(ccs_int) :: irank !< MPI rank ID
+  integer(ccs_int) :: isize !< Size of MPI world
   integer(ccs_int) :: i, j, k  
   integer(ccs_int) :: local_idx_start
   integer(ccs_int) :: local_idx_end
-  integer(ccs_int) :: max_faces !> Maximum number of faces per cell
-  integer(ccs_int) :: num_faces !> Total number of faces
-  integer(ccs_int) :: num_cells !> Total number of cells
+  integer(ccs_int) :: max_faces !< Maximum number of faces per cell
+  integer(ccs_int) :: num_faces !< Total number of faces
+  integer(ccs_int) :: num_cells !< Total number of cells
 
   double precision :: start_time, end_time
 
