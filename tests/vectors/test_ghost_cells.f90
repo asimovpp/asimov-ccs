@@ -6,7 +6,7 @@ program test_ghost_cells
   use kinds, only: ccs_int
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
   use mesh_utils, only : build_square_mesh
-  use vec, only : create_vector, update_vector, get_vec_properties, restore_vec_properties
+  use vec, only : create_vector, update_vector, get_vector_data, restore_vector_data
   use meshing, only: set_neighbour_location, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
   use utils, only : update, initialise, &
@@ -39,7 +39,7 @@ program test_ghost_cells
   call create_vector(vec_properties, v)
 
   ! Retried initial vector values
-  call get_vec_properties(v, values)
+  call get_vector_data(v, values)
 
   ! Set vector values to global mesh indices
   do i = 1, cell_mesh%nlocal
@@ -50,7 +50,7 @@ program test_ghost_cells
   call update(v)
 
   ! Retrieve the new vector values (including ghost cells)
-  call get_vec_properties(v, values)
+  call get_vector_data(v, values)
 
   do i = 1, cell_mesh%ntotal
     if(values(i) /= cell_mesh%idx_global(i)) then
@@ -60,7 +60,7 @@ program test_ghost_cells
   end do
 
   ! Remove reference to the values array
-  call restore_vec_properties(v, values)
+  call restore_vector_data(v, values)
 
   call fin()
 
