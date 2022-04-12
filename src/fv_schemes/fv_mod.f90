@@ -55,14 +55,14 @@ module fv
   !
   !> @param[in] local_self_idx - the local cell index
   !> @param[in] index_nb  - the local neigbouring cell index
-  !> @param[in] cell_mesh      - the mesh structure
+  !> @param[in] mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   !
   ! XXX: why is this a function when the equivalent advection ones are subroutines?
-  module function calc_diffusion_coeff(local_self_idx, index_nb, cell_mesh) result(coeff)
+  module function calc_diffusion_coeff(local_self_idx, index_nb, mesh) result(coeff)
     integer(ccs_int), intent(in) :: local_self_idx
     integer(ccs_int), intent(in) :: index_nb
-    type(ccs_mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: mesh
     real(ccs_real) :: coeff
   end function calc_diffusion_coeff
 
@@ -70,15 +70,15 @@ module fv
   !
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure (defined at faces)
-  !> @param[in] cell_mesh - the mesh being used
+  !> @param[in] mesh - the mesh being used
   !> @param[in] bcs       - the boundary conditions structure being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, mesh, bcs, cps, M, vec)
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
-    type(ccs_mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: mesh
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
@@ -118,13 +118,13 @@ module fv
 
   !> @brief Performs an update of the gradients of a field.
   !
-  !> @param[in]    cell_mesh - the mesh
+  !> @param[in]    mesh - the mesh
   !> @param[inout] phi       - the field whose gradients we want to update
   !
   !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !!       correctly updated on other PEs.
-  module subroutine update_gradient(cell_mesh, phi)
-    type(ccs_mesh), intent(in) :: cell_mesh
+  module subroutine update_gradient(mesh, phi)
+    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
   end subroutine update_gradient
   

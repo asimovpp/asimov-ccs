@@ -107,14 +107,14 @@ program scalar_advection
 
 contains
 
-  subroutine set_advection_velocity(cell_mesh, mf)
+  subroutine set_advection_velocity(mesh, mf)
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
     use utils, only: pack_entries, set_values
 
-    class(ccs_mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: mf
     integer(ccs_int) :: row, col
     integer(ccs_int) :: local_idx, self_idx
@@ -126,13 +126,13 @@ contains
 
     mf_vals%setter_mode = add_mode
 
-    associate(n_local => cell_mesh%nlocal)
+    associate(n_local => mesh%nlocal)
       allocate(mf_vals%indices(n_local))
       allocate(mf_vals%values(n_local))
       
       ! Set IC velocity and scalar fields
       do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
+        call set_cell_location(mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 

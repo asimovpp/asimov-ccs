@@ -338,12 +338,12 @@ contains
 
   !> @brief Count the number of faces in the mesh
   !
-  !> @param[in]  cell_mesh - the mesh
+  !> @param[in]  mesh - the mesh
   !> @param[out] nfaces    - number of cell faces
-  function count_mesh_faces(cell_mesh) result(nfaces)
+  function count_mesh_faces(mesh) result(nfaces)
 
     ! Arguments
-    type(ccs_mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: mesh
 
     ! Result
     integer(ccs_int) :: nfaces
@@ -366,8 +366,8 @@ contains
     nfaces_interface = 0
 
     ! Loop over cells
-    do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(cell_mesh, local_idx, self_loc)
+    do local_idx = 1, mesh%nlocal
+      call set_cell_location(mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call count_neighbours(self_loc, nnb)
 
@@ -397,10 +397,10 @@ contains
 
   end function count_mesh_faces
 
-  subroutine set_cell_face_indices(cell_mesh)
+  subroutine set_cell_face_indices(mesh)
 
     ! Arguments
-    type(ccs_mesh), intent(inout) :: cell_mesh
+    type(ccs_mesh), intent(inout) :: mesh
 
     ! Local variables
     type(cell_locator) :: self_loc          !< Current cell
@@ -415,8 +415,8 @@ contains
     icnt = 0
 
     ! Loop over cells
-    do local_idx = 1, cell_mesh%nlocal
-      call set_cell_location(cell_mesh, local_idx, self_loc)
+    do local_idx = 1, mesh%nlocal
+      call set_cell_location(mesh, local_idx, self_loc)
       call count_neighbours(self_loc, nnb)
 
       do j = 1, nnb
@@ -428,16 +428,16 @@ contains
           ! Cell with lowest local index assigns an index to the face
           if (local_idx < index_nb) then
             icnt = icnt + 1
-            call set_face_index(local_idx, j, icnt, cell_mesh)
+            call set_face_index(local_idx, j, icnt, mesh)
           else
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
-            face_idx = get_neighbour_face_index(cell_mesh, local_idx, index_nb)
-            call set_face_index(local_idx, j, face_idx, cell_mesh)
+            face_idx = get_neighbour_face_index(mesh, local_idx, index_nb)
+            call set_face_index(local_idx, j, face_idx, mesh)
           endif
         else
           icnt = icnt + 1
-          call set_face_index(local_idx, j, icnt, cell_mesh)
+          call set_face_index(local_idx, j, icnt, mesh)
         endif
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells

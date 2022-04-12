@@ -151,7 +151,7 @@ program simple
 
 contains
 
-  subroutine initialise_velocity(cell_mesh, u, v, mf)
+  subroutine initialise_velocity(mesh, u, v, mf)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -161,7 +161,7 @@ contains
     use vec, only : get_vector_data, restore_vector_data
     
     ! Arguments
-    class(ccs_mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, mf
 
     ! Local variables
@@ -177,7 +177,7 @@ contains
     v_vals%setter_mode = add_mode
 
     ! Set alias
-    associate(n_local => cell_mesh%nlocal)
+    associate(n_local => mesh%nlocal)
       ! Allocate temporary arrays for storing global cell indices 
       allocate(u_vals%indices(n_local))
       allocate(v_vals%indices(n_local))
@@ -188,7 +188,7 @@ contains
 
       ! Set initial values for velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
+        call set_cell_location(mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 
