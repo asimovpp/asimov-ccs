@@ -347,16 +347,16 @@ contains
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
-  !> @param[in] p_x_gradient   - array containing pressure gradient in x
-  !> @param[in] p_y_gradient   - array containing pressure gradient in y
+  !> @param[in] p_x_gradients   - array containing pressure gradient in x
+  !> @param[in] p_y_gradients   - array containing pressure gradient in y
   !> @param[in] invAu    - array containing inverse momentum diagonal in x
   !> @param[in] invAv    - array containing inverse momentum diagonal in y
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, p, p_x_gradient, p_y_gradient, invAu, invAv, loc_f) result(flux)
+  module function calc_mass_flux(u, v, p, p_x_gradients, p_y_gradients, invAu, invAv, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: u, v
     real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: p_x_gradient, p_y_gradient
+    real(ccs_real), dimension(:), intent(in) :: p_x_gradients, p_y_gradients
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
 
@@ -400,8 +400,8 @@ contains
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(idxnb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((p_x_gradient(idxp) + p_x_gradient(idxnb)) * face_normal(1) &
-             + (p_y_gradient(idxp) + p_y_gradient(idxnb)) * face_normal(2))
+        flux_corr = flux_corr + 0.5_ccs_real * ((p_x_gradients(idxp) + p_x_gradients(idxnb)) * face_normal(1) &
+             + (p_y_gradients(idxp) + p_y_gradients(idxnb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, Vnb)
@@ -500,14 +500,14 @@ contains
   !> @param[in] phi         - a cell-centred array of the field whose gradient we
   !!                          want to compute
   !> @param[inout] gradient - a cell-centred array of the gradient
-  subroutine update_gradient_component(cell_mesh, component, phi, x_gradient_old, y_gradient_old, gradz_old, gradient)
+  subroutine update_gradient_component(cell_mesh, component, phi, x_gradients_old, y_gradients_old, gradz_old, gradient)
 
 
     type(ccs_mesh), intent(in) :: cell_mesh
     integer(ccs_int), intent(in) :: component
     class(ccs_vector), intent(in) :: phi
-    real(ccs_real), dimension(:), intent(in) :: x_gradient_old
-    real(ccs_real), dimension(:), intent(in) :: y_gradient_old
+    real(ccs_real), dimension(:), intent(in) :: x_gradients_old
+    real(ccs_real), dimension(:), intent(in) :: y_gradients_old
     real(ccs_real), dimension(:), intent(in) :: gradz_old
     class(ccs_vector), intent(inout) :: gradient
     
@@ -557,7 +557,7 @@ contains
           phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
           call get_distance(loc_p, loc_f, dx)
-          phif = phi_data(i) + (x_gradient_old(i) * dx(1) + y_gradient_old(i) * dx(2) + gradz_old(i) * dx(3))
+          phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + gradz_old(i) * dx(3))
         end if
 
         call get_face_area(loc_f, face_area)

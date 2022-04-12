@@ -492,8 +492,8 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data      !> Data array for x velocity component
     real(ccs_real), dimension(:), pointer :: v_data      !> Data array for y velocity component
     real(ccs_real), dimension(:), pointer :: p_data      !> Data array for pressure
-    real(ccs_real), dimension(:), pointer :: p_x_gradient_data !> Data array for pressure x gradient
-    real(ccs_real), dimension(:), pointer :: p_y_gradient_data !> Data array for pressure y gradient
+    real(ccs_real), dimension(:), pointer :: p_x_gradients_data !> Data array for pressure x gradient
+    real(ccs_real), dimension(:), pointer :: p_y_gradients_data !> Data array for pressure y gradient
     real(ccs_real), dimension(:), pointer :: invAu_data  !> Data array for inverse x momentum
                                                           !! diagonal coefficient
     real(ccs_real), dimension(:), pointer :: invAv_data  !> Data array for inverse y momentum
@@ -522,8 +522,8 @@ contains
     call get_vector_data(u%values, u_data)
     call get_vector_data(v%values, v_data)
     call get_vector_data(p%values, p_data)
-    call get_vector_data(p%x_gradients, p_x_gradient_data)
-    call get_vector_data(p%y_gradients, p_y_gradient_data)
+    call get_vector_data(p%x_gradients, p_x_gradients_data)
+    call get_vector_data(p%y_gradients, p_y_gradients_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
     
@@ -549,7 +549,7 @@ contains
           else
             ! Compute mass flux through face
             mf_data(idxf) = calc_mass_flux(u_data, v_data, &
-                 p_data, p_x_gradient_data, p_y_gradient_data, &
+                 p_data, p_x_gradients_data, p_y_gradients_data, &
                  invAu_data, invAv_data, &
                  loc_f)
           end if
@@ -566,8 +566,8 @@ contains
     call restore_vector_data(u%values, u_data)
     call restore_vector_data(v%values, v_data)
     call restore_vector_data(p%values, p_data)
-    call restore_vector_data(p%x_gradients, p_x_gradient_data)
-    call restore_vector_data(p%y_gradients, p_y_gradient_data)
+    call restore_vector_data(p%x_gradients, p_x_gradients_data)
+    call restore_vector_data(p%y_gradients, p_y_gradients_data)
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
     ! Update vectors on exit (just in case)
