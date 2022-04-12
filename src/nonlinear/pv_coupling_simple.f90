@@ -46,7 +46,7 @@ contains
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invAu, invAv
     
-    type(vector_spec) :: vec_sizes
+    type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_sizes
     type(equation_system)    :: lin_system
     type(bc_config) :: bcs
@@ -56,7 +56,7 @@ contains
     ! Initialise linear system
     print *, "NONLINEAR: init"
     call initialise(mat_sizes)
-    call initialise(vec_sizes)
+    call initialise(vec_properties)
     call initialise(lin_system)
 
     ! Create coefficient matrix
@@ -67,13 +67,13 @@ contains
 
     ! Create RHS vector
     print *, "NONLINEAR: setup RHS"
-    call set_size(par_env, cell_mesh, vec_sizes)
-    call create_vector(vec_sizes, source)
+    call set_size(par_env, cell_mesh, vec_properties)
+    call create_vector(vec_properties, source)
 
     ! Create vectors for storing inverse of velocity central coefficients
     print *, "NONLINEAR: setup ind coeff"
-    call create_vector(vec_sizes, invAu)
-    call create_vector(vec_sizes, invAv)
+    call create_vector(vec_properties, invAu)
+    call create_vector(vec_properties, invAv)
     
     ! Get pressure gradient
     print *, "NONLINEAR: compute grad p"

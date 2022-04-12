@@ -17,7 +17,7 @@ program facevalues
     class(parallel_environment), allocatable, target :: par_env
     class(field), allocatable :: mf
 
-    type(vector_spec) :: vec_sizes
+    type(vector_spec) :: vec_properties
     type(ccs_mesh) :: square_mesh
 
     ! integer(ccs_int) :: nfaces
@@ -30,16 +30,16 @@ program facevalues
 
     allocate(face_field :: mf)
 
-    call initialise(vec_sizes)
+    call initialise(vec_properties)
 
     ! Setup vector size to store face-centred values (rather than cell-centred values)
-    call set_vector_location(face, vec_sizes)
+    call set_vector_location(face, vec_properties)
 
-    call set_size(par_env, square_mesh, vec_sizes)
-    call create_vector(vec_sizes, mf%values)
+    call set_size(par_env, square_mesh, vec_properties)
+    call create_vector(vec_properties, mf%values)
 
     ! ! View the contents of the vector
-    ! call vec_view(vec_sizes, mf%values)
+    ! call vec_view(vec_properties, mf%values)
 
     call cleanup_parallel_environment(par_env)
 
