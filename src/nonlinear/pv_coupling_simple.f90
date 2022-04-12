@@ -334,7 +334,7 @@ contains
     real(ccs_real) :: Vnb
     real(ccs_real) :: Vf
     real(ccs_real) :: invAp
-    real(ccs_real) :: invAnb
+    real(ccs_real) :: invA_nb
     real(ccs_real) :: invAf
 
     integer(ccs_int) :: index_nb
@@ -397,8 +397,8 @@ contains
           Vf = 0.5_ccs_real * (Vp + Vnb)
 
           invAp = 0.5_ccs_real * (invAu_data(local_idx) + invAv_data(local_idx))
-          invAnb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb))
-          invAf = 0.5_ccs_real * (invAp + invAnb)
+          invA_nb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb))
+          invAf = 0.5_ccs_real * (invAp + invA_nb)
 
           coeff_f = -(Vf * invAf) * coeff_f
           

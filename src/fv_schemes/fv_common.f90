@@ -375,7 +375,7 @@ contains
     real(ccs_real) :: Vnb                          !> Neighbour cell volume
     real(ccs_real) :: Vf                           !> Face "volume"
     real(ccs_real) :: invAp                        !> Primary cell inverse momentum coefficient
-    real(ccs_real) :: invAnb                       !> Neighbour cell inverse momentum coefficient
+    real(ccs_real) :: invA_nb                       !> Neighbour cell inverse momentum coefficient
     real(ccs_real) :: invAf                        !> Face inverse momentum coefficient
     
     call get_boundary_status(loc_f, is_boundary)
@@ -409,8 +409,8 @@ contains
 
         ! This is probably not quite right ...
         invAp = 0.5_ccs_real * (invAu(idxp) + invAv(idxp))
-        invAnb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
-        invAf = 0.5_ccs_real * (invAp + invAnb)
+        invA_nb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
+        invAf = 0.5_ccs_real * (invAp + invA_nb)
         
         flux_corr = (Vf * invAf) * flux_corr
           
