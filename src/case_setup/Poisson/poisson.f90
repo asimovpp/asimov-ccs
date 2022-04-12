@@ -203,7 +203,7 @@ contains
     type(cell_locator) :: cell_location
     integer(ccs_int) :: nnb
 
-    type(neighbour_locator) :: nb_location
+    type(neighbour_locator) :: loc_nb
     logical :: is_boundary
     integer(ccs_int) :: nbidxg
 
@@ -228,8 +228,8 @@ contains
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(cell_location, j, nb_location)
-        call get_boundary_status(nb_location, is_boundary)
+        call set_neighbour_location(cell_location, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
           !! Interior face
@@ -238,7 +238,7 @@ contains
           call get_face_area(face_location, A)
           coeff_f = (1.0 / square_mesh%h) * A
 
-          call get_global_index(nb_location, nbidxg)
+          call get_global_index(loc_nb, nbidxg)
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
@@ -287,7 +287,7 @@ contains
 
     type(cell_locator) :: cell_location
     integer(ccs_int) :: idxg
-    type(neighbour_locator) :: nb_location
+    type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: nnb
     logical :: is_boundary
@@ -315,8 +315,8 @@ contains
         call count_neighbours(cell_location, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(cell_location, j, nb_location)
-          call get_boundary_status(nb_location, is_boundary)
+          call set_neighbour_location(cell_location, j, loc_nb)
+          call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
             call set_face_location(square_mesh, i, j, face_location)
