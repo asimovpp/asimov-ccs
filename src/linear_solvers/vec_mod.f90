@@ -135,13 +135,13 @@ module vec
     !
     !> param[in]     par_env           - the parallel environment 
     !!                                   where the vector resides
-    !> param[in]     geometry          - the mesh - contains the
+    !> param[in]     mesh          - the mesh - contains the
     !!                                   information to set the
     !!                                   vector size
     !> param[in/out] vec_properties - the vector data object
-    module subroutine set_vector_size(par_env, geometry, vec_properties)
+    module subroutine set_vector_size(par_env, mesh, vec_properties)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
-      class(ccs_mesh), target, intent(in) :: geometry
+      class(ccs_mesh), target, intent(in) :: mesh
       type(vector_spec), intent(inout) :: vec_properties
     end subroutine set_vector_size
 

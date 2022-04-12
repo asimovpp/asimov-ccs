@@ -26,7 +26,7 @@ program simple
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  type(ccs_mesh)             :: square_mesh
+  type(ccs_mesh)             :: mesh
   type(vector_spec) :: vec_properties
 
   class(field), allocatable :: u, v, p, pp, mf
@@ -53,7 +53,7 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -68,7 +68,7 @@ program simple
 
   print *, "Create vectors"
   call set_vector_location(cell, vec_properties)
-  call set_size(par_env, square_mesh, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, u%values)
   call create_vector(vec_properties, v%values)
   call create_vector(vec_properties, p%values)
@@ -91,20 +91,20 @@ program simple
   call update(pp%z_gradients)
 
   call set_vector_location(face, vec_properties)
-  call set_size(par_env, square_mesh, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, mf%values)
   call update(mf%values)
   
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(square_mesh, u, v, mf)
+  call initialise_velocity(mesh, u, v, mf)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
+  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, pp, mf)
 
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 
@@ -151,7 +151,7 @@ program simple
 
 contains
 
-  subroutine initialise_velocity(cell_mesh, u, v, mf)
+  subroutine initialise_velocity(mesh, u, v, mf)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -161,7 +161,7 @@ contains
     use vec, only : get_vector_data, restore_vector_data
     
     ! Arguments
-    class(ccs_mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, mf
 
     ! Local variables
@@ -177,7 +177,7 @@ contains
     v_vals%setter_mode = add_mode
 
     ! Set alias
-    associate(n_local => cell_mesh%nlocal)
+    associate(n_local => mesh%nlocal)
       ! Allocate temporary arrays for storing global cell indices 
       allocate(u_vals%indices(n_local))
       allocate(v_vals%indices(n_local))
@@ -188,7 +188,7 @@ contains
 
       ! Set initial values for velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
+        call set_cell_location(mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 
