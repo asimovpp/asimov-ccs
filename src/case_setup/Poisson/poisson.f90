@@ -205,7 +205,7 @@ contains
 
     type(neighbour_locator) :: loc_nb
     logical :: is_boundary
-    integer(ccs_int) :: nbidxg
+    integer(ccs_int) :: global_index_nb
 
     mat_coeffs%setter_mode = insert_mode
 
@@ -238,11 +238,11 @@ contains
           call get_face_area(face_location, A)
           coeff_f = (1.0 / square_mesh%h) * A
 
-          call get_global_index(loc_nb, nbidxg)
+          call get_global_index(loc_nb, global_index_nb)
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
-          col = nbidxg
+          col = global_index_nb
         else
           col = -1
           coeff_nb = 0.0_ccs_real
