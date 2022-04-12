@@ -9,10 +9,10 @@ submodule (pv_coupling) pv_coupling_simple
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
-  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
+  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
-                   mult, scale, zero
+                   mult, zero
   use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
@@ -47,7 +47,7 @@ contains
     class(ccs_vector), allocatable :: invAu, invAv
     
     type(vector_spec) :: vec_properties
-    type(matrix_spec) :: mat_sizes
+    type(matrix_spec) :: mat_properties
     type(equation_system)    :: lin_system
     type(bc_config) :: bcs
 
@@ -55,15 +55,15 @@ contains
     
     ! Initialise linear system
     print *, "NONLINEAR: init"
-    call initialise(mat_sizes)
     call initialise(vec_properties)
+    call initialise(mat_properties)
     call initialise(lin_system)
 
     ! Create coefficient matrix
     print *, "NONLINEAR: setup matrix"
-    call set_size(par_env, cell_mesh, mat_sizes)
-    call set_nnz(5, mat_sizes)
-    call create_matrix(mat_sizes, M)
+    call set_size(par_env, cell_mesh, mat_properties)
+    call set_nnz(5, mat_properties)
+    call create_matrix(mat_properties, M)
 
     ! Create RHS vector
     print *, "NONLINEAR: setup RHS"
@@ -169,6 +169,8 @@ contains
 
   subroutine calculate_velocity_component(par_env, cell_mesh, cps, mf, p, component, bcs, M, vec, lin_sys, u, invAu)
 
+    use case_config, only: velocity_relax
+
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_mesh), intent(in)         :: cell_mesh
@@ -185,11 +187,6 @@ contains
     
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    real(ccs_real) :: alpha !< Underrelaxation factor
-
-    ! Set underrelaxation factor
-    ! TODO: read from input
-    alpha = 0.9_ccs_real
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -212,7 +209,7 @@ contains
     
     ! Underrelax the equations
     print *, "GV: underrelax u"
-    call underrelax(cell_mesh, alpha, u, invAu, M, vec)
+    call underrelax(cell_mesh, velocity_relax, u, invAu, M, vec)
     
     ! Store reciprocal of central coefficient
     print *, "GV: get u diag"
@@ -347,7 +344,7 @@ contains
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     print *, "P': negate RHS"
-    call scale(-1.0_ccs_real, vec)
+    call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
     
     allocate(vec_values%indices(1))
@@ -590,17 +587,13 @@ contains
   !> @brief Corrects the pressure field, using explicit underrelaxation
   subroutine update_pressure(pp, p)
 
+    use case_config, only: pressure_relax
+
     ! Arguments
     class(field), intent(in) :: pp
     class(field), intent(inout) :: p
 
-    ! Local variables
-    real(ccs_real) :: alpha   !< Under-relaxation factor
-
-    ! Set under-relaxation factor (todo: read this from input file)
-    alpha = 0.1_ccs_real
-
-    call axpy(alpha, pp%values, p%values)
+    call axpy(pressure_relax, pp%values, p%values)
     
   end subroutine update_pressure
 
@@ -706,12 +699,6 @@ contains
     call update(pp%values)
     
   end subroutine update_face_velocity
-
-  ! subroutine calculate_scalars()
-
-
-  ! end subroutine calculate_scalars
-
 
   subroutine check_convergence(converged)
 

@@ -153,17 +153,17 @@ program test_compute_fluxes
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
     type(vector_spec) :: vec_properties
-    type(matrix_spec) :: mat_sizes
+    type(matrix_spec) :: mat_properties
     real(ccs_real) :: error
     
-    call initialise(mat_sizes)
+    call initialise(mat_properties)
     call initialise(vec_properties)
-    call set_size(par_env, cell_mesh, mat_sizes)
+    call set_size(par_env, cell_mesh, mat_properties)
     call set_size(par_env, cell_mesh, vec_properties)
-    call set_nnz(5, mat_sizes)
-    call create_matrix(mat_sizes, M)
+    call set_nnz(5, mat_properties)
+    call create_matrix(mat_properties, M)
     call create_vector(vec_properties, b)
-    call create_matrix(mat_sizes, M_exact)
+    call create_matrix(mat_properties, M_exact)
     call create_vector(vec_properties, b_exact)
 
     call compute_fluxes(scalar, u, v, cell_mesh, bcs, cps, M, b)
