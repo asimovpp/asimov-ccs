@@ -6,7 +6,7 @@ program test_ghost_cells
   use kinds, only: ccs_int
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
   use mesh_utils, only : build_square_mesh
-  use vec, only : create_vector, update_vector, get_vector_data, restore_vector_data
+  use vec, only : create_vector, update_vector, get_vec_properties, restore_vec_properties
   use meshing, only: set_neighbour_location, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
   use utils, only : update, initialise, &
@@ -15,7 +15,7 @@ program test_ghost_cells
 
   implicit none
 
-  type(vector_spec) :: vector_data
+  type(vector_spec) :: vec_properties
   type(ccs_mesh) :: cell_mesh
   class(ccs_vector), allocatable :: v
   real(ccs_real), dimension(:), pointer :: values
@@ -32,14 +32,14 @@ program test_ghost_cells
   cell_mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
 
   ! Specify vector size based on the mesh
-  call initialise(vector_data)
-  call set_size(par_env, cell_mesh, vector_data)
+  call initialise(vec_properties)
+  call set_size(par_env, cell_mesh, vec_properties)
 
   ! Create the vector
-  call create_vector(vector_data, v)
+  call create_vector(vec_properties, v)
 
   ! Retried initial vector values
-  call get_vector_data(v, values)
+  call get_vec_properties(v, values)
 
   ! Set vector values to global mesh indices
   do i = 1, cell_mesh%nlocal
@@ -50,7 +50,7 @@ program test_ghost_cells
   call update(v)
 
   ! Retrieve the new vector values (including ghost cells)
-  call get_vector_data(v, values)
+  call get_vec_properties(v, values)
 
   do i = 1, cell_mesh%ntotal
     if(values(i) /= cell_mesh%idx_global(i)) then
@@ -60,7 +60,7 @@ program test_ghost_cells
   end do
 
   ! Remove reference to the values array
-  call restore_vector_data(v, values)
+  call restore_vec_properties(v, values)
 
   call fin()
 

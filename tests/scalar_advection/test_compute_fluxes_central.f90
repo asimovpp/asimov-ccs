@@ -20,7 +20,7 @@ program test_compute_fluxes
 
   type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs
-  type(vector_spec) :: vec_sizes
+  type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 5
@@ -51,11 +51,11 @@ program test_compute_fluxes
       call stop_test(message)
     end if
 
-    call initialise(vec_sizes)
-    call set_size(par_env, square_mesh, vec_sizes)
-    call create_vector(vec_sizes, scalar%values)
-    call create_vector(vec_sizes, u%values)
-    call create_vector(vec_sizes, v%values)
+    call initialise(vec_properties)
+    call set_size(par_env, square_mesh, vec_properties)
+    call create_vector(vec_properties, scalar%values)
+    call create_vector(vec_properties, u%values)
+    call create_vector(vec_properties, v%values)
 
     call set_velocity_fields(square_mesh, direction, u, v)
     call run_compute_fluxes_test(scalar, u, v, bcs, square_mesh, cps, direction, discretisation)
@@ -152,19 +152,19 @@ program test_compute_fluxes
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
-    type(vector_spec) :: vec_sizes
+    type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_sizes
     real(ccs_real) :: error
     
     call initialise(mat_sizes)
-    call initialise(vec_sizes)
+    call initialise(vec_properties)
     call set_size(par_env, cell_mesh, mat_sizes)
-    call set_size(par_env, cell_mesh, vec_sizes)
+    call set_size(par_env, cell_mesh, vec_properties)
     call set_nnz(5, mat_sizes)
     call create_matrix(mat_sizes, M)
-    call create_vector(vec_sizes, b)
+    call create_vector(vec_properties, b)
     call create_matrix(mat_sizes, M_exact)
-    call create_vector(vec_sizes, b_exact)
+    call create_vector(vec_properties, b_exact)
 
     call compute_fluxes(scalar, u, v, cell_mesh, bcs, cps, M, b)
 
@@ -217,15 +217,15 @@ program test_compute_fluxes
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b
 
-    ! type(vector_spec) :: vec_sizes
+    ! type(vector_spec) :: vec_properties
     type(vector_values) :: vec_coeffs
     real(ccs_real) :: diff_coeff, adv_coeff
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: row, col
     integer(ccs_int) :: vec_counter
 
-    call initialise(vec_sizes)
-    call set_size(par_env, cell_mesh, vec_sizes)
+    call initialise(vec_properties)
+    call set_size(par_env, cell_mesh, vec_properties)
 
     ! call compute_exact_advection_matrix(cell_mesh, cps, flow, discretisation, M)
     ! call compute_exact_diffusion_matrix(cell_mesh, cps, M)
