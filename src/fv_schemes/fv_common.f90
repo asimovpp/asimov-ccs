@@ -363,19 +363,19 @@ contains
     real(ccs_real) :: flux
 
     ! Local variables
-    logical :: is_boundary                          !> Boundary indicator
-    type(cell_locator) :: loc_p                     !> Primary cell locator
-    type(neighbour_locator) :: loc_nb               !> Neighbour cell locator
-    integer(ccs_int) :: index_nb                      !> Neighbour cell index
+    logical :: is_boundary                         !> Boundary indicator
+    type(cell_locator) :: loc_p                    !> Primary cell locator
+    type(neighbour_locator) :: loc_nb              !> Neighbour cell locator
+    integer(ccs_int) :: index_nb                   !> Neighbour cell index
     real(ccs_real) :: flux_corr                    !> Flux correction
     real(ccs_real), dimension(ndim) :: dx          !> Cell-cell distance
     real(ccs_real) :: dxmag                        !> Cell-cell distance magnitude
     real(ccs_real), dimension(ndim) :: face_normal !> (local) face-normal array
     real(ccs_real) :: Vp                           !> Primary cell volume
-    real(ccs_real) :: Vnb                          !> Neighbour cell volume
+    real(ccs_real) :: V_nb                         !> Neighbour cell volume
     real(ccs_real) :: Vf                           !> Face "volume"
     real(ccs_real) :: invAp                        !> Primary cell inverse momentum coefficient
-    real(ccs_real) :: invA_nb                       !> Neighbour cell inverse momentum coefficient
+    real(ccs_real) :: invA_nb                      !> Neighbour cell inverse momentum coefficient
     real(ccs_real) :: invAf                        !> Face inverse momentum coefficient
     
     call get_boundary_status(loc_f, is_boundary)
@@ -404,8 +404,8 @@ contains
              + (p_y_gradients(idxp) + p_y_gradients(index_nb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
-        call get_volume(loc_nb, Vnb)
-        Vf = 0.5_ccs_real * (Vp + Vnb)
+        call get_volume(loc_nb, V_nb)
+        Vf = 0.5_ccs_real * (Vp + V_nb)
 
         ! This is probably not quite right ...
         invAp = 0.5_ccs_real * (invAu(idxp) + invAv(idxp))

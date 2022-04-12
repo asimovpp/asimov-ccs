@@ -331,7 +331,7 @@ contains
     real(ccs_real), dimension(:), pointer :: invAv_data
     
     real(ccs_real) :: Vp
-    real(ccs_real) :: Vnb
+    real(ccs_real) :: V_nb
     real(ccs_real) :: Vf
     real(ccs_real) :: invAp
     real(ccs_real) :: invA_nb
@@ -393,8 +393,8 @@ contains
           coeff_f = (1.0 / cell_mesh%h) * face_area
 
           call get_volume(self_loc, Vp)
-          call get_volume(loc_nb, Vnb)
-          Vf = 0.5_ccs_real * (Vp + Vnb)
+          call get_volume(loc_nb, V_nb)
+          Vf = 0.5_ccs_real * (Vp + V_nb)
 
           invAp = 0.5_ccs_real * (invAu_data(local_idx) + invAv_data(local_idx))
           invA_nb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb))
