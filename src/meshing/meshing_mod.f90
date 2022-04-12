@@ -103,13 +103,13 @@ module meshing
     !
     !> @param[in]  cell_locator      cell_location      - the cell locator object of the cell whose
     !!                                                    neighbour is being accessed.
-    !> @param[in]  ccs_int          cell_neighbour_ctr - the cell-local index of the neighbour.
-    !> @param[out] neighbour_locator neighbour_location - the neighbour locator object linking a
+    !> @param[in]  ccs_int           nb_counter - the cell-local index of the neighbour.
+    !> @param[out] neighbour_locator loc_nb - the neighbour locator object linking a
     !!                                                    cell-relative index with the mesh.
-    module subroutine set_neighbour_location(cell_location, cell_neighbour_ctr, neighbour_location)
+    module subroutine set_neighbour_location(cell_location, nb_counter, loc_nb)
       type(cell_locator), intent(in) :: cell_location
-      integer(ccs_int), intent(in) :: cell_neighbour_ctr
-      type(neighbour_locator), intent(out) :: neighbour_location
+      integer(ccs_int), intent(in) :: nb_counter
+      type(neighbour_locator), intent(out) :: loc_nb
     end subroutine set_neighbour_location
 
     !> @brief Set face index
@@ -150,11 +150,11 @@ module meshing
 
     !> @brief Returns the centre of a neighbour cell
     !
-    !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
+    !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] real(ccs_real)   x(ndim)            - an ndimensional array representing the
     !!                                                    neighbour cell centre.
-    module subroutine get_neighbour_centre(neighbour_location, x)
-      type(neighbour_locator), intent(in) :: neighbour_location
+    module subroutine get_neighbour_centre(loc_nb, x)
+      type(neighbour_locator), intent(in) :: loc_nb
       real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_neighbour_centre
 
@@ -178,10 +178,10 @@ module meshing
 
     !> @brief Returns the volume of a neighbour cell
     !
-    !> @param[in] neighbour_locator neighbour_location - the neighbour locator object.
+    !> @param[in] neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] real(ccs_real)  V                  - the neighbour cell volume.
-    module subroutine get_neighbour_volume(neighbour_location, V)
-      type(neighbour_locator), intent(in) :: neighbour_location
+    module subroutine get_neighbour_volume(loc_nb, V)
+      type(neighbour_locator), intent(in) :: loc_nb
       real(ccs_real), intent(out) :: V
     end subroutine get_neighbour_volume
 
@@ -196,11 +196,11 @@ module meshing
 
     !> @brief Returns the global index of a neighbouring cell
     !
-    !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
-    !> @param[out] integer(ccs_int) nbidxg             - the global index of the neighbour cell.
-    module subroutine get_neighbour_global_index(neighbour_location, nbidxg)
-      type(neighbour_locator), intent(in) :: neighbour_location
-      integer(ccs_int), intent(out) :: nbidxg
+    !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
+    !> @param[out] integer(ccs_int) global_index_nb             - the global index of the neighbour cell.
+    module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
+      type(neighbour_locator), intent(in) :: loc_nb
+      integer(ccs_int), intent(out) :: global_index_nb
     end subroutine get_neighbour_global_index
 
     !> @brief Returns the neighbour count of a cell (including boundary neighbours)
@@ -214,10 +214,10 @@ module meshing
 
     !> @brief Returns the boundary status of a neighbouring cell
     !
-    !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
+    !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] logical           is_boundary        - the boundary status of the neighbour.
-    module subroutine get_neighbour_boundary_status(neighbour_location, is_boundary)
-      type(neighbour_locator), intent(in) :: neighbour_location
+    module subroutine get_neighbour_boundary_status(loc_nb, is_boundary)
+      type(neighbour_locator), intent(in) :: loc_nb
       logical, intent(out) :: is_boundary
     end subroutine get_neighbour_boundary_status
 
@@ -236,10 +236,10 @@ module meshing
     !!              and cells from the surrounding halo - this subroutine get_indicates whether a
     !!              cell's neighbour is within the local partition or the halo.
     !
-    !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
+    !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] logical           is_local           - the local status of the neighbour.
-    module subroutine get_local_status(neighbour_location, is_local)
-      type(neighbour_locator), intent(in) :: neighbour_location
+    module subroutine get_local_status(loc_nb, is_local)
+      type(neighbour_locator), intent(in) :: loc_nb
       logical, intent(out) :: is_local
     end subroutine get_local_status
 
@@ -258,11 +258,11 @@ module meshing
 
     !> @brief Returns the local index of a neighbouring cell
     !
-    !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
-    !> @param[out] integer(ccs_int) nbidx              - the local index of the neighbour cell.
-    module subroutine get_neighbour_local_index(neighbour_location, nbidx)
-      type(neighbour_locator), intent(in) :: neighbour_location
-      integer(ccs_int), intent(out) :: nbidx
+    !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
+    !> @param[out] integer(ccs_int) index_nb              - the local index of the neighbour cell.
+    module subroutine get_neighbour_local_index(loc_nb, index_nb)
+      type(neighbour_locator), intent(in) :: loc_nb
+      integer(ccs_int), intent(out) :: index_nb
     end subroutine get_neighbour_local_index
 
     !> @brief Returns the local index of a face

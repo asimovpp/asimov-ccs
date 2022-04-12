@@ -314,12 +314,12 @@ contains
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: vec_values
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
+    type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     class(linear_solver), allocatable :: lin_solver
-    integer(ccs_int) :: self_idx, ngb_idx, local_idx
+    integer(ccs_int) :: self_idx, global_index_nb, local_idx
     integer(ccs_int) :: j
-    integer(ccs_int) :: n_ngb
+    integer(ccs_int) :: nnb
     integer(ccs_int) :: row, col
     real(ccs_real) :: face_area
     real(ccs_real), dimension(ndim) :: face_normal
@@ -331,13 +331,13 @@ contains
     real(ccs_real), dimension(:), pointer :: invAv_data
     
     real(ccs_real) :: Vp
-    real(ccs_real) :: Vnb
+    real(ccs_real) :: V_nb
     real(ccs_real) :: Vf
     real(ccs_real) :: invAp
-    real(ccs_real) :: invAnb
+    real(ccs_real) :: invA_nb
     real(ccs_real) :: invAf
 
-    integer(ccs_int) :: idxnb
+    integer(ccs_int) :: index_nb
 
     integer(ccs_int) :: cps   ! Cells per side
     integer(ccs_int) :: rcrit ! Global index of approximate central cell
@@ -367,18 +367,18 @@ contains
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
 
       allocate(mat_coeffs%row_indices(1))
-      allocate(mat_coeffs%col_indices(1 + n_ngb))
-      allocate(mat_coeffs%values(1 + n_ngb))
+      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%values(1 + nnb))
 
       row = self_idx
       coeff_p = 0.0_ccs_real
       r = 0.0_ccs_real
 
       ! Loop over faces
-      do j = 1, n_ngb
+      do j = 1, nnb
         call set_face_location(cell_mesh, local_idx, j, face_loc)
         call get_face_area(face_loc, face_area)
         call get_face_normal(face_loc, face_normal)
@@ -387,24 +387,24 @@ contains
         
         if (.not. is_boundary) then
           ! Interior face
-          call set_neighbour_location(self_loc, j, ngb_loc)
-          call get_global_index(ngb_loc, ngb_idx)
-          call get_local_index(ngb_loc, idxnb)
+          call set_neighbour_location(self_loc, j, loc_nb)
+          call get_global_index(loc_nb, global_index_nb)
+          call get_local_index(loc_nb, index_nb)
           coeff_f = (1.0 / cell_mesh%h) * face_area
 
           call get_volume(self_loc, Vp)
-          call get_volume(ngb_loc, Vnb)
-          Vf = 0.5_ccs_real * (Vp + Vnb)
+          call get_volume(loc_nb, V_nb)
+          Vf = 0.5_ccs_real * (Vp + V_nb)
 
           invAp = 0.5_ccs_real * (invAu_data(local_idx) + invAv_data(local_idx))
-          invAnb = 0.5_ccs_real * (invAu_data(idxnb) + invAv_data(idxnb))
-          invAf = 0.5_ccs_real * (invAp + invAnb)
+          invA_nb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb))
+          invAf = 0.5_ccs_real * (invAp + invA_nb)
 
           coeff_f = -(Vf * invAf) * coeff_f
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
-          col = ngb_idx
+          col = global_index_nb
         else
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
@@ -492,8 +492,8 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data      !< Data array for x velocity component
     real(ccs_real), dimension(:), pointer :: v_data      !< Data array for y velocity component
     real(ccs_real), dimension(:), pointer :: p_data      !< Data array for pressure
-    real(ccs_real), dimension(:), pointer :: p_x_gradients_data !< Data array for pressure x gradient
-    real(ccs_real), dimension(:), pointer :: p_y_gradients_data !< Data array for pressure y gradient
+    real(ccs_real), dimension(:), pointer :: dpdx_data !< Data array for pressure x gradient
+    real(ccs_real), dimension(:), pointer :: dpdy_data !< Data array for pressure y gradient
     real(ccs_real), dimension(:), pointer :: invAu_data  !< Data array for inverse x momentum
                                                           !! diagonal coefficient
     real(ccs_real), dimension(:), pointer :: invAv_data  !< Data array for inverse y momentum
@@ -501,7 +501,7 @@ contains
 
     logical :: is_boundary            !< Boundary indicator
     type(neighbour_locator) :: loc_nb !< Neighbour cell locator object
-    integer(ccs_int) :: idxnb        !< Neighbour cell index
+    integer(ccs_int) :: index_nb      !< Neighbour cell index
     
     real(ccs_real) :: mib !< Cell mass imbalance
 
@@ -522,8 +522,8 @@ contains
     call get_vector_data(u%values, u_data)
     call get_vector_data(v%values, v_data)
     call get_vector_data(p%values, p_data)
-    call get_vector_data(p%x_gradients, p_x_gradients_data)
-    call get_vector_data(p%y_gradients, p_y_gradients_data)
+    call get_vector_data(p%x_gradients, dpdx_data)
+    call get_vector_data(p%y_gradients, dpdy_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
     
@@ -543,13 +543,13 @@ contains
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, idxnb)
-          if (idxnb < i) then
+          call get_local_index(loc_nb, index_nb)
+          if (index_nb < i) then
             face_area = -face_area
           else
             ! Compute mass flux through face
             mf_data(idxf) = calc_mass_flux(u_data, v_data, &
-                 p_data, p_x_gradients_data, p_y_gradients_data, &
+                 p_data, dpdx_data, dpdy_data, &
                  invAu_data, invAv_data, &
                  loc_f)
           end if
@@ -566,8 +566,8 @@ contains
     call restore_vector_data(u%values, u_data)
     call restore_vector_data(v%values, v_data)
     call restore_vector_data(p%values, p_data)
-    call restore_vector_data(p%x_gradients, p_x_gradients_data)
-    call restore_vector_data(p%y_gradients, p_y_gradients_data)
+    call restore_vector_data(p%x_gradients, dpdx_data)
+    call restore_vector_data(p%y_gradients, dpdy_data)
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
     ! Update vectors on exit (just in case)
@@ -659,7 +659,7 @@ contains
 
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
-    integer(ccs_int) :: idxnb
+    integer(ccs_int) :: index_nb
     
     ! Update vector to make sure data is up to date
     call update(pp%values)
@@ -680,8 +680,8 @@ contains
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, idxnb)
-          if (i < idxnb) then
+          call get_local_index(loc_nb, index_nb)
+          if (i < index_nb) then
             mf_prime = calc_mass_flux(zero_arr, zero_arr, &
                  pp_data, zero_arr, zero_arr, &
                  invAu_data, invAv_data, &

@@ -54,14 +54,14 @@ module fv
   !> @brief Sets the diffusion coefficient
   !
   !> @param[in] local_self_idx - the local cell index
-  !> @param[in] local_ngb_idx  - the local neigbouring cell index
+  !> @param[in] index_nb  - the local neigbouring cell index
   !> @param[in] cell_mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   !
   ! XXX: why is this a function when the equivalent advection ones are subroutines?
-  module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
+  module function calc_diffusion_coeff(local_self_idx, index_nb, cell_mesh) result(coeff)
     integer(ccs_int), intent(in) :: local_self_idx
-    integer(ccs_int), intent(in) :: local_ngb_idx
+    integer(ccs_int), intent(in) :: index_nb
     type(ccs_mesh), intent(in) :: cell_mesh
     real(ccs_real) :: coeff
   end function calc_diffusion_coeff
@@ -90,16 +90,16 @@ module fv
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
-  !> @param[in] p_x_gradients   - array containing pressure gradient in x
-  !> @param[in] p_y_gradients   - array containing pressure gradient in y
+  !> @param[in] dpdx   - array containing pressure gradient in x
+  !> @param[in] dpdy   - array containing pressure gradient in y
   !> @param[in] invAx    - array containing inverse momentum diagonal in x
   !> @param[in] invAy    - array containing inverse momentum diagonal in y
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, p, p_x_gradients, p_y_gradients, invAu, invAv, loc_f) result(flux)
+  module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: u, v
     real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: p_x_gradients, p_y_gradients
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
     real(ccs_real) :: flux

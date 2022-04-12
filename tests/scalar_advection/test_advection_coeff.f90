@@ -22,8 +22,8 @@ program test_advection_coeff
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 50
-  integer(ccs_int) :: self_idx, ngb_idx, local_idx
-  integer(ccs_int) :: ngb
+  integer(ccs_int) :: self_idx, index_nb, local_idx
+  integer(ccs_int) :: nb
   integer(ccs_int) :: direction, discretisation
   integer, parameter :: x_dir = 1, y_dir = 2
   integer, parameter :: central = -1, upwind = -2
@@ -63,9 +63,9 @@ program test_advection_coeff
         call get_vector_data(u_vec, u_data)
         call get_vector_data(v_vec, v_data)
 
-        do ngb = 1, 4
-          call get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
-          call run_advection_coeff_test(scalar, u_data, v_data, self_idx, ngb_idx, face_area, normal)
+        do nb = 1, 4
+          call get_cell_parameters(local_idx, nb, self_idx, index_nb, face_area, normal)
+          call run_advection_coeff_test(scalar, u_data, v_data, self_idx, index_nb, face_area, normal)
         end do
       
         call restore_vector_data(u_vec, u_data)
@@ -84,30 +84,30 @@ program test_advection_coeff
   !> area, and normal
   !
   !> @param[in] local_idx           - The cell's local index
-  !> @param[in] ngb                 - The neighbour we're interested in (range 1-4)
+  !> @param[in] nb                 - The neighbour we're interested in (range 1-4)
   !> @param[out] self_idx           - The cell's local index
-  !> @param[out] ngb_idx            - The neighbour's local index
+  !> @param[out] index_nb            - The neighbour's local index
   !> @param[out] face_area  - The surface area of the face between the cell and its neighbour
   !> @param[out] normal             - The face normal between the cell and its neighbour
-  subroutine get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
+  subroutine get_cell_parameters(local_idx, nb, self_idx, index_nb, face_area, normal)
     integer(ccs_int), intent(in) :: local_idx
-    integer(ccs_int), intent(in) :: ngb
+    integer(ccs_int), intent(in) :: nb
     integer(ccs_int), intent(out) :: self_idx
-    integer(ccs_int), intent(out) :: ngb_idx
+    integer(ccs_int), intent(out) :: index_nb
     real(ccs_real), intent(out) :: face_area
     real(ccs_real), intent(out), dimension(ndim) :: normal
 
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
+    type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     
     call set_cell_location(square_mesh, local_idx, self_loc)
     call get_local_index(self_loc, self_idx)
   
-    call set_neighbour_location(self_loc, ngb, ngb_loc)
-    call get_local_index(ngb_loc, ngb_idx)
+    call set_neighbour_location(self_loc, nb, loc_nb)
+    call get_local_index(loc_nb, index_nb)
 
-    call set_face_location(square_mesh, local_idx, ngb, face_loc)
+    call set_face_location(square_mesh, local_idx, nb, face_loc)
     call get_face_area(face_loc, face_area)
 
     call get_face_normal(face_loc, normal)
@@ -184,14 +184,14 @@ program test_advection_coeff
   !> @param[in] scalar      - The scalar field structure
   !> @param[in] u, v        - Arrays containing the velocity fields
   !> @param[in] self_idx    - The given cell's local index
-  !> @param[in] ngb_idx     - The neighbour's local index
+  !> @param[in] index_nb     - The neighbour's local index
   !> @param[in] face_area   - The surface area of the face between the cell and neighbour
   !> @param[in] face_normal - The normal to the face between the cell and neighbour
-  subroutine run_advection_coeff_test(phi, u, v, self_idx, ngb_idx, face_area, face_normal)
+  subroutine run_advection_coeff_test(phi, u, v, self_idx, index_nb, face_area, face_normal)
     class(field), intent(in) :: phi
     real(ccs_real), dimension(:), intent(in) :: u, v
     integer(ccs_int), intent(in) :: self_idx
-    integer(ccs_int), intent(in) :: ngb_idx
+    integer(ccs_int), intent(in) :: index_nb
     real(ccs_real), intent(in) :: face_area
     real(ccs_real), dimension(ndim), intent(in) :: face_normal
 
@@ -200,8 +200,8 @@ program test_advection_coeff
     real(ccs_real) :: expected_coeff
 
     !! Compute mass flux
-    mf = 0.5_ccs_real * (u(self_idx) + u(ngb_idx)) * face_normal(1) &
-         + 0.5_ccs_real * (v(self_idx) + v(ngb_idx)) * face_normal(2)
+    mf = 0.5_ccs_real * (u(self_idx) + u(index_nb)) * face_normal(1) &
+         + 0.5_ccs_real * (v(self_idx) + v(index_nb)) * face_normal(2)
     
     select type(phi)
       type is(central_field)
