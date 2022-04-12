@@ -36,10 +36,10 @@ program facevalues
     call set_vector_location(face, vec_sizes)
 
     call set_size(par_env, square_mesh, vec_sizes)
-    call create_vector(vec_sizes, mf%vec)
+    call create_vector(vec_sizes, mf%values)
 
     ! ! View the contents of the vector
-    ! call vec_view(vec_sizes, mf%vec)
+    ! call vec_view(vec_sizes, mf%values)
 
     call cleanup_parallel_environment(par_env)
 
