@@ -382,8 +382,8 @@ contains
 
   function rhs_val(i, f) result(r)
 
-    integer(ccs_int), intent(in) :: i !> Cell index
-    integer(ccs_int), intent(in), optional :: f !> Face index (local wrt cell)
+    integer(ccs_int), intent(in) :: i !< Cell index
+    integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
 
     type(cell_locator) :: cell_location
     type(face_locator) :: face_location

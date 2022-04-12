@@ -18,8 +18,8 @@ program ldc
 
   implicit none
 
-  character(len=:), allocatable :: case_name   !> Case name
-  character(len=:), allocatable :: ccs_config_file  !> Config file for CCS
+  character(len=:), allocatable :: case_name   !< Case name
+  character(len=:), allocatable :: ccs_config_file  !< Config file for CCS
 
   class(parallel_environment), allocatable :: par_env
 
@@ -46,8 +46,8 @@ program ldc
   integer(ccs_int), dimension(5) :: bnd_region
   integer(ccs_int), dimension(5) :: bnd_type
   
-  integer(ccs_int) :: irank !> MPI rank ID
-  ! integer(ccs_int) :: isize !> Size of MPI world
+  integer(ccs_int) :: irank !< MPI rank ID
+  ! integer(ccs_int) :: isize !< Size of MPI world
 
   double precision :: start_time, end_time
 
@@ -93,7 +93,7 @@ program ldc
 
     character(len=*), intent(in) :: config_filename
     
-    class(*), pointer :: config_file_pointer  !> Pointer to CCS config file
+    class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
     character(len=error_length) :: error
 
     config_file_pointer => parse(config_filename, error=error)

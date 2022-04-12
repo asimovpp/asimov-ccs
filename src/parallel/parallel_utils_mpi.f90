@@ -20,7 +20,7 @@ submodule (parallel) parallel_utils_mpi
   
     class(parallel_environment), intent(in) :: par_env
     
-    integer :: ierr !> Error code
+    integer :: ierr !< Error code
 
     select type (par_env)
       type is (parallel_environment_mpi)
@@ -46,8 +46,8 @@ submodule (parallel) parallel_utils_mpi
     integer(ccs_int), optional, intent(inout) :: cps
     character(len=:), optional, allocatable, intent(out) :: case_name
 
-    character(len=1024) :: arg !> argument string
-    integer(ccs_int) :: nargs !> number of arguments
+    character(len=1024) :: arg !< argument string
+    integer(ccs_int) :: nargs !< number of arguments
     integer(ccs_int) :: arg_len
 
     arg_len = 0
@@ -60,10 +60,10 @@ submodule (parallel) parallel_utils_mpi
     
           if(arg(1:6) == '--ccs_') then
           select case (arg)
-            case ('--ccs_m') !> problems size
+            case ('--ccs_m') !< problems size
               call get_command_argument(nargs+1, arg)
               read(arg, '(I5)') cps
-            case ('--ccs_case') !> case name
+            case ('--ccs_case') !< case name
               call get_command_argument(nargs+1, length=arg_len, value=arg)
               if(present(case_name)) then
                 allocate(character(len=arg_len) :: case_name)

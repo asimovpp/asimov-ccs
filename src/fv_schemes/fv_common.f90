@@ -99,7 +99,7 @@ contains
 
     integer(ccs_int) :: idxf
 
-    real(ccs_real) :: sgn !> Sign indicating face orientation
+    real(ccs_real) :: sgn !< Sign indicating face orientation
 
     mat_coeffs%setter_mode = add_mode
 
@@ -363,20 +363,20 @@ contains
     real(ccs_real) :: flux
 
     ! Local variables
-    logical :: is_boundary                         !> Boundary indicator
-    type(cell_locator) :: loc_p                    !> Primary cell locator
-    type(neighbour_locator) :: loc_nb              !> Neighbour cell locator
-    integer(ccs_int) :: index_nb                   !> Neighbour cell index
-    real(ccs_real) :: flux_corr                    !> Flux correction
-    real(ccs_real), dimension(ndim) :: dx          !> Cell-cell distance
-    real(ccs_real) :: dxmag                        !> Cell-cell distance magnitude
-    real(ccs_real), dimension(ndim) :: face_normal !> (local) face-normal array
-    real(ccs_real) :: Vp                           !> Primary cell volume
-    real(ccs_real) :: V_nb                         !> Neighbour cell volume
-    real(ccs_real) :: Vf                           !> Face "volume"
-    real(ccs_real) :: invAp                        !> Primary cell inverse momentum coefficient
-    real(ccs_real) :: invA_nb                      !> Neighbour cell inverse momentum coefficient
-    real(ccs_real) :: invAf                        !> Face inverse momentum coefficient
+    logical :: is_boundary                         !< Boundary indicator
+    type(cell_locator) :: loc_p                    !< Primary cell locator
+    type(neighbour_locator) :: loc_nb              !< Neighbour cell locator
+    integer(ccs_int) :: index_nb                   !< Neighbour cell index
+    real(ccs_real) :: flux_corr                    !< Flux correction
+    real(ccs_real), dimension(ndim) :: dx          !< Cell-cell distance
+    real(ccs_real) :: dxmag                        !< Cell-cell distance magnitude
+    real(ccs_real), dimension(ndim) :: face_normal !< (local) face-normal array
+    real(ccs_real) :: Vp                           !< Primary cell volume
+    real(ccs_real) :: V_nb                         !< Neighbour cell volume
+    real(ccs_real) :: Vf                           !< Face "volume"
+    real(ccs_real) :: invAp                        !< Primary cell inverse momentum coefficient
+    real(ccs_real) :: invA_nb                      !< Neighbour cell inverse momentum coefficient
+    real(ccs_real) :: invAf                        !< Face inverse momentum coefficient
     
     call get_boundary_status(loc_f, is_boundary)
     if (.not. is_boundary) then

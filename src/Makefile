@@ -8,7 +8,7 @@ space := $(null) $(null)
 # NEED_CMP decides if full compilation is required or not
 # e.g. if the build is a simple clean, makedepf90 does not need to be invoked
 NEED_CMP = yes
-ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs doxy docs-latex))
+ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs ford doxy docs-latex))
   NEED_CMP = no
 endif
 
@@ -49,7 +49,7 @@ RULE_DEPS=$(DEP_PREFIX)/rules.deps
 # check makedepf90 version
 MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
-IGNORE = "create_boundary_conditions_bfs.f90 create_boundary_conditions_poisson.f90 discretisation_mod.f90 create_boundary_conditions_mod.f90 create_boundary_conditions_tgv.f90 spatial.f90"
+IGNORE = " "
 
 ALL_SRC = $(shell find $(CCS_DIR)/src/ -type f -name '*.f90')
 ifeq ($(CCS_PROPRIETARY),yes)
@@ -123,7 +123,9 @@ endif
 
 docs: doxy 
 doxy:
-	doxygen doxygen.cfg
+	doxygen .doxygen.cfg
+ford:
+	ford -d $(CCS_DIR)/src --exclude_dir doc .documentation_settings.ford
 docs-latex: doxy
 	make -C latex
 clean-docs:

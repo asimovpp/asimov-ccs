@@ -53,17 +53,17 @@ contains
 
     type(ccs_mesh) :: square_mesh
 
-    integer(ccs_int) :: istart    !> The (global) starting index of a partition
-    integer(ccs_int) :: iend      !> The (global) last index of a partition
-    integer(ccs_int) :: i         !> Loop counter
-    integer(ccs_int) :: ii        !> Zero-indexed loop counter (simplifies some operations)
-    integer(ccs_int) :: ictr      !> Local index counter
-    integer(ccs_int) :: fctr      !> Cell-local face counter
-    integer(ccs_int) :: comm_rank !> The process ID within the parallel environment
-    integer(ccs_int) :: comm_size !> The size of the parallel environment
+    integer(ccs_int) :: istart          !< The (global) starting index of a partition
+    integer(ccs_int) :: iend            !< The (global) last index of a partition
+    integer(ccs_int) :: i               !< Loop counter
+    integer(ccs_int) :: ii              !< Zero-indexed loop counter (simplifies some operations)
+    integer(ccs_int) :: ictr            !< Local index counter
+    integer(ccs_int) :: fctr            !< Cell-local face counter
+    integer(ccs_int) :: comm_rank       !< The process ID within the parallel environment
+    integer(ccs_int) :: comm_size       !< The size of the parallel environment
 
-    integer(ccs_int) :: index_nb     !> The local index of a neighbour cell
-    integer(ccs_int) :: global_index_nb    !> The global index of a neighbour cell
+    integer(ccs_int) :: index_nb        !< The local index of a neighbour cell
+    integer(ccs_int) :: global_index_nb !< The global index of a neighbour cell
 
     select type(par_env)
       type is (parallel_environment_mpi)
@@ -173,16 +173,16 @@ contains
         square_mesh%nhalo = square_mesh%ntotal - square_mesh%nlocal
 
         allocate(square_mesh%xc(ndim, square_mesh%ntotal))    
-        allocate(square_mesh%xf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
+        allocate(square_mesh%xf(ndim, 4, square_mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
         allocate(square_mesh%vol(square_mesh%ntotal))
         allocate(square_mesh%Af(4, square_mesh%nlocal))    
-        allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !> @note Currently hardcoded as a 2D mesh!
+        allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
 
-        square_mesh%vol(:) = square_mesh%h**2 !> @note Mesh is square and 2D
+        square_mesh%vol(:) = square_mesh%h**2 !< @note Mesh is square and 2D
         square_mesh%nf(:, :, :) = 0.0_ccs_real
         square_mesh%xc(:, :) = 0.0_ccs_real
         square_mesh%xf(:, :, :) = 0.0_ccs_real
-        square_mesh%Af(:, :) = square_mesh%h  !> @note Mesh is square and 2D
+        square_mesh%Af(:, :) = square_mesh%h  !< @note Mesh is square and 2D
 
         associate(h => square_mesh%h)
           do i = 1_ccs_int, square_mesh%ntotal
@@ -263,9 +263,9 @@ contains
     integer(ccs_int), intent(in) :: global_index_nb
     type(ccs_mesh), intent(inout) :: meshobj
 
-    integer(ccs_int) :: ng !> The current number of cells (total = local + halos)
-    logical :: found        !> Indicates whether a halo cell was already present
-    integer(ccs_int) :: i  !> Cell iteration counter
+    integer(ccs_int) :: ng !< The current number of cells (total = local + halos)
+    logical :: found        !< Indicates whether a halo cell was already present
+    integer(ccs_int) :: i  !< Cell iteration counter
     
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= meshobj%nlocal)) then
       ! Neighbour is local
@@ -354,9 +354,9 @@ contains
     integer(ccs_int) :: self_idx, local_idx
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
-    integer(ccs_int) :: nfaces_int       !> Internal face count
-    integer(ccs_int) :: nfaces_bnd       !> Boundary face count
-    integer(ccs_int) :: nfaces_interface !> Process interface face count
+    integer(ccs_int) :: nfaces_int       !< Internal face count
+    integer(ccs_int) :: nfaces_bnd       !< Boundary face count
+    integer(ccs_int) :: nfaces_interface !< Process interface face count
     logical :: is_boundary
     logical :: is_local
 
@@ -403,13 +403,13 @@ contains
     type(ccs_mesh), intent(inout) :: cell_mesh
 
     ! Local variables
-    type(cell_locator) :: self_loc !> Current cell
-    type(neighbour_locator) :: loc_nb !> Neighbour
+    type(cell_locator) :: self_loc          !< Current cell
+    type(neighbour_locator) :: loc_nb       !< Neighbour
     integer(ccs_int) :: index_nb, local_idx
     integer(ccs_int) :: face_idx
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
-    integer(ccs_int) :: icnt  !> Face index counter
+    integer(ccs_int) :: icnt                !< Face index counter
     logical :: is_boundary
 
     icnt = 0
