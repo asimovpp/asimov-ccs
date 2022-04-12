@@ -404,16 +404,11 @@ contains
 
     ! Local variables
     type(cell_locator) :: self_loc !> Current cell
-    type(cell_locator) :: ngb_cell_loc !> Neighbour of current cell
     type(neighbour_locator) :: loc_nb !> Neighbour
-    !type(neighbour_locator) :: loc_nb_nb !> Neighbour of neighbour
-    !type(face_locator) :: face_loc
     integer(ccs_int) :: index_nb, local_idx
-    !integer(ccs_int) :: index_nb_nb, face_idx
     integer(ccs_int) :: face_idx
-    !integer(ccs_int) :: nnb, nnb_nb
     integer(ccs_int) :: nnb
-    integer(ccs_int) :: j!,k
+    integer(ccs_int) :: j
     integer(ccs_int) :: icnt  !> Face index counter
     logical :: is_boundary
 
@@ -437,21 +432,7 @@ contains
           else
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
-            call set_cell_location(cell_mesh, index_nb, ngb_cell_loc)
-          !  call count_neighbours(ngb_cell_loc, nnb_nb)
-          !  do k = 1, nnb_nb
-          !    call set_neighbour_location(ngb_cell_loc, k, loc_nb_nb)
-          !    call get_local_index(loc_nb_nb, index_nb_nb)
-          !    if (index_nb_nb == local_idx) then
-          !      call set_face_location(cell_mesh, index_nb, k, face_loc)
-          !      call get_local_index(face_loc, face_idx)
-          !      exit ! Exit the loop, as found shared face
-          !    else if (k == nnb_nb) then
-          !      print *, "ERROR: Failed to find face in owning cell"
-          !      stop 1
-          !    endif
-          !  end do
-            face_idx = get_neighbour_face_index(cell_mesh, ngb_cell_loc, local_idx, index_nb)
+            face_idx = get_neighbour_face_index(cell_mesh, local_idx, index_nb)
             call set_face_index(local_idx, j, face_idx, cell_mesh)
           endif
         else
@@ -463,9 +444,8 @@ contains
 
   end subroutine set_cell_face_indices
 
-  function get_neighbour_face_index(mesh, ngb_cell_loc, local_idx, index_nb) result(face_idx)
+  function get_neighbour_face_index(mesh, local_idx, index_nb) result(face_idx)
     type(ccs_mesh), intent(in) :: mesh
-    type(cell_locator), intent(in) :: ngb_cell_loc !> Neighbour of current cell
     integer(ccs_int), intent(in) :: local_idx
     integer(ccs_int), intent(in) :: index_nb
     integer(ccs_int) :: face_idx
@@ -473,13 +453,15 @@ contains
     ! Local variables
     integer(ccs_int) :: k
     integer(ccs_int) :: nnb_nb
+    type(cell_locator) :: loc_nb 
     type(neighbour_locator) :: loc_nb_nb
     type(face_locator) :: face_loc
     integer(ccs_int) :: index_nb_nb
 
-    call count_neighbours(ngb_cell_loc, nnb_nb)
+    call set_cell_location(mesh, index_nb, loc_nb)
+    call count_neighbours(loc_nb, nnb_nb)
     do k = 1, nnb_nb
-      call set_neighbour_location(ngb_cell_loc, k, loc_nb_nb)
+      call set_neighbour_location(loc_nb, k, loc_nb_nb)
       call get_local_index(loc_nb_nb, index_nb_nb)
       if (index_nb_nb == local_idx) then
         call set_face_location(mesh, index_nb, k, face_loc)
