@@ -6,11 +6,11 @@ contains
 
   !> @brief Constructor for default matrix values
   !
-  !> param[in/out] matrix_descriptor - the initialised matrix values
-  module subroutine initialise_matrix(matrix_descriptor)
-    type(matrix_spec), intent(inout) :: matrix_descriptor
-    matrix_descriptor%par_env => null()
-    matrix_descriptor%par_env => null()
+  !> param[in/out] mat_properties - the initialised matrix values
+  module subroutine initialise_matrix(mat_properties)
+    type(matrix_spec), intent(inout) :: mat_properties
+    mat_properties%par_env => null()
+    mat_properties%par_env => null()
   end subroutine initialise_matrix
 
   !> @brief Setter for global matrix size
@@ -18,25 +18,25 @@ contains
   !> param[in] par_env                - the parallel environment where 
   !!                                    the matrix resides
   !> param[in] mesh               - the mesh object
-  !> param[in/out] matrix_descriptor  - the matrix data object
-  module subroutine set_matrix_size(par_env, mesh, matrix_descriptor)
+  !> param[in/out] mat_properties  - the matrix data object
+  module subroutine set_matrix_size(par_env, mesh, mat_properties)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
     class(ccs_mesh), target, intent(in) :: mesh
-    type(matrix_spec), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: mat_properties
 
-    matrix_descriptor%mesh => mesh
-    matrix_descriptor%par_env => par_env
+    mat_properties%mesh => mesh
+    mat_properties%par_env => par_env
   end subroutine set_matrix_size
 
   !> @brief Setter for matrix number of non-zeros
   !
   !> param[in] nnz                   - the number of non-zeros
-  !> param[in/out] matrix_descriptor - the matrix data object
-  module subroutine set_nnz(nnz, matrix_descriptor)
+  !> param[in/out] mat_properties - the matrix data object
+  module subroutine set_nnz(nnz, mat_properties)
     integer(ccs_int), intent(in) :: nnz
-    type(matrix_spec), intent(inout) :: matrix_descriptor
+    type(matrix_spec), intent(inout) :: mat_properties
 
-    matrix_descriptor%nnz = nnz
+    mat_properties%nnz = nnz
   end subroutine  set_nnz
 
 end submodule

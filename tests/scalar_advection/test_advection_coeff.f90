@@ -18,7 +18,7 @@ program test_advection_coeff
   use petsctypes, only: vector_petsc
 
   type(ccs_mesh) :: mesh
-  type(vector_spec) :: vec_sizes
+  type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 50
@@ -51,11 +51,11 @@ program test_advection_coeff
         call stop_test(message)
       end if
 
-      call initialise(vec_sizes)
-      call set_size(par_env, mesh, vec_sizes)
-      call create_vector(vec_sizes, scalar%values)
-      call create_vector(vec_sizes, u%values)
-      call create_vector(vec_sizes, v%values)
+      call initialise(vec_properties)
+      call set_size(par_env, mesh, vec_properties)
+      call create_vector(vec_properties, scalar%values)
+      call create_vector(vec_properties, u%values)
+      call create_vector(vec_properties, v%values)
 
       call set_velocity_fields(mesh, direction, u, v)
 

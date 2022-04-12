@@ -9,10 +9,10 @@ submodule (pv_coupling) pv_coupling_simple
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
-  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data
+  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
-                   mult, scale, zero
+                   mult, zero
   use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
@@ -46,8 +46,8 @@ contains
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invAu, invAv
     
-    type(vector_spec) :: vec_sizes
-    type(matrix_spec) :: mat_sizes
+    type(vector_spec) :: vec_properties
+    type(matrix_spec) :: mat_properties
     type(equation_system)    :: lin_system
     type(bc_config) :: bcs
 
@@ -55,25 +55,25 @@ contains
     
     ! Initialise linear system
     print *, "NONLINEAR: init"
-    call initialise(mat_sizes)
-    call initialise(vec_sizes)
+    call initialise(vec_properties)
+    call initialise(mat_properties)
     call initialise(lin_system)
 
     ! Create coefficient matrix
     print *, "NONLINEAR: setup matrix"
-    call set_size(par_env, mesh, mat_sizes)
-    call set_nnz(5, mat_sizes)
-    call create_matrix(mat_sizes, M)
+    call set_size(par_env, mesh, mat_properties)
+    call set_nnz(5, mat_properties)
+    call create_matrix(mat_properties, M)
 
     ! Create RHS vector
     print *, "NONLINEAR: setup RHS"
-    call set_size(par_env, mesh, vec_sizes)
-    call create_vector(vec_sizes, source)
+    call set_size(par_env, mesh, vec_properties)
+    call create_vector(vec_properties, source)
 
     ! Create vectors for storing inverse of velocity central coefficients
     print *, "NONLINEAR: setup ind coeff"
-    call create_vector(vec_sizes, invAu)
-    call create_vector(vec_sizes, invAv)
+    call create_vector(vec_properties, invAu)
+    call create_vector(vec_properties, invAv)
     
     ! Get pressure gradient
     print *, "NONLINEAR: compute grad p"
@@ -344,7 +344,7 @@ contains
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     print *, "P': negate RHS"
-    call scale(-1.0_ccs_real, vec)
+    call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
     
     allocate(vec_values%indices(1))

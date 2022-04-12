@@ -15,7 +15,7 @@ program test_ghost_cells
 
   implicit none
 
-  type(vector_spec) :: vector_data
+  type(vector_spec) :: vec_properties
   type(ccs_mesh) :: mesh
   class(ccs_vector), allocatable :: v
   real(ccs_real), dimension(:), pointer :: values
@@ -32,11 +32,11 @@ program test_ghost_cells
   mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
 
   ! Specify vector size based on the mesh
-  call initialise(vector_data)
-  call set_size(par_env, mesh, vector_data)
+  call initialise(vec_properties)
+  call set_size(par_env, mesh, vec_properties)
 
   ! Create the vector
-  call create_vector(vector_data, v)
+  call create_vector(vec_properties, v)
 
   ! Retried initial vector values
   call get_vector_data(v, values)

@@ -27,7 +27,7 @@ program simple
 
   class(parallel_environment), allocatable, target :: par_env
   type(ccs_mesh)             :: mesh
-  type(vector_spec) :: vec_sizes
+  type(vector_spec) :: vec_properties
 
   class(field), allocatable :: u, v, p, pp, mf
 
@@ -64,21 +64,21 @@ program simple
   allocate(face_field :: mf)
 
   ! Create and initialise field vectors
-  call initialise(vec_sizes)
+  call initialise(vec_properties)
 
   print *, "Create vectors"
-  call set_vector_location(cell, vec_sizes)
-  call set_size(par_env, mesh, vec_sizes)
-  call create_vector(vec_sizes, u%values)
-  call create_vector(vec_sizes, v%values)
-  call create_vector(vec_sizes, p%values)
-  call create_vector(vec_sizes, p%x_gradients)
-  call create_vector(vec_sizes, p%y_gradients)
-  call create_vector(vec_sizes, p%z_gradients)
-  call create_vector(vec_sizes, pp%values)
-  call create_vector(vec_sizes, pp%x_gradients)
-  call create_vector(vec_sizes, pp%y_gradients)
-  call create_vector(vec_sizes, pp%z_gradients)
+  call set_vector_location(cell, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, u%values)
+  call create_vector(vec_properties, v%values)
+  call create_vector(vec_properties, p%values)
+  call create_vector(vec_properties, p%x_gradients)
+  call create_vector(vec_properties, p%y_gradients)
+  call create_vector(vec_properties, p%z_gradients)
+  call create_vector(vec_properties, pp%values)
+  call create_vector(vec_properties, pp%x_gradients)
+  call create_vector(vec_properties, pp%y_gradients)
+  call create_vector(vec_properties, pp%z_gradients)
   call update(u%values)
   call update(v%values)
   call update(p%values)
@@ -90,9 +90,9 @@ program simple
   call update(pp%y_gradients)
   call update(pp%z_gradients)
 
-  call set_vector_location(face, vec_sizes)
-  call set_size(par_env, mesh, vec_sizes)
-  call create_vector(vec_sizes, mf%values)
+  call set_vector_location(face, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, mf%values)
   call update(mf%values)
   
   ! Initialise velocity field
