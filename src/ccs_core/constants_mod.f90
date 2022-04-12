@@ -11,8 +11,8 @@ module constants
   private
   
   !> @brief Constants to control setting values in objects
-  integer(ccs_int), public, parameter :: add_mode = 1    !> Add to existing value
-  integer(ccs_int), public, parameter :: insert_mode = 2 !> Overwrite existing value
+  integer(ccs_int), public, parameter :: add_mode = 1    !< Add to existing value
+  integer(ccs_int), public, parameter :: insert_mode = 2 !< Overwrite existing value
 
   !> @brief String constants
   character(len=4), public, parameter :: geoext = ".geo" 
@@ -20,7 +20,7 @@ module constants
   character(len=12), public, parameter :: ccsconfig = "_config.yaml" 
 
   !> @brief Dimensionality of problems
-  integer(ccs_int), public, parameter :: ndim = 3        !> Always 3D
+  integer(ccs_int), public, parameter :: ndim = 3        !< Always 3D
 
   !> @brief Discretisation schemes
   integer(ccs_int), public, parameter :: uds = 0

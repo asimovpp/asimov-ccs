@@ -182,7 +182,7 @@ program ldc
 
     character(len=*), intent(in) :: config_filename
     
-    class(*), pointer :: config_file_pointer  !> Pointer to CCS config file
+    class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
     character(len=error_length) :: error
 
     config_file_pointer => parse(config_filename, error=error)

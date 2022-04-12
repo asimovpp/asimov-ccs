@@ -19,7 +19,7 @@ submodule (parallel) parallel_env_mpi
 
     class(parallel_environment), allocatable, intent(out) :: par_env
 
-    integer :: ierr !> Error code
+    integer :: ierr !< Error code
 
     allocate(parallel_environment_mpi :: par_env)
 
@@ -56,7 +56,7 @@ submodule (parallel) parallel_env_mpi
 
     class(parallel_environment), intent(in) :: par_env
     
-    integer :: ierr !> Error code
+    integer :: ierr !< Error code
 
     select type (par_env)
 

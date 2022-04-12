@@ -25,7 +25,7 @@ contains
     type(equation_system), intent(in) :: linear_system
     class(linear_solver), allocatable, intent(out) :: solver
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     allocate(linear_solver_petsc :: solver)
     
@@ -85,7 +85,7 @@ contains
     
     class(linear_solver), intent(inout) :: solver
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type(solver)
       type is(linear_solver_petsc)
