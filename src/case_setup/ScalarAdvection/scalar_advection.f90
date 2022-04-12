@@ -30,7 +30,7 @@ program scalar_advection
   class(linear_solver), allocatable :: scalar_solver
 
   type(vector_spec) :: vec_sizes
-  type(matrix_spec) :: mat_sizes
+  type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
   type(ccs_mesh) :: square_mesh
   type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
@@ -58,14 +58,14 @@ program scalar_advection
   allocate(upwind_field :: scalar)
 
   ! Initialise with default values
-  call initialise(mat_sizes)
+  call initialise(mat_properties)
   call initialise(vec_sizes)
   call initialise(scalar_equation_system)
 
   ! Create stiffness matrix
-  call set_size(par_env, square_mesh, mat_sizes)
-  call set_nnz(5, mat_sizes) 
-  call create_matrix(mat_sizes, M)
+  call set_size(par_env, square_mesh, mat_properties)
+  call set_nnz(5, mat_properties) 
+  call create_matrix(mat_properties, M)
 
   ! Create right-hand-side and solution vectors
   call set_size(par_env, square_mesh, vec_sizes)
