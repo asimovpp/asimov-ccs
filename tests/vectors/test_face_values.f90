@@ -15,7 +15,7 @@ program test_face_values
   
     class(field), allocatable :: mf
 
-    type(vector_spec) :: vec_sizes
+    type(vector_spec) :: vec_properties
     type(ccs_mesh) :: square_mesh
 
     ! integer(ccs_int) :: nfaces
@@ -28,10 +28,10 @@ program test_face_values
 
     allocate(face_field :: mf)
 
-    call initialise(vec_sizes)
+    call initialise(vec_properties)
 
     ! Setup vector size to store face-centred values (rather than cell-centred values)
-    call set_vector_location(face, vec_sizes)
+    call set_vector_location(face, vec_properties)
 
     call set_size(par_env, square_mesh, vec_sizes)
     call create_vector(vec_sizes, mf%values)
@@ -39,4 +39,3 @@ program test_face_values
     call fin()
   
   end program test_face_values
-  

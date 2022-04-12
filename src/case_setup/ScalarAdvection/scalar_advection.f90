@@ -29,7 +29,7 @@ program scalar_advection
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
 
-  type(vector_spec) :: vec_sizes
+  type(vector_spec) :: vec_properties
   type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
   type(ccs_mesh) :: square_mesh
@@ -58,8 +58,8 @@ program scalar_advection
   allocate(upwind_field :: scalar)
 
   ! Initialise with default values
+  call initialise(vec_properties)
   call initialise(mat_properties)
-  call initialise(vec_sizes)
   call initialise(scalar_equation_system)
 
   ! Create stiffness matrix
@@ -68,11 +68,11 @@ program scalar_advection
   call create_matrix(mat_properties, M)
 
   ! Create right-hand-side and solution vectors
-  call set_size(par_env, square_mesh, vec_sizes)
-  call create_vector(vec_sizes, source)
-  call create_vector(vec_sizes, solution)
-  call create_vector(vec_sizes, scalar%values)
-  call create_vector(vec_sizes, mf%values)
+  call set_size(par_env, square_mesh, vec_properties)
+  call create_vector(vec_properties, source)
+  call create_vector(vec_properties, solution)
+  call create_vector(vec_properties, scalar%values)
+  call create_vector(vec_properties, mf%values)
 
   ! Set advection velocity
   call set_advection_velocity(square_mesh, mf)
