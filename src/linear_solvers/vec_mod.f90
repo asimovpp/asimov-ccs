@@ -126,9 +126,9 @@ module vec
     
     !> @brief Constructor for default vector values
     !
-    !> param[in/out] vector_descriptor - the initialised vector values
-    module subroutine initialise_vector(vector_descriptor)
-      type(vector_spec), intent(inout) :: vector_descriptor
+    !> param[in/out] vec_properties - the initialised vector values
+    module subroutine initialise_vector(vec_properties)
+      type(vector_spec), intent(inout) :: vec_properties
     end subroutine initialise_vector
 
     !> @brief Setter for vector size
@@ -138,11 +138,11 @@ module vec
     !> param[in]     geometry          - the mesh - contains the
     !!                                   information to set the
     !!                                   vector size
-    !> param[in/out] vector_descriptor - the vector data object
-    module subroutine set_vector_size(par_env, geometry, vector_descriptor)
+    !> param[in/out] vec_properties - the vector data object
+    module subroutine set_vector_size(par_env, geometry, vec_properties)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
       class(ccs_mesh), target, intent(in) :: geometry
-      type(vector_spec), intent(inout) :: vector_descriptor
+      type(vector_spec), intent(inout) :: vec_properties
     end subroutine set_vector_size
 
     !> @brief Gets the data in a given vector
@@ -165,9 +165,9 @@ module vec
 
     !> @brief Set vector values to be located at either cell-centre or face
     !
-    module subroutine set_vector_location(loc, vector_descriptor)
+    module subroutine set_vector_location(loc, vec_properties)
       integer(ccs_int), intent(in) :: loc
-      type(vector_spec), intent(inout) :: vector_descriptor
+      type(vector_spec), intent(inout) :: vec_properties
     end subroutine set_vector_location
 
     !> @brief Replace each component of a vector by its reciprocal
