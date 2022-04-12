@@ -85,9 +85,9 @@ contains
 
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
+    type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
-    integer(ccs_int) :: self_idx, ngb_idx, local_idx, ngb_local_idx
+    integer(ccs_int) :: self_idx, index_nb, local_idx, ngb_local_idx
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
     integer(ccs_int) :: n_ngb
@@ -116,14 +116,14 @@ contains
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       do j = 1, n_ngb
-        call set_neighbour_location(self_loc, j, ngb_loc)
-        call get_boundary_status(ngb_loc, is_boundary)
+        call set_neighbour_location(self_loc, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
           diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
 
-          call get_global_index(ngb_loc, ngb_idx)
-          call get_local_index(ngb_loc, ngb_local_idx)
+          call get_global_index(loc_nb, index_nb)
+          call get_local_index(loc_nb, ngb_local_idx)
 
           call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)
@@ -151,7 +151,7 @@ contains
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
           
-          call pack_entries(1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff, mat_coeffs)
+          call pack_entries(1, mat_counter, self_idx, index_nb, adv_coeff + diff_coeff, mat_coeffs)
           mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
@@ -233,7 +233,7 @@ contains
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
+    type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     integer(ccs_int) :: self_idx, local_idx
     integer(ccs_int) :: j
@@ -265,11 +265,11 @@ contains
       call count_neighbours(self_loc, n_ngb)
       ! Calculate contribution from neighbours
       do j = 1, n_ngb
-        call set_neighbour_location(self_loc, j, ngb_loc)
-        call get_boundary_status(ngb_loc, is_boundary)
+        call set_neighbour_location(self_loc, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
-          ! call get_global_index(ngb_loc, ngb_idx)
-          call get_local_index(ngb_loc, mesh_ngb_idx)
+          ! call get_global_index(loc_nb, index_nb)
+          call get_local_index(loc_nb, mesh_ngb_idx)
 
           call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)

@@ -314,10 +314,10 @@ contains
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: vec_values
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
+    type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     class(linear_solver), allocatable :: lin_solver
-    integer(ccs_int) :: self_idx, ngb_idx, local_idx
+    integer(ccs_int) :: self_idx, index_nb, local_idx
     integer(ccs_int) :: j
     integer(ccs_int) :: n_ngb
     integer(ccs_int) :: row, col
@@ -387,13 +387,13 @@ contains
         
         if (.not. is_boundary) then
           ! Interior face
-          call set_neighbour_location(self_loc, j, ngb_loc)
-          call get_global_index(ngb_loc, ngb_idx)
-          call get_local_index(ngb_loc, idxnb)
+          call set_neighbour_location(self_loc, j, loc_nb)
+          call get_global_index(loc_nb, index_nb)
+          call get_local_index(loc_nb, idxnb)
           coeff_f = (1.0 / cell_mesh%h) * face_area
 
           call get_volume(self_loc, Vp)
-          call get_volume(ngb_loc, Vnb)
+          call get_volume(loc_nb, Vnb)
           Vf = 0.5_ccs_real * (Vp + Vnb)
 
           invAp = 0.5_ccs_real * (invAu_data(local_idx) + invAv_data(local_idx))
@@ -404,7 +404,7 @@ contains
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
-          col = ngb_idx
+          col = index_nb
         else
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
