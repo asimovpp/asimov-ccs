@@ -317,7 +317,7 @@ contains
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     class(linear_solver), allocatable :: lin_solver
-    integer(ccs_int) :: self_idx, index_nb, local_idx
+    integer(ccs_int) :: self_idx, global_index_nb, local_idx
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     integer(ccs_int) :: row, col
@@ -337,7 +337,7 @@ contains
     real(ccs_real) :: invAnb
     real(ccs_real) :: invAf
 
-    integer(ccs_int) :: idxnb
+    integer(ccs_int) :: index_nb
 
     integer(ccs_int) :: cps   ! Cells per side
     integer(ccs_int) :: rcrit ! Global index of approximate central cell
@@ -388,8 +388,8 @@ contains
         if (.not. is_boundary) then
           ! Interior face
           call set_neighbour_location(self_loc, j, loc_nb)
-          call get_global_index(loc_nb, index_nb)
-          call get_local_index(loc_nb, idxnb)
+          call get_global_index(loc_nb, global_index_nb)
+          call get_local_index(loc_nb, index_nb)
           coeff_f = (1.0 / cell_mesh%h) * face_area
 
           call get_volume(self_loc, Vp)
@@ -397,14 +397,14 @@ contains
           Vf = 0.5_ccs_real * (Vp + Vnb)
 
           invAp = 0.5_ccs_real * (invAu_data(local_idx) + invAv_data(local_idx))
-          invAnb = 0.5_ccs_real * (invAu_data(idxnb) + invAv_data(idxnb))
+          invAnb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb))
           invAf = 0.5_ccs_real * (invAp + invAnb)
 
           coeff_f = -(Vf * invAf) * coeff_f
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
-          col = index_nb
+          col = global_index_nb
         else
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
@@ -501,7 +501,7 @@ contains
 
     logical :: is_boundary            !> Boundary indicator
     type(neighbour_locator) :: loc_nb !> Neighbour cell locator object
-    integer(ccs_int) :: idxnb        !> Neighbour cell index
+    integer(ccs_int) :: index_nb        !> Neighbour cell index
     
     real(ccs_real) :: mib !> Cell mass imbalance
 
@@ -543,8 +543,8 @@ contains
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, idxnb)
-          if (idxnb < i) then
+          call get_local_index(loc_nb, index_nb)
+          if (index_nb < i) then
             face_area = -face_area
           else
             ! Compute mass flux through face
@@ -659,7 +659,7 @@ contains
 
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
-    integer(ccs_int) :: idxnb
+    integer(ccs_int) :: index_nb
     
     ! Update vector to make sure data is up to date
     call update(pp%values)
@@ -680,8 +680,8 @@ contains
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, idxnb)
-          if (i < idxnb) then
+          call get_local_index(loc_nb, index_nb)
+          if (i < index_nb) then
             mf_prime = calc_mass_flux(zero_arr, zero_arr, &
                  pp_data, zero_arr, zero_arr, &
                  invAu_data, invAv_data, &

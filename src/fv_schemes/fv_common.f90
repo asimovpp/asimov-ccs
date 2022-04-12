@@ -366,7 +366,7 @@ contains
     logical :: is_boundary                          !> Boundary indicator
     type(cell_locator) :: loc_p                     !> Primary cell locator
     type(neighbour_locator) :: loc_nb               !> Neighbour cell locator
-    integer(ccs_int) :: idxnb                      !> Neighbour cell index
+    integer(ccs_int) :: index_nb                      !> Neighbour cell index
     real(ccs_real) :: flux_corr                    !> Flux correction
     real(ccs_real), dimension(ndim) :: dx          !> Cell-cell distance
     real(ccs_real) :: dxmag                        !> Cell-cell distance magnitude
@@ -386,12 +386,12 @@ contains
         
         call set_cell_location(mesh, idxp, loc_p)
         call set_neighbour_location(loc_p, j, loc_nb)
-        call get_local_index(loc_nb, idxnb)
+        call get_local_index(loc_nb, index_nb)
 
         call get_face_normal(loc_f, face_normal)
         
-        flux = 0.5_ccs_real * ((u(idxp) + u(idxnb)) * face_normal(1) &
-             + (v(idxp) + v(idxnb)) * face_normal(2))
+        flux = 0.5_ccs_real * ((u(idxp) + u(index_nb)) * face_normal(1) &
+             + (v(idxp) + v(index_nb)) * face_normal(2))
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -399,9 +399,9 @@ contains
         call get_distance(loc_p, loc_nb, dx)
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(idxnb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((p_x_gradients(idxp) + p_x_gradients(idxnb)) * face_normal(1) &
-             + (p_y_gradients(idxp) + p_y_gradients(idxnb)) * face_normal(2))
+        flux_corr = -(p(index_nb) - p(idxp)) / dxmag
+        flux_corr = flux_corr + 0.5_ccs_real * ((p_x_gradients(idxp) + p_x_gradients(index_nb)) * face_normal(1) &
+             + (p_y_gradients(idxp) + p_y_gradients(index_nb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, Vnb)
@@ -409,7 +409,7 @@ contains
 
         ! This is probably not quite right ...
         invAp = 0.5_ccs_real * (invAu(idxp) + invAv(idxp))
-        invAnb = 0.5_ccs_real * (invAu(idxnb) + invAv(idxnb))
+        invAnb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
         invAf = 0.5_ccs_real * (invAp + invAnb)
         
         flux_corr = (Vf * invAf) * flux_corr
@@ -417,7 +417,7 @@ contains
         ! Apply correction
         flux = flux + flux_corr
 
-        if (idxp > idxnb) then
+        if (idxp > index_nb) then
           ! XXX: making convention to point from low to high cell!
           flux = -flux
         end if
