@@ -90,16 +90,16 @@ module fv
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
-  !> @param[in] p_x_gradients   - array containing pressure gradient in x
-  !> @param[in] p_y_gradients   - array containing pressure gradient in y
+  !> @param[in] dpdx   - array containing pressure gradient in x
+  !> @param[in] dpdy   - array containing pressure gradient in y
   !> @param[in] invAx    - array containing inverse momentum diagonal in x
   !> @param[in] invAy    - array containing inverse momentum diagonal in y
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, p, p_x_gradients, p_y_gradients, invAu, invAv, loc_f) result(flux)
+  module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: u, v
     real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: p_x_gradients, p_y_gradients
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
     real(ccs_real) :: flux

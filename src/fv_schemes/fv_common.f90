@@ -347,16 +347,16 @@ contains
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
-  !> @param[in] p_x_gradients   - array containing pressure gradient in x
-  !> @param[in] p_y_gradients   - array containing pressure gradient in y
+  !> @param[in] dpdx   - array containing pressure gradient in x
+  !> @param[in] dpdy   - array containing pressure gradient in y
   !> @param[in] invAu    - array containing inverse momentum diagonal in x
   !> @param[in] invAv    - array containing inverse momentum diagonal in y
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, p, p_x_gradients, p_y_gradients, invAu, invAv, loc_f) result(flux)
+  module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: u, v
     real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: p_x_gradients, p_y_gradients
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
 
@@ -400,8 +400,8 @@ contains
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(idxnb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((p_x_gradients(idxp) + p_x_gradients(idxnb)) * face_normal(1) &
-             + (p_y_gradients(idxp) + p_y_gradients(idxnb)) * face_normal(2))
+        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(idxp) + dpdx(idxnb)) * face_normal(1) &
+             + (dpdy(idxp) + dpdy(idxnb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, Vnb)
