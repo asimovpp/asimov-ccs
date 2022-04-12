@@ -9,7 +9,7 @@ program test_advection_coeff
   use constants, only: ndim, insert_mode
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
   use mesh_utils, only : build_square_mesh
-  use vec, only : create_vector, get_vec_properties, restore_vec_properties
+  use vec, only : create_vector, get_vector_data, restore_vector_data
   use fv, only: calc_advection_coeff, calc_cell_coords
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
@@ -60,16 +60,16 @@ program test_advection_coeff
       call set_velocity_fields(square_mesh, direction, u, v)
 
       associate (u_vec => u%values, v_vec => v%values)
-        call get_vec_properties(u_vec, u_data)
-        call get_vec_properties(v_vec, v_data)
+        call get_vector_data(u_vec, u_data)
+        call get_vector_data(v_vec, v_data)
 
         do ngb = 1, 4
           call get_cell_parameters(local_idx, ngb, self_idx, ngb_idx, face_area, normal)
           call run_advection_coeff_test(scalar, u_data, v_data, self_idx, ngb_idx, face_area, normal)
         end do
       
-        call restore_vec_properties(u_vec, u_data)
-        call restore_vec_properties(v_vec, v_data)
+        call restore_vector_data(u_vec, u_data)
+        call restore_vector_data(v_vec, v_data)
       end associate
 
       call tidy_velocity_fields(scalar, u, v)
