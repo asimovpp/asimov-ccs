@@ -1,0 +1,843 @@
+\documentclass[11pt]{report}
+
+\usepackage{epcc}
+\usepackage{color}
+\usepackage{marginnote}
+\usepackage[pdftex]{graphicx}
+\usepackage{subcaption}
+\usepackage{newfloat}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage[svgnames]{xcolor}
+  \definecolor{diffstart}{named}{Grey}
+  \definecolor{diffincl}{named}{Green}
+  \definecolor{diffrem}{named}{Red}
+\usepackage{listings}
+  \lstdefinelanguage{diff}{
+    basicstyle=\ttfamily\small,
+    morecomment=[f][\color{diffstart}]{@@},
+    morecomment=[f][\color{diffincl}]{+\ },
+    morecomment=[f][\color{diffrem}]{-\ },
+  }
+
+\hypersetup{colorlinks}
+\usepackage{float}
+
+\hyphenpenalty=500
+
+% This is for ``figures'' which are to have a caption
+% labelled ``Benchmark''.
+\DeclareFloatingEnvironment[
+  name=Benchmark,
+  placement=tbhp,
+  within=section,
+]{benchmark}
+
+
+\definecolor{terminalcolour}{gray}{0.96}
+
+% Code fragments are gray...
+\lstdefinestyle{codefragment}{
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{terminalcolour},
+  xleftmargin=0pt
+}
+
+% Benchmark tables
+\lstdefinestyle{terminalverbatim}{
+  basicstyle=\small\ttfamily,
+  xleftmargin=0pt
+}
+
+\lstset{showstringspaces=false}
+
+%\renewcommand{\refname}{Notes and References}
+\newcommand{\accs}{\texttt{ASiMoV-CCS}}
+
+
+\begin{document}
+\lstset{style=codefragment}
+
+
+\title{ASiMoV CCS Developers' Guide\\\small{Release: v0.2}}
+
+\date{March 2022}
+\author{EPCC}
+
+\makeEPCCtitle
+
+\centerline{\sc ASiMoV-CSS design considerations, style and process guide.}
+
+\tableofcontents
+\pagebreak
+
+\bigskip
+
+%\hrule
+
+\bigskip
+
+% CONTENT HERE
+\chapter{ASiMoV-CSS design considerations}
+\accs\ is a CFD and combustion code designed to scale to large numbers of cores. It follows a ``separation of concerns'' design that separates interfaces from implementations, and physics from parallelisation. There is a distinction between ``user'' and ``back-end'' code - i.e. case specific code (such as the setup of a particular test) is the ``user'' code, while the core functionality provided by \accs\ is the ``back-end'' code. This is implemented in a modular fashion by separating the interface declarations contained within modules from their implementation in submodules. As a result, it is possible to implement multiple physics models and parallelisation strategies by writing separate submodules, each providing a distinct solution. 
+
+\section{Code structure}
+\label{code_structure}
+\begin{itemize}
+  \item The organisation of \accs\ is as follows:
+  \begin{itemize}
+    \item Code pertaining to a particular functionality should be contained in its own directory (e.g. everything to do with the solver belongs in \texttt{src/linear\_solvers}
+    \item Interface declarations are in \texttt{\_mod.f90} files (e.g. declarations pertaining to matrices are found in \texttt{mat\_mod.f90})
+    \item Procedure definitions that are commonly used among different implementations may be defined in \texttt{\_common.f90} files (e.g. \texttt{mat\_common.f90})
+    \item Procedure definitions that pertain to a particular implementation should be in submodules, stored in an appropriately named directory (e.g. the PETSc solver implementation is in \texttt{petsc} and the corresponding matrix manipulation functions are defined in \texttt{mat\_petsc.f90})
+    \item Only one implementation of a procedure is allowed per submodule, but multiple implementations can exist in different submodules, each implementing the same interface.
+    \item Only one implementation can be linked to, with the implementation to be used being specified in the \accs\ configuration file. 
+  \end{itemize}
+  \item Individual test cases and input files are contained in \texttt{src/case\_setup}.
+\end{itemize}
+
+\subsection{Design of interfaces}
+
+A basic design principle of \accs\ is that the code should follow a data-in/data-out design. Functionally everything looks the same, with an object containing input data and an output object from the result of the operation. Consequently, type-bound procedures are to be avoided as they would break this principle; a generic interface should be used instead. Take the example of performing a parallel update of a data structure on either a matrix or a
+vector. Rather than using type-bound procedures and writing
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:tbp} ]
+call M%update()
+call v%update()
+\end{lstlisting}
+a generic interface (resolving to a type-specific procedure at compile-time) should be used
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:gen-interface} ]
+call update(M)
+call update(v)
+
+!! In a "utilities module"
+interface update
+  module procedure update_mat
+  module procedure update_vec
+end interface
+
+!! In "Matrix module"
+subroutine update_mat(M)
+  type(matrix) :: M
+  ...
+end subroutine
+\end{lstlisting}
+
+\subsection{Example: Structure of Poisson solver}
+The goal of the Poisson solver is to compute the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation. As specified in Section \ref{code_structure}, multiple different solvers and parallelisation methods may be implemented by using different submodules in \accs . At present, the parallelisation uses MPI and the solver takes advantage of a Krylov method provided by PETSc. The implementation is as follows:
+\begin{itemize}
+  \item Start by creating a parallel environment with \texttt{initialise\_parallel\_environment} (the MPI+PETSc implementation is found in the submodule \texttt{src/parallel/parallel\_env\_mpi\_petsc.f90}, which will set the MPI communicator, get the number of ranks and rank IDs, and initialise PETSc. The interface declaration is found in \texttt{src/parallel/parallel\_mod.f90}). 
+  \item The general approach to solving this matrix equation numerically (and in parallel) is to setup the matrix and vector structures split over the number of ranks provided, create the solver structure, and solve it with, for example, a Krylov solver.
+  \item The vectors, $u$ and $b$, matrix $M$, and a corresponding linear system are initialised with the \texttt{initialise} interface. This sets their global and local sizes to default values and the parallel environment to \texttt{null}.
+  \item The stiffness matrix, $M$, is created, first by setting the sizes (\texttt{set\_global\_size}), followed by the number of non-zero entries (\texttt{set\_nnz}), creating a PETSc matrix with \texttt{create\_matrix}.
+  \item The matrix values are computed with \texttt{discretise\_poisson}, updated to have Dirichlet BCs with \texttt{apply\_dirichlet\_bcs}, and communicated between the ranks with a combination of \texttt{begin\_update} and \texttt{end\_update}.
+  \item The $u$ and $b$ vectors are set in a similar fashion, with the values of \texttt{b} being set with \texttt{eval\_rhs}.
+  \item A linear system object is setup with the \texttt{M}, \texttt{u} and \texttt{b} with \texttt{set\_linear\_system}, for which a PETSc solver object is created (\texttt{create\_solver}), which is then solved using the \texttt{solve} interface (in this case this calls \texttt{KSPSolve}). 
+  \item The solution stored in \texttt{u} is compared against the exact solution \texttt{ustar}.
+  \item The PETSC and MPI environments are finalised with a call to \texttt{cleanup\_parallel\_environment}.
+\end{itemize}
+While only the PETSc solver is currently implemented, care has been taken to separate code which is specific to this implementation (i.e. ``user'' code) into its own submodule in the \texttt{src/linear\_solvers/petsc} subdirectory. As a result a user adding a new solver implementation need only write implementations for the functions found in the \texttt{petsc} directory, rather than having to rewrite the implementations for all the functions declared in \texttt{mat\_mod.f90, vec\_mod.f90,} and \texttt{solver\_mod.f90}. 
+
+%\subsection{Notes}
+%\begin{itemize}
+%  \item Is there some way to consolidate different cases into one main program file and have individual configuration/parameter files for each case?
+%  \item Check how different submodules are chosen at when configuring.
+%\end{itemize}
+
+\section{Configuring the code}
+\begin{itemize}
+  \item The code configuration options are specified in \texttt{src/config.yaml}, with the list of all possible configurations in \texttt{src/build\_tools/config\_mapping.yaml}
+  \item At compile, time these files as well as compilation dependencies generated by \texttt{makedepf90}\footnote{Requires \texttt{makedepf90} version 2.9} are processed by \texttt{src/build\_tools/generate\_link\_deps.py} and appropriate files are chosen for compiling and linking
+  \item If the appropriate interfaces with the function declarations exist, after writing the relevant function definitions in a separate directory, the \texttt{config\_mapping.json} file needs to be updated with the names of the new implementation files to take into account the new possible configurations.
+  \item It is important to note that only one module specifying a given procedure may be linked during compilation. Therefore if one needs two implementations of a given algorithm at runtime, they \emph{cannot} be implemented in separate submodules for a single procedure. 
+\end{itemize}
+
+\chapter{Style guide}
+This document also describes the coding style and practices that must be adopted for \accs . Following the recommendations in this guide will result in consistent and clear code, with good readability and maintainability. In addition,  some of the practices described below will result in additional compile-time checks that will reduce the number of bugs that are introduced into the code.
+
+\section{Fortran standard}
+Adhering to the Fortran standard means the code is portable and can be compiled using a wide range of compilers. 
+Using language extensions that are only supported by a subset of compilers must be avoided at all cost. All code 
+must follow the Fortran 2018 standard and the file extension \texttt{.f90} should be used by default. In order to 
+verify that the standard is being following, the code should be built with compile-time checks for standard 
+adherence enabled, in addition to full warnings and error on warning:
+\begin{itemize}
+\item Cray Fortran: \texttt{crayftn -en -herror\_on\_warning}
+\item Gnu Fortran: \texttt{gfortran -std=f2018 -Wall -Wpedantic -Werror}
+\item Intel Fortran: \texttt{ifort -std18}
+\item AMD Fortran: \texttt{flang -Mstandard}
+\end{itemize}
+
+\section{Naming conventions and capitalisation}
+The following naming and capitalisation conventions should be followed:
+\begin{itemize}
+  \item All program units, variables and parameters should have meaningful names. The only exception are loop counters, which
+  are commonly single letter variables.
+  \item Fortran keywords should be regarded as reserved words and not be used for program units or variables.
+  \item Long names, for example those that consist of more than one word, 
+  should be written in ``pothole'' case style, e.g. \texttt{my\_long\_variable\_name}.
+  \item Module file names should use the suffix \texttt{\_mod} to distinguish them from
+    (implementation) files, i.e. \texttt{foo\_mod.f90}
+    \begin{itemize}
+    \item Corresponding implementations go in submodules suffixed with the name of the
+      implementation, \textit{i.e.}  \texttt{foo\_implementationX.f90},
+      \texttt{foo\_implementationY.f90}, \textit{etc.}
+    \end{itemize}
+  \item All source code, including Fortran keywords, must be written in lower case. The only exception are preprocessor 
+  macros, which must be all capitals, however preprocessor macros should be avoided whenever possible.
+\end{itemize}
+
+\section{Layout and formatting}
+The following is a list of recommended practices for layout and formatting for \accs .
+
+\begin{itemize}
+\item Templates are provided for modules, submodules, functions, subroutines, and programs. The templates should always be as a 
+starting point for new code.
+\item Indent blocks by 2 spaces. Where possible, comments should be indented with the code within a block.
+\item Use space and blank lines where appropriate to format your code to improve readability.
+\item Where possible, avoid using continuation lines in a statement.
+\item Avoid putting multiple statements on the same line. In particular - no one-line \texttt{if}
+  statements!
+\item Each program unit should follow a defined structure. The intended behaviour of the unit should be clearly described in the header.
+\item Comments should start with a single \texttt{!} indented to the correct current column. A blank line should be left before (but not after) the 
+comment line. The exception is for one line comments which can be indented within the code or placed after the statement.
+\item Each module should be in a separate file.
+\end{itemize}
+
+\section{Code style}
+
+\subsection{Declaring variables}
+Always use \texttt{implicit none} to force variable declaration, this should be applied at the
+module level and can additionally be applied at the subroutine level.
+
+Use proper type declarations, rather than the common non-standard style:
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_bad} ]
+integer*4 i ! Bad
+\end{lstlisting}
+Instead, prefer (notice also the \texttt{::} separator between the type and variable(s)):
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_good} ]
+use iso_fortran_env
+
+integer(kind=int32) :: i ! Good
+\end{lstlisting}
+Note that although the first example is non-standard, it does guarantee a 4-byte (32-bit) integer
+type. The second example is commonly written as:
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_ok} ]
+integer(kind=4) :: i ! Good
+\end{lstlisting}
+which is usually of the same meaning, however is not portable. Using the kind variables defined by
+\texttt{iso\_fortran\_env} ensures portability.
+
+Better still, define a \texttt{kind} variable and use throughout, \textit{e.g.}
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:decl_best} ]
+! In a common module, such as mod_constants.f90
+use iso_fortran_env                     ! Provided from F2008
+
+integer, parameter :: accs_int = int32  ! 4 byte integer
+integer, parameter :: accs_sgl = real32 ! single precision "float"
+integer, parameter :: accs_dbl = real64 ! double precision
+
+! Somewhere else when declaring variables
+integer(kind=accs_int) :: a
+
+real(kind=accs_sgl) :: b
+real(kind=accs_dbl) :: c
+\end{lstlisting}
+The advantage of this approach is that changing the precision of variables requires only a single code
+change.
+
+\subsection{Setting variables}
+
+With the exception of parameters, see \textit{e.g.} listing~\ref{lst:decl_best}, variables should
+not be set in the declaration as otherwise this implies an \textit{implicit} \texttt{SAVE} attribute,
+\textit{i.e.}:
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+integer :: a = 1
+\end{lstlisting}
+is equivalent to
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+integer, save :: a = 1
+\end{lstlisting}
+which is likely not what is wanted.
+
+\subsubsection{Real number literals}
+
+A real number literal should always be followed by at least one figure after the decimal point, even
+in the case of whole integer values. In addition, to ensure the \texttt{kind} is correct, it should be added as \texttt{\_kind\_variable}. The example
+below demonstrates both these points:
+
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+real(accs_real) :: a, b, c, d
+
+a = 1              ! Bad - no values after decimal point, nor type specifier
+b = 2.34           ! Bad - no type specifier
+
+c = 1.0_accs_real  ! Good
+d = 2.34_accs_real ! Good
+\end{lstlisting}
+
+Note that Fortran does not do type promotion, which means this also applies when calling procedures with a
+constant value. It is good practice to explicitly add the \texttt{kind} to ensures in the case of a generic 
+interface that the correct implementationis used.
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily]
+call foo(a, b, 1.0)           ! May not compile - interface may not resolve
+
+call foo(a, b, 1.0_accs_real) ! Good - interface is explicit
+\end{lstlisting}
+
+\subsection{Array notation}
+In order to make it clear that variables used in an assignment are arrays, always use array notation.
+
+Common practice, bad for readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:array_bad}
+]
+integer :: a(10, 20), b(10, 20)
+a = b ! Bad
+\end{lstlisting}
+
+Better practice, improved readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:array_good}
+]
+integer :: a(10, 20), b(10, 20)
+a(:) = b(:) ! Good
+\end{lstlisting}
+
+To ensure consistency of declarations with arrays of deferred size, the above can also be improved
+by adding the dimensions to the declaration:
+\begin{lstlisting}[language=fortran,basicstyle=\fontsize{9}{10}\ttfamily\label{lst:array_good_decl}
+]
+integer, dimension(10, 20) :: a, b
+a(:) = b(:) ! Good
+\end{lstlisting}
+
+\subsection{Parentheses}
+Improve readability of mathematical formulas by explicity using parentheses.
+
+Common practice, bad for readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:parens_bad}
+]
+integer :: a, b, c, d
+a = b * c + d ! Bad
+\end{lstlisting}
+
+Better practice, improved readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:parens_good}
+]
+integer :: a, b, c, d
+a = (b * c) + d ! Good
+\end{lstlisting}
+
+\subsection{Logical expressions}
+True/false conditional statements should use logical rather than relational expressions (i.e. with variables of 
+type \texttt{logical} rather than integers). 
+
+Common practice, bad for readability and not portable across compilers\footnote{This can lead to subtle bugs as not all Fortran
+  compilers treat the truth value of non-zeros in the same way (and not necessarily as someone
+  familiar with C would expect!)}:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:logic_bad}
+]
+integer :: n
+
+n = 1
+
+if(n) then ! Bad
+  write(*,*) "condition is true"
+end if
+\end{lstlisting}
+
+Better practice for readability, but still not portable:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:logic_better}
+]
+integer :: n
+
+n = 1
+
+if(n == 1) then ! Better
+  write(*,*) "condition is true"
+end if
+\end{lstlisting}
+
+Good practice - unambiguous style for improved readability and fully portable:
+
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:logic_good}
+]
+logical :: n
+
+n = .true.
+
+if(n .eqv. .true.) then ! Good
+  write(*,*) "condition is true"
+end if
+\end{lstlisting}
+
+
+
+Comparisons involving \texttt{logical} variables should use the 
+following logical expression operators:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:logic_op}
+]
+.and.  ! true if both A and B are true 
+.eqv.  ! true if both A and B are true, or both are false
+.neqv. ! true if either A or B is true, but false if both are true
+.not.  ! true if A is false, and false if A is true
+.or.   ! true if either A, B, or both, are true
+.xor.  ! same as .neqv. 
+\end{lstlisting}
+
+\subsection{Relational expressions}
+Relational expressions (i.e. not involving \texttt{logical} variables) should use the following operators:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:rel_op}
+]
+<   ! less than
+<=  ! less than or equal to
+>   ! greater than
+>=  ! greater than or equal to
+==  ! equal to
+/=  ! not equal to
+\end{lstlisting}
+
+\subsection{Spaces between keywords}
+The following keywords should be written with spaces, rather than as a single word:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:keyword_spaces}
+]
+else if
+end if
+end do
+end forall
+end function
+end subroutine
+end interface
+end select
+end type
+end where
+end module
+end submodule
+end program
+select case
+\end{lstlisting}
+
+\subsection{Dummy argument intent}
+All dummy arguments should be given a declared intent, both to allow for compile time checks and to aid readability.
+
+Common practice, no error checking and bad for readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:intent_bad}
+]
+subroutine example(a, b, c)
+
+  integer :: a, b, c
+
+  b = a
+  c = c + b
+
+end subroutine
+\end{lstlisting}
+
+Better practice, compile time error checking and improved readability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:intent_good}
+]
+subroutine example(a, b, c)
+
+  integer, intent(in)    :: a ! input - used but not modified
+  integer, intent(out)   :: b ! output - modified and returned
+  integer, intent(inout) :: c ! both - value is modified in place
+  
+  b = a
+  c = c + b
+
+end subroutine
+\end{lstlisting}
+
+\textit{\textbf{NOTE:} pay attention to compiler warnings about "unset dummy arguments with intent out" or similar - if unset the value is undefined, this can lead to hard to track down bugs!}
+
+\textit{\textbf{ALSO NOTE:} \texttt{allocatable} \texttt{intent(out)} dummy arguments, and \texttt{allocatable} components of an \texttt{intent(out)} type, are deallocated at the beginning of a procedure. Ensure they are defined as \texttt{intent(inout)} if they are allocated outside the procedure.}
+
+\subsection{Dummy argument order}
+Dummy arguments should consistently for the order \texttt{intent(in)}, \texttt{intent(inout)}, \texttt{intent(out)}. The output from a procedure should be the last argument(s).
+\subsection{Optional dummy arguments}
+\label{sec:opt-dummy-args}
+
+Dummy arguments may be declared as \texttt{optional}, \textit{e.g.}:
+\begin{lstlisting}[language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:intent_good}]
+subroutine example(a, b, opt_c)
+
+  integer, intent(in)           :: a ! input - used but not modified
+  integer, intent(in), optional :: c ! (optional) input
+  integer, intent(out)          :: b ! output - modified and returned
+  
+  b = a
+  if (present(c)) then
+     b = b + c
+  end if
+
+end subroutine
+\end{lstlisting}
+and their presence tested for with \texttt{if(present(<optional arg>))} as shown.
+This can be a useful way of extending a function/subroutine without affecting the behaviour of
+existing calls, however it does result in potentially difficult to understand code as the calls
+\texttt{call example(a, b)} and \texttt{call example(a, b, c)} will clearly be very different.
+Therefore, during the \texttt{v0.x} series of releases it is recommended to avoid the use of
+\texttt{optional} if at all possible.
+
+\subsection{Accessing struct members}
+Accessing members of structs must be done using the \texttt{\%} operator, even though some compilers will support 
+the C-style ``\texttt{.}'' alternative.
+
+Allowed by some compilers, bad practice and bad for portability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:struct_bad}
+]
+type example
+  integer :: a
+end type
+
+integer :: b
+
+b = example.a ! Bad - C-style member access, not Fortran standard
+\end{lstlisting}
+
+Fortran standard, good practice and good for portability:
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:struct_good}
+]
+type example
+  integer :: a
+end type
+
+integer :: b
+
+b = example%a ! Good - Fortran standard member access
+\end{lstlisting}
+
+\subsection{Type selection constructs}
+The \texttt{select type} constructs must have default behaviour implemented, in order to avoid errors when there is no match 
+to the selected \texttt{type} or \texttt{class}. In addition, indentation should match that of the example below:
+
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:doxygen}
+]
+select type (par_env)
+
+  type is (parallel_environment_mpi)   
+    call mpi_finalize(ierr)
+    call error_handling(ierr, "mpi", par_env)
+
+  class default
+    write(*,*) "Unsupported parallel environment"
+
+end select
+\end{lstlisting}
+
+\subsection{Pure procedures}
+Subroutines and functions should be marked as \texttt{pure} whenever possible (i.e. when they are know to have no side-effects), 
+in order to guarantee that the compiler will routinely inline these procedures.
+
+\section{Comments}
+All comments should be written using tags understood by the doxygen documentation generator. A minimal comment
+block would consist of only the \texttt{@brief} tag (single sentence description of the functionality), a better comment
+block will also include an \texttt{@details} tag with a detailed description of the functionality that can span many 
+lines/sentences. For subroutines or subroutine interfaces, the \texttt{@param} tag is useful to describe the arguments.
+
+Other useful tags are:
+\begin{itemize}
+  \item \texttt{@todo}: Describe functionality that still needs to be implemented.
+  \item \texttt{@bug}: Give details of a bug that needs to be fixed, especially non-trivial fixes.
+  \item \texttt{@see}: Give reference to another program unit, e.g. to a parent module or a related subroutine.
+  \item \texttt{@build}: Submodule descriptor comments should include this tag if they have third-party dependencies, e.g. \texttt{@build mpi petsc}.
+\end{itemize}
+
+
+This is an example of a comment block for a simple subroutine that adds two integers:
+
+\begin{lstlisting}[
+	language=fortran,
+    basicstyle=\fontsize{9}{10}\ttfamily
+    \label{lst:doxygen}
+]
+!> @brief A subroutine to add two integers.
+
+!> @details Take two integers (a and b) as input and add them
+!> together to produce the `total' output
+!> 
+!> @param a Integer input
+!> @param b Integer input
+!> @param total Integer output, total of a and b
+
+subroutine add(a, b, total)
+
+  integer, intent(in)  :: a, b
+  integer, intent(out) :: total
+
+  total = a + b
+
+end subroutine add
+\end{lstlisting}
+
+
+\chapter{Development process guide}
+\accs\ follows an internal development and release cycle that is closely aligned with quarterly project review meetings. Ahead of 
+each meeting, a version will tagged with a release number $X.Y$, i.e. the first internal release will start at version $0.1$, which 
+is then incremented by $0.1$ for each subsequent release. 
+
+Any bug fixes or features that are added to the release between quarterly reviews will be tagged with $X.Y.Z$.
+
+\section{Git development process}
+To support the release cycle mentioned above, we follow the ``git flow'' method.
+The basic principle is that the \texttt{master} branch will contain tagged releases of the code and
+must always work (relative to what the goals of that release are), a parallel \texttt{develop}
+branch is where actual development activities will take place - code merged onto this branch should
+be tested but it is accepted the code in this branch may break occasionally.
+To develop a new feature/bugfix ``X'' a developer would create a new branch from \texttt{develop},
+\textit{e.g.}:
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:feature-branch}]
+git checkout develop
+git pull                  # Ensure your develop branch is up to date
+git checkout -b feature/X # Create a new branch for feature X
+\end{lstlisting}
+When the feature is complete it is ready to be merged back into \texttt{develop}:
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:feature-merge}]
+git checkout develop
+git pull                  # Ensure your develop branch is up to date
+git checkout feature/X
+git merge develop         # Ensure feature branch compatible with develop
+git checkout develop
+git merge feature/X
+\end{lstlisting}
+Once it is clear the merge is successful and the feature branch no longer needed, delete the feature
+branch with \texttt{git branch -D feature/X}.
+
+When the project is ready to start a new release, a release branch is created from \texttt{develop}:
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-branch}]
+git checkout develop
+git pull                    # Ensure your develop branch is up to date
+git checkout -b release/X.Y # Create a new branch for release X.Y
+\end{lstlisting}
+This branch can only receive bug fixes or updates to documentation - no new features can be added
+here.
+Once the release branch is stable, passing all tests, \textit{etc.} it is merged into \texttt{master}
+and tagged to create the new release:
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-merge}]
+git checkout main
+git pull                  # Ensure your main branch is up to date
+git checkout release/X.Y
+git merge main            # Ensure feature branch compatible with main
+git checkout main
+git merge release/X.Y
+git tag vX.Y              # Tag the release
+git push --tags           # Push the tagged release to the repository
+\end{lstlisting}
+This newly released version should be merged back into \texttt{develop} (which may have seen new
+features in the meantime) and development can continue.
+
+In the event that a bug is found in the released version, a bugfix branch should be used to resolve
+this, following a similar procedure to above:
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:bugfix-branch}]
+git checkout main
+git pull                   # Ensure your main branch is up to date
+git checkout -b bugfix/BUG # Create a new branch for bugfix BUG
+\end{lstlisting}
+This is then merged into \texttt{main} similarly to creating a new release:
+\begin{lstlisting}[language=sh, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:release-merge}]
+git checkout main
+git pull                  # Ensure your main branch is up to date
+git checkout bugfix/BUG
+git merge main            # Ensure feature branch compatible with main
+git checkout main
+git merge bugfix/BUG
+git tag vX.Y.Z            # Tag the bugfix
+git push --tags           # Push the tagged bugfix to the repository
+\end{lstlisting}
+Again, the newly released version should be merged back into \texttt{develop}.
+
+Further reading on this workflow can be found at
+\url{https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow}.
+
+\textbf{NOTE:} Finally, and importantly, the developer of a feature branch should \emph{not} merge their
+own branch into \texttt{develop} - when they are ready, notify the project so someone else can first review and merge the new code.
+
+\section{Git commit messages}
+Informative and concise commit messages are important for understanding the context of changes made. 
+Additionally, following these rules will help towards making sure that the commits themselves are targeted in scope and consistent in theme. 
+
+\begin{itemize}
+    \item Limit the subject line to about 50 characters. At 72 characters Git may truncate the message. 
+    \item If needed, put detailed information into the body of the commit message. Using \texttt{git commit} without the \texttt{-m} option will 
+    open a text editor for the message\footnote{either set the \texttt{EDITOR} or \texttt{GIT\_EDITOR} environment variables or use the 
+    \texttt{git config --global core.editor "<editor>"} command to set your editor for commit messages} -- this is a convenient way to write a 
+    commit message with both a subject line and body. 
+    \item Separate the subject line from the body with a blank line.
+    \item Use the imperative mood in the subject line, e.g. ``Fix initialisation bug'' instead of ``Fixed initialisation bug''.
+\end{itemize}
+
+\section{Issue tracking and bug fixing}
+An issue tracker is used to keep track of all developments, such as features and bugs fixes. The software release cycle is marked using 
+milestones. The following general rules must be adhered to:
+
+\begin{itemize}
+  \item All issues should be given a clear title and description, and they should be associated with a release milestone.
+  \item Issues that are actively being worked on must be moved from \emph{todo} to \emph{doing} (by changing the labels) to make it clear the issue is
+  being actively worked on.
+  \item Issues can be given new labels (e.g. \texttt{parallel IO} or \texttt{parmetis support}) to categorise them. These labels can then be used to group 
+  issues by topics that are related or dependent on each other.
+  \item When relating to a requirement, issue should be marked with the associated label (i.e. \emph{usability}, \emph{security}, ...).
+  \item Issues must not be marked as ``closed'' until the branch they have been developed under has been reviewed and merged into 
+  the \texttt{develop} branch.
+  \item Merge Requests should clearly summarise the changes that they introduce.
+  \item Merge Requests should use the keywords \texttt{Closes} or \texttt{Related to} to describe what issue they are referring to. 
+  For example, \texttt{Closes \#4} in a Merge Request description automatically closes issue \texttt{\#4} when the Merge Request 
+  is merged. \texttt{Related to \#5} flags \texttt{\#5} as a related issue, but it is not closed automatically. 
+\end{itemize}
+
+For bugs, the following additional rules apply:
+
+\begin{itemize}
+  \item Any bugs that are discovered during testing and development must be documented using the issue tracker and marked using the \emph{bug} label.
+  \item For each bug, there must be a detailed description of the bug and how it can be reproduced. If there is a known solution, this must also
+  be documented.
+  \item If a bug is critical, it must be marked as such using the \emph{critical} label.
+\end{itemize}
+
+\chapter{Testing}
+\accs\ development follows a ``TDD\footnote{Test Driven Development}-lite'' approach - new functionality should be developed with
+tests to ensure correctness now and in the future, however there is no requirement for a test/develop cycle for every line of code that is written.
+The test system is built and run using \texttt{LLVM LIT} - instructions are given in \S\ref{sec:build-runn-unit}.
+% The test system is built and run using \texttt{pFUnit} - installation instructions and an example
+% test are given in \S\ref{sec:build-runn-unit}.
+
+
+\section{Property-based testing}
+\label{subsec:prop-based-test}
+
+A challenge of testing numerical methods is knowing \textit{what is the right answer?}, as typically
+a numerical method is used when a problem cannot be solved analytically.
+Even when a problem can be solved, in a simple case the numerical solution is an approximation and
+the question becomes \textit{is this answer good enough?}
+
+Rather than test specific examples such as
+\begin{equation}
+  f_i=1, f_{i+1}=2, \Delta{}x=1 \Rightarrow \left. \frac{\delta f}{\delta x} \right|_{i+1/2} = 1
+\end{equation}
+property-based testing ensures that an implementation of a function (such as approximating a
+derivative) maintains certain properties, without necessarily needing to know the correct answer ---
+see Table~\ref{tab:cont-vs-disc-derivs} for an example of properties a discrete derivative
+approximation should maintain.
+An additional benefit of this approach is that properties can be tested over a wide range of
+randomly generated inputs, achieving much broader testing than would be possible with specific
+examples such as above.
+
+\section{Discretisation schemes}
+
+For a given discretisation scheme, the properties displayed in Table~\ref{tab:cont-vs-disc-derivs}
+are expected to hold
+
+
+\begin{table}[h]
+  \centering
+  \caption{Comparison of properties of continuous and discrete
+    derivatives}\label{tab:cont-vs-disc-derivs}
+  \begin{tabular}[h]{c|cc}
+    Property & Continuous & Discrete \\
+    \hline
+    Negation & $\dfrac{\partial \left(-f \right)}{\partial x} = - \dfrac{\partial f}{\partial x}$ &
+                                                                                                  $\dfrac{\delta
+                                                                                                  \left(
+                                                                                                  -f
+                                                                                                  \right)}{\delta
+                                                                                                  x}
+                                                                                                  =
+                                                                                                  - \dfrac{\delta
+                                                                                                  f}{\delta
+                                                                                                  x}$
+    \\
+    Scaling & $\dfrac{\partial \alpha f}{\partial x} = \alpha \dfrac{\partial f}{\partial x},\
+              \alpha=const$ & $\dfrac{\delta \alpha f}{\delta x} = \alpha \dfrac{\delta f}{\delta
+                              x},\ \alpha=const$ \\
+    Summation & $\dfrac{\partial \left( \alpha f + \beta g \right)}{\partial x} = \alpha
+                \dfrac{\partial f}{\partial x} + \beta \dfrac{\partial g}{\partial x}$ &
+                                                                                         $\dfrac{\delta
+                                                                                         \left(
+                                                                                         \alpha f +
+                                                                                         \beta g
+                                                                                         \right)}{\delta
+                                                                                         x} =
+                                                                                         \alpha\dfrac{\delta
+                                                                                         f}{\delta
+                                                                                         x} + \beta
+                                                                                         \dfrac{\delta
+                                                                                         g}{\delta x}$ \\
+    Exactness & --- & $\dfrac{\delta f^n\left(x\right)}{\delta x} = \dfrac{\partial
+                    f^n\left(x\right)}{\partial x},\ n < \mathcal{P}$
+  \end{tabular}
+\end{table}
+\textbf{NOTE:} The ``Exactness'' property means that for low-order schemes the product rule only applies
+in the special case that one of the variables is a constant, in which case it reduces to the
+``Scaling'' property.
+Analogous properties also hold for interpolations (the two being related).
+
+\section{Mesh}
+
+\subsection{Mesh partitioning and ordering}
+
+These are both in some sense sorting methods, so should maintain similar properties to a sorting
+scheme:
+\begin{itemize}
+\item a sorted list contains the same elements as an unsorted list
+\item sorting a sorted list should do nothing\footnote{This may not work for mesh
+    partitioning/ordering as often heuristics are involved.}
+\end{itemize}
+
+\section{Building, running and developing unit tests}
+\label{sec:build-runn-unit}
+
+Please refer to the readme at \texttt{src/build\_tools/build\_system\_readme.md}. 
+
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

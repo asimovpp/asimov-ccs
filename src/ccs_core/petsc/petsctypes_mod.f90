@@ -9,31 +9,37 @@ module petsctypes
   use petscvec, only : tVec
   use petscmat, only : tMat
 
-  use kinds, only : accs_err
-  use types, only : vector, matrix, linear_solver
+  use kinds, only : ccs_err, ccs_int
+  use types, only : ccs_vector, ccs_matrix, linear_solver
   
   implicit none
 
   private
 
   !> @brief Implements the vector class backed by a PETSc vector
-  type, public, extends(vector) :: vector_petsc
-     type(tVec) :: v      !> The PETSc vector
-     logical :: allocated !> Indicates whether the PETSc vector has been allocated
-   contains
-     final :: free_vector_petsc
+  type, public, extends(ccs_vector) :: vector_petsc
+    type(tVec) :: v      !< The PETSc vector
+    type(tVec) :: vl     !< The "local" PETSc vector (inc. ghost points)
+    logical :: allocated !< Indicates whether the PETSc vector has been allocated
+    logical :: ghosted   !< Does this vector have ghost points?
+    integer(ccs_int) :: mode !< Current mode for setting values
+    logical :: modeset        !< Is the current mode still valid? i.e. does vector need updated before switching modes?
+  contains
+    final :: free_vector_petsc
   end type vector_petsc
 
   !> @brief Implements the matrix class backed by a PETSc matrix
-  type, public, extends(matrix) :: matrix_petsc
-     type(tMat) :: M      !> The PETSc matrix
-     logical :: allocated !> Indicates whether the PETSc matrix has been allocated
+  type, public, extends(ccs_matrix) :: matrix_petsc
+     type(tMat) :: M      !< The PETSc matrix
+     logical :: allocated !< Indicates whether the PETSc matrix has been allocated
+    integer(ccs_int) :: mode !< Current mode for setting values
+    logical :: modeset        !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
    contains
      final :: free_matrix_petsc
   end type matrix_petsc
 
   type, public, extends(linear_solver) :: linear_solver_petsc
-     type(tKSP) :: KSP !> The PETSc solver
+     type(tKSP) :: KSP !< The PETSc solver
      logical :: allocated
    contains
      final :: free_linear_solver_petsc
@@ -64,11 +70,11 @@ contains
   !> @param[in/out] vector v - the vector to be destroyed.
   module subroutine free_vector_petsc(v)
     
-    use petscvec
+    use petscvec, only: VecDestroy
     
     type(vector_petsc), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     if (v%allocated) then
        call VecDestroy(v%v, ierr)
@@ -87,11 +93,11 @@ contains
   !> @param[in/out] matrix M - the matrix to be destroyed.
   module subroutine free_matrix_petsc(M)
     
-   use petscmat
+   use petscmat, only: MatDestroy
 
     type(matrix_petsc), intent(inout) :: M
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     if (M%allocated) then
        call MatDestroy(M%M, ierr)
@@ -111,11 +117,11 @@ contains
   !> @param[in/out] linear_solver solver - the linear solver to be destroyed.
   module subroutine free_linear_solver_petsc(solver)
     
-    use petscksp
+    use petscksp, only: KSPDestroy
 
     type(linear_solver_petsc), intent(inout) :: solver
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     if (solver%allocated) then
        call KSPDestroy(solver%KSP, ierr)

@@ -1,0 +1,79 @@
+!!! -*- mode: F90 -*-
+
+!> @brief Test module for mat_mod.f90
+module test_mat
+
+  use pFUnit
+  
+  use kinds, only : ccs_int, ccs_real
+  use types, only : matrix_values
+  
+  use mat
+
+  implicit none
+
+  private
+  public :: test_mat_packing
+
+contains
+
+  !> @brief Test case to ensure packing matrix coefficients doesn't result in out of range indices.
+  !
+  !> @details Packing matrix coefficients may modify the index according to the backend in use,
+  !!          however this should never result in an index range greater than the size of the
+  !!          matrix, i.e. (idx_max - idx_min) <= N --- I suppose this is possible for a backend
+  !!          using globally non-contiguous indices but that seems unlikely.
+  @test
+  subroutine test_mat_packing()
+
+    use utils, only : pack_entries
+
+    integer(ccs_int), parameter :: nnb = 4
+    integer(ccs_int), parameter :: stencil_size = 1 + nnb
+    integer(ccs_int) :: ridx, cidx
+
+    real(ccs_real) :: coeff, coeff_nb, coeff_p
+    type(matrix_values) :: mat_coeffs
+
+    integer(ccs_int) :: j
+    integer(ccs_int) :: idx_range
+
+    allocate(mat_coeffs%row_indices(1))
+    allocate(mat_coeffs%col_indices(stencil_size))
+    allocate(mat_coeffs%values(stencil_size))
+    
+    coeff_p = 0.0
+    
+    ridx = 1
+    do j = 1, nnb
+      cidx = 1 + j
+      
+      coeff = 1.0
+      coeff_nb = coeff
+      coeff_p = coeff_p - coeff
+      
+      call pack_entries(mat_coeffs, 1, j + 1, ridx, cidx, coeff_nb)
+    end do
+    cidx = 1
+    call pack_entries(mat_coeffs, 1, 1, ridx, cidx, coeff_p)
+
+    if (size(mat_coeffs%row_indices) > 1) then
+      idx_range = maxval(mat_coeffs%row_indices) - (minval(mat_coeffs%rglob) - 1)
+    else
+      idx_range = 0
+    end if
+    @assertTrue(idx_range <= stencil_size)
+
+    if (size(mat_coeffs%col_indices) > 1) then
+      idx_range = maxval(mat_coeffs%col_indices) - (minval(mat_coeffs%cglob) - 1)
+    else
+      idx_range = 0
+    end if
+    @assertTrue(idx_range <= stencil_size)
+    
+    deallocate(mat_coeffs%row_indices, mat_coeffs%col_indices, mat_coeffs%values)
+    
+  end subroutine test_mat_packing
+  
+end module test_mat
+  

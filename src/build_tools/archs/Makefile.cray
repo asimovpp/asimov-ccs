@@ -1,0 +1,14 @@
+FC = ftn
+FFLAGS = -ef -en -eF -M969
+ifeq ($(BUILD),debug)
+  # Add debugging (i.e. expensive) flags
+  FFLAGS += -G2
+else
+endif
+ifeq ($(PROFILE),yes)
+  FFLAGS += -hlist=msx 
+endif
+FFLAGS += -homp
+FFLAGS += -J$(OBJ_DIR)
+CAFFLAGS = -hcaf
+MPIRUN = srun
