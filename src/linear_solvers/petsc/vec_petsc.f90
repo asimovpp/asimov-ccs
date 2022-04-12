@@ -28,6 +28,8 @@ contains
     type(vector_init_data), intent(in) :: vec_dat
     class(ccs_vector), allocatable, intent(out) :: v
 
+    integer(ccs_int), dimension(:), allocatable :: global_halo_indices
+    integer(ccs_int) :: i
     integer(ccs_err) :: ierr !> Error code
 
     allocate(vector_petsc :: v)
@@ -44,11 +46,19 @@ contains
 
             select case(vec_dat%loc)
             case (cell)
-              call VecCreateGhost(par_env%comm, &
-                   mesh%nlocal, PETSC_DECIDE, &
-                   mesh%nhalo, &
-                   mesh%idx_global(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_ccs_int, &
-                   v%v, ierr)
+              associate(nhalo => mesh%nhalo, &
+                   nlocal => mesh%nlocal, &
+                   idx_global => mesh%idx_global)
+                allocate(global_halo_indices(nhalo))
+                do i = 1, nhalo
+                  global_halo_indices(i) = idx_global(i + nlocal) - 1_ccs_int
+                end do
+                call VecCreateGhost(par_env%comm, &
+                     nlocal, PETSC_DECIDE, &
+                     nhalo, global_halo_indices, &
+                     v%v, ierr)
+                deallocate(global_halo_indices)
+              end associate
               ! Vector has ghost points, store this information
               v%ghosted = .true.
             case (face)
