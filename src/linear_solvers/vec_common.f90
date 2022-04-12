@@ -23,13 +23,13 @@ contains
   !!                                   information to set the
   !!                                   vector size
   !> param[in/out] vector_descriptor - the vector data object
-  module subroutine set_vector_size(par_env, geometry, vector_descriptor)
+  module subroutine set_vector_size(par_env, mesh, vector_descriptor)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
-    class(ccs_mesh), target, intent(in) :: geometry
+    class(ccs_mesh), target, intent(in) :: mesh
     type(vector_spec), intent(inout) :: vector_descriptor
 
     vector_descriptor%par_env => par_env
-    vector_descriptor%mesh => geometry
+    vector_descriptor%mesh => mesh
   end subroutine set_vector_size
 
   !> @brief Set vector values to be located at either cell-centre or face
