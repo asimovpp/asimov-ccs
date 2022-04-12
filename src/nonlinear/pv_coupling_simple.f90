@@ -169,6 +169,8 @@ contains
 
   subroutine calculate_velocity_component(par_env, cell_mesh, cps, mf, p, component, bcs, M, vec, lin_sys, u, invAu)
 
+    use case_config, only: velocity_relax
+
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_mesh), intent(in)         :: cell_mesh
@@ -185,11 +187,6 @@ contains
     
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    real(ccs_real) :: alpha !< Underrelaxation factor
-
-    ! Set underrelaxation factor
-    ! TODO: read from input
-    alpha = 0.9_ccs_real
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -212,7 +209,7 @@ contains
     
     ! Underrelax the equations
     print *, "GV: underrelax u"
-    call underrelax(cell_mesh, alpha, u, invAu, M, vec)
+    call underrelax(cell_mesh, velocity_relax, u, invAu, M, vec)
     
     ! Store reciprocal of central coefficient
     print *, "GV: get u diag"
@@ -590,17 +587,13 @@ contains
   !> @brief Corrects the pressure field, using explicit underrelaxation
   subroutine update_pressure(pp, p)
 
+    use case_config, only: pressure_relax
+
     ! Arguments
     class(field), intent(in) :: pp
     class(field), intent(inout) :: p
 
-    ! Local variables
-    real(ccs_real) :: alpha   !< Under-relaxation factor
-
-    ! Set under-relaxation factor (todo: read this from input file)
-    alpha = 0.1_ccs_real
-
-    call axpy(alpha, pp%values, p%values)
+    call axpy(pressure_relax, pp%values, p%values)
     
   end subroutine update_pressure
 
@@ -706,12 +699,6 @@ contains
     call update(pp%values)
     
   end subroutine update_face_velocity
-
-  ! subroutine calculate_scalars()
-
-
-  ! end subroutine calculate_scalars
-
 
   subroutine check_convergence(converged)
 
