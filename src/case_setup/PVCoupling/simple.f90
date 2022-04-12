@@ -26,7 +26,7 @@ program simple
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  type(ccs_mesh)             :: square_mesh
+  type(ccs_mesh)             :: mesh
   type(vector_spec) :: vec_sizes
 
   class(field), allocatable :: u, v, p, pp, mf
@@ -53,7 +53,7 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -68,7 +68,7 @@ program simple
 
   print *, "Create vectors"
   call set_vector_location(cell, vec_sizes)
-  call set_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, mesh, vec_sizes)
   call create_vector(vec_sizes, u%values)
   call create_vector(vec_sizes, v%values)
   call create_vector(vec_sizes, p%values)
@@ -91,20 +91,20 @@ program simple
   call update(pp%z_gradients)
 
   call set_vector_location(face, vec_sizes)
-  call set_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, mesh, vec_sizes)
   call create_vector(vec_sizes, mf%values)
   call update(mf%values)
   
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(square_mesh, u, v, mf)
+  call initialise_velocity(mesh, u, v, mf)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
+  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, pp, mf)
 
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 

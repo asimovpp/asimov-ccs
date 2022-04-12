@@ -32,7 +32,7 @@ program scalar_advection
   type(vector_spec) :: vec_sizes
   type(matrix_spec) :: mat_sizes
   type(equation_system) :: scalar_equation_system
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
   type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
   class(field), allocatable :: mf          ! Prescribed face velocity field
@@ -51,7 +51,7 @@ program scalar_advection
   call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
 
   ! Set up the square mesh
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Init velocities and scalar
   allocate(central_field :: mf)
@@ -63,22 +63,22 @@ program scalar_advection
   call initialise(scalar_equation_system)
 
   ! Create stiffness matrix
-  call set_size(par_env, square_mesh, mat_sizes)
+  call set_size(par_env, mesh, mat_sizes)
   call set_nnz(5, mat_sizes) 
   call create_matrix(mat_sizes, M)
 
   ! Create right-hand-side and solution vectors
-  call set_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, mesh, vec_sizes)
   call create_vector(vec_sizes, source)
   call create_vector(vec_sizes, solution)
   call create_vector(vec_sizes, scalar%values)
   call create_vector(vec_sizes, mf%values)
 
   ! Set advection velocity
-  call set_advection_velocity(square_mesh, mf)
+  call set_advection_velocity(mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, square_mesh, bcs, cps, M, source)
+  call compute_fluxes(scalar, mf, mesh, bcs, cps, M, source)
 
   call update(M) ! parallel assembly for M
 

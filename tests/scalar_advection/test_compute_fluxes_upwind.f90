@@ -18,7 +18,7 @@ program test_compute_fluxes
 
   implicit none
 
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
   type(bc_config) :: bcs
   type(vector_spec) :: vec_sizes
   class(field), allocatable :: scalar
@@ -30,7 +30,7 @@ program test_compute_fluxes
 
   call init()
 
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   bcs%region(1) = bc_region_left
   bcs%region(2) = bc_region_right
@@ -52,13 +52,13 @@ program test_compute_fluxes
     end if
 
     call initialise(vec_sizes)
-    call set_size(par_env, square_mesh, vec_sizes)
+    call set_size(par_env, mesh, vec_sizes)
     call create_vector(vec_sizes, scalar%values)
     call create_vector(vec_sizes, u%values)
     call create_vector(vec_sizes, v%values)
     
-    call set_velocity_fields(square_mesh, direction, u, v)
-    call run_compute_fluxes_test(scalar, u, v, bcs, square_mesh, cps, direction, discretisation)
+    call set_velocity_fields(mesh, direction, u, v)
+    call run_compute_fluxes_test(scalar, u, v, bcs, mesh, cps, direction, discretisation)
     call tidy_velocity_fields(scalar, u, v)
   end do
 

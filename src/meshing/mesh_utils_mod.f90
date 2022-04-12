@@ -44,14 +44,14 @@ contains
   !> @param[in] real(ccs_real)      l           - The length of each side
   !> @param[in] parallel_environment par_env     - The parallel environment to construct the mesh.
   !
-  !> @returns   mesh                 square_mesh - The mesh
-  function build_square_mesh(par_env, nps, l) result(square_mesh)
+  !> @returns   mesh                 mesh - The mesh
+  function build_square_mesh(par_env, nps, l) result(mesh)
 
     class(parallel_environment), intent(in) :: par_env
     integer(ccs_int), intent(in) :: nps
     real(ccs_real), intent(in) :: l
 
-    type(ccs_mesh) :: square_mesh
+    type(ccs_mesh) :: mesh
 
     integer(ccs_int) :: istart          !< The (global) starting index of a partition
     integer(ccs_int) :: iend            !< The (global) last index of a partition
@@ -69,12 +69,12 @@ contains
       type is (parallel_environment_mpi)
 
         ! Set the global mesh parameters
-        square_mesh%nglobal = nps**2            
-        square_mesh%h = l / real(nps, ccs_real)
+        mesh%nglobal = nps**2            
+        mesh%h = l / real(nps, ccs_real)
 
         ! Associate aliases to make code easier to read
-        associate(nglobal=>square_mesh%nglobal, &
-                  h=>square_mesh%h)
+        associate(nglobal=>mesh%nglobal, &
+                  h=>mesh%h)
           
           ! Determine ownership range (based on PETSc ex3.c)
           comm_rank = par_env%proc_id
@@ -92,21 +92,21 @@ contains
 
           ! Fix indexing and determine size of local partition
           istart = istart + 1_ccs_int
-          square_mesh%nlocal = (iend - (istart - 1_ccs_int))
+          mesh%nlocal = (iend - (istart - 1_ccs_int))
 
           ! Allocate mesh arrays
-          allocate(square_mesh%idx_global(square_mesh%nlocal))
-          allocate(square_mesh%nnb(square_mesh%nlocal))
-          allocate(square_mesh%index_nb(4, square_mesh%nlocal))
-          allocate(square_mesh%faceidx(4, square_mesh%nlocal))
+          allocate(mesh%idx_global(mesh%nlocal))
+          allocate(mesh%nnb(mesh%nlocal))
+          allocate(mesh%index_nb(4, mesh%nlocal))
+          allocate(mesh%faceidx(4, mesh%nlocal))
 
           ! Initialise mesh arrays
-          square_mesh%nnb(:) = 4_ccs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
+          mesh%nnb(:) = 4_ccs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
 
           ! First set the global index of local cells
           ictr = 1_ccs_int
           do i = istart, iend
-            square_mesh%idx_global(ictr) = i
+            mesh%idx_global(ictr) = i
             ictr = ictr + 1
           end do
           
@@ -130,7 +130,7 @@ contains
               index_nb = ictr - 1_ccs_int
               global_index_nb = i - 1_ccs_int
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
 
             ! Construct right (2) face/neighbour
             fctr = right
@@ -141,7 +141,7 @@ contains
               index_nb = ictr + 1_ccs_int
               global_index_nb = i + 1_ccs_int
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
 
             ! Construct down (3) face/neighbour
             fctr = down
@@ -152,7 +152,7 @@ contains
               index_nb = ictr - nps
               global_index_nb = i - nps
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
 
             ! Construct up (4) face/neighbour
             fctr = up
@@ -163,42 +163,42 @@ contains
               index_nb = ictr + nps
               global_index_nb = i + nps
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
 
             ictr = ictr + 1_ccs_int
           end do
         end associate
 
-        square_mesh%ntotal = size(square_mesh%idx_global)
-        square_mesh%nhalo = square_mesh%ntotal - square_mesh%nlocal
+        mesh%ntotal = size(mesh%idx_global)
+        mesh%nhalo = mesh%ntotal - mesh%nlocal
 
-        allocate(square_mesh%xc(ndim, square_mesh%ntotal))    
-        allocate(square_mesh%xf(ndim, 4, square_mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
-        allocate(square_mesh%vol(square_mesh%ntotal))
-        allocate(square_mesh%Af(4, square_mesh%nlocal))    
-        allocate(square_mesh%nf(ndim, 4, square_mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
+        allocate(mesh%xc(ndim, mesh%ntotal))    
+        allocate(mesh%xf(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
+        allocate(mesh%vol(mesh%ntotal))
+        allocate(mesh%Af(4, mesh%nlocal))    
+        allocate(mesh%nf(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
 
-        square_mesh%vol(:) = square_mesh%h**2 !< @note Mesh is square and 2D
-        square_mesh%nf(:, :, :) = 0.0_ccs_real
-        square_mesh%xc(:, :) = 0.0_ccs_real
-        square_mesh%xf(:, :, :) = 0.0_ccs_real
-        square_mesh%Af(:, :) = square_mesh%h  !< @note Mesh is square and 2D
+        mesh%vol(:) = mesh%h**2 !< @note Mesh is square and 2D
+        mesh%nf(:, :, :) = 0.0_ccs_real
+        mesh%xc(:, :) = 0.0_ccs_real
+        mesh%xf(:, :, :) = 0.0_ccs_real
+        mesh%Af(:, :) = mesh%h  !< @note Mesh is square and 2D
 
-        associate(h => square_mesh%h)
-          do i = 1_ccs_int, square_mesh%ntotal
-            ii = square_mesh%idx_global(i)
+        associate(h => mesh%h)
+          do i = 1_ccs_int, mesh%ntotal
+            ii = mesh%idx_global(i)
 
-            associate(xc => square_mesh%xc(:, i))
+            associate(xc => mesh%xc(:, i))
               ! Set cell centre
               xc(1) = (modulo(ii-1, nps) + 0.5_ccs_real) * h
               xc(2) = ((ii - 1) / nps + 0.5_ccs_real) * h
             end associate
           end do
 
-          do i = 1_ccs_int, square_mesh%nlocal
-            associate(xc => square_mesh%xc(:, i), &
-                 xf => square_mesh%xf(:, :, i), &
-                 nrm => square_mesh%nf(:, :, i))
+          do i = 1_ccs_int, mesh%nlocal
+            associate(xc => mesh%xc(:, i), &
+                 xf => mesh%xf(:, :, i), &
+                 nrm => mesh%nf(:, :, i))
 
               fctr = left
               xf(1, fctr) = xc(1) - 0.5_ccs_real * h
@@ -227,9 +227,9 @@ contains
           end do
         end associate
 
-        square_mesh%nfaces_local = count_mesh_faces(square_mesh)
+        mesh%nfaces_local = count_mesh_faces(mesh)
 
-        call set_cell_face_indices(square_mesh)
+        call set_cell_face_indices(mesh)
 
       class default
         print *, "Unknown parallel environment type!"

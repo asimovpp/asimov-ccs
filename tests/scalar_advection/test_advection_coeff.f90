@@ -17,7 +17,7 @@ program test_advection_coeff
                 set_size, pack_entries, set_values
   use petsctypes, only: vector_petsc
 
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_sizes
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
@@ -33,9 +33,9 @@ program test_advection_coeff
   
   call init()
 
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  local_idx = int(0.5*square_mesh%nlocal + 2, ccs_int)
+  local_idx = int(0.5*mesh%nlocal + 2, ccs_int)
   do direction = x_dir, y_dir
     do discretisation = upwind, central
       if (discretisation == central) then
@@ -52,12 +52,12 @@ program test_advection_coeff
       end if
 
       call initialise(vec_sizes)
-      call set_size(par_env, square_mesh, vec_sizes)
+      call set_size(par_env, mesh, vec_sizes)
       call create_vector(vec_sizes, scalar%values)
       call create_vector(vec_sizes, u%values)
       call create_vector(vec_sizes, v%values)
 
-      call set_velocity_fields(square_mesh, direction, u, v)
+      call set_velocity_fields(mesh, direction, u, v)
 
       associate (u_vec => u%values, v_vec => v%values)
         call get_vector_data(u_vec, u_data)
@@ -101,13 +101,13 @@ program test_advection_coeff
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     
-    call set_cell_location(square_mesh, local_idx, self_loc)
+    call set_cell_location(mesh, local_idx, self_loc)
     call get_local_index(self_loc, self_idx)
   
     call set_neighbour_location(self_loc, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
-    call set_face_location(square_mesh, local_idx, nb, face_loc)
+    call set_face_location(mesh, local_idx, nb, face_loc)
     call get_face_area(face_loc, face_area)
 
     call get_face_normal(face_loc, normal)
