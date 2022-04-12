@@ -56,34 +56,34 @@ contains
   !
   !> @param[in]  cell_locator      cell_location      - the cell locator object of the cell whose
   !!                                                    neighbour is being accessed.
-  !> @param[in]  ccs_int          cell_neighbour_ctr - the cell-local index of the neighbour.
+  !> @param[in]  ccs_int           nb_counter - the cell-local index of the neighbour.
   !> @param[out] neighbour_locator neighbour_location - the neighbour locator object linking a
   !!                                                    cell-relative index with the mesh.
-  module subroutine set_neighbour_location(cell_location, cell_neighbour_ctr, neighbour_location)
+  module subroutine set_neighbour_location(cell_location, nb_counter, loc_nb)
     type(cell_locator), intent(in) :: cell_location
-    integer(ccs_int), intent(in) :: cell_neighbour_ctr
-    type(neighbour_locator), intent(out) :: neighbour_location
+    integer(ccs_int), intent(in) :: nb_counter
+    type(neighbour_locator), intent(out) :: loc_nb
 
-    neighbour_location%mesh => cell_location%mesh
-    neighbour_location%cell_idx = cell_location%cell_idx
+    loc_nb%mesh => cell_location%mesh
+    loc_nb%cell_idx = cell_location%cell_idx
 
     !! XXX: Safe, but would create a circular dependency...
     !! ! XXX: Potentially expensive...
     !! call count_neighbours(cell_location, nnb)
-    !! if (cell_neighbour_ctr > nnb) then
+    !! if (nb_counter > nnb) then
     !!   print *, "ERROR: cell has fewer neighbours than neighbour count requested!"
     !!   stop
-    !! else if (cell_neighbour_ctr < 1) then
+    !! else if (nb_counter < 1) then
     !!   print *, "ERROR: cell neighbour counter must be >= 1!"
     !! else
-    !!   neighbour_location%cell_neighbour_ctr = cell_neighbour_ctr
+    !!   loc_nb%nb_counter = nb_counter
     !! end if
     
-    neighbour_location%cell_neighbour_ctr = cell_neighbour_ctr
+    loc_nb%nb_counter = nb_counter
 
-    associate(mymesh => neighbour_location%mesh, &
-         i => neighbour_location%cell_idx, &
-         j => neighbour_location%cell_neighbour_ctr)
+    associate(mymesh => loc_nb%mesh, &
+         i => loc_nb%cell_idx, &
+         j => loc_nb%nb_counter)
       if (mymesh%nbidx(j, i) == i) then
         print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
       end if
@@ -147,17 +147,17 @@ contains
 
   !> @brief Returns the centre of a neighbour cell
   !
-  !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
+  !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] real(ccs_real)   x(ndim)            - an ndimensional array representing the
   !!                                                    neighbour cell centre.
-  module subroutine get_neighbour_centre(neighbour_location, x)
-    type(neighbour_locator), intent(in) :: neighbour_location
+  module subroutine get_neighbour_centre(loc_nb, x)
+    type(neighbour_locator), intent(in) :: loc_nb
     real(ccs_real), dimension(ndim), intent(out) :: x
 
-    type(cell_locator) :: nb_cell_location
+    type(cell_locator) :: cell_loc_nb
     
-    call get_neighbour_cell_locator(neighbour_location, nb_cell_location)
-    call get_cell_centre(nb_cell_location, x)
+    call get_neighbour_cell_locator(loc_nb, cell_loc_nb)
+    call get_cell_centre(cell_loc_nb, x)
   end subroutine get_neighbour_centre
   
   !> @brief Returns the centre of a face
@@ -191,16 +191,16 @@ contains
 
   !> @brief Returns the volume of a neighbour cell
   !
-  !> @param[in] neighbour_locator neighbour_location - the neighbour locator object.
+  !> @param[in] neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] real(ccs_real)  V                  - the neighbour cell volume.
-  module subroutine get_neighbour_volume(neighbour_location, V)
-    type(neighbour_locator), intent(in) :: neighbour_location
+  module subroutine get_neighbour_volume(loc_nb, V)
+    type(neighbour_locator), intent(in) :: loc_nb
     real(ccs_real), intent(out) :: V
 
-    type(cell_locator) :: nb_cell_location
+    type(cell_locator) :: cell_loc_nb
 
-    call get_neighbour_cell_locator(neighbour_location, nb_cell_location)
-    call get_cell_volume(nb_cell_location, V)
+    call get_neighbour_cell_locator(loc_nb, cell_loc_nb)
+    call get_cell_volume(cell_loc_nb, V)
   end subroutine get_neighbour_volume
 
   !> @brief Returns the global index of a cell
@@ -224,15 +224,15 @@ contains
 
   !> @brief Returns the global index of a neighbouring cell
   !
-  !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
-  !> @param[out] integer(ccs_int) nbidxg             - the global index of the neighbour cell.
-  module subroutine get_neighbour_global_index(neighbour_location, nbidxg)
-    type(neighbour_locator), intent(in) :: neighbour_location
-    integer(ccs_int), intent(out) :: nbidxg
+  !> @param[in]  neighbour_locator loc_nb           - the neighbour locator object.
+  !> @param[out] integer(ccs_int) global_index_nb   - the global index of the neighbour cell.
+  module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
+    type(neighbour_locator), intent(in) :: loc_nb
+    integer(ccs_int), intent(out) :: global_index_nb
 
-    type(cell_locator) :: nb_cell_location
-    call get_neighbour_cell_locator(neighbour_location, nb_cell_location)
-    call get_global_index(nb_cell_location, nbidxg)
+    type(cell_locator) :: cell_loc_nb
+    call get_neighbour_cell_locator(loc_nb, cell_loc_nb)
+    call get_global_index(cell_loc_nb, global_index_nb)
   end subroutine get_neighbour_global_index
 
   !> @brief Returns the neighbour count of a cell (including boundary neighbours)
@@ -251,19 +251,19 @@ contains
 
   !> @brief Returns the boundary status of a neighbouring cell
   !
-  !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
+  !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] logical           is_boundary        - the boundary status of the neighbour.
-  module subroutine get_neighbour_boundary_status(neighbour_location, is_boundary)
-    type(neighbour_locator), intent(in) :: neighbour_location
+  module subroutine get_neighbour_boundary_status(loc_nb, is_boundary)
+    type(neighbour_locator), intent(in) :: loc_nb
     logical, intent(out) :: is_boundary
 
-    integer :: nbidx
+    integer :: index_nb
 
-    call get_neighbour_local_index(neighbour_location, nbidx)
+    call get_neighbour_local_index(loc_nb, index_nb)
 
-    if (nbidx > 0) then
+    if (index_nb > 0) then
       is_boundary = .false.
-    else if (nbidx < 0) then
+    else if (index_nb < 0) then
       is_boundary = .true.
     else
       print *, "ERROR: neighbour index (0) is invalid"
@@ -280,15 +280,15 @@ contains
     logical, intent(out) :: is_boundary
 
     type(cell_locator) :: cell_location
-    type(neighbour_locator) :: neighbour_location
+    type(neighbour_locator) :: loc_nb
 
     associate(mesh => face_location%mesh, &
          i => face_location%cell_idx, &
          j => face_location%cell_face_ctr)
       call set_cell_location(mesh, i, cell_location)
-      call set_neighbour_location(cell_location, j, neighbour_location)
+      call set_neighbour_location(cell_location, j, loc_nb)
     end associate
-    call get_neighbour_boundary_status(neighbour_location, is_boundary)
+    call get_neighbour_boundary_status(loc_nb, is_boundary)
   end subroutine get_face_boundary_status
   
   !> @brief Returns the local distribution status of a neighbouring cell
@@ -297,17 +297,17 @@ contains
   !!              and cells from the surrounding halo - this subroutine get_indicates whether a
   !!              cell's neighbour is within the local partition or the halo.
   !
-  !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
+  !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] logical           is_local           - the local status of the neighbour.  
-  module subroutine get_local_status(neighbour_location, is_local)
-    type(neighbour_locator), intent(in) :: neighbour_location
+  module subroutine get_local_status(loc_nb, is_local)
+    type(neighbour_locator), intent(in) :: loc_nb
     logical, intent(out) :: is_local
     
-    integer :: nbidx
+    integer :: index_nb
 
-    call get_neighbour_local_index(neighbour_location, nbidx)
-    associate(mesh => neighbour_location%mesh)
-      if ((nbidx > 0) .and. (nbidx <= mesh%nlocal)) then
+    call get_neighbour_local_index(loc_nb, index_nb)
+    associate(mesh => loc_nb%mesh)
+      if ((index_nb > 0) .and. (index_nb <= mesh%nlocal)) then
         is_local = .true.
       else
         is_local = .false.
@@ -332,16 +332,16 @@ contains
 
   !> @brief Returns the local index of a neighbouring cell
   !
-  !> @param[in]  neighbour_locator neighbour_location - the neighbour locator object.
-  !> @param[out] integer(ccs_int) nbidx              - the local index of the neighbour cell.
-  module subroutine get_neighbour_local_index(neighbour_location, nbidx)
-    type(neighbour_locator), intent(in) :: neighbour_location
-    integer(ccs_int), intent(out) :: nbidx
+  !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
+  !> @param[out] integer(ccs_int) index_nb              - the local index of the neighbour cell.
+  module subroutine get_neighbour_local_index(loc_nb, index_nb)
+    type(neighbour_locator), intent(in) :: loc_nb
+    integer(ccs_int), intent(out) :: index_nb
 
-    associate(mesh => neighbour_location%mesh, &
-         i => neighbour_location%cell_idx, &
-         j => neighbour_location%cell_neighbour_ctr)
-      nbidx = mesh%nbidx(j, i)
+    associate(mesh => loc_nb%mesh, &
+         i => loc_nb%cell_idx, &
+         j => loc_nb%nb_counter)
+      index_nb = mesh%nbidx(j, i)
     end associate
   end subroutine get_neighbour_local_index
 
@@ -360,14 +360,14 @@ contains
     end associate
   end subroutine get_face_local_index
 
-  subroutine get_neighbour_cell_locator(neighbour_location, cell_location)
-    type(neighbour_locator), intent(in) :: neighbour_location
+  subroutine get_neighbour_cell_locator(loc_nb, cell_location)
+    type(neighbour_locator), intent(in) :: loc_nb
     type(cell_locator), intent(out) :: cell_location
 
-    integer(ccs_int) :: nbidx
+    integer(ccs_int) :: index_nb
     
-    call get_local_index(neighbour_location, nbidx)
-    call set_cell_location(neighbour_location%mesh, nbidx, cell_location)
+    call get_local_index(loc_nb, index_nb)
+    call set_cell_location(loc_nb%mesh, index_nb, cell_location)
   end subroutine get_neighbour_cell_locator
 
 end submodule meshing_accessors

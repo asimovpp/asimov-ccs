@@ -125,7 +125,7 @@ module types
   type, public :: neighbour_locator
     type(ccs_mesh), pointer :: mesh
     integer(ccs_int) :: cell_idx
-    integer(ccs_int) :: cell_neighbour_ctr
+    integer(ccs_int) :: nb_counter
   end type neighbour_locator
 
   type, public :: bc_config
