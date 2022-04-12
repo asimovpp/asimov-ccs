@@ -10,6 +10,7 @@ program test_vec_set_entries
   use constants, only : insert_mode, add_mode
   use types, only : ccs_vector, ccs_mesh
   use mesh_utils, only : global_start, local_count, build_square_mesh
+  use utils, only : zero
   
   implicit none
 
@@ -22,13 +23,14 @@ program test_vec_set_entries
 
   do n = 1, 100
     mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
-    
+
     call init_vector()
 
+    call zero(v)
     call set_vector(add_mode)
-    call test_vector(n)
+    call test_vector()
     call set_vector(insert_mode)
-    call test_vector(n)
+    call test_vector()
     
     call clean_vector()
   end do
@@ -48,7 +50,6 @@ contains
     call set_size(par_env, mesh, vec_sizes)
 
     call create_vector(vec_sizes, v)
-    
   end subroutine init_vector
 
   subroutine set_vector(mode)
@@ -76,7 +77,7 @@ contains
     
       nrows = 1_ccs_int
       nblocks = nlocal / nrows
-    
+
       call create_vector_values(nrows, val_dat)
       call set_mode(mode, val_dat)
     
@@ -104,16 +105,17 @@ contains
     
   end subroutine set_vector
 
-  subroutine test_vector(n)
+  subroutine test_vector()
 
     use solver, only : norm
-    
-    integer(ccs_int), intent(in) :: n
 
     real(ccs_real) :: expectation
-
-    expectation = sqrt(real(n, ccs_real))
-    if (norm(v, 2) /= expectation) then
+    real(ccs_real) :: test_value
+    
+    expectation = sqrt(real(mesh%nglobal, ccs_real))
+    test_value = norm(v, 2)
+    if (test_value /= expectation) then
+      print *, "AAARGH, FAIL: ", test_value, expectation
       stop
     end if
     
