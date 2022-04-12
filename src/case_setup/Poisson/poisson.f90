@@ -302,7 +302,7 @@ contains
     vec_values%setter_mode = add_mode
 
     do i = 1, square_mesh%nlocal
-      if (minval(square_mesh%nbidx(:, i)) < 0) then
+      if (minval(square_mesh%index_nb(:, i)) < 0) then
         call set_cell_location(square_mesh, i, cell_location)
         call get_global_index(cell_location, idxg)
         coeff = 0.0_ccs_real 

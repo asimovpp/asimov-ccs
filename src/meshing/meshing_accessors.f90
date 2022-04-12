@@ -84,7 +84,7 @@ contains
     associate(mymesh => loc_nb%mesh, &
          i => loc_nb%cell_idx, &
          j => loc_nb%nb_counter)
-      if (mymesh%nbidx(j, i) == i) then
+      if (mymesh%index_nb(j, i) == i) then
         print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
       end if
     end associate
@@ -341,7 +341,7 @@ contains
     associate(mesh => loc_nb%mesh, &
          i => loc_nb%cell_idx, &
          j => loc_nb%nb_counter)
-      index_nb = mesh%nbidx(j, i)
+      index_nb = mesh%index_nb(j, i)
     end associate
   end subroutine get_neighbour_local_index
 

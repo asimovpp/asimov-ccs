@@ -62,7 +62,7 @@ contains
     integer(ccs_int) :: comm_rank !> The process ID within the parallel environment
     integer(ccs_int) :: comm_size !> The size of the parallel environment
 
-    integer(ccs_int) :: nbidx     !> The local index of a neighbour cell
+    integer(ccs_int) :: index_nb     !> The local index of a neighbour cell
     integer(ccs_int) :: global_index_nb    !> The global index of a neighbour cell
 
     select type(par_env)
@@ -97,7 +97,7 @@ contains
           ! Allocate mesh arrays
           allocate(square_mesh%idx_global(square_mesh%nlocal))
           allocate(square_mesh%nnb(square_mesh%nlocal))
-          allocate(square_mesh%nbidx(4, square_mesh%nlocal))
+          allocate(square_mesh%index_nb(4, square_mesh%nlocal))
           allocate(square_mesh%faceidx(4, square_mesh%nlocal))
 
           ! Initialise mesh arrays
@@ -124,46 +124,46 @@ contains
             ! Construct left (1) face/neighbour
             fctr = left
             if (modulo(ii, nps) == 0_ccs_int) then
-              nbidx = -left
+              index_nb = -left
               global_index_nb = -left
             else
-              nbidx = ictr - 1_ccs_int
+              index_nb = ictr - 1_ccs_int
               global_index_nb = i - 1_ccs_int
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
 
             ! Construct right (2) face/neighbour
             fctr = right
             if (modulo(ii, nps) == (nps - 1_ccs_int)) then
-              nbidx = -right
+              index_nb = -right
               global_index_nb = -right
             else
-              nbidx = ictr + 1_ccs_int
+              index_nb = ictr + 1_ccs_int
               global_index_nb = i + 1_ccs_int
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
 
             ! Construct down (3) face/neighbour
             fctr = down
             if ((ii / nps) == 0_ccs_int) then
-              nbidx = -down
+              index_nb = -down
               global_index_nb = -down
             else
-              nbidx = ictr - nps
+              index_nb = ictr - nps
               global_index_nb = i - nps
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
 
             ! Construct up (4) face/neighbour
             fctr = up
             if ((ii / nps) == (nps - 1_ccs_int)) then
-              nbidx = -up
+              index_nb = -up
               global_index_nb = -up
             else
-              nbidx = ictr + nps
+              index_nb = ictr + nps
               global_index_nb = i + nps
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, nbidx, global_index_nb, square_mesh)
+            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, square_mesh)
 
             ictr = ictr + 1_ccs_int
           end do
@@ -252,14 +252,14 @@ contains
   !
   !> @param[in]    integer(ccs_int) cellidx - the index of the cell whose neighbours we are assembling
   !> @param[in]    integer(ccs_int) nbctr   - the cell-relative neighbour index
-  !> @param[in]    integer(ccs_int) nbidx   - the local index of the neighbour cell
+  !> @param[in]    integer(ccs_int) index_nb   - the local index of the neighbour cell
   !> @param[in]    integer(ccs_int) global_index_nb  - the global index of the neighbour cell
   !> @param[inout] mesh meshobj - the mesh we are assembling neighbours on
-  subroutine build_local_mesh_add_neighbour(cellidx, nbctr, nbidx, global_index_nb, meshobj)
+  subroutine build_local_mesh_add_neighbour(cellidx, nbctr, index_nb, global_index_nb, meshobj)
 
     integer(ccs_int), intent(in) :: cellidx
     integer(ccs_int), intent(in) :: nbctr
-    integer(ccs_int), intent(in) :: nbidx
+    integer(ccs_int), intent(in) :: index_nb
     integer(ccs_int), intent(in) :: global_index_nb
     type(ccs_mesh), intent(inout) :: meshobj
 
@@ -267,16 +267,16 @@ contains
     logical :: found        !> Indicates whether a halo cell was already present
     integer(ccs_int) :: i  !> Cell iteration counter
     
-    if ((nbidx >= 1_ccs_int) .and. (nbidx <= meshobj%nlocal)) then
+    if ((index_nb >= 1_ccs_int) .and. (index_nb <= meshobj%nlocal)) then
       ! Neighbour is local
-      meshobj%nbidx(nbctr, cellidx) = nbidx
+      meshobj%index_nb(nbctr, cellidx) = index_nb
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
-      if (.not. (nbidx < 0_ccs_int)) then
+      if (.not. (index_nb < 0_ccs_int)) then
         print *, "ERROR: boundary neighbours should have -ve indices!"
         stop
       end if
-      meshobj%nbidx(nbctr, cellidx) = nbidx
+      meshobj%index_nb(nbctr, cellidx) = index_nb
     else
       ! Neighbour is in a halo
 
@@ -286,7 +286,7 @@ contains
       do i = meshobj%nlocal + 1, ng
         if (meshobj%idx_global(i) == global_index_nb) then
           found = .true.
-          meshobj%nbidx(nbctr, cellidx) = i
+          meshobj%index_nb(nbctr, cellidx) = i
           exit
         end if
       end do
@@ -303,7 +303,7 @@ contains
         
         call append_to_arr(global_index_nb, meshobj%idx_global)
         ng = size(meshobj%idx_global)
-        meshobj%nbidx(nbctr, cellidx) = ng
+        meshobj%index_nb(nbctr, cellidx) = ng
       end if
     end if
     

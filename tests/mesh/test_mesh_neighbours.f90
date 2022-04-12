@@ -93,7 +93,7 @@ contains
     
     type(neighbour_locator), intent(in) :: loc_nb
 
-    integer(ccs_int) :: nbidx
+    integer(ccs_int) :: index_nb
     type(cell_locator) :: cell_loc_nb
     integer(ccs_int) :: nnb
     logical :: found_parent
@@ -104,26 +104,26 @@ contains
     
     associate(mesh => loc_nb%mesh, &
          parent_idx => loc_nb%cell_idx)
-      call get_local_index(loc_nb, nbidx)
+      call get_local_index(loc_nb, index_nb)
             
       ! Neighbour index should not be its parents
-      if (nbidx == parent_idx) then
-        write(message, *) "FAIL: Neighbour has same index ", nbidx, " as parent cell ", parent_idx
+      if (index_nb == parent_idx) then
+        write(message, *) "FAIL: Neighbour has same index ", index_nb, " as parent cell ", parent_idx
         call stop_test(message)
       end if
 
       call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call set_cell_location(mesh, nbidx, cell_loc_nb)
+        call set_cell_location(mesh, index_nb, cell_loc_nb)
         call count_neighbours(cell_loc_nb, nnb)
         found_parent = .false.
         do j = 1, nnb
           call set_neighbour_location(cell_loc_nb, j, loc_nb_nb)
           call get_boundary_status(loc_nb_nb, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
-            call get_local_index(loc_nb_nb, nbidx)
-            if (nbidx == parent_idx) then
+            call get_local_index(loc_nb_nb, index_nb)
+            if (index_nb == parent_idx) then
               found_parent = .true.
               exit
             end if
