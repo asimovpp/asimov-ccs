@@ -23,7 +23,7 @@ program test_advection_coeff
   class(field), allocatable :: u, v
   integer(ccs_int), parameter :: cps = 50
   integer(ccs_int) :: self_idx, index_nb, local_idx
-  integer(ccs_int) :: ngb
+  integer(ccs_int) :: nb
   integer(ccs_int) :: direction, discretisation
   integer, parameter :: x_dir = 1, y_dir = 2
   integer, parameter :: central = -1, upwind = -2
@@ -63,8 +63,8 @@ program test_advection_coeff
         call get_vector_data(u_vec, u_data)
         call get_vector_data(v_vec, v_data)
 
-        do ngb = 1, 4
-          call get_cell_parameters(local_idx, ngb, self_idx, index_nb, face_area, normal)
+        do nb = 1, 4
+          call get_cell_parameters(local_idx, nb, self_idx, index_nb, face_area, normal)
           call run_advection_coeff_test(scalar, u_data, v_data, self_idx, index_nb, face_area, normal)
         end do
       
@@ -84,14 +84,14 @@ program test_advection_coeff
   !> area, and normal
   !
   !> @param[in] local_idx           - The cell's local index
-  !> @param[in] ngb                 - The neighbour we're interested in (range 1-4)
+  !> @param[in] nb                 - The neighbour we're interested in (range 1-4)
   !> @param[out] self_idx           - The cell's local index
   !> @param[out] index_nb            - The neighbour's local index
   !> @param[out] face_area  - The surface area of the face between the cell and its neighbour
   !> @param[out] normal             - The face normal between the cell and its neighbour
-  subroutine get_cell_parameters(local_idx, ngb, self_idx, index_nb, face_area, normal)
+  subroutine get_cell_parameters(local_idx, nb, self_idx, index_nb, face_area, normal)
     integer(ccs_int), intent(in) :: local_idx
-    integer(ccs_int), intent(in) :: ngb
+    integer(ccs_int), intent(in) :: nb
     integer(ccs_int), intent(out) :: self_idx
     integer(ccs_int), intent(out) :: index_nb
     real(ccs_real), intent(out) :: face_area
@@ -104,10 +104,10 @@ program test_advection_coeff
     call set_cell_location(square_mesh, local_idx, self_loc)
     call get_local_index(self_loc, self_idx)
   
-    call set_neighbour_location(self_loc, ngb, loc_nb)
+    call set_neighbour_location(self_loc, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
-    call set_face_location(square_mesh, local_idx, ngb, face_loc)
+    call set_face_location(square_mesh, local_idx, nb, face_loc)
     call get_face_area(face_loc, face_area)
 
     call get_face_normal(face_loc, normal)

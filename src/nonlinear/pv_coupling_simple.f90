@@ -319,7 +319,7 @@ contains
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: self_idx, index_nb, local_idx
     integer(ccs_int) :: j
-    integer(ccs_int) :: n_ngb
+    integer(ccs_int) :: nnb
     integer(ccs_int) :: row, col
     real(ccs_real) :: face_area
     real(ccs_real), dimension(ndim) :: face_normal
@@ -367,18 +367,18 @@ contains
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
 
       allocate(mat_coeffs%row_indices(1))
-      allocate(mat_coeffs%col_indices(1 + n_ngb))
-      allocate(mat_coeffs%values(1 + n_ngb))
+      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%values(1 + nnb))
 
       row = self_idx
       coeff_p = 0.0_ccs_real
       r = 0.0_ccs_real
 
       ! Loop over faces
-      do j = 1, n_ngb
+      do j = 1, nnb
         call set_face_location(cell_mesh, local_idx, j, face_loc)
         call get_face_area(face_loc, face_area)
         call get_face_normal(face_loc, face_normal)

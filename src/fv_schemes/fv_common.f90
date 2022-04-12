@@ -90,7 +90,7 @@ contains
     integer(ccs_int) :: self_idx, index_nb, local_idx, ngb_local_idx
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
-    integer(ccs_int) :: n_ngb
+    integer(ccs_int) :: nnb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
     real(ccs_real) :: adv_coeff, adv_coeff_total
@@ -111,11 +111,11 @@ contains
       ! Calculate contribution from neighbours
       call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
       mat_counter = 1
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
-      do j = 1, n_ngb
+      do j = 1, nnb
         call set_neighbour_location(self_loc, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
@@ -180,7 +180,7 @@ contains
   !> @param[in] bcs       - BC configuration data structure
   !> @param[out] bc_value - the value of the scalar field at the specified boundary
   subroutine compute_boundary_values(ngb_index, row, col, cps, bcs, bc_value)
-    integer, intent(in) :: ngb_index  ! This is the index wrt the CV, not the ngb's cell index (i.e. range 1-4 for a square mesh)
+    integer, intent(in) :: ngb_index  ! This is the index wrt the CV, not the nb's cell index (i.e. range 1-4 for a square mesh)
     integer, intent(in) :: row
     integer, intent(in) :: col
     integer, intent(in) :: cps
@@ -239,7 +239,7 @@ contains
     integer(ccs_int) :: j
     integer(ccs_int) :: bc_counter
     integer(ccs_int) :: row, col
-    integer(ccs_int) :: n_ngb, mesh_ngb_idx
+    integer(ccs_int) :: nnb, mesh_ngb_idx
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff
     real(ccs_real) :: adv_coeff
@@ -262,9 +262,9 @@ contains
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
       ! Calculate contribution from neighbours
-      do j = 1, n_ngb
+      do j = 1, nnb
         call set_neighbour_location(self_loc, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then

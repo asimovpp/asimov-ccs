@@ -353,7 +353,7 @@ contains
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: self_idx, local_idx
     integer(ccs_int) :: j
-    integer(ccs_int) :: n_ngb
+    integer(ccs_int) :: nnb
     integer(ccs_int) :: nfaces_int       !> Internal face count
     integer(ccs_int) :: nfaces_bnd       !> Boundary face count
     integer(ccs_int) :: nfaces_interface !> Process interface face count
@@ -369,9 +369,9 @@ contains
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
 
-      do j = 1, n_ngb
+      do j = 1, nnb
         call set_neighbour_location(self_loc, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
@@ -410,7 +410,7 @@ contains
     type(face_locator) :: face_loc
     integer(ccs_int) :: index_nb, local_idx
     integer(ccs_int) :: ngb_ngb_idx, face_idx
-    integer(ccs_int) :: n_ngb, n_ngb_ngb
+    integer(ccs_int) :: nnb, nnb_nb
     integer(ccs_int) :: j,k
     integer(ccs_int) :: icnt  !> Face index counter
     logical :: is_boundary
@@ -420,9 +420,9 @@ contains
     ! Loop over cells
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(cell_mesh, local_idx, self_loc)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
 
-      do j = 1, n_ngb
+      do j = 1, nnb
         call set_neighbour_location(self_loc, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         call get_boundary_status(loc_nb, is_boundary)
@@ -436,8 +436,8 @@ contains
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
             call set_cell_location(cell_mesh, index_nb, ngb_cell_loc)
-            call count_neighbours(ngb_cell_loc, n_ngb_ngb)
-            do k = 1, n_ngb_ngb
+            call count_neighbours(ngb_cell_loc, nnb_nb)
+            do k = 1, nnb_nb
               call set_neighbour_location(ngb_cell_loc, k, ngb_ngb_loc)
               call get_local_index(ngb_ngb_loc, ngb_ngb_idx)
               if (ngb_ngb_idx == local_idx) then
@@ -445,7 +445,7 @@ contains
                 call get_local_index(face_loc, face_idx)
                 call set_face_index(local_idx, j, face_idx, cell_mesh)
                 exit ! Exit the loop, as found shared face
-              else if (k == n_ngb_ngb) then
+              else if (k == nnb_nb) then
                 print *, "ERROR: Failed to find face in owning cell"
                 stop 1
               endif
