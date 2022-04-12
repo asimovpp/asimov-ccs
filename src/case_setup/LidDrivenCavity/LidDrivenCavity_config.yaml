@@ -1,0 +1,49 @@
+---
+title: LidDrivenCavity
+
+reference_numbers:
+    pressure: 101325.0
+    temperature: 289.0
+    density: 1.0
+    viscosity: 1.0e-03
+    pref_at_cell: 4096
+
+steps: 3000
+
+#solve:
+#  w: off
+
+#init: 
+#  type: user
+
+target_residual: 1.0e-10
+
+monitor_cell: 1990
+
+# 1 = central
+convection_scheme:
+  u: 1 
+  v: 1
+  w: 1
+
+blending_factor:
+  u: 1.0
+  v: 1.0
+  w: 1.0
+  
+relaxation_factor:
+  u: 0.8
+  v: 0.8
+  p: 0.8
+
+#output:
+#  every: 1000
+
+#post:
+#  type: center
+#  variables: [u, v, w, p]
+
+# Note: for boundary "top": u = 1.0
+#boundary:
+#  region: [left, right, top, bottom, live]
+#  type: [wall, wall, wall, wall, sym]

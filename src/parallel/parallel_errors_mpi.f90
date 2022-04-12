@@ -24,7 +24,8 @@ submodule (parallel) parallel_errors_mpi
     integer, intent(in) :: error_code
     character (len=*), intent (in) :: error_cat
     class(parallel_environment), intent(in) :: par_env
-    integer(accs_int) :: length
+    
+    integer(ccs_int) :: length
     integer :: ierr 
     character(len = MPI_MAX_ERROR_STRING) :: error_message 
 
@@ -42,10 +43,12 @@ submodule (parallel) parallel_errors_mpi
 
         else 
           write(*,*) "Unsupported error categroy" 
+          stop 1
         end if
 
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
 
     end select
 

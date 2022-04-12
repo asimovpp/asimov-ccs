@@ -1,4 +1,4 @@
-main: poisson
+main: simple
 base: mpi_petsc
 #options:
   #component: opt_2

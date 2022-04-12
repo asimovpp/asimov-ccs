@@ -1,5 +1,6 @@
 auto
 *.pdf
+!dev_guide/logos/*.pdf
 *.aux
 *.log
 *.synctex.gz

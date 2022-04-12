@@ -17,9 +17,10 @@ submodule (parallel) parallel_env_mpi
   !> @param[out] parallel_environment_mpi par_env
   module subroutine initialise_parallel_environment(par_env)
 
+    class(parallel_environment), allocatable, intent(out) :: par_env
+
     integer :: ierr !> Error code
 
-    class(parallel_environment), allocatable, intent(out) :: par_env
     allocate(parallel_environment_mpi :: par_env)
 
     select type (par_env)
@@ -42,6 +43,7 @@ submodule (parallel) parallel_env_mpi
     
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
     
     end select
 
@@ -53,6 +55,7 @@ submodule (parallel) parallel_env_mpi
   module subroutine cleanup_parallel_environment(par_env)
 
     class(parallel_environment), intent(in) :: par_env
+    
     integer :: ierr !> Error code
 
     select type (par_env)
@@ -63,6 +66,7 @@ submodule (parallel) parallel_env_mpi
     
       class default
         write(*,*) "Unsupported parallel environment"
+        stop 1
     
     end select
 

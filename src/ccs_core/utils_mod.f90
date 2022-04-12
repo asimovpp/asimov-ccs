@@ -8,15 +8,15 @@ module utils
   use iso_c_binding
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
-                  initialise_vector, set_global_vector_size, set_local_vector_size,         &
+                  initialise_vector, set_vector_size,         &
                   set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
-                  clear_vector_values_entries
+                  clear_vector_values_entries, &
+                  mult_vec_vec, scale_vec, zero_vector
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
-                  initialise_matrix, finalise_matrix, set_global_matrix_size, set_local_matrix_size, &
+                  initialise_matrix, finalise_matrix, set_matrix_size, &
                   set_matrix_values_mode, set_matrix_values_row, set_matrix_values_entry, &
-                  clear_matrix_values_entries, pack_one_matrix_coefficient
+                  clear_matrix_values_entries, pack_one_matrix_coefficient, zero_matrix
   use solver, only: initialise_linear_system
-  use types, only : vector, matrix
   
   implicit none
 
@@ -31,12 +31,12 @@ module utils
   public :: finalise
   public :: pack_entries
   public :: initialise
-  public :: set_global_size
-  public :: set_local_size
+  public :: set_size
+  public :: mult
+  public :: scale
+  public :: zero
   public :: set_mode
   public :: set_row
-  ! public :: accs_init
-  ! public :: accs_finalise
 
   !> @brief Generic interface to set values on an object.
   interface set_values
@@ -97,18 +97,12 @@ module utils
     module procedure initialise_linear_system
   end interface initialise
 
-  !> @brief Generic interface to set global vector and matrix sizes
-  interface set_global_size
-    module procedure set_global_vector_size
-    module procedure set_global_matrix_size
-  end interface set_global_size
+  !> @brief Generic interface to set vector and matrix sizes
+  interface set_size
+    module procedure set_vector_size
+    module procedure set_matrix_size
+  end interface set_size
 
-  !> @brief Generic interface to set local vector and matrix sizes
-  interface set_local_size
-    module procedure set_local_vector_size
-    module procedure set_local_matrix_size
-  end interface set_local_size
- 
   !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
   !
   !> @details Stores the entries and elements in an object for later setting, this ensures the
@@ -117,41 +111,22 @@ module utils
     module procedure pack_one_matrix_coefficient
   end interface pack_entries
 
-  ! contains
+  !> @brief Generic interface to perform multiplications
+  interface mult
+    module procedure mult_vec_vec
+  end interface mult
 
-!   !> @brief ASiMoV-CCS initialisation routine.
-!   !
-!   !> @details Currently implemented by calling PetscInitialize. Symbol must be bound using
-!   !!          ISO_C_BINDING to tie into pFUnit initialiser.
-!   subroutine accs_init() bind (C, name="accs_init_")
+  !> @brief Generic interface to scale an object by a scalar constant
+  interface scale
+    module procedure scale_vec
+  end interface scale
 
-!     use petsc, only : PetscInitialize, PETSC_NULL_CHARACTER
-!     use kinds, only : accs_err
-    
-!     integer(accs_err) :: ierr
-    
-!     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-    
-!     if (ierr /= 0) then
-!        print *, "Unable to initialise PETSc"
-!        stop
-!     end if
-    
-!   end subroutine accs_init
-
-!   !> @brief ASiMoV-CCS finalisation routine.
-!   !
-!   !> @details Currently implemented by calling PetscFinalize. Symbol must be bound using
-!   !!          ISO_C_BINDING to tie into pFUnit finaliser.
-!   subroutine accs_finalise() bind (C, name="accs_finalise_")
-
-!     use petsc, only : PetscFinalize
-!     use kinds, only : accs_err
-
-!     integer(accs_err) :: ierr
-
-!     call PetscFinalize(ierr)
-
-!   end subroutine accs_finalise
+  !> @brief Generic interface to zero an object
+  interface zero
+    module procedure zero_vector
+    module procedure zero_matrix
+  end interface zero
   
+contains
+
 end module utils

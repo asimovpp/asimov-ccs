@@ -6,7 +6,6 @@ submodule (read_config) read_config_utils
 
   use yaml_types, only: type_dictionary, &
                         type_error, &
-                        type_node, &
                         type_list, &
                         type_list_item, &
                         type_scalar
@@ -39,8 +38,8 @@ submodule (read_config) read_config_utils
       print*,"Unknown type"
     end select
    
-    if(associated(io_err) .eqv. .false.) then 
-      print*,keyword," = ",int_val
+    if(associated(io_err) .eqv. .true.) then 
+      print*,"Error reading ",keyword
     end if
 
   end subroutine
@@ -48,7 +47,7 @@ submodule (read_config) read_config_utils
   subroutine get_real_value(dict, keyword, real_val)
     class (*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
-    real(accs_real), intent(out)  :: real_val
+    real(ccs_real), intent(out)  :: real_val
 
     type(type_error), pointer :: io_err
 
@@ -62,8 +61,8 @@ submodule (read_config) read_config_utils
       print*,"Unknown type"
     end select
 
-    if(associated(io_err) .eqv. .false.) then 
-      print*,keyword," = ",real_val
+    if(associated(io_err) .eqv. .true.) then 
+      print*,"Error reading ",keyword
     end if
 
   end subroutine
@@ -85,8 +84,8 @@ submodule (read_config) read_config_utils
       print*,"Unknown type"
     end select
 
-    if(associated(io_err) .eqv. .false.) then 
-      print*,keyword," = ",string_val
+    if(associated(io_err) .eqv. .true.) then 
+      print*,"Error reading ",keyword
     end if
 
   end subroutine
@@ -126,7 +125,6 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: steps
 
-    print*,"*Number of steps: "
     call get_value(config_file, 'steps', steps)
 
   end subroutine
@@ -160,9 +158,6 @@ submodule (read_config) read_config_utils
     type is(type_dictionary)
 
       dict => config_file%get_dictionary('init',required=.true.,error=io_err)
-
-
-    print*,"* Initialisation: "
 
       call get_value(dict, "type", init)
 
@@ -209,13 +204,13 @@ submodule (read_config) read_config_utils
   module subroutine get_reference_number(config_file, p_ref, p_total, temp_ref, &
                                           dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), optional, intent(inout) :: p_ref
-    real(accs_real), optional, intent(inout) :: p_total
-    real(accs_real), optional, intent(inout) :: temp_ref
-    real(accs_real), optional, intent(inout) :: dens_ref
-    real(accs_real), optional, intent(inout) :: visc_ref
-    real(accs_real), optional, intent(inout) :: velo_ref
-    real(accs_real), optional, intent(inout) :: len_ref      
+    real(ccs_real), optional, intent(inout) :: p_ref
+    real(ccs_real), optional, intent(inout) :: p_total
+    real(ccs_real), optional, intent(inout) :: temp_ref
+    real(ccs_real), optional, intent(inout) :: dens_ref
+    real(ccs_real), optional, intent(inout) :: visc_ref
+    real(ccs_real), optional, intent(inout) :: velo_ref
+    real(ccs_real), optional, intent(inout) :: len_ref      
     integer, optional, intent(inout) :: pref_at_cell
 
     class(*), pointer :: dict
@@ -226,8 +221,6 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('reference_numbers',required=.true.,error=io_err)
 
-      print*,"* Reference numbers: "
-      
       ! Pressure
       if(present(p_ref)) then
         call get_value(dict, "pressure", p_ref)
@@ -303,8 +296,6 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('solve',required=.true.,error=io_err)
 
-      print*,"* Solve (on/off): "
-
       ! Solve u?
       if(present(u_sol)) then
         call get_value(dict, "u", u_sol)
@@ -363,8 +354,6 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('solver',required=.true.,error=io_err)
 
-      print*,"* Solver: "
-
       ! Get u_solver
       if(present(u_solver)) then
         call get_value(dict, "u", u_solver)
@@ -413,8 +402,8 @@ submodule (read_config) read_config_utils
   module subroutine get_transient(config_file, transient_type, dt, euler_blend, max_sub_steps)
     class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: transient_type
-    real(accs_real), intent(inout) :: dt
-    real(accs_real), intent(inout) :: euler_blend
+    real(ccs_real), intent(inout) :: dt
+    real(ccs_real), intent(inout) :: euler_blend
     integer, intent(inout) :: max_sub_steps
 
     class(*), pointer :: dict
@@ -425,8 +414,6 @@ submodule (read_config) read_config_utils
 
       dict => config_file%get_dictionary('transient',required=.false.,error=io_err)
 
-      print*,"* Transient: "
-      
       ! Transient type (euler/quad)
       call get_value(dict, "type", transient_type)
       
@@ -455,7 +442,7 @@ submodule (read_config) read_config_utils
   !> @param[in,out] residual - convergence criterion
   module  subroutine get_target_residual(config_file, residual)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), intent(inout) :: residual
+    real(ccs_real), intent(inout) :: residual
 
     call get_value(config_file, "target_residual", residual)
 
@@ -502,8 +489,6 @@ submodule (read_config) read_config_utils
     select type(config_file)
     type is(type_dictionary)
 
-      print*,"* Convection scheme: "
-      
       dict => config_file%get_dictionary('convection_scheme',required=.false.,error=io_err)
 
       if(present(u_conv)) then
@@ -544,19 +529,17 @@ submodule (read_config) read_config_utils
   !> @param[in,out] ed_blend - blending factor for ed
   module subroutine get_blending_factor(config_file, u_blend, v_blend, w_blend, te_blend, ed_blend)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), optional, intent(inout) :: u_blend
-    real(accs_real), optional, intent(inout) :: v_blend
-    real(accs_real), optional, intent(inout) :: w_blend
-    real(accs_real), optional, intent(inout) :: te_blend
-    real(accs_real), optional, intent(inout) :: ed_blend
+    real(ccs_real), optional, intent(inout) :: u_blend
+    real(ccs_real), optional, intent(inout) :: v_blend
+    real(ccs_real), optional, intent(inout) :: w_blend
+    real(ccs_real), optional, intent(inout) :: te_blend
+    real(ccs_real), optional, intent(inout) :: ed_blend
 
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
     type is(type_dictionary)
-
-      print*,"* Blending factor: "
 
       dict => config_file%get_dictionary('blending_factor',required=.false.,error=io_err)
 
@@ -598,19 +581,17 @@ submodule (read_config) read_config_utils
   !> @param[in,out] ed_relax - relaxation factor for ed
   module subroutine get_relaxation_factor(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
     class(*), pointer, intent(in) :: config_file
-    real(accs_real), optional, intent(inout) :: u_relax
-    real(accs_real), optional, intent(inout) :: v_relax
-    real(accs_real), optional, intent(inout) :: p_relax
-    real(accs_real), optional, intent(inout) :: te_relax
-    real(accs_real), optional, intent(inout) :: ed_relax
+    real(ccs_real), optional, intent(inout) :: u_relax
+    real(ccs_real), optional, intent(inout) :: v_relax
+    real(ccs_real), optional, intent(inout) :: p_relax
+    real(ccs_real), optional, intent(inout) :: te_relax
+    real(ccs_real), optional, intent(inout) :: ed_relax
 
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
     select type(config_file)
     type is(type_dictionary)
-
-      print*,"* Relaxation factor: "
 
       dict => config_file%get_dictionary('relaxation_factor',required=.false.,error=io_err)
 
@@ -659,8 +640,6 @@ submodule (read_config) read_config_utils
     select type(config_file)
     type is(type_dictionary)
 
-      print*,"Output frequency: "
-
       dict => config_file%get_dictionary('output',required=.false.,error=io_err)
 
       call get_value(dict, "every", output_freq)
@@ -702,8 +681,6 @@ submodule (read_config) read_config_utils
 
     select type(config_file)
     type is(type_dictionary)
-
-      print*,"* Output type and variables: "
 
       dict => config_file%get_dictionary('post',required=.false.,error=io_err)
 
@@ -750,7 +727,7 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-    real(accs_real), dimension(:,:), allocatable, intent(inout) :: bnd_vector
+    real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
   
     type(type_error), pointer :: io_err
     integer :: num_boundaries = 0
@@ -781,12 +758,9 @@ submodule (read_config) read_config_utils
       allocate(bnd_type(num_boundaries))
       allocate(bnd_vector(3,num_boundaries))
 
-      print*,"* Boundaries:"
-
       list => dict%get_list('region', required=.false.,error=io_err)
       call error_handler(io_err)  
 
-      print*,"** Regions:"
       item => list%first
       do while(associated(item))
         select type(element => item%node)
@@ -803,7 +777,6 @@ submodule (read_config) read_config_utils
 
       idx = 1 
       
-      print*,"** Types:"
       item => list%first
       do while(associated(item))
         select type(element => item%node)
@@ -814,39 +787,42 @@ submodule (read_config) read_config_utils
           idx = idx + 1
           end select  
       end do
+
+      if(present(bnd_vector)) then
     
-      list => dict%get_list('vector', required=.false.,error=io_err)
-      call error_handler(io_err)  
+        list => dict%get_list('vector', required=.false.,error=io_err)
+        call error_handler(io_err)  
 
-      idx = 1
+        idx = 1
 
-      print*,"** Vectors:"
-      item => list%first
+        item => list%first
 
-      do while(associated(item))
+        do while(associated(item))
 
-        select type(inner_list => item%node)
-        type is(type_list)
+          select type(inner_list => item%node)
+          type is(type_list)
 
-          inner_item => inner_list%first
-          inner_idx = 1
+            inner_item => inner_list%first
+            inner_idx = 1
 
-          do while(associated(inner_item))
-            select type(inner_element => inner_item%node)
-            class is(type_scalar)
-              inner_item => inner_item%next
-              inner_idx = inner_idx + 1
-              bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
-              print*,bnd_vector(inner_idx,idx)
-            end select
-          end do
+            do while(associated(inner_item))
+              select type(inner_element => inner_item%node)
+              class is(type_scalar)
+                inner_item => inner_item%next
+                inner_idx = inner_idx + 1
+                bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
+                print*,bnd_vector(inner_idx,idx)
+              end select
+            end do
 
-        end select
+          end select
 
-        item => item%next
-        idx = idx + 1
+          item => item%next
+          idx = idx + 1
 
-      end do
+        end do
+
+      end if
 
     class default
       print*,"Unknown type"

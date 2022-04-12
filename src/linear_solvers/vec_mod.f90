@@ -5,8 +5,8 @@
 
 module vec
 
-  use kinds, only : accs_real, accs_int
-  use types, only : vector, vector_init_data, vector_values
+  use kinds, only : ccs_real, ccs_int
+  use types, only : ccs_mesh, ccs_vector, vector_init_data, vector_values
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -23,12 +23,19 @@ module vec
   public :: update_vector
   public :: begin_update_vector
   public :: end_update_vector
-  public :: axpy
-  public :: norm
+  public :: vec_axpy
+  public :: vec_norm
   public :: initialise_vector
-  public :: set_global_vector_size
-  public :: set_local_vector_size
-
+  public :: set_vector_size
+  public :: get_vector_data
+  public :: restore_vector_data
+  public :: set_vector_location
+  public :: vec_reciprocal
+  public :: zero_vector
+  public :: mult_vec_vec
+  public :: scale_vec
+  ! public :: vec_view
+  
   interface
      
     !> @brief Interface to create a new vector object.
@@ -39,7 +46,7 @@ module vec
     !> @param[out] vector v - The vector returned allocated, but (potentially) uninitialised.
     module subroutine create_vector(vec_dat, v)
       type(vector_init_data), intent(in) :: vec_dat
-      class(vector), allocatable, intent(out) :: v
+      class(ccs_vector), allocatable, intent(out) :: v
     end subroutine
 
     !> @brief Interface to set values in a vector.
@@ -49,7 +56,7 @@ module vec
     !> @param[in,out] v       - the vector.
     module subroutine set_vector_values(val_dat, v)
       class(*), intent(in) :: val_dat
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine set_vector_values
 
     module subroutine clear_vector_values_entries(val_dat)
@@ -57,7 +64,7 @@ module vec
     end subroutine clear_vector_values_entries
 
     module subroutine set_vector_values_entry(val, val_dat)
-      real(accs_real), intent(in) :: val
+      real(ccs_real), intent(in) :: val
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_entry
     
@@ -66,12 +73,12 @@ module vec
     !> @param[in]  nrows   - how many rows will be set?
     !> @param[out] val_dat - the vector values object
     module subroutine create_vector_values(nrows, val_dat)
-      integer(accs_int), intent(in) :: nrows
+      integer(ccs_int), intent(in) :: nrows
       type(vector_values), intent(out) :: val_dat
     end subroutine create_vector_values
 
     module subroutine set_vector_values_mode(mode, val_dat)
-      integer(accs_int), intent(in) :: mode
+      integer(ccs_int), intent(in) :: mode
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_mode
 
@@ -84,7 +91,7 @@ module vec
     !> @param[in]     row     - the row
     !> @param[in,out] val_dat - the vector values object
     module subroutine set_vector_values_row(row, val_dat)
-      integer(accs_int), intent(in) :: row
+      integer(ccs_int), intent(in) :: row
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_row
 
@@ -92,7 +99,7 @@ module vec
     !
     !> @param[in,out] v - the vector
     module subroutine update_vector(v)
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine
 
     !> @brief Interface to begin a parallel update of a vector.
@@ -101,7 +108,7 @@ module vec
     !
     !> @param[in,out] v - the vector
     module subroutine begin_update_vector(v)
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine
     
     !> @brief Interface to end a parallel update of a vector.
@@ -110,7 +117,7 @@ module vec
     !
     !> @param[in,out] v - the vector
     module subroutine end_update_vector(v)
-      class(vector), intent(inout) :: v
+      class(ccs_vector), intent(inout) :: v
     end subroutine end_update_vector
 
     !> @brief Interface to perform the AXPY vector operation.
@@ -121,10 +128,10 @@ module vec
     !> @param[in]     alpha - a scalar value
     !> @param[in]     x     - an input vector
     !> @param[in,out] y     - vector serving as input, overwritten with result
-    module subroutine axpy(alpha, x, y)
-      real(accs_real), intent(in) :: alpha
-      class(vector), intent(in) :: x
-      class(vector), intent(inout) :: y
+    module subroutine vec_axpy(alpha, x, y)
+      real(ccs_real), intent(in) :: alpha
+      class(ccs_vector), intent(in) :: x
+      class(ccs_vector), intent(inout) :: y
     end subroutine
 
     !> @brief Interface to compute the norm of a vector
@@ -134,10 +141,10 @@ module vec
     !!                         norm_type=2.
     !> @param[out] n         - the computed norm returned as the result of the function
     !!                         call.
-    module function norm(v, norm_type) result(n)
-      class(vector), intent(in) :: v
-      integer(accs_int), intent(in) :: norm_type
-      real(accs_real) :: n
+    module function vec_norm(v, norm_type) result(n)
+      class(ccs_vector), intent(in) :: v
+      integer(ccs_int), intent(in) :: norm_type
+      real(ccs_real) :: n
     end function
     
     !> @brief Constructor for default vector values
@@ -147,30 +154,72 @@ module vec
       type(vector_init_data), intent(inout) :: vector_descriptor
     end subroutine initialise_vector
 
-    !> @brief Setter for global vector size
+    !> @brief Setter for vector size
     !
-    !> param[in/out] vector_descriptor - the vector data object
-    !> param[in] size                  - the global vector size
-    !> param[in] par_env               - the parallel environment 
+    !> param[in]     par_env           - the parallel environment 
     !!                                   where the vector resides
-    module subroutine set_global_vector_size(vector_descriptor, size, par_env)
-      type(vector_init_data), intent(inout) :: vector_descriptor
-      integer(accs_int), intent(in) :: size
+    !> param[in]     geometry          - the mesh - contains the
+    !!                                   information to set the
+    !!                                   vector size
+    !> param[in/out] vector_descriptor - the vector data object
+    module subroutine set_vector_size(par_env, geometry, vector_descriptor)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine
+      class(ccs_mesh), target, intent(in) :: geometry
+      type(vector_init_data), intent(inout) :: vector_descriptor
+    end subroutine set_vector_size
 
-    !> @brief Setter for local vector size
+    !> @brief Gets the data in a given vector
     !
-    !> param[in/out] vvector_descriptor - the vector data object
-    !> param[in] size                   - the local vector size
-    !> param[in] par_env                - the parallel environment 
-    !!                                    where the vector resides
-    module subroutine set_local_vector_size(vector_descriptor, size, par_env)
-      type(vector_init_data), intent(inout) :: vector_descriptor
-      integer(accs_int), intent(in) :: size
-      class(parallel_environment), allocatable, target, intent(in) :: par_env
-    end subroutine
+    !> @param[in] vec   - the vector to get data from
+    !> @param[in] array - an array to store the data in
+    module subroutine get_vector_data(vec, array)
+      class(ccs_vector), intent(in) :: vec
+      real(ccs_real), dimension(:), pointer, intent(out) :: array
+    end subroutine get_vector_data
 
-    end interface
+    !> @brief Resets the vector data if required for further processing
+    !
+    !> @param[in] vec   - the vector to reset
+    !> @param[in] array - the array containing the data to restore
+    module subroutine restore_vector_data(vec, array)
+      class(ccs_vector), intent(in) :: vec
+      real(ccs_real), dimension(:), pointer, intent(in) :: array
+    end subroutine restore_vector_data
+
+    !> @brief Set vector values to be located at either cell-centre or face
+    !
+    module subroutine set_vector_location(loc, vector_descriptor)
+      integer(ccs_int), intent(in) :: loc
+      type(vector_init_data), intent(inout) :: vector_descriptor
+    end subroutine set_vector_location
+
+    !> @brief Replace each component of a vector by its reciprocal
+    !
+    !> @param[in]  vec - the vector
+    !> @param[out] vec - the vector reciprocal
+    module subroutine vec_reciprocal(vec)
+      class(ccs_vector), intent(inout) :: vec
+    end subroutine vec_reciprocal
+
+    module subroutine zero_vector(vec)
+      class(ccs_vector), intent(inout) :: vec
+    end subroutine zero_vector
+
+    module subroutine mult_vec_vec(a, b)
+      class(ccs_vector), intent(in) :: a
+      class(ccs_vector), intent(inout) :: b
+    end subroutine mult_vec_vec
+
+    module subroutine scale_vec(alpha, v)
+      real(ccs_real), intent(in) :: alpha
+      class(ccs_vector), intent(inout) :: v
+    end subroutine scale_vec
+    
+    ! module subroutine vec_view(vec_dat, vec)
+    !   type(vector_init_data), intent(in) :: vec_dat
+    !   class(ccs_vector), intent(in) :: vec
+    ! end subroutine vec_view
+
+  end interface
   
 end module vec

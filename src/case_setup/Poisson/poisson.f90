@@ -16,23 +16,23 @@
 program poisson
 
   !! ASiMoV-CCS uses
-  use constants, only : ndim
-  
-  use kinds, only : accs_real, accs_int
-  use types, only : vector_init_data, vector, matrix_init_data, matrix, &
-       linear_system, linear_solver, mesh, set_global_matrix_size, &
-       cell_locator, face_locator, neighbour_locator
+  use constants, only : ndim, add_mode, insert_mode
+  use kinds, only : ccs_real, ccs_int
+  use types, only : vector_init_data, ccs_vector, matrix_init_data, ccs_matrix, &
+       linear_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
+       neighbour_locator, vector_values, matrix_values
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
-  use vec, only : create_vector, axpy, norm
+  use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve, set_linear_system
-  use utils, only : update, begin_update, end_update, &
-                    finalise, initialise, &
-                    set_global_size
+  use solver, only : create_solver, solve, set_linear_system, axpy, norm
+  use utils, only : update, begin_update, end_update, finalise, initialise, &
+                    set_size, &
+                    set_values, clear_entries, set_values, set_row, set_entry, set_mode, &
+                    pack_entries
+  use vec, only : create_vector_values
   use mesh_utils, only : build_square_mesh
   use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
        count_neighbours, get_boundary_status
-  use petsctypes, only : matrix_petsc
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
@@ -42,19 +42,19 @@ program poisson
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  class(vector), allocatable, target :: u, b
-  class(vector), allocatable :: ustar
-  class(matrix), allocatable, target :: M
+  class(ccs_vector), allocatable, target :: u, b
+  class(ccs_vector), allocatable :: ustar
+  class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
   type(vector_init_data) :: vec_sizes
   type(matrix_init_data) :: mat_sizes
   type(linear_system) :: poisson_eq
-  type(mesh) :: square_mesh
+  type(ccs_mesh) :: square_mesh
 
-  integer(accs_int) :: cps = 10 ! Default value for cells per side
+  integer(ccs_int) :: cps = 10 ! Default value for cells per side
 
-  real(accs_real) :: err_norm
+  real(ccs_real) :: err_norm
 
   double precision :: start_time
   double precision :: end_time
@@ -73,8 +73,8 @@ program poisson
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_global_size(mat_sizes, square_mesh%nglobal, square_mesh%nglobal, par_env)
-  call set_nnz(mat_sizes, 5)
+  call set_size(par_env, square_mesh, mat_sizes)
+  call set_nnz(5, mat_sizes)
   call create_matrix(mat_sizes, M)
 
   call discretise_poisson(M)
@@ -82,7 +82,7 @@ program poisson
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_global_size(vec_sizes, square_mesh%nglobal, par_env)
+  call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, b)
   call create_vector(vec_sizes, ustar)
   call create_vector(vec_sizes, u)
@@ -105,13 +105,13 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   !! Create linear solver & set options
-  call set_linear_system(poisson_eq, b, u, M, par_env)
+  call set_linear_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
   !! Check solution
   call set_exact_sol(ustar)
-  call axpy(-1.0_accs_real, ustar, u)
+  call axpy(-1.0_ccs_real, ustar, u)
 
   err_norm = norm(u, 2) * square_mesh%h
   if (par_env%proc_id == par_env%root) then
@@ -137,25 +137,20 @@ contains
 
   subroutine eval_rhs(b)
 
-    use constants, only : add_mode
-    use types, only : vector_values
-    use utils, only : clear_entries, set_values, set_row, set_entry, set_mode
-    use vec, only : create_vector_values
-    
-    class(vector), intent(inout) :: b
+    class(ccs_vector), intent(inout) :: b
 
-    integer(accs_int) :: i
-    real(accs_real) :: r
+    integer(ccs_int) :: i
+    real(ccs_real) :: r
 
     type(vector_values) :: val_dat
 
     type(cell_locator) :: cell_location
-    real(accs_real), dimension(ndim) :: cc
-    real(accs_real) :: V
-    integer(accs_int) :: idxg
-    integer(accs_int) :: nrows_working_set
-
-    nrows_working_set = 1_accs_int
+    real(ccs_real), dimension(ndim) :: cc
+    real(ccs_real) :: V
+    integer(ccs_int) :: idxg
+    integer(ccs_int) :: nrows_working_set
+    
+    nrows_working_set = 1_ccs_int
     call create_vector_values(nrows_working_set, val_dat)
     call set_mode(add_mode, val_dat)
     associate(nloc => square_mesh%nlocal, &
@@ -166,7 +161,7 @@ contains
       do i = 1, nloc
         call clear_entries(val_dat)
         
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call get_centre(cell_location, cc)
         call get_volume(cell_location, V)
         call get_global_index(cell_location, idxg)
@@ -189,38 +184,34 @@ contains
   !> @brief Apply forcing function
   pure subroutine eval_cell_rhs (x, y, H, r)
     
-    real(accs_real), intent(in) :: x, y, H
-    real(accs_real), intent(out) :: r
+    real(ccs_real), intent(in) :: x, y, H
+    real(ccs_real), intent(out) :: r
     
-    r = 0.0_accs_real &
-         + 0.0_accs_real * (x + y + H) ! Silence unused dummy argument error
+    r = 0.0_ccs_real &
+         + 0.0_ccs_real * (x + y + H) ! Silence unused dummy argument error
     
   end subroutine eval_cell_rhs
 
   subroutine discretise_poisson(M)
 
-    use constants, only : insert_mode
-    use types, only : matrix_values
-    use utils, only : set_values, pack_entries
-    
-    class(matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
-    integer(accs_int) :: i, j
+    integer(ccs_int) :: i, j
 
-    integer(accs_int) :: row, col
-    real(accs_real) :: coeff_f, coeff_p, coeff_nb
+    integer(ccs_int) :: row, col
+    real(ccs_real) :: coeff_f, coeff_p, coeff_nb
 
     type(face_locator) :: face_location
-    real(accs_real) :: A
+    real(ccs_real) :: A
 
-    integer(accs_int) :: idxg
+    integer(ccs_int) :: idxg
     type(cell_locator) :: cell_location
-    integer(accs_int) :: nnb
+    integer(ccs_int) :: nnb
 
     type(neighbour_locator) :: nb_location
     logical :: is_boundary
-    integer(accs_int) :: nbidxg
+    integer(ccs_int) :: nbidxg
 
     mat_coeffs%mode = insert_mode
 
@@ -230,7 +221,7 @@ contains
       !!        filling from front, and pass the number of coefficients to be set, requires
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_global_index(cell_location, idxg)
       call count_neighbours(cell_location, nnb)
         
@@ -239,17 +230,17 @@ contains
       allocate(mat_coeffs%val(1 + nnb))
 
       row = idxg
-      coeff_p = 0.0_accs_real
+      coeff_p = 0.0_ccs_real
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(nb_location, cell_location, j)
+        call set_neighbour_location(cell_location, j, nb_location)
         call get_boundary_status(nb_location, is_boundary)
 
         if (.not. is_boundary) then
           !! Interior face
         
-          call set_face_location(face_location, square_mesh, i, j)
+          call set_face_location(square_mesh, i, j, face_location)
           call get_face_area(face_location, A)
           coeff_f = (1.0 / square_mesh%h) * A
 
@@ -260,15 +251,15 @@ contains
           col = nbidxg
         else
           col = -1
-          coeff_nb = 0.0_accs_real
+          coeff_nb = 0.0_ccs_real
         end if
-        call pack_entries(mat_coeffs, 1, j + 1, row, col, coeff_nb)
+        call pack_entries(1, j + 1, row, col, coeff_nb, mat_coeffs)
 
       end do
 
       !! Add the diagonal entry
       col = row
-      call pack_entries(mat_coeffs, 1, 1, row, col, coeff_p)
+      call pack_entries(1, 1, row, col, coeff_p, mat_coeffs)
       
       !! Set the values
       call set_values(mat_coeffs, M)
@@ -281,45 +272,38 @@ contains
 
   subroutine apply_dirichlet_bcs(M, b)
 
-    use constants, only : add_mode
-    use kinds, only: accs_int, accs_real
-    use mat, only : set_eqn
-    use types, only : vector_values, matrix_values, matrix, vector, mesh
-    use utils, only : clear_entries, set_values, set_mode, set_row, set_entry, pack_entries
-    use vec, only : create_vector_values
-    
     implicit none
   
-    class(matrix), intent(inout) :: M
-    class(vector), intent(inout) :: b
+    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(inout) :: b
   
-    integer(accs_int) :: i, j
-    real(accs_real) :: boundary_coeff, boundary_val
+    integer(ccs_int) :: i, j
+    real(ccs_real) :: boundary_coeff, boundary_val
 
-    integer(accs_int) :: idx, row, col
-    real(accs_real) :: r, coeff
+    integer(ccs_int) :: idx, row, col
+    real(ccs_real) :: r, coeff
     
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
 
     type(face_locator) :: face_location
-    real(accs_real) :: A
+    real(ccs_real) :: A
 
     type(cell_locator) :: cell_location
-    integer(accs_int) :: idxg
+    integer(ccs_int) :: idxg
     type(neighbour_locator) :: nb_location
 
-    integer(accs_int) :: nnb
+    integer(ccs_int) :: nnb
     logical :: is_boundary
 
-    integer(accs_int) :: nrows_working_set
+    integer(ccs_int) :: nrows_working_set
     
     allocate(mat_coeffs%rglob(1))
     allocate(mat_coeffs%cglob(1))
     allocate(mat_coeffs%val(1))
     mat_coeffs%mode = add_mode
 
-    nrows_working_set = 1_accs_int
+    nrows_working_set = 1_ccs_int
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(add_mode, vec_values)
     do i = 1, square_mesh%nlocal
@@ -327,10 +311,10 @@ contains
       if (minval(square_mesh%nbidx(:, i)) < 0) then
         call clear_entries(vec_values)
         
-        call set_cell_location(cell_location, square_mesh, i)
+        call set_cell_location(square_mesh, i, cell_location)
         call get_global_index(cell_location, idxg)
-        coeff = 0.0_accs_real 
-        r = 0.0_accs_real
+        coeff = 0.0_ccs_real 
+        r = 0.0_ccs_real
           
         row = idxg
         col = idxg
@@ -339,11 +323,11 @@ contains
         call count_neighbours(cell_location, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(nb_location, cell_location, j)
+          call set_neighbour_location(cell_location, j, nb_location)
           call get_boundary_status(nb_location, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(face_location, square_mesh, i, j)
+            call set_face_location(square_mesh, i, j, face_location)
             call get_face_area(face_location, A)
             boundary_coeff = (2.0 / square_mesh%h) * A
             boundary_val = rhs_val(i, j)
@@ -357,7 +341,7 @@ contains
             
         end do
 
-        call pack_entries(mat_coeffs, 1, 1, row, col, coeff)
+        call pack_entries(1, 1, row, col, coeff, mat_coeffs)
 
         call set_row(row, vec_values)
         call set_entry(r, vec_values)
@@ -375,28 +359,23 @@ contains
 
   subroutine set_exact_sol(ustar)
 
-    use constants, only : insert_mode
-    use types, only : vector_values
-    use utils, only : set_values, set_mode, set_row, set_entry, clear_entries
-    use vec, only : create_vector_values
-    
-    class(vector), intent(inout) :: ustar
+    class(ccs_vector), intent(inout) :: ustar
 
     type(vector_values) :: vec_values
-    integer(accs_int) :: i
+    integer(ccs_int) :: i
 
     type(cell_locator) :: cell_location
-    integer(accs_int) :: idxg
-    integer(accs_int) :: nrows_working_set
+    integer(ccs_int) :: idxg
+    integer(ccs_int) :: nrows_working_set
 
-    nrows_working_set = 1_accs_int
+    nrows_working_set = 1_ccs_int
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(insert_mode, vec_values)
     
     do i = 1, square_mesh%nlocal
       call clear_entries(vec_values)
       
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_global_index(cell_location, idxg)
 
       call set_row(idxg, vec_values)
@@ -413,31 +392,31 @@ contains
 
     class(parallel_environment) :: par_env
 
-    square_mesh = build_square_mesh(cps, 1.0_accs_real, par_env)
+    square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
     
   end subroutine initialise_poisson
 
   function rhs_val(i, f) result(r)
 
-    integer(accs_int), intent(in) :: i !> Cell index
-    integer(accs_int), intent(in), optional :: f !> Face index (local wrt cell)
+    integer(ccs_int), intent(in) :: i !> Cell index
+    integer(ccs_int), intent(in), optional :: f !> Face index (local wrt cell)
 
     type(cell_locator) :: cell_location
     type(face_locator) :: face_location
     
-    real(accs_real), dimension(ndim) :: x
-    real(accs_real) :: r
+    real(ccs_real), dimension(ndim) :: x
+    real(ccs_real) :: r
 
     if (present(f)) then
       !! Face-centred value
-      call set_face_location(face_location, square_mesh, i, f)
+      call set_face_location(square_mesh, i, f, face_location)
       call get_centre(face_location, x)
       associate(y => x(2))
         r = y
       end associate
     else
       !! Cell-centred value
-      call set_cell_location(cell_location, square_mesh, i)
+      call set_cell_location(square_mesh, i, cell_location)
       call get_centre(cell_location, x)
       associate(y => x(2))
         r = y

@@ -16,18 +16,18 @@ contains
 
   !> @brief Setter for the linear system
   !
-  !> @param[in/out] lin_sys   - the linear system
+  !> @param[in] par_env       - the parallel environment where the linear 
+  !!                            system resides
   !> @param[in] rhs           - the right hand side vector
   !> @param[in] solution      - the solution vector
   !> @param[in] mat           - the matrix
-  !> @param[in] par_env       - the parallel environment where the linear 
-  !!                            system resides
-  module subroutine set_linear_system(lin_sys, rhs, solution, mat, par_env)
-    type(linear_system), intent(inout) :: lin_sys
-    class(vector), allocatable, target, intent(in) :: rhs
-    class(vector), allocatable, target, intent(in) :: solution
-    class(matrix), allocatable, target, intent(in) :: mat
+  !> @param[in/out] lin_sys   - the linear system
+  module subroutine set_linear_system(par_env, rhs, solution, mat, lin_sys)
     class(parallel_environment), allocatable, target, intent(in) :: par_env
+    class(ccs_vector), allocatable, target, intent(in) :: rhs
+    class(ccs_vector), allocatable, target, intent(in) :: solution
+    class(ccs_matrix), allocatable, target, intent(in) :: mat
+    type(linear_system), intent(inout) :: lin_sys
 
     lin_sys%rhs => rhs
     lin_sys%sol => solution

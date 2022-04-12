@@ -4,9 +4,10 @@
 !> @details An implementation of a PETSc solver
 submodule (solver) solver_petsc
 
-  use kinds, only : accs_int, accs_err
+  use kinds, only : ccs_err
   use petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use utils, only: update
   
   implicit none
 
@@ -24,7 +25,7 @@ contains
     type(linear_system), intent(in) :: eqsys
     class(linear_solver), allocatable, intent(out) :: solver
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     allocate(linear_solver_petsc :: solver)
     
@@ -84,7 +85,7 @@ contains
     
     class(linear_solver), intent(inout) :: solver
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !> Error code
     
     select type(solver)
       type is(linear_solver_petsc)
@@ -97,6 +98,7 @@ contains
               select type(u => solver%eqsys%sol)
                 type is(vector_petsc)
                   call KSPSolve(ksp, b%v, u%v, ierr)
+                  call update(u)
                   if (ierr /= 0) then
                     print *, "ERROR in linear solve!"
                   end if

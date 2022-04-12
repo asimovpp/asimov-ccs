@@ -6,8 +6,7 @@
 module parallel_types_mpi
 
   use mpi
-  use parallel_types, only: parallel_environment, & 
-                            reduction_operator
+  use parallel_types, only: parallel_environment, reduction_operator
 
   implicit none
 
