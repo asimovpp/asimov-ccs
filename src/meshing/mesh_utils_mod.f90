@@ -444,6 +444,12 @@ contains
 
   end subroutine set_cell_face_indices
 
+  !> @brief Computes the index of the face shared by the cells denoted by the specified 
+  !!        local index and neighbouring index
+  !<
+  !> @param[in] mesh      - the mesh
+  !> @param[in] local_idx - the current cell index
+  !> @param[in] index_nb  - the index of the neighbouring cell
   function get_neighbour_face_index(mesh, local_idx, index_nb) result(face_idx)
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: local_idx
