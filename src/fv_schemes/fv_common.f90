@@ -499,8 +499,8 @@ contains
   !> @param[in] component   - which vector component (i.e. direction) to update?
   !> @param[in] phi         - a cell-centred array of the field whose gradient we
   !!                          want to compute
-  !> @param[inout] gradient - a cell-centred array of the gradient
-  subroutine update_gradient_component(cell_mesh, component, phi, x_gradients_old, y_gradients_old, gradz_old, gradient)
+  !> @param[inout] gradients - a cell-centred array of the gradient
+  subroutine update_gradient_component(cell_mesh, component, phi, x_gradients_old, y_gradients_old, z_gradients_old, gradients)
 
 
     type(ccs_mesh), intent(in) :: cell_mesh
@@ -508,8 +508,8 @@ contains
     class(ccs_vector), intent(in) :: phi
     real(ccs_real), dimension(:), intent(in) :: x_gradients_old
     real(ccs_real), dimension(:), intent(in) :: y_gradients_old
-    real(ccs_real), dimension(:), intent(in) :: gradz_old
-    class(ccs_vector), intent(inout) :: gradient
+    real(ccs_real), dimension(:), intent(in) :: z_gradients_old
+    class(ccs_vector), intent(inout) :: gradients
     
     type(vector_values) :: grad_values
     real(ccs_real), dimension(:), pointer :: phi_data
@@ -557,7 +557,7 @@ contains
           phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
           call get_distance(loc_p, loc_f, dx)
-          phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + gradz_old(i) * dx(3))
+          phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + z_gradients_old(i) * dx(3))
         end if
 
         call get_face_area(loc_f, face_area)
@@ -571,7 +571,7 @@ contains
       
       call get_global_index(loc_p, idxg)
       call pack_entries(1, idxg, grad, grad_values)
-      call set_values(grad_values, gradient)
+      call set_values(grad_values, gradients)
     end do
 
     call restore_vector_data(phi, phi_data)
