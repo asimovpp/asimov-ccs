@@ -115,11 +115,11 @@ program test_advection_coeff
 
   !> @brief Sets the velocity field in the desired direction and discretisation
   !
-  !> @param[in] cell_mesh - The mesh structure
+  !> @param[in] mesh - The mesh structure
   !> @param[in] direction - Integer indicating the direction of the velocity field
   !> @param[out] u, v     - The velocity fields in x and y directions
-  subroutine set_velocity_fields(cell_mesh, direction, u, v)
-    class(ccs_mesh), intent(in) :: cell_mesh
+  subroutine set_velocity_fields(mesh, direction, u, v)
+    class(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout), allocatable :: u, v
     type(cell_locator) :: self_loc
@@ -130,7 +130,7 @@ program test_advection_coeff
     u_vals%setter_mode = insert_mode
     v_vals%setter_mode = insert_mode
     
-    associate(n_local => cell_mesh%nlocal)
+    associate(n_local => mesh%nlocal)
       allocate(u_vals%indices(n_local))
       allocate(v_vals%indices(n_local))
       allocate(u_vals%values(n_local))
@@ -138,7 +138,7 @@ program test_advection_coeff
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
+        call set_cell_location(mesh, local_idx, self_loc)
         call get_global_index(self_loc, self_idx)
 
         if (direction == x_dir) then
