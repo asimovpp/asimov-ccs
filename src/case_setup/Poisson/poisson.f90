@@ -203,9 +203,9 @@ contains
     type(cell_locator) :: cell_location
     integer(ccs_int) :: nnb
 
-    type(neighbour_locator) :: nb_location
+    type(neighbour_locator) :: loc_nb
     logical :: is_boundary
-    integer(ccs_int) :: nbidxg
+    integer(ccs_int) :: global_index_nb
 
     mat_coeffs%setter_mode = insert_mode
 
@@ -228,8 +228,8 @@ contains
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(cell_location, j, nb_location)
-        call get_boundary_status(nb_location, is_boundary)
+        call set_neighbour_location(cell_location, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
           !! Interior face
@@ -238,11 +238,11 @@ contains
           call get_face_area(face_location, A)
           coeff_f = (1.0 / square_mesh%h) * A
 
-          call get_global_index(nb_location, nbidxg)
+          call get_global_index(loc_nb, global_index_nb)
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
-          col = nbidxg
+          col = global_index_nb
         else
           col = -1
           coeff_nb = 0.0_ccs_real
@@ -287,7 +287,7 @@ contains
 
     type(cell_locator) :: cell_location
     integer(ccs_int) :: idxg
-    type(neighbour_locator) :: nb_location
+    type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: nnb
     logical :: is_boundary
@@ -302,7 +302,7 @@ contains
     vec_values%setter_mode = add_mode
 
     do i = 1, square_mesh%nlocal
-      if (minval(square_mesh%nbidx(:, i)) < 0) then
+      if (minval(square_mesh%index_nb(:, i)) < 0) then
         call set_cell_location(square_mesh, i, cell_location)
         call get_global_index(cell_location, idxg)
         coeff = 0.0_ccs_real 
@@ -315,8 +315,8 @@ contains
         call count_neighbours(cell_location, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(cell_location, j, nb_location)
-          call get_boundary_status(nb_location, is_boundary)
+          call set_neighbour_location(cell_location, j, loc_nb)
+          call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
             call set_face_location(square_mesh, i, j, face_location)

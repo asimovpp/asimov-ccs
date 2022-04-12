@@ -75,14 +75,14 @@ module types
     integer(ccs_int) :: nfaces_local !< Number of faces in local mesh
     integer(ccs_int), dimension(:), allocatable :: idx_global ! The global index of cells (local + halo)
     integer(ccs_int), dimension(:), allocatable :: nnb        ! The per-cell neighbour count
-    integer(ccs_int), dimension(:, :), allocatable :: nbidx !< Cell neighbours (neighbour/face, cell)
-    integer(ccs_int), dimension(:, :), allocatable :: faceidx !< Cell face index in local face vector (face, cell)
-    real(ccs_real) :: h                                     !< The (constant) grid spacing XXX: remove!
-    real(ccs_real), dimension(:, :), allocatable :: Af      !< Face areas
-    real(ccs_real), dimension(:), allocatable :: vol        !< Cell volumes
-    real(ccs_real), dimension(:, :), allocatable :: xc      !< Cell centres (dimension, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: xf   !< Face centres (dimension, face, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: nf   !< Face normals (dimension, face, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: index_nb !< Cell neighbours (neighbour/face, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: faceidx  !< Cell face index in local face vector (face, cell)
+    real(ccs_real) :: h                                        !< The (constant) grid spacing XXX: remove!
+    real(ccs_real), dimension(:, :), allocatable :: Af         !< Face areas
+    real(ccs_real), dimension(:), allocatable :: vol           !< Cell volumes
+    real(ccs_real), dimension(:, :), allocatable :: xc         !< Cell centres (dimension, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: xf      !< Face centres (dimension, face, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: nf      !< Face normals (dimension, face, cell)
   end type ccs_mesh
 
   !> @brief Scalar field type
@@ -125,7 +125,7 @@ module types
   type, public :: neighbour_locator
     type(ccs_mesh), pointer :: mesh
     integer(ccs_int) :: cell_idx
-    integer(ccs_int) :: cell_neighbour_ctr
+    integer(ccs_int) :: nb_counter
   end type neighbour_locator
 
   type, public :: bc_config

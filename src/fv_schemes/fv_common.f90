@@ -85,12 +85,12 @@ contains
 
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
+    type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
-    integer(ccs_int) :: self_idx, ngb_idx, local_idx, ngb_local_idx
+    integer(ccs_int) :: self_idx, global_index_nb, local_idx, index_nb
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
-    integer(ccs_int) :: n_ngb
+    integer(ccs_int) :: nnb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
     real(ccs_real) :: adv_coeff, adv_coeff_total
@@ -111,19 +111,19 @@ contains
       ! Calculate contribution from neighbours
       call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
       mat_counter = 1
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
-      do j = 1, n_ngb
-        call set_neighbour_location(self_loc, j, ngb_loc)
-        call get_boundary_status(ngb_loc, is_boundary)
+      do j = 1, nnb
+        call set_neighbour_location(self_loc, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
           diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
 
-          call get_global_index(ngb_loc, ngb_idx)
-          call get_local_index(ngb_loc, ngb_local_idx)
+          call get_global_index(loc_nb, global_index_nb)
+          call get_local_index(loc_nb, index_nb)
 
           call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)
@@ -133,7 +133,7 @@ contains
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
           !       procedure (should also eliminate the type check).
-          if (ngb_local_idx < local_idx) then
+          if (index_nb < local_idx) then
             sgn = -1.0_ccs_real
           else
             sgn = 1.0_ccs_real
@@ -151,7 +151,7 @@ contains
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
           
-          call pack_entries(1, mat_counter, self_idx, ngb_idx, adv_coeff + diff_coeff, mat_coeffs)
+          call pack_entries(1, mat_counter, self_idx, global_index_nb, adv_coeff + diff_coeff, mat_coeffs)
           mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
@@ -173,14 +173,14 @@ contains
   !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
   !  values provided on box corners
   !
-  !> @param[in] ngb_index - index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
+  !> @param[in] index_nb - index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
   !> @param[in] row       - global row of cell within square mesh
   !> @param[in] col       - global column of cell within square mesh
   !> @param[in] cps       - number of cells per side in square mesh
   !> @param[in] bcs       - BC configuration data structure
   !> @param[out] bc_value - the value of the scalar field at the specified boundary
-  subroutine compute_boundary_values(ngb_index, row, col, cps, bcs, bc_value)
-    integer, intent(in) :: ngb_index  ! This is the index wrt the CV, not the ngb's cell index (i.e. range 1-4 for a square mesh)
+  subroutine compute_boundary_values(index_nb, row, col, cps, bcs, bc_value)
+    integer, intent(in) :: index_nb  ! This is the index wrt the CV, not the nb's cell index (i.e. range 1-4 for a square mesh)
     integer, intent(in) :: row
     integer, intent(in) :: col
     integer, intent(in) :: cps
@@ -192,22 +192,22 @@ contains
     col_cps = real(col, ccs_real)/real(cps, ccs_real)
 
     bc_value = 0.0_ccs_real
-    ! if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
-    !    (bcs%region(ngb_index) == bc_region_left .or. &
-    !    bcs%region(ngb_index) == bc_region_right)) then
-    !   bc_value = -((1.0_ccs_real - row_cps) * bcs%endpoints(ngb_index, 1) + row_cps * bcs%endpoints(ngb_index, 2))
-    ! else if (bcs%bc_type(ngb_index) == bc_type_dirichlet .and. &
-    !         (bcs%region(ngb_index) == bc_region_top .or. &
-    !         bcs%region(ngb_index) == bc_region_bottom)) then
-    !   bc_value = -((1.0_ccs_real - col_cps) * bcs%endpoints(ngb_index, 1) + col_cps * bcs%endpoints(ngb_index, 2))
+    ! if (bcs%bc_type(index_nb) == bc_type_dirichlet .and. &
+    !    (bcs%region(index_nb) == bc_region_left .or. &
+    !    bcs%region(index_nb) == bc_region_right)) then
+    !   bc_value = -((1.0_ccs_real - row_cps) * bcs%endpoints(index_nb, 1) + row_cps * bcs%endpoints(index_nb, 2))
+    ! else if (bcs%bc_type(index_nb) == bc_type_dirichlet .and. &
+    !         (bcs%region(index_nb) == bc_region_top .or. &
+    !         bcs%region(index_nb) == bc_region_bottom)) then
+    !   bc_value = -((1.0_ccs_real - col_cps) * bcs%endpoints(index_nb, 1) + col_cps * bcs%endpoints(index_nb, 2))
     ! end if
 
-    if (bcs%bc_type(ngb_index) == 0) then
+    if (bcs%bc_type(index_nb) == 0) then
       bc_value = 0.0_ccs_real
-    else if (bcs%bc_type(ngb_index) == 1) then
+    else if (bcs%bc_type(index_nb) == 1) then
       bc_value = 1.0_ccs_real ! XXX: might not be correct
     else
-      print *, "ERROR: Unknown boundary type ", bcs%bc_type(ngb_index)
+      print *, "ERROR: Unknown boundary type ", bcs%bc_type(index_nb)
     end if
     
   end subroutine compute_boundary_values
@@ -233,13 +233,13 @@ contains
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
     type(cell_locator) :: self_loc
-    type(neighbour_locator) :: ngb_loc
+    type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     integer(ccs_int) :: self_idx, local_idx
     integer(ccs_int) :: j
     integer(ccs_int) :: bc_counter
     integer(ccs_int) :: row, col
-    integer(ccs_int) :: n_ngb, mesh_ngb_idx
+    integer(ccs_int) :: nnb, index_nb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff
     real(ccs_real) :: adv_coeff
@@ -262,14 +262,14 @@ contains
     do local_idx = 1, cell_mesh%nlocal
       call set_cell_location(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, n_ngb)
+      call count_neighbours(self_loc, nnb)
       ! Calculate contribution from neighbours
-      do j = 1, n_ngb
-        call set_neighbour_location(self_loc, j, ngb_loc)
-        call get_boundary_status(ngb_loc, is_boundary)
+      do j = 1, nnb
+        call set_neighbour_location(self_loc, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
-          ! call get_global_index(ngb_loc, ngb_idx)
-          call get_local_index(ngb_loc, mesh_ngb_idx)
+          ! call get_global_index(loc_nb, global_index_nb)
+          call get_local_index(loc_nb, index_nb)
 
           call set_face_location(cell_mesh, local_idx, j, face_loc)
           call get_face_area(face_loc, face_area)
@@ -279,9 +279,9 @@ contains
           diff_coeff = calc_diffusion_coeff(local_idx, j, cell_mesh)
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, mf(idxf), mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, mf(idxf), index_nb, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, mf(idxf), mesh_ngb_idx, adv_coeff)
+              call calc_advection_coeff(phi, mf(idxf), index_nb, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
@@ -309,12 +309,12 @@ contains
   !> @brief Sets the diffusion coefficient
   !
   !> @param[in] local_self_idx - the local cell index
-  !> @param[in] local_ngb_idx  - the local neigbouring cell index
+  !> @param[in] index_nb  - the local neigbouring cell index
   !> @param[in] cell_mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
-  module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
+  module function calc_diffusion_coeff(local_self_idx, index_nb, cell_mesh) result(coeff)
     integer(ccs_int), intent(in) :: local_self_idx
-    integer(ccs_int), intent(in) :: local_ngb_idx
+    integer(ccs_int), intent(in) :: index_nb
     type(ccs_mesh), intent(in) :: cell_mesh
     real(ccs_real) :: coeff
 
@@ -327,13 +327,13 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call set_face_location(cell_mesh, local_self_idx, local_ngb_idx, face_location)
+    call set_face_location(cell_mesh, local_self_idx, index_nb, face_location)
     call get_face_area(face_location, face_area)
     call get_boundary_status(face_location, is_boundary)
 
     call set_cell_location(cell_mesh, local_self_idx, loc_p)
     if (.not. is_boundary) then
-      call set_neighbour_location(loc_p, local_ngb_idx, loc_nb)
+      call set_neighbour_location(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
     else
       call get_distance(loc_p, face_location, dx)
@@ -363,19 +363,19 @@ contains
     real(ccs_real) :: flux
 
     ! Local variables
-    logical :: is_boundary                          !< Boundary indicator
-    type(cell_locator) :: loc_p                     !< Primary cell locator
-    type(neighbour_locator) :: loc_nb               !< Neighbour cell locator
-    integer(ccs_int) :: idxnb                      !< Neighbour cell index
+    logical :: is_boundary                         !< Boundary indicator
+    type(cell_locator) :: loc_p                    !< Primary cell locator
+    type(neighbour_locator) :: loc_nb              !< Neighbour cell locator
+    integer(ccs_int) :: index_nb                   !< Neighbour cell index
     real(ccs_real) :: flux_corr                    !< Flux correction
     real(ccs_real), dimension(ndim) :: dx          !< Cell-cell distance
     real(ccs_real) :: dxmag                        !< Cell-cell distance magnitude
     real(ccs_real), dimension(ndim) :: face_normal !< (local) face-normal array
     real(ccs_real) :: Vp                           !< Primary cell volume
-    real(ccs_real) :: Vnb                          !< Neighbour cell volume
+    real(ccs_real) :: V_nb                         !< Neighbour cell volume
     real(ccs_real) :: Vf                           !< Face "volume"
     real(ccs_real) :: invAp                        !< Primary cell inverse momentum coefficient
-    real(ccs_real) :: invAnb                       !< Neighbour cell inverse momentum coefficient
+    real(ccs_real) :: invA_nb                      !< Neighbour cell inverse momentum coefficient
     real(ccs_real) :: invAf                        !< Face inverse momentum coefficient
     
     call get_boundary_status(loc_f, is_boundary)
@@ -386,12 +386,12 @@ contains
         
         call set_cell_location(mesh, idxp, loc_p)
         call set_neighbour_location(loc_p, j, loc_nb)
-        call get_local_index(loc_nb, idxnb)
+        call get_local_index(loc_nb, index_nb)
 
         call get_face_normal(loc_f, face_normal)
         
-        flux = 0.5_ccs_real * ((u(idxp) + u(idxnb)) * face_normal(1) &
-             + (v(idxp) + v(idxnb)) * face_normal(2))
+        flux = 0.5_ccs_real * ((u(idxp) + u(index_nb)) * face_normal(1) &
+             + (v(idxp) + v(index_nb)) * face_normal(2))
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -399,25 +399,25 @@ contains
         call get_distance(loc_p, loc_nb, dx)
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(idxnb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(idxp) + dpdx(idxnb)) * face_normal(1) &
-             + (dpdy(idxp) + dpdy(idxnb)) * face_normal(2))
+        flux_corr = -(p(index_nb) - p(idxp)) / dxmag
+        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(idxp) + dpdx(index_nb)) * face_normal(1) &
+             + (dpdy(idxp) + dpdy(index_nb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
-        call get_volume(loc_nb, Vnb)
-        Vf = 0.5_ccs_real * (Vp + Vnb)
+        call get_volume(loc_nb, V_nb)
+        Vf = 0.5_ccs_real * (Vp + V_nb)
 
         ! This is probably not quite right ...
         invAp = 0.5_ccs_real * (invAu(idxp) + invAv(idxp))
-        invAnb = 0.5_ccs_real * (invAu(idxnb) + invAv(idxnb))
-        invAf = 0.5_ccs_real * (invAp + invAnb)
+        invA_nb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
+        invAf = 0.5_ccs_real * (invAp + invA_nb)
         
         flux_corr = (Vf * invAf) * flux_corr
           
         ! Apply correction
         flux = flux + flux_corr
 
-        if (idxp > idxnb) then
+        if (idxp > index_nb) then
           ! XXX: making convention to point from low to high cell!
           flux = -flux
         end if
