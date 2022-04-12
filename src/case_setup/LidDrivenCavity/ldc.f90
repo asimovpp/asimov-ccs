@@ -55,7 +55,7 @@ program ldc
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name)
 
   print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name//ccsconfig
@@ -211,6 +211,9 @@ program ldc
     print*,"++++" 
     print*,"SIMULATION LENGTH"
     print*,"Running for ",num_steps, "iterations"
+    print*,"++++" 
+    print*,"MESH"
+    print*,"Size is ",cps
     print*,"++++" 
     print*,"RELAXATION FACTORS"
     print*,"velocity: ", velocity_relax 
