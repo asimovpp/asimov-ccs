@@ -54,14 +54,14 @@ module fv
   !> @brief Sets the diffusion coefficient
   !
   !> @param[in] local_self_idx - the local cell index
-  !> @param[in] local_ngb_idx  - the local neigbouring cell index
+  !> @param[in] index_nb  - the local neigbouring cell index
   !> @param[in] cell_mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   !
   ! XXX: why is this a function when the equivalent advection ones are subroutines?
-  module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
+  module function calc_diffusion_coeff(local_self_idx, index_nb, cell_mesh) result(coeff)
     integer(ccs_int), intent(in) :: local_self_idx
-    integer(ccs_int), intent(in) :: local_ngb_idx
+    integer(ccs_int), intent(in) :: index_nb
     type(ccs_mesh), intent(in) :: cell_mesh
     real(ccs_real) :: coeff
   end function calc_diffusion_coeff
