@@ -4,7 +4,7 @@
 
 module solver
 
-  use types, only : linear_solver, linear_system, vector, matrix
+  use types, only : linear_solver, equation_system, ccs_vector, ccs_matrix
   use parallel_types, only: parallel_environment
   use vec, only : vec_axpy, vec_norm
   use mat, only : mat_axpy, mat_norm
@@ -15,8 +15,8 @@ module solver
 
   public :: create_solver
   public :: solve
-  public :: initialise_linear_system
-  public :: set_linear_system
+  public :: initialise_equation_system
+  public :: set_equation_system
   public :: axpy
   public :: norm
   
@@ -24,10 +24,10 @@ module solver
 
     !> @brief Interface to create a new solver object.
     !
-    !> @param[in]  linear_system eqsys   - Data structure containing equation system to be solved.
+    !> @param[in]  equation_system linear_system   - Data structure containing equation system to be solved.
     !> @param[out] linear_solver solver - The linear solver returned allocated.
-    module subroutine create_solver(eqsys, solver)
-      type(linear_system), intent(in) :: eqsys
+    module subroutine create_solver(linear_system, solver)
+      type(equation_system), intent(in) :: linear_system
       class(linear_solver), allocatable, intent(out) :: solver
     end subroutine
 
@@ -39,24 +39,24 @@ module solver
     end subroutine
 
     !> @brief Constructor for default linear system
-    module subroutine initialise_linear_system(lin_sys)
-      type(linear_system), intent(inout) :: lin_sys
-    end subroutine initialise_linear_system
+    module subroutine initialise_equation_system(lin_sys)
+      type(equation_system), intent(inout) :: lin_sys
+    end subroutine initialise_equation_system
 
     !> @brief Setter for the linear system
     !
-    !> @param[in/out] lin_sys   - the linear system
+    !> @param[in] par_env       - the parallel environment where the linear 
+    !!                            system resides
     !> @param[in] rhs           - the right hand side vector
     !> @param[in] solution      - the solution vector
     !> @param[in] mat           - the matrix
-    !> @param[in] par_env       - the parallel environment where the linear 
-    !!                            system resides
-    module subroutine set_linear_system(lin_sys, rhs, solution, mat, par_env)
-      type(linear_system), intent(inout) :: lin_sys
-      class(vector), allocatable, target, intent(in) :: rhs
-      class(vector), allocatable, target, intent(in) :: solution
-      class(matrix), allocatable, target, intent(in) :: mat
+    !> @param[in/out] lin_sys   - the linear system
+    module subroutine set_equation_system(par_env, rhs, solution, mat, lin_sys)
       class(parallel_environment), allocatable, target, intent(in) :: par_env
+      class(ccs_vector), allocatable, target, intent(in) :: rhs
+      class(ccs_vector), allocatable, target, intent(in) :: solution
+      class(ccs_matrix), allocatable, target, intent(in) :: mat
+      type(equation_system), intent(inout) :: lin_sys
     end subroutine
 
   end interface

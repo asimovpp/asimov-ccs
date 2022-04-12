@@ -7,8 +7,8 @@
 submodule (io) io_adios2
 
   use adios2
-  use adios2_types, only: adios2_env, adios2_io_process
-  use parallel_types_mpi, only: parallel_environment_mpi
+  use adios2_types, only: adios2_io_process
+  use kinds, only: ccs_int, ccs_real
 
   implicit none
 
@@ -27,7 +27,7 @@ submodule (io) io_adios2
     type(adios2_attribute) :: adios2_attr
 
     integer(int64) :: tmp_attr64
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     select type(io_proc)
       type is(adios2_io_process)
@@ -70,7 +70,7 @@ submodule (io) io_adios2
     type(adios2_attribute) :: adios2_attr
 
     integer(int32) :: tmp_attr32
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     select type(io_proc)
       type is(adios2_io_process)
@@ -112,7 +112,7 @@ submodule (io) io_adios2
     type(adios2_attribute) :: adios2_attr
 
     real(real64) :: tmp_attr64
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     select type(io_proc)
       type is(adios2_io_process)
@@ -154,7 +154,7 @@ submodule (io) io_adios2
     type(adios2_attribute) :: adios2_attr
 
     real(real32) :: tmp_attr32
-    integer(accs_int) :: ierr
+    integer(ccs_int) :: ierr
 
     select type(io_proc)
       type is(adios2_io_process)
@@ -201,7 +201,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       integer(int64), dimension(:), allocatable :: tmp_var64
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)
@@ -252,7 +252,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       integer(int32), dimension(:), allocatable :: tmp_var32
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)
@@ -302,7 +302,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       integer(int64), dimension(:,:), allocatable :: tmp_var64
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)
@@ -353,7 +353,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       integer(int32), dimension(:,:), allocatable :: tmp_var32
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)
@@ -403,7 +403,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       real(real64), dimension(:), allocatable :: tmp_var64
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)
@@ -454,7 +454,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       real(real32), dimension(:), allocatable :: tmp_var32
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)
@@ -504,7 +504,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       real(real64), dimension(:,:), allocatable :: tmp_var64
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)
@@ -555,7 +555,7 @@ submodule (io) io_adios2
 
       type(adios2_variable):: adios2_var
       real(real32), dimension(:,:), allocatable :: tmp_var32
-      integer(accs_int) :: ierr
+      integer(ccs_int) :: ierr
 
       select type(io_proc)
         type is(adios2_io_process)

@@ -5,6 +5,9 @@ ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
   FFLAGS += -g -Og
   FFLAGS += -fcheck=bounds
+  FFLAGS += -fbacktrace
+  FFLAGS += -ffpe-trap=invalid,zero,overflow
+  FFLAGS += -Wimplicit-interface -Wimplicit-procedure
 else
   FFLAGS += -O3
 endif
@@ -12,7 +15,7 @@ ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
 FFLAGS += -fopenmp
-FFLAGS += -Wall -Wpedantic -Werror -Wimplicit-interface -Wimplicit-procedure
+FFLAGS += -Wall -Wpedantic -Werror 
 FFLAGS += -J$(OBJ_DIR)
 MPIRUN = mpirun
 

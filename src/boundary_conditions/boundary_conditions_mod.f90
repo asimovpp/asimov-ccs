@@ -4,7 +4,7 @@
 
 module boundary_conditions
   use types, only: bc_config
-  use kinds, only: accs_int, accs_real
+  use kinds, only: ccs_int, ccs_real
   
   implicit none
 
@@ -46,8 +46,8 @@ module boundary_conditions
     type(bc_config), intent(out) :: bcs
     character(len=16), dimension(:), allocatable :: region
     character(len=16), dimension(:), allocatable :: bc_type
-    real(accs_real), dimension(:,:), allocatable :: bc_data
-    integer(accs_int) :: i
+    real(ccs_real), dimension(:,:), allocatable :: bc_data
+    integer(ccs_int) :: i
 
     call get_boundaries(config_file, region, bc_type, bc_data)
 

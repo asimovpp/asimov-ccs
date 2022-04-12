@@ -4,9 +4,10 @@
 !> @details An implementation of a PETSc solver
 submodule (solver) solver_petsc
 
-  use kinds, only : accs_int, accs_err
+  use kinds, only : ccs_err
   use petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use utils, only: update
   
   implicit none
 
@@ -14,31 +15,31 @@ contains
 
   !> @brief Create a new PETSc solver object.
   !
-  !> @param[in]  linear_system eqsys   - Data structure containing equation system to be solved.
+  !> @param[in]  equation_system linear_system   - Data structure containing equation system to be solved.
   !> @param[out] linear_solver solver - The linear solver returned allocated.
-  module subroutine create_solver(eqsys, solver)
+  module subroutine create_solver(linear_system, solver)
 
     use petsc, only : PETSC_TRUE
     use petscksp, only : KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
 
-    type(linear_system), intent(in) :: eqsys
+    type(equation_system), intent(in) :: linear_system
     class(linear_solver), allocatable, intent(out) :: solver
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     allocate(linear_solver_petsc :: solver)
     
     select type(solver)
       type is(linear_solver_petsc)
 
-        select type (par_env => eqsys%par_env)
+        select type (par_env => linear_system%par_env)
           type is(parallel_environment_mpi)
             
-            solver%eqsys = eqsys
+            solver%linear_system = linear_system
        
             associate(comm => par_env%comm, &
                       ksp  => solver%KSP, &
-                      M    => solver%eqsys%M)
+                      M    => solver%linear_system%matrix)
 
               select type(M)
                 type is(matrix_petsc)
@@ -84,19 +85,20 @@ contains
     
     class(linear_solver), intent(inout) :: solver
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type(solver)
       type is(linear_solver_petsc)
 
         associate(ksp => solver%KSP)
 
-          select type (b => solver%eqsys%rhs)
+          select type (b => solver%linear_system%rhs)
             type is(vector_petsc)
 
-              select type(u => solver%eqsys%sol)
+              select type(u => solver%linear_system%solution)
                 type is(vector_petsc)
                   call KSPSolve(ksp, b%v, u%v, ierr)
+                  call update(u)
                   if (ierr /= 0) then
                     print *, "ERROR in linear solve!"
                   end if
