@@ -36,12 +36,12 @@ module vec
      
     !> @brief Interface to create a new vector object.
     !
-    !> @param[in] vector_spec vec_dat - Data structure containing the global and local sizes
+    !> @param[in] vector_spec vec_properties - Data structure containing the global and local sizes
     !!                                       of the vector, -1 is interpreted as unset. If both
     !!                                       are set the local size is used.
     !> @param[out] vector v - The vector returned allocated, but (potentially) uninitialised.
-    module subroutine create_vector(vec_dat, v)
-      type(vector_spec), intent(in) :: vec_dat
+    module subroutine create_vector(vec_properties, v)
+      type(vector_spec), intent(in) :: vec_properties
       class(ccs_vector), allocatable, intent(out) :: v
     end subroutine
 
@@ -192,8 +192,8 @@ module vec
       class(ccs_vector), intent(inout) :: v
     end subroutine scale_vec
     
-    ! module subroutine vec_view(vec_dat, vec)
-    !   type(vector_spec), intent(in) :: vec_dat
+    ! module subroutine vec_view(vec_properties, vec)
+    !   type(vector_spec), intent(in) :: vec_properties
     !   class(ccs_vector), intent(in) :: vec
     ! end subroutine vec_view
 

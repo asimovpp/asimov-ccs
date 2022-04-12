@@ -17,15 +17,15 @@ contains
 
   !> @brief Create a PETSc-backed vector
   !
-  !> @param[in]  vector_spec vec_dat - the data describing how the vector should be created.
+  !> @param[in]  vector_spec vec_properties - the data describing how the vector should be created.
   !> @param[out] vector v - the vector specialised to type vector_petsc.
-  module subroutine create_vector(vec_dat, v)
+  module subroutine create_vector(vec_properties, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                          VecCreate
     
-    type(vector_spec), intent(in) :: vec_dat
+    type(vector_spec), intent(in) :: vec_properties
     class(ccs_vector), allocatable, intent(out) :: v
 
     integer(ccs_err) :: ierr !< Error code
@@ -37,12 +37,12 @@ contains
 
       v%modeset = .false.
         
-      select type(par_env => vec_dat%par_env)
+      select type(par_env => vec_properties%par_env)
         type is(parallel_environment_mpi)
 
-          associate(mesh => vec_dat%mesh)
+          associate(mesh => vec_properties%mesh)
 
-            select case(vec_dat%storage_location)
+            select case(vec_properties%storage_location)
             case (cell)
               call VecCreateGhost(par_env%comm, &
                    mesh%nlocal, PETSC_DECIDE, &
@@ -498,14 +498,14 @@ contains
   
   end subroutine
 
-!   module subroutine vec_view(vec_dat, vec)
+!   module subroutine vec_view(vec_properties, vec)
 
 ! #include <petsc/finclude/petscviewer.h>
 
 !     use petscvec, only: VecView
 !     use petscsys
     
-!     type(vector_spec), intent(in) :: vec_dat
+!     type(vector_spec), intent(in) :: vec_properties
 !     class(ccs_vector), intent(in) :: vec
 
 !     PetscViewer :: viewer
@@ -515,7 +515,7 @@ contains
 !     select type (vec)
 !       type is (vector_petsc)
 
-!       select type(par_env => vec_dat%par_env)
+!       select type(par_env => vec_properties%par_env)
 !         type is(parallel_environment_mpi)
 
 !           call PetscViewerCreate(par_env%comm, viewer, ierr)
