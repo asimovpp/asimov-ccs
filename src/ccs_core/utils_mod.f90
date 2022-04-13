@@ -13,7 +13,9 @@ module utils
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   pack_one_matrix_coefficient, zero_matrix
-  use solver, only: initialise_equation_system
+  use solver, only : initialise_equation_system
+  use kinds, only : ccs_int, ccs_real
+
   
   implicit none
 
@@ -29,6 +31,9 @@ module utils
   public :: set_size
   public :: mult
   public :: zero
+  public :: str
+  public :: diag_null
+  public :: diag_print
 
   !> @brief Generic interface to set values on an object.
   interface set_values
@@ -95,6 +100,39 @@ module utils
     module procedure zero_matrix
   end interface zero
   
+  !> @brief Generic interface to converting numbers to strings
+  interface str
+    module procedure int2str
+    module procedure real2str
+  end interface str
+
+  
 contains
+
+  subroutine diag_print(msg, file, line)
+    character(*), intent(in) :: msg
+    character(*), intent(in) :: file
+    integer, intent(in) :: line
+  
+    print *, file, "(", line, ") : ", msg
+  end subroutine
+  
+  subroutine diag_null(msg)
+    character(*), intent(in) :: msg
+  
+    print *, "Not really printing msg ", msg
+  end subroutine
+  
+  function int2str(in_int) result(out_string)
+    integer(ccs_int), intent (in) :: in_int ! input
+    character(32)                 :: out_string ! output
+    write(out_string,*) in_int
+  end function
+  
+  function real2str(in_real) result(out_string)
+    real(ccs_real), intent (in) :: in_real ! input
+    character(32)        :: out_string ! output
+    write(out_string,*) in_real
+  end function
 
 end module utils

@@ -63,8 +63,9 @@ ifeq ($(NEED_CMP),yes)
   include $(EXE_DEPS)
 endif
 
+INC = -I${CCS_DIR}/src/include
 FFLAGS += -DACCS_PETSC
-INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
+INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
