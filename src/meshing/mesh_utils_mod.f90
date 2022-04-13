@@ -351,7 +351,7 @@ contains
     ! Local variables
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    integer(ccs_int) :: self_idx, local_idx
+    integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     integer(ccs_int) :: nfaces_int       !< Internal face count
@@ -366,9 +366,9 @@ contains
     nfaces_interface = 0
 
     ! Loop over cells
-    do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, loc_p)
-      call get_global_index(loc_p, self_idx)
+    do index_p = 1, mesh%nlocal
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
@@ -405,7 +405,7 @@ contains
     ! Local variables
     type(cell_locator) :: loc_p          !< Current cell
     type(neighbour_locator) :: loc_nb       !< Neighbour
-    integer(ccs_int) :: index_nb, local_idx
+    integer(ccs_int) :: index_nb, index_p
     integer(ccs_int) :: face_idx
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
@@ -415,8 +415,8 @@ contains
     icnt = 0
 
     ! Loop over cells
-    do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, loc_p)
+    do index_p = 1, mesh%nlocal
+      call set_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
@@ -426,18 +426,18 @@ contains
 
         if (.not. is_boundary) then
           ! Cell with lowest local index assigns an index to the face
-          if (local_idx < index_nb) then
+          if (index_p < index_nb) then
             icnt = icnt + 1
-            call set_face_index(local_idx, j, icnt, mesh)
+            call set_face_index(index_p, j, icnt, mesh)
           else
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
-            face_idx = get_neighbour_face_index(mesh, local_idx, index_nb)
-            call set_face_index(local_idx, j, face_idx, mesh)
+            face_idx = get_neighbour_face_index(mesh, index_p, index_nb)
+            call set_face_index(index_p, j, face_idx, mesh)
           endif
         else
           icnt = icnt + 1
-          call set_face_index(local_idx, j, icnt, mesh)
+          call set_face_index(index_p, j, icnt, mesh)
         endif
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells
@@ -448,11 +448,11 @@ contains
   !!        local index and neighbouring index
   !<
   !> @param[in] mesh      - the mesh
-  !> @param[in] local_idx - the current cell index
+  !> @param[in] index_p - the current cell index
   !> @param[in] index_nb  - the index of the neighbouring cell
-  function get_neighbour_face_index(mesh, local_idx, index_nb) result(face_idx)
+  function get_neighbour_face_index(mesh, index_p, index_nb) result(face_idx)
     type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: local_idx
+    integer(ccs_int), intent(in) :: index_p
     integer(ccs_int), intent(in) :: index_nb
     integer(ccs_int) :: face_idx
 
@@ -469,7 +469,7 @@ contains
     do k = 1, nnb_nb
       call set_neighbour_location(loc_nb, k, loc_nb_nb)
       call get_local_index(loc_nb_nb, index_nb_nb)
-      if (index_nb_nb == local_idx) then
+      if (index_nb_nb == index_p) then
         call set_face_location(mesh, index_nb, k, face_loc)
         call get_local_index(face_loc, face_idx)
         exit ! Exit the loop, as found shared face

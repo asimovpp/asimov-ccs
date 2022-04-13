@@ -38,8 +38,8 @@ program tgv
   integer(ccs_int) :: irank !< MPI rank ID
   integer(ccs_int) :: isize !< Size of MPI world
   integer(ccs_int) :: i, j, k  
-  integer(ccs_int) :: local_idx_start
-  integer(ccs_int) :: local_idx_end
+  integer(ccs_int) :: start_index
+  integer(ccs_int) :: end_index
   integer(ccs_int) :: max_faces !< Maximum number of faces per cell
   integer(ccs_int) :: num_faces !< Total number of faces
   integer(ccs_int) :: num_cells !< Total number of cells
@@ -91,8 +91,8 @@ program tgv
   enddo
 
   ! First and last cell index assigned to this process
-  local_idx_start = vtxdist(irank + 1)
-  local_idx_end = vtxdist(irank + 2) - 1
+  start_index = vtxdist(irank + 1)
+  end_index = vtxdist(irank + 2) - 1
 
   ! Starting point for reading chunk of data
   xyz_sel_start = (/ 0, vtxdist(irank + 1) - 1 /)
