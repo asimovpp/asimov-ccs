@@ -107,12 +107,12 @@ module fv
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
-  !> @param[in] idx  - cell index
-  !> @param[in] cps  - number of cells per side
-  !> @param[out] row - cell row within mesh
-  !> @param[out] col - cell column within mesh
-  module subroutine calc_cell_coords(idx, cps, row, col)
-    integer(ccs_int), intent(in) :: idx, cps
+  !> @param[in] index  - cell index
+  !> @param[in] cps    - number of cells per side
+  !> @param[out] row   - cell row within mesh
+  !> @param[out] col   - cell column within mesh
+  module subroutine calc_cell_coords(index, cps, row, col)
+    integer(ccs_int), intent(in) :: index, cps
     integer(ccs_int), intent(out) :: row, col
   end subroutine calc_cell_coords
 

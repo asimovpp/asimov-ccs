@@ -431,16 +431,16 @@ contains
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
-  !> @param[in] idx  - cell index
+  !> @param[in] index  - cell index
   !> @param[in] cps  - number of cells per side
   !> @param[out] row - cell row within mesh
   !> @param[out] col - cell column within mesh
-  module subroutine calc_cell_coords(idx, cps, row, col)
-    integer(ccs_int), intent(in) :: idx, cps
+  module subroutine calc_cell_coords(index, cps, row, col)
+    integer(ccs_int), intent(in) :: index, cps
     integer(ccs_int), intent(out) :: row, col
 
-    col = modulo(idx-1,cps) + 1 
-    row = (idx-1)/cps + 1
+    col = modulo(index-1,cps) + 1 
+    row = (index-1)/cps + 1
   end subroutine calc_cell_coords
 
   !> @brief Performs an update of the gradients of a field.
@@ -532,7 +532,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_norm
 
     real(ccs_real) :: V
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
 
     real(ccs_real), dimension(ndim) :: dx
     
@@ -569,8 +569,8 @@ contains
       call get_volume(loc_p, V)
       grad = grad / V
       
-      call get_global_index(loc_p, idxg)
-      call pack_entries(1, idxg, grad, grad_values)
+      call get_global_index(loc_p, global_index_p)
+      call pack_entries(1, global_index_p, grad, grad_values)
       call set_values(grad_values, gradients)
     end do
 

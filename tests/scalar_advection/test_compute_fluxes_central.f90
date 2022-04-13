@@ -85,10 +85,10 @@ program test_compute_fluxes
     v_vals%mode = insert_mode
     
     associate(n_local => mesh%nlocal)
-      allocate(u_vals%idx(n_local))
-      allocate(v_vals%idx(n_local))
-      allocate(u_vals%val(n_local))
-      allocate(v_vals%val(n_local))
+      allocate(u_vals%indices(n_local))
+      allocate(v_vals%indices(n_local))
+      allocate(u_vals%values(n_local))
+      allocate(v_vals%values(n_local))
       
       ! Set IC velocity fields
       do index_p = 1, n_local
@@ -116,7 +116,7 @@ program test_compute_fluxes
     call update(u%values)
     call update(v%values)
     
-    deallocate(u_vals%idx, v_vals%idx, u_vals%val, v_vals%val)
+    deallocate(u_vals%indices, v_vals%indices, u_vals%values, v_vals%values)
   end subroutine set_velocity_fields
 
   !> @brief Deallocates the velocity fields
@@ -235,8 +235,8 @@ program test_compute_fluxes
     call zero_vector(b)
     
     ! Advection first
-    allocate(vec_coeffs%idx(2*mesh%nglobal/cps))
-    allocate(vec_coeffs%val(2*mesh%nglobal/cps))
+    allocate(vec_coeffs%indices(2*mesh%nglobal/cps))
+    allocate(vec_coeffs%values(2*mesh%nglobal/cps))
 
     vec_counter = 1
     if (discretisation == central) then
@@ -263,17 +263,17 @@ program test_compute_fluxes
         end do
       end if
     else
-      vec_coeffs%idx(:) = -1
-      vec_coeffs%val(:) = 0.0_ccs_real
+      vec_coeffs%indices(:) = -1
+      vec_coeffs%values(:) = 0.0_ccs_real
     endif
     call set_values(vec_coeffs, b)
     
-    deallocate(vec_coeffs%idx)
-    deallocate(vec_coeffs%val)
+    deallocate(vec_coeffs%indices)
+    deallocate(vec_coeffs%values)
 
     ! ! And now diffusion
-    ! allocate(vec_coeffs%idx(4*cps))
-    ! allocate(vec_coeffs%val(4*cps))
+    ! allocate(vec_coeffs%indices(4*cps))
+    ! allocate(vec_coeffs%values(4*cps))
 
     ! vec_counter = 1
     ! diff_coeff = 0.0_ccs_real !0.01_ccs_real
@@ -290,13 +290,13 @@ program test_compute_fluxes
     !     end if
     !   end do
     ! else
-    !   vec_coeffs%idx(:) = -1
-    !   vec_coeffs%val(:) = 0.0_ccs_real
+    !   vec_coeffs%indices(:) = -1
+    !   vec_coeffs%values(:) = 0.0_ccs_real
     ! end if
     ! call set_values(vec_coeffs, b)
 
-    ! deallocate(vec_coeffs%idx)
-    ! deallocate(vec_coeffs%val)
+    ! deallocate(vec_coeffs%indices)
+    ! deallocate(vec_coeffs%values)
     
   end subroutine compute_exact_matrix
 

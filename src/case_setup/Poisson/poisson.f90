@@ -145,7 +145,7 @@ contains
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: cc
     real(ccs_real) :: V 
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
     
     val_dat%setter_mode = add_mode
     allocate(val_dat%indices(1))
@@ -160,11 +160,11 @@ contains
         call set_cell_location(mesh, i, loc_p)
         call get_centre(loc_p, cc)
         call get_volume(loc_p, V)
-        call get_global_index(loc_p, idxg)
+        call get_global_index(loc_p, global_index_p)
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(1, idxg, r, val_dat)
+          call pack_entries(1, global_index_p, r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
@@ -199,7 +199,7 @@ contains
     type(face_locator) :: face_location
     real(ccs_real) :: A
 
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
     type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
 
@@ -216,14 +216,14 @@ contains
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
       call set_cell_location(mesh, i, loc_p)
-      call get_global_index(loc_p, idxg)
+      call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
         
       allocate(mat_coeffs%row_indices(1))
       allocate(mat_coeffs%col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
 
-      row = idxg
+      row = global_index_p
       coeff_p = 0.0_ccs_real
       
       !! Loop over faces
@@ -286,7 +286,7 @@ contains
     real(ccs_real) :: A
 
     type(cell_locator) :: loc_p
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
     type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: nnb
@@ -304,13 +304,13 @@ contains
     do i = 1, mesh%nlocal
       if (minval(mesh%index_nb(:, i)) < 0) then
         call set_cell_location(mesh, i, loc_p)
-        call get_global_index(loc_p, idxg)
+        call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real 
         r = 0.0_ccs_real
           
-        row = idxg
-        col = idxg
-        idx = idxg
+        row = global_index_p
+        col = global_index_p
+        idx = global_index_p
 
         call count_neighbours(loc_p, nnb)
         do j = 1, nnb
@@ -355,15 +355,15 @@ contains
     integer(ccs_int) :: i
 
     type(cell_locator) :: loc_p
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
     
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))
     vec_values%setter_mode = insert_mode
     do i = 1, mesh%nlocal
       call set_cell_location(mesh, i, loc_p)
-      call get_global_index(loc_p, idxg)
-      call pack_entries(1, idxg, rhs_val(i), vec_values)
+      call get_global_index(loc_p, global_index_p)
+      call pack_entries(1, global_index_p, rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%indices)

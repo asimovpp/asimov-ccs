@@ -188,10 +188,10 @@ module meshing
     !> @brief Returns the global index of a cell
     !
     !> @param[in]  cell_locator      loc_p - the cell locator object.
-    !> @param[out] integer(ccs_int) idxg          - the global index of the cell.
-    module subroutine get_cell_global_index(loc_p, idxg)
+    !> @param[out] integer(ccs_int) global_index_p          - the global index of the cell.
+    module subroutine get_cell_global_index(loc_p, global_index_p)
       type(cell_locator), intent(in) :: loc_p
-      integer(ccs_int), intent(out) :: idxg
+      integer(ccs_int), intent(out) :: global_index_p
     end subroutine get_cell_global_index
 
     !> @brief Returns the global index of a neighbouring cell
@@ -250,10 +250,10 @@ module meshing
     !!              limited use and is mostly present for uniformity.
     !
     !> @param[in]  cell_locator      loc_p - the cell locator object.
-    !> @param[out] integer(ccs_int) idx           - the local index of the cell.
-    module subroutine get_cell_local_index(loc_p, idx)
+    !> @param[out] integer(ccs_int) index_p           - the local index of the cell.
+    module subroutine get_cell_local_index(loc_p, index_p)
       type(cell_locator), intent(in) :: loc_p
-      integer(ccs_int), intent(out) :: idx
+      integer(ccs_int), intent(out) :: index_p
     end subroutine get_cell_local_index
 
     !> @brief Returns the local index of a neighbouring cell
