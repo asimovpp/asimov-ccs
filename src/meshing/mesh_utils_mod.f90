@@ -349,7 +349,7 @@ contains
     integer(ccs_int) :: nfaces
 
     ! Local variables
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: self_idx, local_idx
     integer(ccs_int) :: j
@@ -367,12 +367,12 @@ contains
 
     ! Loop over cells
     do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, nnb)
+      call set_cell_location(mesh, local_idx, loc_p)
+      call get_global_index(loc_p, self_idx)
+      call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
-        call set_neighbour_location(self_loc, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
@@ -403,7 +403,7 @@ contains
     type(ccs_mesh), intent(inout) :: mesh
 
     ! Local variables
-    type(cell_locator) :: self_loc          !< Current cell
+    type(cell_locator) :: loc_p          !< Current cell
     type(neighbour_locator) :: loc_nb       !< Neighbour
     integer(ccs_int) :: index_nb, local_idx
     integer(ccs_int) :: face_idx
@@ -416,11 +416,11 @@ contains
 
     ! Loop over cells
     do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call count_neighbours(self_loc, nnb)
+      call set_cell_location(mesh, local_idx, loc_p)
+      call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
-        call set_neighbour_location(self_loc, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         call get_boundary_status(loc_nb, is_boundary)
 

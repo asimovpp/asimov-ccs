@@ -97,14 +97,14 @@ program test_advection_coeff
     real(ccs_real), intent(out) :: face_area
     real(ccs_real), intent(out), dimension(ndim) :: normal
 
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     
-    call set_cell_location(mesh, local_idx, self_loc)
-    call get_local_index(self_loc, self_idx)
+    call set_cell_location(mesh, local_idx, loc_p)
+    call get_local_index(loc_p, self_idx)
   
-    call set_neighbour_location(self_loc, nb, loc_nb)
+    call set_neighbour_location(loc_p, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
     call set_face_location(mesh, local_idx, nb, face_loc)
@@ -122,7 +122,7 @@ program test_advection_coeff
     class(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout), allocatable :: u, v
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
     integer(ccs_int) :: local_idx, self_idx
     real(ccs_real) :: u_val, v_val
@@ -138,8 +138,8 @@ program test_advection_coeff
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
+        call set_cell_location(mesh, local_idx, loc_p)
+        call get_global_index(loc_p, self_idx)
 
         if (direction == x_dir) then
           u_val = 1.0_ccs_real

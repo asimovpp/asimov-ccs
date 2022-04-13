@@ -250,7 +250,7 @@ contains
 
     ! Local variables
     type(vector_values) :: vec_values
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     integer(ccs_int) :: self_idx, local_idx
     real(ccs_real) :: r
     real(ccs_real), dimension(:), pointer :: pgrad_data
@@ -267,10 +267,10 @@ contains
     
     ! Loop over cells
     do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
+      call set_cell_location(mesh, local_idx, loc_p)
+      call get_global_index(loc_p, self_idx)
 
-      call get_volume(self_loc, V)
+      call get_volume(loc_p, V)
       
       r = -pgrad_data(local_idx) * V
       call pack_entries(1, self_idx, r, vec_values)
@@ -310,7 +310,7 @@ contains
     ! Local variables
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: vec_values
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     class(linear_solver), allocatable :: lin_solver
@@ -362,9 +362,9 @@ contains
     ! Loop over cells
     print *, "P': cell loop"
     do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, nnb)
+      call set_cell_location(mesh, local_idx, loc_p)
+      call get_global_index(loc_p, self_idx)
+      call count_neighbours(loc_p, nnb)
 
       allocate(mat_coeffs%row_indices(1))
       allocate(mat_coeffs%col_indices(1 + nnb))
@@ -384,12 +384,12 @@ contains
         
         if (.not. is_boundary) then
           ! Interior face
-          call set_neighbour_location(self_loc, j, loc_nb)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
           coeff_f = (1.0 / mesh%h) * face_area
 
-          call get_volume(self_loc, Vp)
+          call get_volume(loc_p, Vp)
           call get_volume(loc_nb, V_nb)
           Vf = 0.5_ccs_real * (Vp + V_nb)
 

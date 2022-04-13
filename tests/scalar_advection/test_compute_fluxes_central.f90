@@ -76,7 +76,7 @@ program test_compute_fluxes
     class(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout) :: u, v
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
     integer(ccs_int) :: local_idx, self_idx
     real(ccs_real) :: u_val, v_val
@@ -92,8 +92,8 @@ program test_compute_fluxes
       
       ! Set IC velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
+        call set_cell_location(mesh, local_idx, loc_p)
+        call get_global_index(loc_p, self_idx)
 
         if (direction == x_dir) then
           u_val = 1.0_ccs_real

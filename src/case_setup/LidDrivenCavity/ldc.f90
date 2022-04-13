@@ -238,7 +238,7 @@ program ldc
     integer(ccs_int) :: row, col
     integer(ccs_int) :: local_idx, self_idx
     real(ccs_real) :: u_val, v_val
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
     real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
 
@@ -258,8 +258,8 @@ program ldc
 
       ! Set initial values for velocity fields
       do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
+        call set_cell_location(mesh, local_idx, loc_p)
+        call get_global_index(loc_p, self_idx)
         call calc_cell_coords(self_idx, cps, row, col)
 
         u_val = real(col, ccs_real)/real(cps, ccs_real)

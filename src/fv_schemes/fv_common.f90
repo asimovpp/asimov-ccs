@@ -84,7 +84,7 @@ contains
     class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     integer(ccs_int) :: self_idx, global_index_nb, local_idx, index_nb
@@ -109,14 +109,14 @@ contains
 
     do local_idx = 1, mesh%nlocal
       ! Calculate contribution from neighbours
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, nnb)
+      call set_cell_location(mesh, local_idx, loc_p)
+      call get_global_index(loc_p, self_idx)
+      call count_neighbours(loc_p, nnb)
       mat_counter = 1
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       do j = 1, nnb
-        call set_neighbour_location(self_loc, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
@@ -232,7 +232,7 @@ contains
 
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     integer(ccs_int) :: self_idx, local_idx
@@ -260,12 +260,12 @@ contains
 
     bc_counter = 1
     do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, nnb)
+      call set_cell_location(mesh, local_idx, loc_p)
+      call get_global_index(loc_p, self_idx)
+      call count_neighbours(loc_p, nnb)
       ! Calculate contribution from neighbours
       do j = 1, nnb
-        call set_neighbour_location(self_loc, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! call get_global_index(loc_nb, global_index_nb)
