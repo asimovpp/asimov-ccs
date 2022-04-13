@@ -53,14 +53,14 @@ module fv
 
   !> @brief Sets the diffusion coefficient
   !
-  !> @param[in] local_self_idx - the local cell index
+  !> @param[in] index_p - the local cell index
   !> @param[in] index_nb  - the local neigbouring cell index
   !> @param[in] mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   !
   ! XXX: why is this a function when the equivalent advection ones are subroutines?
-  module function calc_diffusion_coeff(local_self_idx, index_nb, mesh) result(coeff)
-    integer(ccs_int), intent(in) :: local_self_idx
+  module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+    integer(ccs_int), intent(in) :: index_p
     integer(ccs_int), intent(in) :: index_nb
     type(ccs_mesh), intent(in) :: mesh
     real(ccs_real) :: coeff
@@ -107,12 +107,12 @@ module fv
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
-  !> @param[in] idx  - cell index
-  !> @param[in] cps  - number of cells per side
-  !> @param[out] row - cell row within mesh
-  !> @param[out] col - cell column within mesh
-  module subroutine calc_cell_coords(idx, cps, row, col)
-    integer(ccs_int), intent(in) :: idx, cps
+  !> @param[in] index  - cell index
+  !> @param[in] cps    - number of cells per side
+  !> @param[out] row   - cell row within mesh
+  !> @param[out] col   - cell column within mesh
+  module subroutine calc_cell_coords(index, cps, row, col)
+    integer(ccs_int), intent(in) :: index, cps
     integer(ccs_int), intent(out) :: row, col
   end subroutine calc_cell_coords
 

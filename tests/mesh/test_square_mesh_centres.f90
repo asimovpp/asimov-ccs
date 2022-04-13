@@ -20,7 +20,7 @@ program test_square_mesh_centres
   integer(ccs_int) :: i
   integer(ccs_int) :: j
   
-  type(cell_locator) :: cell_location
+  type(cell_locator) :: loc_p
   real(ccs_real), dimension(ndim) :: cc
   type(face_locator) :: face_location
   real(ccs_real), dimension(ndim) :: fc
@@ -32,8 +32,8 @@ program test_square_mesh_centres
     mesh = build_square_mesh(par_env, n, l)
 
     do i = 1, mesh%nlocal
-      call set_cell_location(mesh, i, cell_location)
-      call get_centre(cell_location, cc)
+      call set_cell_location(mesh, i, loc_p)
+      call get_centre(loc_p, cc)
       associate(x => cc(1), y => cc(2))
         if ((x > l) .or. (x < 0_ccs_real) &
              .or. (y > l) .or. (y < 0_ccs_real)) then

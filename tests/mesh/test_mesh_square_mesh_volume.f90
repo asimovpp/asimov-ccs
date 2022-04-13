@@ -19,7 +19,7 @@ program test_mesh_square_mesh_volume
   real(ccs_real) :: expected_vol
 
   integer(ccs_int) :: i
-  type(cell_locator) :: cell_location
+  type(cell_locator) :: loc_p
   real(ccs_real) :: V
 
   integer(ccs_int) :: nneg_vol
@@ -35,8 +35,8 @@ program test_mesh_square_mesh_volume
     vol = 0.0_ccs_real
     nneg_vol = 0
     do i = 1, mesh%nlocal
-      call set_cell_location(mesh, i, cell_location)
-      call get_volume(cell_location, V)
+      call set_cell_location(mesh, i, loc_p)
+      call get_volume(loc_p, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1
       end if

@@ -70,13 +70,13 @@ module meshing
     !!              returned cell locator object.
     !
     !> @param[in]  mesh         mesh      - the mesh object being referred to.
-    !> @param[in]  ccs_int     cell_idx      - the cell index. 
-    !> @param[out] cell_locator cell_location - the cell locator object linking a cell index with
+    !> @param[in]  ccs_int     index_p      - the cell index. 
+    !> @param[out] cell_locator loc_p - the cell locator object linking a cell index with
     !!                                          the mesh.
-  module subroutine set_cell_location(mesh, cell_idx, cell_location)
+  module subroutine set_cell_location(mesh, index_p, loc_p)
       type(ccs_mesh), target, intent(in) :: mesh
-      integer(ccs_int), intent(in) :: cell_idx
-      type(cell_locator), intent(out) :: cell_location
+      integer(ccs_int), intent(in) :: index_p
+      type(cell_locator), intent(out) :: loc_p
     end subroutine set_cell_location
   
     !> @brief Constructs a face locator object.
@@ -85,13 +85,13 @@ module meshing
     !!              nth face of cell i.
     !
     !> @param[in]  mesh         mesh      - the mesh object being referred to.
-    !> @param[in]  ccs_int     cell_idx      - the index of the cell whose face is being accessed.
+    !> @param[in]  ccs_int     index_p      - the index of the cell whose face is being accessed.
     !> @param[in]  ccs_int     cell_face_ctr - the cell-local index of the face.
     !> @param[out] face_locator face_location - the face locator object linking a cell-relative
     !!                                          index with the mesh.
-    module subroutine set_face_location(mesh, cell_idx, cell_face_ctr, face_location)
+    module subroutine set_face_location(mesh, index_p, cell_face_ctr, face_location)
       type(ccs_mesh), target, intent(in) :: mesh
-      integer(ccs_int), intent(in) :: cell_idx
+      integer(ccs_int), intent(in) :: index_p
       integer(ccs_int), intent(in) :: cell_face_ctr
       type(face_locator), intent(out) :: face_location
     end subroutine set_face_location
@@ -101,20 +101,20 @@ module meshing
     !> @description Creates the association between a neighbour cell F relative to cell P, i.e. to
     !!              access the nth neighbour of cell i.
     !
-    !> @param[in]  cell_locator      cell_location      - the cell locator object of the cell whose
+    !> @param[in]  cell_locator      loc_p      - the cell locator object of the cell whose
     !!                                                    neighbour is being accessed.
     !> @param[in]  ccs_int           nb_counter - the cell-local index of the neighbour.
     !> @param[out] neighbour_locator loc_nb - the neighbour locator object linking a
     !!                                                    cell-relative index with the mesh.
-    module subroutine set_neighbour_location(cell_location, nb_counter, loc_nb)
-      type(cell_locator), intent(in) :: cell_location
+    module subroutine set_neighbour_location(loc_p, nb_counter, loc_nb)
+      type(cell_locator), intent(in) :: loc_p
       integer(ccs_int), intent(in) :: nb_counter
       type(neighbour_locator), intent(out) :: loc_nb
     end subroutine set_neighbour_location
 
     !> @brief Set face index
-    module subroutine set_face_index(cell_idx, cell_face_ctr, face_idx, mesh)
-      integer(ccs_int), intent(in) :: cell_idx
+    module subroutine set_face_index(index_p, cell_face_ctr, face_idx, mesh)
+      integer(ccs_int), intent(in) :: index_p
       integer(ccs_int), intent(in) :: cell_face_ctr
       integer(ccs_int), intent(in) :: face_idx
       type(ccs_mesh), target, intent(inout) :: mesh
@@ -141,10 +141,10 @@ module meshing
 
     !> @brief Returns the centre of a cell
     !
-    !> @param[in]  cell_locator     cell_location - the cell locator object.
+    !> @param[in]  cell_locator     loc_p - the cell locator object.
     !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the cell centre.
-    module subroutine get_cell_centre(cell_location, x)
-      type(cell_locator), intent(in) :: cell_location
+    module subroutine get_cell_centre(loc_p, x)
+      type(cell_locator), intent(in) :: loc_p
       real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_cell_centre
 
@@ -169,10 +169,10 @@ module meshing
 
     !> @brief Returns the volume of a cell
     !
-    !> @param[in] cell_locator     cell_location - the cell locator object.
+    !> @param[in] cell_locator     loc_p - the cell locator object.
     !> @param[out] real(ccs_real) V             - the cell volume.
-    module subroutine get_cell_volume(cell_location, V)
-      type(cell_locator), intent(in) :: cell_location
+    module subroutine get_cell_volume(loc_p, V)
+      type(cell_locator), intent(in) :: loc_p
       real(ccs_real), intent(out) :: V
     end subroutine get_cell_volume
 
@@ -187,11 +187,11 @@ module meshing
 
     !> @brief Returns the global index of a cell
     !
-    !> @param[in]  cell_locator      cell_location - the cell locator object.
-    !> @param[out] integer(ccs_int) idxg          - the global index of the cell.
-    module subroutine get_cell_global_index(cell_location, idxg)
-      type(cell_locator), intent(in) :: cell_location
-      integer(ccs_int), intent(out) :: idxg
+    !> @param[in]  cell_locator      loc_p - the cell locator object.
+    !> @param[out] integer(ccs_int) global_index_p          - the global index of the cell.
+    module subroutine get_cell_global_index(loc_p, global_index_p)
+      type(cell_locator), intent(in) :: loc_p
+      integer(ccs_int), intent(out) :: global_index_p
     end subroutine get_cell_global_index
 
     !> @brief Returns the global index of a neighbouring cell
@@ -205,10 +205,10 @@ module meshing
 
     !> @brief Returns the neighbour count of a cell (including boundary neighbours)
     !
-    !> @param[in]  cell_locator      cell_location - the cell locator object.
+    !> @param[in]  cell_locator      loc_p - the cell locator object.
     !> @param[out] integer(ccs_int) nnb           - the neighbour count of the cell.
-    module subroutine cell_count_neighbours(cell_location, nnb)
-      type(cell_locator), intent(in) :: cell_location
+    module subroutine cell_count_neighbours(loc_p, nnb)
+      type(cell_locator), intent(in) :: loc_p
       integer(ccs_int), intent(out) :: nnb
     end subroutine cell_count_neighbours
 
@@ -249,11 +249,11 @@ module meshing
     !!              the local cell vector - this particular subroutine get_is therefore expected of
     !!              limited use and is mostly present for uniformity.
     !
-    !> @param[in]  cell_locator      cell_location - the cell locator object.
-    !> @param[out] integer(ccs_int) idx           - the local index of the cell.
-    module subroutine get_cell_local_index(cell_location, idx)
-      type(cell_locator), intent(in) :: cell_location
-      integer(ccs_int), intent(out) :: idx
+    !> @param[in]  cell_locator      loc_p - the cell locator object.
+    !> @param[out] integer(ccs_int) index_p           - the local index of the cell.
+    module subroutine get_cell_local_index(loc_p, index_p)
+      type(cell_locator), intent(in) :: loc_p
+      integer(ccs_int), intent(out) :: index_p
     end subroutine get_cell_local_index
 
     !> @brief Returns the local index of a neighbouring cell

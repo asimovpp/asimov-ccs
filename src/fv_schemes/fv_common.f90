@@ -84,10 +84,10 @@ contains
     class(ccs_matrix), intent(inout) :: M
 
     type(matrix_values) :: mat_coeffs
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
-    integer(ccs_int) :: self_idx, global_index_nb, local_idx, index_nb
+    integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
     integer(ccs_int) :: nnb
@@ -107,25 +107,25 @@ contains
     allocate(mat_coeffs%col_indices(n_int_cells))
     allocate(mat_coeffs%values(n_int_cells))
 
-    do local_idx = 1, mesh%nlocal
+    do index_p = 1, mesh%nlocal
       ! Calculate contribution from neighbours
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, nnb)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
       mat_counter = 1
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       do j = 1, nnb
-        call set_neighbour_location(self_loc, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
-          diff_coeff = calc_diffusion_coeff(local_idx, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
 
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, local_idx, j, face_loc)
+          call set_face_location(mesh, index_p, j, face_loc)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
           call get_local_index(face_loc, idxf)
@@ -133,7 +133,7 @@ contains
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
           !       procedure (should also eliminate the type check).
-          if (index_nb < local_idx) then
+          if (index_nb < index_p) then
             sgn = -1.0_ccs_real
           else
             sgn = 1.0_ccs_real
@@ -151,16 +151,16 @@ contains
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
           
-          call pack_entries(1, mat_counter, self_idx, global_index_nb, adv_coeff + diff_coeff, mat_coeffs)
+          call pack_entries(1, mat_counter, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_coeffs)
           mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          call pack_entries(1, mat_counter, self_idx, -1, 0.0_ccs_real, mat_coeffs)
+          call pack_entries(1, mat_counter, global_index_p, -1, 0.0_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
         end if
       end do
-      call pack_entries(1, mat_counter, self_idx, self_idx, -(adv_coeff_total + diff_coeff_total), mat_coeffs)
+      call pack_entries(1, mat_counter, global_index_p, global_index_p, -(adv_coeff_total + diff_coeff_total), mat_coeffs)
       mat_counter = mat_counter + 1
       call set_values(mat_coeffs, M)
     end do
@@ -232,10 +232,10 @@ contains
 
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
-    integer(ccs_int) :: self_idx, local_idx
+    integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: bc_counter
     integer(ccs_int) :: row, col
@@ -259,24 +259,24 @@ contains
     allocate(b_coeffs%values(1))
 
     bc_counter = 1
-    do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, nnb)
+    do index_p = 1, mesh%nlocal
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
       ! Calculate contribution from neighbours
       do j = 1, nnb
-        call set_neighbour_location(self_loc, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, local_idx, j, face_loc)
+          call set_face_location(mesh, index_p, j, face_loc)
           call get_face_area(face_loc, face_area)
           call get_face_normal(face_loc, face_normal)
           call get_local_index(face_loc, idxf)
           
-          diff_coeff = calc_diffusion_coeff(local_idx, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
           select type(phi)
             type is(central_field)
               call calc_advection_coeff(phi, mf(idxf), index_nb, adv_coeff)
@@ -288,10 +288,10 @@ contains
           end select
           adv_coeff = adv_coeff * (mf(idxf) * face_area)
 
-          call calc_cell_coords(self_idx, cps, row, col)
+          call calc_cell_coords(global_index_p, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
-          call pack_entries(1, self_idx, -(adv_coeff + diff_coeff)*bc_value, b_coeffs)
-          call pack_entries(1, 1, self_idx, self_idx, -(adv_coeff + diff_coeff), mat_coeffs)
+          call pack_entries(1, global_index_p, -(adv_coeff + diff_coeff)*bc_value, b_coeffs)
+          call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_coeffs)
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
           bc_counter = bc_counter + 1
@@ -308,12 +308,12 @@ contains
 
   !> @brief Sets the diffusion coefficient
   !
-  !> @param[in] local_self_idx - the local cell index
+  !> @param[in] index_p - the local cell index
   !> @param[in] index_nb  - the local neigbouring cell index
   !> @param[in] mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
-  module function calc_diffusion_coeff(local_self_idx, index_nb, mesh) result(coeff)
-    integer(ccs_int), intent(in) :: local_self_idx
+  module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+    integer(ccs_int), intent(in) :: index_p
     integer(ccs_int), intent(in) :: index_nb
     type(ccs_mesh), intent(in) :: mesh
     real(ccs_real) :: coeff
@@ -327,11 +327,11 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call set_face_location(mesh, local_self_idx, index_nb, face_location)
+    call set_face_location(mesh, index_p, index_nb, face_location)
     call get_face_area(face_location, face_area)
     call get_boundary_status(face_location, is_boundary)
 
-    call set_cell_location(mesh, local_self_idx, loc_p)
+    call set_cell_location(mesh, index_p, loc_p)
     if (.not. is_boundary) then
       call set_neighbour_location(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
@@ -381,17 +381,17 @@ contains
     call get_boundary_status(loc_f, is_boundary)
     if (.not. is_boundary) then
       associate(mesh => loc_f%mesh, &
-           idxp => loc_f%cell_idx, &
+           index_p => loc_f%index_p, &
            j => loc_f%cell_face_ctr)
         
-        call set_cell_location(mesh, idxp, loc_p)
+        call set_cell_location(mesh, index_p, loc_p)
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
 
         call get_face_normal(loc_f, face_normal)
         
-        flux = 0.5_ccs_real * ((u(idxp) + u(index_nb)) * face_normal(1) &
-             + (v(idxp) + v(index_nb)) * face_normal(2))
+        flux = 0.5_ccs_real * ((u(index_p) + u(index_nb)) * face_normal(1) &
+             + (v(index_p) + v(index_nb)) * face_normal(2))
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -399,16 +399,16 @@ contains
         call get_distance(loc_p, loc_nb, dx)
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(index_nb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(idxp) + dpdx(index_nb)) * face_normal(1) &
-             + (dpdy(idxp) + dpdy(index_nb)) * face_normal(2))
+        flux_corr = -(p(index_nb) - p(index_p)) / dxmag
+        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(1) &
+             + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
         Vf = 0.5_ccs_real * (Vp + V_nb)
 
         ! This is probably not quite right ...
-        invAp = 0.5_ccs_real * (invAu(idxp) + invAv(idxp))
+        invAp = 0.5_ccs_real * (invAu(index_p) + invAv(index_p))
         invA_nb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
         invAf = 0.5_ccs_real * (invAp + invA_nb)
         
@@ -417,7 +417,7 @@ contains
         ! Apply correction
         flux = flux + flux_corr
 
-        if (idxp > index_nb) then
+        if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell!
           flux = -flux
         end if
@@ -431,16 +431,16 @@ contains
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
-  !> @param[in] idx  - cell index
+  !> @param[in] index  - cell index
   !> @param[in] cps  - number of cells per side
   !> @param[out] row - cell row within mesh
   !> @param[out] col - cell column within mesh
-  module subroutine calc_cell_coords(idx, cps, row, col)
-    integer(ccs_int), intent(in) :: idx, cps
+  module subroutine calc_cell_coords(index, cps, row, col)
+    integer(ccs_int), intent(in) :: index, cps
     integer(ccs_int), intent(out) :: row, col
 
-    col = modulo(idx-1,cps) + 1 
-    row = (idx-1)/cps + 1
+    col = modulo(index-1,cps) + 1 
+    row = (index-1)/cps + 1
   end subroutine calc_cell_coords
 
   !> @brief Performs an update of the gradients of a field.
@@ -532,7 +532,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_norm
 
     real(ccs_real) :: V
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
 
     real(ccs_real), dimension(ndim) :: dx
     
@@ -569,8 +569,8 @@ contains
       call get_volume(loc_p, V)
       grad = grad / V
       
-      call get_global_index(loc_p, idxg)
-      call pack_entries(1, idxg, grad, grad_values)
+      call get_global_index(loc_p, global_index_p)
+      call pack_entries(1, global_index_p, grad, grad_values)
       call set_values(grad_values, gradients)
     end do
 

@@ -250,8 +250,8 @@ contains
 
     ! Local variables
     type(vector_values) :: vec_values
-    type(cell_locator) :: self_loc
-    integer(ccs_int) :: self_idx, local_idx
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p, index_p
     real(ccs_real) :: r
     real(ccs_real), dimension(:), pointer :: pgrad_data
 
@@ -266,14 +266,14 @@ contains
     call get_vector_data(pgrad, pgrad_data)
     
     ! Loop over cells
-    do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
+    do index_p = 1, mesh%nlocal
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
 
-      call get_volume(self_loc, V)
+      call get_volume(loc_p, V)
       
-      r = -pgrad_data(local_idx) * V
-      call pack_entries(1, self_idx, r, vec_values)
+      r = -pgrad_data(index_p) * V
+      call pack_entries(1, global_index_p, r, vec_values)
       call set_values(vec_values, vec)
 
     end do
@@ -310,11 +310,11 @@ contains
     ! Local variables
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: vec_values
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: face_loc
     class(linear_solver), allocatable :: lin_solver
-    integer(ccs_int) :: self_idx, global_index_nb, local_idx
+    integer(ccs_int) :: global_index_p, global_index_nb, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     integer(ccs_int) :: row, col
@@ -330,9 +330,9 @@ contains
     real(ccs_real) :: Vp
     real(ccs_real) :: V_nb
     real(ccs_real) :: Vf
-    real(ccs_real) :: invAp
+    real(ccs_real) :: invA_p
     real(ccs_real) :: invA_nb
-    real(ccs_real) :: invAf
+    real(ccs_real) :: invA_f
 
     integer(ccs_int) :: index_nb
 
@@ -361,22 +361,22 @@ contains
     
     ! Loop over cells
     print *, "P': cell loop"
-    do local_idx = 1, mesh%nlocal
-      call set_cell_location(mesh, local_idx, self_loc)
-      call get_global_index(self_loc, self_idx)
-      call count_neighbours(self_loc, nnb)
+    do index_p = 1, mesh%nlocal
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
 
       allocate(mat_coeffs%row_indices(1))
       allocate(mat_coeffs%col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
 
-      row = self_idx
+      row = global_index_p
       coeff_p = 0.0_ccs_real
       r = 0.0_ccs_real
 
       ! Loop over faces
       do j = 1, nnb
-        call set_face_location(mesh, local_idx, j, face_loc)
+        call set_face_location(mesh, index_p, j, face_loc)
         call get_face_area(face_loc, face_area)
         call get_face_normal(face_loc, face_normal)
 
@@ -384,20 +384,20 @@ contains
         
         if (.not. is_boundary) then
           ! Interior face
-          call set_neighbour_location(self_loc, j, loc_nb)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
           coeff_f = (1.0 / mesh%h) * face_area
 
-          call get_volume(self_loc, Vp)
+          call get_volume(loc_p, Vp)
           call get_volume(loc_nb, V_nb)
           Vf = 0.5_ccs_real * (Vp + V_nb)
 
-          invAp = 0.5_ccs_real * (invAu_data(local_idx) + invAv_data(local_idx))
+          invA_p = 0.5_ccs_real * (invAu_data(index_p) + invAv_data(index_p))
           invA_nb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb))
-          invAf = 0.5_ccs_real * (invAp + invA_nb)
+          invA_f = 0.5_ccs_real * (invA_p + invA_nb)
 
-          coeff_f = -(Vf * invAf) * coeff_f
+          coeff_f = -(Vf * invA_f) * coeff_f
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
@@ -425,7 +425,7 @@ contains
       col = row
       call pack_entries(1, 1, row, col, coeff_p, mat_coeffs)
 
-      call pack_entries(1, self_idx, r, vec_values)
+      call pack_entries(1, global_index_p, r, vec_values)
 
       ! Set the values
       call set_values(mat_coeffs, M)
@@ -480,7 +480,7 @@ contains
     type(cell_locator) :: loc_p !< Central cell locator object
     type(face_locator) :: loc_f !< Face locator object
 
-    integer(ccs_int) :: idxp_g  !< Central cell global index
+    integer(ccs_int) :: global_index_p  !< Central cell global index
     real(ccs_real) :: face_area !< Face area
     integer(ccs_int) :: idxf    !< Face index
     integer(ccs_int) :: nnb     !< Cell neighbour count
@@ -526,7 +526,7 @@ contains
     
     do i = 1, mesh%nlocal
       call set_cell_location(mesh, i, loc_p)
-      call get_global_index(loc_p, idxp_g)
+      call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
       mib = 0.0_ccs_real
@@ -555,7 +555,7 @@ contains
         mib = mib + mf_data(idxf) * face_area
       end do
       
-      call pack_entries(1, idxp_g, mib, vec_values)
+      call pack_entries(1, global_index_p, mib, vec_values)
       call set_values(vec_values, b)
     end do
 

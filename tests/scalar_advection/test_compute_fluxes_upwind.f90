@@ -76,9 +76,9 @@ program test_compute_fluxes
     class(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout) :: u, v
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
-    integer(ccs_int) :: local_idx, self_idx
+    integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
 
     u_vals%setter_mode = insert_mode
@@ -91,9 +91,9 @@ program test_compute_fluxes
       allocate(v_vals%values(n_local))
       
       ! Set IC velocity fields
-      do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
+      do index_p = 1, n_local
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
 
         if (direction == x_dir) then
           u_val = 1.0_ccs_real
@@ -106,8 +106,8 @@ program test_compute_fluxes
         u_val = 0.0_ccs_real
         v_val = 0.0_ccs_real
         
-        call pack_entries(local_idx, self_idx, u_val, u_vals)
-        call pack_entries(local_idx, self_idx, v_val, v_vals)
+        call pack_entries(index_p, global_index_p, u_val, u_vals)
+        call pack_entries(index_p, global_index_p, v_val, v_vals)
       end do
     end associate
     call set_values(u_vals, u%values)

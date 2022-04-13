@@ -15,7 +15,7 @@ program test_square_mesh_indices
 
   integer(ccs_int) :: i
 
-  type(cell_locator) :: cell_location
+  type(cell_locator) :: loc_p
   integer(ccs_int) :: idxg
 
   call init()
@@ -27,8 +27,8 @@ program test_square_mesh_indices
     associate(nlocal => mesh%nlocal, &
          nglobal => mesh%nglobal)
       do i = 1, nlocal
-        call set_cell_location(mesh, i, cell_location)
-        call get_global_index(cell_location, idxg)
+        call set_cell_location(mesh, i, loc_p)
+        call get_global_index(loc_p, idxg)
         if ((idxg < 1) .or. (idxg > nglobal)) then
           if (idxg /= -1) then
             write(message, *) "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", idxg

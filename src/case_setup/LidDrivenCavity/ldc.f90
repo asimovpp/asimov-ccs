@@ -236,9 +236,9 @@ program ldc
 
     ! Local variables
     integer(ccs_int) :: row, col
-    integer(ccs_int) :: local_idx, self_idx
+    integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
     real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
 
@@ -257,16 +257,16 @@ program ldc
       allocate(v_vals%values(n_local))
 
       ! Set initial values for velocity fields
-      do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
-        call calc_cell_coords(self_idx, cps, row, col)
+      do index_p = 1, n_local
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
+        call calc_cell_coords(global_index_p, cps, row, col)
 
         u_val = real(col, ccs_real)/real(cps, ccs_real)
         v_val = -real(row, ccs_real)/real(cps, ccs_real)
 
-        call pack_entries(local_idx, self_idx, u_val, u_vals)
-        call pack_entries(local_idx, self_idx, v_val, v_vals)
+        call pack_entries(index_p, global_index_p, u_val, u_vals)
+        call pack_entries(index_p, global_index_p, v_val, v_vals)
       end do
     end associate
 
