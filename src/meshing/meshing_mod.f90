@@ -70,12 +70,12 @@ module meshing
     !!              returned cell locator object.
     !
     !> @param[in]  mesh         mesh      - the mesh object being referred to.
-    !> @param[in]  ccs_int     cell_idx      - the cell index. 
+    !> @param[in]  ccs_int     index_p      - the cell index. 
     !> @param[out] cell_locator loc_p - the cell locator object linking a cell index with
     !!                                          the mesh.
-  module subroutine set_cell_location(mesh, cell_idx, loc_p)
+  module subroutine set_cell_location(mesh, index_p, loc_p)
       type(ccs_mesh), target, intent(in) :: mesh
-      integer(ccs_int), intent(in) :: cell_idx
+      integer(ccs_int), intent(in) :: index_p
       type(cell_locator), intent(out) :: loc_p
     end subroutine set_cell_location
   
@@ -85,13 +85,13 @@ module meshing
     !!              nth face of cell i.
     !
     !> @param[in]  mesh         mesh      - the mesh object being referred to.
-    !> @param[in]  ccs_int     cell_idx      - the index of the cell whose face is being accessed.
+    !> @param[in]  ccs_int     index_p      - the index of the cell whose face is being accessed.
     !> @param[in]  ccs_int     cell_face_ctr - the cell-local index of the face.
     !> @param[out] face_locator face_location - the face locator object linking a cell-relative
     !!                                          index with the mesh.
-    module subroutine set_face_location(mesh, cell_idx, cell_face_ctr, face_location)
+    module subroutine set_face_location(mesh, index_p, cell_face_ctr, face_location)
       type(ccs_mesh), target, intent(in) :: mesh
-      integer(ccs_int), intent(in) :: cell_idx
+      integer(ccs_int), intent(in) :: index_p
       integer(ccs_int), intent(in) :: cell_face_ctr
       type(face_locator), intent(out) :: face_location
     end subroutine set_face_location
@@ -113,8 +113,8 @@ module meshing
     end subroutine set_neighbour_location
 
     !> @brief Set face index
-    module subroutine set_face_index(cell_idx, cell_face_ctr, face_idx, mesh)
-      integer(ccs_int), intent(in) :: cell_idx
+    module subroutine set_face_index(index_p, cell_face_ctr, face_idx, mesh)
+      integer(ccs_int), intent(in) :: index_p
       integer(ccs_int), intent(in) :: cell_face_ctr
       integer(ccs_int), intent(in) :: face_idx
       type(ccs_mesh), target, intent(inout) :: mesh
