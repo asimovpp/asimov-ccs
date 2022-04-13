@@ -103,7 +103,7 @@ contains
     logical :: is_local
     
     associate(mesh => loc_nb%mesh, &
-         parent_idx => loc_nb%cell_idx)
+         parent_idx => loc_nb%index_p)
       call get_local_index(loc_nb, index_nb)
             
       ! Neighbour index should not be its parents

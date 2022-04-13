@@ -21,7 +21,7 @@ contains
     type(face_locator), intent(out) :: face_location
 
     face_location%mesh => mesh
-    face_location%cell_idx = cell_idx
+    face_location%index_p = cell_idx
     face_location%cell_face_ctr = cell_face_ctr
   end subroutine set_face_location
 
@@ -45,7 +45,7 @@ contains
       stop
     else
       loc_p%mesh => mesh
-      loc_p%cell_idx = cell_idx
+      loc_p%index_p = cell_idx
     end if
   end subroutine set_cell_location
   
@@ -65,7 +65,7 @@ contains
     type(neighbour_locator), intent(out) :: loc_nb
 
     loc_nb%mesh => loc_p%mesh
-    loc_nb%cell_idx = loc_p%cell_idx
+    loc_nb%index_p = loc_p%index_p
 
     !! XXX: Safe, but would create a circular dependency...
     !! ! XXX: Potentially expensive...
@@ -82,7 +82,7 @@ contains
     loc_nb%nb_counter = nb_counter
 
     associate(mymesh => loc_nb%mesh, &
-         i => loc_nb%cell_idx, &
+         i => loc_nb%index_p, &
          j => loc_nb%nb_counter)
       if (mymesh%index_nb(j, i) == i) then
         print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
@@ -110,7 +110,7 @@ contains
     real(ccs_real), dimension(ndim), intent(out) :: normal
 
     associate(mesh => face_location%mesh, &
-         cell => face_location%cell_idx, &
+         cell => face_location%index_p, &
          face => face_location%cell_face_ctr)
       normal(:) = mesh%nf(:, face, cell)
     end associate
@@ -125,7 +125,7 @@ contains
     real(ccs_real), intent(out) :: area
 
     associate(mesh => face_location%mesh, &
-         cell =>face_location%cell_idx, &
+         cell =>face_location%index_p, &
          face =>face_location%cell_face_ctr)
       area = mesh%Af(face, cell)
     end associate
@@ -140,7 +140,7 @@ contains
     real(ccs_real), dimension(ndim), intent(out) :: x
 
     associate(mesh => loc_p%mesh, &
-         cell => loc_p%cell_idx)
+         cell => loc_p%index_p)
       x(:) = mesh%xc(:, cell)
     end associate
   end subroutine get_cell_centre
@@ -169,7 +169,7 @@ contains
     real(ccs_real), dimension(ndim), intent(out) :: x
 
     associate(mesh => face_location%mesh, &
-         cell => face_location%cell_idx, &
+         cell => face_location%index_p, &
          face => face_location%cell_face_ctr)
       x(:) = mesh%xf(:, face, cell)
     end associate
@@ -184,7 +184,7 @@ contains
     real(ccs_real), intent(out) :: V
 
     associate(mesh => loc_p%mesh, &
-         cell => loc_p%cell_idx)
+         cell => loc_p%index_p)
       V = mesh%vol(cell)
     end associate
   end subroutine get_cell_volume
@@ -213,7 +213,7 @@ contains
 
     associate(mesh => loc_p%mesh)
       if (mesh%nlocal > 0) then ! XXX: Potentially expensive...
-        associate(cell => loc_p%cell_idx)
+        associate(cell => loc_p%index_p)
           idxg = mesh%idx_global(cell)
         end associate
       else
@@ -244,7 +244,7 @@ contains
     integer(ccs_int), intent(out) :: nnb
 
     associate(mesh => loc_p%mesh, &
-         cell => loc_p%cell_idx)
+         cell => loc_p%index_p)
       nnb = mesh%nnb(cell)
     end associate
   end subroutine cell_count_neighbours
@@ -283,7 +283,7 @@ contains
     type(neighbour_locator) :: loc_nb
 
     associate(mesh => face_location%mesh, &
-         i => face_location%cell_idx, &
+         i => face_location%index_p, &
          j => face_location%cell_face_ctr)
       call set_cell_location(mesh, i, loc_p)
       call set_neighbour_location(loc_p, j, loc_nb)
@@ -327,7 +327,7 @@ contains
     type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(out) :: idx
     
-    idx = loc_p%cell_idx
+    idx = loc_p%index_p
   end subroutine get_cell_local_index
 
   !> @brief Returns the local index of a neighbouring cell
@@ -339,7 +339,7 @@ contains
     integer(ccs_int), intent(out) :: index_nb
 
     associate(mesh => loc_nb%mesh, &
-         i => loc_nb%cell_idx, &
+         i => loc_nb%index_p, &
          j => loc_nb%nb_counter)
       index_nb = mesh%index_nb(j, i)
     end associate
@@ -354,7 +354,7 @@ contains
     integer(ccs_int), intent(out) :: idx
 
     associate(mesh => face_location%mesh, &
-      i => face_location%cell_idx, &
+      i => face_location%index_p, &
       j => face_location%cell_face_ctr)
       idx = mesh%faceidx(j,i)
     end associate

@@ -480,7 +480,7 @@ contains
     type(cell_locator) :: loc_p !< Central cell locator object
     type(face_locator) :: loc_f !< Face locator object
 
-    integer(ccs_int) :: idxp_g  !< Central cell global index
+    integer(ccs_int) :: global_index_p  !< Central cell global index
     real(ccs_real) :: face_area !< Face area
     integer(ccs_int) :: idxf    !< Face index
     integer(ccs_int) :: nnb     !< Cell neighbour count
@@ -526,7 +526,7 @@ contains
     
     do i = 1, mesh%nlocal
       call set_cell_location(mesh, i, loc_p)
-      call get_global_index(loc_p, idxp_g)
+      call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
       mib = 0.0_ccs_real
@@ -555,7 +555,7 @@ contains
         mib = mib + mf_data(idxf) * face_area
       end do
       
-      call pack_entries(1, idxp_g, mib, vec_values)
+      call pack_entries(1, global_index_p, mib, vec_values)
       call set_values(vec_values, b)
     end do
 

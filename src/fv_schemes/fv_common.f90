@@ -381,17 +381,17 @@ contains
     call get_boundary_status(loc_f, is_boundary)
     if (.not. is_boundary) then
       associate(mesh => loc_f%mesh, &
-           idxp => loc_f%cell_idx, &
+           index_p => loc_f%index_p, &
            j => loc_f%cell_face_ctr)
         
-        call set_cell_location(mesh, idxp, loc_p)
+        call set_cell_location(mesh, index_p, loc_p)
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
 
         call get_face_normal(loc_f, face_normal)
         
-        flux = 0.5_ccs_real * ((u(idxp) + u(index_nb)) * face_normal(1) &
-             + (v(idxp) + v(index_nb)) * face_normal(2))
+        flux = 0.5_ccs_real * ((u(index_p) + u(index_nb)) * face_normal(1) &
+             + (v(index_p) + v(index_nb)) * face_normal(2))
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -399,16 +399,16 @@ contains
         call get_distance(loc_p, loc_nb, dx)
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(index_nb) - p(idxp)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(idxp) + dpdx(index_nb)) * face_normal(1) &
-             + (dpdy(idxp) + dpdy(index_nb)) * face_normal(2))
+        flux_corr = -(p(index_nb) - p(index_p)) / dxmag
+        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(1) &
+             + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
         Vf = 0.5_ccs_real * (Vp + V_nb)
 
         ! This is probably not quite right ...
-        invAp = 0.5_ccs_real * (invAu(idxp) + invAv(idxp))
+        invAp = 0.5_ccs_real * (invAu(index_p) + invAv(index_p))
         invA_nb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
         invAf = 0.5_ccs_real * (invAp + invA_nb)
         
@@ -417,7 +417,7 @@ contains
         ! Apply correction
         flux = flux + flux_corr
 
-        if (idxp > index_nb) then
+        if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell!
           flux = -flux
         end if

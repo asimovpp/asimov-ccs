@@ -106,7 +106,7 @@ module types
   !!              connectivity.
   type, public :: cell_locator
     type(ccs_mesh), pointer :: mesh        !< Pointer to the mesh -- we DON'T want to copy this!
-    integer(ccs_int) :: cell_idx      !< Cell index
+    integer(ccs_int) :: index_p      !< Cell index
   end type cell_locator
 
   !> @brief Face locator
@@ -115,7 +115,7 @@ module types
   !!              connectivity.
   type, public :: face_locator
     type(ccs_mesh), pointer :: mesh        !< Pointer to the mesh -- we DON'T want to copy this!
-    integer(ccs_int) :: cell_idx      !< Cell index
+    integer(ccs_int) :: index_p      !< Cell index
     integer(ccs_int) :: cell_face_ctr !< Cell-face ctr i.e. I want to access face "3" of the cell.
   end type face_locator
 
@@ -124,7 +124,7 @@ module types
   !> @description Lightweight type to provide easy cell-neighbour connection.
   type, public :: neighbour_locator
     type(ccs_mesh), pointer :: mesh
-    integer(ccs_int) :: cell_idx
+    integer(ccs_int) :: index_p
     integer(ccs_int) :: nb_counter
   end type neighbour_locator
 
