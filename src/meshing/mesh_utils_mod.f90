@@ -250,15 +250,15 @@ contains
   !!                 b) this is a new halo cell, the list of global indices must be grown to
   !!                    accomodate before adding the neighbour.
   !
-  !> @param[in]    integer(ccs_int) cellidx - the index of the cell whose neighbours we are assembling
-  !> @param[in]    integer(ccs_int) nbctr   - the cell-relative neighbour index
+  !> @param[in]    integer(ccs_int) index_p - the index of the cell whose neighbours we are assembling
+  !> @param[in]    integer(ccs_int) index_cell_nb   - the cell-relative neighbour index
   !> @param[in]    integer(ccs_int) index_nb   - the local index of the neighbour cell
   !> @param[in]    integer(ccs_int) global_index_nb  - the global index of the neighbour cell
   !> @param[inout] mesh mesh - the mesh we are assembling neighbours on
-  subroutine build_local_mesh_add_neighbour(cellidx, nbctr, index_nb, global_index_nb, mesh)
+  subroutine build_local_mesh_add_neighbour(index_p, index_cell_nb, index_nb, global_index_nb, mesh)
 
-    integer(ccs_int), intent(in) :: cellidx
-    integer(ccs_int), intent(in) :: nbctr
+    integer(ccs_int), intent(in) :: index_p
+    integer(ccs_int), intent(in) :: index_cell_nb
     integer(ccs_int), intent(in) :: index_nb
     integer(ccs_int), intent(in) :: global_index_nb
     type(ccs_mesh), intent(inout) :: mesh
@@ -269,14 +269,14 @@ contains
     
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= mesh%nlocal)) then
       ! Neighbour is local
-      mesh%index_nb(nbctr, cellidx) = index_nb
+      mesh%index_nb(index_cell_nb, index_p) = index_nb
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
       if (.not. (index_nb < 0_ccs_int)) then
         print *, "ERROR: boundary neighbours should have -ve indices!"
         stop
       end if
-      mesh%index_nb(nbctr, cellidx) = index_nb
+      mesh%index_nb(index_cell_nb, index_p) = index_nb
     else
       ! Neighbour is in a halo
 
@@ -286,7 +286,7 @@ contains
       do i = mesh%nlocal + 1, ng
         if (mesh%idx_global(i) == global_index_nb) then
           found = .true.
-          mesh%index_nb(nbctr, cellidx) = i
+          mesh%index_nb(index_cell_nb, index_p) = i
           exit
         end if
       end do
@@ -303,7 +303,7 @@ contains
         
         call append_to_arr(global_index_nb, mesh%idx_global)
         ng = size(mesh%idx_global)
-        mesh%index_nb(nbctr, cellidx) = ng
+        mesh%index_nb(index_cell_nb, index_p) = ng
       end if
     end if
     
