@@ -142,7 +142,7 @@ contains
 
     type(vector_values) :: val_dat
 
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: cc
     real(ccs_real) :: V 
     integer(ccs_int) :: idxg
@@ -157,10 +157,10 @@ contains
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
-        call set_cell_location(mesh, i, cell_location)
-        call get_centre(cell_location, cc)
-        call get_volume(cell_location, V)
-        call get_global_index(cell_location, idxg)
+        call set_cell_location(mesh, i, loc_p)
+        call get_centre(loc_p, cc)
+        call get_volume(loc_p, V)
+        call get_global_index(loc_p, idxg)
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
@@ -200,7 +200,7 @@ contains
     real(ccs_real) :: A
 
     integer(ccs_int) :: idxg
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
 
     type(neighbour_locator) :: loc_nb
@@ -215,9 +215,9 @@ contains
       !!        filling from front, and pass the number of coefficients to be set, requires
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
-      call set_cell_location(mesh, i, cell_location)
-      call get_global_index(cell_location, idxg)
-      call count_neighbours(cell_location, nnb)
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, idxg)
+      call count_neighbours(loc_p, nnb)
         
       allocate(mat_coeffs%row_indices(1))
       allocate(mat_coeffs%col_indices(1 + nnb))
@@ -228,7 +228,7 @@ contains
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(cell_location, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
@@ -285,7 +285,7 @@ contains
     type(face_locator) :: face_location
     real(ccs_real) :: A
 
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     integer(ccs_int) :: idxg
     type(neighbour_locator) :: loc_nb
 
@@ -303,8 +303,8 @@ contains
 
     do i = 1, mesh%nlocal
       if (minval(mesh%index_nb(:, i)) < 0) then
-        call set_cell_location(mesh, i, cell_location)
-        call get_global_index(cell_location, idxg)
+        call set_cell_location(mesh, i, loc_p)
+        call get_global_index(loc_p, idxg)
         coeff = 0.0_ccs_real 
         r = 0.0_ccs_real
           
@@ -312,10 +312,10 @@ contains
         col = idxg
         idx = idxg
 
-        call count_neighbours(cell_location, nnb)
+        call count_neighbours(loc_p, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(cell_location, j, loc_nb)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
@@ -354,15 +354,15 @@ contains
     type(vector_values) :: vec_values
     integer(ccs_int) :: i
 
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     integer(ccs_int) :: idxg
     
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))
     vec_values%setter_mode = insert_mode
     do i = 1, mesh%nlocal
-      call set_cell_location(mesh, i, cell_location)
-      call get_global_index(cell_location, idxg)
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, idxg)
       call pack_entries(1, idxg, rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
@@ -385,7 +385,7 @@ contains
     integer(ccs_int), intent(in) :: i !< Cell index
     integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
 
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     type(face_locator) :: face_location
     
     real(ccs_real), dimension(ndim) :: x
@@ -400,8 +400,8 @@ contains
       end associate
     else
       !! Cell-centred value
-      call set_cell_location(mesh, i, cell_location)
-      call get_centre(cell_location, x)
+      call set_cell_location(mesh, i, loc_p)
+      call get_centre(loc_p, x)
       associate(y => x(2))
         r = y
       end associate
