@@ -248,7 +248,7 @@ program test_compute_fluxes
     if (par_env%proc_id == 0) then
       if (flow == x_dir) then
         do i = 1, cps
-          ii = mesh%idx_global(i)
+          ii = mesh%global_indices(i)
           call pack_entries(vec_counter, (i-1)*cps + 1, adv_coeff, vec_coeffs) 
           vec_counter = vec_counter + 1
           call pack_entries(vec_counter, i*cps, adv_coeff, vec_coeffs) 
@@ -331,7 +331,7 @@ program test_compute_fluxes
     do i = 1, mesh%nlocal
       mat_counter = 1
 
-      ii = mesh%idx_global(i)
+      ii = mesh%global_indices(i)
       call pack_entries(1, mat_counter, ii, ii, -4*diff_coeff, mat_coeffs)
       mat_counter = mat_counter + 1
 
@@ -398,7 +398,7 @@ program test_compute_fluxes
       ! UDS and flow along +x direction
       do i = 1, mesh%nlocal
         mat_counter = 1
-        ii = mesh%idx_global(i)
+        ii = mesh%global_indices(i)
         if (mod(ii, cps) .ne. 1) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
@@ -411,7 +411,7 @@ program test_compute_fluxes
       ! UDS and flow along +y direction
       do i = 1, mesh%nlocal
         mat_counter = 1
-        ii = mesh%idx_global(i)
+        ii = mesh%global_indices(i)
         if (ii > cps) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1

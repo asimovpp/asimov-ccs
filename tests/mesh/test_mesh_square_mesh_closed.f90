@@ -14,7 +14,7 @@ program test_mesh_square_mesh_closed
   implicit none
   
   type(ccs_mesh), target :: mesh
-  type(face_locator) :: face_location
+  type(face_locator) :: loc_f
 
   integer(ccs_int) :: n
   real(ccs_real) :: l
@@ -38,9 +38,9 @@ program test_mesh_square_mesh_closed
       ! Loop over neighbours/faces
       do j = 1, mesh%nnb(i)
 
-        call set_face_location(mesh, i, j, face_location)
-        call get_face_area(face_location, A)
-        call get_face_normal(face_location, norm)
+        call set_face_location(mesh, i, j, loc_f)
+        call get_face_area(loc_f, A)
+        call get_face_normal(loc_f, norm)
         S(:) = S(:) + norm(:) * A
       end do
 

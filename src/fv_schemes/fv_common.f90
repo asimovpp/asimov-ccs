@@ -86,7 +86,7 @@ contains
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(face_locator) :: face_loc
+    type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
@@ -97,7 +97,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
-    integer(ccs_int) :: idxf
+    integer(ccs_int) :: index_f
 
     real(ccs_real) :: sgn !< Sign indicating face orientation
 
@@ -125,10 +125,10 @@ contains
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, face_loc)
-          call get_face_area(face_loc, face_area)
-          call get_face_normal(face_loc, face_normal)
-          call get_local_index(face_loc, idxf)
+          call set_face_location(mesh, index_p, j, loc_f)
+          call get_face_area(loc_f, face_area)
+          call get_face_normal(loc_f, face_normal)
+          call get_local_index(loc_f, index_f)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -140,16 +140,16 @@ contains
           end if
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, sgn * mf(idxf), 0, adv_coeff)
+              call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, sgn * mf(idxf), 0, adv_coeff)
+              call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
-          adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
+          adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
           
           call pack_entries(1, mat_counter, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_coeffs)
           mat_counter = mat_counter + 1
@@ -234,7 +234,7 @@ contains
     type(vector_values) :: b_coeffs
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(face_locator) :: face_loc
+    type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: bc_counter
@@ -247,7 +247,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
-    integer(ccs_int) :: idxf
+    integer(ccs_int) :: index_f
     
     mat_coeffs%setter_mode = add_mode
     b_coeffs%setter_mode = add_mode
@@ -271,22 +271,22 @@ contains
           ! call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, face_loc)
-          call get_face_area(face_loc, face_area)
-          call get_face_normal(face_loc, face_normal)
-          call get_local_index(face_loc, idxf)
+          call set_face_location(mesh, index_p, j, loc_f)
+          call get_face_area(loc_f, face_area)
+          call get_face_normal(loc_f, face_normal)
+          call get_local_index(loc_f, index_f)
           
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, mf(idxf), index_nb, adv_coeff)
+              call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, mf(idxf), index_nb, adv_coeff)
+              call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
-          adv_coeff = adv_coeff * (mf(idxf) * face_area)
+          adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
           call calc_cell_coords(global_index_p, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
@@ -318,7 +318,7 @@ contains
     type(ccs_mesh), intent(in) :: mesh
     real(ccs_real) :: coeff
 
-    type(face_locator) :: face_location
+    type(face_locator) :: loc_f
     real(ccs_real) :: face_area
     real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
@@ -327,16 +327,16 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call set_face_location(mesh, index_p, index_nb, face_location)
-    call get_face_area(face_location, face_area)
-    call get_boundary_status(face_location, is_boundary)
+    call set_face_location(mesh, index_p, index_nb, loc_f)
+    call get_face_area(loc_f, face_area)
+    call get_boundary_status(loc_f, is_boundary)
 
     call set_cell_location(mesh, index_p, loc_p)
     if (.not. is_boundary) then
       call set_neighbour_location(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
     else
-      call get_distance(loc_p, face_location, dx)
+      call get_distance(loc_p, loc_f, dx)
     end if
     dxmag = sqrt(sum(dx**2))
     
