@@ -95,10 +95,10 @@ contains
           mesh%nlocal = (iend - (istart - 1_ccs_int))
 
           ! Allocate mesh arrays
-          allocate(mesh%idx_global(mesh%nlocal))
+          allocate(mesh%global_indices(mesh%nlocal))
           allocate(mesh%nnb(mesh%nlocal))
-          allocate(mesh%index_nb(4, mesh%nlocal))
-          allocate(mesh%faceidx(4, mesh%nlocal))
+          allocate(mesh%neighbour_indices(4, mesh%nlocal))
+          allocate(mesh%face_indices(4, mesh%nlocal))
 
           ! Initialise mesh arrays
           mesh%nnb(:) = 4_ccs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
@@ -106,7 +106,7 @@ contains
           ! First set the global index of local cells
           ictr = 1_ccs_int
           do i = istart, iend
-            mesh%idx_global(ictr) = i
+            mesh%global_indices(ictr) = i
             ictr = ictr + 1
           end do
           
@@ -169,60 +169,60 @@ contains
           end do
         end associate
 
-        mesh%ntotal = size(mesh%idx_global)
+        mesh%ntotal = size(mesh%global_indices)
         mesh%nhalo = mesh%ntotal - mesh%nlocal
 
-        allocate(mesh%xc(ndim, mesh%ntotal))    
-        allocate(mesh%xf(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
-        allocate(mesh%vol(mesh%ntotal))
-        allocate(mesh%Af(4, mesh%nlocal))    
-        allocate(mesh%nf(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
+        allocate(mesh%x_p(ndim, mesh%ntotal))    
+        allocate(mesh%x_f(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
+        allocate(mesh%volumes(mesh%ntotal))
+        allocate(mesh%face_areas(4, mesh%nlocal))    
+        allocate(mesh%face_normals(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
 
-        mesh%vol(:) = mesh%h**2 !< @note Mesh is square and 2D
-        mesh%nf(:, :, :) = 0.0_ccs_real
-        mesh%xc(:, :) = 0.0_ccs_real
-        mesh%xf(:, :, :) = 0.0_ccs_real
-        mesh%Af(:, :) = mesh%h  !< @note Mesh is square and 2D
+        mesh%volumes(:) = mesh%h**2 !< @note Mesh is square and 2D
+        mesh%face_normals(:, :, :) = 0.0_ccs_real
+        mesh%x_p(:, :) = 0.0_ccs_real
+        mesh%x_f(:, :, :) = 0.0_ccs_real
+        mesh%face_areas(:, :) = mesh%h  !< @note Mesh is square and 2D
 
         associate(h => mesh%h)
           do i = 1_ccs_int, mesh%ntotal
-            ii = mesh%idx_global(i)
+            ii = mesh%global_indices(i)
 
-            associate(xc => mesh%xc(:, i))
+            associate(x_p => mesh%x_p(:, i))
               ! Set cell centre
-              xc(1) = (modulo(ii-1, nps) + 0.5_ccs_real) * h
-              xc(2) = ((ii - 1) / nps + 0.5_ccs_real) * h
+              x_p(1) = (modulo(ii-1, nps) + 0.5_ccs_real) * h
+              x_p(2) = ((ii - 1) / nps + 0.5_ccs_real) * h
             end associate
           end do
 
           do i = 1_ccs_int, mesh%nlocal
-            associate(xc => mesh%xc(:, i), &
-                 xf => mesh%xf(:, :, i), &
-                 nrm => mesh%nf(:, :, i))
+            associate(x_p => mesh%x_p(:, i), &
+                 x_f => mesh%x_f(:, :, i), &
+                 normal => mesh%face_normals(:, :, i))
 
               fctr = left
-              xf(1, fctr) = xc(1) - 0.5_ccs_real * h
-              xf(2, fctr) = xc(2)
-              nrm(1, fctr) = -1.0_ccs_real
-              nrm(2, fctr) = 0.0_ccs_real
+              x_f(1, fctr) = x_p(1) - 0.5_ccs_real * h
+              x_f(2, fctr) = x_p(2)
+              normal(1, fctr) = -1.0_ccs_real
+              normal(2, fctr) = 0.0_ccs_real
 
               fctr = right
-              xf(1, fctr) = xc(1) + 0.5_ccs_real * h
-              xf(2, fctr) = xc(2)
-              nrm(1, fctr) = 1.0_ccs_real
-              nrm(2, fctr) = 0.0_ccs_real
+              x_f(1, fctr) = x_p(1) + 0.5_ccs_real * h
+              x_f(2, fctr) = x_p(2)
+              normal(1, fctr) = 1.0_ccs_real
+              normal(2, fctr) = 0.0_ccs_real
               
               fctr = down
-              xf(1, fctr) = xc(1)
-              xf(2, fctr) = xc(2) - 0.5_ccs_real * h
-              nrm(1, fctr) = 0.0_ccs_real
-              nrm(2, fctr) = -1.0_ccs_real
+              x_f(1, fctr) = x_p(1)
+              x_f(2, fctr) = x_p(2) - 0.5_ccs_real * h
+              normal(1, fctr) = 0.0_ccs_real
+              normal(2, fctr) = -1.0_ccs_real
 
               fctr = up
-              xf(1, fctr) = xc(1)
-              xf(2, fctr) = xc(2) + 0.5_ccs_real * h
-              nrm(1, fctr) = 0.0_ccs_real
-              nrm(2, fctr) = 1.0_ccs_real
+              x_f(1, fctr) = x_p(1)
+              x_f(2, fctr) = x_p(2) + 0.5_ccs_real * h
+              normal(1, fctr) = 0.0_ccs_real
+              normal(2, fctr) = 1.0_ccs_real
             end associate
           end do
         end associate
@@ -269,24 +269,24 @@ contains
     
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= mesh%nlocal)) then
       ! Neighbour is local
-      mesh%index_nb(index_p_nb, index_p) = index_nb
+      mesh%neighbour_indices(index_p_nb, index_p) = index_nb
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
       if (.not. (index_nb < 0_ccs_int)) then
         print *, "ERROR: boundary neighbours should have -ve indices!"
         stop
       end if
-      mesh%index_nb(index_p_nb, index_p) = index_nb
+      mesh%neighbour_indices(index_p_nb, index_p) = index_nb
     else
       ! Neighbour is in a halo
 
       ! First check if neighbour is already present in halo
-      ng = size(mesh%idx_global)
+      ng = size(mesh%global_indices)
       found = .false.
       do i = mesh%nlocal + 1, ng
-        if (mesh%idx_global(i) == global_index_nb) then
+        if (mesh%global_indices(i) == global_index_nb) then
           found = .true.
-          mesh%index_nb(index_p_nb, index_p) = i
+          mesh%neighbour_indices(index_p_nb, index_p) = i
           exit
         end if
       end do
@@ -301,9 +301,9 @@ contains
           stop
         end if
         
-        call append_to_arr(global_index_nb, mesh%idx_global)
-        ng = size(mesh%idx_global)
-        mesh%index_nb(index_p_nb, index_p) = ng
+        call append_to_arr(global_index_nb, mesh%global_indices)
+        ng = size(mesh%global_indices)
+        mesh%neighbour_indices(index_p_nb, index_p) = ng
       end if
     end if
     

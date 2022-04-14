@@ -302,7 +302,7 @@ contains
     vec_values%setter_mode = add_mode
 
     do i = 1, mesh%nlocal
-      if (minval(mesh%index_nb(:, i)) < 0) then
+      if (minval(mesh%neighbour_indices(:, i)) < 0) then
         call set_cell_location(mesh, i, loc_p)
         call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real 

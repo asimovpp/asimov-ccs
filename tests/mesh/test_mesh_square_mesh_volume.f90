@@ -40,7 +40,7 @@ program test_mesh_square_mesh_volume
       if (V <= 0) then
         nneg_vol = nneg_vol + 1
       end if
-      vol = vol + mesh%vol(i)
+      vol = vol + mesh%volumes(i)
     end do
     
     select type(par_env)

@@ -84,7 +84,7 @@ contains
     associate(mymesh => loc_nb%mesh, &
          i => loc_nb%index_p, &
          j => loc_nb%nb_counter)
-      if (mymesh%index_nb(j, i) == i) then
+      if (mymesh%neighbour_indices(j, i) == i) then
         print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
       end if
     end associate
@@ -97,7 +97,7 @@ contains
     integer(ccs_int), intent(in) :: index_f
     type(ccs_mesh), target, intent(inout) :: mesh
 
-    mesh%faceidx(cell_face_ctr, index_p) = index_f
+    mesh%face_indices(cell_face_ctr, index_p) = index_f
   end subroutine set_face_index
 
   !> @brief Returns the normal vector of a face
@@ -112,7 +112,7 @@ contains
     associate(mesh => loc_f%mesh, &
          cell => loc_f%index_p, &
          face => loc_f%cell_face_ctr)
-      normal(:) = mesh%nf(:, face, cell)
+      normal(:) = mesh%face_normals(:, face, cell)
     end associate
   end subroutine get_face_normal
 
@@ -127,7 +127,7 @@ contains
     associate(mesh => loc_f%mesh, &
          cell =>loc_f%index_p, &
          face =>loc_f%cell_face_ctr)
-      area = mesh%Af(face, cell)
+      area = mesh%face_areas(face, cell)
     end associate
   end subroutine get_face_area
 
@@ -141,7 +141,7 @@ contains
 
     associate(mesh => loc_p%mesh, &
          cell => loc_p%index_p)
-      x(:) = mesh%xc(:, cell)
+      x(:) = mesh%x_p(:, cell)
     end associate
   end subroutine get_cell_centre
 
@@ -171,7 +171,7 @@ contains
     associate(mesh => loc_f%mesh, &
          cell => loc_f%index_p, &
          face => loc_f%cell_face_ctr)
-      x(:) = mesh%xf(:, face, cell)
+      x(:) = mesh%x_f(:, face, cell)
     end associate
   end subroutine get_face_centre
 
@@ -185,7 +185,7 @@ contains
 
     associate(mesh => loc_p%mesh, &
          cell => loc_p%index_p)
-      V = mesh%vol(cell)
+      V = mesh%volumes(cell)
     end associate
   end subroutine get_cell_volume
 
@@ -214,7 +214,7 @@ contains
     associate(mesh => loc_p%mesh)
       if (mesh%nlocal > 0) then ! XXX: Potentially expensive...
         associate(cell => loc_p%index_p)
-          global_index_p = mesh%idx_global(cell)
+          global_index_p = mesh%global_indices(cell)
         end associate
       else
         global_index_p = -1 ! XXX: What should we do in case of too many processors for a given mesh?
@@ -341,7 +341,7 @@ contains
     associate(mesh => loc_nb%mesh, &
          i => loc_nb%index_p, &
          j => loc_nb%nb_counter)
-      index_nb = mesh%index_nb(j, i)
+      index_nb = mesh%neighbour_indices(j, i)
     end associate
   end subroutine get_neighbour_local_index
 
@@ -356,7 +356,7 @@ contains
     associate(mesh => loc_f%mesh, &
       i => loc_f%index_p, &
       j => loc_f%cell_face_ctr)
-      index_f = mesh%faceidx(j,i)
+      index_f = mesh%face_indices(j,i)
     end associate
   end subroutine get_face_local_index
 

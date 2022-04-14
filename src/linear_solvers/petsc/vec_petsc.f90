@@ -47,7 +47,7 @@ contains
               call VecCreateGhost(par_env%comm, &
                    mesh%nlocal, PETSC_DECIDE, &
                    mesh%nhalo, &
-                   mesh%idx_global(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_ccs_int, &
+                   mesh%global_indices(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_ccs_int, &
                    v%v, ierr)
               ! Vector has ghost points, store this information
               v%ghosted = .true.
