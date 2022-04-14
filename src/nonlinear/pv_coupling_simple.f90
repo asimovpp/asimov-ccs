@@ -482,7 +482,7 @@ contains
 
     integer(ccs_int) :: global_index_p  !< Central cell global index
     real(ccs_real) :: face_area !< Face area
-    integer(ccs_int) :: idxf    !< Face index
+    integer(ccs_int) :: index_f    !< Face index
     integer(ccs_int) :: nnb     !< Cell neighbour count
 
     real(ccs_real), dimension(:), pointer :: mf_data     !< Data array for the mass flux
@@ -534,7 +534,7 @@ contains
       do j = 1, nnb
         call set_face_location(mesh, i, j, loc_f)
         call get_face_area(loc_f, face_area)
-        call get_local_index(loc_f, idxf)
+        call get_local_index(loc_f, index_f)
 
         ! Check face orientation
         call get_boundary_status(loc_f, is_boundary)
@@ -545,14 +545,14 @@ contains
             face_area = -face_area
           else
             ! Compute mass flux through face
-            mf_data(idxf) = calc_mass_flux(u_data, v_data, &
+            mf_data(index_f) = calc_mass_flux(u_data, v_data, &
                  p_data, dpdx_data, dpdy_data, &
                  invAu_data, invAv_data, &
                  loc_f)
           end if
         end if
         
-        mib = mib + mf_data(idxf) * face_area
+        mib = mib + mf_data(index_f) * face_area
       end do
       
       call pack_entries(1, global_index_p, mib, vec_values)
@@ -648,7 +648,7 @@ contains
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
     type(face_locator) :: loc_f
-    integer(ccs_int) :: idxf
+    integer(ccs_int) :: index_f
 
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
@@ -680,8 +680,8 @@ contains
                  invAu_data, invAv_data, &
                  loc_f)
 
-            call get_local_index(loc_f, idxf)
-            mf_data(idxf) = mf_data(idxf) + mf_prime
+            call get_local_index(loc_f, index_f)
+            mf_data(index_f) = mf_data(index_f) + mf_prime
           end if
         end if
       end do

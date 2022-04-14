@@ -97,7 +97,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
-    integer(ccs_int) :: idxf
+    integer(ccs_int) :: index_f
 
     real(ccs_real) :: sgn !< Sign indicating face orientation
 
@@ -128,7 +128,7 @@ contains
           call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
           call get_face_normal(loc_f, face_normal)
-          call get_local_index(loc_f, idxf)
+          call get_local_index(loc_f, index_f)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -140,16 +140,16 @@ contains
           end if
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, sgn * mf(idxf), 0, adv_coeff)
+              call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, sgn * mf(idxf), 0, adv_coeff)
+              call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
-          adv_coeff = adv_coeff * (sgn * mf(idxf) * face_area)
+          adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
           
           call pack_entries(1, mat_counter, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_coeffs)
           mat_counter = mat_counter + 1
@@ -247,7 +247,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
-    integer(ccs_int) :: idxf
+    integer(ccs_int) :: index_f
     
     mat_coeffs%setter_mode = add_mode
     b_coeffs%setter_mode = add_mode
@@ -274,19 +274,19 @@ contains
           call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
           call get_face_normal(loc_f, face_normal)
-          call get_local_index(loc_f, idxf)
+          call get_local_index(loc_f, index_f)
           
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
           select type(phi)
             type is(central_field)
-              call calc_advection_coeff(phi, mf(idxf), index_nb, adv_coeff)
+              call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             type is(upwind_field)
-              call calc_advection_coeff(phi, mf(idxf), index_nb, adv_coeff)
+              call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             class default
               print *, 'invalid velocity field discretisation'
               stop
           end select
-          adv_coeff = adv_coeff * (mf(idxf) * face_area)
+          adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
           call calc_cell_coords(global_index_p, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
