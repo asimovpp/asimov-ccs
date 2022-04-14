@@ -99,7 +99,7 @@ program test_advection_coeff
 
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(face_locator) :: face_loc
+    type(face_locator) :: loc_f
     
     call set_cell_location(mesh, index, loc_p)
     call get_local_index(loc_p, index_p)
@@ -107,10 +107,10 @@ program test_advection_coeff
     call set_neighbour_location(loc_p, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
-    call set_face_location(mesh, index, nb, face_loc)
-    call get_face_area(face_loc, face_area)
+    call set_face_location(mesh, index, nb, loc_f)
+    call get_face_area(loc_f, face_area)
 
-    call get_face_normal(face_loc, normal)
+    call get_face_normal(loc_f, normal)
   end subroutine get_cell_parameters
 
   !> @brief Sets the velocity field in the desired direction and discretisation

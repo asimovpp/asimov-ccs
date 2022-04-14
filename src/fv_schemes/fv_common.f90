@@ -86,7 +86,7 @@ contains
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(face_locator) :: face_loc
+    type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
@@ -125,10 +125,10 @@ contains
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, face_loc)
-          call get_face_area(face_loc, face_area)
-          call get_face_normal(face_loc, face_normal)
-          call get_local_index(face_loc, idxf)
+          call set_face_location(mesh, index_p, j, loc_f)
+          call get_face_area(loc_f, face_area)
+          call get_face_normal(loc_f, face_normal)
+          call get_local_index(loc_f, idxf)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -234,7 +234,7 @@ contains
     type(vector_values) :: b_coeffs
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(face_locator) :: face_loc
+    type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: bc_counter
@@ -271,10 +271,10 @@ contains
           ! call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, face_loc)
-          call get_face_area(face_loc, face_area)
-          call get_face_normal(face_loc, face_normal)
-          call get_local_index(face_loc, idxf)
+          call set_face_location(mesh, index_p, j, loc_f)
+          call get_face_area(loc_f, face_area)
+          call get_face_normal(loc_f, face_normal)
+          call get_local_index(loc_f, idxf)
           
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
           select type(phi)

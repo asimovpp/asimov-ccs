@@ -312,7 +312,7 @@ contains
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(face_locator) :: face_loc
+    type(face_locator) :: loc_f
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: global_index_p, global_index_nb, index_p
     integer(ccs_int) :: j
@@ -376,11 +376,11 @@ contains
 
       ! Loop over faces
       do j = 1, nnb
-        call set_face_location(mesh, index_p, j, face_loc)
-        call get_face_area(face_loc, face_area)
-        call get_face_normal(face_loc, face_normal)
+        call set_face_location(mesh, index_p, j, loc_f)
+        call get_face_area(loc_f, face_area)
+        call get_face_normal(loc_f, face_normal)
 
-        call get_boundary_status(face_loc, is_boundary)
+        call get_boundary_status(loc_f, is_boundary)
         
         if (.not. is_boundary) then
           ! Interior face

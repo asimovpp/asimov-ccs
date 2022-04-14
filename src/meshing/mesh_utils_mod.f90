@@ -461,7 +461,7 @@ contains
     integer(ccs_int) :: nnb_nb
     type(cell_locator) :: loc_nb 
     type(neighbour_locator) :: loc_nb_nb
-    type(face_locator) :: face_loc
+    type(face_locator) :: loc_f
     integer(ccs_int) :: index_nb_nb
 
     call set_cell_location(mesh, index_nb, loc_nb)
@@ -470,8 +470,8 @@ contains
       call set_neighbour_location(loc_nb, k, loc_nb_nb)
       call get_local_index(loc_nb_nb, index_nb_nb)
       if (index_nb_nb == index_p) then
-        call set_face_location(mesh, index_nb, k, face_loc)
-        call get_local_index(face_loc, face_idx)
+        call set_face_location(mesh, index_nb, k, loc_f)
+        call get_local_index(loc_f, face_idx)
         exit ! Exit the loop, as found shared face
       else if (k == nnb_nb) then
         print *, "ERROR: Failed to find face in owning cell"
