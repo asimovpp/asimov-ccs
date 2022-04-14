@@ -87,13 +87,13 @@ module meshing
     !> @param[in]  mesh         mesh      - the mesh object being referred to.
     !> @param[in]  ccs_int     index_p      - the index of the cell whose face is being accessed.
     !> @param[in]  ccs_int     cell_face_ctr - the cell-local index of the face.
-    !> @param[out] face_locator face_location - the face locator object linking a cell-relative
+    !> @param[out] face_locator loc_f - the face locator object linking a cell-relative
     !!                                          index with the mesh.
-    module subroutine set_face_location(mesh, index_p, cell_face_ctr, face_location)
+    module subroutine set_face_location(mesh, index_p, cell_face_ctr, loc_f)
       type(ccs_mesh), target, intent(in) :: mesh
       integer(ccs_int), intent(in) :: index_p
       integer(ccs_int), intent(in) :: cell_face_ctr
-      type(face_locator), intent(out) :: face_location
+      type(face_locator), intent(out) :: loc_f
     end subroutine set_face_location
 
     !> @brief Constructs a neighbour locator object.
@@ -122,20 +122,20 @@ module meshing
 
     !> @brief Returns the normal vector of a face
     !
-    !> @param[in]  face_locator    face_location - the face locator object.
+    !> @param[in]  face_locator    loc_f - the face locator object.
     !> @param[out] real(ccs_real) normal(ndim)  - an ndimensional array representing the face normal
     !!                                             vector.
-    module subroutine get_face_normal(face_location, normal)
-      type(face_locator), intent(in) :: face_location
+    module subroutine get_face_normal(loc_f, normal)
+      type(face_locator), intent(in) :: loc_f
       real(ccs_real), dimension(ndim), intent(out) :: normal
     end subroutine get_face_normal
 
     !> @brief Returns the area of a face
     !
-    !> @param[in]  face_locator    face_location - the face locator object.
+    !> @param[in]  face_locator    loc_f - the face locator object.
     !> @param[out] real(ccs_real) area          - the face area.
-    module subroutine get_face_area(face_location, area)
-      type(face_locator), intent(in) :: face_location
+    module subroutine get_face_area(loc_f, area)
+      type(face_locator), intent(in) :: loc_f
       real(ccs_real), intent(out) :: area
     end subroutine get_face_area
 
@@ -160,10 +160,10 @@ module meshing
 
     !> @brief Returns the centre of a face
     !
-    !> @param[in]  face_locator     face_location - the face locator object.
+    !> @param[in]  face_locator     loc_f - the face locator object.
     !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the face centre.
-    module subroutine get_face_centre(face_location, x)
-      type(face_locator), intent(in) :: face_location
+    module subroutine get_face_centre(loc_f, x)
+      type(face_locator), intent(in) :: loc_f
       real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_face_centre
 
@@ -223,10 +223,10 @@ module meshing
 
     !> @brief Returns the boundary status of a face
     !
-    !> @param[in]  face_locator face_location - the face locator object.
+    !> @param[in]  face_locator loc_f - the face locator object.
     !> @param[out] logical      is_boundary   - the boundary status of the neighbour.
-    module subroutine get_face_boundary_status(face_location, is_boundary)
-      type(face_locator), intent(in) :: face_location
+    module subroutine get_face_boundary_status(loc_f, is_boundary)
+      type(face_locator), intent(in) :: loc_f
       logical, intent(out) :: is_boundary
     end subroutine get_face_boundary_status
 
@@ -267,10 +267,10 @@ module meshing
 
     !> @brief Returns the local index of a face
     !
-    !> @param[in]  face_locator      face_location - the face locator object.
+    !> @param[in]  face_locator      loc_f - the face locator object.
     !> @param[out] integer(ccs_int) idx           - the local index of the face.
-    module subroutine get_face_local_index(face_location, idx)
-      type(face_locator), intent(in) :: face_location
+    module subroutine get_face_local_index(loc_f, idx)
+      type(face_locator), intent(in) :: loc_f
       integer(ccs_int), intent(out) :: idx
     end subroutine get_face_local_index
 

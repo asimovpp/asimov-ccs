@@ -196,7 +196,7 @@ contains
     integer(ccs_int) :: row, col
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
 
-    type(face_locator) :: face_location
+    type(face_locator) :: loc_f
     real(ccs_real) :: A
 
     integer(ccs_int) :: global_index_p
@@ -234,8 +234,8 @@ contains
         if (.not. is_boundary) then
           !! Interior face
         
-          call set_face_location(mesh, i, j, face_location)
-          call get_face_area(face_location, A)
+          call set_face_location(mesh, i, j, loc_f)
+          call get_face_area(loc_f, A)
           coeff_f = (1.0 / mesh%h) * A
 
           call get_global_index(loc_nb, global_index_nb)
@@ -282,7 +282,7 @@ contains
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
 
-    type(face_locator) :: face_location
+    type(face_locator) :: loc_f
     real(ccs_real) :: A
 
     type(cell_locator) :: loc_p
@@ -319,8 +319,8 @@ contains
           call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(mesh, i, j, face_location)
-            call get_face_area(face_location, A)
+            call set_face_location(mesh, i, j, loc_f)
+            call get_face_area(loc_f, A)
             boundary_coeff = (2.0 / mesh%h) * A
             boundary_val = rhs_val(i, j)
 
@@ -386,15 +386,15 @@ contains
     integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
 
     type(cell_locator) :: loc_p
-    type(face_locator) :: face_location
+    type(face_locator) :: loc_f
     
     real(ccs_real), dimension(ndim) :: x
     real(ccs_real) :: r
 
     if (present(f)) then
       !! Face-centred value
-      call set_face_location(mesh, i, f, face_location)
-      call get_centre(face_location, x)
+      call set_face_location(mesh, i, f, loc_f)
+      call get_centre(loc_f, x)
       associate(y => x(2))
         r = y
       end associate

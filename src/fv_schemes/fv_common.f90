@@ -318,7 +318,7 @@ contains
     type(ccs_mesh), intent(in) :: mesh
     real(ccs_real) :: coeff
 
-    type(face_locator) :: face_location
+    type(face_locator) :: loc_f
     real(ccs_real) :: face_area
     real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
@@ -327,16 +327,16 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call set_face_location(mesh, index_p, index_nb, face_location)
-    call get_face_area(face_location, face_area)
-    call get_boundary_status(face_location, is_boundary)
+    call set_face_location(mesh, index_p, index_nb, loc_f)
+    call get_face_area(loc_f, face_area)
+    call get_boundary_status(loc_f, is_boundary)
 
     call set_cell_location(mesh, index_p, loc_p)
     if (.not. is_boundary) then
       call set_neighbour_location(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
     else
-      call get_distance(loc_p, face_location, dx)
+      call get_distance(loc_p, loc_f, dx)
     end if
     dxmag = sqrt(sum(dx**2))
     
