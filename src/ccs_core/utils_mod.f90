@@ -114,11 +114,24 @@ module utils
 contains
 
   !> @brief Print a message, along with with its location
-  subroutine dprint_print(msg, filename, line)
+  subroutine dprint_print(msg, filepath, line)
     character(*), intent(in) :: msg
-    character(*), intent(in) :: filename
+    character(*), intent(in) :: filepath
     integer, intent(in) :: line
-  
+
+    character(len=:), allocatable :: filename
+    character(1) :: c
+    integer :: i, length
+
+    i = len_trim(filepath)
+    length = i
+    c = filepath(i:i)
+    do while (c /= "/")
+      i = i - 1
+      c = filepath(i:i)
+    end do
+    filename = filepath(i+1:length)
+
     print *, trim(filename), "(", trim(adjustl(int2str(line))), ") : ", msg
   end subroutine
   
