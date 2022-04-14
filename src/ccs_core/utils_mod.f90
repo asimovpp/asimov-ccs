@@ -130,26 +130,30 @@ contains
   function int2str(in_int, format_str) result(out_string)
     integer(ccs_int), intent (in)       :: in_int
     character(*), optional, intent(in)  :: format_str
-    character(32)                       :: out_string
+    character(32)                       :: tmp_string
+    character(:), allocatable           :: out_string
     
     if (present(format_str)) then
-      write(out_string, format_str) in_int
+      write(tmp_string, format_str) in_int
     else
-      write(out_string, *) in_int
+      write(tmp_string, *) in_int
     end if
+    out_string = trim(adjustl(tmp_string))
   end function
   
   !> @brief Convert real to string
   function real2str(in_real, format_str) result(out_string)
     real(ccs_real), intent (in)         :: in_real
     character(*), optional, intent(in)  :: format_str
-    character(32)                       :: out_string
+    character(32)                       :: tmp_string
+    character(:), allocatable           :: out_string
     
     if (present(format_str)) then
-      write(out_string, format_str) in_real
+      write(tmp_string, format_str) in_real
     else
-      write(out_string, *) in_real
+      write(tmp_string, *) in_real
     end if
+    out_string = trim(adjustl(tmp_string))
   end function
 
 end module utils
