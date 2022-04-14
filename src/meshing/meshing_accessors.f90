@@ -347,16 +347,16 @@ contains
 
   !> @brief Returns the local index of a face
   !
-  !> @param[in]  face_locator      loc_f - the face locator object.
-  !> @param[out] integer(ccs_int) idx           - the local index of the face.
-  module subroutine get_face_local_index(loc_f, idx)
+  !> @param[in]  face_locator     loc_f    - the face locator object.
+  !> @param[out] integer(ccs_int) index_f  - the local index of the face.
+  module subroutine get_face_local_index(loc_f, index_f)
     type(face_locator), intent(in) :: loc_f
-    integer(ccs_int), intent(out) :: idx
+    integer(ccs_int), intent(out) :: index_f
 
     associate(mesh => loc_f%mesh, &
       i => loc_f%index_p, &
       j => loc_f%cell_face_ctr)
-      idx = mesh%faceidx(j,i)
+      index_f = mesh%faceidx(j,i)
     end associate
   end subroutine get_face_local_index
 
