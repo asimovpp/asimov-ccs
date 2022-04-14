@@ -1,5 +1,5 @@
 #ifdef VERBOSE
-#define diag(msg) diag_print(msg, __FILE__, __LINE__)
+#define dprint(msg) debug_print(msg, __FILE__, __LINE__)
 #else
-#define diag(msg) diag_null(msg)
+#define dprint(msg) debug_print()
 #endif

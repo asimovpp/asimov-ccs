@@ -32,8 +32,7 @@ module utils
   public :: mult
   public :: zero
   public :: str
-  public :: diag_null
-  public :: diag_print
+  public :: debug_print
 
   !> @brief Generic interface to set values on an object.
   interface set_values
@@ -106,33 +105,39 @@ module utils
     module procedure real2str
   end interface str
 
+  !> @brief Generic interface to debug printer
+  interface debug_print
+    module procedure dprint_print
+    module procedure noop
+  end interface debug_print
   
 contains
 
-  subroutine diag_print(msg, file, line)
+  !> @brief Print a message, along with with its location
+  subroutine dprint_print(msg, filename, line)
     character(*), intent(in) :: msg
-    character(*), intent(in) :: file
+    character(*), intent(in) :: filename
     integer, intent(in) :: line
   
-    print *, file, "(", line, ") : ", msg
+    print *, trim(filename), "(", trim(int2str(line)), ") : ", msg
   end subroutine
   
-  subroutine diag_null(msg)
-    character(*), intent(in) :: msg
-  
-    print *, "Not really printing msg ", msg
+  !> @brief No-op routine, does nothign
+  subroutine noop()
   end subroutine
   
+  !> @brief Convert integer to string
   function int2str(in_int) result(out_string)
-    integer(ccs_int), intent (in) :: in_int ! input
-    character(32)                 :: out_string ! output
-    write(out_string,*) in_int
+    integer(ccs_int), intent (in) :: in_int
+    character(32)                 :: out_string
+    write(out_string, *) in_int
   end function
   
+  !> @brief Convert real to string
   function real2str(in_real) result(out_string)
-    real(ccs_real), intent (in) :: in_real ! input
-    character(32)        :: out_string ! output
-    write(out_string,*) in_real
+    real(ccs_real), intent (in) :: in_real
+    character(32)               :: out_string
+    write(out_string, *) in_real
   end function
 
 end module utils
