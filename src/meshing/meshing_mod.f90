@@ -113,10 +113,10 @@ module meshing
     end subroutine set_neighbour_location
 
     !> @brief Set face index
-    module subroutine set_face_index(index_p, cell_face_ctr, face_idx, mesh)
+    module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
       integer(ccs_int), intent(in) :: index_p
       integer(ccs_int), intent(in) :: cell_face_ctr
-      integer(ccs_int), intent(in) :: face_idx
+      integer(ccs_int), intent(in) :: index_f
       type(ccs_mesh), target, intent(inout) :: mesh
     end subroutine set_face_index
 

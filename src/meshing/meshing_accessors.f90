@@ -91,13 +91,13 @@ contains
   end subroutine set_neighbour_location
 
   !> @brief Set face index
-  module subroutine set_face_index(index_p, cell_face_ctr, face_idx, mesh)
+  module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
     integer(ccs_int), intent(in) :: index_p
     integer(ccs_int), intent(in) :: cell_face_ctr
-    integer(ccs_int), intent(in) :: face_idx
+    integer(ccs_int), intent(in) :: index_f
     type(ccs_mesh), target, intent(inout) :: mesh
 
-    mesh%faceidx(cell_face_ctr, index_p) = face_idx
+    mesh%faceidx(cell_face_ctr, index_p) = index_f
   end subroutine set_face_index
 
   !> @brief Returns the normal vector of a face
