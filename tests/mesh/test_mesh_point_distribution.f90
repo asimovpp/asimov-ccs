@@ -9,7 +9,7 @@ program test_mesh_point_distribution
 
   implicit none
   
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: n
 
@@ -19,9 +19,9 @@ program test_mesh_point_distribution
   call init()
   
   do n = 1, 100
-    square_mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
+    mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
 
-    associate(nlocal => square_mesh%nlocal)
+    associate(nlocal => mesh%nlocal)
       if (nlocal < 0) then
         ! XXX: Zero cells on a PE is not necessarily invalid...
         ! ? exit
@@ -57,7 +57,7 @@ program test_mesh_point_distribution
       call stop_test(message)
     end if
 
-    call assert_equal(n_expected, square_mesh%nglobal, &
+    call assert_equal(n_expected, mesh%nglobal, &
          '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
 
   end do

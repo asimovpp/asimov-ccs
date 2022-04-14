@@ -44,10 +44,10 @@ program poisson
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
-  type(vector_spec) :: vec_sizes
-  type(matrix_spec) :: mat_sizes
+  type(vector_spec) :: vec_properties
+  type(matrix_spec) :: mat_properties
   type(equation_system) :: poisson_eq
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: cps = 10 ! Default value for cells per side
 
@@ -65,24 +65,24 @@ program poisson
   call initialise_poisson(par_env)
 
   !! Initialise with default values
-  call initialise(mat_sizes)
-  call initialise(vec_sizes)
+  call initialise(vec_properties)
+  call initialise(mat_properties)
   call initialise(poisson_eq)
 
   !! Create stiffness matrix
-  call set_size(par_env, square_mesh, mat_sizes)
-  call set_nnz(5, mat_sizes)
-  call create_matrix(mat_sizes, M)
+  call set_size(par_env, mesh, mat_properties)
+  call set_nnz(5, mat_properties)
+  call create_matrix(mat_properties, M)
 
   call discretise_poisson(M)
 
   call begin_update(M) ! Start the parallel assembly for M
 
   !! Create right-hand-side and solution vectors
-  call set_size(par_env, square_mesh, vec_sizes)
-  call create_vector(vec_sizes, b)
-  call create_vector(vec_sizes, ustar)
-  call create_vector(vec_sizes, u)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, b)
+  call create_vector(vec_properties, ustar)
+  call create_vector(vec_properties, u)
 
   call begin_update(u) ! Start the parallel assembly for u
 
@@ -110,7 +110,7 @@ program poisson
   call set_exact_sol(ustar)
   call axpy(-1.0_ccs_real, ustar, u)
 
-  err_norm = norm(u, 2) * square_mesh%h
+  err_norm = norm(u, 2) * mesh%h
   if (par_env%proc_id == par_env%root) then
      print *, "Norm of error = ", err_norm
   end if
@@ -142,29 +142,29 @@ contains
 
     type(vector_values) :: val_dat
 
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: cc
     real(ccs_real) :: V 
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
     
     val_dat%setter_mode = add_mode
     allocate(val_dat%indices(1))
     allocate(val_dat%values(1))
 
-    associate(nloc => square_mesh%nlocal, &
-         h => square_mesh%h)
+    associate(nloc => mesh%nlocal, &
+         h => mesh%h)
       ! this is currently setting 1 vector value at a time
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
-        call set_cell_location(square_mesh, i, cell_location)
-        call get_centre(cell_location, cc)
-        call get_volume(cell_location, V)
-        call get_global_index(cell_location, idxg)
+        call set_cell_location(mesh, i, loc_p)
+        call get_centre(loc_p, cc)
+        call get_volume(loc_p, V)
+        call get_global_index(loc_p, global_index_p)
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(1, idxg, r, val_dat)
+          call pack_entries(1, global_index_p, r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
@@ -199,50 +199,50 @@ contains
     type(face_locator) :: face_location
     real(ccs_real) :: A
 
-    integer(ccs_int) :: idxg
-    type(cell_locator) :: cell_location
+    integer(ccs_int) :: global_index_p
+    type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
 
-    type(neighbour_locator) :: nb_location
+    type(neighbour_locator) :: loc_nb
     logical :: is_boundary
-    integer(ccs_int) :: nbidxg
+    integer(ccs_int) :: global_index_nb
 
     mat_coeffs%setter_mode = insert_mode
 
     !! Loop over cells
-    do i = 1, square_mesh%nlocal
+    do i = 1, mesh%nlocal
       !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
       !!        filling from front, and pass the number of coefficients to be set, requires
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
-      call set_cell_location(square_mesh, i, cell_location)
-      call get_global_index(cell_location, idxg)
-      call count_neighbours(cell_location, nnb)
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
         
       allocate(mat_coeffs%row_indices(1))
       allocate(mat_coeffs%col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
 
-      row = idxg
+      row = global_index_p
       coeff_p = 0.0_ccs_real
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(cell_location, j, nb_location)
-        call get_boundary_status(nb_location, is_boundary)
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
           !! Interior face
         
-          call set_face_location(square_mesh, i, j, face_location)
+          call set_face_location(mesh, i, j, face_location)
           call get_face_area(face_location, A)
-          coeff_f = (1.0 / square_mesh%h) * A
+          coeff_f = (1.0 / mesh%h) * A
 
-          call get_global_index(nb_location, nbidxg)
+          call get_global_index(loc_nb, global_index_nb)
           
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
-          col = nbidxg
+          col = global_index_nb
         else
           col = -1
           coeff_nb = 0.0_ccs_real
@@ -285,9 +285,9 @@ contains
     type(face_locator) :: face_location
     real(ccs_real) :: A
 
-    type(cell_locator) :: cell_location
-    integer(ccs_int) :: idxg
-    type(neighbour_locator) :: nb_location
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
+    type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: nnb
     logical :: is_boundary
@@ -301,27 +301,27 @@ contains
     mat_coeffs%setter_mode = add_mode
     vec_values%setter_mode = add_mode
 
-    do i = 1, square_mesh%nlocal
-      if (minval(square_mesh%nbidx(:, i)) < 0) then
-        call set_cell_location(square_mesh, i, cell_location)
-        call get_global_index(cell_location, idxg)
+    do i = 1, mesh%nlocal
+      if (minval(mesh%index_nb(:, i)) < 0) then
+        call set_cell_location(mesh, i, loc_p)
+        call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real 
         r = 0.0_ccs_real
           
-        row = idxg
-        col = idxg
-        idx = idxg
+        row = global_index_p
+        col = global_index_p
+        idx = global_index_p
 
-        call count_neighbours(cell_location, nnb)
+        call count_neighbours(loc_p, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(cell_location, j, nb_location)
-          call get_boundary_status(nb_location, is_boundary)
+          call set_neighbour_location(loc_p, j, loc_nb)
+          call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(square_mesh, i, j, face_location)
+            call set_face_location(mesh, i, j, face_location)
             call get_face_area(face_location, A)
-            boundary_coeff = (2.0 / square_mesh%h) * A
+            boundary_coeff = (2.0 / mesh%h) * A
             boundary_val = rhs_val(i, j)
 
             ! Coefficient
@@ -354,16 +354,16 @@ contains
     type(vector_values) :: vec_values
     integer(ccs_int) :: i
 
-    type(cell_locator) :: cell_location
-    integer(ccs_int) :: idxg
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
     
     allocate(vec_values%indices(1))
     allocate(vec_values%values(1))
     vec_values%setter_mode = insert_mode
-    do i = 1, square_mesh%nlocal
-      call set_cell_location(square_mesh, i, cell_location)
-      call get_global_index(cell_location, idxg)
-      call pack_entries(1, idxg, rhs_val(i), vec_values)
+    do i = 1, mesh%nlocal
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call pack_entries(1, global_index_p, rhs_val(i), vec_values)
       call set_values(vec_values, ustar)
     end do
     deallocate(vec_values%indices)
@@ -376,7 +376,7 @@ contains
 
     class(parallel_environment) :: par_env
 
-    square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+    mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
     
   end subroutine initialise_poisson
 
@@ -385,7 +385,7 @@ contains
     integer(ccs_int), intent(in) :: i !< Cell index
     integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
 
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     type(face_locator) :: face_location
     
     real(ccs_real), dimension(ndim) :: x
@@ -393,15 +393,15 @@ contains
 
     if (present(f)) then
       !! Face-centred value
-      call set_face_location(square_mesh, i, f, face_location)
+      call set_face_location(mesh, i, f, face_location)
       call get_centre(face_location, x)
       associate(y => x(2))
         r = y
       end associate
     else
       !! Cell-centred value
-      call set_cell_location(square_mesh, i, cell_location)
-      call get_centre(cell_location, x)
+      call set_cell_location(mesh, i, loc_p)
+      call get_centre(loc_p, x)
       associate(y => x(2))
         r = y
       end associate

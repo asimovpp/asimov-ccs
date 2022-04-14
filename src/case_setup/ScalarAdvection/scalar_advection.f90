@@ -29,10 +29,10 @@ program scalar_advection
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
 
-  type(vector_spec) :: vec_sizes
-  type(matrix_spec) :: mat_sizes
+  type(vector_spec) :: vec_properties
+  type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
   type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
   class(field), allocatable :: mf          ! Prescribed face velocity field
@@ -51,34 +51,34 @@ program scalar_advection
   call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
 
   ! Set up the square mesh
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Init velocities and scalar
   allocate(central_field :: mf)
   allocate(upwind_field :: scalar)
 
   ! Initialise with default values
-  call initialise(mat_sizes)
-  call initialise(vec_sizes)
+  call initialise(vec_properties)
+  call initialise(mat_properties)
   call initialise(scalar_equation_system)
 
   ! Create stiffness matrix
-  call set_size(par_env, square_mesh, mat_sizes)
-  call set_nnz(5, mat_sizes) 
-  call create_matrix(mat_sizes, M)
+  call set_size(par_env, mesh, mat_properties)
+  call set_nnz(5, mat_properties) 
+  call create_matrix(mat_properties, M)
 
   ! Create right-hand-side and solution vectors
-  call set_size(par_env, square_mesh, vec_sizes)
-  call create_vector(vec_sizes, source)
-  call create_vector(vec_sizes, solution)
-  call create_vector(vec_sizes, scalar%values)
-  call create_vector(vec_sizes, mf%values)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, source)
+  call create_vector(vec_properties, solution)
+  call create_vector(vec_properties, scalar%values)
+  call create_vector(vec_properties, mf%values)
 
   ! Set advection velocity
-  call set_advection_velocity(square_mesh, mf)
+  call set_advection_velocity(mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, square_mesh, bcs, cps, M, source)
+  call compute_fluxes(scalar, mf, mesh, bcs, cps, M, source)
 
   call update(M) ! parallel assembly for M
 
@@ -107,34 +107,34 @@ program scalar_advection
 
 contains
 
-  subroutine set_advection_velocity(cell_mesh, mf)
+  subroutine set_advection_velocity(mesh, mf)
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
     use utils, only: pack_entries, set_values
 
-    class(ccs_mesh), intent(in) :: cell_mesh
+    class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: mf
     integer(ccs_int) :: row, col
-    integer(ccs_int) :: local_idx, self_idx
+    integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: mf_val
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: mf_vals
 
     real(ccs_real) :: u, v
 
     mf_vals%setter_mode = add_mode
 
-    associate(n_local => cell_mesh%nlocal)
+    associate(n_local => mesh%nlocal)
       allocate(mf_vals%indices(n_local))
       allocate(mf_vals%values(n_local))
       
       ! Set IC velocity and scalar fields
-      do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
-        call calc_cell_coords(self_idx, cps, row, col)
+      do index_p = 1, n_local
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
+        call calc_cell_coords(global_index_p, cps, row, col)
 
         ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
         u = real(col, ccs_real)/real(cps, ccs_real)
@@ -142,7 +142,7 @@ contains
 
         mf_val = u + v
         
-        call pack_entries(local_idx, self_idx, mf_val, mf_vals)
+        call pack_entries(index_p, global_index_p, mf_val, mf_vals)
       end do
     end associate
     call set_values(mf_vals, mf%values)

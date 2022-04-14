@@ -15,8 +15,8 @@ program test_ghost_cells
 
   implicit none
 
-  type(vector_spec) :: vector_data
-  type(ccs_mesh) :: cell_mesh
+  type(vector_spec) :: vec_properties
+  type(ccs_mesh) :: mesh
   class(ccs_vector), allocatable :: v
   real(ccs_real), dimension(:), pointer :: values
 
@@ -29,21 +29,21 @@ program test_ghost_cells
   proc_id = par_env%proc_id
   num_procs = par_env%num_procs
 
-  cell_mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
 
   ! Specify vector size based on the mesh
-  call initialise(vector_data)
-  call set_size(par_env, cell_mesh, vector_data)
+  call initialise(vec_properties)
+  call set_size(par_env, mesh, vec_properties)
 
   ! Create the vector
-  call create_vector(vector_data, v)
+  call create_vector(vec_properties, v)
 
   ! Retried initial vector values
   call get_vector_data(v, values)
 
   ! Set vector values to global mesh indices
-  do i = 1, cell_mesh%nlocal
-    values(i) = cell_mesh%idx_global(i)
+  do i = 1, mesh%nlocal
+    values(i) = mesh%idx_global(i)
   end do
 
   ! Now update the vector (including ghost cells)
@@ -52,9 +52,9 @@ program test_ghost_cells
   ! Retrieve the new vector values (including ghost cells)
   call get_vector_data(v, values)
 
-  do i = 1, cell_mesh%ntotal
-    if(values(i) /= cell_mesh%idx_global(i)) then
-      write(message, *) 'FAIL: wrong vector value. Expected ', cell_mesh%idx_global(i), ', got ', values(i)
+  do i = 1, mesh%ntotal
+    if(values(i) /= mesh%idx_global(i)) then
+      write(message, *) 'FAIL: wrong vector value. Expected ', mesh%idx_global(i), ', got ', values(i)
       call stop_test(message)
     end if
   end do
