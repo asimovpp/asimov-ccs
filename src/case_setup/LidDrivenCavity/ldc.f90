@@ -36,7 +36,7 @@ program ldc
   type(ccs_mesh)    :: mesh
   type(vector_spec) :: vec_properties
 
-  class(field), allocatable :: u, v, p, pp, mf
+  class(field), allocatable :: u, v, p, p_prime, mf
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
@@ -82,7 +82,7 @@ program ldc
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
   allocate(central_field :: p)
-  allocate(central_field :: pp)
+  allocate(central_field :: p_prime)
   allocate(face_field :: mf)
 
   ! Create and initialise field vectors
@@ -97,20 +97,20 @@ program ldc
   call create_vector(vec_properties, p%x_gradients)
   call create_vector(vec_properties, p%y_gradients)
   call create_vector(vec_properties, p%z_gradients)
-  call create_vector(vec_properties, pp%values)
-  call create_vector(vec_properties, pp%x_gradients)
-  call create_vector(vec_properties, pp%y_gradients)
-  call create_vector(vec_properties, pp%z_gradients)
+  call create_vector(vec_properties, p_prime%values)
+  call create_vector(vec_properties, p_prime%x_gradients)
+  call create_vector(vec_properties, p_prime%y_gradients)
+  call create_vector(vec_properties, p_prime%z_gradients)
   call update(u%values)
   call update(v%values)
   call update(p%values)
   call update(p%x_gradients)
   call update(p%y_gradients)
   call update(p%z_gradients)
-  call update(pp%values)
-  call update(pp%x_gradients)
-  call update(pp%y_gradients)
-  call update(pp%z_gradients)
+  call update(p_prime%values)
+  call update(p_prime%x_gradients)
+  call update(p_prime%y_gradients)
+  call update(p_prime%z_gradients)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -126,7 +126,7 @@ program ldc
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, pp, mf)
+  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
 
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 
@@ -161,7 +161,7 @@ program ldc
   deallocate(u)
   deallocate(v)
   deallocate(p)
-  deallocate(pp)
+  deallocate(p_prime)
 
   call timer(end_time)
 
