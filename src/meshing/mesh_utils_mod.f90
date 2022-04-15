@@ -13,18 +13,19 @@ module mesh_utils
   
   implicit none
 
-  !> @note Named constants for faces of hexahedral cells follow the convention that the lower
-  !!       boundary on a given axis is numbered first, i.e.
-  !!
-  !!           4
-  !!     +----------+
-  !!     |          |
-  !!     |          |
-  !!   1 |          | 2
-  !!     |          |
-  !!     +----------+
-  !!           3
-  !!
+  !^ @note Named constants for faces of hexahedral cells follow the convention that the lower
+  !        boundary on a given axis is numbered first, i.e.
+  ! 
+  !             4
+  !       +----------+
+  !       |          |
+  !       |          |
+  !     1 |          | 2
+  !       |          |
+  !       +----------+
+  !             3
+  !
+  !  @endnote 
   integer, parameter :: left = 1_ccs_int
   integer, parameter :: right = 2_ccs_int
   integer, parameter :: down = 3_ccs_int
@@ -36,34 +37,28 @@ module mesh_utils
   
 contains
 
-  !> @brief Utility constructor to build a square mesh.
+  !v Utility constructor to build a square mesh.
   !
-  !> @description Builds a Cartesian grid of NxN cells on the domain LxL.
-  !
-  !> @param[in] integer(ccs_int)    nps         - Number of cells per side of the mesh.
-  !> @param[in] real(ccs_real)      l           - The length of each side
-  !> @param[in] parallel_environment par_env     - The parallel environment to construct the mesh.
-  !
-  !> @returns   mesh                 mesh - The mesh
+  !  Builds a Cartesian grid of NxN cells on the domain LxL.
   function build_square_mesh(par_env, nps, l) result(mesh)
 
-    class(parallel_environment), intent(in) :: par_env
-    integer(ccs_int), intent(in) :: nps
-    real(ccs_real), intent(in) :: l
+    class(parallel_environment), intent(in) :: par_env !< Number of cells per side of the mesh.
+    integer(ccs_int), intent(in) :: nps                !< The length of each side.
+    real(ccs_real), intent(in) :: l                    !< The parallel environment to construct the mesh.
 
-    type(ccs_mesh) :: mesh
+    type(ccs_mesh) :: mesh !< The resulting mesh.
 
-    integer(ccs_int) :: istart          !< The (global) starting index of a partition
-    integer(ccs_int) :: iend            !< The (global) last index of a partition
-    integer(ccs_int) :: i               !< Loop counter
-    integer(ccs_int) :: ii              !< Zero-indexed loop counter (simplifies some operations)
-    integer(ccs_int) :: ictr            !< Local index counter
-    integer(ccs_int) :: fctr            !< Cell-local face counter
-    integer(ccs_int) :: comm_rank       !< The process ID within the parallel environment
-    integer(ccs_int) :: comm_size       !< The size of the parallel environment
+    integer(ccs_int) :: istart          ! The (global) starting index of a partition
+    integer(ccs_int) :: iend            ! The (global) last index of a partition
+    integer(ccs_int) :: i               ! Loop counter
+    integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
+    integer(ccs_int) :: ictr            ! Local index counter
+    integer(ccs_int) :: fctr            ! Cell-local face counter
+    integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
+    integer(ccs_int) :: comm_size       ! The size of the parallel environment
 
-    integer(ccs_int) :: index_nb        !< The local index of a neighbour cell
-    integer(ccs_int) :: global_index_nb !< The global index of a neighbour cell
+    integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
+    integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
     select type(par_env)
       type is (parallel_environment_mpi)
@@ -173,16 +168,16 @@ contains
         mesh%nhalo = mesh%ntotal - mesh%nlocal
 
         allocate(mesh%xc(ndim, mesh%ntotal))    
-        allocate(mesh%xf(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
+        allocate(mesh%xf(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh! @endnote
         allocate(mesh%vol(mesh%ntotal))
         allocate(mesh%Af(4, mesh%nlocal))    
-        allocate(mesh%nf(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh!
+        allocate(mesh%nf(ndim, 4, mesh%nlocal)) !        Currently hardcoded as a 2D mesh!
 
-        mesh%vol(:) = mesh%h**2 !< @note Mesh is square and 2D
+        mesh%vol(:) = mesh%h**2 !< @note Mesh is square and 2D @endnote
         mesh%nf(:, :, :) = 0.0_ccs_real
         mesh%xc(:, :) = 0.0_ccs_real
         mesh%xf(:, :, :) = 0.0_ccs_real
-        mesh%Af(:, :) = mesh%h  !< @note Mesh is square and 2D
+        mesh%Af(:, :) = mesh%h  !        Mesh is square and 2D
 
         associate(h => mesh%h)
           do i = 1_ccs_int, mesh%ntotal
@@ -238,34 +233,28 @@ contains
     end select    
   end function build_square_mesh
 
-  !> @brief Helper subroutine to add a neighbour to a cell's neighbour list.
+  !v Helper subroutine to add a neighbour to a cell's neighbour list.
   !
-  !> @description Given a local and global index for a neighbour there are 3 possibilities:
-  !!              1) the local and the neighbour is added immediately
-  !!              2) the global index is negative indicating it is a boundary and the "neighbour" is
-  !!                 added immediately
-  !!              3) the index is not local:
-  !!                 a) the global index is already in the off-process list (halos), the neighbour
-  !!                    is added immediately
-  !!                 b) this is a new halo cell, the list of global indices must be grown to
-  !!                    accomodate before adding the neighbour.
-  !
-  !> @param[in]    integer(ccs_int) index_p - the index of the cell whose neighbours we are assembling
-  !> @param[in]    integer(ccs_int) index_p_nb   - the cell-relative neighbour index
-  !> @param[in]    integer(ccs_int) index_nb   - the local index of the neighbour cell
-  !> @param[in]    integer(ccs_int) global_index_nb  - the global index of the neighbour cell
-  !> @param[inout] mesh mesh - the mesh we are assembling neighbours on
+  !  Given a local and global index for a neighbour there are 3 possibilities:
+  !  1) the local and the neighbour is added immediately
+  !  2) the global index is negative indicating it is a boundary and the "neighbour" is
+  !     added immediately
+  !  3) the index is not local:
+  !     a) the global index is already in the off-process list (halos), the neighbour
+  !        is added immediately
+  !     b) this is a new halo cell, the list of global indices must be grown to
+  !        accomodate before adding the neighbour.
   subroutine build_local_mesh_add_neighbour(index_p, index_p_nb, index_nb, global_index_nb, mesh)
 
-    integer(ccs_int), intent(in) :: index_p
-    integer(ccs_int), intent(in) :: index_p_nb
-    integer(ccs_int), intent(in) :: index_nb
-    integer(ccs_int), intent(in) :: global_index_nb
-    type(ccs_mesh), intent(inout) :: mesh
+    integer(ccs_int), intent(in) :: index_p !< the index of the cell whose neighbours we are assembling 
+    integer(ccs_int), intent(in) :: index_p_nb !< the cell-relative neighbour index
+    integer(ccs_int), intent(in) :: index_nb !< the local index of the neighbour cell
+    integer(ccs_int), intent(in) :: global_index_nb !< the global index of the neighbour cell
+    type(ccs_mesh), intent(inout) :: mesh !< the mesh we are assembling neighbours on
 
-    integer(ccs_int) :: ng !< The current number of cells (total = local + halos)
-    logical :: found        !< Indicates whether a halo cell was already present
-    integer(ccs_int) :: i  !< Cell iteration counter
+    integer(ccs_int) :: ng  ! The current number of cells (total = local + halos)
+    logical :: found        ! Indicates whether a halo cell was already present
+    integer(ccs_int) :: i   ! Cell iteration counter
     
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= mesh%nlocal)) then
       ! Neighbour is local
@@ -309,14 +298,14 @@ contains
     
   end subroutine build_local_mesh_add_neighbour
 
+  !v @note Docs needed.
   subroutine append_to_arr(i, arr)
 
     integer(ccs_int), intent(in) :: i
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
-                                                                       !      dragons! If this were
-                                                                       !      intent(out) it would
-                                                                       !      be deallocated on entry!
-
+                                                                      !      dragons! If this were
+                                                                      !      intent(out) it would
+                                                                      !      be deallocated on entry!
     integer(ccs_int) :: n
     integer(ccs_int), dimension(:), allocatable :: tmp
 
@@ -336,17 +325,14 @@ contains
     
   end subroutine append_to_arr
 
-  !> @brief Count the number of faces in the mesh
-  !
-  !> @param[in]  mesh - the mesh
-  !> @param[out] nfaces    - number of cell faces
+  !v Count the number of faces in the mesh
   function count_mesh_faces(mesh) result(nfaces)
 
     ! Arguments
-    type(ccs_mesh), intent(in) :: mesh
+    type(ccs_mesh), intent(in) :: mesh !< the mesh
 
     ! Result
-    integer(ccs_int) :: nfaces
+    integer(ccs_int) :: nfaces !< number of cell faces
 
     ! Local variables
     type(cell_locator) :: loc_p
@@ -354,9 +340,9 @@ contains
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
-    integer(ccs_int) :: nfaces_int       !< Internal face count
-    integer(ccs_int) :: nfaces_bnd       !< Boundary face count
-    integer(ccs_int) :: nfaces_interface !< Process interface face count
+    integer(ccs_int) :: nfaces_int       ! Internal face count
+    integer(ccs_int) :: nfaces_bnd       ! Boundary face count
+    integer(ccs_int) :: nfaces_interface ! Process interface face count
     logical :: is_boundary
     logical :: is_local
 
@@ -397,19 +383,20 @@ contains
 
   end function count_mesh_faces
 
+  !v @note Docs needed.
   subroutine set_cell_face_indices(mesh)
 
     ! Arguments
     type(ccs_mesh), intent(inout) :: mesh
 
     ! Local variables
-    type(cell_locator) :: loc_p          !< Current cell
-    type(neighbour_locator) :: loc_nb       !< Neighbour
+    type(cell_locator) :: loc_p           ! Current cell
+    type(neighbour_locator) :: loc_nb     ! Neighbour
     integer(ccs_int) :: index_nb, index_p
     integer(ccs_int) :: face_idx
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
-    integer(ccs_int) :: icnt                !< Face index counter
+    integer(ccs_int) :: icnt              ! Face index counter
     logical :: is_boundary
 
     icnt = 0
@@ -444,16 +431,12 @@ contains
 
   end subroutine set_cell_face_indices
 
-  !> @brief Computes the index of the face shared by the cells denoted by the specified 
-  !!        local index and neighbouring index
-  !<
-  !> @param[in] mesh      - the mesh
-  !> @param[in] index_p - the current cell index
-  !> @param[in] index_nb  - the index of the neighbouring cell
+  !v Computes the index of the face shared by the cells denoted by the specified 
+  !  local index and neighbouring index
   function get_neighbour_face_index(mesh, index_p, index_nb) result(face_idx)
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: index_p
-    integer(ccs_int), intent(in) :: index_nb
+    type(ccs_mesh), intent(in) :: mesh       !< the mesh
+    integer(ccs_int), intent(in) :: index_p  !< the current cell index
+    integer(ccs_int), intent(in) :: index_nb !< the index of the neighbouring cell
     integer(ccs_int) :: face_idx
 
     ! Local variables
