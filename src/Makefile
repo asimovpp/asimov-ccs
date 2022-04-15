@@ -125,11 +125,11 @@ docs: doxy
 doxy:
 	doxygen .doxygen.cfg
 ford:
-	ford -d $(CCS_DIR)/src --exclude_dir doc .documentation_settings.ford
+	ford .project_documentation_settings.md
 docs-latex: doxy
 	make -C latex
 clean-docs:
-	rm -rf html latex
+	rm -rf doc html latex
 
 #Needed to pass variables to children Makefiles, e.g. for the testing framework
 export

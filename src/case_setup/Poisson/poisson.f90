@@ -4,13 +4,13 @@
 !!          This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
 !!          the code is independent of PETSc.
 !!          The example case solves the equation
-!!          \f[
+!!          \[
 !!            {\nabla^2} p = f
-!!          \f]
+!!          \]
 !!          in the unit square with Dirichlet boundary conditions
-!!          \f[
+!!          \[
 !!            p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
-!!          \f]
+!!          \]
 !
 
 program poisson
