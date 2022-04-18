@@ -9,17 +9,17 @@ contains
   !> @description Creates the association between a face relative to a cell, i.e. to access the
   !!              nth face of cell i.
   !
-  !> @param[in]  mesh         mesh      - the mesh object being referred to.
-  !> @param[in]  ccs_int     index_p      - the index of the cell whose face is being accessed.
-  !> @param[in]  ccs_int     cell_face_ctr - the cell-local index of the face.
-  !> @param[out] face_locator loc_f - the face locator object linking a cell-relative
-  !!                                          index with the mesh.
+  !> @param[in]  mesh         mesh          
+  !> @param[in]  ccs_int     index_p        
+  !> @param[in]  ccs_int     cell_face_ctr  
+  !> @param[out] face_locator loc_f         
+  !!                                        
   module subroutine set_face_location(mesh, index_p, cell_face_ctr, loc_f)
-    type(ccs_mesh), target, intent(in) :: mesh
-    integer(ccs_int), intent(in) :: index_p
-    integer(ccs_int), intent(in) :: cell_face_ctr
-    type(face_locator), intent(out) :: loc_f
-
+    type(ccs_mesh), target, intent(in) :: mesh      !< the mesh object being referred to.
+    integer(ccs_int), intent(in) :: index_p         !< the index of the cell whose face is being accessed.
+    integer(ccs_int), intent(in) :: cell_face_ctr   !< the cell-local index of the face.
+    type(face_locator), intent(out) :: loc_f        !< the face locator object linking a cell-relative
+                                                    !!  index with the mesh.
     loc_f%mesh => mesh
     loc_f%index_p = index_p
     loc_f%cell_face_ctr = cell_face_ctr

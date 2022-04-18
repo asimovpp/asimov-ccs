@@ -40,11 +40,11 @@ contains
   !v Utility constructor to build a square mesh.
   !
   !  Builds a Cartesian grid of NxN cells on the domain LxL.
-  function build_square_mesh(par_env, nps, l) result(mesh)
+  function build_square_mesh(par_env, cps, side_length) result(mesh)
 
-    class(parallel_environment), intent(in) :: par_env !< Number of cells per side of the mesh.
-    integer(ccs_int), intent(in) :: nps                !< The length of each side.
-    real(ccs_real), intent(in) :: l                    !< The parallel environment to construct the mesh.
+    class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
+    integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
+    real(ccs_real), intent(in) :: side_length          !< The length of each side.
 
     type(ccs_mesh) :: mesh !< The resulting mesh.
 
@@ -52,8 +52,8 @@ contains
     integer(ccs_int) :: iend            ! The (global) last index of a partition
     integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
-    integer(ccs_int) :: ictr            ! Local index counter
-    integer(ccs_int) :: fctr            ! Cell-local face counter
+    integer(ccs_int) :: index_counter            ! Local index counter
+    integer(ccs_int) :: face_counter            ! Cell-local face counter
     integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
     integer(ccs_int) :: comm_size       ! The size of the parallel environment
 
@@ -64,8 +64,8 @@ contains
       type is (parallel_environment_mpi)
 
         ! Set the global mesh parameters
-        mesh%nglobal = nps**2            
-        mesh%h = l / real(nps, ccs_real)
+        mesh%nglobal = cps**2            
+        mesh%h = side_length / real(cps, ccs_real)
 
         ! Associate aliases to make code easier to read
         associate(nglobal=>mesh%nglobal, &
@@ -99,10 +99,10 @@ contains
           mesh%nnb(:) = 4_ccs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
 
           ! First set the global index of local cells
-          ictr = 1_ccs_int
+          index_counter = 1_ccs_int
           do i = istart, iend
-            mesh%global_indices(ictr) = i
-            ictr = ictr + 1
+            mesh%global_indices(index_counter) = i
+            index_counter = index_counter + 1
           end do
           
           ! Assemble cells and faces
@@ -112,55 +112,55 @@ contains
           !        -2 = right boundary
           !        -3 = down boundary
           !        -4 = up boundary
-          ictr = 1_ccs_int ! Set local indexing starting from 1...n
+          index_counter = 1_ccs_int ! Set local indexing starting from 1...n
           do i = istart, iend 
             ii = i - 1_ccs_int
 
             ! Construct left (1) face/neighbour
-            fctr = left
-            if (modulo(ii, nps) == 0_ccs_int) then
+            face_counter = left
+            if (modulo(ii, cps) == 0_ccs_int) then
               index_nb = -left
               global_index_nb = -left
             else
-              index_nb = ictr - 1_ccs_int
+              index_nb = index_counter - 1_ccs_int
               global_index_nb = i - 1_ccs_int
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
+            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct right (2) face/neighbour
-            fctr = right
-            if (modulo(ii, nps) == (nps - 1_ccs_int)) then
+            face_counter = right
+            if (modulo(ii, cps) == (cps - 1_ccs_int)) then
               index_nb = -right
               global_index_nb = -right
             else
-              index_nb = ictr + 1_ccs_int
+              index_nb = index_counter + 1_ccs_int
               global_index_nb = i + 1_ccs_int
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
+            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct down (3) face/neighbour
-            fctr = down
-            if ((ii / nps) == 0_ccs_int) then
+            face_counter = down
+            if ((ii / cps) == 0_ccs_int) then
               index_nb = -down
               global_index_nb = -down
             else
-              index_nb = ictr - nps
-              global_index_nb = i - nps
+              index_nb = index_counter - cps
+              global_index_nb = i - cps
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
+            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct up (4) face/neighbour
-            fctr = up
-            if ((ii / nps) == (nps - 1_ccs_int)) then
+            face_counter = up
+            if ((ii / cps) == (cps - 1_ccs_int)) then
               index_nb = -up
               global_index_nb = -up
             else
-              index_nb = ictr + nps
-              global_index_nb = i + nps
+              index_nb = index_counter + cps
+              global_index_nb = i + cps
             end if
-            call build_local_mesh_add_neighbour(ictr, fctr, index_nb, global_index_nb, mesh)
+            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
-            ictr = ictr + 1_ccs_int
+            index_counter = index_counter + 1_ccs_int
           end do
         end associate
 
@@ -185,8 +185,8 @@ contains
 
             associate(x_p => mesh%x_p(:, i))
               ! Set cell centre
-              x_p(1) = (modulo(ii-1, nps) + 0.5_ccs_real) * h
-              x_p(2) = ((ii - 1) / nps + 0.5_ccs_real) * h
+              x_p(1) = (modulo(ii-1, cps) + 0.5_ccs_real) * h
+              x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
             end associate
           end do
 
@@ -195,29 +195,29 @@ contains
                  x_f => mesh%x_f(:, :, i), &
                  normal => mesh%face_normals(:, :, i))
 
-              fctr = left
-              x_f(1, fctr) = x_p(1) - 0.5_ccs_real * h
-              x_f(2, fctr) = x_p(2)
-              normal(1, fctr) = -1.0_ccs_real
-              normal(2, fctr) = 0.0_ccs_real
+              face_counter = left
+              x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
+              x_f(2, face_counter) = x_p(2)
+              normal(1, face_counter) = -1.0_ccs_real
+              normal(2, face_counter) = 0.0_ccs_real
 
-              fctr = right
-              x_f(1, fctr) = x_p(1) + 0.5_ccs_real * h
-              x_f(2, fctr) = x_p(2)
-              normal(1, fctr) = 1.0_ccs_real
-              normal(2, fctr) = 0.0_ccs_real
+              face_counter = right
+              x_f(1, face_counter) = x_p(1) + 0.5_ccs_real * h
+              x_f(2, face_counter) = x_p(2)
+              normal(1, face_counter) = 1.0_ccs_real
+              normal(2, face_counter) = 0.0_ccs_real
               
-              fctr = down
-              x_f(1, fctr) = x_p(1)
-              x_f(2, fctr) = x_p(2) - 0.5_ccs_real * h
-              normal(1, fctr) = 0.0_ccs_real
-              normal(2, fctr) = -1.0_ccs_real
+              face_counter = down
+              x_f(1, face_counter) = x_p(1)
+              x_f(2, face_counter) = x_p(2) - 0.5_ccs_real * h
+              normal(1, face_counter) = 0.0_ccs_real
+              normal(2, face_counter) = -1.0_ccs_real
 
-              fctr = up
-              x_f(1, fctr) = x_p(1)
-              x_f(2, fctr) = x_p(2) + 0.5_ccs_real * h
-              normal(1, fctr) = 0.0_ccs_real
-              normal(2, fctr) = 1.0_ccs_real
+              face_counter = up
+              x_f(1, face_counter) = x_p(1)
+              x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
+              normal(1, face_counter) = 0.0_ccs_real
+              normal(2, face_counter) = 1.0_ccs_real
             end associate
           end do
         end associate
@@ -396,10 +396,10 @@ contains
     integer(ccs_int) :: index_f
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
-    integer(ccs_int) :: icnt              ! Face index counter
+    integer(ccs_int) :: face_counter              ! Face index counter
     logical :: is_boundary
 
-    icnt = 0
+    face_counter = 0
 
     ! Loop over cells
     do index_p = 1, mesh%nlocal
@@ -414,8 +414,8 @@ contains
         if (.not. is_boundary) then
           ! Cell with lowest local index assigns an index to the face
           if (index_p < index_nb) then
-            icnt = icnt + 1
-            call set_face_index(index_p, j, icnt, mesh)
+            face_counter = face_counter + 1
+            call set_face_index(index_p, j, face_counter, mesh)
           else
             ! Find corresponding face in neighbour cell
             ! (To be improved, this seems inefficient!)
@@ -423,8 +423,8 @@ contains
             call set_face_index(index_p, j, index_f, mesh)
           endif
         else
-          icnt = icnt + 1
-          call set_face_index(index_p, j, icnt, mesh)
+          face_counter = face_counter + 1
+          call set_face_index(index_p, j, face_counter, mesh)
         endif
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells
@@ -433,7 +433,7 @@ contains
 
   !v Computes the index of the face shared by the cells denoted by the specified 
   !  local index and neighbouring index
-  function get_neighbour_face_index(mesh, index_p, index_nb) result(face_idx)
+  function get_neighbour_face_index(mesh, index_p, index_nb) result(index_f)
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
     integer(ccs_int), intent(in) :: index_p  !< the current cell index
     integer(ccs_int), intent(in) :: index_nb !< the index of the neighbouring cell

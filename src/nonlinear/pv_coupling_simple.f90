@@ -236,24 +236,20 @@ contains
     
   end subroutine calculate_velocity_component
   
-  !> @brief Adds the momentum source due to pressure gradient
-  !
-  !> @param[in]    mesh - the mesh
-  !> @param[in]    pgrad     - the pressure gradient
-  !> @param[inout] vec       - the momentum equation RHS vector
-  subroutine calculate_momentum_pressure_source(mesh, pgrad, vec)
+  !v Adds the momentum source due to pressure gradient
+  subroutine calculate_momentum_pressure_source(mesh, p_gradients, vec)
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), intent(in) :: pgrad
-    class(ccs_vector), intent(inout) :: vec
+    class(ccs_mesh), intent(in) :: mesh           !< the mesh
+    class(ccs_vector), intent(in) :: p_gradients  !< the pressure gradient
+    class(ccs_vector), intent(inout) :: vec       !< the momentum equation RHS vector
 
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p, index_p
     real(ccs_real) :: r
-    real(ccs_real), dimension(:), pointer :: pgrad_data
+    real(ccs_real), dimension(:), pointer :: p_gradient_data
 
     real(ccs_real) :: V
     
@@ -263,7 +259,7 @@ contains
     vec_values%setter_mode = add_mode
 
     ! Temporary storage for p values
-    call get_vector_data(pgrad, pgrad_data)
+    call get_vector_data(p_gradients, p_gradient_data)
     
     ! Loop over cells
     do index_p = 1, mesh%nlocal
@@ -272,7 +268,7 @@ contains
 
       call get_volume(loc_p, V)
       
-      r = -pgrad_data(index_p) * V
+      r = -p_gradient_data(index_p) * V
       call pack_entries(1, global_index_p, r, vec_values)
       call set_values(vec_values, vec)
 
@@ -281,31 +277,23 @@ contains
     deallocate(vec_values%indices)
     deallocate(vec_values%values)
 
-    call restore_vector_data(pgrad, pgrad_data)
+    call restore_vector_data(p_gradients, p_gradient_data)
     
   end subroutine calculate_momentum_pressure_source
 
   !> @brief Solves the pressure correction equation
   !
-  !> @param[in]    par_env      - the parallel environment
-  !> @param[in]    mesh    - the mesh
-  !> @param[in]    invAu, invAv - inverse diagonal momentum coefficients
-  !> @param[inout] M            - matrix object
-  !> @param[inout] vec          - the RHS vector
-  !> @param[inout] lin_sys      - linear system object
-  !> @param[inout] p_prime           - the pressure correction field
-  !
   !> @description Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, M, vec, lin_sys, p_prime)
 
     ! Arguments
-    class(parallel_environment), allocatable, intent(in) :: par_env
-    class(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), intent(in) :: invAu, invAv
-    class(ccs_matrix), allocatable, intent(inout)  :: M
-    class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(equation_system), intent(inout) :: lin_sys
-    class(field), intent(inout) :: p_prime
+    class(parallel_environment), allocatable, intent(in) :: par_env  !< the parallel environment
+    class(ccs_mesh), intent(in) :: mesh                              !< the mesh
+    class(ccs_vector), intent(in) :: invAu, invAv                    !< inverse diagonal momentum coefficients
+    class(ccs_matrix), allocatable, intent(inout)  :: M              !< matrix object
+    class(ccs_vector), allocatable, intent(inout)  :: vec            !< the RHS vector
+    type(equation_system), intent(inout) :: lin_sys                  !< linear system object
+    class(field), intent(inout) :: p_prime                           !< the pressure correction field
 
     ! Local variables
     type(matrix_values) :: mat_coeffs
@@ -464,13 +452,13 @@ contains
   subroutine compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, b)
 
     class(parallel_environment), intent(in) :: par_env
-    type(ccs_mesh), intent(in) :: mesh !< The mesh object
+    type(ccs_mesh), intent(in) :: mesh      !< The mesh object
     class(ccs_vector), intent(in) :: invAu  !< The inverse x momentum equation diagonal coefficient
     class(ccs_vector), intent(in) :: invAv  !< The inverse y momentum equation diagonal coefficient
-    class(field), intent(inout) :: u       !< The x velocity component
-    class(field), intent(inout) :: v       !< The y velocity component
-    class(field), intent(inout) :: p       !< The pressure field
-    class(field), intent(inout) :: mf   !< The face velocity flux
+    class(field), intent(inout) :: u        !< The x velocity component
+    class(field), intent(inout) :: v        !< The y velocity component
+    class(field), intent(inout) :: p        !< The pressure field
+    class(field), intent(inout) :: mf       !< The face velocity flux
     class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
 
     type(vector_values) :: vec_values
@@ -590,8 +578,8 @@ contains
     use case_config, only: pressure_relax
 
     ! Arguments
-    class(field), intent(in) :: p_prime
-    class(field), intent(inout) :: p
+    class(field), intent(in) :: p_prime   !< pressure correction
+    class(field), intent(inout) :: p      !< the pressure field being corrected
 
     call axpy(pressure_relax, p_prime%values, p%values)
     
@@ -603,10 +591,10 @@ contains
     use vec, only : zero_vector
     
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), intent(in) :: invAu, invAv
-    class(field), intent(inout) :: p_prime
-    class(field), intent(inout) :: u, v
+    class(ccs_mesh), intent(in) :: mesh             !< The mesh
+    class(ccs_vector), intent(in) :: invAu, invAv   !< The inverse x, y momentum equation diagonal coefficients
+    class(field), intent(inout) :: p_prime          !< The pressure correction
+    class(field), intent(inout) :: u, v             !< The x, y velocities being corrected
 
     ! First update gradients
     call zero_vector(p_prime%x_gradients)
@@ -629,11 +617,10 @@ contains
   !> @brief Corrects the face velocity flux using the pressure correction
   subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
 
-    type(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), intent(in) :: invAu
-    class(ccs_vector), intent(in) :: invAv
-    class(field), intent(inout) :: p_prime
-    class(field), intent(inout) :: mf
+    type(ccs_mesh), intent(in) :: mesh              !< The mesh
+    class(ccs_vector), intent(in) :: invAu, invAv   !< The inverse x, y momentum equation diagonal coefficients
+    class(field), intent(inout) :: p_prime          !< The pressure correction
+    class(field), intent(inout) :: mf               !< The face velocity being corrected
     
     integer(ccs_int) :: i
 
