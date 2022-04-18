@@ -19,7 +19,7 @@ module petsctypes
   !> @brief Implements the vector class backed by a PETSc vector
   type, public, extends(ccs_vector) :: vector_petsc
     type(tVec) :: v      !< The PETSc vector
-    type(tVec) :: vl     !< The "local" PETSc vector (inc. ghost points)
+    type(tVec) :: v_local     !< The "local" PETSc vector (inc. ghost points)
     logical :: allocated !< Indicates whether the PETSc vector has been allocated
     logical :: ghosted   !< Does this vector have ghost points?
     integer(ccs_int) :: mode !< Current mode for setting values
