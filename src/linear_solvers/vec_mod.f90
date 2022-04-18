@@ -30,7 +30,6 @@ module vec
   public :: zero_vector
   public :: mult_vec_vec
   public :: scale_vec
-  ! public :: vec_view
   
   interface
      
@@ -191,11 +190,6 @@ module vec
       real(ccs_real), intent(in) :: alpha
       class(ccs_vector), intent(inout) :: v
     end subroutine scale_vec
-    
-    ! module subroutine vec_view(vec_properties, vec)
-    !   type(vector_spec), intent(in) :: vec_properties
-    !   class(ccs_vector), intent(in) :: vec
-    ! end subroutine vec_view
 
   end interface
   
