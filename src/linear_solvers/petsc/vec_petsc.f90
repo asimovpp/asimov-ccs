@@ -16,17 +16,14 @@ submodule (vec) vec_petsc
 contains
 
   !> @brief Create a PETSc-backed vector
-  !
-  !> @param[in]  vector_spec vec_properties - the data describing how the vector should be created.
-  !> @param[out] vector v - the vector specialised to type vector_petsc.
   module subroutine create_vector(vec_properties, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                          VecCreate
     
-    type(vector_spec), intent(in) :: vec_properties
-    class(ccs_vector), allocatable, intent(out) :: v
+    type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
+    class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
 
     integer(ccs_err) :: ierr !< Error code
 
@@ -79,19 +76,15 @@ contains
   end subroutine
 
   !> @brief Sets values in a PETSc vector
-  !
-  !> @param[in] val_dat - contains the values, their indices and the mode to use for setting
-  !!                      them.
-  !> @param[in,out] v   - the PETSc vector.
   module subroutine set_vector_values(val_dat, v)
 
     use petsc, only : VecSetValues
 
     use constants, only : insert_mode, add_mode
     
-    class(*), intent(in) :: val_dat
-    class(ccs_vector), intent(inout) :: v
-
+    class(*), intent(in) :: val_dat         !< contains the values, their indices and the mode to use for setting them.
+    class(ccs_vector), intent(inout) :: v   !< the PETSc vector.  
+                                            
     integer(ccs_int) :: n    !< Number of elements to add
     integer(ccs_int) :: mode !< Append or insert mode
     integer(ccs_err) :: ierr !< Error code
@@ -140,11 +133,9 @@ contains
   end subroutine
 
   !> @brief Perform a parallel update of a PETSc vector
-  !
-  !> @param[in,out] v - the PETSc vector
   module subroutine update_vector(v)
 
-    class(ccs_vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
     select type(v)
       type is (vector_petsc)
@@ -166,13 +157,11 @@ contains
   !> @brief Begin a parallel update of a PETSc vector
   !
   !> @details Begins the parallel update to allow overlapping comms and compute
-  !
-  !> @param[in,out] v - the PETSc vector
   module subroutine begin_update_vector(v)
 
     use petsc, only : VecAssemblyBegin
     
-    class(ccs_vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
     integer(ccs_err) :: ierr !< Error code
     
@@ -192,13 +181,11 @@ contains
   !> @brief End a parallel update of a PETSc vector.
   !
   !> @details Ends the parallel update to allow overlapping comms and compute.
-  !
-  !> @param[in,out] v - the PETSc vector
   module subroutine end_update_vector(v)
 
     use petsc, only : VecAssemblyEnd
     
-    class(ccs_vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
     integer(ccs_err) :: ierr !< Error code
     
@@ -220,13 +207,11 @@ contains
   !> @brief Begin a ghost update of a PETSc vector
   !
   !> @details Begins the ghost update to allow overlapping comms and compute
-  !
-  !> @param[in,out] v - the PETSc vector
   subroutine begin_ghost_update_vector(v)
 
     use petsc, only : VecGhostUpdateBegin
     
-    class(ccs_vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
     integer(ccs_err) :: ierr !< Error code
     
@@ -249,13 +234,11 @@ contains
   !> @brief End a ghost update of a PETSc vector.
   !
   !> @details Ends the ghost update to allow overlapping comms and compute.
-  !
-  !> @param[in,out] v - the PETSc vector
   subroutine end_ghost_update_vector(v)
 
     use petsc, only : VecGhostUpdateEnd
     
-    class(ccs_vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
     integer(ccs_err) :: ierr !< Error code
     
@@ -290,17 +273,13 @@ contains
   !
   !> @details Performs the AXPY operation
   !!          y[i] = alpha * x[i] + y[i]
-  !
-  !> @param[in]     alpha - a scalar value
-  !> @param[in]     x     - a PETSc input vector
-  !> @param[in,out] y     - PETSc vector serving as input, overwritten with result
   module subroutine vec_axpy(alpha, x, y)
 
     use petscvec, only : VecAXPY
     
-    real(ccs_real), intent(in) :: alpha
-    class(ccs_vector), intent(in) :: x
-    class(ccs_vector), intent(inout) :: y
+    real(ccs_real), intent(in) :: alpha     !< a scalar value
+    class(ccs_vector), intent(in) :: x      !< a PETSc input vector
+    class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
 
     integer(ccs_err) :: ierr !< Error code
     
@@ -328,18 +307,12 @@ contains
   end subroutine
 
   !> @brief Compute the norm of a PETSc vector
-  !
-  !> @param[in]  v         - the PETSc vector
-  !> @param[in]  norm_type - which norm to compute? Currently supported is the 2 norm:
-  !!                         norm_type=2.
-  !> @param[out] n         - the computed norm returned as the result of the function
-  !!                         call.
   module function vec_norm(v, norm_type) result(n)
 
     use petscvec, only : NORM_2, VecNorm
     
-    class(ccs_vector), intent(in) :: v
-    integer(ccs_int), intent(in) :: norm_type
+    class(ccs_vector), intent(in) :: v          !< the PETSc vector
+    integer(ccs_int), intent(in) :: norm_type   !< which norm to compute? Currently supported is the 2 norm: norm_type=2.
 
     real(ccs_real) :: n      !< The computed norm 
     integer(ccs_err) :: ierr !< Error code

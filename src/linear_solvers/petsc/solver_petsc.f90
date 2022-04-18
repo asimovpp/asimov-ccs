@@ -14,16 +14,13 @@ submodule (solver) solver_petsc
 contains
 
   !> @brief Create a new PETSc solver object.
-  !
-  !> @param[in]  equation_system linear_system   - Data structure containing equation system to be solved.
-  !> @param[out] linear_solver solver - The linear solver returned allocated.
   module subroutine create_solver(linear_system, solver)
 
     use petsc, only : PETSC_TRUE
     use petscksp, only : KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
 
-    type(equation_system), intent(in) :: linear_system
-    class(linear_solver), allocatable, intent(out) :: solver
+    type(equation_system), intent(in) :: linear_system        !< Data structure containing equation system to be solved.
+    class(linear_solver), allocatable, intent(out) :: solver  !< The linear solver returned allocated.
 
     integer(ccs_err) :: ierr !< Error code
     
@@ -77,13 +74,11 @@ contains
   end subroutine
 
   !> @brief Solve the linear system in a PETSc solver.
-  !
-  !> @param[in/out] linear_solver solver - The linear solver object.
   module subroutine solve(solver)
 
     use petscksp, only : KSPSolve
     
-    class(linear_solver), intent(inout) :: solver
+    class(linear_solver), intent(inout) :: solver   !< The linear solver object.
 
     integer(ccs_err) :: ierr !< Error code
     
