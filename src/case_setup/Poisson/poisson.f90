@@ -40,7 +40,7 @@ program poisson
 
   class(parallel_environment), allocatable, target :: par_env
   class(ccs_vector), allocatable, target :: u, b
-  class(ccs_vector), allocatable :: ustar
+  class(ccs_vector), allocatable :: u_exact
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
@@ -81,7 +81,7 @@ program poisson
   !! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, b)
-  call create_vector(vec_properties, ustar)
+  call create_vector(vec_properties, u_exact)
   call create_vector(vec_properties, u)
 
   call begin_update(u) ! Start the parallel assembly for u
@@ -107,8 +107,8 @@ program poisson
   call solve(poisson_solver)
 
   !! Check solution
-  call set_exact_sol(ustar)
-  call axpy(-1.0_ccs_real, ustar, u)
+  call set_exact_sol(u_exact)
+  call axpy(-1.0_ccs_real, u_exact, u)
 
   err_norm = norm(u, 2) * mesh%h
   if (par_env%proc_id == par_env%root) then
@@ -118,7 +118,7 @@ program poisson
   !! Clean up
   deallocate(u)
   deallocate(b)
-  deallocate(ustar)
+  deallocate(u_exact)
   deallocate(M)
   deallocate(poisson_solver)
 
@@ -347,9 +347,9 @@ contains
   
   end subroutine apply_dirichlet_bcs
 
-  subroutine set_exact_sol(ustar)
+  subroutine set_exact_sol(u_exact)
 
-    class(ccs_vector), intent(inout) :: ustar
+    class(ccs_vector), intent(inout) :: u_exact
 
     type(vector_values) :: vec_values
     integer(ccs_int) :: i
@@ -364,12 +364,12 @@ contains
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call pack_entries(1, global_index_p, rhs_val(i), vec_values)
-      call set_values(vec_values, ustar)
+      call set_values(vec_values, u_exact)
     end do
     deallocate(vec_values%indices)
     deallocate(vec_values%values)
 
-    call update(ustar)
+    call update(u_exact)
   end subroutine set_exact_sol
 
   subroutine initialise_poisson(par_env)
