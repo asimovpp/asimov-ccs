@@ -19,15 +19,10 @@ submodule (io) io_setup_adios2
   !
   !> @todo The "mode" is currently hard coded - would be better if this
   !        was a configuration file option?
-  !
-  !> param[in]  par_env     : parallel environment that IO environment
-  !!                          will reside on
-  !> param[in]  config_file : name of the ADIOS2 IO configuration file
-  !> param[out] io_env      : ADIOS2 IO environment
   module subroutine initialise_io(par_env, config_file, io_env)
-    class(parallel_environment), intent(in) :: par_env
-    character (len=*), optional, intent(in) :: config_file
-    class(io_environment), allocatable, intent(out) :: io_env
+    class(parallel_environment), intent(in) :: par_env        !< parallel environment that IO environment will reside on
+    character (len=*), optional, intent(in) :: config_file    !< name of the ADIOS2 IO configuration file
+    class(io_environment), allocatable, intent(out) :: io_env !< ADIOS2 IO environment
 
     integer(ccs_int) :: ierr
 
@@ -58,10 +53,8 @@ submodule (io) io_setup_adios2
   end subroutine
 
   !> @brief Clean up the IO environment
-  !
-  !> param[inout] io_env : ADIOS2 IO environment
   module subroutine cleanup_io(io_env)
-    class(io_environment), intent(inout) :: io_env
+    class(io_environment), intent(inout) :: io_env  !< ADIOS2 IO environment
 
     integer(ccs_int) :: ierr
 
@@ -79,16 +72,11 @@ submodule (io) io_setup_adios2
   end subroutine
   
   !> @brief Configure the IO process
-  !
-  !> param[in]  io_env       : ADIOS2 IO environment
-  !> param[in]  process_name : name of the IO process to be configured - 
-  !!                           must match a name defined in the ADIOS2 
-  !!                           configuration XML file
-  !> param[out] io_proc      : the configured ADIOS2 IO process
   module subroutine configure_io(io_env, process_name, io_proc)
-    class(io_environment), intent(in) :: io_env
-    character (len=*), intent(in) :: process_name
-    class(io_process), allocatable, intent(out) :: io_proc
+    class(io_environment), intent(in) :: io_env             !< ADIOS2 IO environment
+    character (len=*), intent(in) :: process_name           !< name of the IO process to be configured - must match a name 
+                                                            !! defined in the ADIOS2 configuration XML file
+    class(io_process), allocatable, intent(out) :: io_proc  !< the configured ADIOS2 IO process
 
     integer(ccs_int) :: ierr
 
@@ -116,15 +104,10 @@ submodule (io) io_setup_adios2
   end subroutine
 
   !> @brief Open file with ADIOS2
-  !
-  !> param[in] filename    : name of file to open
-  !> param[in] mode        : choose whether to read/ write or append
-  !!                         valid options are: "read", "write", "append"
-  !> param[inout] io_proc : object that includes ADIOS2 handler information
   module subroutine open_file(filename, mode, io_proc)
-    character (len=*), intent(in) :: filename
-    character (len=*), intent(in) :: mode
-    class(io_process), intent(inout) :: io_proc
+    character (len=*), intent(in) :: filename     !< name of file to open
+    character (len=*), intent(in) :: mode         !< choose whether to read/ write or append valid options are: "read", "write", "append"
+    class(io_process), intent(inout) :: io_proc   !< object that includes ADIOS2 handler information
 
     integer(ccs_int) :: ierr
 
@@ -141,10 +124,8 @@ submodule (io) io_setup_adios2
   end subroutine
 
   !> @brief Close file/engine with ADIOS2
-  !
-  !> param[inout] io_proc : ADIOS2 IO process
   module subroutine close_file(io_proc)
-    class(io_process), intent(inout) :: io_proc
+    class(io_process), intent(inout) :: io_proc   !< ADIOS2 IO process
 
     integer(ccs_int) :: ierr
 
