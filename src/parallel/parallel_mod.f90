@@ -1,6 +1,6 @@
 !>  Module file parallel.mod
 !
-!> @details Module that defines the parallel interace for ASiMoV-CCS
+!> Module that defines the parallel interace for ASiMoV-CCS
 
 module parallel
 

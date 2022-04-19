@@ -1,6 +1,6 @@
 !>  Module file io_mod.f90
 !
-!> @details Provides an interface to IO functions.
+!>  Provides an interface to IO functions.
 module io
 
   use iso_fortran_env, only: int32, int64, real32, real64

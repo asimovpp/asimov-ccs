@@ -1,6 +1,6 @@
 !>  Module file read_config.mod
-!>
-!> @details Module defining interface to read YAML config file
+!
+!>  Module defining interface to read YAML config file
 
 module read_config
 
@@ -31,35 +31,26 @@ module read_config
 
     !>  Get the name of the test case
     !
-    !> @details Get the case name for the configuration file and 
-    !! store it in a string.
-    !
-    !> @param[in] config_file - the entry point to the config file    
-    !> @param[in,out] title - the case name string    
+    !v  Get the case name for the configuration file and 
+    !   store it in a string.
     module subroutine get_case_name(config_file, title)
-      class(*), pointer, intent(in) :: config_file
-      character(len=:), allocatable, intent(inout) :: title
+      class(*), pointer, intent(in) :: config_file            !< the entry point to the config file    
+      character(len=:), allocatable, intent(inout) :: title   !< the case name string    
     end subroutine
       
     !>  Get the number of steps
     !
-    !> @details Get the maximum number of iterations 
-    !! to be preformed in the current run 
-    !
-    !> @param[in] config_file - the entry point to the config file    
-    !> @param[in,out] steps - the maximum number of iterations    
+    !v  Get the maximum number of iterations 
+    !   to be preformed in the current run 
     module  subroutine get_steps(config_file, steps)
-      class(*), pointer, intent(in) :: config_file
-      integer, intent(inout) :: steps
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+      integer, intent(inout) :: steps               !< the maximum number of iterations    
     end subroutine
       
     !>  Get source of initial values
     !
-    !> @details Get the source of the initial values - accepted
-    !! values are "user", "field" or "step" 
-    !
-    !> @param[in] config_file - the entry point to the config file    
-    !> @param[in,out] init - the source of the initial values    
+    !v  Get the source of the initial values - accepted
+    !   values are "user", "field" or "step" 
     module  subroutine get_init(config_file, init, u_init, v_init, w_init, te_init, ed_init)
       class(*), pointer, intent(in) :: config_file
       character(len=:), allocatable, intent(inout) :: init
@@ -73,8 +64,7 @@ module read_config
 
     !>  Get reference numbers
     !
-    !> @details Get the reference numbers, the fluid properties 
-    !! and the operating condition 
+    !>  Get the reference numbers, the fluid properties and the operating condition 
     !
     !> @param[in] config_file - the entry point to the config file    
     !> @param[in,out] p_ref - reference pressure 
@@ -100,50 +90,42 @@ module read_config
 
     !>  Get variables to be solved
     !
-    !> @details By default, all variables will be solved. Using this 
-    !! "solve" keyword, the user can specifically request that 
-    !! certain variables will not be solved by setting in to "off"
-    !
-    !> @param[in] config_file - the entry point to the config file    
-    !> @param[in,out] u_sol - solve u on/off
-    !> @param[in,out] v_sol - solve v on/off
-    !> @param[in,out] w_sol - solve w on/off
-    !> @param[in,out] p_sol - solve p on/off
-    !
-    !> @todo extend list of variables 
+    !v  By default, all variables will be solved. Using this 
+    ! "solve" keyword, the user can specifically request that 
+    ! certain variables will not be solved by setting in to "off"
     module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
-      class(*), pointer, intent(in) :: config_file
-      character(len=:), allocatable, optional, intent(inout) :: u_sol
-      character(len=:), allocatable, optional, intent(inout) :: v_sol
-      character(len=:), allocatable, optional, intent(inout) :: w_sol
-      character(len=:), allocatable, optional, intent(inout) :: p_sol
+      class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file    
+      character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
+      character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
+      character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
+      character(len=:), allocatable, optional, intent(inout) :: p_sol   !< solve p on/off
     end subroutine
 
     !>  Get solvers to be used
     !
-    !> @details Get the solvers that are to be used for each of
-    !! the variables. Solver types are defined by integer values
+    !v  Get the solvers that are to be used for each of
+    ! the variables. Solver types are defined by integer values
     !
-    !> @param[in] config_file - the entry point to the config file    
-    !> @param[in,out] u_solver - solver to be used for u
-    !> @param[in,out] v_solver - solver to be used for v
-    !> @param[in,out] w_solver - solver to be used for w
-    !> @param[in,out] p_solver - solver to be used for p
+    !> @param[in] config_file  
+    !> @param[in,out] u_solver 
+    !> @param[in,out] v_solver 
+    !> @param[in,out] w_solver 
+    !> @param[in,out] p_solver 
     !
     !> @todo extend list of variables   
     module subroutine get_solver(config_file, u_solver, v_solver, w_solver, p_solver, te_solver, ed_solver)
-      class(*), pointer, intent(in) :: config_file
-      integer, optional, intent(inout) :: u_solver
-      integer, optional, intent(inout) :: v_solver
-      integer, optional, intent(inout) :: w_solver
-      integer, optional, intent(inout) :: p_solver
-      integer, optional, intent(inout) :: te_solver
-      integer, optional, intent(inout) :: ed_solver
+      class(*), pointer, intent(in) :: config_file    !< the entry point to the config file    
+      integer, optional, intent(inout) :: u_solver    !< solver to be used for u
+      integer, optional, intent(inout) :: v_solver    !< solver to be used for v
+      integer, optional, intent(inout) :: w_solver    !< solver to be used for w
+      integer, optional, intent(inout) :: p_solver    !< solver to be used for p
+      integer, optional, intent(inout) :: te_solver   !< solver to be used for te
+      integer, optional, intent(inout) :: ed_solver   !< solver to be used for ed
     end subroutine
 
     !>  Get transient status
     !
-    !> @details Enables/disables unsteady solution algorithm
+    !>  Enables/disables unsteady solution algorithm
     !
     !> @param[in] config_file - the entry point to the config file   
     !> @param[in,out] transient_type - "euler" (first order) or "quad" (second order)
@@ -160,53 +142,43 @@ module read_config
 
     !>  Get target residual
     !
-    !> @details Get the convergence criterion. 
-    !! The calculation will stop when the residuals (L2-norm) of the 
-    !! governing equations are less than the target residual.
-    !
-    !> @param[in] config_file - the entry point to the config file   
-    !> @param[in,out] residual - convergence criterion
+    !v Get the convergence criterion. 
+    !  The calculation will stop when the residuals (L2-norm) of the 
+    !  governing equations are less than the target residual.
     module  subroutine get_target_residual(config_file, residual)
-      class(*), pointer, intent(in) :: config_file
-      real(ccs_real), intent(inout) :: residual
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+      real(ccs_real), intent(inout) :: residual     !< convergence criterion
     end subroutine
 
     !>  Get grid cell to monitor
     !
-    !> @details Get the grid cell at which to monitor the values
-    !! of the flow variables (U,V,W,P,TE,ED and T)
+    !v Get the grid cell at which to monitor the values
+    !  of the flow variables (U,V,W,P,TE,ED and T)
     !
-    !> @param[in] config_file - the entry point to the config file   
-    !> @param[in,out] monitor_cell - grid cell ID
+    !> @param[in] config_file      
+    !> @param[in,out] monitor_cell 
     module  subroutine get_monitor_cell(config_file, monitor_cell)
-      class(*), pointer, intent(in) :: config_file
-      integer, intent(inout) :: monitor_cell
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+      integer, intent(inout) :: monitor_cell        !< grid cell ID
     end subroutine
 
     !>  Get convection schemes 
     !
-    !> @details Get convection schemes to be used for the 
-    !! different variables. The convection schemes are defined
-    !! by integer values.
-    !
-    !> @param[in] config_file - the entry point to the config file   
-    !> @param[in,out] u_conv - convection scheme for u
-    !> @param[in,out] v_conv - convection scheme for v
-    !> @param[in,out] w_conv - convection scheme for w
-    !> @param[in,out] te_conv - convection scheme for te
-    !> @param[in,out] ed_conv - convection scheme for ed
+    !v  Get convection schemes to be used for the 
+    !   different variables. The convection schemes are defined
+    !   by integer values.
     module  subroutine get_convection_scheme(config_file, u_conv, v_conv, w_conv, te_conv, ed_conv)
-      class(*), pointer, intent(in) :: config_file
-      integer, optional, intent(inout) :: u_conv
-      integer, optional, intent(inout) :: v_conv
-      integer, optional, intent(inout) :: w_conv
-      integer, optional, intent(inout) :: te_conv
-      integer, optional, intent(inout) :: ed_conv
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+      integer, optional, intent(inout) :: u_conv    !< convection scheme for u
+      integer, optional, intent(inout) :: v_conv    !< convection scheme for v
+      integer, optional, intent(inout) :: w_conv    !< convection scheme for w
+      integer, optional, intent(inout) :: te_conv   !< convection scheme for te
+      integer, optional, intent(inout) :: ed_conv   !< convection scheme for ed
     end subroutine
 
     !>  Get blending factor values 
     !
-    !> @details Get blending factors
+    !>  Get blending factors
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[in,out] u_blend - blending factor for u
@@ -225,7 +197,7 @@ module read_config
 
     !>  Get relaxation factor values 
     !
-    !> @details Get relaxation factors
+    !> Get relaxation factors
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[in,out] u_relax - relaxation factor for u
@@ -244,8 +216,7 @@ module read_config
 
     !>  Get output frequency 
     !
-    !> @details Get output frequency, set with keywords "every"
-    !! "iter" or both.
+    !>  Get output frequency, set with keywords "every", "iter", or both.
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[inout] output_freq - the frequency of writing output files

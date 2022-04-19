@@ -1,6 +1,6 @@
 !>  Module file mat_mod.f90
 !
-!> @details Provides the interface to matrix objects.
+!>  Provides the interface to matrix objects.
 module mat
 
   use kinds, only : ccs_int, ccs_real
@@ -54,7 +54,7 @@ module mat
      !
      !> @param[in/out] M - the matrix
      !
-     !> @details Begins the parallel update to allow overlapping comms and compute.
+     !> Begins the parallel update to allow overlapping comms and compute.
      module subroutine begin_update_matrix(M)
        class(ccs_matrix), intent(inout) :: M
      end subroutine
@@ -63,7 +63,7 @@ module mat
      !
      !> @param[in/out] M - the matrix
      !
-     !> @details Ends the parallel update to allow overlapping comms and compute.
+     !>  Ends the parallel update to allow overlapping comms and compute.
      module subroutine end_update_matrix(M)
        class(ccs_matrix), intent(inout) :: M
      end subroutine
@@ -78,8 +78,8 @@ module mat
      !> @param[in]     col        - matrix column index
      !> @param[in]     coeff      - matrix coefficient
      !
-     !> @details Stores a matrix coefficient and associated row and column indices for later
-     !!          setting, ensuring they are set appropriately for the backend.
+     !v  Stores a matrix coefficient and associated row and column indices for later
+     !   setting, ensuring they are set appropriately for the backend.
      module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
        integer(ccs_int), intent(in) :: row_entry
        integer(ccs_int), intent(in) :: col_entry
@@ -91,8 +91,8 @@ module mat
 
     !>  Interface to perform the AXPY matrix operation.
     !
-    !> @details Performs the AXPY operation
-    !!          y[i] = a * x[i] + y[i]
+    !>  Performs the AXPY operation
+    !>          y[i] = a * x[i] + y[i]
     !
     !> @param[in]     alpha - a scalar value
     !> @param[in]     x     - an input matrix
@@ -131,9 +131,9 @@ module mat
      !> @param[in]  rows - array of (global) row indices to set the equation on
      !> @param[in/out] M - the matrix
      !
-     !> @details Sets equations in a system of equations by zeroing out the corresponding row in the
-     !!          system matrix and setting the diagonal to one such that the solution is given by
-     !!          the corresponding entry in the right-hand side vector.
+     !v  Sets equations in a system of equations by zeroing out the corresponding row in the
+     !   system matrix and setting the diagonal to one such that the solution is given by
+     !   the corresponding entry in the right-hand side vector.
      module subroutine set_eqn(rows, M)
        integer(ccs_int), dimension(:), intent(in) :: rows
        class(ccs_matrix), intent(inout) :: M

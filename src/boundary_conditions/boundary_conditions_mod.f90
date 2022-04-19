@@ -1,6 +1,6 @@
 !>  boundary conditions module
 !
-!> @details Various BC related functionality. Need to expand.
+!>  Various BC related functionality. Need to expand.
 
 module boundary_conditions
   use types, only: bc_config

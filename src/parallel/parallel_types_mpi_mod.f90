@@ -1,8 +1,8 @@
 !>  Module file parallel_types.mod
 !
-!> @build mpi
+!> mpi
 !
-!> @details Module that defines the parallel environment types for ASiMoV-CCS
+!> Module that defines the parallel environment types for ASiMoV-CCS
 module parallel_types_mpi
 
   use mpi
@@ -14,18 +14,18 @@ module parallel_types_mpi
 
   !>  reduction operator type for MPI
   !
-  !> @details reduction operator type from MPI that holds
-  !!          the MPI operator values that are passed to
-  !!          reductions
+  !v reduction operator type from MPI that holds
+  !  the MPI operator values that are passed to
+  !  reductions
   type, extends(reduction_operator), public :: reduction_operator_mpi
     integer :: op
   end type reduction_operator_mpi
 
   !>  parallel environment type for MPI
   !
-  !> @details parallel environment type from MPI that holds
-  !!          a communicator and reduction operators in
-  !!          addition to the common parameters
+  !v parallel environment type from MPI that holds
+  !  a communicator and reduction operators in
+  !  addition to the common parameters
   type, extends(parallel_environment), public :: parallel_environment_mpi
     integer :: comm
     integer :: sum_op

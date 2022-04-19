@@ -1,7 +1,7 @@
 !>  Module file utils.mod
 !
-!> @details Provides utility functions for ASiMoV-CCS, these should be polymorphic on their input
-!!          and call type-specific implementations of the interface in other modules.
+!v  Provides utility functions for ASiMoV-CCS, these should be polymorphic on their input
+!          and call type-specific implementations of the interface in other modules.
 
 module utils
 
@@ -48,7 +48,7 @@ module utils
 
   !>  Generic interface to begin parallel update of an object.
   !
-  !> @details This is to allow overlapping comms and compute.
+  !>  This is to allow overlapping comms and compute.
   interface begin_update
      module procedure begin_update_vector
      module procedure begin_update_matrix
@@ -56,7 +56,7 @@ module utils
 
   !>  Generic interface to end parallel update of an object.
   !
-  !> @details This is to allow overlapping comms and compute.
+  !>  This is to allow overlapping comms and compute.
   interface end_update
     module procedure end_update_vector
     module procedure end_update_matrix
@@ -77,8 +77,8 @@ module utils
 
   !>  Generic interface to pack entries (elements, coefficients) into a computational object.
   !
-  !> @details Stores the entries and elements in an object for later setting, this ensures the
-  !!          storage and values of indices in particular are set appropriately for each backend.
+  !v  Stores the entries and elements in an object for later setting, this ensures the
+  !   storage and values of indices in particular are set appropriately for each backend.
   interface pack_entries
     module procedure pack_one_vector_element
     module procedure pack_one_matrix_coefficient

@@ -1,7 +1,7 @@
 !>  Submodule file fv_CDS.smod
-!> @build CDS
+!>  CDS
 !
-!> @details An implementation of the finite volume method using the CDS scheme
+!>  An implementation of the finite volume method using the CDS scheme
 
 submodule (fv) fv_common
 
@@ -19,22 +19,14 @@ submodule (fv) fv_common
 contains
 
   !>  Computes fluxes and assign to matrix and RHS
-  !
-  !> @param[in] phi       - scalar field structure
-  !> @param[in] mf        - mass flux field structure
-  !> @param[in] mesh - the mesh being used
-  !> @param[in] bcs       - the boundary conditions structure being used
-  !> @param[in] cps       - the number of cells per side in the (square) mesh
-  !> @param[in,out] M     - Data structure containing matrix to be filled
-  !> @param[in,out] vec   - Data structure containing RHS vector to be filled
   module subroutine compute_fluxes(phi, mf, mesh, bcs, cps, M, vec)
-    class(field), intent(in) :: phi
-    class(field), intent(in) :: mf
-    type(ccs_mesh), intent(in) :: mesh
-    type(bc_config), intent(in) :: bcs
-    integer(ccs_int), intent(in) :: cps  
-    class(ccs_matrix), intent(inout) :: M   
-    class(ccs_vector), intent(inout) :: vec   
+    class(field), intent(in) :: phi           !< scalar field structure
+    class(field), intent(in) :: mf            !< mass flux field structure
+    type(ccs_mesh), intent(in) :: mesh        !< the mesh being used
+    type(bc_config), intent(in) :: bcs        !< the boundary conditions structure being used
+    integer(ccs_int), intent(in) :: cps       !< the number of cells per side in the (square) mesh
+    class(ccs_matrix), intent(inout) :: M     !< Data structure containing matrix to be filled
+    class(ccs_vector), intent(inout) :: vec   !< Data structure containing RHS vector to be filled
 
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
@@ -60,28 +52,20 @@ contains
 
   !>  Returns the number of entries per row that are non-zero
   !
-  !> @details Note: this assumes a square 2d grid
-  !
-  !> @param[out] nnz - number of non-zero entries per row
+  !>  This assumes a square 2d grid
   pure function calc_matrix_nnz() result(nnz)
-    integer(ccs_int) :: nnz
+    integer(ccs_int) :: nnz   !< number of non-zero entries per row 
 
     nnz = 5_ccs_int
   end function calc_matrix_nnz
 
   !>  Computes the matrix coefficient for cells in the interior of the mesh
-  !
-  !> @param[in] phi         - scalar field structure
-  !> @param[in] mf          - mass flux array defined at faces
-  !> @param[in] mesh   - Mesh structure
-  !> @param[in] n_int_cells - number of cells in the interior of the mesh
-  !> @param[in,out] M       - Matrix structure being assigned
   subroutine compute_interior_coeffs(phi, mf, mesh, n_int_cells, M)
-    class(field), intent(in) :: phi
-    real(ccs_real), dimension(:), intent(in) :: mf
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: n_int_cells
-    class(ccs_matrix), intent(inout) :: M
+    class(field), intent(in) :: phi                 !< scalar field structure
+    real(ccs_real), dimension(:), intent(in) :: mf  !< mass flux array defined at faces
+    type(ccs_mesh), intent(in) :: mesh              !< Mesh structure
+    integer(ccs_int), intent(in) :: n_int_cells     !< number of cells in the interior of the mesh
+    class(ccs_matrix), intent(inout) :: M           !< Matrix structure being assigned
 
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: loc_p
@@ -170,22 +154,15 @@ contains
     deallocate(mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
-  !>  Computes the value of the scalar field on the boundary based on linear interpolation between 
+  !v  Computes the value of the scalar field on the boundary based on linear interpolation between 
   !  values provided on box corners
-  !
-  !> @param[in] index_nb - index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
-  !> @param[in] row       - global row of cell within square mesh
-  !> @param[in] col       - global column of cell within square mesh
-  !> @param[in] cps       - number of cells per side in square mesh
-  !> @param[in] bcs       - BC configuration data structure
-  !> @param[out] bc_value - the value of the scalar field at the specified boundary
   subroutine compute_boundary_values(index_nb, row, col, cps, bcs, bc_value)
-    integer, intent(in) :: index_nb  ! This is the index wrt the CV, not the nb's cell index (i.e. range 1-4 for a square mesh)
-    integer, intent(in) :: row
-    integer, intent(in) :: col
-    integer, intent(in) :: cps
-    type(bc_config), intent(in) :: bcs
-    real(ccs_real), intent(out) :: bc_value
+    integer, intent(in) :: index_nb           !< index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
+    integer, intent(in) :: row                !< global row of cell within square mesh
+    integer, intent(in) :: col                !< global column of cell within square mesh
+    integer, intent(in) :: cps                !< number of cells per side in square mesh
+    type(bc_config), intent(in) :: bcs        !< BC configuration data structure
+    real(ccs_real), intent(out) :: bc_value   !< the value of the scalar field at the specified boundary
     real(ccs_real) :: row_cps, col_cps
 
     row_cps = real(row, ccs_real)/real(cps, ccs_real)
@@ -213,22 +190,14 @@ contains
   end subroutine compute_boundary_values
 
   !>  Computes the matrix coefficient for cells on the boundary of the mesh
-  !
-  !> @param[in] phi         - scalar field structure
-  !> @param[in] mf          - mass flux array defined at faces
-  !> @param[in] mesh   - Mesh structure
-  !> @param[in] bcs         - boundary conditions structure
-  !> @param[in] cps         - number of cells per side
-  !> @param[in,out] M       - Matrix structure being assigned
-  !> @param[in,out] b       - vector structure being assigned
   subroutine compute_boundary_coeffs(phi, mf, mesh, bcs, cps, M, b)
-    class(field), intent(in) :: phi
-    real(ccs_real), dimension(:), intent(in) :: mf
-    type(ccs_mesh), intent(in) :: mesh
-    type(bc_config), intent(in) :: bcs
-    integer(ccs_int), intent(in) :: cps
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
+    class(field), intent(in) :: phi                 !< scalar field structure
+    real(ccs_real), dimension(:), intent(in) :: mf  !< mass flux array defined at faces
+    type(ccs_mesh), intent(in) :: mesh              !< Mesh structure
+    type(bc_config), intent(in) :: bcs              !< boundary conditions structure
+    integer(ccs_int), intent(in) :: cps             !< number of cells per side
+    class(ccs_matrix), intent(inout) :: M           !< Matrix structure being assigned
+    class(ccs_vector), intent(inout) :: b           !< vector structure being assigned
 
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
@@ -307,16 +276,11 @@ contains
   end subroutine compute_boundary_coeffs
 
   !>  Sets the diffusion coefficient
-  !
-  !> @param[in] index_p - the local cell index
-  !> @param[in] index_nb  - the local neigbouring cell index
-  !> @param[in] mesh      - the mesh structure
-  !> @param[out] coeff         - the diffusion coefficient
   module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
-    integer(ccs_int), intent(in) :: index_p
-    integer(ccs_int), intent(in) :: index_nb
-    type(ccs_mesh), intent(in) :: mesh
-    real(ccs_real) :: coeff
+    integer(ccs_int), intent(in) :: index_p     !< the local cell index
+    integer(ccs_int), intent(in) :: index_nb    !< the local neigbouring cell index
+    type(ccs_mesh), intent(in) :: mesh          !< the mesh structure
+    real(ccs_real) :: coeff                     !< the diffusion coefficient
 
     type(face_locator) :: loc_f
     real(ccs_real) :: face_area

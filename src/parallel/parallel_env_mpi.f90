@@ -1,7 +1,7 @@
 !>  Submodule file parallel_env_mpi.smod
-!> @build mpi
+!>  mpi
 !
-!> @details Implementation of the parallel environment using MPI
+!>  Implementation of the parallel environment using MPI
 
 submodule (parallel) parallel_env_mpi
 
@@ -13,8 +13,6 @@ submodule (parallel) parallel_env_mpi
   contains
 
   !>  Create the MPI parallel environment
-  !
-  !> @param[out] parallel_environment_mpi par_env
   module subroutine initialise_parallel_environment(par_env)
 
     class(parallel_environment), allocatable, intent(out) :: par_env

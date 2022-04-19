@@ -1,9 +1,9 @@
 !>  Submodule file io_setup_adios2.smod
 !
-!> @build mpi adios2
+!>  mpi adios2
 !
-!> @details Implementation (using MPI and ADIOS@) of parallel 
-!!          IO setup functionality
+!v  Implementation (using MPI and ADIOS@) of parallel 
+!   IO setup functionality
 submodule (io) io_setup_adios2
 
   use adios2

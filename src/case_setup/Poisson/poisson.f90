@@ -1,17 +1,16 @@
 !>  Program file for Poisson case
 !
-!> @details Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
-!!          This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
-!!          the code is independent of PETSc.
-!!          The example case solves the equation
-!!          \[
-!!            {\nabla^2} p = f
-!!          \]
-!!          in the unit square with Dirichlet boundary conditions
-!!          \[
-!!            p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
-!!          \]
-!
+!v  Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
+!  This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
+!  the code is independent of PETSc.
+!  The example case solves the equation
+!  \[
+!    {\nabla^2} p = f
+!  \]
+!  in the unit square with Dirichlet boundary conditions
+!  \[
+!    p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
+!  \]
 
 program poisson
 

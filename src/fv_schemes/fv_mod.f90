@@ -1,6 +1,6 @@
 !>  Module file fv.mod
 !
-!> @details An interface to finite volume implementations (CDS, UDS, etc.)
+!>  An interface to finite volume implementations (CDS, UDS, etc.)
 
 module fv
 

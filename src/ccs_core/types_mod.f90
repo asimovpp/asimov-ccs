@@ -1,6 +1,6 @@
 !>  Module file types.mod
 !
-!> @details Provides concrete types and bases of extensible types.
+!>  Provides concrete types and bases of extensible types.
 
 module types
 

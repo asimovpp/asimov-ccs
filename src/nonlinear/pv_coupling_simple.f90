@@ -1,6 +1,6 @@
 !>  Submodule file pv_coupling_simple.smod
 !
-!> @details Implementation of the SIMPLE algorithm for pressure-velocity coupling.
+!>  Implementation of the SIMPLE algorithm for pressure-velocity coupling.
 
 submodule (pv_coupling) pv_coupling_simple
 

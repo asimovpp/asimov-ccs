@@ -1,8 +1,8 @@
 !>  Module file adios2_types.f90
 !
-!> @build mpi adios2
+!>  mpi adios2
 !
-!> @details Provides the types neesded for ADIOS2-based IO.
+!>  Provides the types neesded for ADIOS2-based IO.
 module adios2_types
 
   use adios2

@@ -1,6 +1,6 @@
 !>  Module file solver.mod
 !
-!> @details An interface to linear solver objects.
+!>  An interface to linear solver objects.
 
 module solver
 

@@ -1,7 +1,7 @@
 !>  Submodule file solver_petsc.smod
-!> @build petsc
+!>  petsc
 !
-!> @details An implementation of a PETSc solver
+!>  An implementation of a PETSc solver
 submodule (solver) solver_petsc
 
   use kinds, only : ccs_err

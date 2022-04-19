@@ -1,8 +1,8 @@
-!>  Submodule file parallel_utils_mpi.smod
+!> Submodule file parallel_utils_mpi.smod
 !
-!> @build mpi
+!> mpi
 !
-!> @details Implementation (using MPI) of the parallel utilities
+!> Implementation (using MPI) of the parallel utilities
 
 submodule (parallel) parallel_utils_mpi
 
@@ -14,8 +14,6 @@ submodule (parallel) parallel_utils_mpi
   contains
 
   !>  Synchronise the parallel environment
-  !
-  !> @param[in] parallel_environment_mpi par_env
   module subroutine sync(par_env)
   
     class(parallel_environment), intent(in) :: par_env

@@ -1,8 +1,8 @@
 !>  Submodule file vec_petsc.smod
-!> @build petsc
+!>  petsc
 !
-!> @details An implementation of vector objects using PETSc - the datatype and operations on it
-!!          (creation, destruction, setting/getting, ...)
+!v  An implementation of vector objects using PETSc - the datatype and operations on it
+!          (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
 
   use kinds, only : ccs_err
@@ -156,7 +156,7 @@ contains
 
   !>  Begin a parallel update of a PETSc vector
   !
-  !> @details Begins the parallel update to allow overlapping comms and compute
+  !>  Begins the parallel update to allow overlapping comms and compute
   module subroutine begin_update_vector(v)
 
     use petsc, only : VecAssemblyBegin
@@ -180,7 +180,7 @@ contains
 
   !>  End a parallel update of a PETSc vector.
   !
-  !> @details Ends the parallel update to allow overlapping comms and compute.
+  !>  Ends the parallel update to allow overlapping comms and compute.
   module subroutine end_update_vector(v)
 
     use petsc, only : VecAssemblyEnd
@@ -206,7 +206,7 @@ contains
 
   !>  Begin a ghost update of a PETSc vector
   !
-  !> @details Begins the ghost update to allow overlapping comms and compute
+  !>  Begins the ghost update to allow overlapping comms and compute
   subroutine begin_ghost_update_vector(v)
 
     use petsc, only : VecGhostUpdateBegin
@@ -233,7 +233,7 @@ contains
 
   !>  End a ghost update of a PETSc vector.
   !
-  !> @details Ends the ghost update to allow overlapping comms and compute.
+  !>  Ends the ghost update to allow overlapping comms and compute.
   subroutine end_ghost_update_vector(v)
 
     use petsc, only : VecGhostUpdateEnd
@@ -271,8 +271,8 @@ contains
 
   !>  Perform the AXPY vector operation using PETSc
   !
-  !> @details Performs the AXPY operation
-  !!          y[i] = alpha * x[i] + y[i]
+  !v  Performs the AXPY operation
+  !          y[i] = alpha * x[i] + y[i]
   module subroutine vec_axpy(alpha, x, y)
 
     use petscvec, only : VecAXPY

@@ -1,7 +1,6 @@
 !>  Module file vec.mod
 !
-!> @details An interface to operations on vector objects (creation, destruction, setting and
-!!          getting, ...)
+!>  An interface to operations on vector objects (creation, destruction, setting and getting, ...)
 
 module vec
 
@@ -63,7 +62,7 @@ module vec
 
     !>  Interface to begin a parallel update of a vector.
     !
-    !> @details Begins the parallel update to allow overlapping comms and compute.
+    !>  Begins the parallel update to allow overlapping comms and compute.
     !
     !> @param[in,out] v - the vector
     module subroutine begin_update_vector(v)
@@ -72,7 +71,7 @@ module vec
     
     !>  Interface to end a parallel update of a vector.
     !
-    !> @details Ends the parallel update to allow overlapping comms and compute.
+    !>  Ends the parallel update to allow overlapping comms and compute.
     !
     !> @param[in,out] v - the vector
     module subroutine end_update_vector(v)
@@ -87,8 +86,7 @@ module vec
     !> @oaram[in]     idx     - vector element index
     !> @param[in]     val     - vector element value
     !
-    !> @details Stores a vector element and associated index for later setting, ensuring they are
-    !!          set appropriately for the backend.
+    !>  Stores a vector element and associated index for later setting, ensuring they are set appropriately for the backend.
     module subroutine pack_one_vector_element(ent, idx, val, val_dat)
       integer(ccs_int), intent(in) :: ent
       integer(ccs_int), intent(in) :: idx
@@ -98,8 +96,8 @@ module vec
 
     !>  Interface to perform the AXPY vector operation.
     !
-    !> @details Performs the AXPY operation
-    !!          y[i] = a * x[i] + y[i]
+    !>  Performs the AXPY operation
+    !>          y[i] = a * x[i] + y[i]
     !
     !> @param[in]     alpha - a scalar value
     !> @param[in]     x     - an input vector

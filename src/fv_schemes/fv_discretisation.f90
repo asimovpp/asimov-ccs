@@ -1,7 +1,7 @@
 !>  Submodule file fv_discretisation.smod
-!> @build discretisation
+!>  discretisation
 !
-!> @details Implementations of the finite volume method using the various discretisation schemes scheme
+!>  Implementations of the finite volume method using the various discretisation schemes scheme
 
 submodule (fv) fv_discretisation
 

@@ -107,7 +107,7 @@ contains
 
   !>  Begin a parallel update of a PETSc matrix.
   !
-  !> @details Begins the parallel update to allow overlapping comms and compute.
+  !>  Begins the parallel update to allow overlapping comms and compute.
   module subroutine begin_update_matrix(M)
 
     class(ccs_matrix), intent(inout) :: M   !< the matrix
@@ -129,7 +129,7 @@ contains
 
   !>  End a parallel update of a PETSc matrix.
   !
-  !> @details Ends the parallel update to allow overlapping comms and compute.
+  !>  Ends the parallel update to allow overlapping comms and compute.
   module subroutine end_update_matrix(M)
 
     class(ccs_matrix), intent(inout) :: M   !< the matrix
@@ -232,9 +232,9 @@ contains
 
   !>  Set equation
   !
-  !> @details Sets equations in a system of equations by zeroing out the corresponding row in the
-  !!          system matrix and setting the diagonal to one such that the solution is given by
-  !!          the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
+  !v  Sets equations in a system of equations by zeroing out the corresponding row in the
+  !   system matrix and setting the diagonal to one such that the solution is given by
+  !   the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
   module subroutine set_eqn(rows, M)
 
     use petsc, only : PETSC_NULL_VEC
@@ -260,8 +260,8 @@ contains
 
   !>  Perform the AXPY matrix operation using PETSc
   !
-  !> @details Performs the AXPY operation
-  !!          y[i] = alpha * x[i] + y[i]
+  !>  Performs the AXPY operation
+  !>         y[i] = alpha * x[i] + y[i]
   module subroutine mat_axpy(alpha, x, y)
 
     use petscmat, only : MatAXPY, DIFFERENT_NONZERO_PATTERN
