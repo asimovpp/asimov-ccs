@@ -1,4 +1,4 @@
-!> @brief Module file io_mod.f90
+!>  Module file io_mod.f90
 !
 !> @details Provides an interface to IO functions.
 module io
@@ -39,7 +39,7 @@ module io
 
   interface 
 
-  !> @brief Initialise the IO environment
+  !>  Initialise the IO environment
   !
   !> param[in]  par_env     : parallel environment that IO environment
   !!                          will reside on
@@ -51,14 +51,14 @@ module io
     class(io_environment), allocatable, intent(out) :: io_env
   end subroutine
 
-  !> @brief Clean up the IO environment
+  !>  Clean up the IO environment
   !
   !> param[inout] io_env : IO environment
   module subroutine cleanup_io(io_env)
     class(io_environment), intent(inout) :: io_env
   end subroutine
 
-  !> @brief Configure the IO process
+  !>  Configure the IO process
   !
   !> param[in]  io_env       : IO environment
   !> param[in]  process_name : name of the IO process to be configured
@@ -69,7 +69,7 @@ module io
     class(io_process), allocatable, intent(out) :: io_proc
   end subroutine
 
-  !> @brief Open file
+  !>  Open file
   !
   !> param[in] filename   : name of file to open
   !> param[in] mode       : choose whether to read, write or append
@@ -80,14 +80,14 @@ module io
     class(io_process), intent(inout) :: io_proc
   end subroutine
 
-  !> @brief Close file
+  !>  Close file
   !
   !> param[in] io_proc : IO process
   module subroutine close_file(io_proc)
     class(io_process), intent(inout) :: io_proc
   end subroutine
 
-  !> @brief Read a scalar integer from file
+  !>  Read a scalar integer from file
   !
   !> param[in]  io_proc   : IO process used for reading
   !> param[in]  attr_name : Name of scalar integer to read
@@ -98,7 +98,7 @@ module io
     integer(int32), intent(out) :: attr
   end subroutine
 
-    !> @brief Read a scalar long integer from file
+    !>  Read a scalar long integer from file
   !
   !> param[in]  io_proc   : IO process used for reading
   !> param[in]  attr_name : Name of scalar long integer to read
@@ -109,7 +109,7 @@ module io
     integer(int64), intent(out) :: attr
   end subroutine
 
-  !> @brief Read a scalar real from file
+  !>  Read a scalar real from file
   !
   !> param[in]  io_proc   : IO process used for reading
   !> param[in]  attr_name : Name of scalar real to read
@@ -120,7 +120,7 @@ module io
     real(real32), intent(out) :: attr
   end subroutine
 
-  !> @brief Read a scalar double precision real from file
+  !>  Read a scalar double precision real from file
   !
   !> param[in]  io_proc   : IO process used for reading
   !> param[in]  attr_name : Name of scalar double precision real to read
@@ -131,7 +131,7 @@ module io
     real(real64), intent(out) :: attr
   end subroutine
 
-  !> @brief Read a 1D 32-bit integer array from file
+  !>  Read a 1D 32-bit integer array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of integer array to read
@@ -145,7 +145,7 @@ module io
     integer(int64), dimension(1), intent(in) :: count
     integer(int32), dimension(:), intent(inout) :: var
   end subroutine
-  !> @brief Read a 1D 64-bit integer array from file
+  !>  Read a 1D 64-bit integer array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of integer array to read
@@ -160,7 +160,7 @@ module io
     integer(int64), dimension(:), intent(inout) :: var
   end subroutine
 
-  !> @brief Read a 2D 32-bit integer array from file
+  !>  Read a 2D 32-bit integer array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of integer array to read
@@ -175,7 +175,7 @@ module io
     integer(int32), dimension(:,:), intent(inout) :: var
   end subroutine
 
-  !> @brief Read a 2D 64-bit integer array from file
+  !>  Read a 2D 64-bit integer array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of integer array to read
@@ -190,7 +190,7 @@ module io
     integer(int64), dimension(:,:), intent(inout) :: var
   end subroutine
 
-  !> @brief Read a 1D 32-bit real array from file
+  !>  Read a 1D 32-bit real array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of real array to read
@@ -205,7 +205,7 @@ module io
     real(real32), dimension(:), intent(inout) :: var
   end subroutine
 
-  !> @brief Read a 1D 64-bit real array from file
+  !>  Read a 1D 64-bit real array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of real array to read
@@ -220,7 +220,7 @@ module io
     real(real64), dimension(:), intent(inout) :: var
   end subroutine
 
-  !> @brief Read a 2D 32-bit real array from file
+  !>  Read a 2D 32-bit real array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of real array to read
@@ -235,7 +235,7 @@ module io
     real(real32), dimension(:,:), intent(inout) :: var
   end subroutine
 
-  !> @brief Read a 2D 64-bit real array from file
+  !>  Read a 2D 64-bit real array from file
   !
   !> param[in]    io_proc  : IO process used for reading
   !> param[in]    var_name : Name of real array to read

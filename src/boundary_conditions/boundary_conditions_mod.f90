@@ -1,4 +1,4 @@
-!> @brief boundary conditions module
+!>  boundary conditions module
 !
 !> @details Various BC related functionality. Need to expand.
 
@@ -13,7 +13,7 @@ module boundary_conditions
 
   contains
 
-  !> @brief Wrapper for reading config file and assigning data to BC structure
+  !>  Wrapper for reading config file and assigning data to BC structure
   !
   !> @param[in] filename - name of config file
   !> @param[out] bcs     - boundary conditions structure
@@ -34,7 +34,7 @@ module boundary_conditions
     call get_bcs(config_file, bcs)
   end subroutine read_bc_config
   
-  !> @brief Assigns bc data to structure
+  !>  Assigns bc data to structure
   !
   !> @param[in] config_file - pointer to configuration file
   !> @param[out] bcs        - boundary conditions structure

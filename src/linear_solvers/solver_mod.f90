@@ -1,4 +1,4 @@
-!> @brief Module file solver.mod
+!>  Module file solver.mod
 !
 !> @details An interface to linear solver objects.
 
@@ -22,7 +22,7 @@ module solver
   
   interface
 
-    !> @brief Interface to create a new solver object.
+    !>  Interface to create a new solver object.
     !
     !> @param[in]  equation_system linear_system   - Data structure containing equation system to be solved.
     !> @param[out] linear_solver solver - The linear solver returned allocated.
@@ -31,19 +31,19 @@ module solver
       class(linear_solver), allocatable, intent(out) :: solver
     end subroutine
 
-    !> @brief Interface to solve the linear system in a solver.
+    !>  Interface to solve the linear system in a solver.
     !
     !> @param[in/out] linear_solver solver - The linear solver object.
     module subroutine solve(solver)
       class(linear_solver), intent(inout) :: solver
     end subroutine
 
-    !> @brief Constructor for default linear system
+    !>  Constructor for default linear system
     module subroutine initialise_equation_system(lin_sys)
       type(equation_system), intent(inout) :: lin_sys
     end subroutine initialise_equation_system
 
-    !> @brief Setter for the linear system
+    !>  Setter for the linear system
     !
     !> @param[in] par_env       - the parallel environment where the linear 
     !!                            system resides
@@ -61,13 +61,13 @@ module solver
 
   end interface
   
-  !> @brief Generic interface to perform the AXPY operation (a*x + y)
+  !>  Generic interface to perform the AXPY operation (a*x + y)
   interface axpy
     module procedure vec_axpy
     module procedure mat_axpy
   end interface axpy
   
-  !> @brief Generic interface to compute the norm of an element
+  !>  Generic interface to compute the norm of an element
   interface norm
     module procedure vec_norm
     module procedure mat_norm

@@ -1,4 +1,4 @@
-!> @brief Submodule file solver_petsc.smod
+!>  Submodule file solver_petsc.smod
 !> @build petsc
 !
 !> @details An implementation of a PETSc solver
@@ -13,7 +13,7 @@ submodule (solver) solver_petsc
 
 contains
 
-  !> @brief Create a new PETSc solver object.
+  !>  Create a new PETSc solver object.
   module subroutine create_solver(linear_system, solver)
 
     use petsc, only : PETSC_TRUE
@@ -73,7 +73,7 @@ contains
     
   end subroutine
 
-  !> @brief Solve the linear system in a PETSc solver.
+  !>  Solve the linear system in a PETSc solver.
   module subroutine solve(solver)
 
     use petscksp, only : KSPSolve

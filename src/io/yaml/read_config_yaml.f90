@@ -1,4 +1,4 @@
-!> @brief Submodule implementation file read_config_utils.mod
+!>  Submodule implementation file read_config_utils.mod
 !> @build yaml
 !>
 !> @details Module implementing the interface to read YAML config file
@@ -99,7 +99,7 @@ submodule (read_config) read_config_utils
   
   end subroutine
 
-  !> @brief Get the name of the test case
+  !>  Get the name of the test case
   !
   !> @details Get the case name for the configuration file and 
   !! store it in a string.
@@ -114,7 +114,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
     
-  !> @brief Get the number of steps
+  !>  Get the number of steps
   !
   !> @details Get the maximum number of iterations 
   !! to be preformed in the current run 
@@ -129,7 +129,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
     
-  !> @brief Get source of initial values
+  !>  Get source of initial values
   !
   !> @details Get the source of the initial values - accepted
   !! values are "user", "field" or "step" 
@@ -187,7 +187,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get reference numbers
+  !>  Get reference numbers
   !
   !> @details Get the reference numbers, the fluid properties 
   !! and the operating condition 
@@ -267,7 +267,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get variables to be solved
+  !>  Get variables to be solved
   !
   !> @details By default, all variables will be solved. Using this 
   !! "solve" keyword, the user can specifically request that 
@@ -322,7 +322,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get solvers to be used
+  !>  Get solvers to be used
   !
   !> @details Get the solvers that are to be used for each of
   !! the variables. Solver types are defined by integer values
@@ -390,7 +390,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get transient status
+  !>  Get transient status
   !
   !> @details Enables/disables unsteady solution algorithm
   !
@@ -432,7 +432,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get target residual
+  !>  Get target residual
   !
   !> @details Get the convergence criterion. 
   !! The calculation will stop when the residuals (L2-norm) of the 
@@ -448,7 +448,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get grid cell to monitor
+  !>  Get grid cell to monitor
   !
   !> @details Get the grid cell at which to monitor the values
   !! of the flow variables (U,V,W,P,TE,ED and T)
@@ -463,7 +463,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get convection schemes 
+  !>  Get convection schemes 
   !
   !> @details Get convection schemes to be used for the 
   !! different variables. The convection schemes are defined
@@ -517,7 +517,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get blending factor values 
+  !>  Get blending factor values 
   !
   !> @details Get blending factors
   !
@@ -569,7 +569,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get relaxation factor values 
+  !>  Get relaxation factor values 
   !
   !> @details Get relaxation factors
   !
@@ -621,7 +621,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get output frequency 
+  !>  Get output frequency 
   !
   !> @details Get output frequency, set with keywords "every"
   !! "iter" or both.
@@ -651,7 +651,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get output file format 
+  !>  Get output file format 
   !
   !> @param[in] config_file - the entry point to the config file
   !> @param[inout] plot_format - output format (e.g. vtk)
@@ -663,7 +663,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get output type and variables 
+  !>  Get output type and variables 
   !
   !> @param[in] config_file - the entry point to the config file
   !> @param[inout] post_type - values at cell centres or cell vertices?
@@ -714,7 +714,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !> @brief Get boundary conditions 
+  !>  Get boundary conditions 
   !
   !> @param[in] config_file - the entry point to the config file
   !> @param[inout] bnd_region - array of boundary region names

@@ -1,4 +1,4 @@
-!> @brief Submodule file pv_coupling_simple.smod
+!>  Submodule file pv_coupling_simple.smod
 !
 !> @details Implementation of the SIMPLE algorithm for pressure-velocity coupling.
 
@@ -117,7 +117,7 @@ contains
 
   end subroutine solve_nonlinear
 
-  !> @brief Computes the guessed velocity fields based on a frozen pressure field
+  !>  Computes the guessed velocity fields based on a frozen pressure field
   !
   !> @param[in]    par_env      - the parallel environment
   !> @param[in]    mesh    - the mesh
@@ -281,7 +281,7 @@ contains
     
   end subroutine calculate_momentum_pressure_source
 
-  !> @brief Solves the pressure correction equation
+  !>  Solves the pressure correction equation
   !
   !> @description Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, M, vec, lin_sys, p_prime)
@@ -448,7 +448,7 @@ contains
     
   end subroutine calculate_pressure_correction
 
-  !> @brief Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
+  !>  Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
   subroutine compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, b)
 
     class(parallel_environment), intent(in) :: par_env
@@ -572,7 +572,7 @@ contains
     
   end subroutine compute_mass_imbalance
 
-  !> @brief Corrects the pressure field, using explicit underrelaxation
+  !>  Corrects the pressure field, using explicit underrelaxation
   subroutine update_pressure(p_prime, p)
 
     use case_config, only: pressure_relax
@@ -585,7 +585,7 @@ contains
     
   end subroutine update_pressure
 
-  !> @brief Corrects the velocity field using the pressure correction gradient
+  !>  Corrects the velocity field using the pressure correction gradient
   subroutine update_velocity(mesh, invAu, invAv, p_prime, u, v)
 
     use vec, only : zero_vector
@@ -614,7 +614,7 @@ contains
     
   end subroutine update_velocity
 
-  !> @brief Corrects the face velocity flux using the pressure correction
+  !>  Corrects the face velocity flux using the pressure correction
   subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
 
     type(ccs_mesh), intent(in) :: mesh              !< The mesh
@@ -696,7 +696,7 @@ contains
     
   end subroutine check_convergence
 
-  !> @brief Applies implicit underrelaxation to an equation
+  !>  Applies implicit underrelaxation to an equation
   !
   !> @description Extracts the diagonal coefficient of a matrix and divides by the URF, adding a
   !!              proportional explicit term to the RHS vector.

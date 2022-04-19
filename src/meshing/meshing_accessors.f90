@@ -4,7 +4,7 @@ submodule (meshing) meshing_accessors
   
 contains
   
-  !> @brief Constructs a face locator object.
+  !>  Constructs a face locator object.
   !
   !> @description Creates the association between a face relative to a cell, i.e. to access the
   !!              nth face of cell i.
@@ -25,7 +25,7 @@ contains
     loc_f%cell_face_ctr = cell_face_ctr
   end subroutine set_face_location
 
-  !> @brief Constructs a cell locator object.
+  !>  Constructs a cell locator object.
   !
   !> @description Creates the association between a mesh and cell index, storing it in the
   !!              returned cell locator object.
@@ -49,7 +49,7 @@ contains
     end if
   end subroutine set_cell_location
   
-  !> @brief Constructs a neighbour locator object.
+  !>  Constructs a neighbour locator object.
   !
   !> @description Creates the association between a neighbour cell F relative to cell P, i.e. to
   !!              access the nth neighbour of cell i.
@@ -90,7 +90,7 @@ contains
     end associate
   end subroutine set_neighbour_location
 
-  !> @brief Set face index
+  !>  Set face index
   module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
     integer(ccs_int), intent(in) :: index_p
     integer(ccs_int), intent(in) :: cell_face_ctr
@@ -100,7 +100,7 @@ contains
     mesh%face_indices(cell_face_ctr, index_p) = index_f
   end subroutine set_face_index
 
-  !> @brief Returns the normal vector of a face
+  !>  Returns the normal vector of a face
   !
   !> @param[in]  face_locator    loc_f - the face locator object.
   !> @param[out] real(ccs_real) normal(ndim)  - an ndimensional array representing the face normal
@@ -116,7 +116,7 @@ contains
     end associate
   end subroutine get_face_normal
 
-  !> @brief Returns the area of a face
+  !>  Returns the area of a face
   !
   !> @param[in]  face_locator    loc_f - the face locator object.
   !> @param[out] real(ccs_real) area          - the face area.
@@ -131,7 +131,7 @@ contains
     end associate
   end subroutine get_face_area
 
-  !> @brief Returns the centre of a cell
+  !>  Returns the centre of a cell
   !
   !> @param[in]  cell_locator     loc_p - the cell locator object.
   !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the cell centre.
@@ -145,7 +145,7 @@ contains
     end associate
   end subroutine get_cell_centre
 
-  !> @brief Returns the centre of a neighbour cell
+  !>  Returns the centre of a neighbour cell
   !
   !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] real(ccs_real)   x(ndim)            - an ndimensional array representing the
@@ -160,7 +160,7 @@ contains
     call get_cell_centre(cell_loc_nb, x)
   end subroutine get_neighbour_centre
   
-  !> @brief Returns the centre of a face
+  !>  Returns the centre of a face
   !
   !> @param[in]  face_locator     loc_f - the face locator object.
   !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the face centre.
@@ -175,7 +175,7 @@ contains
     end associate
   end subroutine get_face_centre
 
-  !> @brief Returns the volume of a cell
+  !>  Returns the volume of a cell
   !
   !> @param[in] cell_locator     loc_p - the cell locator object.
   !> @param[out] real(ccs_real) V             - the cell volume.
@@ -189,7 +189,7 @@ contains
     end associate
   end subroutine get_cell_volume
 
-  !> @brief Returns the volume of a neighbour cell
+  !>  Returns the volume of a neighbour cell
   !
   !> @param[in] neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] real(ccs_real)  V                  - the neighbour cell volume.
@@ -203,7 +203,7 @@ contains
     call get_cell_volume(cell_loc_nb, V)
   end subroutine get_neighbour_volume
 
-  !> @brief Returns the global index of a cell
+  !>  Returns the global index of a cell
   !
   !> @param[in]  cell_locator      loc_p - the cell locator object.
   !> @param[out] integer(ccs_int) global_index_p          - the global index of the cell.
@@ -222,7 +222,7 @@ contains
     end associate
   end subroutine get_cell_global_index
 
-  !> @brief Returns the global index of a neighbouring cell
+  !>  Returns the global index of a neighbouring cell
   !
   !> @param[in]  neighbour_locator loc_nb           - the neighbour locator object.
   !> @param[out] integer(ccs_int) global_index_nb   - the global index of the neighbour cell.
@@ -235,7 +235,7 @@ contains
     call get_global_index(cell_loc_nb, global_index_nb)
   end subroutine get_neighbour_global_index
 
-  !> @brief Returns the neighbour count of a cell (including boundary neighbours)
+  !>  Returns the neighbour count of a cell (including boundary neighbours)
   !
   !> @param[in]  cell_locator      loc_p - the cell locator object.
   !> @param[out] integer(ccs_int) nnb           - the neighbour count of the cell.
@@ -249,7 +249,7 @@ contains
     end associate
   end subroutine cell_count_neighbours
 
-  !> @brief Returns the boundary status of a neighbouring cell
+  !>  Returns the boundary status of a neighbouring cell
   !
   !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] logical           is_boundary        - the boundary status of the neighbour.
@@ -271,7 +271,7 @@ contains
     end if
   end subroutine get_neighbour_boundary_status
 
-  !> @brief Returns the boundary status of a face
+  !>  Returns the boundary status of a face
   !
   !> @param[in]  face_locator loc_f - the face locator object.
   !> @param[out] logical      is_boundary   - the boundary status of the neighbour.
@@ -291,7 +291,7 @@ contains
     call get_neighbour_boundary_status(loc_nb, is_boundary)
   end subroutine get_face_boundary_status
   
-  !> @brief Returns the local distribution status of a neighbouring cell
+  !>  Returns the local distribution status of a neighbouring cell
   !
   !> @description Given a distributed mesh, a processor needs both the cells within its partition
   !!              and cells from the surrounding halo - this subroutine get_indicates whether a
@@ -315,7 +315,7 @@ contains
     end associate
   end subroutine get_local_status
 
-  !> @brief Returns the local index of a cell
+  !>  Returns the local index of a cell
   !
   !> @description Generally the local index of a cell is should be the same as its location within
   !!              the local cell vector - this particular subroutine get_is therefore expected of
@@ -330,7 +330,7 @@ contains
     index_p = loc_p%index_p
   end subroutine get_cell_local_index
 
-  !> @brief Returns the local index of a neighbouring cell
+  !>  Returns the local index of a neighbouring cell
   !
   !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
   !> @param[out] integer(ccs_int) index_nb              - the local index of the neighbour cell.
@@ -345,7 +345,7 @@ contains
     end associate
   end subroutine get_neighbour_local_index
 
-  !> @brief Returns the local index of a face
+  !>  Returns the local index of a face
   !
   !> @param[in]  face_locator     loc_f    - the face locator object.
   !> @param[out] integer(ccs_int) index_f  - the local index of the face.

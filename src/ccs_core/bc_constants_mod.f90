@@ -1,4 +1,4 @@
-!> @brief Module file bc_constants.mod
+!>  Module file bc_constants.mod
 !
 !> @details Defines constants for specifying boundary conditions
 

@@ -1,4 +1,4 @@
-!> @brief Submodule file io_adios2.smod
+!>  Submodule file io_adios2.smod
 !
 !> @build mpi adios2
 !
@@ -14,7 +14,7 @@ submodule (io) io_adios2
 
   contains
 
-  !> @brief Read a scalar 32-bit integer from file
+  !>  Read a scalar 32-bit integer from file
   module subroutine read_scalar_int32(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
     character (len=*), intent(in) :: attr_name    !< Name of scalar integer to read
@@ -53,7 +53,7 @@ submodule (io) io_adios2
 
   end subroutine
 
-  !> @brief Read a scalar 64-bit integer from file
+  !>  Read a scalar 64-bit integer from file
   module subroutine read_scalar_int64(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
     character (len=*), intent(in) :: attr_name    !< Name of scalar longinteger to read
@@ -91,7 +91,7 @@ submodule (io) io_adios2
 
   end subroutine
 
-  !> @brief Read a scalar 32-bit real from file
+  !>  Read a scalar 32-bit real from file
   module subroutine read_scalar_real32(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
     character (len=*), intent(in) :: attr_name    !< Name of scalar real to read
@@ -129,7 +129,7 @@ submodule (io) io_adios2
 
   end subroutine
 
-  !> @brief Read a scalar 64-bit real from file
+  !>  Read a scalar 64-bit real from file
   module subroutine read_scalar_real64(io_proc, attr_name, attr)
     class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
     character (len=*), intent(in) :: attr_name    !< Name of scalar double precision real to read
@@ -167,7 +167,7 @@ submodule (io) io_adios2
     end subroutine
   
 
-    !> @brief Read a 1D 32-bit integer array from file
+    !>  Read a 1D 32-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_int32_1D(io_proc, var_name, start, count, var)
@@ -212,7 +212,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 1D 64-bit integer array from file
+    !>  Read a 1D 64-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_int64_1D(io_proc, var_name, start, count, var)
@@ -256,7 +256,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 32-bit integer array from file
+    !>  Read a 2D 32-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_int32_2D(io_proc, var_name, start, count, var)
@@ -301,7 +301,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 64-bit integer array from file
+    !>  Read a 2D 64-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_int64_2D(io_proc, var_name, start, count, var)
@@ -345,7 +345,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 1D 32-bit real array from file
+    !>  Read a 1D 32-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_real32_1D(io_proc, var_name, start, count, var)
@@ -390,7 +390,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 1D 64-bit real array from file
+    !>  Read a 1D 64-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_real64_1D(io_proc, var_name, start, count, var)
@@ -434,7 +434,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 32-bit real array from file
+    !>  Read a 2D 32-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_real32_2D(io_proc, var_name, start, count, var)
@@ -479,7 +479,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 64-bit real array from file
+    !>  Read a 2D 64-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
     module subroutine read_array_real64_2D(io_proc, var_name, start, count, var)
@@ -524,7 +524,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Print out downcast warning
+    !>  Print out downcast warning
     subroutine downcast_warning()
       print*,"===> IO Warning:"
       print*,"===> Downcasting from 64-bit to 32-bit, possible loss of precision."

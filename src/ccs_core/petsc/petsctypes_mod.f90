@@ -1,4 +1,4 @@
-!> @brief Module file petsctypes.mod
+!>  Module file petsctypes.mod
 !> @build petsc
 !
 !> @details Provides petsc-extended types.
@@ -16,24 +16,24 @@ module petsctypes
 
   private
 
-  !> @brief Implements the vector class backed by a PETSc vector
+  !>  Implements the vector class backed by a PETSc vector
   type, public, extends(ccs_vector) :: vector_petsc
-    type(tVec) :: v      !< The PETSc vector
-    type(tVec) :: v_local     !< The "local" PETSc vector (inc. ghost points)
-    logical :: allocated !< Indicates whether the PETSc vector has been allocated
-    logical :: ghosted   !< Does this vector have ghost points?
-    integer(ccs_int) :: mode !< Current mode for setting values
-    logical :: modeset        !< Is the current mode still valid? i.e. does vector need updated before switching modes?
+    type(tVec) :: v            !< The PETSc vector
+    type(tVec) :: v_local      !< The "local" PETSc vector (inc. ghost points)
+    logical :: allocated       !< Indicates whether the PETSc vector has been allocated
+    logical :: ghosted         !< Does this vector have ghost points?
+    integer(ccs_int) :: mode   !< Current mode for setting values
+    logical :: modeset         !< Is the current mode still valid? i.e. does vector need updated before switching modes?
   contains
     final :: free_vector_petsc
   end type vector_petsc
 
-  !> @brief Implements the matrix class backed by a PETSc matrix
+  !>  Implements the matrix class backed by a PETSc matrix
   type, public, extends(ccs_matrix) :: matrix_petsc
      type(tMat) :: M      !< The PETSc matrix
      logical :: allocated !< Indicates whether the PETSc matrix has been allocated
-    integer(ccs_int) :: mode !< Current mode for setting values
-    logical :: modeset        !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
+     integer(ccs_int) :: mode !< Current mode for setting values
+     logical :: modeset        !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
    contains
      final :: free_matrix_petsc
   end type matrix_petsc
@@ -62,7 +62,7 @@ module petsctypes
 
 contains
   
-  !> @brief Destroys a PETSc-backed vector.
+  !>  Destroys a PETSc-backed vector.
   !
   !> @details Destructor called by deallocating a vector_petsc - confirms the PETSc vector object is
   !!          allocated and calls the necessary destructor on the wrapped PETSc vector object, sets
@@ -85,7 +85,7 @@ contains
     
   end subroutine
   
-  !> @brief Destroys a PETSc-backed matrix.
+  !>  Destroys a PETSc-backed matrix.
   !
   !> @details Destructor called by deallocating a matrix_petsc - confirms the PETSc matrix object is
   !!          allocated and calls the necessary destructor on the wrapped PETSc matrix object, sets
@@ -108,7 +108,7 @@ contains
 
   end subroutine
 
-  !> @brief Destroys a PETSc-backed linear solver.
+  !>  Destroys a PETSc-backed linear solver.
   !
   !> @details Destructor called by deallocating a linear_solver_petsc - confirms the PETSc vector
   !!          object is allocated and calls the necessary destructor on the wrapped

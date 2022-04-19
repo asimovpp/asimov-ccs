@@ -1,4 +1,4 @@
-!> @brief Module file utils.mod
+!>  Module file utils.mod
 !
 !> @details Provides utility functions for ASiMoV-CCS, these should be polymorphic on their input
 !!          and call type-specific implementations of the interface in other modules.
@@ -30,7 +30,7 @@ module utils
   public :: mult
   public :: zero
 
-  !> @brief Generic interface to set values on an object.
+  !>  Generic interface to set values on an object.
   interface set_values
      module procedure set_vector_values
      module procedure set_matrix_values
@@ -40,13 +40,13 @@ module utils
     module procedure finalise_matrix
   end interface finalise
 
-  !> @brief Generic interface to perform parallel update of an object.
+  !>  Generic interface to perform parallel update of an object.
   interface update
      module procedure update_vector
      module procedure update_matrix
   end interface update
 
-  !> @brief Generic interface to begin parallel update of an object.
+  !>  Generic interface to begin parallel update of an object.
   !
   !> @details This is to allow overlapping comms and compute.
   interface begin_update
@@ -54,7 +54,7 @@ module utils
      module procedure begin_update_matrix
   end interface begin_update
 
-  !> @brief Generic interface to end parallel update of an object.
+  !>  Generic interface to end parallel update of an object.
   !
   !> @details This is to allow overlapping comms and compute.
   interface end_update
@@ -62,20 +62,20 @@ module utils
     module procedure end_update_matrix
   end interface end_update
 
-  !> @brief Generic interface to initialse vectors, matrices and linear systems
+  !>  Generic interface to initialse vectors, matrices and linear systems
   interface initialise
     module procedure initialise_vector
     module procedure initialise_matrix
     module procedure initialise_equation_system
   end interface initialise
 
-  !> @brief Generic interface to set vector and matrix sizes
+  !>  Generic interface to set vector and matrix sizes
   interface set_size
     module procedure set_vector_size
     module procedure set_matrix_size
   end interface set_size
 
-  !> @brief Generic interface to pack entries (elements, coefficients) into a computational object.
+  !>  Generic interface to pack entries (elements, coefficients) into a computational object.
   !
   !> @details Stores the entries and elements in an object for later setting, this ensures the
   !!          storage and values of indices in particular are set appropriately for each backend.
@@ -84,12 +84,12 @@ module utils
     module procedure pack_one_matrix_coefficient
   end interface pack_entries
 
-  !> @brief Generic interface to perform multiplications
+  !>  Generic interface to perform multiplications
   interface mult
     module procedure mult_vec_vec
   end interface mult
 
-  !> @brief Generic interface to zero an object
+  !>  Generic interface to zero an object
   interface zero
     module procedure zero_vector
     module procedure zero_matrix

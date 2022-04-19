@@ -1,4 +1,4 @@
-!> @brief Program file for LidDrivenCavity case
+!>  Program file for LidDrivenCavity case
 !
 !> @build mpi+petsc
 

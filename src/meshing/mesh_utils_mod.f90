@@ -52,8 +52,8 @@ contains
     integer(ccs_int) :: iend            ! The (global) last index of a partition
     integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
-    integer(ccs_int) :: index_counter            ! Local index counter
-    integer(ccs_int) :: face_counter            ! Cell-local face counter
+    integer(ccs_int) :: index_counter   ! Local index counter
+    integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
     integer(ccs_int) :: comm_size       ! The size of the parallel environment
 

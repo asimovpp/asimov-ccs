@@ -1,4 +1,4 @@
-!> @brief Module file parallel_types.mod
+!>  Module file parallel_types.mod
 !
 !> @details Module that defines the parallel environment types for ASiMoV-CCS
 module parallel_types
@@ -9,11 +9,11 @@ module parallel_types
 
   private 
 
-  !> @brief placeholder reduction operator type
+  !>  placeholder reduction operator type
   type, public :: reduction_operator
   end type reduction_operator
 
-  !> @brief parallel environment type with common parameters
+  !>  parallel environment type with common parameters
   !!        process id, number of processes and root process
   type, public :: parallel_environment
     integer(ccs_int) :: proc_id

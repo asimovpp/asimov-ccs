@@ -1,4 +1,4 @@
-!> @brief Submodule file parallel_errors_mpi.smod
+!>  Submodule file parallel_errors_mpi.smod
 !
 !> @build mpi
 !
@@ -14,7 +14,7 @@ submodule (parallel) parallel_errors_mpi
 
   contains
 
-  !> @brief Error handling for parallel environment that uses MPI only
+  !>  Error handling for parallel environment that uses MPI only
   !
   !> @param[in] integer error_code - Variable the holds the error code
   !> @param[in] string error_cat - String description of the error category

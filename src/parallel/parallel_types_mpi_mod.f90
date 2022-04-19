@@ -1,4 +1,4 @@
-!> @brief Module file parallel_types.mod
+!>  Module file parallel_types.mod
 !
 !> @build mpi
 !
@@ -12,7 +12,7 @@ module parallel_types_mpi
 
   private 
 
-  !> @brief reduction operator type for MPI
+  !>  reduction operator type for MPI
   !
   !> @details reduction operator type from MPI that holds
   !!          the MPI operator values that are passed to
@@ -21,7 +21,7 @@ module parallel_types_mpi
     integer :: op
   end type reduction_operator_mpi
 
-  !> @brief parallel environment type for MPI
+  !>  parallel environment type for MPI
   !
   !> @details parallel environment type from MPI that holds
   !!          a communicator and reduction operators in
@@ -43,7 +43,7 @@ module parallel_types_mpi
   end type parallel_environment_mpi
 
   contains 
-  !> @brief Set the values of the reduction operators
+  !>  Set the values of the reduction operators
   subroutine set_mpi_reduction_operator(this)
     class(parallel_environment_mpi), intent(inout) :: this
     this%sum_op = MPI_SUM

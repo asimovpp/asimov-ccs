@@ -1,4 +1,4 @@
-!> @brief Submodule file fv_CDS.smod
+!>  Submodule file fv_CDS.smod
 !> @build CDS
 !
 !> @details An implementation of the finite volume method using the CDS scheme
@@ -18,7 +18,7 @@ submodule (fv) fv_common
 
 contains
 
-  !> @brief Computes fluxes and assign to matrix and RHS
+  !>  Computes fluxes and assign to matrix and RHS
   !
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure
@@ -58,7 +58,7 @@ contains
 
   end subroutine compute_fluxes
 
-  !> @brief Returns the number of entries per row that are non-zero
+  !>  Returns the number of entries per row that are non-zero
   !
   !> @details Note: this assumes a square 2d grid
   !
@@ -69,7 +69,7 @@ contains
     nnz = 5_ccs_int
   end function calc_matrix_nnz
 
-  !> @brief Computes the matrix coefficient for cells in the interior of the mesh
+  !>  Computes the matrix coefficient for cells in the interior of the mesh
   !
   !> @param[in] phi         - scalar field structure
   !> @param[in] mf          - mass flux array defined at faces
@@ -170,7 +170,7 @@ contains
     deallocate(mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
-  !> @brief Computes the value of the scalar field on the boundary based on linear interpolation between 
+  !>  Computes the value of the scalar field on the boundary based on linear interpolation between 
   !  values provided on box corners
   !
   !> @param[in] index_nb - index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
@@ -212,7 +212,7 @@ contains
     
   end subroutine compute_boundary_values
 
-  !> @brief Computes the matrix coefficient for cells on the boundary of the mesh
+  !>  Computes the matrix coefficient for cells on the boundary of the mesh
   !
   !> @param[in] phi         - scalar field structure
   !> @param[in] mf          - mass flux array defined at faces
@@ -306,7 +306,7 @@ contains
 
   end subroutine compute_boundary_coeffs
 
-  !> @brief Sets the diffusion coefficient
+  !>  Sets the diffusion coefficient
   !
   !> @param[in] index_p - the local cell index
   !> @param[in] index_nb  - the local neigbouring cell index
@@ -343,7 +343,7 @@ contains
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 
-  !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
+  !>  Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
@@ -429,7 +429,7 @@ contains
     
   end function calc_mass_flux
 
-  !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
+  !>  Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
   !> @param[in] index  - cell index
   !> @param[in] cps  - number of cells per side
@@ -443,7 +443,7 @@ contains
     row = (index-1)/cps + 1
   end subroutine calc_cell_coords
 
-  !> @brief Performs an update of the gradients of a field.
+  !>  Performs an update of the gradients of a field.
   !
   !> @param[in]    mesh - the mesh
   !> @param[inout] phi       - the field whose gradients we want to update
@@ -493,7 +493,7 @@ contains
     
   end subroutine update_gradient
 
-  !> @brief Helper subroutine to calculate a gradient component at a time.
+  !>  Helper subroutine to calculate a gradient component at a time.
   !
   !> @param[in] mesh   - the mesh
   !> @param[in] component   - which vector component (i.e. direction) to update?

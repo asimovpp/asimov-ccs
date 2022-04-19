@@ -1,4 +1,4 @@
-!> @brief Submodule file parallel_errors_mpi_petsc.smod
+!>  Submodule file parallel_errors_mpi_petsc.smod
 !> @build mpi petsc
 !
 !> @details Implementation (using MPI and PETSc) of parallel
@@ -13,7 +13,7 @@ submodule (parallel) parallel_errors_mpi_petsc
 
   contains
 
-  !> @brief Error handling for parallel environment that use
+  !>  Error handling for parallel environment that use
   !> both MPI and PETSc
   !
   !> @param[in] integer error_code - Variable the holds the error code

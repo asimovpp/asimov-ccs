@@ -1,4 +1,4 @@
-!> @brief Submodule file vec_petsc.smod
+!>  Submodule file vec_petsc.smod
 !> @build petsc
 !
 !> @details An implementation of vector objects using PETSc - the datatype and operations on it
@@ -15,7 +15,7 @@ submodule (vec) vec_petsc
 
 contains
 
-  !> @brief Create a PETSc-backed vector
+  !>  Create a PETSc-backed vector
   module subroutine create_vector(vec_properties, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
@@ -75,7 +75,7 @@ contains
 
   end subroutine
 
-  !> @brief Sets values in a PETSc vector
+  !>  Sets values in a PETSc vector
   module subroutine set_vector_values(val_dat, v)
 
     use petsc, only : VecSetValues
@@ -132,7 +132,7 @@ contains
     
   end subroutine
 
-  !> @brief Perform a parallel update of a PETSc vector
+  !>  Perform a parallel update of a PETSc vector
   module subroutine update_vector(v)
 
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector
@@ -154,7 +154,7 @@ contains
 
   end subroutine
 
-  !> @brief Begin a parallel update of a PETSc vector
+  !>  Begin a parallel update of a PETSc vector
   !
   !> @details Begins the parallel update to allow overlapping comms and compute
   module subroutine begin_update_vector(v)
@@ -178,7 +178,7 @@ contains
 
   end subroutine
 
-  !> @brief End a parallel update of a PETSc vector.
+  !>  End a parallel update of a PETSc vector.
   !
   !> @details Ends the parallel update to allow overlapping comms and compute.
   module subroutine end_update_vector(v)
@@ -204,7 +204,7 @@ contains
 
   end subroutine
 
-  !> @brief Begin a ghost update of a PETSc vector
+  !>  Begin a ghost update of a PETSc vector
   !
   !> @details Begins the ghost update to allow overlapping comms and compute
   subroutine begin_ghost_update_vector(v)
@@ -231,7 +231,7 @@ contains
 
   end subroutine
 
-  !> @brief End a ghost update of a PETSc vector.
+  !>  End a ghost update of a PETSc vector.
   !
   !> @details Ends the ghost update to allow overlapping comms and compute.
   subroutine end_ghost_update_vector(v)
@@ -269,7 +269,7 @@ contains
 
   end subroutine pack_one_vector_element
 
-  !> @brief Perform the AXPY vector operation using PETSc
+  !>  Perform the AXPY vector operation using PETSc
   !
   !> @details Performs the AXPY operation
   !!          y[i] = alpha * x[i] + y[i]
@@ -306,7 +306,7 @@ contains
     
   end subroutine
 
-  !> @brief Compute the norm of a PETSc vector
+  !>  Compute the norm of a PETSc vector
   module function vec_norm(v, norm_type) result(n)
 
     use petscvec, only : NORM_2, VecNorm
@@ -336,7 +336,7 @@ contains
     
   end function
 
-  !> @brief Gets the data in a given vector
+  !>  Gets the data in a given vector
   !
   !> @param[in] vec   - the vector to get data from
   !> @param[in] array - an array to store the data in
@@ -364,7 +364,7 @@ contains
     end select
   end subroutine get_vector_data
 
-  !> @brief Resets the vector data if required for further processing
+  !>  Resets the vector data if required for further processing
   !
   !> @param[in] vec   - the vector to reset
   !> @param[in] array - the array containing the data to restore
@@ -407,7 +407,7 @@ contains
     
   end subroutine zero_vector
 
-  !> @brief Replaces each component of a vector by its reciprocal
+  !>  Replaces each component of a vector by its reciprocal
   !
   !> @param[inout] vec - the vector
   module subroutine vec_reciprocal(vec)

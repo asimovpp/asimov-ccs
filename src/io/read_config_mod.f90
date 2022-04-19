@@ -1,4 +1,4 @@
-!> @brief Module file read_config.mod
+!>  Module file read_config.mod
 !>
 !> @details Module defining interface to read YAML config file
 
@@ -29,7 +29,7 @@ module read_config
 
   interface
 
-    !> @brief Get the name of the test case
+    !>  Get the name of the test case
     !
     !> @details Get the case name for the configuration file and 
     !! store it in a string.
@@ -41,7 +41,7 @@ module read_config
       character(len=:), allocatable, intent(inout) :: title
     end subroutine
       
-    !> @brief Get the number of steps
+    !>  Get the number of steps
     !
     !> @details Get the maximum number of iterations 
     !! to be preformed in the current run 
@@ -53,7 +53,7 @@ module read_config
       integer, intent(inout) :: steps
     end subroutine
       
-    !> @brief Get source of initial values
+    !>  Get source of initial values
     !
     !> @details Get the source of the initial values - accepted
     !! values are "user", "field" or "step" 
@@ -71,7 +71,7 @@ module read_config
 
     end subroutine
 
-    !> @brief Get reference numbers
+    !>  Get reference numbers
     !
     !> @details Get the reference numbers, the fluid properties 
     !! and the operating condition 
@@ -98,7 +98,7 @@ module read_config
       integer, optional, intent(inout) :: pref_at_cell
     end subroutine
 
-    !> @brief Get variables to be solved
+    !>  Get variables to be solved
     !
     !> @details By default, all variables will be solved. Using this 
     !! "solve" keyword, the user can specifically request that 
@@ -119,7 +119,7 @@ module read_config
       character(len=:), allocatable, optional, intent(inout) :: p_sol
     end subroutine
 
-    !> @brief Get solvers to be used
+    !>  Get solvers to be used
     !
     !> @details Get the solvers that are to be used for each of
     !! the variables. Solver types are defined by integer values
@@ -141,7 +141,7 @@ module read_config
       integer, optional, intent(inout) :: ed_solver
     end subroutine
 
-    !> @brief Get transient status
+    !>  Get transient status
     !
     !> @details Enables/disables unsteady solution algorithm
     !
@@ -158,7 +158,7 @@ module read_config
       integer, intent(inout) :: max_sub_steps
     end subroutine
 
-    !> @brief Get target residual
+    !>  Get target residual
     !
     !> @details Get the convergence criterion. 
     !! The calculation will stop when the residuals (L2-norm) of the 
@@ -171,7 +171,7 @@ module read_config
       real(ccs_real), intent(inout) :: residual
     end subroutine
 
-    !> @brief Get grid cell to monitor
+    !>  Get grid cell to monitor
     !
     !> @details Get the grid cell at which to monitor the values
     !! of the flow variables (U,V,W,P,TE,ED and T)
@@ -183,7 +183,7 @@ module read_config
       integer, intent(inout) :: monitor_cell
     end subroutine
 
-    !> @brief Get convection schemes 
+    !>  Get convection schemes 
     !
     !> @details Get convection schemes to be used for the 
     !! different variables. The convection schemes are defined
@@ -204,7 +204,7 @@ module read_config
       integer, optional, intent(inout) :: ed_conv
     end subroutine
 
-    !> @brief Get blending factor values 
+    !>  Get blending factor values 
     !
     !> @details Get blending factors
     !
@@ -223,7 +223,7 @@ module read_config
       real(ccs_real), optional, intent(inout) :: ed_blend
     end subroutine
 
-    !> @brief Get relaxation factor values 
+    !>  Get relaxation factor values 
     !
     !> @details Get relaxation factors
     !
@@ -242,7 +242,7 @@ module read_config
       real(ccs_real), optional, intent(inout) :: ed_relax
     end subroutine
 
-    !> @brief Get output frequency 
+    !>  Get output frequency 
     !
     !> @details Get output frequency, set with keywords "every"
     !! "iter" or both.
@@ -256,7 +256,7 @@ module read_config
       integer, intent(inout) :: output_iter
     end subroutine
 
-    !> @brief Get output file format 
+    !>  Get output file format 
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[inout] plot_format - output format (e.g. vtk)
@@ -265,7 +265,7 @@ module read_config
       character(len=:), allocatable, intent(inout) :: plot_format
     end subroutine
 
-    !> @brief Get output type variables 
+    !>  Get output type variables 
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[inout] post_type - values at cell centres or cell vertices?
@@ -277,7 +277,7 @@ module read_config
     end subroutine
 
 
-    !> @brief Get boundary conditions 
+    !>  Get boundary conditions 
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[inout] bnd_region - array of boundary region names

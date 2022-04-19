@@ -1,4 +1,4 @@
-!> @brief Submodule file fv_discretisation.smod
+!>  Submodule file fv_discretisation.smod
 !> @build discretisation
 !
 !> @details Implementations of the finite volume method using the various discretisation schemes scheme
@@ -9,7 +9,7 @@ submodule (fv) fv_discretisation
 
 contains
   
-  !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
+  !>  Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
   !> @param[in] phi         - scalar field
   !> @param[in] mf          - mass flux at the face
@@ -37,7 +37,7 @@ contains
     coeff = interpolation_factor
   end subroutine calc_advection_coeff_cds
   
-  !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
+  !>  Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
   !> @param[in] phi         - scalar field
   !> @param[in] mf          - mass flux at the face

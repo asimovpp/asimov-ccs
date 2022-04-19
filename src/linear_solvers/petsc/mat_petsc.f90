@@ -10,7 +10,7 @@ submodule (mat) mat_petsc
 
 contains
 
-  !> @brief Create a new PETSc matrix object.
+  !>  Create a new PETSc matrix object.
   module subroutine create_matrix(mat_properties, M)
 
     use mpi
@@ -86,7 +86,7 @@ contains
 
   end subroutine finalise_matrix
 
-  !> @brief Perform a parallel update of a PETSc matrix.
+  !>  Perform a parallel update of a PETSc matrix.
   module subroutine update_matrix(M)
 
     class(ccs_matrix), intent(inout) :: M   !< the matrix
@@ -105,7 +105,7 @@ contains
   
   end subroutine
 
-  !> @brief Begin a parallel update of a PETSc matrix.
+  !>  Begin a parallel update of a PETSc matrix.
   !
   !> @details Begins the parallel update to allow overlapping comms and compute.
   module subroutine begin_update_matrix(M)
@@ -127,7 +127,7 @@ contains
     
   end subroutine
 
-  !> @brief End a parallel update of a PETSc matrix.
+  !>  End a parallel update of a PETSc matrix.
   !
   !> @details Ends the parallel update to allow overlapping comms and compute.
   module subroutine end_update_matrix(M)
@@ -171,7 +171,7 @@ contains
     
   end subroutine pack_one_matrix_coefficient
 
-  !> @brief Set values in a PETSc matrix.
+  !>  Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 
     use petscmat, only : MatSetValues
@@ -230,7 +230,7 @@ contains
 
   end subroutine
 
-  !> @brief Set equation
+  !>  Set equation
   !
   !> @details Sets equations in a system of equations by zeroing out the corresponding row in the
   !!          system matrix and setting the diagonal to one such that the solution is given by
@@ -258,7 +258,7 @@ contains
     
   end subroutine
 
-  !> @brief Perform the AXPY matrix operation using PETSc
+  !>  Perform the AXPY matrix operation using PETSc
   !
   !> @details Performs the AXPY operation
   !!          y[i] = alpha * x[i] + y[i]
@@ -295,7 +295,7 @@ contains
     
   end subroutine
 
-  !> @brief Compute the norm of a PETSc matrix
+  !>  Compute the norm of a PETSc matrix
   module function mat_norm(M, norm_type) result(n)
 
     use petscmat, only : NORM_1, NORM_FROBENIUS, NORM_INFINITY, MatNorm
@@ -329,7 +329,7 @@ contains
     
   end function
 
-  !> @brief Extract the diagonal elements of a matrix and store in a vector
+  !>  Extract the diagonal elements of a matrix and store in a vector
   module subroutine get_matrix_diagonal(M, D)
 
     use petscmat, only: MatGetDiagonal

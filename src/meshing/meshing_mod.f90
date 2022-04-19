@@ -1,4 +1,4 @@
-!> @brief Module file meshing.mod
+!>  Module file meshing.mod
 !>
 !> @details Module defining meshing interface for ASiMoV-CCS
 
@@ -64,7 +64,7 @@ module meshing
   
   interface
 
-    !> @brief Constructs a cell locator object.
+    !>  Constructs a cell locator object.
     !
     !> @description Creates the association between a mesh and cell index, storing it in the
     !!              returned cell locator object.
@@ -79,7 +79,7 @@ module meshing
       type(cell_locator), intent(out) :: loc_p
     end subroutine set_cell_location
   
-    !> @brief Constructs a face locator object.
+    !>  Constructs a face locator object.
     !
     !> @description Creates the association between a face relative to a cell, i.e. to access the
     !!              nth face of cell i.
@@ -96,7 +96,7 @@ module meshing
       type(face_locator), intent(out) :: loc_f
     end subroutine set_face_location
 
-    !> @brief Constructs a neighbour locator object.
+    !>  Constructs a neighbour locator object.
     !
     !> @description Creates the association between a neighbour cell F relative to cell P, i.e. to
     !!              access the nth neighbour of cell i.
@@ -112,7 +112,7 @@ module meshing
       type(neighbour_locator), intent(out) :: loc_nb
     end subroutine set_neighbour_location
 
-    !> @brief Set face index
+    !>  Set face index
     module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
       integer(ccs_int), intent(in) :: index_p
       integer(ccs_int), intent(in) :: cell_face_ctr
@@ -120,7 +120,7 @@ module meshing
       type(ccs_mesh), target, intent(inout) :: mesh
     end subroutine set_face_index
 
-    !> @brief Returns the normal vector of a face
+    !>  Returns the normal vector of a face
     !
     !> @param[in]  face_locator    loc_f - the face locator object.
     !> @param[out] real(ccs_real) normal(ndim)  - an ndimensional array representing the face normal
@@ -130,7 +130,7 @@ module meshing
       real(ccs_real), dimension(ndim), intent(out) :: normal
     end subroutine get_face_normal
 
-    !> @brief Returns the area of a face
+    !>  Returns the area of a face
     !
     !> @param[in]  face_locator    loc_f - the face locator object.
     !> @param[out] real(ccs_real) area          - the face area.
@@ -139,7 +139,7 @@ module meshing
       real(ccs_real), intent(out) :: area
     end subroutine get_face_area
 
-    !> @brief Returns the centre of a cell
+    !>  Returns the centre of a cell
     !
     !> @param[in]  cell_locator     loc_p - the cell locator object.
     !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the cell centre.
@@ -148,7 +148,7 @@ module meshing
       real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_cell_centre
 
-    !> @brief Returns the centre of a neighbour cell
+    !>  Returns the centre of a neighbour cell
     !
     !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] real(ccs_real)   x(ndim)            - an ndimensional array representing the
@@ -158,7 +158,7 @@ module meshing
       real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_neighbour_centre
 
-    !> @brief Returns the centre of a face
+    !>  Returns the centre of a face
     !
     !> @param[in]  face_locator     loc_f - the face locator object.
     !> @param[out] real(ccs_real)  x(ndim)       - an ndimensional array representing the face centre.
@@ -167,7 +167,7 @@ module meshing
       real(ccs_real), dimension(ndim), intent(out) :: x
     end subroutine get_face_centre
 
-    !> @brief Returns the volume of a cell
+    !>  Returns the volume of a cell
     !
     !> @param[in] cell_locator     loc_p - the cell locator object.
     !> @param[out] real(ccs_real) V             - the cell volume.
@@ -176,7 +176,7 @@ module meshing
       real(ccs_real), intent(out) :: V
     end subroutine get_cell_volume
 
-    !> @brief Returns the volume of a neighbour cell
+    !>  Returns the volume of a neighbour cell
     !
     !> @param[in] neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] real(ccs_real)  V                  - the neighbour cell volume.
@@ -185,7 +185,7 @@ module meshing
       real(ccs_real), intent(out) :: V
     end subroutine get_neighbour_volume
 
-    !> @brief Returns the global index of a cell
+    !>  Returns the global index of a cell
     !
     !> @param[in]  cell_locator      loc_p - the cell locator object.
     !> @param[out] integer(ccs_int) global_index_p          - the global index of the cell.
@@ -194,7 +194,7 @@ module meshing
       integer(ccs_int), intent(out) :: global_index_p
     end subroutine get_cell_global_index
 
-    !> @brief Returns the global index of a neighbouring cell
+    !>  Returns the global index of a neighbouring cell
     !
     !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] integer(ccs_int) global_index_nb             - the global index of the neighbour cell.
@@ -203,7 +203,7 @@ module meshing
       integer(ccs_int), intent(out) :: global_index_nb
     end subroutine get_neighbour_global_index
 
-    !> @brief Returns the neighbour count of a cell (including boundary neighbours)
+    !>  Returns the neighbour count of a cell (including boundary neighbours)
     !
     !> @param[in]  cell_locator      loc_p - the cell locator object.
     !> @param[out] integer(ccs_int) nnb           - the neighbour count of the cell.
@@ -212,7 +212,7 @@ module meshing
       integer(ccs_int), intent(out) :: nnb
     end subroutine cell_count_neighbours
 
-    !> @brief Returns the boundary status of a neighbouring cell
+    !>  Returns the boundary status of a neighbouring cell
     !
     !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] logical           is_boundary        - the boundary status of the neighbour.
@@ -221,7 +221,7 @@ module meshing
       logical, intent(out) :: is_boundary
     end subroutine get_neighbour_boundary_status
 
-    !> @brief Returns the boundary status of a face
+    !>  Returns the boundary status of a face
     !
     !> @param[in]  face_locator loc_f - the face locator object.
     !> @param[out] logical      is_boundary   - the boundary status of the neighbour.
@@ -230,7 +230,7 @@ module meshing
       logical, intent(out) :: is_boundary
     end subroutine get_face_boundary_status
 
-    !> @brief Returns the local distribution status of a neighbouring cell
+    !>  Returns the local distribution status of a neighbouring cell
     !
     !> @description Given a distributed mesh, a processor needs both the cells within its partition
     !!              and cells from the surrounding halo - this subroutine get_indicates whether a
@@ -243,7 +243,7 @@ module meshing
       logical, intent(out) :: is_local
     end subroutine get_local_status
 
-    !> @brief Returns the local index of a cell
+    !>  Returns the local index of a cell
     !
     !> @description Generally the local index of a cell is should be the same as its location within
     !!              the local cell vector - this particular subroutine get_is therefore expected of
@@ -256,7 +256,7 @@ module meshing
       integer(ccs_int), intent(out) :: index_p
     end subroutine get_cell_local_index
 
-    !> @brief Returns the local index of a neighbouring cell
+    !>  Returns the local index of a neighbouring cell
     !
     !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
     !> @param[out] integer(ccs_int) index_nb              - the local index of the neighbour cell.
@@ -265,7 +265,7 @@ module meshing
       integer(ccs_int), intent(out) :: index_nb
     end subroutine get_neighbour_local_index
 
-    !> @brief Returns the local index of a face
+    !>  Returns the local index of a face
     !
     !> @param[in]  face_locator     loc_f     - the face locator object.
     !> @param[out] integer(ccs_int) index_f   - the local index of the face.
@@ -274,7 +274,7 @@ module meshing
       integer(ccs_int), intent(out) :: index_f
     end subroutine get_face_local_index
 
-    !> @brief Returns the distance between two cell centres
+    !>  Returns the distance between two cell centres
     !
     !> @param[in]  cell_locator      loc_p  - The cell distance is measured from.
     !> @param[in]  neighbour_locator loc_nb - The cell distance is measured to.
@@ -285,7 +285,7 @@ module meshing
       real(ccs_real), dimension(ndim), intent(out) :: dx
     end subroutine get_neighbour_distance
 
-    !> @brief Returns the distance from cell to face centres
+    !>  Returns the distance from cell to face centres
     !
     !> @param[in]  cell_locator loc_p - The cell distance is measured from.
     !> @param[in]  face_locator loc_f - The face distance is measured to.

@@ -1,4 +1,4 @@
-!> @brief Submodule file io_setup_adios2.smod
+!>  Submodule file io_setup_adios2.smod
 !
 !> @build mpi adios2
 !
@@ -15,7 +15,7 @@ submodule (io) io_setup_adios2
 
   contains
 
-  !> @brief Initialise the IO environment
+  !>  Initialise the IO environment
   !
   !> @todo The "mode" is currently hard coded - would be better if this
   !        was a configuration file option?
@@ -52,7 +52,7 @@ submodule (io) io_setup_adios2
 
   end subroutine
 
-  !> @brief Clean up the IO environment
+  !>  Clean up the IO environment
   module subroutine cleanup_io(io_env)
     class(io_environment), intent(inout) :: io_env  !< ADIOS2 IO environment
 
@@ -71,7 +71,7 @@ submodule (io) io_setup_adios2
 
   end subroutine
   
-  !> @brief Configure the IO process
+  !>  Configure the IO process
   module subroutine configure_io(io_env, process_name, io_proc)
     class(io_environment), intent(in) :: io_env             !< ADIOS2 IO environment
     character (len=*), intent(in) :: process_name           !< name of the IO process to be configured - must match a name 
@@ -103,7 +103,7 @@ submodule (io) io_setup_adios2
 
   end subroutine
 
-  !> @brief Open file with ADIOS2
+  !>  Open file with ADIOS2
   module subroutine open_file(filename, mode, io_proc)
     character (len=*), intent(in) :: filename     !< name of file to open
     character (len=*), intent(in) :: mode         !< choose whether to read/ write or append valid options are: "read", "write", "append"
@@ -123,7 +123,7 @@ submodule (io) io_setup_adios2
 
   end subroutine
 
-  !> @brief Close file/engine with ADIOS2
+  !>  Close file/engine with ADIOS2
   module subroutine close_file(io_proc)
     class(io_process), intent(inout) :: io_proc   !< ADIOS2 IO process
 
@@ -141,7 +141,7 @@ submodule (io) io_setup_adios2
 
   end subroutine
 
-  ! @brief Return ADIOS2 values for read, write and append modes
+  !  Return ADIOS2 values for read, write and append modes
   function get_mode(mode_name) result(mode)
     character (len=*), intent(in) :: mode_name
     integer(ccs_int) :: mode

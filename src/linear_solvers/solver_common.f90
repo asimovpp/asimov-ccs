@@ -4,7 +4,7 @@ submodule (solver) solver_common
 
 contains
 
-  !> @brief Constructor for default linear system
+  !>  Constructor for default linear system
   module subroutine initialise_equation_system(lin_sys)
     type(equation_system), intent(inout) :: lin_sys
     
@@ -14,7 +14,7 @@ contains
     lin_sys%par_env => null()
   end subroutine initialise_equation_system
 
-  !> @brief Setter for the linear system
+  !>  Setter for the linear system
   module subroutine set_equation_system(par_env, rhs, solution, mat, lin_sys)
     class(parallel_environment), allocatable, target, intent(in) :: par_env   !< the parallel environment where the linear system resides
     class(ccs_vector), allocatable, target, intent(in) :: rhs                 !< the right hand side vector
