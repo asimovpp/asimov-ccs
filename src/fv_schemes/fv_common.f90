@@ -203,7 +203,7 @@ contains
     if (phi%bcs%bc_type(index_nb) == 0) then
       bc_value = 0.0_ccs_real
     else if (phi%bcs%bc_type(index_nb) == 1) then
-      bc_value = -1.0_ccs_real ! XXX: might not be correct
+      bc_value = 1.0_ccs_real ! XXX: might not be correct
     else
       print *, "ERROR: Unknown boundary type ", phi%bcs%bc_type(index_nb)
     end if
