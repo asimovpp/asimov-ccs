@@ -720,114 +720,163 @@ submodule (read_config) read_config_utils
   !> @param[inout] bnd_region - array of boundary region names
   !> @param[inout] bnd_type - array of boundary types (e.g. periodic, symmetric, ...)
   !> @param[inout] bnd_vector - array of boundary vectors
-  module subroutine get_boundaries(config_file, bnd_region, bnd_type, bnd_vector)
+  !module subroutine get_boundaries(config_file, bnd_region, bnd_type, bnd_vector)
 
-    use yaml_types, only: real_kind
+  !  use yaml_types, only: real_kind
 
-    class(*), pointer, intent(in) :: config_file
-    character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
-    character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-    real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
+  !  class(*), pointer, intent(in) :: config_file
+  !  character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
+  !  character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
+  !  real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
   
-    type(type_error), pointer :: io_err
-    integer :: num_boundaries = 0
-    integer :: idx = 1
-    integer :: inner_idx = 1
-    logical :: success
+  !  type(type_error), pointer :: io_err
+  !  integer :: num_boundaries = 0
+  !  integer :: idx = 1
+  !  integer :: inner_idx = 1
+  !  logical :: success
+
+  !  class(type_dictionary), pointer :: dict
+  !  class(type_list), pointer :: list
+  !  class(type_list_item), pointer :: item, inner_item
+
+  !  select type(config_file)
+  !  type is(type_dictionary)
+
+  !    dict => config_file%get_dictionary('boundary', required=.false., error=io_err)
+  !    call error_handler(io_err)  
+
+  !    list => dict%get_list('region', required=.false.,error=io_err)
+  !    call error_handler(io_err)  
+
+  !    item => list%first
+  !    do while(associated(item))
+  !      num_boundaries = num_boundaries + 1
+  !      item => item%next
+  !    end do
+
+  !    allocate(bnd_region(num_boundaries))
+  !    allocate(bnd_type(num_boundaries))
+  !    allocate(bnd_vector(3,num_boundaries))
+
+  !    list => dict%get_list('region', required=.false.,error=io_err)
+  !    call error_handler(io_err)  
+
+  !    item => list%first
+  !    do while(associated(item))
+  !      select type(element => item%node)
+  !      class is (type_scalar)
+  !        bnd_region(idx) = trim(element%string)
+  !        print*,bnd_region(idx)
+  !        item => item%next
+  !        idx = idx + 1
+  !        end select  
+  !    end do
+
+  !    list => dict%get_list('type', required=.false.,error=io_err)
+  !    call error_handler(io_err)  
+
+  !    idx = 1 
+  !    
+  !    item => list%first
+  !    do while(associated(item))
+  !      select type(element => item%node)
+  !      class is (type_scalar)
+  !        bnd_type(idx) = trim(element%string)
+  !        print*,bnd_type(idx)
+  !        item => item%next
+  !        idx = idx + 1
+  !        end select  
+  !    end do
+
+  !    if(present(bnd_vector)) then
+  !  
+  !      list => dict%get_list('vector', required=.false.,error=io_err)
+  !      call error_handler(io_err)  
+
+  !      idx = 1
+
+  !      item => list%first
+
+  !      do while(associated(item))
+
+  !        select type(inner_list => item%node)
+  !        type is(type_list)
+
+  !          inner_item => inner_list%first
+  !          inner_idx = 1
+
+  !          do while(associated(inner_item))
+  !            select type(inner_element => inner_item%node)
+  !            class is(type_scalar)
+  !              inner_item => inner_item%next
+  !              inner_idx = inner_idx + 1
+  !              bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
+  !              print*,bnd_vector(inner_idx,idx)
+  !            end select
+  !          end do
+
+  !        end select
+
+  !        item => item%next
+  !        idx = idx + 1
+
+  !      end do
+
+  !    end if
+
+  !  class default
+  !    print*,"Unknown type"
+  !  end select
+
+  !end subroutine
+
+  module subroutine get_boundaries(config_file, fields, regions, bc_types, bc_values)
+    class(*), pointer, intent(in) :: config_file
+    character(len=16), dimension(:), allocatable, intent(inout) :: fields
+    character(len=16), dimension(:,:), allocatable, intent(inout) :: regions
+    character(len=16), dimension(:,:), allocatable, intent(inout) :: bc_types
+    real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bc_values
 
     class(type_dictionary), pointer :: dict
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item, inner_item
+    type(type_error), pointer :: io_err
+    integer :: i
+    integer :: n_fields
 
     select type(config_file)
     type is(type_dictionary)
-
       dict => config_file%get_dictionary('boundary', required=.false., error=io_err)
       call error_handler(io_err)  
 
-      list => dict%get_list('region', required=.false.,error=io_err)
+      list => dict%get_list('variables', required=.false.,error=io_err)
       call error_handler(io_err)  
 
+      ! Read through the variable names first to count how many there are
       item => list%first
       do while(associated(item))
-        num_boundaries = num_boundaries + 1
+        n_fields = n_fields + 1
         item => item%next
       end do
 
-      allocate(bnd_region(num_boundaries))
-      allocate(bnd_type(num_boundaries))
-      allocate(bnd_vector(3,num_boundaries))
+      allocate(fields(n_fields))
 
-      list => dict%get_list('region', required=.false.,error=io_err)
-      call error_handler(io_err)  
-
+      ! Now actually read the fields
       item => list%first
+      i = 1
       do while(associated(item))
         select type(element => item%node)
         class is (type_scalar)
-          bnd_region(idx) = trim(element%string)
-          print*,bnd_region(idx)
+          fields(i) = trim(element%string)
+          print*, fields(i)
           item => item%next
-          idx = idx + 1
+          i = i + 1
           end select  
       end do
-
-      list => dict%get_list('type', required=.false.,error=io_err)
-      call error_handler(io_err)  
-
-      idx = 1 
-      
-      item => list%first
-      do while(associated(item))
-        select type(element => item%node)
-        class is (type_scalar)
-          bnd_type(idx) = trim(element%string)
-          print*,bnd_type(idx)
-          item => item%next
-          idx = idx + 1
-          end select  
-      end do
-
-      if(present(bnd_vector)) then
-    
-        list => dict%get_list('vector', required=.false.,error=io_err)
-        call error_handler(io_err)  
-
-        idx = 1
-
-        item => list%first
-
-        do while(associated(item))
-
-          select type(inner_list => item%node)
-          type is(type_list)
-
-            inner_item => inner_list%first
-            inner_idx = 1
-
-            do while(associated(inner_item))
-              select type(inner_element => inner_item%node)
-              class is(type_scalar)
-                inner_item => inner_item%next
-                inner_idx = inner_idx + 1
-                bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
-                print*,bnd_vector(inner_idx,idx)
-              end select
-            end do
-
-          end select
-
-          item => item%next
-          idx = idx + 1
-
-        end do
-
-      end if
 
     class default
-      print*,"Unknown type"
+      print *, "unknown type"
     end select
-
-  end subroutine
+  end subroutine get_boundaries
     
 end submodule read_config_utils
