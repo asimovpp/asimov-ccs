@@ -48,14 +48,15 @@ relaxation_factor:
 
 # Note: for boundary "top": u = 1.0
 boundary:
-  variables: [u, v, p]
-  u:
-    region: [left, right, top, bottom]
-    type: [wall, wall, wall, constant]
-    value: [0.0, 0.0, 0.0, 1.0]
-  v:
-    region: [left, right, top, bottom]
-    type: [wall, wall, wall, wall]
-  p:
-    region: [left, right, top, bottom]
-    type: [wall, wall, wall, wall]
+  regions: [left, right, top, bottom]
+  left:
+    type: wall
+  right:
+    type: wall
+  top:
+    variables: [u, v, p]
+    type: [constant, wall, wall]
+    value: [1.0, 0.0, 0.0]
+  bottom:
+    type: wall
+      
