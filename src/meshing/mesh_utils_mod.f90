@@ -340,14 +340,14 @@ contains
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
-    integer(ccs_int) :: nfaces_int       ! Internal face count
+    integer(ccs_int) :: n_faces_internal       ! Internal face count
     integer(ccs_int) :: nfaces_bnd       ! Boundary face count
     integer(ccs_int) :: nfaces_interface ! Process interface face count
     logical :: is_boundary
     logical :: is_local
 
     ! Initialise
-    nfaces_int = 0
+    n_faces_internal = 0
     nfaces_bnd = 0
     nfaces_interface = 0
 
@@ -366,7 +366,7 @@ contains
           
           if (is_local) then
             ! Interior face
-            nfaces_int = nfaces_int + 1
+            n_faces_internal = n_faces_internal + 1
           else
             ! Process boundary face
             nfaces_interface = nfaces_interface + 1
@@ -379,7 +379,7 @@ contains
     end do
 
     ! Interior faces will be counted twice
-    nfaces = (nfaces_int / 2) + nfaces_interface + nfaces_bnd
+    nfaces = (n_faces_internal / 2) + nfaces_interface + nfaces_bnd
 
   end function count_mesh_faces
 
