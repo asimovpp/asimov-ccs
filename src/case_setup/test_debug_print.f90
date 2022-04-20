@@ -1,4 +1,4 @@
-#include "ccs_macros.h"
+#include "ccs_macros.inc"
 program test_debug_print
   use utils, only : debug_print, str
   use kinds, only : ccs_int, ccs_real

@@ -1,6 +1,9 @@
 FC = mpif90
-FFLAGS = -cpp -std=f2018 -DVERBOSE -ffree-line-length-none
+FFLAGS = -cpp -std=f2018 -ffree-line-length-none
 CAFFLAGS = -fcoarray=single
+ifeq ($(VERBOSE),yes)
+  FFLAGS += -DVERBOSE
+endif
 ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
   FFLAGS += -g -Og

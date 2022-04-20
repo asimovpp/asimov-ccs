@@ -1,5 +1,8 @@
 FC = mpiifort -fc=ifx
 FFLAGS = -cpp -fPIC -stand f18
+ifeq ($(VERBOSE),yes)
+  FFLAGS += -DVERBOSE
+endif
 ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
   FFLAGS += -g
