@@ -107,14 +107,14 @@ module utils
 
   !> @brief Generic interface to debug printer
   interface debug_print
-    module procedure dprint_print
+    module procedure debug_print_actual
     module procedure noop
   end interface debug_print
   
 contains
 
-  !> @brief Print a message, along with with its location
-  subroutine dprint_print(msg, filepath, line)
+  !> @brief Print a message, along with with its location.
+  subroutine debug_print_actual(msg, filepath, line)
     character(*), intent(in) :: msg
     character(*), intent(in) :: filepath
     integer, intent(in) :: line
