@@ -120,17 +120,14 @@ contains
     integer, intent(in) :: line
 
     character(len=:), allocatable :: filename
-    character(1) :: c
-    integer :: i, length
+    integer :: slash_position
 
-    i = len_trim(filepath)
-    length = i
-    c = filepath(i:i)
-    do while (c /= "/")
-      i = i - 1
-      c = filepath(i:i)
-    end do
-    filename = filepath(i+1:length)
+    slash_position = scan(trim(filepath), "/", back=.true.)
+    if (slash_position .gt. 0) then
+      filename = filepath(slash_position+1:len_trim(filepath))
+    else
+      filename = filepath
+    end if
 
     print *, trim(filename), "(", trim(adjustl(int2str(line))), ") : ", msg
   end subroutine
