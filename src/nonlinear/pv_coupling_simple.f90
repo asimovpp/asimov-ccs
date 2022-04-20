@@ -30,15 +30,15 @@ contains
   !> @param[in]  mesh - the mesh
   !> @param[in,out] u, v   - fields containing velocity fields in x, y directions
   !> @param[in,out] p      - field containing pressure values
-  !> @param[in,out] pp     - field containing pressure-correction values
+  !> @param[in,out] p_prime     - field containing pressure-correction values
   !> @param[in,out] mf     - field containing the face-centred velocity flux 
-  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, pp, mf)
+  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: cps, it_start, it_end
-    class(field), intent(inout) :: u, v, p, pp, mf
+    class(field), intent(inout) :: u, v, p, p_prime, mf
     
     ! Local variables
     integer(ccs_int) :: i
@@ -91,17 +91,17 @@ contains
       print *, "NONLINEAR: mass imbalance"
       call compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, source)
       print *, "NONLINEAR: compute p'"
-      call calculate_pressure_correction(par_env, mesh, invAu, invAv, M, source, lin_system, pp)
+      call calculate_pressure_correction(par_env, mesh, invAu, invAv, M, source, lin_system, p_prime)
       
       ! Update velocity with velocity correction (eq. 6)
       print *, "NONLINEAR: correct face velocity"
-      call update_face_velocity(mesh, invAu, invAv, pp, mf)
+      call update_face_velocity(mesh, invAu, invAv, p_prime, mf)
       print *, "NONLINEAR: correct velocity"
-      call update_velocity(mesh, invAu, invAv, pp, u, v)
+      call update_velocity(mesh, invAu, invAv, p_prime, u, v)
 
       ! Update pressure field with pressure correction
       print *, "NONLINEAR: correct pressure"
-      call update_pressure(pp, p)
+      call update_pressure(p_prime, p)
       print *, "NONLINEAR: compute gradp"
       call update_gradient(mesh, p)
 
@@ -293,10 +293,10 @@ contains
   !> @param[inout] M            - matrix object
   !> @param[inout] vec          - the RHS vector
   !> @param[inout] lin_sys      - linear system object
-  !> @param[inout] pp           - the pressure correction field
+  !> @param[inout] p_prime           - the pressure correction field
   !
   !> @description Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, M, vec, lin_sys, pp)
+  subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, M, vec, lin_sys, p_prime)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -305,7 +305,7 @@ contains
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
     type(equation_system), intent(inout) :: lin_sys
-    class(field), intent(inout) :: pp
+    class(field), intent(inout) :: p_prime
 
     ! Local variables
     type(matrix_values) :: mat_coeffs
@@ -448,7 +448,7 @@ contains
     
     ! Create linear solver
     print *, "P': create lin sys"
-    call set_equation_system(par_env, vec, pp%values, M, lin_sys)
+    call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
@@ -585,41 +585,41 @@ contains
   end subroutine compute_mass_imbalance
 
   !> @brief Corrects the pressure field, using explicit underrelaxation
-  subroutine update_pressure(pp, p)
+  subroutine update_pressure(p_prime, p)
 
     use case_config, only: pressure_relax
 
     ! Arguments
-    class(field), intent(in) :: pp
+    class(field), intent(in) :: p_prime
     class(field), intent(inout) :: p
 
-    call axpy(pressure_relax, pp%values, p%values)
+    call axpy(pressure_relax, p_prime%values, p%values)
     
   end subroutine update_pressure
 
   !> @brief Corrects the velocity field using the pressure correction gradient
-  subroutine update_velocity(mesh, invAu, invAv, pp, u, v)
+  subroutine update_velocity(mesh, invAu, invAv, p_prime, u, v)
 
     use vec, only : zero_vector
     
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
     class(ccs_vector), intent(in) :: invAu, invAv
-    class(field), intent(inout) :: pp
+    class(field), intent(inout) :: p_prime
     class(field), intent(inout) :: u, v
 
     ! First update gradients
-    call zero_vector(pp%x_gradients)
-    call zero_vector(pp%y_gradients)
-    call update_gradient(mesh, pp)
+    call zero_vector(p_prime%x_gradients)
+    call zero_vector(p_prime%y_gradients)
+    call update_gradient(mesh, p_prime)
 
     ! Multiply gradients by inverse diagonal coefficients
-    call mult(invAu, pp%x_gradients)
-    call mult(invAv, pp%y_gradients)
+    call mult(invAu, p_prime%x_gradients)
+    call mult(invAv, p_prime%y_gradients)
 
     ! Compute correction source on velocity
-    call calculate_momentum_pressure_source(mesh, pp%x_gradients, u%values)
-    call calculate_momentum_pressure_source(mesh, pp%y_gradients, v%values)
+    call calculate_momentum_pressure_source(mesh, p_prime%x_gradients, u%values)
+    call calculate_momentum_pressure_source(mesh, p_prime%y_gradients, v%values)
 
     call update(u%values)
     call update(v%values)
@@ -627,12 +627,12 @@ contains
   end subroutine update_velocity
 
   !> @brief Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(mesh, invAu, invAv, pp, mf)
+  subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
 
     type(ccs_mesh), intent(in) :: mesh
     class(ccs_vector), intent(in) :: invAu
     class(ccs_vector), intent(in) :: invAv
-    class(field), intent(inout) :: pp
+    class(field), intent(inout) :: p_prime
     class(field), intent(inout) :: mf
     
     integer(ccs_int) :: i
@@ -655,8 +655,8 @@ contains
     integer(ccs_int) :: index_nb
     
     ! Update vector to make sure data is up to date
-    call update(pp%values)
-    call get_vector_data(pp%values, pp_data)
+    call update(p_prime%values)
+    call get_vector_data(p_prime%values, pp_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
     call get_vector_data(mf%values, mf_data)
@@ -689,14 +689,14 @@ contains
 
     deallocate(zero_arr)
 
-    call restore_vector_data(pp%values, pp_data)
+    call restore_vector_data(p_prime%values, pp_data)
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
     call restore_vector_data(mf%values, mf_data)
 
     call update(mf%values)
     ! Update vector on exit (just in case)
-    call update(pp%values)
+    call update(p_prime%values)
     
   end subroutine update_face_velocity
 
