@@ -47,6 +47,15 @@ relaxation_factor:
 #  variables: [u, v, w, p]
 
 # Note: for boundary "top": u = 1.0
-#boundary:
-#  region: [left, right, top, bottom, live]
-#  type: [wall, wall, wall, wall, sym]
+boundary:
+  variables: [u, v, p]
+  u:
+    region: [left, right, top, bottom]
+    type: [wall, wall, wall, constant]
+    value: [0.0, 0.0, 0.0, 1.0]
+  v:
+    region: [left, right, top, bottom]
+    type: [wall, wall, wall, wall]
+  p:
+    region: [left, right, top, bottom]
+    type: [wall, wall, wall, wall]
