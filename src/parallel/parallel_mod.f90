@@ -5,7 +5,7 @@
 module parallel
 
   use parallel_types
-  use kinds, only: accs_int
+  use kinds, only: ccs_int
 
   implicit none
 
@@ -38,7 +38,7 @@ module parallel
     !> @brief read command line arguments and their values
     module subroutine read_command_line_arguments(par_env, cps, case_name)
       class(parallel_environment), intent(in) :: par_env
-      integer(accs_int), optional, intent(inout) :: cps
+      integer(ccs_int), optional, intent(inout) :: cps
       character(len=:), optional, allocatable, intent(out) :: case_name
     end subroutine read_command_line_arguments
 
@@ -48,11 +48,11 @@ module parallel
     end subroutine
 
     !> @brief Global reduction of integer scalars
-    module subroutine allreduce_scalar(input_value, result_value, rop, par_env)
+    module subroutine allreduce_scalar(input_value, rop, par_env, result_value)
       class(*), intent(in) :: input_value
-      class(*), intent(inout) :: result_value
       class(reduction_operator), intent(in) :: rop
       class(parallel_environment), intent(in) :: par_env
+      class(*), intent(inout) :: result_value
     end subroutine
 
     !> @brief Error handling for parallel environment

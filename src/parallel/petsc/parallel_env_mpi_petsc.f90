@@ -6,9 +6,7 @@
 submodule (parallel) parallel_env_mpi_petsc
 
   use mpi
-  use petsc, only:  PetscInitialize, &
-                    PetscFinalize, &
-                    PETSC_NULL_CHARACTER
+  use petsc, only:  PetscInitialize, PetscFinalize, PETSC_NULL_CHARACTER
   use parallel_types_mpi, only: parallel_environment_mpi
 
   implicit none
@@ -20,9 +18,10 @@ submodule (parallel) parallel_env_mpi_petsc
   !> @param[out] parallel_environment_mpi par_env
   module subroutine initialise_parallel_environment(par_env)
 
-    integer :: ierr !> Error code
-
     class(parallel_environment), allocatable, intent(out) :: par_env
+
+    integer :: ierr !< Error code
+
     allocate(parallel_environment_mpi :: par_env)
 
     select type (par_env)
@@ -59,7 +58,8 @@ submodule (parallel) parallel_env_mpi_petsc
   module subroutine cleanup_parallel_environment(par_env)
 
     class(parallel_environment), intent(in) :: par_env
-    integer :: ierr !> Error code
+
+    integer :: ierr !< Error code
 
     select type (par_env)
 
@@ -80,7 +80,8 @@ submodule (parallel) parallel_env_mpi_petsc
   subroutine initialise_petsc(par_env)
 
     type(parallel_environment_mpi), intent(in) :: par_env
-    integer :: ierr !> Error code
+
+    integer :: ierr !< Error code
 
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
@@ -94,7 +95,8 @@ submodule (parallel) parallel_env_mpi_petsc
   subroutine finalise_petsc(par_env)
 
     type(parallel_environment_mpi), intent(in) :: par_env
-    integer :: ierr !> Error code
+    
+    integer :: ierr !< Error code
 
     call PetscFinalize(ierr) ! Finalises MPI
 

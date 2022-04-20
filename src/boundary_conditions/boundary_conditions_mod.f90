@@ -4,7 +4,7 @@
 
 module boundary_conditions
   use types, only: bc_config
-  use kinds, only: accs_int, accs_real
+  use kinds, only: ccs_int, ccs_real
   
   implicit none
 
@@ -20,9 +20,9 @@ module boundary_conditions
   !> @param[in] bc_type - the bc type to set for all regions 
   !> @param[inout] bcs  - the bc_config struct being set
   subroutine set_all_bcs(bc_type, bcs)
-    integer(accs_int), intent(in) :: bc_type
+    integer(ccs_int), intent(in) :: bc_type
     type(bc_config), intent(inout) :: bcs
-    integer(accs_int) :: i
+    integer(ccs_int) :: i
 
     do i = 1, size(bcs%region)
       bcs%region(i) = -i
@@ -36,10 +36,10 @@ module boundary_conditions
   !> @param[in] bc_type - the bc type to set for all regions 
   !> @param[inout] bcs  - the bc_config struct being set
   subroutine set_region_bcs(region, bc_type, bcs)
-    integer(accs_int), intent(in) :: region
-    integer(accs_int), intent(in) :: bc_type
+    integer(ccs_int), intent(in) :: region
+    integer(ccs_int), intent(in) :: bc_type
     type(bc_config), intent(inout) :: bcs
-    integer(accs_int) :: i
+    integer(ccs_int) :: i
 
     do i = 1, size(bcs%region)
       if (bcs%region(i) == region) then
@@ -81,8 +81,8 @@ module boundary_conditions
     type(bc_config), intent(out) :: bcs
     character(len=16), dimension(:), allocatable :: region
     character(len=16), dimension(:), allocatable :: bc_type
-    real(accs_real), dimension(:,:), allocatable :: bc_data
-    integer(accs_int) :: i
+    real(ccs_real), dimension(:,:), allocatable :: bc_data
+    integer(ccs_int) :: i
 
     call get_boundaries(config_file, region, bc_type, bc_data)
 

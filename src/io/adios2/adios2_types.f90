@@ -7,7 +7,6 @@ module adios2_types
 
   use adios2
   use types, only: io_environment, io_process
-  use kinds, only: accs_int
 
   implicit none
 

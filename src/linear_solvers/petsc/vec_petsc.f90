@@ -5,10 +5,11 @@
 !!          (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
 
-  use kinds, only : accs_err
+  use kinds, only : ccs_err
   use petsctypes, only : vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
+  use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
 
   implicit none
 
@@ -16,36 +17,38 @@ contains
 
   !> @brief Create a PETSc-backed vector
   !
-  !> @param[in]  vector_init_data vec_dat - the data describing how the vector should be created.
+  !> @param[in]  vector_spec vec_properties - the data describing how the vector should be created.
   !> @param[out] vector v - the vector specialised to type vector_petsc.
-  module subroutine create_vector(vec_dat, v)
+  module subroutine create_vector(vec_properties, v)
 
-    use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, PETSC_DETERMINE
+    use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                          VecCreate
     
-    type(vector_init_data), intent(in) :: vec_dat
-    class(vector), allocatable, intent(out) :: v
+    type(vector_spec), intent(in) :: vec_properties
+    class(ccs_vector), allocatable, intent(out) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     allocate(vector_petsc :: v)
     
     select type (v)
       type is (vector_petsc)
 
-      select type(par_env => vec_dat%par_env)
+      v%modeset = .false.
+        
+      select type(par_env => vec_properties%par_env)
         type is(parallel_environment_mpi)
 
-          associate(mesh => vec_dat%mesh)
+          associate(mesh => vec_properties%mesh)
 
-            select case(vec_dat%loc)
+            select case(vec_properties%storage_location)
             case (cell)
               call VecCreateGhost(par_env%comm, &
                    mesh%nlocal, PETSC_DECIDE, &
-                   mesh%nhalo, mesh%idx_global(mesh%nlocal+1:mesh%ntotal) - 1_accs_int, &
+                   mesh%nhalo, &
+                   mesh%global_indices(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_ccs_int, &
                    v%v, ierr)
-
               ! Vector has ghost points, store this information
               v%ghosted = .true.
             case (face)
@@ -59,7 +62,7 @@ contains
         
           call VecSetFromOptions(v%v, ierr)
           call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
-          call VecSet(v%v, 0.0_accs_real, ierr)
+          call VecSet(v%v, 0.0_ccs_real, ierr)
           v%allocated = .true.
 
         class default
@@ -82,35 +85,45 @@ contains
   !> @param[in,out] v   - the PETSc vector.
   module subroutine set_vector_values(val_dat, v)
 
-    use petsc, only : VecSetValues, ADD_VALUES, INSERT_VALUES
+    use petsc, only : VecSetValues
 
     use constants, only : insert_mode, add_mode
-    use types, only : vector_values
     
     class(*), intent(in) :: val_dat
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_int) :: n    !> Number of elements to add
-    integer(accs_int) :: mode !> Append or insert mode
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_int) :: n    !< Number of elements to add
+    integer(ccs_int) :: mode !< Append or insert mode
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
       
         select type (val_dat)
           type is (vector_values)
-          
-            n = size(val_dat%idx)
-            if (val_dat%mode == add_mode) then
+
+            ! First check if safe to set
+            if (v%modeset) then
+              if (val_dat%setter_mode /= v%mode) then
+                print *, "ERROR: trying to set vector using different mode without updating!"
+                stop 1
+              end if
+            else
+              v%mode = val_dat%setter_mode
+              v%modeset = .true.
+            end if
+              
+            n = size(val_dat%indices)
+            if (val_dat%setter_mode == add_mode) then
               mode = ADD_VALUES
-            else if (val_dat%mode == insert_mode) then
+            else if (val_dat%setter_mode == insert_mode) then
               mode = INSERT_VALUES
             else
               print *, "Unknown mode!"
               stop
             end if
 
-            call VecSetValues(v%v, n, val_dat%idx, val_dat%val, mode, ierr)
+            call VecSetValues(v%v, n, val_dat%indices, val_dat%values, mode, ierr)
 
           class default
             print *, "Unknown vector value type!"
@@ -131,7 +144,7 @@ contains
   !> @param[in,out] v - the PETSc vector
   module subroutine update_vector(v)
 
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
     select type(v)
       type is (vector_petsc)
@@ -159,9 +172,9 @@ contains
 
     use petsc, only : VecAssemblyBegin
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -185,15 +198,17 @@ contains
 
     use petsc, only : VecAssemblyEnd
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
 
         call VecAssemblyEnd(v%v, ierr)
 
+        v%modeset = .false. ! It is now safe to change value setting mode
+        
       class default
         print *, "Unknown vector type!"
         stop
@@ -209,11 +224,11 @@ contains
   !> @param[in,out] v - the PETSc vector
   subroutine begin_ghost_update_vector(v)
 
-    use petsc, only : VecGhostUpdateBegin, INSERT_VALUES, SCATTER_FORWARD
+    use petsc, only : VecGhostUpdateBegin
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -238,11 +253,11 @@ contains
   !> @param[in,out] v - the PETSc vector
   subroutine end_ghost_update_vector(v)
 
-    use petsc, only : VecGhostUpdateEnd, INSERT_VALUES, SCATTER_FORWARD
+    use petsc, only : VecGhostUpdateEnd
     
-    class(vector), intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -260,14 +275,14 @@ contains
 
   end subroutine
 
-  module subroutine pack_one_vector_element(val_dat, ent, idx, val)
+  module subroutine pack_one_vector_element(ent, idx, val, val_dat)
+    integer(ccs_int), intent(in) :: ent
+    integer(ccs_int), intent(in) :: idx
+    real(ccs_real), intent(in) :: val
     type(vector_values), intent(inout) :: val_dat
-    integer(accs_int), intent(in) :: ent
-    integer(accs_int), intent(in) :: idx
-    real(accs_real), intent(in) :: val
 
-    val_dat%idx(ent) = idx - 1
-    val_dat%val(ent) = val
+    val_dat%indices(ent) = idx - 1
+    val_dat%values(ent) = val
 
   end subroutine pack_one_vector_element
 
@@ -283,11 +298,11 @@ contains
 
     use petscvec, only : VecAXPY
     
-    real(accs_real), intent(in) :: alpha
-    class(vector), intent(in) :: x
-    class(vector), intent(inout) :: y
+    real(ccs_real), intent(in) :: alpha
+    class(ccs_vector), intent(in) :: x
+    class(ccs_vector), intent(inout) :: y
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (x)
       type is (vector_petsc)
@@ -323,13 +338,13 @@ contains
 
     use petscvec, only : NORM_2, VecNorm
     
-    class(vector), intent(in) :: v
-    integer(accs_int), intent(in) :: norm_type
+    class(ccs_vector), intent(in) :: v
+    integer(ccs_int), intent(in) :: norm_type
 
-    real(accs_real) :: n      !> The computed norm 
-    integer(accs_err) :: ierr !> Error code
+    real(ccs_real) :: n      !< The computed norm 
+    integer(ccs_err) :: ierr !< Error code
     
-    n = 0.0_accs_real ! initialise norm to 0
+    n = 0.0_ccs_real ! initialise norm to 0
     
     select type (v)
       type is (vector_petsc)
@@ -353,13 +368,17 @@ contains
   !> @param[in] vec   - the vector to get data from
   !> @param[in] array - an array to store the data in
   module subroutine get_vector_data(vec, array)
-    use petscvec
-    class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), pointer, intent(out) :: array
+    use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
+    class(ccs_vector), intent(in) :: vec
+    real(ccs_real), dimension(:), pointer, intent(out) :: array
     integer :: ierr
 
     select type(vec)
     type is(vector_petsc)
+      if (vec%modeset) then
+        print *, "WARNING: trying to access vector without updating"
+      end if
+      
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%vl, ierr)
         call VecGetArrayF90(vec%vl, array, ierr)
@@ -377,9 +396,11 @@ contains
   !> @param[in] vec   - the vector to reset
   !> @param[in] array - the array containing the data to restore
   module subroutine restore_vector_data(vec, array)
-    use petscvec
-    class(vector), intent(in) :: vec
-    real(accs_real), dimension(:), pointer, intent(in) :: array
+    use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
+
+    class(ccs_vector), intent(in) :: vec
+    real(ccs_real), dimension(:), pointer, intent(in) :: array
+
     integer :: ierr
 
     select type(vec)
@@ -396,9 +417,12 @@ contains
     end select
   end subroutine restore_vector_data
 
-  module procedure zero_vector
-    use petscvec
-    integer(accs_err) :: ierr
+  module subroutine zero_vector(vec)
+    use petscvec, only: VecZeroEntries
+
+    class(ccs_vector), intent(inout) :: vec
+
+    integer(ccs_err) :: ierr
 
     select type(vec)
     type is(vector_petsc)
@@ -408,7 +432,7 @@ contains
       stop
     end select
     
-  end procedure zero_vector
+  end subroutine zero_vector
 
   !> @brief Replaces each component of a vector by its reciprocal
   !
@@ -417,9 +441,9 @@ contains
 
     use petscvec, only: VecReciprocal
 
-    class(vector), intent(inout) :: vec
+    class(ccs_vector), intent(inout) :: vec
 
-    integer(accs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     select type (vec)
       type is (vector_petsc)
@@ -432,11 +456,13 @@ contains
     end select
   end subroutine vec_reciprocal
 
-  module procedure mult_vec_vec
-
+  module subroutine mult_vec_vec(a, b)
     use petscvec, only : VecPointwiseMult
 
-    integer(accs_err) :: ierr
+    class(ccs_vector), intent(in) :: a
+    class(ccs_vector), intent(inout) :: b
+
+    integer(ccs_err) :: ierr
 
     select type(a)
     type is (vector_petsc)
@@ -452,13 +478,15 @@ contains
       stop
     end select
       
-  end procedure mult_vec_vec
+  end subroutine mult_vec_vec
 
-  module procedure scale_vec
-
+  module subroutine scale_vec(alpha, v)
     use petscvec, only : VecScale
+
+    real(ccs_real), intent(in) :: alpha
+    class(ccs_vector), intent(inout) :: v
   
-    integer(accs_err) :: ierr
+    integer(ccs_err) :: ierr
 
     select type(v)
     type is(vector_petsc)
@@ -468,26 +496,26 @@ contains
       stop
     end select
   
-  end procedure
+  end subroutine
 
-!   module subroutine vec_view(vec_dat, vec)
+!   module subroutine vec_view(vec_properties, vec)
 
 ! #include <petsc/finclude/petscviewer.h>
 
 !     use petscvec, only: VecView
 !     use petscsys
     
-!     type(vector_init_data), intent(in) :: vec_dat
-!     class(vector), intent(in) :: vec
+!     type(vector_spec), intent(in) :: vec_properties
+!     class(ccs_vector), intent(in) :: vec
 
 !     PetscViewer :: viewer
 
-!     integer(accs_err) :: ierr
+!     integer(ccs_err) :: ierr
 
 !     select type (vec)
 !       type is (vector_petsc)
 
-!       select type(par_env => vec_dat%par_env)
+!       select type(par_env => vec_properties%par_env)
 !         type is(parallel_environment_mpi)
 
 !           call PetscViewerCreate(par_env%comm, viewer, ierr)
