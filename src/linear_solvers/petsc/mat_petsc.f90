@@ -1,4 +1,5 @@
 submodule (mat) mat_petsc
+#include "ccs_macros.inc"
 
   use kinds, only : ccs_err
   use petsctypes, only : matrix_petsc, vector_petsc
@@ -51,7 +52,7 @@ contains
           
           if (mat_properties%nnz < 1) then
             if (par_env%proc_id == par_env%root) then
-              print *, "WARNING: No matrix preallocation set, potentially inefficient!"
+              call dprint("WARNING: No matrix preallocation set, potentially inefficient!")
             end if
             call MatSetUp(M%M, ierr)
           else

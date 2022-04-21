@@ -3,7 +3,7 @@
 !> @details Implementation of the SIMPLE algorithm for pressure-velocity coupling.
 
 submodule (pv_coupling) pv_coupling_simple
-
+#include "ccs_macros.inc"
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
@@ -12,7 +12,7 @@ submodule (pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
-                   mult, zero
+                   mult, zero, str
   use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
@@ -54,55 +54,55 @@ contains
     logical :: converged
     
     ! Initialise linear system
-    print *, "NONLINEAR: init"
+    call dprint("NONLINEAR: init")
     call initialise(vec_properties)
     call initialise(mat_properties)
     call initialise(lin_system)
 
     ! Create coefficient matrix
-    print *, "NONLINEAR: setup matrix"
+    call dprint("NONLINEAR: setup matrix")
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(5, mat_properties)
     call create_matrix(mat_properties, M)
 
     ! Create RHS vector
-    print *, "NONLINEAR: setup RHS"
+    call dprint("NONLINEAR: setup RHS")
     call set_size(par_env, mesh, vec_properties)
     call create_vector(vec_properties, source)
 
     ! Create vectors for storing inverse of velocity central coefficients
-    print *, "NONLINEAR: setup ind coeff"
+    call dprint("NONLINEAR: setup ind coeff")
     call create_vector(vec_properties, invAu)
     call create_vector(vec_properties, invAv)
     
     ! Get pressure gradient
-    print *, "NONLINEAR: compute grad p"
+    call dprint("NONLINEAR: compute grad p")
     call update_gradient(mesh, p)
 
     outerloop: do i = it_start, it_end
 
-      print *, "NONLINEAR: iteration ", i
+      call dprint("NONLINEAR: iteration " // str(i))
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
-      print *, "NONLINEAR: guess velocity"
+      call dprint("NONLINEAR: guess velocity")
       call calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
-      print *, "NONLINEAR: mass imbalance"
+      call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, source)
-      print *, "NONLINEAR: compute p'"
+      call dprint("NONLINEAR: compute p'")
       call calculate_pressure_correction(par_env, mesh, invAu, invAv, M, source, lin_system, p_prime)
       
       ! Update velocity with velocity correction (eq. 6)
-      print *, "NONLINEAR: correct face velocity"
+      call dprint("NONLINEAR: correct face velocity")
       call update_face_velocity(mesh, invAu, invAv, p_prime, mf)
-      print *, "NONLINEAR: correct velocity"
+      call dprint("NONLINEAR: correct velocity")
       call update_velocity(mesh, invAu, invAv, p_prime, u, v)
 
       ! Update pressure field with pressure correction
-      print *, "NONLINEAR: correct pressure"
+      call dprint("NONLINEAR: correct pressure")
       call update_pressure(p_prime, p)
-      print *, "NONLINEAR: compute gradp"
+      call dprint("NONLINEAR: compute gradp")
       call update_gradient(mesh, p)
 
       ! Todo:
@@ -193,11 +193,11 @@ contains
     call zero(M)
     
     ! Calculate fluxes and populate coefficient matrix
-    print *, "GV: compute u flux"
+    call dprint("GV: compute u flux")
     call compute_fluxes(u, mf, mesh, bcs, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
-    print *, "GV: compute u gradp"
+    call dprint("GV: compute u gradp")
     if (component == 1) then
       call calculate_momentum_pressure_source(mesh, p%x_gradients, vec)
     else if (component == 2) then
@@ -208,16 +208,16 @@ contains
     end if
     
     ! Underrelax the equations
-    print *, "GV: underrelax u"
+    call dprint("GV: underrelax u")
     call underrelax(mesh, velocity_relax, u, invAu, M, vec)
     
     ! Store reciprocal of central coefficient
-    print *, "GV: get u diag"
+    call dprint("GV: get u diag")
     call get_matrix_diagonal(M, invAu)
     call vec_reciprocal(invAu)
     
     ! Assembly of coefficient matrix and source vector
-    print *, "GV: build u lin sys"
+    call dprint("GV: build u lin sys")
     call update(M)
     call update(vec)
     call update(invAu)
@@ -228,7 +228,7 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
-    print *, "GV: solve u"
+    call dprint("GV: solve u")
     call solve(lin_solver)
 
     ! Clean up
@@ -343,7 +343,7 @@ contains
     call zero(M)
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
-    print *, "P': negate RHS"
+    call dprint("P': negate RHS")
     call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
     
@@ -355,12 +355,12 @@ contains
 
     call update(M)
     
-    print *, "P': get invA"
+    call dprint("P': get invA")
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
     
     ! Loop over cells
-    print *, "P': cell loop"
+    call dprint("P': cell loop")
     do index_p = 1, mesh%nlocal
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
@@ -418,7 +418,7 @@ contains
       rcrit = (cps / 2) * (1 + cps)
       if (row == rcrit) then
         coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-        print *, "Fixed coeff_p", coeff_p, " at ", row
+        call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
       end if
       
       ! Add the diagonal entry
@@ -436,23 +436,23 @@ contains
       deallocate(mat_coeffs%values)
     end do
 
-    print *, "P': restore invA"
+    call dprint("P': restore invA")
     call restore_vector_data(invAu, invAu_data)
     call restore_vector_data(invAv, invAv_data)
 
     ! Assembly of coefficient matrix and source vector
-    print *, "P': assemble matrix, RHS"
+    call dprint("P': assemble matrix, RHS")
     call update(M)
     call update(vec)
     call finalise(M)
     
     ! Create linear solver
-    print *, "P': create lin sys"
+    call dprint("P': create lin sys")
     call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Solve the linear system
-    print *, "P': solve"
+    call dprint("P': solve")
     call solve(lin_solver)
 
     ! Clean up
@@ -579,7 +579,7 @@ contains
 
     mib = norm(b, 2)
     if (par_env%proc_id == par_env%root) then
-      print *, "SIMPLE intermediate mass imbalance: ", mib
+      call dprint("SIMPLE intermediate mass imbalance: " // str(mib))
     end if
     
   end subroutine compute_mass_imbalance
@@ -730,29 +730,29 @@ contains
 
     integer(ccs_int) :: i
 
-    print *, "UR: get diagonal vec"
+    call dprint("UR: get diagonal vec")
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
-    print *, "UR: get phi, diag, b"
+    call dprint("UR: get phi, diag, b")
     call get_vector_data(phi%values, phi_data)
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
 
-    print *, "UR: apply UR"
+    call dprint("UR: apply UR")
     do i = 1, mesh%nlocal
       diag_data(i) = diag_data(i) / alpha
 
       b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi_data(i)
     end do
 
-    print *, "UR: Restore data"
+    call dprint("UR: Restore data")
     call restore_vector_data(phi%values, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
 
-    print *, "UR: Set matrix diagonal"
+    call dprint("UR: Set matrix diagonal")
     call set_matrix_diagonal(diag, M)
     
   end subroutine underrelax

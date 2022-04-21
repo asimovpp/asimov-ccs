@@ -4,6 +4,7 @@
 !> @details An implementation of vector objects using PETSc - the datatype and operations on it
 !!          (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
+#include "ccs_macros.inc"
 
   use kinds, only : ccs_err
   use petsctypes, only : vector_petsc
@@ -376,7 +377,7 @@ contains
     select type(vec)
     type is(vector_petsc)
       if (vec%modeset) then
-        print *, "WARNING: trying to access vector without updating"
+        call dprint("WARNING: trying to access vector without updating")
       end if
       
       if (vec%ghosted) then

@@ -4,7 +4,7 @@
 !> @details An implementation of the finite volume method using the CDS scheme
 
 submodule (fv) fv_common
-
+#include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode, ndim
   use types, only: vector_values, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
@@ -40,19 +40,19 @@ contains
     real(ccs_real), dimension(:), pointer :: mf_data
 
     associate (mf_values => mf%values)
-      print *, "CF: get mf"
+      call dprint("CF: get mf")
       call get_vector_data(mf_values, mf_data)
 
       ! Loop over cells computing advection and diffusion fluxes
       n_int_cells = calc_matrix_nnz()
-      print *, "CF: interior"
+      call dprint("CF: interior")
       call compute_interior_coeffs(phi, mf_data, mesh, n_int_cells, M)
 
       ! Loop over boundaries
-      print *, "CF: boundaries"
+      call dprint("CF: boundaries")
       call compute_boundary_coeffs(phi, mf_data, mesh, bcs, cps, M, vec)
 
-      print *, "CF: restore mf"
+      call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
     end associate
 

@@ -4,6 +4,7 @@
 !> @details Provides petsc-extended types.
 
 module petsctypes
+#include "ccs_macros.inc"
 
   use petscksp, only : tKSP
   use petscvec, only : tVec
@@ -80,7 +81,7 @@ contains
        call VecDestroy(v%v, ierr)
        v%allocated = .false.
     else
-       print *, "WARNING: attempted double free of vector"
+       call dprint("WARNING: attempted double free of vector")
     end if
     
   end subroutine
@@ -103,7 +104,7 @@ contains
        call MatDestroy(M%M, ierr)
        M%allocated = .false.
     else
-       print *, "WARNING: attempted double free of matrix"
+       call dprint("WARNING: attempted double free of matrix")
     end if
 
   end subroutine
@@ -127,7 +128,7 @@ contains
        call KSPDestroy(solver%KSP, ierr)
        solver%allocated = .false.
     else
-       print *, "WARNING: attempted double free of linear solver"
+       call dprint("WARNING: attempted double free of linear solver")
     end if
 
   end subroutine 
