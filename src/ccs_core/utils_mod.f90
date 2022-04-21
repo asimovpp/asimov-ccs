@@ -115,12 +115,16 @@ contains
 
   !> @brief Print a message, along with with its location.
   subroutine debug_print_actual(msg, filepath, line)
+    use mpi
+
     character(*), intent(in) :: msg      !< text to be printed
     character(*), intent(in) :: filepath !< calling file, added by __FILE__ macro
     integer, intent(in) :: line          !< line number in calling file, added by __LINE__ macro
 
     character(len=:), allocatable :: filename
     integer :: slash_position
+    integer :: rank, ierror
+    logical :: init_flag
 
     slash_position = scan(trim(filepath), "/", back=.true.)
     if (slash_position .gt. 0) then
@@ -129,7 +133,13 @@ contains
       filename = filepath
     end if
 
-    print *, trim(filename), "(", trim(adjustl(int2str(line))), ") : ", msg
+    call mpi_initialized(init_flag, ierror)
+    if (init_flag) then 
+      call mpi_comm_rank(MPI_COMM_WORLD, rank, ierror)
+      print *, trim(filename), "(", int2str(line), ")[", int2str(rank), "] : ", msg
+    else
+      print *, trim(filename), "(", int2str(line), ") : ", msg
+    end if
   end subroutine
   
   !> No-op routine, does nothing.
