@@ -53,8 +53,8 @@ contains
 
     type(ccs_mesh) :: mesh
 
-    integer(ccs_int) :: istart          !< The (global) starting index of a partition
-    integer(ccs_int) :: iend            !< The (global) last index of a partition
+    integer(ccs_int) :: global_istart   !< The (global) starting index of a partition
+    integer(ccs_int) :: global_iend     !< The (global) last index of a partition
     integer(ccs_int) :: i               !< Loop counter
     integer(ccs_int) :: ii              !< Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: ictr            !< Local index counter
@@ -79,20 +79,20 @@ contains
           ! Determine ownership range (based on PETSc ex3.c)
           comm_rank = par_env%proc_id
           comm_size = par_env%num_procs
-          istart = comm_rank * (nglobal / comm_size)
+          global_istart = comm_rank * (nglobal / comm_size)
           if (modulo(nglobal, comm_size) < comm_rank) then
-            istart = istart + modulo(nglobal, comm_size)
+            global_istart = global_istart + modulo(nglobal, comm_size)
           else
-            istart = istart + comm_rank
+            global_istart = global_istart + comm_rank
           end if
-          iend = istart + nglobal / comm_size
+          global_iend = global_istart + nglobal / comm_size
           if (modulo(nglobal, comm_size) > comm_rank) then
-            iend = iend + 1_ccs_int
+            global_iend = global_iend + 1_ccs_int
           end if
 
           ! Fix indexing and determine size of local partition
-          istart = istart + 1_ccs_int
-          mesh%nlocal = (iend - (istart - 1_ccs_int))
+          global_istart = global_istart + 1_ccs_int
+          mesh%nlocal = (global_iend - (global_istart - 1_ccs_int))
 
           ! Allocate mesh arrays
           allocate(mesh%global_indices(mesh%nlocal))
@@ -105,7 +105,7 @@ contains
 
           ! First set the global index of local cells
           ictr = 1_ccs_int
-          do i = istart, iend
+          do i = global_istart, global_iend
             mesh%global_indices(ictr) = i
             ictr = ictr + 1
           end do
@@ -118,7 +118,7 @@ contains
           !        -3 = down boundary
           !        -4 = up boundary
           ictr = 1_ccs_int ! Set local indexing starting from 1...n
-          do i = istart, iend 
+          do i = global_istart, global_iend 
             ii = i - 1_ccs_int
 
             ! Construct left (1) face/neighbour
