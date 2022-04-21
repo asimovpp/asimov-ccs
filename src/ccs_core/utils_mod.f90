@@ -105,7 +105,7 @@ module utils
     module procedure real2str
   end interface str
 
-  !> @brief Generic interface to debug printer
+  !> Generic interface to debug printer
   interface debug_print
     module procedure debug_print_actual
     module procedure noop
@@ -115,9 +115,9 @@ contains
 
   !> @brief Print a message, along with with its location.
   subroutine debug_print_actual(msg, filepath, line)
-    character(*), intent(in) :: msg
-    character(*), intent(in) :: filepath
-    integer, intent(in) :: line
+    character(*), intent(in) :: msg      !< text to be printed
+    character(*), intent(in) :: filepath !< calling file, added by __FILE__ macro
+    integer, intent(in) :: line          !< line number in calling file, added by __LINE__ macro
 
     character(len=:), allocatable :: filename
     integer :: slash_position
@@ -132,16 +132,17 @@ contains
     print *, trim(filename), "(", trim(adjustl(int2str(line))), ") : ", msg
   end subroutine
   
-  !> @brief No-op routine, does nothign
+  !> No-op routine, does nothing.
   subroutine noop()
   end subroutine
   
-  !> @brief Convert integer to string
+  !> Convert integer to string.
   function int2str(in_int, format_str) result(out_string)
-    integer(ccs_int), intent (in)       :: in_int
-    character(*), optional, intent(in)  :: format_str
-    character(32)                       :: tmp_string
-    character(:), allocatable           :: out_string
+    integer(ccs_int), intent (in)       :: in_int     !< integer to convert
+    character(*), optional, intent(in)  :: format_str !< format string to use
+    character(:), allocatable           :: out_string !< formatted string from input integer
+
+    character(32)                       :: tmp_string 
     
     if (present(format_str)) then
       write(tmp_string, format_str) in_int
@@ -151,12 +152,13 @@ contains
     out_string = trim(adjustl(tmp_string))
   end function
   
-  !> @brief Convert real to string
+  !> Convert real to string.
   function real2str(in_real, format_str) result(out_string)
-    real(ccs_real), intent (in)         :: in_real
-    character(*), optional, intent(in)  :: format_str
+    real(ccs_real), intent (in)         :: in_real    !< real number to convert 
+    character(*), optional, intent(in)  :: format_str !< format string to use
+    character(:), allocatable           :: out_string !< formatted string from input real
+
     character(32)                       :: tmp_string
-    character(:), allocatable           :: out_string
     
     if (present(format_str)) then
       write(tmp_string, format_str) in_real
