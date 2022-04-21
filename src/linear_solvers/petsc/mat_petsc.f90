@@ -170,10 +170,10 @@ contains
     integer(ccs_int) :: nc
     integer(ccs_int) :: validx
 
-    mat_coeffs%row_indices(row_entry) = row - 1
-    mat_coeffs%col_indices(col_entry) = col - 1
+    mat_coeffs%global_row_indices(row_entry) = row - 1
+    mat_coeffs%global_col_indices(col_entry) = col - 1
 
-    nc = size(mat_coeffs%col_indices)
+    nc = size(mat_coeffs%global_col_indices)
 
     validx = (row_entry - 1) * nc + col_entry
     mat_coeffs%values(validx) = coeff
@@ -198,8 +198,8 @@ contains
     
     integer(ccs_err) :: ierr !< Error code
 
-    associate(ridx    => mat_values%row_indices, &
-              cidx    => mat_values%col_indices, &
+    associate(ridx    => mat_values%global_row_indices, &
+              cidx    => mat_values%global_col_indices, &
               val     => mat_values%values, &
               matmode => mat_values%setter_mode)
     
