@@ -83,10 +83,14 @@ endif
 
 
 
+all: obj app
 
-all: $(OBJ) $(EXE)
+app: $(EXE)
 
-tests: all
+obj: $(OBJ)
+
+tests: FFLAGS+=-DVERBOSE
+tests: obj
 	make -C $(CCS_DIR)/tests all
 
 $(EXE): $(EXE_DEPS)

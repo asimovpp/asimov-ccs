@@ -1,4 +1,4 @@
-main: test_debug_print
+main: ldc
 base: mpi_petsc
 #options:
   #component: opt_2

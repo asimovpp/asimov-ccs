@@ -1,0 +1,5 @@
+# RUN: %build_test %s %t1 test_debug_print.f90
+# RUN: %t1 | grep -q "The numbers are 24 and 42 and 6.280 and 3.14"  
+
+main: test_debug_print
+base: mpi
