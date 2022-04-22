@@ -4,6 +4,7 @@
 !> @details Provides petsc-extended types.
 
 module petsctypes
+#include "ccs_macros.inc"
 
   use petscksp, only : tKSP
   use petscvec, only : tVec
@@ -11,6 +12,7 @@ module petsctypes
 
   use kinds, only : ccs_err, ccs_int
   use types, only : ccs_vector, ccs_matrix, linear_solver
+  use utils, only : debug_print
   
   implicit none
 
