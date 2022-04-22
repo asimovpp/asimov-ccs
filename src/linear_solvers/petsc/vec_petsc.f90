@@ -378,7 +378,7 @@ contains
     select type(vec)
     type is(vector_petsc)
       if (vec%modeset) then
-        call dprint("WARNING: trying to access vector without updating")
+        print *, "WARNING: trying to access vector without updating"
       end if
       
       if (vec%ghosted) then

@@ -579,7 +579,7 @@ contains
 
     mib = norm(b, 2)
     if (par_env%proc_id == par_env%root) then
-      call dprint("SIMPLE intermediate mass imbalance: " // str(mib))
+      print *, "SIMPLE intermediate mass imbalance: " // str(mib)
     end if
     
   end subroutine compute_mass_imbalance
