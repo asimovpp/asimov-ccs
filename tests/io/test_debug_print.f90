@@ -1,6 +1,6 @@
 program test_debug_print
 #include "ccs_macros.inc"
-  use utils, only : str
+  use utils, only : str, debug_print
   use kinds, only : ccs_int, ccs_real
   use mpi
   implicit none

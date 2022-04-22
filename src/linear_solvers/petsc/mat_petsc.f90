@@ -6,6 +6,7 @@ submodule (mat) mat_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only : ADD_VALUES, INSERT_VALUES
+  use utils, only : debug_print
   
   implicit none
 

@@ -12,7 +12,7 @@ submodule (pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
-                   mult, zero, str
+                   mult, zero, str, debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
