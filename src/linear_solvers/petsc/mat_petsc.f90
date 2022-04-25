@@ -249,14 +249,14 @@ contains
   !!          system matrix and setting the diagonal to one such that the solution is given by
   !!          the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
   !
-  !> @param[in]  rows - array of (global) row indices to set the equation on
-  !> @param[in/out] M - the matrix
-  module subroutine set_eqn(rows, M)
+  !> @param[in]  global_rows - array of (global) row indices to set the equation on
+  !> @param[in/out]        M - the matrix
+  module subroutine set_eqn(global_rows, M)
 
     use petsc, only : PETSC_NULL_VEC
     use petscmat, only : MatZeroRows
 
-    integer(ccs_int), dimension(:), intent(in) :: rows
+    integer(ccs_int), dimension(:), intent(in) :: global_rows
     class(ccs_matrix), intent(inout) :: M
 
     integer(ccs_err) :: ierr
@@ -264,7 +264,7 @@ contains
     select type (M)
       type is (matrix_petsc)
 
-        call MatZeroRows(M%M, size(rows), rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
+        call MatZeroRows(M%M, size(global_rows), global_rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
 
       class default
         print *, "Unknown matrix type!"

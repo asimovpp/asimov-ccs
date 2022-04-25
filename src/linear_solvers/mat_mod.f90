@@ -128,14 +128,14 @@ module mat
 
      !> @brief Interface to set equation
      !
-     !> @param[in]  rows - array of (global) row indices to set the equation on
-     !> @param[in/out] M - the matrix
+     !> @param[in]  global_rows - array of (global) row indices to set the equation on
+     !> @param[in/out]        M - the matrix
      !
      !> @details Sets equations in a system of equations by zeroing out the corresponding row in the
      !!          system matrix and setting the diagonal to one such that the solution is given by
      !!          the corresponding entry in the right-hand side vector.
-     module subroutine set_eqn(rows, M)
-       integer(ccs_int), dimension(:), intent(in) :: rows
+     module subroutine set_eqn(global_rows, M)
+       integer(ccs_int), dimension(:), intent(in) :: global_rows
        class(ccs_matrix), intent(inout) :: M
      end subroutine
 
