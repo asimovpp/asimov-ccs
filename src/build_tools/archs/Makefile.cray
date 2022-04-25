@@ -1,5 +1,8 @@
 FC = ftn
 FFLAGS = -ef -en -eF -M969
+ifeq ($(VERBOSE),yes)
+  FFLAGS += -DVERBOSE
+endif
 ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
   FFLAGS += -G2

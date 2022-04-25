@@ -13,7 +13,9 @@ module utils
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   pack_one_matrix_coefficient, zero_matrix
-  use solver, only: initialise_equation_system
+  use solver, only : initialise_equation_system
+  use kinds, only : ccs_int, ccs_real
+
   
   implicit none
 
@@ -29,6 +31,8 @@ module utils
   public :: set_size
   public :: mult
   public :: zero
+  public :: str
+  public :: debug_print
 
   !>  Generic interface to set values on an object.
   interface set_values
@@ -95,6 +99,83 @@ module utils
     module procedure zero_matrix
   end interface zero
   
+  !> @brief Generic interface to converting numbers to strings
+  interface str
+    module procedure int2str
+    module procedure real2str
+  end interface str
+
+  !> Generic interface to debug printer
+  interface debug_print
+    module procedure debug_print_actual
+    module procedure noop
+  end interface debug_print
+  
 contains
+
+  !> @brief Print a message, along with with its location.
+  subroutine debug_print_actual(msg, filepath, line)
+    use mpi
+
+    character(*), intent(in) :: msg      !< text to be printed
+    character(*), intent(in) :: filepath !< calling file, added by __FILE__ macro
+    integer, intent(in) :: line          !< line number in calling file, added by __LINE__ macro
+
+    character(len=:), allocatable :: filename
+    integer :: slash_position
+    integer :: rank, ierror
+    logical :: init_flag
+
+    slash_position = scan(trim(filepath), "/", back=.true.)
+    if (slash_position .gt. 0) then
+      filename = filepath(slash_position+1:len_trim(filepath))
+    else
+      filename = filepath
+    end if
+
+    call mpi_initialized(init_flag, ierror)
+    if (init_flag) then 
+      call mpi_comm_rank(MPI_COMM_WORLD, rank, ierror)
+      print *, trim(filename), "(", int2str(line), ")[", int2str(rank), "] : ", msg
+    else
+      print *, trim(filename), "(", int2str(line), ") : ", msg
+    end if
+  end subroutine
+  
+  !> No-op routine, does nothing.
+  subroutine noop()
+  end subroutine
+  
+  !> Convert integer to string.
+  function int2str(in_int, format_str) result(out_string)
+    integer(ccs_int), intent (in)       :: in_int     !< integer to convert
+    character(*), optional, intent(in)  :: format_str !< format string to use
+    character(:), allocatable           :: out_string !< formatted string from input integer
+
+    character(32)                       :: tmp_string 
+    
+    if (present(format_str)) then
+      write(tmp_string, format_str) in_int
+    else
+      write(tmp_string, *) in_int
+    end if
+    out_string = trim(adjustl(tmp_string))
+  end function
+  
+  !> Convert real to string.
+  function real2str(in_real, format_str) result(out_string)
+    real(ccs_real), intent (in)         :: in_real    !< real number to convert 
+    character(*), optional, intent(in)  :: format_str !< format string to use
+    character(:), allocatable           :: out_string !< formatted string from input real
+
+    character(32)                       :: tmp_string
+    
+    if (present(format_str)) then
+      write(tmp_string, format_str) in_real
+    else
+      write(tmp_string, *) in_real
+    end if
+    out_string = trim(adjustl(tmp_string))
+  end function
 
 end module utils
