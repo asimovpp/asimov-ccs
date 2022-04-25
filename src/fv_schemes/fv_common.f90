@@ -53,7 +53,7 @@ contains
 
   !>  Returns the number of entries per row that are non-zero
   !
-  !>  This assumes a square 2d grid
+  !>  @note This assumes a square 2d grid
   pure function calc_matrix_nnz() result(nnz)
     integer(ccs_int) :: nnz   !< number of non-zero entries per row 
 
