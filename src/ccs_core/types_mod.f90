@@ -1,6 +1,6 @@
-!> @brief Module file types.mod
+!>  Module file types.mod
 !
-!> @details Provides concrete types and bases of extensible types.
+!>  Provides concrete types and bases of extensible types.
 
 module types
 
@@ -11,15 +11,15 @@ module types
 
   private
 
-  !> @brief Stub type for vectors to be extended in sub-modules.
+  !>  Stub type for vectors to be extended in sub-modules.
   type, public :: ccs_vector
   end type ccs_vector
 
-  !> @brief Stub type for matrices to be extended in sub-modules.
+  !>  Stub type for matrices to be extended in sub-modules.
   type, public :: ccs_matrix
   end type ccs_matrix
 
-  !> @brief Container type for data required to initialise a vector.
+  !>  Container type for data required to initialise a vector.
   type, public :: vector_spec
     class(parallel_environment), pointer :: par_env !< The parallel environment
     type(ccs_mesh), pointer :: mesh !< The mesh object to build the vector on
@@ -27,7 +27,7 @@ module types
   end type vector_spec
 
 
-  !> @brief Container type for setting values in a vector.
+  !>  Container type for setting values in a vector.
   type, public :: vector_values
     integer(ccs_int), dimension(:), allocatable :: indices !< Array of (global) indices to set values
                                                         !! on, must be same size as values array.
@@ -36,14 +36,14 @@ module types
     integer(ccs_int) :: setter_mode                           !< Which mode to use when setting values?
   end type vector_values
 
-  !> @brief Container type for data required to initialise a matrix.
+  !>  Container type for data required to initialise a matrix.
   type, public :: matrix_spec
     type(ccs_mesh), pointer :: mesh                     !< The mesh
     class(parallel_environment), pointer :: par_env !< The parallel environment
     integer(ccs_int) :: nnz                        !< Non-zeros per row
   end type matrix_spec
 
-  !> @brief Container type for setting values in a matrix.
+  !>  Container type for setting values in a matrix.
   type, public :: matrix_values
     integer(ccs_int), dimension(:), allocatable :: row_indices !< Array of (global) row indices to set values on.
     integer(ccs_int), dimension(:), allocatable :: col_indices !< Array of (global) column indices to set values on.
@@ -53,7 +53,7 @@ module types
     integer(ccs_int) :: setter_mode !< Which mode to use when setting values?
   end type matrix_values
 
-  !> @brief Container type representing a linear system.
+  !>  Container type representing a linear system.
   type, public :: equation_system
     class(ccs_vector), pointer :: solution !< Solution vector
     class(ccs_vector), pointer :: rhs !< Right-hand side vector
@@ -61,12 +61,12 @@ module types
     class(parallel_environment), pointer :: par_env !< The parallel environment
   end type equation_system
   
-  !> @brief Stub type for solvers to be extended in sub-modules.
+  !>  Stub type for solvers to be extended in sub-modules.
   type, public :: linear_solver
     type(equation_system) :: linear_system !< System of equations
   end type linear_solver
 
-  !> @brief Mesh type
+  !>  Mesh type
   type, public :: ccs_mesh
     integer(ccs_int) :: nglobal !< Global mesh size
     integer(ccs_int) :: nlocal  !< Local mesh size
@@ -85,7 +85,7 @@ module types
     real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
   end type ccs_mesh
 
-  !> @brief Scalar field type
+  !>  Scalar field type
   type, public :: field
     class(ccs_vector), allocatable :: values   !< Vector representing the field
     class(ccs_vector), allocatable :: x_gradients !< Vector representing the x gradient
@@ -100,7 +100,7 @@ module types
   type, public, extends(field) :: face_field
   end type
 
-  !> @brief Cell locator
+  !>  Cell locator
   !
   !> @description Lightweight type to provide easy cell location based on a cell's cell
   !!              connectivity.
@@ -109,7 +109,7 @@ module types
     integer(ccs_int) :: index_p      !< Cell index
   end type cell_locator
 
-  !> @brief Face locator
+  !>  Face locator
   !
   !> @description Lightweight type to provide easy face location based on a cell's face
   !!              connectivity.
@@ -119,7 +119,7 @@ module types
     integer(ccs_int) :: cell_face_ctr !< Cell-face ctr i.e. I want to access face "3" of the cell.
   end type face_locator
 
-  !> @brief Neighbour locator
+  !>  Neighbour locator
   !
   !> @description Lightweight type to provide easy cell-neighbour connection.
   type, public :: neighbour_locator
@@ -135,11 +135,11 @@ module types
                                                   ! possibly remove/improve for general
   end type bc_config
   
-  !> @brief IO environment type
+  !>  IO environment type
   type, public :: io_environment
   end type io_environment
 
-  !> @brief Process that will perform file IO
+  !>  Process that will perform file IO
   type, public :: io_process
   end type io_process
 

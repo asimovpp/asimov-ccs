@@ -1,8 +1,8 @@
-!> @brief Submodule file parallel_utils_mpi.smod
+!> Submodule file parallel_utils_mpi.smod
 !
 !> @build mpi
 !
-!> @details Implementation (using MPI) of the parallel utilities
+!> Implementation (using MPI) of the parallel utilities
 
 submodule (parallel) parallel_utils_mpi
 
@@ -13,9 +13,7 @@ submodule (parallel) parallel_utils_mpi
 
   contains
 
-  !> @brief Synchronise the parallel environment
-  !
-  !> @param[in] parallel_environment_mpi par_env
+  !>  Synchronise the parallel environment
   module subroutine sync(par_env)
   
     class(parallel_environment), intent(in) :: par_env
@@ -36,7 +34,7 @@ submodule (parallel) parallel_utils_mpi
 
   end subroutine
 
-  !> @brief read command line arguments and their values
+  !>  read command line arguments and their values
   !
   !> @param[in] par_env : parallel_environment_mpi 
   !> @param[inout] cps: number of cells per side 
@@ -97,7 +95,7 @@ submodule (parallel) parallel_utils_mpi
 
   end subroutine read_command_line_arguments
 
-  !> @brief Timer for MPI parallel environment
+  !>  Timer for MPI parallel environment
   !
   !> @param[inout] double precision tick - Variable that is assigned the current time
   module subroutine timer(tick)
