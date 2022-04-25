@@ -154,9 +154,6 @@ contains
     nrows_working_set = 1_ccs_int
     call create_vector_values(nrows_working_set, val_dat)
     call set_mode(add_mode, val_dat)
-    
-    associate(nloc => square_mesh%nlocal, &
-         h => square_mesh%h)
 
     associate(nloc => mesh%nlocal, &
          h => mesh%h)
