@@ -1,4 +1,4 @@
-!> @brief Program file for scalar advection case
+!>  Program file for scalar advection case
 !
 !
 

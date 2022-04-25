@@ -1,4 +1,4 @@
-!> @brief Submodule file parallel_env_mpi_petsc.smod
+!>  Submodule file parallel_env_mpi_petsc.smod
 !> @build mpi petsc
 !
 !> @details Implementation of the parallel environment using MPI
@@ -13,7 +13,7 @@ submodule (parallel) parallel_env_mpi_petsc
 
   contains
 
-  !> @brief Create the MPI and PETSc parallel environments
+  !>  Create the MPI and PETSc parallel environments
   !
   !> @param[out] parallel_environment_mpi par_env
   module subroutine initialise_parallel_environment(par_env)
@@ -52,7 +52,7 @@ submodule (parallel) parallel_env_mpi_petsc
 
   end subroutine
 
-  !> @brief Cleanup the PETSc and MPI parallel environments
+  !>  Cleanup the PETSc and MPI parallel environments
   !
   !> @param[in] parallel_environment_mpi par_env
   module subroutine cleanup_parallel_environment(par_env)
@@ -76,7 +76,7 @@ submodule (parallel) parallel_env_mpi_petsc
 
   end subroutine
 
-  !> @brief Initalise PETSc
+  !>  Initalise PETSc
   subroutine initialise_petsc(par_env)
 
     type(parallel_environment_mpi), intent(in) :: par_env
@@ -91,7 +91,7 @@ submodule (parallel) parallel_env_mpi_petsc
 
   end subroutine
 
-  !> @brief Finalise PETSc
+  !>  Finalise PETSc
   subroutine finalise_petsc(par_env)
 
     type(parallel_environment_mpi), intent(in) :: par_env
