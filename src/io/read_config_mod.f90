@@ -93,6 +93,8 @@ module read_config
     !v  By default, all variables will be solved. Using this 
     ! "solve" keyword, the user can specifically request that 
     ! certain variables will not be solved by setting in to "off"
+    !
+    !> @todo extend list of variables
     module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
       class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file    
       character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
