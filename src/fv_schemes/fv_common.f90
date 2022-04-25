@@ -1,5 +1,6 @@
 !>  Submodule file fv_CDS.smod
-!>  CDS
+!
+!>  @build CDS
 !
 !>  An implementation of the finite volume method using the CDS scheme
 

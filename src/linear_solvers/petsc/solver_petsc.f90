@@ -1,5 +1,6 @@
 !>  Submodule file solver_petsc.smod
-!>  petsc
+!
+!>  @build petsc
 !
 !>  An implementation of a PETSc solver
 submodule (solver) solver_petsc

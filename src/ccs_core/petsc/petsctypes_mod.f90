@@ -1,5 +1,6 @@
 !>  Module file petsctypes.mod
-!>  petsc
+!
+!>  @build petsc
 !
 !>  Provides petsc-extended types.
 

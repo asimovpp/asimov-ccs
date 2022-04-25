@@ -1,5 +1,6 @@
 !>  Submodule implementation file read_config_utils.mod
-!>  yaml
+!
+!>  @build yaml
 !
 !>  Module implementing the interface to read YAML config file
 submodule (read_config) read_config_utils

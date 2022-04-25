@@ -1,5 +1,6 @@
 !>  Submodule file parallel_env_mpi.smod
-!>  mpi
+!
+!>  @build mpi
 !
 !>  Implementation of the parallel environment using MPI
 

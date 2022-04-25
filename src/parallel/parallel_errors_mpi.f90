@@ -1,9 +1,8 @@
 !>  Submodule file parallel_errors_mpi.smod
 !
-!>  mpi
+!>  @build mpi
 !
-!v  Implementation (using MPI) of parallel 
-!   error handling
+!>  Implementation (using MPI) of parallel error handling
 
 submodule (parallel) parallel_errors_mpi
 

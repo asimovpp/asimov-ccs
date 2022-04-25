@@ -1,6 +1,6 @@
 !> Submodule file parallel_utils_mpi.smod
 !
-!> mpi
+!> @build mpi
 !
 !> Implementation (using MPI) of the parallel utilities
 

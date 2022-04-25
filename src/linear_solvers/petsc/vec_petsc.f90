@@ -1,8 +1,9 @@
 !>  Submodule file vec_petsc.smod
-!>  petsc
+!
+!>  @build petsc
 !
 !v  An implementation of vector objects using PETSc - the datatype and operations on it
-!          (creation, destruction, setting/getting, ...)
+!   (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
 
   use kinds, only : ccs_err

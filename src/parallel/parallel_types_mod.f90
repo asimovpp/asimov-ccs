@@ -1,5 +1,7 @@
 !>  Module file parallel_types.mod
 !
+!> @build mpi
+!
 !>  Module that defines the parallel environment types for ASiMoV-CCS
 module parallel_types
 
