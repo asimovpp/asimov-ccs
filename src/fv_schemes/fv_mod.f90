@@ -53,16 +53,16 @@ module fv
 
   !> @brief Sets the diffusion coefficient
   !
-  !> @param[in] local_self_idx - the local cell index
-  !> @param[in] local_ngb_idx  - the local neigbouring cell index
-  !> @param[in] cell_mesh      - the mesh structure
+  !> @param[in] index_p - the local cell index
+  !> @param[in] index_nb  - the local neigbouring cell index
+  !> @param[in] mesh      - the mesh structure
   !> @param[out] coeff         - the diffusion coefficient
   !
   ! XXX: why is this a function when the equivalent advection ones are subroutines?
-  module function calc_diffusion_coeff(local_self_idx, local_ngb_idx, cell_mesh) result(coeff)
-    integer(ccs_int), intent(in) :: local_self_idx
-    integer(ccs_int), intent(in) :: local_ngb_idx
-    type(ccs_mesh), intent(in) :: cell_mesh
+  module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+    integer(ccs_int), intent(in) :: index_p
+    integer(ccs_int), intent(in) :: index_nb
+    type(ccs_mesh), intent(in) :: mesh
     real(ccs_real) :: coeff
   end function calc_diffusion_coeff
 
@@ -70,15 +70,15 @@ module fv
   !
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure (defined at faces)
-  !> @param[in] cell_mesh - the mesh being used
+  !> @param[in] mesh - the mesh being used
   !> @param[in] bcs       - the boundary conditions structure being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(phi, mf, cell_mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, mesh, bcs, cps, M, vec)
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
-    type(ccs_mesh), intent(in) :: cell_mesh
+    type(ccs_mesh), intent(in) :: mesh
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
@@ -90,16 +90,16 @@ module fv
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
-  !> @param[in] p_x_gradients   - array containing pressure gradient in x
-  !> @param[in] p_y_gradients   - array containing pressure gradient in y
+  !> @param[in] dpdx   - array containing pressure gradient in x
+  !> @param[in] dpdy   - array containing pressure gradient in y
   !> @param[in] invAx    - array containing inverse momentum diagonal in x
   !> @param[in] invAy    - array containing inverse momentum diagonal in y
   !> @param[in] loc_f    - face locator
   !> @param[out] flux    - The flux across the boundary
-  module function calc_mass_flux(u, v, p, p_x_gradients, p_y_gradients, invAu, invAv, loc_f) result(flux)
+  module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: u, v
     real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: p_x_gradients, p_y_gradients
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv
     type(face_locator), intent(in) :: loc_f
     real(ccs_real) :: flux
@@ -107,24 +107,24 @@ module fv
 
   !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
-  !> @param[in] idx  - cell index
-  !> @param[in] cps  - number of cells per side
-  !> @param[out] row - cell row within mesh
-  !> @param[out] col - cell column within mesh
-  module subroutine calc_cell_coords(idx, cps, row, col)
-    integer(ccs_int), intent(in) :: idx, cps
+  !> @param[in] index  - cell index
+  !> @param[in] cps    - number of cells per side
+  !> @param[out] row   - cell row within mesh
+  !> @param[out] col   - cell column within mesh
+  module subroutine calc_cell_coords(index, cps, row, col)
+    integer(ccs_int), intent(in) :: index, cps
     integer(ccs_int), intent(out) :: row, col
   end subroutine calc_cell_coords
 
   !> @brief Performs an update of the gradients of a field.
   !
-  !> @param[in]    cell_mesh - the mesh
+  !> @param[in]    mesh - the mesh
   !> @param[inout] phi       - the field whose gradients we want to update
   !
   !> @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !!       correctly updated on other PEs.
-  module subroutine update_gradient(cell_mesh, phi)
-    type(ccs_mesh), intent(in) :: cell_mesh
+  module subroutine update_gradient(mesh, phi)
+    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
   end subroutine update_gradient
   

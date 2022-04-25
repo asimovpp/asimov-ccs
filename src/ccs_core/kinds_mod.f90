@@ -23,9 +23,9 @@ module kinds
   integer :: ierr
 #endif
   
-  integer, public, parameter :: ccs_real = kind(x)   !> Real kind to be used in ASiMoV-CCS
-  integer, public, parameter :: ccs_int = kind(i)    !> Integer kind to be used in ASiMoV-CCS
-  integer, public, parameter :: ccs_err = kind(ierr) !> Error kind to be used in ASiMoV-CCS
+  integer, public, parameter :: ccs_real = kind(x)   !< Real kind to be used in ASiMoV-CCS
+  integer, public, parameter :: ccs_int = kind(i)    !< Integer kind to be used in ASiMoV-CCS
+  integer, public, parameter :: ccs_err = kind(ierr) !< Error kind to be used in ASiMoV-CCS
 
   private
   

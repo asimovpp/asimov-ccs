@@ -8,7 +8,7 @@ space := $(null) $(null)
 # NEED_CMP decides if full compilation is required or not
 # e.g. if the build is a simple clean, makedepf90 does not need to be invoked
 NEED_CMP = yes
-ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs doxy docs-latex))
+ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs ford doxy docs-latex))
   NEED_CMP = no
 endif
 
@@ -63,8 +63,9 @@ ifeq ($(NEED_CMP),yes)
   include $(EXE_DEPS)
 endif
 
+INC = -I${CCS_DIR}/src/include
 FFLAGS += -DACCS_PETSC
-INC = -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
+INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
@@ -82,10 +83,14 @@ endif
 
 
 
+all: obj app
 
-all: $(OBJ) $(EXE)
+app: $(EXE)
 
-tests: all
+obj: $(OBJ)
+
+tests: FFLAGS+=-DVERBOSE
+tests: obj
 	make -C $(CCS_DIR)/tests all
 
 $(EXE): $(EXE_DEPS)
@@ -123,7 +128,9 @@ endif
 
 docs: doxy 
 doxy:
-	doxygen doxygen.cfg
+	doxygen .doxygen.cfg
+ford:
+	ford -d $(CCS_DIR)/src --exclude_dir doc .documentation_settings.ford
 docs-latex: doxy
 	make -C latex
 clean-docs:

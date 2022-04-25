@@ -1,10 +1,12 @@
 submodule (mat) mat_petsc
+#include "ccs_macros.inc"
 
   use kinds, only : ccs_err
   use petsctypes, only : matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only : ADD_VALUES, INSERT_VALUES
+  use utils, only : debug_print
   
   implicit none
 
@@ -12,9 +14,9 @@ contains
 
   !> @brief Create a new PETSc matrix object.
   !
-  !> @param[in]  mat_dat - contains information about how the matrix should be allocated
+  !> @param[in]  mat_properties - contains information about how the matrix should be allocated
   !> @param[out] M       - the matrix object
-  module subroutine create_matrix(mat_dat, M)
+  module subroutine create_matrix(mat_properties, M)
 
     use mpi
     
@@ -22,10 +24,10 @@ contains
     use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
-    type(matrix_spec), intent(in) :: mat_dat
+    type(matrix_spec), intent(in) :: mat_properties
     class(ccs_matrix), allocatable, intent(out) :: M
 
-    integer(ccs_err) :: ierr  !> Error code
+    integer(ccs_err) :: ierr  !< Error code
 
     allocate(matrix_petsc :: M)
 
@@ -34,12 +36,12 @@ contains
 
         M%modeset = .false.
         
-        select type (par_env => mat_dat%par_env)
+        select type (par_env => mat_properties%par_env)
           type is(parallel_environment_mpi)
 
           call MatCreate(par_env%comm, M%M, ierr)
 
-          associate(mesh => mat_dat%mesh)
+          associate(mesh => mat_properties%mesh)
             call MatSetSizes(M%M, mesh%nlocal, mesh%nlocal, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
           end associate
           
@@ -49,14 +51,15 @@ contains
 
           call MatSetFromOptions(M%M, ierr)
           
-          if (mat_dat%nnz < 1) then
+          if (mat_properties%nnz < 1) then
             if (par_env%proc_id == par_env%root) then
-              print *, "WARNING: No matrix preallocation set, potentially inefficient!"
+              call dprint("WARNING: No matrix preallocation set, potentially inefficient!")
             end if
             call MatSetUp(M%M, ierr)
           else
-            call MatSeqAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, ierr)
-            call MatMPIAIJSetPreallocation(M%M, mat_dat%nnz, PETSC_NULL_INTEGER, mat_dat%nnz - 1, PETSC_NULL_INTEGER, ierr)
+            call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, ierr)
+            call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, mat_properties%nnz - 1, &
+                                           PETSC_NULL_INTEGER, ierr)
           end if
 
           class default
@@ -118,7 +121,7 @@ contains
 
     class(ccs_matrix), intent(inout) :: M
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     select type (M)
       type is (matrix_petsc)
@@ -142,7 +145,7 @@ contains
 
     class(ccs_matrix), intent(inout) :: M
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     select type (M)
       type is (matrix_petsc)
@@ -192,10 +195,10 @@ contains
     type(matrix_values), intent(in) :: mat_values
     class(ccs_matrix), intent(inout) :: M
 
-    integer(ccs_int) :: nrows, ncols !> number of rows/columns
-    integer(ccs_int) :: mode !> Add or insert values?
+    integer(ccs_int) :: nrows, ncols !< number of rows/columns
+    integer(ccs_int) :: mode !< Add or insert values?
     
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     associate(ridx    => mat_values%row_indices, &
               cidx    => mat_values%col_indices, &
@@ -329,7 +332,7 @@ contains
     class(ccs_matrix), intent(in) :: x
     class(ccs_matrix), intent(inout) :: y
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (x)
       type is (matrix_petsc)
@@ -368,8 +371,8 @@ contains
     class(ccs_matrix), intent(in) :: M
     integer(ccs_int), intent(in) :: norm_type
 
-    real(ccs_real) :: n      !> The computed norm 
-    integer(ccs_err) :: ierr !> Error code
+    real(ccs_real) :: n      !< The computed norm 
+    integer(ccs_err) :: ierr !< Error code
     
     n = 0.0_ccs_real ! initialise norm to 0
     
@@ -405,7 +408,7 @@ contains
     class(ccs_matrix), intent(in)  :: M
     class(ccs_vector), intent(inout) :: D
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     select type (M)
       type is (matrix_petsc)

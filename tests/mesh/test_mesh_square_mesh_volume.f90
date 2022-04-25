@@ -10,7 +10,7 @@ program test_mesh_square_mesh_volume
 
   implicit none
   
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: n
   real(ccs_real) :: l
@@ -19,7 +19,7 @@ program test_mesh_square_mesh_volume
   real(ccs_real) :: expected_vol
 
   integer(ccs_int) :: i
-  type(cell_locator) :: cell_location
+  type(cell_locator) :: loc_p
   real(ccs_real) :: V
 
   integer(ccs_int) :: nneg_vol
@@ -29,18 +29,18 @@ program test_mesh_square_mesh_volume
   
   do n = 1, 100
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, n, l)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
     vol = 0.0_ccs_real
     nneg_vol = 0
-    do i = 1, square_mesh%nlocal
-      call set_cell_location(square_mesh, i, cell_location)
-      call get_volume(cell_location, V)
+    do i = 1, mesh%nlocal
+      call set_cell_location(mesh, i, loc_p)
+      call get_volume(loc_p, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1
       end if
-      vol = vol + square_mesh%vol(i)
+      vol = vol + mesh%volumes(i)
     end do
     
     select type(par_env)
@@ -54,7 +54,7 @@ program test_mesh_square_mesh_volume
 
     ! XXX: This would be a good candidate for a testing library
     if (abs(expected_vol - vol_global) > 1.0e-8) then
-      print *, square_mesh%h, l/n !TODO: not sure if this should be put inside message
+      print *, mesh%h, l/n !TODO: not sure if this should be put inside message
       write (message,*) "FAIL: expected ", expected_vol, " got ", vol_global
       call stop_test(message)
     end if

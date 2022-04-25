@@ -13,8 +13,8 @@ program test_mesh_square_mesh_closed
 
   implicit none
   
-  type(ccs_mesh), target :: square_mesh
-  type(face_locator) :: face_location
+  type(ccs_mesh), target :: mesh
+  type(face_locator) :: loc_f
 
   integer(ccs_int) :: n
   real(ccs_real) :: l
@@ -29,18 +29,18 @@ program test_mesh_square_mesh_closed
   
   do n = 1, 100 ! XXX: Should use some named constant, not just "100"
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, n, l)
 
     ! Loop over cells
-    do i = 1, square_mesh%nlocal
+    do i = 1, mesh%nlocal
       S(:) = 0.0_ccs_real
 
       ! Loop over neighbours/faces
-      do j = 1, square_mesh%nnb(i)
+      do j = 1, mesh%nnb(i)
 
-        call set_face_location(square_mesh, i, j, face_location)
-        call get_face_area(face_location, A)
-        call get_face_normal(face_location, norm)
+        call set_face_location(mesh, i, j, loc_f)
+        call get_face_area(loc_f, A)
+        call get_face_normal(loc_f, norm)
         S(:) = S(:) + norm(:) * A
       end do
 

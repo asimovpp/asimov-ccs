@@ -7,7 +7,7 @@ program test_diffusion_coeff
   use mesh_utils, only : build_square_mesh
   use fv, only: calc_diffusion_coeff
 
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
   integer(ccs_int), parameter :: cps = 50
   real(ccs_real) :: coeff
   real(ccs_real), parameter :: expected_coeff = -1.e-2_ccs_real
@@ -15,9 +15,9 @@ program test_diffusion_coeff
   
   call init()
 
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  coeff = calc_diffusion_coeff(1,1,square_mesh)
+  coeff = calc_diffusion_coeff(1,1,mesh)
 
   if (abs(coeff - expected_coeff) .ge. tiny(coeff)) then
     write(message, *) "FAIL: incorrect diffusion coefficient computed. Expected ", expected_coeff, " computed ", coeff

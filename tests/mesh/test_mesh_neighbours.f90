@@ -10,8 +10,8 @@ program test_mesh_neighbours
 
   implicit none
   
-  type(ccs_mesh), target :: square_mesh
-  type(cell_locator) :: cell_location
+  type(ccs_mesh), target :: mesh
+  type(cell_locator) :: loc_p
 
   integer(ccs_int) :: n
   real(ccs_real) :: l
@@ -21,7 +21,7 @@ program test_mesh_neighbours
   integer(ccs_int) :: nnb
   integer(ccs_int) :: j
 
-  type(neighbour_locator) :: nb_location
+  type(neighbour_locator) :: loc_nb
   logical :: is_boundary
   integer(ccs_int) :: boundary_ctr
   integer(ccs_int) :: global_boundary_ctr
@@ -31,13 +31,13 @@ program test_mesh_neighbours
   
   do n = 1, 100 ! XXX: Need a test-wide variable nmax
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, n, l)
 
     boundary_ctr = 0
-    do i = 1, square_mesh%nlocal
+    do i = 1, mesh%nlocal
 
-      call set_cell_location(square_mesh, i, cell_location)
-      call count_neighbours(cell_location, nnb)
+      call set_cell_location(mesh, i, loc_p)
+      call count_neighbours(loc_p, nnb)
 
       if (nnb < 2) then
         ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
@@ -53,13 +53,13 @@ program test_mesh_neighbours
 
       ! Loop over neighbours
       do j = 1, nnb
-        call set_neighbour_location(cell_location, j, nb_location)
-        call get_boundary_status(nb_location, is_boundary)
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
           boundary_ctr = boundary_ctr + 1
         else
-          call test_mesh_internal_neighbours(nb_location)
+          call test_mesh_internal_neighbours(loc_nb)
         end if
       end do
 
@@ -87,43 +87,43 @@ program test_mesh_neighbours
 
 contains
 
-  subroutine test_mesh_internal_neighbours(nb_location)
+  subroutine test_mesh_internal_neighbours(loc_nb)
 
     use meshing, only : count_neighbours, get_local_index, get_boundary_status, get_local_status
     
-    type(neighbour_locator), intent(in) :: nb_location
+    type(neighbour_locator), intent(in) :: loc_nb
 
-    integer(ccs_int) :: nbidx
-    type(cell_locator) :: nb_cell_location
+    integer(ccs_int) :: index_nb
+    type(cell_locator) :: cell_loc_nb
     integer(ccs_int) :: nnb
     logical :: found_parent
     integer(ccs_int) :: j
-    type(neighbour_locator) :: nbnb_location
+    type(neighbour_locator) :: loc_nb_nb
     logical :: is_boundary
     logical :: is_local
     
-    associate(mesh => nb_location%mesh, &
-         parent_idx => nb_location%cell_idx)
-      call get_local_index(nb_location, nbidx)
+    associate(mesh => loc_nb%mesh, &
+         parent_idx => loc_nb%index_p)
+      call get_local_index(loc_nb, index_nb)
             
       ! Neighbour index should not be its parents
-      if (nbidx == parent_idx) then
-        write(message, *) "FAIL: Neighbour has same index ", nbidx, " as parent cell ", parent_idx
+      if (index_nb == parent_idx) then
+        write(message, *) "FAIL: Neighbour has same index ", index_nb, " as parent cell ", parent_idx
         call stop_test(message)
       end if
 
-      call get_local_status(nb_location, is_local)
+      call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call set_cell_location(mesh, nbidx, nb_cell_location)
-        call count_neighbours(nb_cell_location, nnb)
+        call set_cell_location(mesh, index_nb, cell_loc_nb)
+        call count_neighbours(cell_loc_nb, nnb)
         found_parent = .false.
         do j = 1, nnb
-          call set_neighbour_location(nb_cell_location, j, nbnb_location)
-          call get_boundary_status(nbnb_location, is_boundary)
+          call set_neighbour_location(cell_loc_nb, j, loc_nb_nb)
+          call get_boundary_status(loc_nb_nb, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
-            call get_local_index(nbnb_location, nbidx)
-            if (nbidx == parent_idx) then
+            call get_local_index(loc_nb_nb, index_nb)
+            if (index_nb == parent_idx) then
               found_parent = .true.
               exit
             end if

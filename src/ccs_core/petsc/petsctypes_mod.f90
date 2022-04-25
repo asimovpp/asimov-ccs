@@ -4,6 +4,7 @@
 !> @details Provides petsc-extended types.
 
 module petsctypes
+#include "ccs_macros.inc"
 
   use petscksp, only : tKSP
   use petscvec, only : tVec
@@ -11,6 +12,7 @@ module petsctypes
 
   use kinds, only : ccs_err, ccs_int
   use types, only : ccs_vector, ccs_matrix, linear_solver
+  use utils, only : debug_print
   
   implicit none
 
@@ -18,28 +20,28 @@ module petsctypes
 
   !> @brief Implements the vector class backed by a PETSc vector
   type, public, extends(ccs_vector) :: vector_petsc
-    type(tVec) :: v      !> The PETSc vector
-    type(tVec) :: vl     !> The "local" PETSc vector (inc. ghost points)
-    logical :: allocated !> Indicates whether the PETSc vector has been allocated
-    logical :: ghosted   !> Does this vector have ghost points?
-    integer(ccs_int) :: mode !> Current mode for setting values
-    logical :: modeset        !> Is the current mode still valid? i.e. does vector need updated before switching modes?
+    type(tVec) :: v      !< The PETSc vector
+    type(tVec) :: vl     !< The "local" PETSc vector (inc. ghost points)
+    logical :: allocated !< Indicates whether the PETSc vector has been allocated
+    logical :: ghosted   !< Does this vector have ghost points?
+    integer(ccs_int) :: mode !< Current mode for setting values
+    logical :: modeset        !< Is the current mode still valid? i.e. does vector need updated before switching modes?
   contains
     final :: free_vector_petsc
   end type vector_petsc
 
   !> @brief Implements the matrix class backed by a PETSc matrix
   type, public, extends(ccs_matrix) :: matrix_petsc
-    type(tMat) :: M      !> The PETSc matrix
-    logical :: allocated !> Indicates whether the PETSc matrix has been allocated
-    integer(ccs_int) :: mode !> Current mode for setting values
-    logical :: modeset        !> Is the current mode still valid? i.e. does matrix need updated before switching modes?
-   contains
+    type(tMat) :: M      !< The PETSc matrix
+    logical :: allocated !< Indicates whether the PETSc matrix has been allocated
+    integer(ccs_int) :: mode !< Current mode for setting values
+    logical :: modeset        !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
+  contains
      final :: free_matrix_petsc
   end type matrix_petsc
 
   type, public, extends(linear_solver) :: linear_solver_petsc
-     type(tKSP) :: KSP !> The PETSc solver
+     type(tKSP) :: KSP !< The PETSc solver
      logical :: allocated
    contains
      final :: free_linear_solver_petsc
@@ -74,7 +76,7 @@ contains
     
     type(vector_petsc), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     if (v%allocated) then
        call VecDestroy(v%v, ierr)
@@ -97,7 +99,7 @@ contains
 
     type(matrix_petsc), intent(inout) :: M
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     if (M%allocated) then
        call MatDestroy(M%M, ierr)
@@ -121,7 +123,7 @@ contains
 
     type(linear_solver_petsc), intent(inout) :: solver
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     if (solver%allocated) then
        call KSPDestroy(solver%KSP, ierr)

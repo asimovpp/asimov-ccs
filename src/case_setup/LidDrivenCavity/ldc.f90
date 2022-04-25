@@ -4,61 +4,60 @@
 
 program ldc
 
-  use yaml, only: parse, error_length
-  use kinds, only : ccs_int, ccs_real
-  use constants, only: ccsconfig
+  use petscvec
+  use petscsys
+
+  use case_config, only: num_steps, velocity_relax, pressure_relax
+  use constants, only : cell, face, ccsconfig
   use bc_constants, only: bc_region_left, bc_region_right, &
-                          bc_region_top, bc_region_bottom, bc_region_live, &
+                          bc_region_top, bc_region_bottom, &
+                          bc_region_live, &
                           bc_type_sym, bc_type_wall
+  use kinds, only: ccs_real, ccs_int
+  use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
+                   vector_spec, ccs_vector
+  use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, &
-                      read_command_line_arguments, &
-                      timer
+                      cleanup_parallel_environment, timer, &
+                      read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
+  use mesh_utils, only: build_square_mesh
+  use vec, only: create_vector, set_vector_location
+  use petsctypes, only: vector_petsc
+  use pv_coupling, only: solve_nonlinear
+  use utils, only: set_size, initialise, update
 
   implicit none
 
-  character(len=:), allocatable :: case_name   !> Case name
-  character(len=:), allocatable :: ccs_config_file  !> Config file for CCS
-
   class(parallel_environment), allocatable :: par_env
+  character(len=:), allocatable :: case_name       !< Case name
+  character(len=:), allocatable :: ccs_config_file !< Config file for CCS
 
-  ! Reference numbers
-  real(ccs_real) :: p_ref
-  real(ccs_real) :: temp_ref
-  real(ccs_real) :: density
-  real(ccs_real) :: viscosity
-  integer(ccs_int) :: pref_at_cell
+  type(ccs_mesh)    :: mesh
+  type(vector_spec) :: vec_properties
 
-  ! Number of steps
-  integer(ccs_int) :: num_steps
+  class(field), allocatable :: u, v, p, p_prime, mf
 
-  ! Convection/discretisation scheme
-  integer(ccs_int) :: u_conv
-  integer(ccs_int) :: v_conv
+  integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
-  ! Relation factors
-  real(ccs_real) :: u_relax
-  real(ccs_real) :: v_relax
-  real(ccs_real) :: p_relax
+  integer(ccs_int) :: it_start, it_end, ierr
+  integer(ccs_int) :: irank !< MPI rank ID
+  integer(ccs_int) :: isize !< Size of MPI world
 
-  ! Boundary conditions - hardcoded for now
-  integer(ccs_int), dimension(5) :: bnd_region
-  integer(ccs_int), dimension(5) :: bnd_type
-  
-  integer(ccs_int) :: irank !> MPI rank ID
-  ! integer(ccs_int) :: isize !> Size of MPI world
+  double precision :: start_time
+  double precision :: end_time
 
-  double precision :: start_time, end_time
+  type(tPetscViewer) :: viewer
 
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
 
   irank = par_env%proc_id
-!  isize = par_env%num_procs
+  isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name)
 
+  print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name//ccsconfig
 
   call timer(start_time)
@@ -66,13 +65,103 @@ program ldc
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
-  ! BC regions and types - for region "top", u = 1.0
-  bnd_region = (/ bc_region_left, bc_region_right, bc_region_top, bc_region_bottom, bc_region_live /)
-  bnd_type = (/ bc_type_wall, bc_type_wall, bc_type_wall, bc_type_wall, bc_type_sym /)
-
-  if(irank == 0) then
-    call print_config()
+  if(irank == par_env%root) then
+    call print_configuration()
   end if
+
+  ! Set start and end iteration numbers (eventually will be read from input file)
+  it_start = 1
+  it_end   = num_steps
+
+  ! Create a square mesh
+  print *, "Building mesh"
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+
+  ! Initialise fields
+  print *, "Initialise fields"
+  allocate(upwind_field :: u)
+  allocate(upwind_field :: v)
+  allocate(central_field :: p)
+  allocate(central_field :: p_prime)
+  allocate(face_field :: mf)
+
+  ! Create and initialise field vectors
+  call initialise(vec_properties)
+
+  ! print *, "Create vectors"
+  call set_vector_location(cell, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, u%values)
+  call create_vector(vec_properties, v%values)
+  call create_vector(vec_properties, p%values)
+  call create_vector(vec_properties, p%x_gradients)
+  call create_vector(vec_properties, p%y_gradients)
+  call create_vector(vec_properties, p%z_gradients)
+  call create_vector(vec_properties, p_prime%values)
+  call create_vector(vec_properties, p_prime%x_gradients)
+  call create_vector(vec_properties, p_prime%y_gradients)
+  call create_vector(vec_properties, p_prime%z_gradients)
+  call update(u%values)
+  call update(v%values)
+  call update(p%values)
+  call update(p%x_gradients)
+  call update(p%y_gradients)
+  call update(p%z_gradients)
+  call update(p_prime%values)
+  call update(p_prime%x_gradients)
+  call update(p_prime%y_gradients)
+  call update(p_prime%z_gradients)
+
+  call set_vector_location(face, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, mf%values)
+  call update(mf%values)
+  
+  ! Initialise velocity field
+  print *, "Initialise velocity field"
+  call initialise_velocity(mesh, u, v, mf)
+  call update(u%values)
+  call update(v%values)
+  call update(mf%values)
+
+  ! Solve using SIMPLE algorithm
+  print *, "Start SIMPLE"
+  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => u%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v",FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => v%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p",FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => p%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerDestroy(viewer,ierr)
+
+  ! Clean-up
+  deallocate(u)
+  deallocate(v)
+  deallocate(p)
+  deallocate(p_prime)
 
   call timer(end_time)
 
@@ -93,7 +182,7 @@ program ldc
 
     character(len=*), intent(in) :: config_filename
     
-    class(*), pointer :: config_file_pointer  !> Pointer to CCS config file
+    class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
     character(len=error_length) :: error
 
     config_file_pointer => parse(config_filename, error=error)
@@ -103,54 +192,100 @@ program ldc
     endif
     
     call get_steps(config_file_pointer, num_steps)
-    call get_reference_number(config_file_pointer, p_ref=p_ref, temp_ref=temp_ref, &
-                              dens_ref=density, visc_ref=viscosity, pref_at_cell=pref_at_cell)
-    call get_convection_scheme(config_file_pointer, u_conv=u_conv, v_conv=v_conv)
-    call get_relaxation_factor(config_file_pointer, u_relax=u_relax, v_relax=v_relax, p_relax=p_relax)
+    if(num_steps == huge(0)) then
+      print*,"No value assigned to num-steps."
+    end if
+
+    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    if(velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
+      print*,"No values assigned to velocity and pressure underrelaxation."
+    end if
 
   end subroutine
 
   ! Print test case configuration
-  subroutine print_config()
+  subroutine print_configuration()
 
     print*,"Solving ", case_name, " case"
 
     print*,"++++" 
     print*,"SIMULATION LENGTH"
-    print*,"Running for ",num_steps, "time steps"
-
-    print*,"++++"   
-    print*,"REFERENCE NUMBERS"
-    print*,"Reference pressure ", p_ref, " set a cell ", pref_at_cell
-    print*,"Reference temperature ", temp_ref
-    print*,"Density ", density
-    print*,"Viscocity ", viscosity
-
+    print*,"Running for ",num_steps, "iterations"
     print*,"++++" 
-    print*,"DISCRETISATION SCHEMES"  
-    if(u_conv == 0) then
-      print*,"u is upwind" 
-    else
-      print*,"u is central" 
-    end if
-  
-    if(v_conv == 0) then
-      print*,"v is upwind" 
-    else
-      print*,"v is central" 
-    end if
-
+    print*,"MESH"
+    print*,"Size is ",cps
     print*,"++++" 
     print*,"RELAXATION FACTORS"
-    print*,"u is ", u_relax 
-    print*,"v is ", v_relax 
-    print*,"p is ", p_relax 
-
-    print*,"++++" 
-    print*,"BOUNDARY CONDITIONS"
-    print*,"Regions: ", bnd_region
-    print*,"Types: ", bnd_type
+    print*,"velocity: ", velocity_relax 
+    print*,"pressure: ", pressure_relax 
 
   end subroutine
+
+  subroutine initialise_velocity(mesh, u, v, mf)
+
+    use constants, only: add_mode
+    use types, only: vector_values, cell_locator
+    use meshing, only: set_cell_location, get_global_index
+    use fv, only: calc_cell_coords
+    use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
+    use vec, only : get_vector_data, restore_vector_data, create_vector_values
+    
+    ! Arguments
+    class(ccs_mesh), intent(in) :: mesh
+    class(field), intent(inout) :: u, v, mf
+
+    ! Local variables
+    integer(ccs_int) :: row, col
+    integer(ccs_int) :: index_p, global_index_p
+    real(ccs_real) :: u_val, v_val
+    type(cell_locator) :: loc_p
+    type(vector_values) :: u_vals, v_vals
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
+
+    ! Set alias
+    associate(n_local => mesh%nlocal)
+      call create_vector_values(n_local, u_vals)
+      call create_vector_values(n_local, v_vals)
+      call set_mode(add_mode, u_vals)
+      call set_mode(add_mode, v_vals)
+
+      ! Set initial values for velocity fields
+      do index_p = 1, n_local
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
+        call calc_cell_coords(global_index_p, cps, row, col)
+
+        u_val = real(col, ccs_real)/real(cps, ccs_real)
+        v_val = -real(row, ccs_real)/real(cps, ccs_real)
+
+        call set_row(global_index_p, u_vals)
+        call set_entry(u_val, u_vals)
+        call set_row(global_index_p, v_vals)
+        call set_entry(v_val, v_vals)
+      end do
+
+      call set_values(u_vals, u%values)
+      call set_values(v_vals, v%values)
+
+      deallocate(u_vals%indices)
+      deallocate(v_vals%indices)
+      deallocate(u_vals%values)
+      deallocate(v_vals%values)
+    end associate
+
+    call get_vector_data(u%values, u_data)
+    call get_vector_data(v%values, v_data)
+    call get_vector_data(mf%values, mf_data)
+
+    u_data(:) = 0.0_ccs_real
+    v_data(:) = 0.0_ccs_real
+    mf_data(:) = 0.0_ccs_real
+    
+    call restore_vector_data(u%values, u_data)
+    call restore_vector_data(v%values, v_data)
+    call restore_vector_data(mf%values, mf_data)
+    
+  end subroutine initialise_velocity
+
 
 end program ldc

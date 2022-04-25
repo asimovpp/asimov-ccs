@@ -8,30 +8,30 @@ program test_square_mesh_indices
 
   implicit none
 
-  type(ccs_mesh) :: square_mesh
+  type(ccs_mesh) :: mesh
 
   real(ccs_real) :: l
   integer(ccs_int) :: n
 
   integer(ccs_int) :: i
 
-  type(cell_locator) :: cell_location
-  integer(ccs_int) :: idxg
+  type(cell_locator) :: loc_p
+  integer(ccs_int) :: global_index
 
   call init()
   
   do n = 1, 100 ! TODO: Investigate how we can replicate nmax=100 across multiple test programs
     l = parallel_random(par_env)
-    square_mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, n, l)
 
-    associate(nlocal => square_mesh%nlocal, &
-         nglobal => square_mesh%nglobal)
+    associate(nlocal => mesh%nlocal, &
+         nglobal => mesh%nglobal)
       do i = 1, nlocal
-        call set_cell_location(square_mesh, i, cell_location)
-        call get_global_index(cell_location, idxg)
-        if ((idxg < 1) .or. (idxg > nglobal)) then
-          if (idxg /= -1) then
-            write(message, *) "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", idxg
+        call set_cell_location(mesh, i, loc_p)
+        call get_global_index(loc_p, global_index)
+        if ((global_index < 1) .or. (global_index > nglobal)) then
+          if (global_index /= -1) then
+            write(message, *) "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", global_index
             call stop_test(message)
           end if
           exit

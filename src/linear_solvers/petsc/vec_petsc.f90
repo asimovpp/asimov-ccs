@@ -4,12 +4,14 @@
 !> @details An implementation of vector objects using PETSc - the datatype and operations on it
 !!          (creation, destruction, setting/getting, ...)
 submodule (vec) vec_petsc
+#include "ccs_macros.inc"
 
   use kinds, only : ccs_err
   use petsctypes, only : vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
+  use utils, only: debug_print
 
   implicit none
 
@@ -17,20 +19,20 @@ contains
 
   !> @brief Create a PETSc-backed vector
   !
-  !> @param[in]  vector_spec vec_dat - the data describing how the vector should be created.
+  !> @param[in]  vector_spec vec_properties - the data describing how the vector should be created.
   !> @param[out] vector v - the vector specialised to type vector_petsc.
-  module subroutine create_vector(vec_dat, v)
+  module subroutine create_vector(vec_properties, v)
 
     use petsc, only : PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only : VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                          VecCreate
     
-    type(vector_spec), intent(in) :: vec_dat
+    type(vector_spec), intent(in) :: vec_properties
     class(ccs_vector), allocatable, intent(out) :: v
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
     integer(ccs_int) :: i
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     allocate(vector_petsc :: v)
     
@@ -39,16 +41,16 @@ contains
 
       v%modeset = .false.
         
-      select type(par_env => vec_dat%par_env)
+      select type(par_env => vec_properties%par_env)
         type is(parallel_environment_mpi)
 
-          associate(mesh => vec_dat%mesh)
+          associate(mesh => vec_properties%mesh)
 
-            select case(vec_dat%storage_location)
+            select case(vec_properties%storage_location)
             case (cell)
               associate(nhalo => mesh%nhalo, &
                    nlocal => mesh%nlocal, &
-                   idx_global => mesh%idx_global)
+                   idx_global => mesh%global_indices)
                 allocate(global_halo_indices(nhalo))
                 do i = 1, nhalo
                   global_halo_indices(i) = idx_global(i + nlocal) - 1_ccs_int
@@ -102,9 +104,9 @@ contains
     class(*), intent(in) :: val_dat
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_int) :: n    !> Number of elements to add
-    integer(ccs_int) :: mode !> Append or insert mode
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_int) :: n    !< Number of elements to add
+    integer(ccs_int) :: mode !< Append or insert mode
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -184,7 +186,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -210,7 +212,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -238,7 +240,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -267,7 +269,7 @@ contains
     
     class(ccs_vector), intent(inout) :: v
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (v)
       type is (vector_petsc)
@@ -301,7 +303,7 @@ contains
     class(ccs_vector), intent(in) :: x
     class(ccs_vector), intent(inout) :: y
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
     
     select type (x)
       type is (vector_petsc)
@@ -340,8 +342,8 @@ contains
     class(ccs_vector), intent(in) :: v
     integer(ccs_int), intent(in) :: norm_type
 
-    real(ccs_real) :: n      !> The computed norm 
-    integer(ccs_err) :: ierr !> Error code
+    real(ccs_real) :: n      !< The computed norm 
+    integer(ccs_err) :: ierr !< Error code
     
     n = 0.0_ccs_real ! initialise norm to 0
     
@@ -474,7 +476,7 @@ contains
 
     class(ccs_vector), intent(inout) :: vec
 
-    integer(ccs_err) :: ierr !> Error code
+    integer(ccs_err) :: ierr !< Error code
 
     select type (vec)
       type is (vector_petsc)
@@ -529,14 +531,14 @@ contains
   
   end subroutine
 
-!   module subroutine vec_view(vec_dat, vec)
+!   module subroutine vec_view(vec_properties, vec)
 
 ! #include <petsc/finclude/petscviewer.h>
 
 !     use petscvec, only: VecView
 !     use petscsys
     
-!     type(vector_spec), intent(in) :: vec_dat
+!     type(vector_spec), intent(in) :: vec_properties
 !     class(ccs_vector), intent(in) :: vec
 
 !     PetscViewer :: viewer
@@ -546,7 +548,7 @@ contains
 !     select type (vec)
 !       type is (vector_petsc)
 
-!       select type(par_env => vec_dat%par_env)
+!       select type(par_env => vec_properties%par_env)
 !         type is(parallel_environment_mpi)
 
 !           call PetscViewerCreate(par_env%comm, viewer, ierr)
