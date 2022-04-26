@@ -18,6 +18,7 @@ bases:
       meshing: meshing_accessors
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
+      partitioning: partitioning_parhip
     #options:
       #component: [opt_1, opt_2, opt_3]
   mpi:

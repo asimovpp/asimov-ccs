@@ -6,7 +6,7 @@ module partitioning
 
   use kinds, only: ccs_idx
   use types, only: topology
-  use parallel, only: parallel_environment
+  use parallel_types, only: parallel_environment
 
   implicit none
 
