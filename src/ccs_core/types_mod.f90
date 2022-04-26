@@ -66,13 +66,27 @@ module types
     type(equation_system) :: linear_system !< System of equations
   end type linear_solver
 
+  !> Topology type
+  type, public :: topology
+    integer(ccs_int) :: topo_nglobal                                         !< Global mesh size
+    integer(ccs_int) :: topo_nlocal                                          !< Local mesh size
+    integer(ccs_int) :: topo_nhalo                                           !< How many cells in my halo?
+    integer(ccs_int) :: topo_ntotal                                          !< How many cells do I interact with (nlocal + nhalo)?
+    integer(ccs_int) :: topo_nfaces_local                                    !< Number of faces in local mesh
+    integer(ccs_int), dimension(:), allocatable :: topo_global_indices       !< The global index of cells (local + halo)
+    integer(ccs_int), dimension(:), allocatable :: topo_nnb                  !< The per-cell neighbour count
+    integer(ccs_int), dimension(:, :), allocatable :: topo_neighbour_indices !< Cell neighbours (neighbour/face, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: topo_face_indices      !< Cell face index in local face vector (face, cell)
+  end type topology  
+
   !>  Mesh type
   type, public :: ccs_mesh
-    integer(ccs_int) :: nglobal !< Global mesh size
-    integer(ccs_int) :: nlocal  !< Local mesh size
-    integer(ccs_int) :: nhalo   !< How many cells in my halo?
-    integer(ccs_int) :: ntotal  !< How many cells do I interact with (nlocal + nhalo)?
-    integer(ccs_int) :: nfaces_local !< Number of faces in local mesh
+    type(topology) :: topo
+    integer(ccs_int) :: nglobal                                         !< Global mesh size
+    integer(ccs_int) :: nlocal                                          !< Local mesh size
+    integer(ccs_int) :: nhalo                                           !< How many cells in my halo?
+    integer(ccs_int) :: ntotal                                          !< How many cells do I interact with (nlocal + nhalo)?
+    integer(ccs_int) :: nfaces_local                                    !< Number of faces in local mesh
     integer(ccs_int), dimension(:), allocatable :: global_indices       !< The global index of cells (local + halo)
     integer(ccs_int), dimension(:), allocatable :: nnb                  !< The per-cell neighbour count
     integer(ccs_int), dimension(:, :), allocatable :: neighbour_indices !< Cell neighbours (neighbour/face, cell)
