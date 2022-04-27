@@ -4,7 +4,7 @@
 
 module types
 
-  use kinds, only : ccs_int, ccs_real
+  use kinds, only : ccs_int, ccs_real, ccs_long
   use parallel_types, only: parallel_environment
   
   implicit none
@@ -77,9 +77,11 @@ module types
     integer(ccs_int), dimension(:), allocatable :: topo_nnb                  !< The per-cell neighbour count
     integer(ccs_int), dimension(:, :), allocatable :: topo_neighbour_indices !< Cell neighbours (neighbour/face, cell)
     integer(ccs_int), dimension(:, :), allocatable :: topo_face_indices      !< Cell face index in local face vector (face, cell)
-    integer(ccs_idx), dimension(:), allocatable :: axdj
-    integer(ccs_idx), dimension(:), allocatable :: adjncy
-    integer(ccs_idx), dimension(:), allocatable :: vtxdist
+    integer(ccs_long), dimension(:), allocatable :: xadj                     !< 1st adjacency structure vector - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjncy                   !< 2nd adjacency structure vector - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vtxdist                  !< Array that indicates vertices local to a processor - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vwgt                     !< Weights on vertices - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjwgt                   !< Weights on edges - name from ParMETIS
 
   end type topology  
 
