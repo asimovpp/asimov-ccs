@@ -4,7 +4,7 @@
 
 module partitioning
 
-  use kinds, only: ccs_idx
+  use kinds, only: ccs_long
   use types, only: topology
   use parallel_types, only: parallel_environment
 
@@ -19,7 +19,7 @@ module partitioning
     module subroutine partition_kway(par_env, topo, partition_vector)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(topology), target, intent(in) :: topo                              !< The topology for which to compute the parition
-      integer(ccs_idx), allocatable, intent(out) :: partition_vector          !< The vector with the partition 
+      integer(ccs_long), allocatable, intent(out) :: partition_vector         !< The vector with the partition 
     end subroutine partition_kway
 
   end interface
