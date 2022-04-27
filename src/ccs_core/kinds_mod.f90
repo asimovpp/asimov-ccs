@@ -23,10 +23,10 @@ module kinds
   integer :: ierr
 #endif
   
-  integer, public, parameter :: ccs_real = kind(x)      !< Real kind to be used in ASiMoV-CCS
-  integer, public, parameter :: ccs_int = kind(i)       !< Integer kind to be used in ASiMoV-CCS
-  integer, public, parameter :: ccs_idx = kind(1_int64) !< Long integer kind to be use for indicies in ASiMoV-CCS
-  integer, public, parameter :: ccs_err = kind(ierr)    !< Error kind to be used in ASiMoV-CCS
+  integer, public, parameter :: ccs_real = kind(x)       !< Real kind to be used in ASiMoV-CCS
+  integer, public, parameter :: ccs_int = kind(i)        !< Integer kind to be used in ASiMoV-CCS
+  integer, public, parameter :: ccs_long = kind(1_int64) !< Long integer kind to be used in ASiMoV-CCS
+  integer, public, parameter :: ccs_err = kind(ierr)     !< Error kind to be used in ASiMoV-CCS
 
   private
   
