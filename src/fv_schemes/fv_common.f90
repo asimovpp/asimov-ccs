@@ -9,7 +9,7 @@ submodule (fv) fv_common
   use types, only: vector_values, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
   use vec, only: get_vector_data, restore_vector_data
-  use utils, only: pack_entries, set_values, update, debug_print
+  use utils, only: pack_entries, set_values, update, debug_print, str
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
@@ -22,7 +22,7 @@ contains
   !
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure
-  !> @param[in] mesh - the mesh being used
+  !> @param[in] mesh      - the mesh being used
   !> @param[in] bcs       - the boundary conditions structure being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
@@ -73,7 +73,7 @@ contains
   !
   !> @param[in] phi         - scalar field structure
   !> @param[in] mf          - mass flux array defined at faces
-  !> @param[in] mesh   - Mesh structure
+  !> @param[in] mesh        - Mesh structure
   !> @param[in] n_int_cells - number of cells in the interior of the mesh
   !> @param[in,out] M       - Matrix structure being assigned
   subroutine compute_interior_coeffs(phi, mf, mesh, n_int_cells, M)
@@ -144,7 +144,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             class default
-              print *, 'invalid velocity field discretisation'
+              call dprint('invalid velocity field discretisation')
               stop
           end select
 
@@ -207,7 +207,7 @@ contains
     else if (bcs%bc_type(index_nb) == 1) then
       bc_value = 1.0_ccs_real ! XXX: might not be correct
     else
-      print *, "ERROR: Unknown boundary type ", bcs%bc_type(index_nb)
+      call dprint("ERROR: Unknown boundary type " // str(bcs%bc_type(index_nb), "(I3)"))
     end if
     
   end subroutine compute_boundary_values
@@ -283,7 +283,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             class default
-              print *, 'invalid velocity field discretisation'
+              call dprint('invalid velocity field discretisation')
               stop
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
@@ -320,7 +320,7 @@ contains
 
     type(face_locator) :: loc_f
     real(ccs_real) :: face_area
-    real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
+    real(ccs_real), parameter :: diffusion_factor = 0.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
@@ -343,40 +343,31 @@ contains
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 
-  !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-  !
-  !> @param[in] u, v     - arrays containing x, y velocities
-  !> @param[in] p        - array containing pressure
-  !> @param[in] dpdx   - array containing pressure gradient in x
-  !> @param[in] dpdy   - array containing pressure gradient in y
-  !> @param[in] invAu    - array containing inverse momentum diagonal in x
-  !> @param[in] invAv    - array containing inverse momentum diagonal in y
-  !> @param[in] loc_f    - face locator
-  !> @param[out] flux    - The flux across the boundary
+  !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
-    real(ccs_real), dimension(:), intent(in) :: u, v
-    real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy
-    real(ccs_real), dimension(:), intent(in) :: invAu, invAv
-    type(face_locator), intent(in) :: loc_f
-
-    real(ccs_real) :: flux
-
+    real(ccs_real), dimension(:), intent(in) :: u, v          !< arrays containing x, y velocities
+    real(ccs_real), dimension(:), intent(in) :: p             !< array containing pressure
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy    !< arrays containing pressure gradient in x and y
+    real(ccs_real), dimension(:), intent(in) :: invAu, invAv  !< arrays containing inverse momentum diagonal in x and y
+    type(face_locator), intent(in) :: loc_f                   !< face locator
+                                                              
+    real(ccs_real) :: flux                                    !< The flux across the boundary
+                                                              
     ! Local variables
-    logical :: is_boundary                         !< Boundary indicator
-    type(cell_locator) :: loc_p                    !< Primary cell locator
-    type(neighbour_locator) :: loc_nb              !< Neighbour cell locator
-    integer(ccs_int) :: index_nb                   !< Neighbour cell index
-    real(ccs_real) :: flux_corr                    !< Flux correction
-    real(ccs_real), dimension(ndim) :: dx          !< Cell-cell distance
-    real(ccs_real) :: dxmag                        !< Cell-cell distance magnitude
-    real(ccs_real), dimension(ndim) :: face_normal !< (local) face-normal array
-    real(ccs_real) :: Vp                           !< Primary cell volume
-    real(ccs_real) :: V_nb                         !< Neighbour cell volume
-    real(ccs_real) :: Vf                           !< Face "volume"
-    real(ccs_real) :: invAp                        !< Primary cell inverse momentum coefficient
-    real(ccs_real) :: invA_nb                      !< Neighbour cell inverse momentum coefficient
-    real(ccs_real) :: invAf                        !< Face inverse momentum coefficient
+    logical :: is_boundary                         ! Boundary indicator
+    type(cell_locator) :: loc_p                    ! Primary cell locator
+    type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
+    integer(ccs_int) :: index_nb                   ! Neighbour cell index
+    real(ccs_real) :: flux_corr                    ! Flux correction
+    real(ccs_real), dimension(ndim) :: dx          ! Cell-cell distance
+    real(ccs_real) :: dxmag                        ! Cell-cell distance magnitude
+    real(ccs_real), dimension(ndim) :: face_normal ! (local) face-normal array
+    real(ccs_real) :: Vp                           ! Primary cell volume
+    real(ccs_real) :: V_nb                         ! Neighbour cell volume
+    real(ccs_real) :: Vf                           ! Face "volume"
+    real(ccs_real) :: invAp                        ! Primary cell inverse momentum coefficient
+    real(ccs_real) :: invA_nb                      ! Neighbour cell inverse momentum coefficient
+    real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
     
     call get_boundary_status(loc_f, is_boundary)
     if (.not. is_boundary) then

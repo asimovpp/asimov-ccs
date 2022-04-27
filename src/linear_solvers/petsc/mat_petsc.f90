@@ -6,7 +6,7 @@ submodule (mat) mat_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only : ADD_VALUES, INSERT_VALUES
-  use utils, only : debug_print
+  use utils, only : debug_print, str, update
   
   implicit none
 
@@ -346,12 +346,12 @@ contains
         else if (norm_type == 3) then
           call MatNorm(M%M, NORM_INFINITY, n, ierr)
         else
-          print *, "ERROR: unknown matrix norm type ", norm_type
+          call dprint("ERROR: unknown matrix norm type " // str(norm_type, "(I2)"))
           stop
         end if
 
       class default
-        print *, "Type unhandled"
+        call dprint("Type unhandled")
         stop
     end select
     
