@@ -18,7 +18,7 @@ module partitioning
     !v Partition the mesh
     module subroutine partition_kway(par_env, topo, partition_vector)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-      type(topology), target, intent(in) :: topo                              !< The topology for which to compute the parition
+      type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
       integer(ccs_long), allocatable, intent(out) :: partition_vector         !< The vector with the partition 
     end subroutine partition_kway
 

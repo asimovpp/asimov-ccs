@@ -15,7 +15,7 @@ contains
     use iso_c_binding
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    type(topology), target, intent(inout) :: topo                              !< The topology for which to compute the parition
+    type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
     integer(ccs_long), allocatable, intent(out) :: partition_vector         !< The vector with the partition 
 
     ! Local variables
