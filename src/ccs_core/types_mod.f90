@@ -77,6 +77,10 @@ module types
     integer(ccs_int), dimension(:), allocatable :: topo_nnb                  !< The per-cell neighbour count
     integer(ccs_int), dimension(:, :), allocatable :: topo_neighbour_indices !< Cell neighbours (neighbour/face, cell)
     integer(ccs_int), dimension(:, :), allocatable :: topo_face_indices      !< Cell face index in local face vector (face, cell)
+    integer(ccs_idx), dimension(:), allocatable :: axdj
+    integer(ccs_idx), dimension(:), allocatable :: adjncy
+    integer(ccs_idx), dimension(:), allocatable :: vtxdist
+
   end type topology  
 
   !>  Mesh type
