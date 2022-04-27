@@ -26,7 +26,7 @@ program test_mesh_partitioning_parhip
   select type(par_env)
   type is (parallel_environment_mpi)
 
-    if(par_env%nprocs == 3) then
+    if(par_env%num_procs == 3) then
 
       if(par_env%proc_id == 0) then
         allocate(topo%xadj(6))
