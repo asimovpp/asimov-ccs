@@ -16,10 +16,10 @@ program test_mesh_partitioning_parhip
   use kinds, only: ccs_int, ccs_long
   use types, only: topology
 
-  type(topology) :: topo
-  integer(ccs_long), dimension(:), allocatable :: partition_vector
-
   implicit none
+
+  type(topology) :: topo
+  integer(ccs_long), allocatable :: partition_vector
 
   call init()
 
@@ -55,12 +55,12 @@ program test_mesh_partitioning_parhip
       print*,"Test must be run on 3 MPI ranks"
     end if 
 
-    call partition_kway(par_env, topo, partition_vector)
-
   class default
     write(message, *) "ERROR: Unknown parallel environment!"
     call stop_test(message)
   end select
+
+!  call partition_kway(par_env, topo, partition_vector)
 
   if(allocated(topo%xadj)) then
     deallocate(topo%xadj)
