@@ -55,7 +55,7 @@ program test_mesh_partitioning_parhip
       print*,"Test must be run on 3 MPI ranks"
     end if 
 
-    ! call partition_kway(par_env, topo, partition_vector)
+    call partition_kway(par_env, topo, partition_vector)
 
   class default
     write(message, *) "ERROR: Unknown parallel environment!"

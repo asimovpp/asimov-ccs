@@ -37,22 +37,26 @@ contains
     topo%xadj = topo%xadj - 1
     topo%adjncy = topo%adjncy - 1
 
+    ! If topo%vwgt and topo%adjwgt are not allocated, no weights have been set
+    ! and we are dealing with an unweighted graph
     if(allocated(topo%vwgt) .eqv. .false. .and. allocated(topo%adjwgt) .eqv. .false.) then
 
+      ! NULL pointers
       vwgt = c_null_ptr
       adjwgt = c_null_ptr
    
       ! Partitioning an unweighted graph
-      ! call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, vwgt, adjwgt, & 
-                                  ! par_env%num_procs, imbalance, suppress, seed, &
-                                  ! mode, edgecut, partition_vector, par_env%comm)
+      call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, vwgt, adjwgt, & 
+                                  par_env%num_procs, imbalance, suppress, seed, &
+                                  mode, edgecut, partition_vector, par_env%comm)
       
+    ! If topo%vwgt and topo%adjwgt are allocated we are dealing with an weighted graph
     else 
 
       ! Partitioning a graph with weights on vertices and edges
-      ! call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
-                                  ! par_env%num_procs, imbalance, suppress, seed, &
-                                  ! mode, edgecut, partition_vector, par_env%comm)
+      call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
+                                  par_env%num_procs, imbalance, suppress, seed, &
+                                  mode, edgecut, partition_vector, par_env%comm)
 
     end if
 
@@ -66,5 +70,13 @@ contains
     partition_vector = partition_vector + 1
 
   end subroutine partition_kway
+
+  !v Compute the input arrays for the partitioner
+  !
+  ! Using the topology object, compute the input arrays for the ParHIP partitioner
+  module subroutine compute_partitioner_input(par_env, topo)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
+  end subroutine compute_partitioner_input
 
 end submodule

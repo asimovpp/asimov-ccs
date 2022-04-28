@@ -22,6 +22,12 @@ module partitioning
       integer(ccs_long), allocatable, intent(out) :: partition_vector         !< The vector with the partition 
     end subroutine partition_kway
 
+    !v Compute the input arrays for the partitioner
+    module subroutine compute_partitioner_input(par_env, topo)
+      class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+      type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
+    end subroutine compute_partitioner_input
+
   end interface
 
 end module partitioning
