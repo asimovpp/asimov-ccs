@@ -1,17 +1,16 @@
-!> @brief Program file for Poisson case
+!>  Program file for Poisson case
 !
-!> @details Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
-!!          This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
-!!          the code is independent of PETSc.
-!!          The example case solves the equation
-!!          \f[
-!!            {\nabla^2} p = f
-!!          \f]
-!!          in the unit square with Dirichlet boundary conditions
-!!          \f[
-!!            p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
-!!          \f]
-!
+!v  Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
+!  This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
+!  the code is independent of PETSc.
+!  The example case solves the equation
+!  \[
+!    {\nabla^2} p = f
+!  \]
+!  in the unit square with Dirichlet boundary conditions
+!  \[
+!    p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
+!  \]
 
 program poisson
 
@@ -40,7 +39,7 @@ program poisson
 
   class(parallel_environment), allocatable, target :: par_env
   class(ccs_vector), allocatable, target :: u, b
-  class(ccs_vector), allocatable :: ustar
+  class(ccs_vector), allocatable :: u_exact
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
@@ -81,7 +80,7 @@ program poisson
   !! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, b)
-  call create_vector(vec_properties, ustar)
+  call create_vector(vec_properties, u_exact)
   call create_vector(vec_properties, u)
 
   call begin_update(u) ! Start the parallel assembly for u
@@ -107,8 +106,8 @@ program poisson
   call solve(poisson_solver)
 
   !! Check solution
-  call set_exact_sol(ustar)
-  call axpy(-1.0_ccs_real, ustar, u)
+  call set_exact_sol(u_exact)
+  call axpy(-1.0_ccs_real, u_exact, u)
 
   err_norm = norm(u, 2) * mesh%h
   if (par_env%proc_id == par_env%root) then
@@ -118,7 +117,7 @@ program poisson
   !! Clean up
   deallocate(u)
   deallocate(b)
-  deallocate(ustar)
+  deallocate(u_exact)
   deallocate(M)
   deallocate(poisson_solver)
 
@@ -142,13 +141,13 @@ contains
 
     type(vector_values) :: val_dat
 
-    type(cell_locator) :: cell_location
+    type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: cc
     real(ccs_real) :: V 
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: global_index_p
     
     val_dat%setter_mode = add_mode
-    allocate(val_dat%indices(1))
+    allocate(val_dat%global_indices(1))
     allocate(val_dat%values(1))
 
     associate(nloc => mesh%nlocal, &
@@ -157,25 +156,25 @@ contains
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
-        call set_cell_location(mesh, i, cell_location)
-        call get_centre(cell_location, cc)
-        call get_volume(cell_location, V)
-        call get_global_index(cell_location, idxg)
+        call set_cell_location(mesh, i, loc_p)
+        call get_centre(loc_p, cc)
+        call get_volume(loc_p, V)
+        call get_global_index(loc_p, global_index_p)
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(1, idxg, r, val_dat)
+          call pack_entries(1, global_index_p, r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
     end associate
     
-    deallocate(val_dat%indices)
+    deallocate(val_dat%global_indices)
     deallocate(val_dat%values)
     
   end subroutine eval_rhs
 
-  !> @brief Apply forcing function
+  !>  Apply forcing function
   pure subroutine eval_cell_rhs (x, y, H, r)
     
     real(ccs_real), intent(in) :: x, y, H
@@ -196,11 +195,11 @@ contains
     integer(ccs_int) :: row, col
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
 
-    type(face_locator) :: face_location
+    type(face_locator) :: loc_f
     real(ccs_real) :: A
 
-    integer(ccs_int) :: idxg
-    type(cell_locator) :: cell_location
+    integer(ccs_int) :: global_index_p
+    type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
 
     type(neighbour_locator) :: loc_nb
@@ -215,27 +214,27 @@ contains
       !!        filling from front, and pass the number of coefficients to be set, requires
       !!        modifying the matrix_values type and the implementation of set_values applied to
       !!        matrices.
-      call set_cell_location(mesh, i, cell_location)
-      call get_global_index(cell_location, idxg)
-      call count_neighbours(cell_location, nnb)
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
         
-      allocate(mat_coeffs%row_indices(1))
-      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%global_row_indices(1))
+      allocate(mat_coeffs%global_col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
 
-      row = idxg
+      row = global_index_p
       coeff_p = 0.0_ccs_real
       
       !! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(cell_location, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
           !! Interior face
         
-          call set_face_location(mesh, i, j, face_location)
-          call get_face_area(face_location, A)
+          call set_face_location(mesh, i, j, loc_f)
+          call get_face_area(loc_f, A)
           coeff_f = (1.0 / mesh%h) * A
 
           call get_global_index(loc_nb, global_index_nb)
@@ -258,8 +257,8 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%row_indices)
-      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%global_row_indices)
+      deallocate(mat_coeffs%global_col_indices)
       deallocate(mat_coeffs%values)
         
     end do
@@ -282,45 +281,45 @@ contains
     type(vector_values) :: vec_values
     type(matrix_values) :: mat_coeffs
 
-    type(face_locator) :: face_location
+    type(face_locator) :: loc_f
     real(ccs_real) :: A
 
-    type(cell_locator) :: cell_location
-    integer(ccs_int) :: idxg
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
     type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: nnb
     logical :: is_boundary
     
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(1))
     allocate(mat_coeffs%values(1))
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
 
     mat_coeffs%setter_mode = add_mode
     vec_values%setter_mode = add_mode
 
     do i = 1, mesh%nlocal
-      if (minval(mesh%index_nb(:, i)) < 0) then
-        call set_cell_location(mesh, i, cell_location)
-        call get_global_index(cell_location, idxg)
+      if (minval(mesh%neighbour_indices(:, i)) < 0) then
+        call set_cell_location(mesh, i, loc_p)
+        call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real 
         r = 0.0_ccs_real
           
-        row = idxg
-        col = idxg
-        idx = idxg
+        row = global_index_p
+        col = global_index_p
+        idx = global_index_p
 
-        call count_neighbours(cell_location, nnb)
+        call count_neighbours(loc_p, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(cell_location, j, loc_nb)
+          call set_neighbour_location(loc_p, j, loc_nb)
           call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(mesh, i, j, face_location)
-            call get_face_area(face_location, A)
+            call set_face_location(mesh, i, j, loc_f)
+            call get_face_area(loc_f, A)
             boundary_coeff = (2.0 / mesh%h) * A
             boundary_val = rhs_val(i, j)
 
@@ -342,34 +341,34 @@ contains
       end if
     end do
   
-    deallocate(vec_values%indices)
+    deallocate(vec_values%global_indices)
     deallocate(vec_values%values)
   
   end subroutine apply_dirichlet_bcs
 
-  subroutine set_exact_sol(ustar)
+  subroutine set_exact_sol(u_exact)
 
-    class(ccs_vector), intent(inout) :: ustar
+    class(ccs_vector), intent(inout) :: u_exact
 
     type(vector_values) :: vec_values
     integer(ccs_int) :: i
 
-    type(cell_locator) :: cell_location
-    integer(ccs_int) :: idxg
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
     
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
     vec_values%setter_mode = insert_mode
     do i = 1, mesh%nlocal
-      call set_cell_location(mesh, i, cell_location)
-      call get_global_index(cell_location, idxg)
-      call pack_entries(1, idxg, rhs_val(i), vec_values)
-      call set_values(vec_values, ustar)
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call pack_entries(1, global_index_p, rhs_val(i), vec_values)
+      call set_values(vec_values, u_exact)
     end do
-    deallocate(vec_values%indices)
+    deallocate(vec_values%global_indices)
     deallocate(vec_values%values)
 
-    call update(ustar)
+    call update(u_exact)
   end subroutine set_exact_sol
 
   subroutine initialise_poisson(par_env)
@@ -385,23 +384,23 @@ contains
     integer(ccs_int), intent(in) :: i !< Cell index
     integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
 
-    type(cell_locator) :: cell_location
-    type(face_locator) :: face_location
+    type(cell_locator) :: loc_p
+    type(face_locator) :: loc_f
     
     real(ccs_real), dimension(ndim) :: x
     real(ccs_real) :: r
 
     if (present(f)) then
       !! Face-centred value
-      call set_face_location(mesh, i, f, face_location)
-      call get_centre(face_location, x)
+      call set_face_location(mesh, i, f, loc_f)
+      call get_centre(loc_f, x)
       associate(y => x(2))
         r = y
       end associate
     else
       !! Cell-centred value
-      call set_cell_location(mesh, i, cell_location)
-      call get_centre(cell_location, x)
+      call set_cell_location(mesh, i, loc_p)
+      call get_centre(loc_p, x)
       associate(y => x(2))
         r = y
       end associate

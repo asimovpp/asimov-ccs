@@ -1,4 +1,4 @@
-!> @brief Module file constants.mod
+!>  Module file constants.mod
 !
 !> @details Defines constants for use in ASiMoV-CCS
 
@@ -10,23 +10,23 @@ module constants
 
   private
   
-  !> @brief Constants to control setting values in objects
+  !>  Constants to control setting values in objects
   integer(ccs_int), public, parameter :: add_mode = 1    !< Add to existing value
   integer(ccs_int), public, parameter :: insert_mode = 2 !< Overwrite existing value
 
-  !> @brief String constants
+  !>  String constants
   character(len=4), public, parameter :: geoext = ".geo" 
   character(len=18), public, parameter :: adiosconfig = "_adios2_config.xml" 
   character(len=12), public, parameter :: ccsconfig = "_config.yaml" 
 
-  !> @brief Dimensionality of problems
+  !>  Dimensionality of problems
   integer(ccs_int), public, parameter :: ndim = 3        !< Always 3D
 
-  !> @brief Discretisation schemes
+  !>  Discretisation schemes
   integer(ccs_int), public, parameter :: uds = 0
   integer(ccs_int), public, parameter :: cds = 1
 
-  !> @brief Location of vector data
+  !>  Location of vector data
   integer(ccs_int), public, parameter :: cell = 1
   integer(ccs_int), public, parameter :: face = 2
   

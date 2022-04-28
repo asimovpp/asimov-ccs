@@ -76,24 +76,24 @@ program test_compute_fluxes
     class(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout) :: u, v
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
-    integer(ccs_int) :: local_idx, self_idx
+    integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
 
     u_vals%setter_mode = insert_mode
     v_vals%setter_mode = insert_mode
     
     associate(n_local => mesh%nlocal)
-      allocate(u_vals%indices(n_local))
-      allocate(v_vals%indices(n_local))
+      allocate(u_vals%global_indices(n_local))
+      allocate(v_vals%global_indices(n_local))
       allocate(u_vals%values(n_local))
       allocate(v_vals%values(n_local))
       
       ! Set IC velocity fields
-      do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
+      do index_p = 1, n_local
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
 
         if (direction == x_dir) then
           u_val = 1.0_ccs_real
@@ -106,8 +106,8 @@ program test_compute_fluxes
         u_val = 0.0_ccs_real
         v_val = 0.0_ccs_real
         
-        call pack_entries(local_idx, self_idx, u_val, u_vals)
-        call pack_entries(local_idx, self_idx, v_val, v_vals)
+        call pack_entries(index_p, global_index_p, u_val, u_vals)
+        call pack_entries(index_p, global_index_p, v_val, v_vals)
       end do
     end associate
     call set_values(u_vals, u%values)
@@ -116,8 +116,8 @@ program test_compute_fluxes
     call update(u%values)
     call update(v%values)
     
-    deallocate(u_vals%indices)
-    deallocate(v_vals%idx)
+    deallocate(u_vals%global_indices)
+    deallocate(v_vals%global_indices)
     deallocate(u_vals%val)
     deallocate(v_vals%val)
     
@@ -239,8 +239,8 @@ program test_compute_fluxes
     call zero_vector(b)
     
     ! Advection first
-    allocate(vec_coeffs%indices(2*mesh%nglobal/cps))
-    allocate(vec_coeffs%indices(2*mesh%nglobal/cps))
+    allocate(vec_coeffs%global_indices(2*mesh%nglobal/cps))
+    allocate(vec_coeffs%global_indices(2*mesh%nglobal/cps))
 
     vec_counter = 1
     adv_coeff = 0.0_ccs_real
@@ -248,7 +248,7 @@ program test_compute_fluxes
     if (par_env%proc_id == 0) then
       if (flow == x_dir) then
         do i = 1, cps
-          ii = mesh%idx_global(i)
+          ii = mesh%global_indices(i)
           call pack_entries(vec_counter, (i-1)*cps + 1, adv_coeff, vec_coeffs) 
           vec_counter = vec_counter + 1
           call pack_entries(vec_counter, i*cps, adv_coeff, vec_coeffs) 
@@ -263,12 +263,12 @@ program test_compute_fluxes
         end do
       end if
     else
-      vec_coeffs%indices(:) = -1
+      vec_coeffs%global_indices(:) = -1
       vec_coeffs%values(:) = 0.0_ccs_real
     endif
     call set_values(vec_coeffs, b)
     
-    deallocate(vec_coeffs%indices)
+    deallocate(vec_coeffs%global_indices)
     deallocate(vec_coeffs%values)
 
     ! ! And now diffusion
@@ -319,8 +319,8 @@ program test_compute_fluxes
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
 
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(5))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(5))
     allocate(mat_coeffs%values(5))
     mat_coeffs%setter_mode = add_mode
 
@@ -331,7 +331,7 @@ program test_compute_fluxes
     do i = 1, mesh%nlocal
       mat_counter = 1
 
-      ii = mesh%idx_global(i)
+      ii = mesh%global_indices(i)
       call pack_entries(1, mat_counter, ii, ii, -4*diff_coeff, mat_coeffs)
       mat_counter = mat_counter + 1
 
@@ -363,8 +363,8 @@ program test_compute_fluxes
       call set_values(mat_coeffs, M)
     end do
     
-    deallocate(mat_coeffs%row_indices)
-    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%global_row_indices)
+    deallocate(mat_coeffs%global_col_indices)
     deallocate(mat_coeffs%values)
     
   end subroutine compute_exact_diffusion_matrix
@@ -388,8 +388,8 @@ program test_compute_fluxes
     integer(ccs_int) :: mat_counter
 
     mat_coeffs%setter_mode = add_mode
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(2))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(2))
     allocate(mat_coeffs%values(2))
 
     ! Advection coefficients
@@ -398,7 +398,7 @@ program test_compute_fluxes
       ! UDS and flow along +x direction
       do i = 1, mesh%nlocal
         mat_counter = 1
-        ii = mesh%idx_global(i)
+        ii = mesh%global_indices(i)
         if (mod(ii, cps) .ne. 1) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
@@ -411,7 +411,7 @@ program test_compute_fluxes
       ! UDS and flow along +y direction
       do i = 1, mesh%nlocal
         mat_counter = 1
-        ii = mesh%idx_global(i)
+        ii = mesh%global_indices(i)
         if (ii > cps) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
@@ -422,7 +422,8 @@ program test_compute_fluxes
       end do
     end if
 
-    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%global_col_indices)
+    deallocate(mat_coeffs%global_row_indices)
     deallocate(mat_coeffs%values)
   end subroutine compute_exact_advection_matrix
   

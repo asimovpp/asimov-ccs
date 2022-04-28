@@ -1,6 +1,6 @@
-!> @brief Module file pv_coupling.mod
+!>  Module file pv_coupling.mod
 !
-!> @details An interface to pressure-velocity coupling methods (SIMPLE, etc)
+!>  An interface to pressure-velocity coupling methods (SIMPLE, etc)
 
 module pv_coupling
 
@@ -16,11 +16,11 @@ module pv_coupling
 
     interface
 
-    module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, pp, mf)
+    module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
         class(parallel_environment), allocatable, intent(in) :: par_env
         type(ccs_mesh), intent(in) :: mesh
         integer(ccs_int), intent(in) :: cps, it_start, it_end
-        class(field), intent(inout) :: u, v, p, pp, mf
+        class(field), intent(inout) :: u, v, p, p_prime, mf
     end subroutine solve_nonlinear
 
     end interface

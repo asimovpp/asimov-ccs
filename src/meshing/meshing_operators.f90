@@ -4,15 +4,11 @@ submodule (meshing) meshing_operators
 
 contains
 
-  !> @brief Returns the distance between two cell centres
-  !
-  !> @param[in]  cell_locator      loc_p  - The cell distance is measured from.
-  !> @param[in]  neighbour_locator loc_nb - The cell distance is measured to.
-  !> @param[out] ccs_real         dx     - ndim-array of the distance
+  !>  Returns the distance between two cell centres
   module subroutine get_neighbour_distance(loc_p, loc_nb, dx)
-    type(cell_locator), intent(in) :: loc_p
-    type(neighbour_locator), intent(in) :: loc_nb
-    real(ccs_real), dimension(ndim), intent(out) :: dx
+    type(cell_locator), intent(in) :: loc_p             !< The cell distance is measured from.
+    type(neighbour_locator), intent(in) :: loc_nb       !< The cell distance is measured to.
+    real(ccs_real), dimension(ndim), intent(out) :: dx  !< ndim-array of the distance
 
     real(ccs_real), dimension(ndim) :: xp
     real(ccs_real), dimension(ndim) :: xnb
@@ -24,15 +20,11 @@ contains
     
   end subroutine get_neighbour_distance
 
-  !> @brief Returns the distance from cell to face centres
-  !
-  !> @param[in]  cell_locator loc_p - The cell distance is measured from.
-  !> @param[in]  face_locator loc_f - The face distance is measured to.
-  !> @param[out] ccs_real    dx    - ndim-array of the distance
+  !>  Returns the distance from cell to face centres
   module subroutine get_face_distance(loc_p, loc_f, dx)
-    type(cell_locator), intent(in) :: loc_p
-    type(face_locator), intent(in) :: loc_f
-    real(ccs_real), dimension(ndim), intent(out) :: dx
+    type(cell_locator), intent(in) :: loc_p             !< The cell distance is measured from.
+    type(face_locator), intent(in) :: loc_f             !< The face distance is measured to.
+    real(ccs_real), dimension(ndim), intent(out) :: dx  !< ndim-array of the distance
 
     real(ccs_real), dimension(ndim) :: xp
     real(ccs_real), dimension(ndim) :: xf

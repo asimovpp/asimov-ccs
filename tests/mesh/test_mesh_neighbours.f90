@@ -11,7 +11,7 @@ program test_mesh_neighbours
   implicit none
   
   type(ccs_mesh), target :: mesh
-  type(cell_locator) :: cell_location
+  type(cell_locator) :: loc_p
 
   integer(ccs_int) :: n
   real(ccs_real) :: l
@@ -36,8 +36,8 @@ program test_mesh_neighbours
     boundary_ctr = 0
     do i = 1, mesh%nlocal
 
-      call set_cell_location(mesh, i, cell_location)
-      call count_neighbours(cell_location, nnb)
+      call set_cell_location(mesh, i, loc_p)
+      call count_neighbours(loc_p, nnb)
 
       if (nnb < 2) then
         ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
@@ -53,7 +53,7 @@ program test_mesh_neighbours
 
       ! Loop over neighbours
       do j = 1, nnb
-        call set_neighbour_location(cell_location, j, loc_nb)
+        call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
@@ -103,7 +103,7 @@ contains
     logical :: is_local
     
     associate(mesh => loc_nb%mesh, &
-         parent_idx => loc_nb%cell_idx)
+         parent_idx => loc_nb%index_p)
       call get_local_index(loc_nb, index_nb)
             
       ! Neighbour index should not be its parents

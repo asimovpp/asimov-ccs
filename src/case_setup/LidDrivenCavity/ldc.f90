@@ -1,4 +1,4 @@
-!> @brief Program file for LidDrivenCavity case
+!>  Program file for LidDrivenCavity case
 !
 !> @build mpi+petsc
 
@@ -36,7 +36,7 @@ program ldc
   type(ccs_mesh)    :: mesh
   type(vector_spec) :: vec_properties
 
-  class(field), allocatable :: u, v, p, pp, mf
+  class(field), allocatable :: u, v, p, p_prime, mf
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
@@ -82,7 +82,7 @@ program ldc
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
   allocate(central_field :: p)
-  allocate(central_field :: pp)
+  allocate(central_field :: p_prime)
   allocate(face_field :: mf)
 
   ! Create and initialise field vectors
@@ -97,20 +97,20 @@ program ldc
   call create_vector(vec_properties, p%x_gradients)
   call create_vector(vec_properties, p%y_gradients)
   call create_vector(vec_properties, p%z_gradients)
-  call create_vector(vec_properties, pp%values)
-  call create_vector(vec_properties, pp%x_gradients)
-  call create_vector(vec_properties, pp%y_gradients)
-  call create_vector(vec_properties, pp%z_gradients)
+  call create_vector(vec_properties, p_prime%values)
+  call create_vector(vec_properties, p_prime%x_gradients)
+  call create_vector(vec_properties, p_prime%y_gradients)
+  call create_vector(vec_properties, p_prime%z_gradients)
   call update(u%values)
   call update(v%values)
   call update(p%values)
   call update(p%x_gradients)
   call update(p%y_gradients)
   call update(p%z_gradients)
-  call update(pp%values)
-  call update(pp%x_gradients)
-  call update(pp%y_gradients)
-  call update(pp%z_gradients)
+  call update(p_prime%values)
+  call update(p_prime%x_gradients)
+  call update(p_prime%y_gradients)
+  call update(p_prime%z_gradients)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -126,7 +126,7 @@ program ldc
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, pp, mf)
+  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
 
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 
@@ -161,7 +161,7 @@ program ldc
   deallocate(u)
   deallocate(v)
   deallocate(p)
-  deallocate(pp)
+  deallocate(p_prime)
 
   call timer(end_time)
 
@@ -236,9 +236,9 @@ program ldc
 
     ! Local variables
     integer(ccs_int) :: row, col
-    integer(ccs_int) :: local_idx, self_idx
+    integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
     real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
 
@@ -249,32 +249,32 @@ program ldc
     ! Set alias
     associate(n_local => mesh%nlocal)
       ! Allocate temporary arrays for storing global cell indices 
-      allocate(u_vals%indices(n_local))
-      allocate(v_vals%indices(n_local))
+      allocate(u_vals%global_indices(n_local))
+      allocate(v_vals%global_indices(n_local))
 
       ! Allocate temporary arrays for storing values
       allocate(u_vals%values(n_local))
       allocate(v_vals%values(n_local))
 
       ! Set initial values for velocity fields
-      do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
-        call calc_cell_coords(self_idx, cps, row, col)
+      do index_p = 1, n_local
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
+        call calc_cell_coords(global_index_p, cps, row, col)
 
         u_val = real(col, ccs_real)/real(cps, ccs_real)
         v_val = -real(row, ccs_real)/real(cps, ccs_real)
 
-        call pack_entries(local_idx, self_idx, u_val, u_vals)
-        call pack_entries(local_idx, self_idx, v_val, v_vals)
+        call pack_entries(index_p, global_index_p, u_val, u_vals)
+        call pack_entries(index_p, global_index_p, v_val, v_vals)
       end do
     end associate
 
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
 
-    deallocate(u_vals%indices)
-    deallocate(v_vals%indices)
+    deallocate(u_vals%global_indices)
+    deallocate(v_vals%global_indices)
     deallocate(u_vals%values)
     deallocate(v_vals%values)
 

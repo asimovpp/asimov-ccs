@@ -1,4 +1,4 @@
-!> @brief Program file for scalar advection case
+!>  Program file for scalar advection case
 !
 !
 
@@ -117,9 +117,9 @@ contains
     class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: mf
     integer(ccs_int) :: row, col
-    integer(ccs_int) :: local_idx, self_idx
+    integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: mf_val
-    type(cell_locator) :: self_loc
+    type(cell_locator) :: loc_p
     type(vector_values) :: mf_vals
 
     real(ccs_real) :: u, v
@@ -127,14 +127,14 @@ contains
     mf_vals%setter_mode = add_mode
 
     associate(n_local => mesh%nlocal)
-      allocate(mf_vals%indices(n_local))
+      allocate(mf_vals%global_indices(n_local))
       allocate(mf_vals%values(n_local))
       
       ! Set IC velocity and scalar fields
-      do local_idx = 1, n_local
-        call set_cell_location(mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
-        call calc_cell_coords(self_idx, cps, row, col)
+      do index_p = 1, n_local
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
+        call calc_cell_coords(global_index_p, cps, row, col)
 
         ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
         u = real(col, ccs_real)/real(cps, ccs_real)
@@ -142,12 +142,12 @@ contains
 
         mf_val = u + v
         
-        call pack_entries(local_idx, self_idx, mf_val, mf_vals)
+        call pack_entries(index_p, global_index_p, mf_val, mf_vals)
       end do
     end associate
     call set_values(mf_vals, mf%values)
 
-    deallocate(mf_vals%indices)
+    deallocate(mf_vals%global_indices)
     deallocate(mf_vals%values)
 
   end subroutine set_advection_velocity

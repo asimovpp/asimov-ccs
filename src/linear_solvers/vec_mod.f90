@@ -1,7 +1,6 @@
-!> @brief Module file vec.mod
+!>  Module file vec.mod
 !
-!> @details An interface to operations on vector objects (creation, destruction, setting and
-!!          getting, ...)
+!>  An interface to operations on vector objects (creation, destruction, setting and getting, ...)
 
 module vec
 
@@ -30,11 +29,10 @@ module vec
   public :: zero_vector
   public :: mult_vec_vec
   public :: scale_vec
-  ! public :: vec_view
   
   interface
      
-    !> @brief Interface to create a new vector object.
+    !>  Interface to create a new vector object.
     !
     !> @param[in] vector_spec vec_properties - Data structure containing the global and local sizes
     !!                                       of the vector, -1 is interpreted as unset. If both
@@ -45,7 +43,7 @@ module vec
       class(ccs_vector), allocatable, intent(out) :: v
     end subroutine
 
-    !> @brief Interface to set values in a vector.
+    !>  Interface to set values in a vector.
     !
     !> @param[in]     val_dat - contains the values, their indices and the mode to use for setting
     !!                          them.
@@ -55,32 +53,32 @@ module vec
       class(ccs_vector), intent(inout) :: v
     end subroutine
 
-    !> @brief Interface to perform a parallel update of a vector.
+    !>  Interface to perform a parallel update of a vector.
     !
     !> @param[in,out] v - the vector
     module subroutine update_vector(v)
       class(ccs_vector), intent(inout) :: v
     end subroutine
 
-    !> @brief Interface to begin a parallel update of a vector.
+    !>  Interface to begin a parallel update of a vector.
     !
-    !> @details Begins the parallel update to allow overlapping comms and compute.
+    !>  Begins the parallel update to allow overlapping comms and compute.
     !
     !> @param[in,out] v - the vector
     module subroutine begin_update_vector(v)
       class(ccs_vector), intent(inout) :: v
     end subroutine
     
-    !> @brief Interface to end a parallel update of a vector.
+    !>  Interface to end a parallel update of a vector.
     !
-    !> @details Ends the parallel update to allow overlapping comms and compute.
+    !>  Ends the parallel update to allow overlapping comms and compute.
     !
     !> @param[in,out] v - the vector
     module subroutine end_update_vector(v)
       class(ccs_vector), intent(inout) :: v
     end subroutine end_update_vector
 
-    !> @brief Interface to store one vector element and its index for later setting.
+    !>  Interface to store one vector element and its index for later setting.
     !
     !> @param[in/out] val_dat - object storing the elements, their indices and mode to use when
     !!                          setting them.
@@ -88,8 +86,7 @@ module vec
     !> @oaram[in]     idx     - vector element index
     !> @param[in]     val     - vector element value
     !
-    !> @details Stores a vector element and associated index for later setting, ensuring they are
-    !!          set appropriately for the backend.
+    !>  Stores a vector element and associated index for later setting, ensuring they are set appropriately for the backend.
     module subroutine pack_one_vector_element(ent, idx, val, val_dat)
       integer(ccs_int), intent(in) :: ent
       integer(ccs_int), intent(in) :: idx
@@ -97,10 +94,10 @@ module vec
       type(vector_values), intent(inout) :: val_dat
     end subroutine pack_one_vector_element
 
-    !> @brief Interface to perform the AXPY vector operation.
+    !>  Interface to perform the AXPY vector operation.
     !
-    !> @details Performs the AXPY operation
-    !!          y[i] = a * x[i] + y[i]
+    !>  Performs the AXPY operation
+    !>          y[i] = a * x[i] + y[i]
     !
     !> @param[in]     alpha - a scalar value
     !> @param[in]     x     - an input vector
@@ -111,7 +108,7 @@ module vec
       class(ccs_vector), intent(inout) :: y
     end subroutine
 
-    !> @brief Interface to compute the norm of a vector
+    !>  Interface to compute the norm of a vector
     !
     !> @param[in]  v         - the vector
     !> @param[in]  norm_type - which norm to compute? Currently supported is the 2 norm:
@@ -124,14 +121,14 @@ module vec
       real(ccs_real) :: n
     end function
     
-    !> @brief Constructor for default vector values
+    !>  Constructor for default vector values
     !
     !> param[in/out] vec_properties - the initialised vector values
     module subroutine initialise_vector(vec_properties)
       type(vector_spec), intent(inout) :: vec_properties
     end subroutine initialise_vector
 
-    !> @brief Setter for vector size
+    !>  Setter for vector size
     !
     !> param[in]     par_env           - the parallel environment 
     !!                                   where the vector resides
@@ -145,7 +142,7 @@ module vec
       type(vector_spec), intent(inout) :: vec_properties
     end subroutine set_vector_size
 
-    !> @brief Gets the data in a given vector
+    !>  Gets the data in a given vector
     !
     !> @param[in] vec   - the vector to get data from
     !> @param[in] array - an array to store the data in
@@ -154,7 +151,7 @@ module vec
       real(ccs_real), dimension(:), pointer, intent(out) :: array
     end subroutine get_vector_data
 
-    !> @brief Resets the vector data if required for further processing
+    !>  Resets the vector data if required for further processing
     !
     !> @param[in] vec   - the vector to reset
     !> @param[in] array - the array containing the data to restore
@@ -163,14 +160,14 @@ module vec
       real(ccs_real), dimension(:), pointer, intent(in) :: array
     end subroutine restore_vector_data
 
-    !> @brief Set vector values to be located at either cell-centre or face
+    !>  Set vector values to be located at either cell-centre or face
     !
     module subroutine set_vector_location(loc, vec_properties)
       integer(ccs_int), intent(in) :: loc
       type(vector_spec), intent(inout) :: vec_properties
     end subroutine set_vector_location
 
-    !> @brief Replace each component of a vector by its reciprocal
+    !>  Replace each component of a vector by its reciprocal
     !
     !> @param[in]  vec - the vector
     !> @param[out] vec - the vector reciprocal
@@ -191,11 +188,6 @@ module vec
       real(ccs_real), intent(in) :: alpha
       class(ccs_vector), intent(inout) :: v
     end subroutine scale_vec
-    
-    ! module subroutine vec_view(vec_properties, vec)
-    !   type(vector_spec), intent(in) :: vec_properties
-    !   class(ccs_vector), intent(in) :: vec
-    ! end subroutine vec_view
 
   end interface
   
