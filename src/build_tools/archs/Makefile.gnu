@@ -18,7 +18,7 @@ ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
 FFLAGS += -fopenmp
-FFLAGS += -Wall -Wpedantic -Werror 
+FFLAGS += -Wall -Wpedantic -Werror -Wno-unused-dummy-argument -Wno-unused-function -Wno-unused-variable
 FFLAGS += -J$(OBJ_DIR)
 MPIRUN = mpirun
 

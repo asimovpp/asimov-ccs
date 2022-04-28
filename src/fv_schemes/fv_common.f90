@@ -320,7 +320,7 @@ contains
 
     type(face_locator) :: loc_f
     real(ccs_real) :: face_area
-    real(ccs_real), parameter :: diffusion_factor = 0.e-2_ccs_real ! XXX: temporarily hard-coded
+    real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag

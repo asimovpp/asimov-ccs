@@ -184,7 +184,6 @@ module mat
     module subroutine zero_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix
-    
   end interface
   
 end module mat
