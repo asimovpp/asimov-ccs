@@ -131,8 +131,8 @@ program test_advection_coeff
     v_vals%setter_mode = insert_mode
     
     associate(n_local => mesh%nlocal)
-      allocate(u_vals%indices(n_local))
-      allocate(v_vals%indices(n_local))
+      allocate(u_vals%global_indices(n_local))
+      allocate(v_vals%global_indices(n_local))
       allocate(u_vals%values(n_local))
       allocate(v_vals%values(n_local))
       
@@ -159,8 +159,8 @@ program test_advection_coeff
     call update(u%values)
     call update(v%values)
     
-    deallocate(u_vals%indices)
-    deallocate(v_vals%indices)
+    deallocate(u_vals%global_indices)
+    deallocate(v_vals%global_indices)
     deallocate(u_vals%values)
     deallocate(v_vals%values)
     

@@ -38,17 +38,17 @@ contains
     N = 27                ! Arbitrary (keep small for test purposes)
     nmin = -37            ! Arbitrary
     
-    allocate(vec_elements%idx(N))
+    allocate(vec_elements%global_indices(N))
     allocate(vec_elements%val(N))
 
     do i = 1, N
       call pack_entries(vec_elements, i, nmin + (i - 1), 1.0_ccs_real)
     end do
 
-    idx_range = maxval(vec_elements%idx) - (minval(vec_elements%idx) - 1)
+    idx_range = maxval(vec_elements%global_indices) - (minval(vec_elements%global_indices) - 1)
     @assertEqual(idx_range, N)
     
-    deallocate(vec_elements%idx, vec_elements%val)
+    deallocate(vec_elements%global_indices, vec_elements%val)
     
   end subroutine test_vec_packing
   
