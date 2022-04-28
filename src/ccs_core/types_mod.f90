@@ -29,11 +29,11 @@ module types
 
   !>  Container type for setting values in a vector.
   type, public :: vector_values
-    integer(ccs_int), dimension(:), allocatable :: indices !< Array of (global) indices to set values
-                                                        !! on, must be same size as values array.
+    integer(ccs_int), dimension(:), allocatable :: global_indices !< Array of (global) indices to set values
+                                                                  !! on, must be same size as values array.
     real(ccs_real), dimension(:), allocatable :: values   !< Array of values, must be same size as
-                                                        !! index array.
-    integer(ccs_int) :: setter_mode                           !< Which mode to use when setting values?
+                                                          !! index array.
+    integer(ccs_int) :: setter_mode                       !< Which mode to use when setting values?
   end type vector_values
 
   !>  Container type for data required to initialise a matrix.
@@ -45,11 +45,11 @@ module types
 
   !>  Container type for setting values in a matrix.
   type, public :: matrix_values
-    integer(ccs_int), dimension(:), allocatable :: row_indices !< Array of (global) row indices to set values on.
-    integer(ccs_int), dimension(:), allocatable :: col_indices !< Array of (global) column indices to set values on.
+    integer(ccs_int), dimension(:), allocatable :: global_row_indices !< Array of (global) row indices to set values on.
+    integer(ccs_int), dimension(:), allocatable :: global_col_indices !< Array of (global) column indices to set values on.
     real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and 
-                                                          !! of size = size(row_indices) * size(col_indices). Uses 
-                                                          !! row-major ordering.
+                                                            !! of size = size(row_indices) * size(col_indices). Uses 
+                                                            !! row-major ordering.
     integer(ccs_int) :: setter_mode !< Which mode to use when setting values?
   end type matrix_values
 

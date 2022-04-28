@@ -109,7 +109,7 @@ contains
               v%modeset = .true.
             end if
               
-            n = size(val_dat%indices)
+            n = size(val_dat%global_indices)
             if (val_dat%setter_mode == add_mode) then
               mode = ADD_VALUES
             else if (val_dat%setter_mode == insert_mode) then
@@ -119,7 +119,7 @@ contains
               stop
             end if
 
-            call VecSetValues(v%v, n, val_dat%indices, val_dat%values, mode, ierr)
+            call VecSetValues(v%v, n, val_dat%global_indices, val_dat%values, mode, ierr)
 
           class default
             print *, "Unknown vector value type!"
@@ -267,7 +267,7 @@ contains
     real(ccs_real), intent(in) :: val
     type(vector_values), intent(inout) :: val_dat
 
-    val_dat%indices(ent) = idx - 1
+    val_dat%global_indices(ent) = idx - 1
     val_dat%values(ent) = val
 
   end subroutine pack_one_vector_element

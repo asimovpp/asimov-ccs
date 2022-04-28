@@ -88,8 +88,8 @@ contains
 
     mat_coeffs%setter_mode = add_mode
 
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(n_int_cells))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(n_int_cells))
     allocate(mat_coeffs%values(n_int_cells))
 
     do index_p = 1, mesh%nlocal
@@ -150,8 +150,8 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate(mat_coeffs%row_indices)
-    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%global_row_indices)
+    deallocate(mat_coeffs%global_col_indices)
     deallocate(mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
@@ -222,10 +222,10 @@ contains
     mat_coeffs%setter_mode = add_mode
     b_coeffs%setter_mode = add_mode
 
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(1))
     allocate(mat_coeffs%values(1))
-    allocate(b_coeffs%indices(1))
+    allocate(b_coeffs%global_indices(1))
     allocate(b_coeffs%values(1))
 
     bc_counter = 1
@@ -268,10 +268,10 @@ contains
         end if
       end do
     end do
-    deallocate(mat_coeffs%row_indices)
-    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%global_row_indices)
+    deallocate(mat_coeffs%global_col_indices)
     deallocate(mat_coeffs%values)
-    deallocate(b_coeffs%indices)
+    deallocate(b_coeffs%global_indices)
     deallocate(b_coeffs%values)
 
   end subroutine compute_boundary_coeffs
@@ -501,7 +501,7 @@ contains
 
     real(ccs_real), dimension(ndim) :: dx
     
-    allocate(grad_values%indices(1))
+    allocate(grad_values%global_indices(1))
     allocate(grad_values%values(1))
     grad_values%setter_mode = insert_mode
 
