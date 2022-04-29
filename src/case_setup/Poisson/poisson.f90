@@ -147,7 +147,7 @@ contains
     integer(ccs_int) :: global_index_p
     
     val_dat%setter_mode = add_mode
-    allocate(val_dat%indices(1))
+    allocate(val_dat%global_indices(1))
     allocate(val_dat%values(1))
 
     associate(nloc => mesh%nlocal, &
@@ -169,7 +169,7 @@ contains
       end do
     end associate
     
-    deallocate(val_dat%indices)
+    deallocate(val_dat%global_indices)
     deallocate(val_dat%values)
     
   end subroutine eval_rhs
@@ -218,8 +218,8 @@ contains
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
         
-      allocate(mat_coeffs%row_indices(1))
-      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%global_row_indices(1))
+      allocate(mat_coeffs%global_col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
 
       row = global_index_p
@@ -257,8 +257,8 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%row_indices)
-      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%global_row_indices)
+      deallocate(mat_coeffs%global_col_indices)
       deallocate(mat_coeffs%values)
         
     end do
@@ -291,10 +291,10 @@ contains
     integer(ccs_int) :: nnb
     logical :: is_boundary
     
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(1))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(1))
     allocate(mat_coeffs%values(1))
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
 
     mat_coeffs%setter_mode = add_mode
@@ -341,7 +341,7 @@ contains
       end if
     end do
   
-    deallocate(vec_values%indices)
+    deallocate(vec_values%global_indices)
     deallocate(vec_values%values)
   
   end subroutine apply_dirichlet_bcs
@@ -356,7 +356,7 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
     
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
     vec_values%setter_mode = insert_mode
     do i = 1, mesh%nlocal
@@ -365,7 +365,7 @@ contains
       call pack_entries(1, global_index_p, rhs_val(i), vec_values)
       call set_values(vec_values, u_exact)
     end do
-    deallocate(vec_values%indices)
+    deallocate(vec_values%global_indices)
     deallocate(vec_values%values)
 
     call update(u_exact)

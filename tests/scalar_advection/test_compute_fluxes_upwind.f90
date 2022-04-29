@@ -85,8 +85,8 @@ program test_compute_fluxes
     v_vals%setter_mode = insert_mode
     
     associate(n_local => mesh%nlocal)
-      allocate(u_vals%indices(n_local))
-      allocate(v_vals%indices(n_local))
+      allocate(u_vals%global_indices(n_local))
+      allocate(v_vals%global_indices(n_local))
       allocate(u_vals%values(n_local))
       allocate(v_vals%values(n_local))
       
@@ -116,8 +116,8 @@ program test_compute_fluxes
     call update(u%values)
     call update(v%values)
     
-    deallocate(u_vals%indices)
-    deallocate(v_vals%idx)
+    deallocate(u_vals%global_indices)
+    deallocate(v_vals%global_indices)
     deallocate(u_vals%val)
     deallocate(v_vals%val)
     
@@ -239,8 +239,8 @@ program test_compute_fluxes
     call zero_vector(b)
     
     ! Advection first
-    allocate(vec_coeffs%indices(2*mesh%nglobal/cps))
-    allocate(vec_coeffs%indices(2*mesh%nglobal/cps))
+    allocate(vec_coeffs%global_indices(2*mesh%nglobal/cps))
+    allocate(vec_coeffs%global_indices(2*mesh%nglobal/cps))
 
     vec_counter = 1
     adv_coeff = 0.0_ccs_real
@@ -263,12 +263,12 @@ program test_compute_fluxes
         end do
       end if
     else
-      vec_coeffs%indices(:) = -1
+      vec_coeffs%global_indices(:) = -1
       vec_coeffs%values(:) = 0.0_ccs_real
     endif
     call set_values(vec_coeffs, b)
     
-    deallocate(vec_coeffs%indices)
+    deallocate(vec_coeffs%global_indices)
     deallocate(vec_coeffs%values)
 
     ! ! And now diffusion
@@ -319,8 +319,8 @@ program test_compute_fluxes
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
 
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(5))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(5))
     allocate(mat_coeffs%values(5))
     mat_coeffs%setter_mode = add_mode
 
@@ -363,8 +363,8 @@ program test_compute_fluxes
       call set_values(mat_coeffs, M)
     end do
     
-    deallocate(mat_coeffs%row_indices)
-    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%global_row_indices)
+    deallocate(mat_coeffs%global_col_indices)
     deallocate(mat_coeffs%values)
     
   end subroutine compute_exact_diffusion_matrix
@@ -388,8 +388,8 @@ program test_compute_fluxes
     integer(ccs_int) :: mat_counter
 
     mat_coeffs%setter_mode = add_mode
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(2))
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(2))
     allocate(mat_coeffs%values(2))
 
     ! Advection coefficients
@@ -422,7 +422,8 @@ program test_compute_fluxes
       end do
     end if
 
-    deallocate(mat_coeffs%col_indices)
+    deallocate(mat_coeffs%global_col_indices)
+    deallocate(mat_coeffs%global_row_indices)
     deallocate(mat_coeffs%values)
   end subroutine compute_exact_advection_matrix
   

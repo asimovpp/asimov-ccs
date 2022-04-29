@@ -253,7 +253,7 @@ contains
 
     real(ccs_real) :: V
     
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
 
     vec_values%setter_mode = add_mode
@@ -274,7 +274,7 @@ contains
 
     end do
 
-    deallocate(vec_values%indices)
+    deallocate(vec_values%global_indices)
     deallocate(vec_values%values)
 
     call restore_vector_data(p_gradients, p_gradient_data)
@@ -335,7 +335,7 @@ contains
     call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
     
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
 
     mat_coeffs%setter_mode = insert_mode
@@ -354,8 +354,8 @@ contains
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
-      allocate(mat_coeffs%row_indices(1))
-      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%global_row_indices(1))
+      allocate(mat_coeffs%global_col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
 
       row = global_index_p
@@ -419,8 +419,8 @@ contains
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
 
-      deallocate(mat_coeffs%row_indices)
-      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%global_row_indices)
+      deallocate(mat_coeffs%global_col_indices)
       deallocate(mat_coeffs%values)
     end do
 
@@ -490,7 +490,7 @@ contains
     
     real(ccs_real) :: mib !< Cell mass imbalance
 
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
     vec_values%setter_mode = insert_mode
 

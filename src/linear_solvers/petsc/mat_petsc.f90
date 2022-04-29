@@ -163,10 +163,10 @@ contains
     integer(ccs_int) :: nc
     integer(ccs_int) :: coeff_index
 
-    mat_coeffs%row_indices(row_entry) = row - 1
-    mat_coeffs%col_indices(col_entry) = col - 1
+    mat_coeffs%global_row_indices(row_entry) = row - 1
+    mat_coeffs%global_col_indices(col_entry) = col - 1
 
-    nc = size(mat_coeffs%col_indices)
+    nc = size(mat_coeffs%global_col_indices)
 
     coeff_index = (row_entry - 1) * nc + col_entry
     mat_coeffs%values(coeff_index) = coeff
@@ -187,8 +187,8 @@ contains
     
     integer(ccs_err) :: ierr !< Error code
 
-    associate(ridx    => mat_values%row_indices, &
-              cidx    => mat_values%col_indices, &
+    associate(ridx    => mat_values%global_row_indices, &
+              cidx    => mat_values%global_col_indices, &
               val     => mat_values%values, &
               matmode => mat_values%setter_mode)
     
@@ -237,20 +237,20 @@ contains
   !v  Sets equations in a system of equations by zeroing out the corresponding row in the
   !   system matrix and setting the diagonal to one such that the solution is given by
   !   the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
-  module subroutine set_eqn(rows, M)
+  module subroutine set_eqn(global_rows, M)
 
     use petsc, only : PETSC_NULL_VEC
     use petscmat, only : MatZeroRows
 
-    integer(ccs_int), dimension(:), intent(in) :: rows  !< array of (global) row indices to set the equation on
-    class(ccs_matrix), intent(inout) :: M               !< the matrix
+    integer(ccs_int), dimension(:), intent(in) :: global_rows  !< array of (global) row indices to set the equation on
+    class(ccs_matrix), intent(inout) :: M                      !< the matrix
 
     integer(ccs_err) :: ierr
     
     select type (M)
       type is (matrix_petsc)
 
-        call MatZeroRows(M%M, size(rows), rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
+        call MatZeroRows(M%M, size(global_rows), global_rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
 
       class default
         print *, "Unknown matrix type!"
