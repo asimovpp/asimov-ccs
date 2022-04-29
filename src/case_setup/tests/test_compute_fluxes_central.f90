@@ -22,6 +22,7 @@ program test_compute_fluxes
 
   implicit none
 
+  real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
   type(ccs_mesh) :: mesh
   type(bc_config) :: bcs
   type(vector_spec) :: vec_properties
@@ -42,6 +43,7 @@ program test_compute_fluxes
   bcs%region(3) = bc_region_top
   bcs%region(4) = bc_region_bottom
   bcs%bc_type(:) = 0
+  bcs%bc_type(3) = 1
   bcs%endpoints(:,:) = 1.0_ccs_real
     
   do direction = x_dir, y_dir
@@ -101,7 +103,6 @@ program test_compute_fluxes
 
     u_vals%setter_mode = insert_mode
     v_vals%setter_mode = insert_mode
-    mf_vals%setter_mode = insert_mode
     
     associate(n_local => mesh%nlocal)
       allocate(u_vals%indices(n_local))
@@ -131,7 +132,6 @@ program test_compute_fluxes
     end associate
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
-    !call set_values(mf_vals, mf%values)
 
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 1.0_ccs_real
@@ -192,7 +192,8 @@ program test_compute_fluxes
 
     call finalise(M)
 
-    call compute_exact_matrix(mesh, flow_direction, discretisation, cps, M_exact, b_exact)
+    call compute_exact_matrix(mesh, flow_direction, discretisation, cps, M_exact)
+    call compute_exact_vector(mesh, flow_direction, discretisation, cps, bcs, b_exact)
 
     call update(M_exact)
     call update(b_exact)
@@ -226,16 +227,14 @@ program test_compute_fluxes
     deallocate(b_exact)
   end subroutine run_compute_fluxes_test
 
-  subroutine compute_exact_matrix(mesh, flow, discretisation, cps, M, b)
+  subroutine compute_exact_matrix(mesh, flow, discretisation, cps, M)
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: flow
     integer(ccs_int), intent(in) :: discretisation
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
 
     ! Local variables
-    type(vector_values) :: vec_values
     type(matrix_values) :: mat_values
     type(cell_locator) :: loc_p
     type(neighbour_locator) loc_nb
@@ -245,16 +244,12 @@ program test_compute_fluxes
     real(ccs_real) :: face_area, dx
     real(ccs_real) :: adv_coeff, diff_coeff
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
-    real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
 
-    allocate(vec_values%indices(1))
-    allocate(vec_values%values(1))
     allocate(mat_values%row_indices(1))
     allocate(mat_values%col_indices(1))
     allocate(mat_values%values(1))
 
-    vec_values%setter_mode = add_mode
     mat_values%setter_mode = add_mode
 
     face_area = 1.0_ccs_real/cps
@@ -296,4 +291,54 @@ program test_compute_fluxes
     end do
   end subroutine compute_exact_matrix
   
+  subroutine compute_exact_vector(mesh, flow, discretisation, cps, bcs, b)
+    type(ccs_mesh), intent(in) :: mesh
+    integer(ccs_int), intent(in) :: flow
+    integer(ccs_int), intent(in) :: discretisation
+    integer(ccs_int), intent(in) :: cps
+    type(bc_config), intent(in) :: bcs
+    class(ccs_vector), intent(inout) :: b
+
+    type(vector_values) :: vec_values
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) loc_nb
+    integer(ccs_int) :: index_p, index_nb, j, nnb
+    integer(ccs_int) :: global_index_p, global_index_nb
+    real(ccs_real) :: face_area
+    real(ccs_real) :: dx
+    real(ccs_real) :: bc_value
+    real(ccs_real) :: adv_coeff, diff_coeff
+    real(ccs_real) :: adv_coeff_total, diff_coeff_total
+    logical :: is_boundary
+
+    allocate(vec_values%indices(1))
+    allocate(vec_values%values(1))
+
+    vec_values%setter_mode = add_mode
+
+    face_area = 1.0_ccs_real/cps
+    do index_p = 1, cps**2
+      adv_coeff_total = 0.0_ccs_real
+      diff_coeff_total = 0.0_ccs_real
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
+      do j = 1, nnb
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        if (is_boundary) then
+          dx = 1.0_ccs_real/cps
+          diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
+          adv_coeff = face_area
+          if (bcs%bc_type(j) == 0) then
+            bc_value = 0.0_ccs_real
+          else
+            bc_value = 1.0_ccs_real
+          endif
+          call pack_entries(1, global_index_p, -(adv_coeff + diff_coeff)*bc_value, vec_values)
+          call set_values(vec_values, b)
+        endif 
+      end do
+    end do
+  end subroutine compute_exact_vector
 end program test_compute_fluxes
