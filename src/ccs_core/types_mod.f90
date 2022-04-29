@@ -77,6 +77,10 @@ module types
     integer(ccs_int), dimension(:), allocatable :: topo_nnb                  !< The per-cell neighbour count
     integer(ccs_int), dimension(:, :), allocatable :: topo_neighbour_indices !< Cell neighbours (neighbour/face, cell)
     integer(ccs_int), dimension(:, :), allocatable :: topo_face_indices      !< Cell face index in local face vector (face, cell)
+
+    integer(ccs_int) :: global_num_cells                                     !< Global number of cells
+    integer(ccs_int) :: global_num_faces                                     !< Global number of faces
+    integer(ccs_int) :: max_faces                                            !< Maximum number of faces per cell
     integer(ccs_long), dimension(:), allocatable :: xadj                     !< 1st adjacency structure vector - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjncy                   !< 2nd adjacency structure vector - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: vtxdist                  !< Array that indicates vertices local to a processor - name from ParMETIS
