@@ -436,4 +436,21 @@ contains
     
   end subroutine zero_matrix
 
+  module subroutine mat_view(mat, filename)
+    use petscmat
+    class(ccs_matrix), intent(in) :: mat
+    character(len=*), intent(in) :: filename
+    integer(ccs_err) :: ierr
+    type(tPetscViewer) :: output_viewer
+
+    select type (mat)
+      type is (matrix_petsc)
+        call PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, output_viewer, ierr)
+        call MatView(mat%M, output_viewer, ierr)
+      class default
+        print *, "Type unhandled 1"
+        stop
+    end select
+  end subroutine mat_view
+
 end submodule mat_petsc

@@ -237,7 +237,7 @@ contains
     type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
-    integer(ccs_int) :: bc_counter
+    integer(ccs_int) :: bc_counter    ! XXX: Don't think we need this either
     integer(ccs_int) :: row, col
     integer(ccs_int) :: nnb, index_nb
     real(ccs_real) :: face_area
@@ -273,7 +273,7 @@ contains
 
           call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
-          call get_face_normal(loc_f, face_normal)
+          call get_face_normal(loc_f, face_normal)    ! XXX: double-check if this is being used here at all.
           call get_local_index(loc_f, index_f)
           
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)

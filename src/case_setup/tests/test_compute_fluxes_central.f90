@@ -204,7 +204,7 @@ program test_compute_fluxes
 
     call axpy(-1.0_ccs_real, M_exact, M)
     error = norm(M, 1)
-    call dprint("norm " // str(error, "(F7.1)"))
+    call dprint("norm " // str(error))
 
     if (error .ge. eps) then
       write(message, *) 'FAIL: matrix difference norm too large ', error
@@ -213,7 +213,7 @@ program test_compute_fluxes
     
     call axpy(-1.0_ccs_real, b_exact, b)
     error = norm(b, 2)
-    call dprint("norm " // str(error, "(F7.1)"))
+    call dprint("norm " // str(error))
 
     if (error .ge. eps) then
       write(message, *) 'FAIL: vector difference norm too large ', error
@@ -241,11 +241,11 @@ program test_compute_fluxes
     type(neighbour_locator) loc_nb
     integer(ccs_int) :: index_p, index_nb, j, nnb
     integer(ccs_int) :: global_index_p, global_index_nb
-    integer(ccs_int) :: mat_counter
     integer(ccs_int) :: sgn
-    real(ccs_real) :: face_area
-    real(ccs_real) :: adv_coeff
-    real(ccs_real) :: adv_coeff_total
+    real(ccs_real) :: face_area, dx
+    real(ccs_real) :: adv_coeff, diff_coeff
+    real(ccs_real) :: adv_coeff_total, diff_coeff_total
+    real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
 
     allocate(vec_values%indices(1))
@@ -254,13 +254,14 @@ program test_compute_fluxes
     allocate(mat_values%col_indices(1))
     allocate(mat_values%values(1))
 
-    vec_values%setter_mode = insert_mode
-    mat_values%setter_mode = insert_mode
+    vec_values%setter_mode = add_mode
+    mat_values%setter_mode = add_mode
 
     face_area = 1.0_ccs_real/cps
 
     do index_p = 1, cps**2
       adv_coeff_total = 0.0_ccs_real
+      diff_coeff_total = 0.0_ccs_real
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
@@ -268,6 +269,8 @@ program test_compute_fluxes
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (.not. is_boundary) then
+          dx = 1.0_ccs_real/cps
+          diff_coeff = -face_area * diffusion_factor / dx
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
           if (index_p > index_nb) then
@@ -276,20 +279,20 @@ program test_compute_fluxes
             sgn = -1
           endif
           adv_coeff = -0.5*sgn*face_area
-          call pack_entries(1, 1, global_index_p, global_index_nb, adv_coeff, mat_values)
+          call pack_entries(1, 1, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_values)
           call set_values(mat_values, M)
-          mat_counter = mat_counter + 1
           adv_coeff_total = adv_coeff_total + adv_coeff
+          diff_coeff_total = diff_coeff_total + diff_coeff
         else
+          dx = 1.0_ccs_real/cps
+          diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
           adv_coeff = face_area
-          call pack_entries(1, 1, global_index_p, global_index_p, adv_coeff, mat_values)
+          call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_values)
           call set_values(mat_values, M)
-          mat_counter = mat_counter + 1
-          adv_coeff_total = adv_coeff_total + adv_coeff
         endif
-        call pack_entries(1, 1, global_index_p, global_index_p, -adv_coeff_total, mat_values)
-        call set_values(mat_values, M)
       end do
+      call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff_total + diff_coeff_total), mat_values)
+      call set_values(mat_values, M)
     end do
   end subroutine compute_exact_matrix
   
