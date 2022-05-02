@@ -91,6 +91,8 @@ test_ccs_cray:
     - .setup_cray
     - .test_common
   script:
+    - cray_run_command "slurmctld -vv"
+    - cray_run_command "slurmd -vv"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
 
 #-----------------------------------------------------------------------------#
