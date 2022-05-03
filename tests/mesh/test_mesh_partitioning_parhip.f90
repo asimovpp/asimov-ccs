@@ -19,7 +19,6 @@ program test_mesh_partitioning_parhip
   implicit none
 
   type(topology) :: topo
-  integer(ccs_long), allocatable :: partition_vector
 
   call init()
 
@@ -31,10 +30,12 @@ program test_mesh_partitioning_parhip
       if(par_env%proc_id == 0) then
         allocate(topo%xadj(6))
         allocate(topo%adjncy(13))
+        allocate(topo%adjwgt(13))
         allocate(topo%vtxdist(4))
         topo%xadj = (/ 1, 3, 6, 9, 12, 14 /)
         topo%adjncy = (/ 2, 6, 1, 3, 7, 2, 4, 8, 3, 5, 9, 4, 10 /)
         topo%vtxdist = (/ 1, 6, 11, 16 /)
+        allocate(topo%vwgt(5)) 
       else if (par_env%proc_id == 1) then
         allocate(topo%xadj(6))
         allocate(topo%adjncy(15))
@@ -42,6 +43,7 @@ program test_mesh_partitioning_parhip
         topo%xadj = (/ 1, 4, 8, 12, 16, 19 /)      
         topo%adjncy = (/ 1, 7, 11, 2, 6, 8, 12, 3, 7, 9, 13, 4, 8, 10, 14, 5, 9, 15 /)
         topo%vtxdist = (/ 1, 6, 11, 16 /)
+        allocate(topo%vwgt(5)) 
       else 
         allocate(topo%xadj(6))
         allocate(topo%adjncy(13))
@@ -49,8 +51,9 @@ program test_mesh_partitioning_parhip
         topo%xadj = (/ 1, 3, 6, 9, 12, 14 /)
         topo%adjncy = (/ 6, 12, 7, 11, 13, 8, 12, 14, 9, 13, 15, 10, 14 /)
         topo%vtxdist = (/ 1, 6, 11, 16 /)
+        allocate(topo%vwgt(5)) 
       end if
-    
+
     else
       print*,"Test must be run on 3 MPI ranks"
     end if 
@@ -60,7 +63,7 @@ program test_mesh_partitioning_parhip
     call stop_test(message)
   end select
 
-!  call partition_kway(par_env, topo, partition_vector)
+  ! call partition_kway(par_env, topo)
 
   if(allocated(topo%xadj)) then
     deallocate(topo%xadj)
@@ -70,8 +73,12 @@ program test_mesh_partitioning_parhip
     deallocate(topo%adjncy)
   end if
 
-  if(allocated(topo%vtxdist)) then
-    deallocate(topo%vtxdist)
+  if(allocated(topo%adjwgt)) then
+    deallocate(topo%adjwgt)
+  end if
+
+  if(allocated(topo%vwgt)) then
+    deallocate(topo%vwgt)
   end if
 
   call fin()
