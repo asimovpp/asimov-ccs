@@ -12,7 +12,7 @@ program test_compute_fluxes
   use utils, only : update, initialise, finalise, &
                 set_size, pack_entries, set_values, debug_print, str, zero
   use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location
-  use mat, only : create_matrix, set_nnz, mat_view
+  use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
   use constants, only: add_mode, insert_mode, face
   use bc_constants
@@ -30,8 +30,6 @@ program test_compute_fluxes
   class(field), allocatable :: u, v
   class(field), allocatable :: mf
   integer(ccs_int), parameter :: cps = 5
-  integer(ccs_int) :: direction, discretisation
-  integer, parameter :: x_dir = 1, y_dir = 2
   integer, parameter :: central = -1
 
   call init()
@@ -46,122 +44,55 @@ program test_compute_fluxes
   bcs%bc_type(3) = 1
   bcs%endpoints(:,:) = 1.0_ccs_real
     
-  do direction = x_dir, y_dir
-    call dprint("flow direction " // str(direction, "(I3)"))
-    discretisation = central
-      
-    if (discretisation == central) then
-      allocate(central_field :: scalar)
-      allocate(central_field :: u)
-      allocate(central_field :: v)
-      allocate(face_field :: mf)
-    else
-      write(message, *) 'Invalid discretisation type selected'
-      call stop_test(message)
-    end if
+  allocate(central_field :: scalar)
+  allocate(face_field :: mf)
 
-    call initialise(vec_properties)
-    call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, scalar%values)
-    call create_vector(vec_properties, u%values)
-    call create_vector(vec_properties, v%values)
+  call initialise(vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, scalar%values)
 
-    call set_vector_location(face, vec_properties)
-    call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, mf%values)
-    call update(mf%values)
+  call set_vector_location(face, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, mf%values)
+  call update(mf%values)
 
-    call set_fields(mesh, direction, u, v, mf)
-    call run_compute_fluxes_test(scalar, u, v, mf, bcs, mesh, cps, direction, discretisation)
+  call set_mass_flux(mesh, mf)
+  call run_compute_fluxes_test(scalar, mf, bcs, mesh, cps)
 
-    deallocate(scalar)
-    deallocate(u)
-    deallocate(v)
-    deallocate(mf)
-  end do
+  deallocate(scalar)
+  deallocate(mf)
 
   call fin()
 
   contains
 
-  !> @brief Sets the velocity field in the desired direction and discretisation
+  !> @brief Sets the mass flux array
   !
   !> @param[in] mesh - The mesh structure
-  !> @param[in] direction - Integer indicating the direction of the velocity field
-  !> @param[out] u, v     - The velocity fields in x and y directions
-  !> @param[out] mf       - The mass flux field 
-  subroutine set_fields(mesh, direction, u, v, mf)
-    use meshing, only: set_cell_location, get_global_index
+  !> @param[out] mf  - The mass flux  
+  subroutine set_mass_flux(mesh, mf)
     class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: direction
-    class(field), intent(inout) :: u, v, mf
-    type(cell_locator) :: loc_p
-    type(vector_values) :: u_vals, v_vals, mf_vals
-    integer(ccs_int) :: index_p, global_index_p
-    real(ccs_real) :: u_val, v_val, mf_val
+    class(field), intent(inout) :: mf
     real(ccs_real), dimension(:), pointer :: mf_data
-
-    u_vals%setter_mode = insert_mode
-    v_vals%setter_mode = insert_mode
-    
-    associate(n_local => mesh%nlocal)
-      allocate(u_vals%indices(n_local))
-      allocate(v_vals%indices(n_local))
-      allocate(u_vals%values(n_local))
-      allocate(v_vals%values(n_local))
-      
-      ! Set IC velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
-
-        if (direction == x_dir) then
-          u_val = 1.0_ccs_real
-          v_val = 0.0_ccs_real
-        else if (direction == y_dir) then
-          u_val = 0.0_ccs_real
-          v_val = 1.0_ccs_real
-        end if
-
-        !u_val = 0.0_ccs_real
-        !v_val = 0.0_ccs_real
-        
-        call pack_entries(index_p, global_index_p, u_val, u_vals)
-        call pack_entries(index_p, global_index_p, v_val, v_vals)
-      end do
-    end associate
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
 
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 1.0_ccs_real
     call restore_vector_data(mf%values, mf_data)
-
-    call update(u%values)
-    call update(v%values)
     call update(mf%values)
-    
-    deallocate(u_vals%indices, v_vals%indices, u_vals%values, v_vals%values)
-  end subroutine set_fields
+  end subroutine set_mass_flux
 
   !> @brief Compares the matrix computed for a given velocity field and discretisation to the known solution
   !
   !> @param[in] scalar         - The scalar field structure
-  !> @param[in] u, v           - The velocity field structures
   !> @param[in] bcs            - The BC structure
   !> @param[in] mesh      - The mesh structure
   !> @param[in] cps            - The number of cells per side in the (square) mesh 
-  !> @param[in] flow_direction - Integer indicating the direction of the flow 
-  !> @param[in] discretisation - Integer indicating the discretisation scheme being tested 
-  subroutine run_compute_fluxes_test(scalar, u, v, mf, bcs, mesh, cps, flow_direction, discretisation)
+  subroutine run_compute_fluxes_test(scalar, mf, bcs, mesh, cps)
     class(field), intent(in) :: scalar
-    class(field), intent(in) :: u, v
     class(field), intent(in) :: mf
     class(bc_config), intent(in) :: bcs
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: cps
-    integer(ccs_int), intent(in) :: flow_direction
-    integer(ccs_int), intent(in) :: discretisation
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
@@ -192,16 +123,13 @@ program test_compute_fluxes
 
     call finalise(M)
 
-    call compute_exact_matrix(mesh, flow_direction, discretisation, cps, M_exact)
-    call compute_exact_vector(mesh, flow_direction, discretisation, cps, bcs, b_exact)
+    call compute_exact_matrix(mesh, cps, M_exact)
+    call compute_exact_vector(mesh, cps, bcs, b_exact)
 
     call update(M_exact)
     call update(b_exact)
 
     call finalise(M_exact)
-
-    call mat_view(M_exact, "M_exact.dat")
-    call mat_view(M, "M.dat")
 
     call axpy(-1.0_ccs_real, M_exact, M)
     error = norm(M, 1)
@@ -227,10 +155,8 @@ program test_compute_fluxes
     deallocate(b_exact)
   end subroutine run_compute_fluxes_test
 
-  subroutine compute_exact_matrix(mesh, flow, discretisation, cps, M)
+  subroutine compute_exact_matrix(mesh, cps, M)
     type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: flow
-    integer(ccs_int), intent(in) :: discretisation
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
 
@@ -291,10 +217,8 @@ program test_compute_fluxes
     end do
   end subroutine compute_exact_matrix
   
-  subroutine compute_exact_vector(mesh, flow, discretisation, cps, bcs, b)
+  subroutine compute_exact_vector(mesh, cps, bcs, b)
     type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: flow
-    integer(ccs_int), intent(in) :: discretisation
     integer(ccs_int), intent(in) :: cps
     type(bc_config), intent(in) :: bcs
     class(ccs_vector), intent(inout) :: b
