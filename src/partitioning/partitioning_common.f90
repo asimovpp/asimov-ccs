@@ -4,6 +4,12 @@ implicit none
 
   contains
 
+  !v Read the topology data from an input (HDF5) file
+  ! This subroutine assumes the following names are used in the file:
+  ! "ncel" - the total number of cells
+  ! "nfac" - the total number of faces
+  ! "maxfaces" - the maximum number of faces per cell
+  ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
   module subroutine read_topology(par_env, case_name, topo)
 
     use constants, only: geoext, adiosconfig
@@ -14,7 +20,7 @@ implicit none
     use parallel, only: read_command_line_arguments
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    character(len=:), allocatable :: case_name
+    character(len=:), allocatable :: case_name                              !< The name of the case that is computed
     type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
 
     ! Local variables
