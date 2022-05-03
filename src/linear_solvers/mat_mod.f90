@@ -27,7 +27,6 @@ module mat
   public :: get_matrix_diagonal
   public :: set_matrix_diagonal
   public :: zero_matrix
-  public :: mat_view
   
   interface
 
@@ -185,11 +184,6 @@ module mat
     module subroutine zero_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix
-
-    module subroutine mat_view(mat, filename)
-      class(ccs_matrix), intent(in) :: mat
-      character(len=*), intent(in) :: filename
-    end subroutine mat_view 
   end interface
   
 end module mat
