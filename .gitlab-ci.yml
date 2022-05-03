@@ -138,7 +138,7 @@ profile_ccs_intel:
   artifacts:
     paths:
       - obj/*.html
-      - *.html
+      - ./*.html
   allow_failure: true
 
 profile_ccs_cray:
@@ -151,5 +151,5 @@ profile_ccs_cray:
   artifacts:
     paths:
       - obj/*.lst
-      - *.lst
+      - ./*.lst
   allow_failure: true
