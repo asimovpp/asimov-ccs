@@ -81,11 +81,15 @@ module types
     integer(ccs_int) :: global_num_cells                                     !< Global number of cells
     integer(ccs_int) :: global_num_faces                                     !< Global number of faces
     integer(ccs_int) :: max_faces                                            !< Maximum number of faces per cell
+    integer(ccs_int), dimension(:), allocatable :: global_boundaries         !< Array of boundary faces
+    integer(ccs_int), dimension(:), allocatable :: face_edge_end1            !< Array of edge endpoints
+    integer(ccs_int), dimension(:), allocatable :: face_edge_end2            !< Array of edge endpoints
     integer(ccs_long), dimension(:), allocatable :: xadj                     !< 1st adjacency structure vector - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjncy                   !< 2nd adjacency structure vector - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: vtxdist                  !< Array that indicates vertices local to a processor - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: vwgt                     !< Weights on vertices - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjwgt                   !< Weights on edges - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: part                     !< Partition array
 
   end type topology  
 
