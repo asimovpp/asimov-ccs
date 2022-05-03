@@ -1,7 +1,6 @@
-!> @brief Test that the flux matrix has been computed correctly
+!> Test that the flux matrix has been computed correctly
 !
-!> @description Compares the matrix calculated for flows in the +x and +y directions with
-!> central and upwind differencing to the known matrix
+!> Compares the matrix and RHS calculated for a specified mass flux using the central differencing scheme to the expected solution
 program test_compute_fluxes
 #include "ccs_macros.inc"
 
@@ -66,13 +65,10 @@ program test_compute_fluxes
 
   contains
 
-  !> @brief Sets the mass flux array
-  !
-  !> @param[in] mesh - The mesh structure
-  !> @param[out] mf  - The mass flux  
+  !> Sets the mass flux array
   subroutine set_mass_flux(mesh, mf)
-    class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: mf
+    class(ccs_mesh), intent(in) :: mesh   !< The mesh structure
+    class(field), intent(inout) :: mf     !< The mass flux  
     real(ccs_real), dimension(:), pointer :: mf_data
 
     call get_vector_data(mf%values, mf_data)
@@ -81,18 +77,13 @@ program test_compute_fluxes
     call update(mf%values)
   end subroutine set_mass_flux
 
-  !> @brief Compares the matrix computed for a given velocity field and discretisation to the known solution
-  !
-  !> @param[in] scalar         - The scalar field structure
-  !> @param[in] bcs            - The BC structure
-  !> @param[in] mesh      - The mesh structure
-  !> @param[in] cps            - The number of cells per side in the (square) mesh 
+  !> Compares the matrix computed for a given velocity field and discretisation to the known solution
   subroutine run_compute_fluxes_test(scalar, mf, bcs, mesh, cps)
-    class(field), intent(in) :: scalar
-    class(field), intent(in) :: mf
-    class(bc_config), intent(in) :: bcs
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
+    class(field), intent(in) :: scalar    !< The scalar field structure
+    class(field), intent(in) :: mf        !< The mass flux field
+    class(bc_config), intent(in) :: bcs   !< The BC structure
+    type(ccs_mesh), intent(in) :: mesh    !< The mesh structure
+    integer(ccs_int), intent(in) :: cps   !< The number of cells per side in the (square) mesh 
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
@@ -155,10 +146,11 @@ program test_compute_fluxes
     deallocate(b_exact)
   end subroutine run_compute_fluxes_test
 
+  !> Computes the expected matrix for a mass flux of 1
   subroutine compute_exact_matrix(mesh, cps, M)
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    class(ccs_matrix), intent(inout) :: M
+    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    integer(ccs_int), intent(in) :: cps     !< The number of cells per side
+    class(ccs_matrix), intent(inout) :: M   !< The matrix
 
     ! Local variables
     type(matrix_values) :: mat_values
@@ -194,12 +186,12 @@ program test_compute_fluxes
           diff_coeff = -face_area * diffusion_factor / dx
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-          if (index_p > index_nb) then
-            sgn = 1
-          else
+          if (index_nb < index_p) then
             sgn = -1
+          else
+            sgn = 1
           endif
-          adv_coeff = -0.5*sgn*face_area
+          adv_coeff = 0.5_ccs_real*sgn*face_area
           call pack_entries(1, 1, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_values)
           call set_values(mat_values, M)
           adv_coeff_total = adv_coeff_total + adv_coeff
@@ -217,11 +209,12 @@ program test_compute_fluxes
     end do
   end subroutine compute_exact_matrix
   
+  !> Computes the expected RHS for a mass flux of 1
   subroutine compute_exact_vector(mesh, cps, bcs, b)
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    type(bc_config), intent(in) :: bcs
-    class(ccs_vector), intent(inout) :: b
+    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    integer(ccs_int), intent(in) :: cps     !< The number of cells per side
+    type(bc_config), intent(in) :: bcs      !< The bc structure
+    class(ccs_vector), intent(inout) :: b   !< The RHS vector
 
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
