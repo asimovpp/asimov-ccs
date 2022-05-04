@@ -18,11 +18,11 @@ program tgv
 
   type(topology) :: topo
 
-  class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
-  character(len=error_length) :: error
+  ! class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
+  ! character(len=error_length) :: error
 
   character(len=:), allocatable :: case_name   !< Case name
-  character(len=:), allocatable :: ccs_config_file  !< Config file for CCS
+  ! character(len=:), allocatable :: ccs_config_file  !< Config file for CCS
 
   class(parallel_environment), allocatable :: par_env
 
