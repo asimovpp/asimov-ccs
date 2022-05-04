@@ -172,7 +172,7 @@ program test_compute_fluxes
 
     face_area = 1.0_ccs_real/cps
 
-    do index_p = 1, cps**2
+    do index_p = 1, mesh%nlocal
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       call set_cell_location(mesh, index_p, loc_p)
@@ -234,7 +234,7 @@ program test_compute_fluxes
     vec_values%setter_mode = add_mode
 
     face_area = 1.0_ccs_real/cps
-    do index_p = 1, cps**2
+    do index_p = 1, mesh%nlocal
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       call set_cell_location(mesh, index_p, loc_p)
