@@ -63,7 +63,7 @@ program test_mesh_partitioning_parhip
     call stop_test(message)
   end select
 
-  ! call partition_kway(par_env, topo)
+  call partition_kway(par_env, topo)
 
   if(allocated(topo%xadj)) then
     deallocate(topo%xadj)
