@@ -1,7 +1,8 @@
-!> @brief Submodule file parallel_env_mpi.smod
-!> @build mpi
+!>  Submodule file parallel_env_mpi.smod
 !
-!> @details Implementation of the parallel environment using MPI
+!>  @build mpi
+!
+!>  Implementation of the parallel environment using MPI
 
 submodule (parallel) parallel_env_mpi
 
@@ -12,9 +13,7 @@ submodule (parallel) parallel_env_mpi
 
   contains
 
-  !> @brief Create the MPI parallel environment
-  !
-  !> @param[out] parallel_environment_mpi par_env
+  !>  Create the MPI parallel environment
   module subroutine initialise_parallel_environment(par_env)
 
     class(parallel_environment), allocatable, intent(out) :: par_env
@@ -49,7 +48,7 @@ submodule (parallel) parallel_env_mpi
 
   end subroutine
 
-  !> @brief Cleanup the MPI parallel environment
+  !>  Cleanup the MPI parallel environment
   !
   !> @param[in] parallel_environment_mpi par_env
   module subroutine cleanup_parallel_environment(par_env)

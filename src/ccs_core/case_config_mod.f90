@@ -1,4 +1,4 @@
-!> @brief Module file case_config.mod
+!>  Module file case_config.mod
 !
 !> @details Provides concrete types and bases of extensible types.
 

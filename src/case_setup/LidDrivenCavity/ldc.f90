@@ -1,4 +1,4 @@
-!> @brief Program file for LidDrivenCavity case
+!>  Program file for LidDrivenCavity case
 !
 !> @build mpi+petsc
 
@@ -249,8 +249,8 @@ program ldc
     ! Set alias
     associate(n_local => mesh%nlocal)
       ! Allocate temporary arrays for storing global cell indices 
-      allocate(u_vals%indices(n_local))
-      allocate(v_vals%indices(n_local))
+      allocate(u_vals%global_indices(n_local))
+      allocate(v_vals%global_indices(n_local))
 
       ! Allocate temporary arrays for storing values
       allocate(u_vals%values(n_local))
@@ -273,8 +273,8 @@ program ldc
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
 
-    deallocate(u_vals%indices)
-    deallocate(v_vals%indices)
+    deallocate(u_vals%global_indices)
+    deallocate(v_vals%global_indices)
     deallocate(u_vals%values)
     deallocate(v_vals%values)
 

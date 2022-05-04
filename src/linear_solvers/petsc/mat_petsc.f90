@@ -12,10 +12,7 @@ submodule (mat) mat_petsc
 
 contains
 
-  !> @brief Create a new PETSc matrix object.
-  !
-  !> @param[in]  mat_properties - contains information about how the matrix should be allocated
-  !> @param[out] M       - the matrix object
+  !>  Create a new PETSc matrix object.
   module subroutine create_matrix(mat_properties, M)
 
     use mpi
@@ -24,8 +21,8 @@ contains
     use petscmat, only : MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                          MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
     
-    type(matrix_spec), intent(in) :: mat_properties
-    class(ccs_matrix), allocatable, intent(out) :: M
+    type(matrix_spec), intent(in) :: mat_properties   !< contains information about how the matrix should be allocated
+    class(ccs_matrix), allocatable, intent(out) :: M  !< the matrix object
 
     integer(ccs_err) :: ierr  !< Error code
 
@@ -91,12 +88,10 @@ contains
 
   end subroutine finalise_matrix
 
-  !> @brief Perform a parallel update of a PETSc matrix.
-  !
-  !> @param[in/out] M - the matrix
+  !>  Perform a parallel update of a PETSc matrix.
   module subroutine update_matrix(M)
 
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M   !< the matrix
 
     select type(M)
       type is (matrix_petsc)
@@ -112,14 +107,12 @@ contains
   
   end subroutine
 
-  !> @brief Begin a parallel update of a PETSc matrix.
+  !>  Begin a parallel update of a PETSc matrix.
   !
-  !> @details Begins the parallel update to allow overlapping comms and compute.
-  !
-  !> @param[in/out] M - the matrix
+  !>  Begins the parallel update to allow overlapping comms and compute.
   module subroutine begin_update_matrix(M)
 
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M   !< the matrix
 
     integer(ccs_err) :: ierr !< Error code
 
@@ -136,14 +129,12 @@ contains
     
   end subroutine
 
-  !> @brief End a parallel update of a PETSc matrix.
+  !>  End a parallel update of a PETSc matrix.
   !
-  !> @details Ends the parallel update to allow overlapping comms and compute.
-  !
-  !> @param[in/out] M - the matrix
+  !>  Ends the parallel update to allow overlapping comms and compute.
   module subroutine end_update_matrix(M)
 
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M   !< the matrix
 
     integer(ccs_err) :: ierr !< Error code
 
@@ -170,38 +161,34 @@ contains
     type(matrix_values), intent(inout) :: mat_coeffs
 
     integer(ccs_int) :: nc
-    integer(ccs_int) :: validx
+    integer(ccs_int) :: coeff_index
 
-    mat_coeffs%row_indices(row_entry) = row - 1
-    mat_coeffs%col_indices(col_entry) = col - 1
+    mat_coeffs%global_row_indices(row_entry) = row - 1
+    mat_coeffs%global_col_indices(col_entry) = col - 1
 
-    nc = size(mat_coeffs%col_indices)
+    nc = size(mat_coeffs%global_col_indices)
 
-    validx = (row_entry - 1) * nc + col_entry
-    mat_coeffs%values(validx) = coeff
+    coeff_index = (row_entry - 1) * nc + col_entry
+    mat_coeffs%values(coeff_index) = coeff
     
   end subroutine pack_one_matrix_coefficient
 
-  !> @brief Set values in a PETSc matrix.
-  !
-  !> @param[in]     mat_values - contains the values, their indices and the mode 
-  !!                             to use when setting them.
-  !> @param[in/out] M          - the matrix
+  !>  Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 
     use petscmat, only : MatSetValues
     use constants, only : insert_mode, add_mode
     
-    type(matrix_values), intent(in) :: mat_values
-    class(ccs_matrix), intent(inout) :: M
-
+    type(matrix_values), intent(in) :: mat_values   !< contains the values, their indices and the mode to use when setting them.
+    class(ccs_matrix), intent(inout) :: M           !< the matrix 
+                                                    
     integer(ccs_int) :: nrows, ncols !< number of rows/columns
     integer(ccs_int) :: mode !< Add or insert values?
     
     integer(ccs_err) :: ierr !< Error code
 
-    associate(ridx    => mat_values%row_indices, &
-              cidx    => mat_values%col_indices, &
+    associate(ridx    => mat_values%global_row_indices, &
+              cidx    => mat_values%global_col_indices, &
               val     => mat_values%values, &
               matmode => mat_values%setter_mode)
     
@@ -245,28 +232,25 @@ contains
 
   end subroutine
 
-  !> @brief Set equation
+  !>  Set equation
   !
-  !> @details Sets equations in a system of equations by zeroing out the corresponding row in the
-  !!          system matrix and setting the diagonal to one such that the solution is given by
-  !!          the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
-  !
-  !> @param[in]  rows - array of (global) row indices to set the equation on
-  !> @param[in/out] M - the matrix
-  module subroutine set_eqn(rows, M)
+  !v  Sets equations in a system of equations by zeroing out the corresponding row in the
+  !   system matrix and setting the diagonal to one such that the solution is given by
+  !   the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
+  module subroutine set_eqn(global_rows, M)
 
     use petsc, only : PETSC_NULL_VEC
     use petscmat, only : MatZeroRows
 
-    integer(ccs_int), dimension(:), intent(in) :: rows
-    class(ccs_matrix), intent(inout) :: M
+    integer(ccs_int), dimension(:), intent(in) :: global_rows  !< array of (global) row indices to set the equation on
+    class(ccs_matrix), intent(inout) :: M                      !< the matrix
 
     integer(ccs_err) :: ierr
     
     select type (M)
       type is (matrix_petsc)
 
-        call MatZeroRows(M%M, size(rows), rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
+        call MatZeroRows(M%M, size(global_rows), global_rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
 
       class default
         print *, "Unknown matrix type!"
@@ -276,21 +260,17 @@ contains
     
   end subroutine
 
-  !> @brief Perform the AXPY matrix operation using PETSc
+  !>  Perform the AXPY matrix operation using PETSc
   !
-  !> @details Performs the AXPY operation
-  !!          y[i] = alpha * x[i] + y[i]
-  !
-  !> @param[in]     alpha - a scalar value
-  !> @param[in]     x     - a PETSc input matrix
-  !> @param[in,out] y     - PETSc matrix serving as input, overwritten with result
+  !>  Performs the AXPY operation
+  !>         y[i] = alpha * x[i] + y[i]
   module subroutine mat_axpy(alpha, x, y)
 
     use petscmat, only : MatAXPY, DIFFERENT_NONZERO_PATTERN
     
-    real(ccs_real), intent(in) :: alpha
-    class(ccs_matrix), intent(in) :: x
-    class(ccs_matrix), intent(inout) :: y
+    real(ccs_real), intent(in) :: alpha     !< a scalar value
+    class(ccs_matrix), intent(in) :: x      !< a PETSc input matrix
+    class(ccs_matrix), intent(inout) :: y   !< PETSc matrix serving as input, overwritten with result
 
     integer(ccs_err) :: ierr !< Error code
     
@@ -317,21 +297,15 @@ contains
     
   end subroutine
 
-  !> @brief Compute the norm of a PETSc matrix
-  !
-  !> @param[in]  M         - the PETSc matrix
-  !> @param[in]  norm_type - which norm to compute? Currently supported is the 2 norm:
-  !!                         norm_type=2.
-  !> @param[out] n         - the computed norm returned as the result of the function
-  !!                         call.
+  !>  Compute the norm of a PETSc matrix
   module function mat_norm(M, norm_type) result(n)
 
     use petscmat, only : NORM_1, NORM_FROBENIUS, NORM_INFINITY, MatNorm
     
-    class(ccs_matrix), intent(in) :: M
-    integer(ccs_int), intent(in) :: norm_type
+    class(ccs_matrix), intent(in) :: M         !< the PETSc matrix
+    integer(ccs_int), intent(in) :: norm_type  !< which norm to compute  
 
-    real(ccs_real) :: n      !< The computed norm 
+    real(ccs_real) :: n      !< The computed norm
     integer(ccs_err) :: ierr !< Error code
     
     n = 0.0_ccs_real ! initialise norm to 0
@@ -357,16 +331,13 @@ contains
     
   end function
 
-  !> @brief Extract the diagonal elements of a matrix and store in a vector
-  !
-  !> @param[in]  M      - the PETSc matrix
-  !> @param[out] D      - the PETSc vector containing matrix diagonal elements
+  !>  Extract the diagonal elements of a matrix and store in a vector
   module subroutine get_matrix_diagonal(M, D)
 
     use petscmat, only: MatGetDiagonal
 
-    class(ccs_matrix), intent(in)  :: M
-    class(ccs_vector), intent(inout) :: D
+    class(ccs_matrix), intent(in)  :: M     !< the PETSc matrix
+    class(ccs_vector), intent(inout) :: D   !< the PETSc vector containing matrix diagonal elements
 
     integer(ccs_err) :: ierr !< Error code
 
@@ -392,8 +363,8 @@ contains
   module subroutine set_matrix_diagonal(D, M)
     use petscmat, only : MatDiagonalSet
 
-    class(ccs_vector), intent(in) :: D
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(in) :: D      !< the PETSc vector containing matrix diagonal elements
+    class(ccs_matrix), intent(inout) :: M   !< the PETSc matrix
 
     integer(ccs_err) :: ierr
     
@@ -420,7 +391,7 @@ contains
 
     use petscmat, only: MatZeroEntries
     
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M   !< the PETSc matrix
 
     integer(ccs_err) :: ierr
 

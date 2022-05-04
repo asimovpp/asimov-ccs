@@ -1,4 +1,4 @@
-!> @brief Program file for scalar advection case
+!>  Program file for scalar advection case
 !
 !
 
@@ -127,7 +127,7 @@ contains
     mf_vals%setter_mode = add_mode
 
     associate(n_local => mesh%nlocal)
-      allocate(mf_vals%indices(n_local))
+      allocate(mf_vals%global_indices(n_local))
       allocate(mf_vals%values(n_local))
       
       ! Set IC velocity and scalar fields
@@ -147,7 +147,7 @@ contains
     end associate
     call set_values(mf_vals, mf%values)
 
-    deallocate(mf_vals%indices)
+    deallocate(mf_vals%global_indices)
     deallocate(mf_vals%values)
 
   end subroutine set_advection_velocity

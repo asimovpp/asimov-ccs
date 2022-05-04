@@ -164,8 +164,8 @@ program test_compute_fluxes
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
     logical :: is_boundary
 
-    allocate(mat_values%row_indices(1))
-    allocate(mat_values%col_indices(1))
+    allocate(mat_values%global_row_indices(1))
+    allocate(mat_values%global_col_indices(1))
     allocate(mat_values%values(1))
 
     mat_values%setter_mode = add_mode
@@ -228,7 +228,7 @@ program test_compute_fluxes
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
     logical :: is_boundary
 
-    allocate(vec_values%indices(1))
+    allocate(vec_values%global_indices(1))
     allocate(vec_values%values(1))
 
     vec_values%setter_mode = add_mode

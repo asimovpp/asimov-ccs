@@ -1,4 +1,4 @@
-!> @brief Testing library
+!>  Testing library
 module testing_lib
 
   use MPI
@@ -20,7 +20,7 @@ module testing_lib
   
 contains
 
-  !> @brief Test initialisation
+  !>  Test initialisation
   !
   !> @description Performs initialisation for the test (setting up parallel environment, etc.)
   subroutine init()
@@ -56,7 +56,7 @@ contains
     
   end subroutine init
 
-  !> @brief Test finalisation
+  !>  Test finalisation
   !
   !> @description Performs finalisation for the test (tearing down parallel environment, etc.)
   subroutine fin()
@@ -65,7 +65,7 @@ contains
 
   end subroutine fin
 
-  !> @brief Helper function to get a random number in parallel
+  !>  Helper function to get a random number in parallel
   !
   !> @description Generates a random number and broadcasts the value on the root of the parallel
   !! environment, ensuring a uniform value is used.
@@ -87,7 +87,7 @@ contains
     
   end function parallel_random
 
-  !> @brief Test failure stop
+  !>  Test failure stop
   !
   !> @description Stop a test, provide an error message, do cleanup etc.
   subroutine stop_test(message)
@@ -104,7 +104,7 @@ contains
     stop 1
   end subroutine stop_test
   
-  !> @brief Assertion for integer equality
+  !>  Assertion for integer equality
   !
   !> @description Check whether input integers are equal. If not, construct message, print and stop.
   subroutine assert_equal(a, b, msg_format)
