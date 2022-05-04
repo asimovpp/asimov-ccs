@@ -51,9 +51,9 @@ contains
     select type(par_env)
     type is (parallel_environment_mpi)
 
-      ! call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
-      !                             par_env%num_procs, imbalance, suppress, seed, &
-      !                             mode, edgecut, topo%part, par_env%comm)
+      call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
+                                  par_env%num_procs, imbalance, suppress, seed, &
+                                  mode, edgecut, topo%part, par_env%comm)
 
     class default
       print*, "ERROR: Unknown parallel environment!"
@@ -76,6 +76,8 @@ contains
   ! Using the topology object, compute the input arrays for the ParHIP partitioner
   ! Input arrays for the partitioner are: vtxdist, xadj and adjncy
   module subroutine compute_partitioner_input(par_env, topo)
+
+    use iso_fortran_env, only: int32
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
@@ -113,8 +115,8 @@ contains
       j = j + k
     enddo
 
-    start_index = topo%vtxdist(irank + 1)
-    end_index = topo%vtxdist(irank + 2) - 1
+    start_index = int(topo%vtxdist(irank + 1), int32)
+    end_index = int(topo%vtxdist(irank + 2), int32) - 1
   
     ! Allocate adjacency array xadj based on vtxdist
     allocate(topo%xadj(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1) + 1)) 
@@ -167,7 +169,7 @@ contains
 
     local_index = 1
 
-    do i=1,topo%vtxdist(irank+2)-topo%vtxdist(irank+1)  ! Loop over local cells
+    do i=1,end_index-start_index+1  ! Loop over local cells
       
       topo%xadj(i) = local_index                          ! Pointer to start of current
        
@@ -190,14 +192,3 @@ contains
   end subroutine compute_partitioner_input
 
 end submodule
-
-! allocate(part(vtxdist(pid+1)-vtxdist(pid)),stat=istat)
-! idxlocal=1
-! do i=1,vtxdist(pid+1)-vtxdist(pid)       ! Loop over local cells
-!    xadj(i)=idxlocal                      ! Pointer to start of current
-!    do j=1,wkint2d(i,icf+1)               ! Loop over number of faces
-!       adjncy(idxlocal+j-1)=wkint2d(i,j)  ! Store global IDs of neighbour cells
-!    enddo
-!    idxlocal=idxlocal+wkint2d(i,icf+1)
-!    xadj(i+1)=idxlocal
-! enddo
