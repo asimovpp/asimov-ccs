@@ -4,12 +4,22 @@
 .setup_gnu:
   before_script:
     - source setup_gitlab_runner_env
+<<<<<<< HEAD
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
+=======
+    - source ${GNU_SETUP}
+    - cd src
+>>>>>>> testing-ci
 
 .setup_intel:
   before_script:
     - source setup_gitlab_runner_env
+<<<<<<< HEAD
     - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
+=======
+    - source ${INTEL_SETUP}
+    - cd src
+>>>>>>> testing-ci
 
 .setup_cray:
   before_script:
@@ -88,8 +98,8 @@ test_ccs_cray:
     - .setup_cray
     - .test_common
   script:
-    - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
-    - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
+    - cray_run_command "slurmctld -vv"
+    - cray_run_command "slurmd -vv"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
 
 #-----------------------------------------------------------------------------#
