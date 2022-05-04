@@ -29,7 +29,8 @@ program test_compute_fluxes
   class(field), allocatable :: u, v
   class(field), allocatable :: mf
   integer(ccs_int), parameter :: cps = 5
-  integer, parameter :: central = -1
+  integer(ccs_int) :: i
+  real(ccs_real), dimension(3) :: mf_values
 
   call init()
 
@@ -55,8 +56,12 @@ program test_compute_fluxes
   call create_vector(vec_properties, mf%values)
   call update(mf%values)
 
-  call set_mass_flux(mesh, mf)
-  call run_compute_fluxes_test(scalar, mf, bcs, mesh, cps)
+  mf_values = (/ -1.0_ccs_real, 0.0_ccs_real, 1.0_ccs_real /)
+
+  do i = 1, size(mf_values)
+    call set_mass_flux(mesh, mf, mf_values(i))
+    call run_compute_fluxes_test(scalar, mf, mf_values(i), bcs, mesh, cps)
+  enddo
 
   deallocate(scalar)
   deallocate(mf)
@@ -66,24 +71,26 @@ program test_compute_fluxes
   contains
 
   !> Sets the mass flux array
-  subroutine set_mass_flux(mesh, mf)
+  subroutine set_mass_flux(mesh, mf, mf_value)
     class(ccs_mesh), intent(in) :: mesh   !< The mesh structure
     class(field), intent(inout) :: mf     !< The mass flux  
+    real(ccs_real) :: mf_value            !< The value to set the mass flux field to
     real(ccs_real), dimension(:), pointer :: mf_data
 
     call get_vector_data(mf%values, mf_data)
-    mf_data(:) = 1.0_ccs_real
+    mf_data(:) = mf_value
     call restore_vector_data(mf%values, mf_data)
     call update(mf%values)
   end subroutine set_mass_flux
 
   !> Compares the matrix computed for a given velocity field and discretisation to the known solution
-  subroutine run_compute_fluxes_test(scalar, mf, bcs, mesh, cps)
-    class(field), intent(in) :: scalar    !< The scalar field structure
-    class(field), intent(in) :: mf        !< The mass flux field
-    class(bc_config), intent(in) :: bcs   !< The BC structure
-    type(ccs_mesh), intent(in) :: mesh    !< The mesh structure
-    integer(ccs_int), intent(in) :: cps   !< The number of cells per side in the (square) mesh 
+  subroutine run_compute_fluxes_test(scalar, mf, mf_value, bcs, mesh, cps)
+    class(field), intent(in) :: scalar      !< The scalar field structure
+    class(field), intent(in) :: mf          !< The mass flux field
+    real(ccs_real), intent(in) :: mf_value  !< The constant value of the mass flux
+    class(bc_config), intent(in) :: bcs     !< The BC structure
+    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh 
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
@@ -114,8 +121,8 @@ program test_compute_fluxes
 
     call finalise(M)
 
-    call compute_exact_matrix(mesh, cps, M_exact)
-    call compute_exact_vector(mesh, cps, bcs, b_exact)
+    call compute_exact_matrix(mesh, mf_value, cps, M_exact)
+    call compute_exact_vector(mesh, mf_value, cps, bcs, b_exact)
 
     call update(M_exact)
     call update(b_exact)
@@ -147,8 +154,9 @@ program test_compute_fluxes
   end subroutine run_compute_fluxes_test
 
   !> Computes the expected matrix for a mass flux of 1
-  subroutine compute_exact_matrix(mesh, cps, M)
+  subroutine compute_exact_matrix(mesh, mf_value, cps, M)
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    real(ccs_real), intent(in) :: mf_value  !< The value of the mass flux field
     integer(ccs_int), intent(in) :: cps     !< The number of cells per side
     class(ccs_matrix), intent(inout) :: M   !< The matrix
 
@@ -191,7 +199,7 @@ program test_compute_fluxes
           else
             sgn = 1
           endif
-          adv_coeff = 0.5_ccs_real*sgn*face_area
+          adv_coeff = 0.5_ccs_real*mf_value*sgn*face_area
           call pack_entries(1, 1, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_values)
           call set_values(mat_values, M)
           adv_coeff_total = adv_coeff_total + adv_coeff
@@ -199,7 +207,7 @@ program test_compute_fluxes
         else
           dx = 1.0_ccs_real/cps
           diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
-          adv_coeff = face_area
+          adv_coeff = mf_value*face_area
           call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_values)
           call set_values(mat_values, M)
         endif
@@ -210,8 +218,9 @@ program test_compute_fluxes
   end subroutine compute_exact_matrix
   
   !> Computes the expected RHS for a mass flux of 1
-  subroutine compute_exact_vector(mesh, cps, bcs, b)
+  subroutine compute_exact_vector(mesh, mf_value, cps, bcs, b)
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    real(ccs_real), intent(in) :: mf_value  !< The value of the mass flux field
     integer(ccs_int), intent(in) :: cps     !< The number of cells per side
     type(bc_config), intent(in) :: bcs      !< The bc structure
     class(ccs_vector), intent(inout) :: b   !< The RHS vector
@@ -246,7 +255,7 @@ program test_compute_fluxes
         if (is_boundary) then
           dx = 1.0_ccs_real/cps
           diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
-          adv_coeff = face_area
+          adv_coeff = mf_value*face_area
           if (bcs%bc_type(j) == 0) then
             bc_value = 0.0_ccs_real
           else
