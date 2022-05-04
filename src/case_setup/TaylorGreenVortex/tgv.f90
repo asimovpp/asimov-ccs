@@ -33,7 +33,7 @@ program tgv
 
   call read_command_line_arguments(par_env, case_name=case_name)
 
-  ccs_config_file = case_name//ccsconfig
+!  ccs_config_file = case_name//ccsconfig
 
   ! Read case name from configuration file
 !  call read_configuration()
@@ -56,17 +56,17 @@ program tgv
   contains
 
   ! Read YAML configuration file
-  subroutine read_configuration()
+  ! subroutine read_configuration()
 
-    config_file_pointer => parse(ccs_config_file, error=error)
-    if (error/='') then
-      print*,trim(error)
-      stop 1
-    endif
+  !   config_file_pointer => parse(ccs_config_file, error=error)
+  !   if (error/='') then
+  !     print*,trim(error)
+  !     stop 1
+  !   endif
     
-    ! Get case name
-    call get_case_name(config_file_pointer, case_name)
+  !   ! Get case name
+  !   call get_case_name(config_file_pointer, case_name)
 
-  end subroutine
+  ! end subroutine
 
 end program tgv
