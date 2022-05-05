@@ -1,3 +1,6 @@
+CC = cc
+CFLAGS = -O3
+
 FC = ftn
 FFLAGS = -ef -en -eF -M969
 ifeq ($(VERBOSE),yes)

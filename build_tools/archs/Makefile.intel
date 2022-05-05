@@ -1,3 +1,6 @@
+CC = mpiicc
+CFLAGS = -O3
+
 FC = mpiifort -fc=ifort
 FFLAGS = -cpp -fPIC -stand f18
 ifeq ($(VERBOSE),yes)

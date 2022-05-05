@@ -46,7 +46,7 @@ def get_link_rule(config, deps):
   link_deps = link_deps + [v for k,v in config["config"].items()]
 
   # turn array of filenames to a string with object postfix
-  return link_obj + " ".join(["${OBJ_DIR}" + os.path.basename(x) + ".o" for x in link_deps])
+  return link_obj + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in link_deps])
 
 
 def apply_config_mapping(config, config_mapping):
@@ -115,7 +115,7 @@ def generate_minimal_deps(alldeps, main, submods_filename, config):
 
 
 def get_min_link_rule(mindeps):
-  return "ccs_app: " + " ".join(["${OBJ_DIR}" + os.path.basename(x) + ".o" for x in mindeps.keys()])
+  return "ccs_app: " + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in mindeps.keys()])
 
 
 if __name__ == "__main__":
