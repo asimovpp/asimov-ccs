@@ -3,3 +3,4 @@
 
 main: test_mesh_partitioning_parhip
 base: mpi
+extra: parhip

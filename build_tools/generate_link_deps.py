@@ -44,6 +44,7 @@ def get_link_rule(config, deps):
   link_deps = link_deps + commons
   # add files that have options
   link_deps = link_deps + [v for k,v in config["config"].items()]
+  add_config_extras(link_deps, config)
 
   # turn array of filenames to a string with object postfix
   return link_obj + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in link_deps])
@@ -80,6 +81,9 @@ def apply_config_mapping(config, config_mapping):
     else:
       raise Exception("base does not allow options", base)
 
+  if "extra" in config:
+    out["extra"] = config["extra"]
+
   return out
 
 
@@ -112,6 +116,22 @@ def generate_minimal_deps(alldeps, main, submods_filename, config):
     psmods = pdeps.find_possible_submods(deps, submods)
 
   return deps
+
+
+def add_config_extras(deps, config):
+  if "extra" in config:
+    extra = config["extra"]
+    if isinstance(extra, list):
+      for e in extra:
+        if isinstance(deps, dict):
+          deps[e] = []
+        else:
+          deps.append(e)
+    else:
+      if isinstance(deps, dict):
+        deps[extra] = []
+      else:
+        deps.append(extra)
 
 
 def get_min_link_rule(mindeps):
@@ -147,6 +167,7 @@ if __name__ == "__main__":
 
   if len(sys.argv) > 4:
     mindeps = generate_minimal_deps(deps, mapped_config["main"], sys.argv[4], mapped_config)
+    add_config_extras(mindeps, mapped_config)
     link_rule = get_min_link_rule(mindeps)
   else:
     link_rule = get_link_rule(mapped_config, deps)

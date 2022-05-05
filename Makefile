@@ -68,8 +68,6 @@ SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
 TMP_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.f90=.o)))
 OBJ = $(TMP_OBJ:.c=.o)
 
-EXTRA_OBJ = $(OBJ_DIR)/parhip.o
-
 ifeq ($(NEED_CMP),yes)
   include $(TAG_DEPS)
   include $(EXE_DEPS)
@@ -111,7 +109,7 @@ tests: FFLAGS+=-DVERBOSE
 tests: obj
 	make -C $(CCS_DIR)/tests all
 
-$(EXE): $(EXE_DEPS) $(EXTRA_OBJ)
+$(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) 
 
 COMPILE_FORTRAN = $(call printdo, $(FC) $(FFLAGS) -o $@ -c $< $(INC))
