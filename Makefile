@@ -97,17 +97,9 @@ endif
 
 app: $(EXE)
 
-obj: bla $(OBJ)
-
-bla:
-	@echo $(OBJ) 
+obj: $(OBJ)
 
 all: obj app
-
-.PHONY: tests
-tests: FFLAGS+=-DVERBOSE
-tests: obj
-	make -C $(CCS_DIR)/tests all
 
 $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) 
@@ -120,25 +112,23 @@ $(OBJ_DIR)/%.o:
 $(CAF_OBJ): %.o: %.f90
 	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
 
-clean:
-	rm -f $(EXE) *.o *.mod *.smod *.deps
-	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt $(OBJ_DIR)/*.lst opt_info.txt
-clean-tests:
-	make -C $(CCS_DIR)/tests clean
-clean-full: clean clean-tests clean-docs
+$(TAG_DEPS): $(SRC)
+	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
 
 GEN_DEPS         = $(call printdo, makedepf90 -b $(OBJ_DIR)                 $(SRC) > $(ALL_DEPS))
 GEN_DEPS_W_SMODS = $(call printdo, makedepf90 -b $(OBJ_DIR) -S $(SMOD_DEPS) $(SRC) > $(ALL_DEPS))
 $(ALL_DEPS): $(SRC)
 	@if [ $(MAKEDEPF90_SMODS) = 0 ]; then $(GEN_DEPS_W_SMODS) ; else $(GEN_DEPS) ; fi
 
-$(TAG_DEPS): $(SRC)
-	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
-
 GEN_LINK_LINE         = $(call printdo, $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)             )
 GEN_LINK_LINE_W_SMODS = $(call printdo, $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS) $(SMOD_DEPS))
 $(EXE_DEPS): config.yaml $(ALL_DEPS)
 	@if [ $(MAKEDEPF90_SMODS) = 0 ]; then $(GEN_LINK_LINE_W_SMODS) ; else $(GEN_LINK_LINE) ; fi
+
+.PHONY: tests
+tests: FFLAGS+=-DVERBOSE
+tests: obj
+	make -C $(CCS_DIR)/tests all
 
 ifeq ($(NEED_CMP),yes)
   include $(ALL_DEPS)
@@ -153,6 +143,13 @@ docs-latex: doxy
 	make -C latex
 clean-docs:
 	rm -rf doc html latex
+
+clean:
+	rm -f $(EXE) *.o *.mod *.smod *.deps
+	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt $(OBJ_DIR)/*.lst opt_info.txt
+clean-tests:
+	make -C $(CCS_DIR)/tests clean
+clean-full: clean clean-tests clean-docs
 
 #Needed to pass variables to children Makefiles, e.g. for the testing framework
 export
