@@ -24,15 +24,22 @@
 
 #-----------------------------------------------------------------------------#
 
+debug_build_ccs_gnu:
+  extends: .setup_gnu
+  script:
+    - HOME=${CI_HOME} CMP=gnu BUILD=debug make all
+
 build_ccs_gnu:
   extends: .setup_gnu
   script:
-    - HOME=${CI_HOME} CMP=gnu make all
+    - HOME=${CI_HOME} CMP=gnu make obj
+  artifacts:
+    paths: [obj/]
 
 test_ccs_gnu:
   needs: 
     - job: build_ccs_gnu
-      artifacts: false
+      artifacts: true
   extends: 
     - .setup_gnu
     - .test_common
