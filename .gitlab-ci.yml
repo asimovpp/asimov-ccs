@@ -49,15 +49,23 @@ test_gnu:
 
 #-----------------------------------------------------------------------------#
 
+debug_build_intel:
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intel BUILD=debug make all
+  allow_failure: true
+
 build_intel:
   extends: .setup_intel
   script:
-    - HOME=${CI_HOME} CMP=intel make all
+    - HOME=${CI_HOME} CMP=intel make obj
+  artifacts:
+    paths: [obj/]
 
 test_intel:
   needs: 
     - job: build_intel
-      artifacts: false
+      artifacts: true
   extends: 
     - .setup_intel
     - .test_common
@@ -66,15 +74,23 @@ test_intel:
 
 #-----------------------------------------------------------------------------#
 
+debug_build_intelx:
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intelx BUILD=debug make all
+  allow_failure: true
+
 build_intelx:
   extends: .setup_intel
   script:
-    - HOME=${CI_HOME} CMP=intelx make all
+    - HOME=${CI_HOME} CMP=intelx make obj
+  artifacts:
+    paths: [obj/]
 
 test_intelx:
   needs: 
     - job: build_intelx
-      artifacts: false
+      artifacts: true
   extends: 
     - .setup_intel
     - .test_common
@@ -83,15 +99,23 @@ test_intelx:
 
 #-----------------------------------------------------------------------------#
 
+debug_build_cray:
+  extends: .setup_cray
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
+  allow_failure: true
+
 build_cray:
   extends: .setup_cray
   script:
-    - HOME=${CI_HOME} cray_run_command "CMP=cray make all"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"
+  artifacts:
+    paths: [obj/]
 
 test_cray:
   needs: 
     - job: build_cray
-      artifacts: false
+      artifacts: true
   extends: 
     - .setup_cray
     - .test_common
