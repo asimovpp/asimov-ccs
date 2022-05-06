@@ -9,11 +9,11 @@ endif
 ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
   FFLAGS += -g
+  FFLAGS += -warn all,noexternals
 else
   FFLAGS += -O3
 endif
 FFLAGS += -xHOST
-FFLAGS += -warn all,noexternals
 FFLAGS += -module $(OBJ_DIR)
 FFLAGS += -no-wrap-margin
 CAFFLAGS = -coarray
