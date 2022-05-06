@@ -14,6 +14,7 @@ contains
   module subroutine partition_kway(par_env, topo)
 
     ! use iso_c_binding
+    use mpi
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
@@ -24,6 +25,8 @@ contains
     integer(ccs_int) :: mode
     integer(ccs_int) :: suppress
     integer(ccs_int) :: edgecut
+    integer(ccs_int) :: local_part_size
+    integer(ccs_int) :: ierr
     ! type(c_ptr) :: vwgt     ! NULL pointer to be used if no weights are attached to vertices
     ! type(c_ptr) :: adjwgt   ! NULL pointer to be used if no weights are attached to edges
 
@@ -43,6 +46,10 @@ contains
     topo%adjwgt = 1
     topo%vwgt = 1
 
+    ! Number of elements in local partition array
+    ! Needed for gathering loca partitions into global partition array
+    local_part_size = size(topo%local_partition)
+
     ! NULL pointers
     ! vwgt = c_null_ptr
     ! adjwgt = c_null_ptr
@@ -53,7 +60,10 @@ contains
 
     call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
                                   par_env%num_procs, imbalance, suppress, seed, &
-                                  mode, edgecut, topo%part, par_env%comm)
+                                  mode, edgecut, topo%local_partition, par_env%comm)
+
+    call MPI_Gather(topo%local_partition, local_part_size , MPI_LONG, &
+                    topo%global_partition, local_part_size, MPI_LONG, par_env%root, par_env%comm, ierr)
 
     class default
       print*, "ERROR: Unknown parallel environment!"
@@ -64,9 +74,7 @@ contains
     topo%vtxdist = topo%vtxdist + 1
     topo%xadj = topo%xadj + 1
     topo%adjncy = topo%adjncy + 1
-
-    print*,"Number of edgecuts:",edgecut
-
+    
   end subroutine partition_kway
 
   !v Compute the input arrays for the partitioner
@@ -162,8 +170,10 @@ contains
 
     ! Allocate adjncy array based on the number of computed connections
     allocate(topo%adjncy(num_connections))
-    ! Allocate partition array
-    allocate(topo%part(topo%vtxdist(irank+2)-topo%vtxdist(irank+1)))
+    ! Allocate local partition array
+    allocate(topo%local_partition(topo%vtxdist(irank+2)-topo%vtxdist(irank+1)))
+    ! Allocate global partition array
+    allocate(topo%global_partition(topo%global_num_cells))
 
     local_index = 1
 
@@ -182,7 +192,7 @@ contains
 
     ! Allocate weight arrays
     allocate(topo%adjwgt(num_connections))
-    ! Allocate partition array
+    ! Allocate local partition array
     allocate(topo%vwgt(topo%vtxdist(irank+2)-topo%vtxdist(irank+1)))    
 
     deallocate(wkint2d)

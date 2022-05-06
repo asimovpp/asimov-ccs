@@ -19,7 +19,7 @@ program test_mesh_partitioning_parhip
   implicit none
 
   type(topology) :: topo
-  integer(ccs_long), dimension(:), allocatable :: pvec
+  ! integer(ccs_long), dimension(:), allocatable :: pvec
   integer :: i
 
   call init()
@@ -29,7 +29,8 @@ program test_mesh_partitioning_parhip
 
     if(par_env%num_procs == 3) then
 
-      allocate(topo%part(5))
+      allocate(topo%global_partition(15))
+      allocate(topo%local_partition(5))
       allocate(topo%xadj(6))
       allocate(topo%vwgt(5)) 
       allocate(topo%vtxdist(4))
@@ -66,26 +67,10 @@ program test_mesh_partitioning_parhip
 
   call partition_kway(par_env, topo)
 
-  allocate(pvec(15))
-
-  select type(par_env)
-  type is (parallel_environment_mpi)
-
-    call MPI_Gather(topo%part, 5, MPI_LONG, pvec, 5, MPI_LONG, par_env%root, par_env%comm, ierr)
-
-  class default
-    write(message, *) "ERROR: Unknown parallel environment!"
-    call stop_test(message)
-  end select
-
   if(par_env%proc_id == 0) then
     do i=1,15
-      print*, pvec(i)
+      print*, topo%global_partition(i)
     end do
-  end if
-
-  if(allocated(pvec)) then
-    deallocate(pvec)
   end if
 
   if(allocated(topo%xadj)) then
