@@ -2,6 +2,9 @@
 comma := ,
 space := $(null) $(null)
 
+# print input and execute it as well
+printdo = echo $(1); $1
+
 # prevent the use of implicit suffix rules
 .SUFFIXES:
 
@@ -13,9 +16,9 @@ ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs fo
 endif
 
 PY = python3
-CCS_DIR ?= $(shell realpath $(PWD))/
-ARCH_DIR=$(CCS_DIR)/build_tools/archs/
-OBJ_DIR=$(CCS_DIR)/obj/
+CCS_DIR ?= $(shell realpath $(PWD))
+ARCH_DIR=$(CCS_DIR)/build_tools/archs
+OBJ_DIR=$(CCS_DIR)/obj
 BUILD ?= release
 
 # this enables adding more dirs via `make SRC_DIRS="a b"` (must use absolute paths)
@@ -40,7 +43,7 @@ endif
 
 
 EXE = ccs_app
-TOOLS=$(CCS_DIR)/build_tools/
+TOOLS=$(CCS_DIR)/build_tools
 
 DEP_PREFIX=$(OBJ_DIR)
 EXE_DEPS=$(DEP_PREFIX)/ccs_app.deps
@@ -55,14 +58,15 @@ MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 IGNORE = " "
 
 ifeq ($(CCS_PROPRIETARY),yes)
-  SRC_DIRS += $(CCS_PROPRIETARY_DIR)/src/
+  SRC_DIRS += $(CCS_PROPRIETARY_DIR)/src
 endif
 
-find_f90_files = $(shell find $(dir) -type f -name '*.f90')
-ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_f90_files))
+find_src_files = $(shell find $(dir) -type f -name '*.f90' -o -name '*.c')
+ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_src_files))
 
 SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
-OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
+TMP_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.f90=.o)))
+OBJ = $(TMP_OBJ:.c=.o)
 
 ifeq ($(NEED_CMP),yes)
   include $(TAG_DEPS)
@@ -75,6 +79,9 @@ INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
+INC += -I${PARHIP}/include
+LIB += -L${PARHIP}/lib -lparhip_interface
+
 
 ifeq ($(NEED_CMP),yes)
   INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
@@ -88,49 +95,43 @@ ifeq ($(CCS_PROPRIETARY),yes)
 endif
 
 
-
-all: obj app
-
 app: $(EXE)
 
 obj: $(OBJ)
+
+all: obj app
+
+$(EXE): $(EXE_DEPS)
+	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) 
+
+COMPILE_FORTRAN = $(call printdo, $(FC) $(FFLAGS) -o $@ -c $< $(INC))
+COMPILE_C =       $(call printdo, $(CC) $(CFLAGS) -o $@ -c $< $(INC))
+$(OBJ_DIR)/%.o: 
+	@if [ $(suffix $<) = .f90 ]; then $(COMPILE_FORTRAN); elif [ $(suffix $<) = .c ]; then $(COMPILE_C); fi
+
+$(CAF_OBJ): %.o: %.f90
+	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
+
+$(TAG_DEPS): $(SRC)
+	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
+
+GEN_DEPS         = $(call printdo, makedepf90 -b $(OBJ_DIR)                 $(SRC) > $(ALL_DEPS))
+GEN_DEPS_W_SMODS = $(call printdo, makedepf90 -b $(OBJ_DIR) -S $(SMOD_DEPS) $(SRC) > $(ALL_DEPS))
+$(ALL_DEPS): $(SRC)
+	@if [ $(MAKEDEPF90_SMODS) = 0 ]; then $(GEN_DEPS_W_SMODS) ; else $(GEN_DEPS) ; fi
+
+GEN_LINK_LINE         = $(call printdo, $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS)             )
+GEN_LINK_LINE_W_SMODS = $(call printdo, $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS) $(SMOD_DEPS))
+$(EXE_DEPS): config.yaml $(ALL_DEPS)
+	@if [ $(MAKEDEPF90_SMODS) = 0 ]; then $(GEN_LINK_LINE_W_SMODS) ; else $(GEN_LINK_LINE) ; fi
 
 .PHONY: tests
 tests: FFLAGS+=-DVERBOSE
 tests: obj
 	make -C $(CCS_DIR)/tests all
 
-$(EXE): $(EXE_DEPS)
-	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
-
-#%.o: %.f90
-#§	$(FC) $(FFLAGS) -o $@ -c $< $(INC)
-
-$(CAF_OBJ): %.o: %.f90
-	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
-
-clean:
-	rm -f $(EXE) *.o *.mod *.smod *.deps
-	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt $(OBJ_DIR)/*.lst opt_info.txt
-clean-tests:
-	make -C $(CCS_DIR)/tests clean
-clean-full: clean clean-tests clean-docs
-
-$(ALL_DEPS): $(SRC)
-	if [ $(MAKEDEPF90_SMODS) = 0 ]; then makedepf90 -b $(OBJ_DIR) -S $(SMOD_DEPS) $(SRC) > $(ALL_DEPS); else makedepf90 -b $(OBJ_DIR) $(SRC) > $(ALL_DEPS); fi
-
-$(RULE_DEPS): $(ALL_DEPS)
-	$(PY) $(TOOLS)/fix_makefile.py $(ALL_DEPS) $(RULE_DEPS) 
-
-$(TAG_DEPS): $(SRC)
-	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
-
-$(EXE_DEPS): config.yaml $(ALL_DEPS)
-	if [ $(MAKEDEPF90_SMODS) = 0 ]; then $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS) $(SMOD_DEPS); else $(PY) $(TOOLS)/generate_link_deps.py config.yaml $(ALL_DEPS) $(EXE_DEPS); fi
-
 ifeq ($(NEED_CMP),yes)
-  #include $(ALL_DEPS)
-  include $(RULE_DEPS)
+  include $(ALL_DEPS)
 endif
 
 docs: doxy 
@@ -142,6 +143,13 @@ docs-latex: doxy
 	make -C latex
 clean-docs:
 	rm -rf doc html latex
+
+clean:
+	rm -f $(EXE) *.o *.mod *.smod *.deps
+	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt $(OBJ_DIR)/*.lst opt_info.txt
+clean-tests:
+	make -C $(CCS_DIR)/tests clean
+clean-full: clean clean-tests clean-docs
 
 #Needed to pass variables to children Makefiles, e.g. for the testing framework
 export

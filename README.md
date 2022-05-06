@@ -12,6 +12,7 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 - `adios2` - with `hdf5` support, https://adios2.readthedocs.io/
 - `fortran-yaml-cpp` - https://github.com/Nicholaswogan/fortran-yaml-cpp
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
+- `ParHIP` - https://github.com/KaHIP/KaHIP
 
 
 

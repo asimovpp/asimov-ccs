@@ -26,8 +26,8 @@ sp.run("if [ ${MAKEDEPF90_SMODS} = 0 ]; then " + submods_supported + "; else " +
        shell=True, check=True)
 
 print("TEST BUILDER: generating link rule for test")
-submods_supported     = "python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " " + smod_deps
-submods_not_supported = "python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link
+submods_supported     = "python3 ${TOOLS}/generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " " + smod_deps
+submods_not_supported = "python3 ${TOOLS}/generate_link_deps.py " + config_file + " " + test_deps + " " + test_link
 sp.run("if [ ${MAKEDEPF90_SMODS} = 0 ]; then " + submods_supported + "; else " + submods_not_supported + "; fi",
        shell=True, check=True)
 
