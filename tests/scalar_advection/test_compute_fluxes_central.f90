@@ -7,15 +7,14 @@ program test_compute_fluxes
   use testing_lib
   use types, only: field, central_field, face_field
   use mesh_utils, only : build_square_mesh
-  use fv, only: compute_fluxes, calc_cell_coords
+  use fv, only: compute_fluxes
   use utils, only : update, initialise, finalise, &
                 set_size, pack_entries, set_values, zero
   use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location
   use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
-  use constants, only: add_mode, insert_mode, face
+  use constants, only: add_mode, face
   use bc_constants
-  use petsctypes, only: matrix_petsc
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
                      set_cell_location, set_neighbour_location, count_neighbours
 
