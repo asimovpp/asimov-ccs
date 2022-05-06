@@ -1,32 +1,34 @@
-!> @brief Test that the flux matrix has been computed correctly
+!> Test that the flux matrix has been computed correctly
 !
-!> @description Compares the matrix calculated for flows in the +x and +y directions with
-!> central and upwind differencing to the known matrix
+!> Compares the matrix and RHS calculated for a specified mass flux using the central differencing scheme to the expected solution
 program test_compute_fluxes
+#include "ccs_macros.inc"
 
   use testing_lib
-  use types, only: field, central_field
+  use types, only: field, central_field, face_field
   use mesh_utils, only : build_square_mesh
-  use fv, only: compute_fluxes, calc_cell_coords
-  use utils, only : update, initialise, &
-                set_size, pack_entries, set_values
-  use vec, only : create_vector
+  use fv, only: compute_fluxes
+  use utils, only : update, initialise, finalise, &
+                set_size, pack_entries, set_values, zero
+  use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location
   use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
-  use constants, only: add_mode, insert_mode
+  use constants, only: add_mode, face
   use bc_constants
+  use meshing, only: get_global_index, get_local_index, get_boundary_status, &
+                     set_cell_location, set_neighbour_location, count_neighbours
 
   implicit none
 
+  real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
   type(ccs_mesh) :: mesh
   type(bc_config) :: bcs
   type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
-  class(field), allocatable :: u, v
+  class(field), allocatable :: mf
   integer(ccs_int), parameter :: cps = 5
-  integer(ccs_int) :: direction, discretisation
-  integer, parameter :: x_dir = 1, y_dir = 2
-  integer, parameter :: central = -1
+  integer(ccs_int) :: i
+  real(ccs_real), dimension(3) :: mf_values
 
   call init()
 
@@ -36,125 +38,63 @@ program test_compute_fluxes
   bcs%region(2) = bc_region_right
   bcs%region(3) = bc_region_top
   bcs%region(4) = bc_region_bottom
-  bcs%bc_type(:) = bc_type_dirichlet
+  bcs%bc_type(:) = 0
+  bcs%bc_type(3) = 1
   bcs%endpoints(:,:) = 1.0_ccs_real
     
-  do direction = x_dir, y_dir
-    discretisation = central
-      
-    if (discretisation == central) then
-      allocate(central_field :: scalar)
-      allocate(central_field :: u)
-      allocate(central_field :: v)
-    else
-      write(message, *) 'Invalid discretisation type selected'
-      call stop_test(message)
-    end if
+  allocate(central_field :: scalar)
+  allocate(face_field :: mf)
 
-    call initialise(vec_properties)
-    call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, scalar%values)
-    call create_vector(vec_properties, u%values)
-    call create_vector(vec_properties, v%values)
+  call initialise(vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, scalar%values)
 
-    call set_velocity_fields(mesh, direction, u, v)
-    call run_compute_fluxes_test(scalar, u, v, bcs, mesh, cps, direction, discretisation)
-    call tidy_velocity_fields(scalar, u, v)
-  end do
+  call set_vector_location(face, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, mf%values)
+  call update(mf%values)
+
+  mf_values = (/ -1.0_ccs_real, 0.0_ccs_real, 1.0_ccs_real /)
+
+  do i = 1, size(mf_values)
+    call set_mass_flux(mf, mf_values(i))
+    call run_compute_fluxes_test(scalar, mf, mf_values(i), bcs, mesh, cps)
+  enddo
+
+  deallocate(scalar)
+  deallocate(mf)
 
   call fin()
 
   contains
 
-  !> @brief Sets the velocity field in the desired direction and discretisation
-  !
-  !> @param[in] mesh - The mesh structure
-  !> @param[in] direction - Integer indicating the direction of the velocity field
-  !> @param[out] u, v     - The velocity fields in x and y directions
-  subroutine set_velocity_fields(mesh, direction, u, v)
-    use meshing, only: set_cell_location, get_global_index
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: direction
-    class(field), intent(inout) :: u, v
-    type(cell_locator) :: loc_p
-    type(vector_values) :: u_vals, v_vals
-    integer(ccs_int) :: index_p, global_index_p
-    real(ccs_real) :: u_val, v_val
+  !> Sets the mass flux array
+  subroutine set_mass_flux(mf, mf_value)
+    class(field), intent(inout) :: mf     !< The mass flux  
+    real(ccs_real) :: mf_value            !< The value to set the mass flux field to
+    real(ccs_real), dimension(:), pointer :: mf_data
 
-    u_vals%mode = insert_mode
-    v_vals%mode = insert_mode
-    
-    associate(n_local => mesh%nlocal)
-      allocate(u_vals%global_indices(n_local))
-      allocate(v_vals%global_indices(n_local))
-      allocate(u_vals%values(n_local))
-      allocate(v_vals%values(n_local))
-      
-      ! Set IC velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
+    call get_vector_data(mf%values, mf_data)
+    mf_data(:) = mf_value
+    call restore_vector_data(mf%values, mf_data)
+    call update(mf%values)
+  end subroutine set_mass_flux
 
-        if (direction == x_dir) then
-          u_val = 1.0_ccs_real
-          v_val = 0.0_ccs_real
-        else if (direction == y_dir) then
-          u_val = 0.0_ccs_real
-          v_val = 1.0_ccs_real
-        end if
-
-        u_val = 0.0_ccs_real
-        v_val = 0.0_ccs_real
-        
-        call pack_entries(index_p, global_index_p, u_val, u_vals)
-        call pack_entries(index_p, global_index_p, v_val, v_vals)
-      end do
-    end associate
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
-
-    call update(u%values)
-    call update(v%values)
-    
-    deallocate(u_vals%global_indices, v_vals%global_indices, u_vals%values, v_vals%values)
-  end subroutine set_velocity_fields
-
-  !> @brief Deallocates the velocity fields
-  !
-  !> @param[in] scalar - The scalar field structure
-  !> @param[in] u, v   - The velocity fields to deallocate
-  subroutine tidy_velocity_fields(scalar, u, v)
-    class(field), allocatable :: scalar
-    class(field), allocatable :: u, v
-
-    deallocate(scalar)
-    deallocate(u)
-    deallocate(v)
-  end subroutine tidy_velocity_fields
-
-  !> @brief Compares the matrix computed for a given velocity field and discretisation to the known solution
-  !
-  !> @param[in] scalar         - The scalar field structure
-  !> @param[in] u, v           - The velocity field structures
-  !> @param[in] bcs            - The BC structure
-  !> @param[in] mesh      - The mesh structure
-  !> @param[in] cps            - The number of cells per side in the (square) mesh 
-  !> @param[in] flow_direction - Integer indicating the direction of the flow 
-  !> @param[in] discretisation - Integer indicating the discretisation scheme being tested 
-  subroutine run_compute_fluxes_test(scalar, u, v, bcs, mesh, cps, flow_direction, discretisation)
-    class(field), intent(in) :: scalar
-    class(field), intent(in) :: u, v
-    class(bc_config), intent(in) :: bcs
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    integer(ccs_int), intent(in) :: flow_direction
-    integer(ccs_int), intent(in) :: discretisation
+  !> Compares the matrix computed for a given velocity field and discretisation to the known solution
+  subroutine run_compute_fluxes_test(scalar, mf, mf_value, bcs, mesh, cps)
+    class(field), intent(in) :: scalar      !< The scalar field structure
+    class(field), intent(in) :: mf          !< The mass flux field
+    real(ccs_real), intent(in) :: mf_value  !< The constant value of the mass flux
+    class(bc_config), intent(in) :: bcs     !< The BC structure
+    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh 
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     real(ccs_real) :: error
+
     
     call initialise(mat_properties)
     call initialise(vec_properties)
@@ -166,15 +106,22 @@ program test_compute_fluxes
     call create_matrix(mat_properties, M_exact)
     call create_vector(vec_properties, b_exact)
 
-    call compute_fluxes(scalar, u, v, mesh, bcs, cps, M, b)
+    call zero(M)
+
+    call compute_fluxes(scalar, mf, mesh, bcs, cps, M, b)
 
     call update(M)
     call update(b)
 
-    call compute_exact_matrix(mesh, flow_direction, discretisation, cps, M_exact, b_exact)
+    call finalise(M)
+
+    call compute_exact_matrix(mesh, mf_value, cps, M_exact)
+    call compute_exact_vector(mesh, mf_value, cps, bcs, b_exact)
 
     call update(M_exact)
     call update(b_exact)
+
+    call finalise(M_exact)
 
     call axpy(-1.0_ccs_real, M_exact, M)
     error = norm(M, 1)
@@ -198,253 +145,118 @@ program test_compute_fluxes
     deallocate(b_exact)
   end subroutine run_compute_fluxes_test
 
-  !> @brief Computes the known flux matrix for the given flow and discretisation
-  !
-  !> @param[in] mesh      - The (square) mesh
-  !> @param[in] flow           - Integer indicating flow direction
-  !> @param[in] discretisation - Integer indicating the discretisation scheme being used
-  !> @param[in] cps            - Number of cells per side in mesh
-  !> @param[out] M             - The resulting matrix
-  !> @param[out] b             - The resulting RHS vector
-  subroutine compute_exact_matrix(mesh, flow, discretisation, cps, M, b)
+  !> Computes the expected matrix for a mass flux of 1
+  subroutine compute_exact_matrix(mesh, mf_value, cps, M)
+    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    real(ccs_real), intent(in) :: mf_value  !< The value of the mass flux field
+    integer(ccs_int), intent(in) :: cps     !< The number of cells per side
+    class(ccs_matrix), intent(inout) :: M   !< The matrix
 
-    use vec, only : zero_vector
-    
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: flow
-    integer(ccs_int), intent(in) :: discretisation
-    integer(ccs_int), intent(in) :: cps
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
+    ! Local variables
+    type(matrix_values) :: mat_values
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) loc_nb
+    integer(ccs_int) :: index_p, index_nb, j, nnb
+    integer(ccs_int) :: global_index_p, global_index_nb
+    integer(ccs_int) :: sgn
+    real(ccs_real) :: face_area, dx
+    real(ccs_real) :: adv_coeff, diff_coeff
+    real(ccs_real) :: adv_coeff_total, diff_coeff_total
+    logical :: is_boundary
 
-    ! type(vector_spec) :: vec_properties
-    type(vector_values) :: vec_coeffs
-    real(ccs_real) :: diff_coeff, adv_coeff
-    integer(ccs_int) :: i, ii
-    integer(ccs_int) :: row, col
-    integer(ccs_int) :: vec_counter
+    allocate(mat_values%global_row_indices(1))
+    allocate(mat_values%global_col_indices(1))
+    allocate(mat_values%values(1))
 
-    call initialise(vec_properties)
-    call set_size(par_env, mesh, vec_properties)
+    mat_values%setter_mode = add_mode
 
-    ! call compute_exact_advection_matrix(mesh, cps, flow, discretisation, M)
-    ! call compute_exact_diffusion_matrix(mesh, cps, M)
-    
-    ! Now do the RHS
-    vec_coeffs%setter_mode = add_mode
-    call zero_vector(b)
-    
-    ! Advection first
-    allocate(vec_coeffs%global_indices(2*mesh%nglobal/cps))
-    allocate(vec_coeffs%values(2*mesh%nglobal/cps))
+    face_area = 1.0_ccs_real/cps
 
-    vec_counter = 1
-    if (discretisation == central) then
-      adv_coeff = -1.0_ccs_real
-    else
-      adv_coeff = 0.0_ccs_real
-    endif
-    adv_coeff = 0.0_ccs_real
-
-    if (par_env%proc_id == 0) then
-      if (flow == x_dir) then
-        do i = 1, cps
-          call pack_entries(vec_counter, (i-1)*cps + 1, adv_coeff, vec_coeffs) 
-          vec_counter = vec_counter + 1
-          call pack_entries(vec_counter, i*cps, adv_coeff, vec_coeffs) 
-          vec_counter = vec_counter + 1
-        end do
-      else
-        do i = 1, cps
-          call pack_entries(vec_counter, i, adv_coeff, vec_coeffs) 
-          vec_counter = vec_counter + 1
-          call pack_entries(vec_counter, mesh%nlocal - i + 1, adv_coeff, vec_coeffs) 
-          vec_counter = vec_counter + 1
-        end do
-      end if
-    else
-      vec_coeffs%global_indices(:) = -1
-      vec_coeffs%values(:) = 0.0_ccs_real
-    endif
-    call set_values(vec_coeffs, b)
-    
-    deallocate(vec_coeffs%global_indices)
-    deallocate(vec_coeffs%values)
-
-    ! ! And now diffusion
-    ! allocate(vec_coeffs%indices(4*cps))
-    ! allocate(vec_coeffs%values(4*cps))
-
-    ! vec_counter = 1
-    ! diff_coeff = 0.0_ccs_real !0.01_ccs_real
-    ! if (par_env%proc_id == 0) then
-    !   do i = 1, mesh%nglobal
-    !     call calc_cell_coords(i, cps, row, col)
-    !     if (row == 1 .or. row == cps) then
-    !       call pack_entries(vec_counter, i, diff_coeff, vec_coeffs) 
-    !       vec_counter = vec_counter + 1
-    !     end if
-    !     if (col == 1 .or. col == cps) then
-    !       call pack_entries(vec_counter, i, diff_coeff, vec_coeffs) 
-    !       vec_counter = vec_counter + 1
-    !     end if
-    !   end do
-    ! else
-    !   vec_coeffs%indices(:) = -1
-    !   vec_coeffs%values(:) = 0.0_ccs_real
-    ! end if
-    ! call set_values(vec_coeffs, b)
-
-    ! deallocate(vec_coeffs%indices)
-    ! deallocate(vec_coeffs%values)
-    
-  end subroutine compute_exact_matrix
-
-  !> @brief Computes the known diffusion flux matrix for the given flow and discretisation
-  !
-  !> @param[in] mesh      - The (square) mesh
-  !> @param[in] cps            - Number of cells per side in mesh
-  !> @param[out] M             - The resulting matrix
-  subroutine compute_exact_diffusion_matrix(mesh, cps, M)
-
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    class(ccs_matrix), intent(inout) :: M
-
-    type(matrix_values) :: mat_coeffs
-
-    real(ccs_real) :: diff_coeff
-    
-    integer(ccs_int) :: i, ii
-    integer(ccs_int) :: j
-    integer(ccs_int) :: mat_counter
-
-    allocate(mat_coeffs%global_row_indices(1))
-    allocate(mat_coeffs%global_col_indices(5))
-    allocate(mat_coeffs%values(5))
-    mat_coeffs%setter_mode = add_mode
-
-    j = cps
-    
-    diff_coeff = -0.01_ccs_real
-    ! Diffusion coefficients
-    do i = 1, mesh%nlocal
-      mat_counter = 1
-
-      ii = mesh%global_indices(i)
-      call pack_entries(1, mat_counter, ii, ii, -4*diff_coeff, mat_coeffs)
-      mat_counter = mat_counter + 1
-
-      if (ii - 1 > 0 .and. mod(ii, cps) .ne. 1) then
-        call pack_entries(1, mat_counter, ii, ii-1, diff_coeff, mat_coeffs)
-        mat_counter = mat_counter + 1
-      end if
-      if (ii - cps > 0) then
-        call pack_entries(1, mat_counter, ii, ii-cps, diff_coeff, mat_coeffs)
-        mat_counter = mat_counter + 1
-      end if
-
-      if (ii + 1 .le. mesh%nglobal .and. mod(ii, cps) .ne. 0) then
-        call pack_entries(1, mat_counter, ii, ii+1, diff_coeff, mat_coeffs)
-        mat_counter = mat_counter + 1
-      end if
-      if (ii + cps .le. mesh%nglobal) then
-        call pack_entries(1, mat_counter, ii, ii+cps, diff_coeff, mat_coeffs)
-        mat_counter = mat_counter + 1
-      end if
-
-      if (mat_counter < 6) then
-        do j = mat_counter, cps
-          call pack_entries(1, mat_counter, ii, -1, 0.0_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-        end do
-      end if
-
-      call set_values(mat_coeffs, M)
-    end do
-    
-    deallocate(mat_coeffs%global_row_indices)
-    deallocate(mat_coeffs%global_col_indices)
-    deallocate(mat_coeffs%values)
-    
-  end subroutine compute_exact_diffusion_matrix
-
-  !> @brief Computes the known advection flux matrix for the given flow and discretisation
-  !
-  !> @param[in] mesh      - The (square) mesh
-  !> @param[in] cps            - Number of cells per side in mesh
-  !> @param[out] M             - The resulting matrix
-  subroutine compute_exact_advection_matrix(mesh, cps, flow, discretisation, M)
-
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    integer(ccs_int), intent(in) :: flow
-    integer(ccs_int), intent(in) :: discretisation
-    class(ccs_matrix), intent(inout) :: M
-
-    type(matrix_values) :: mat_coeffs
-
-    integer(ccs_int) :: i, ii
-    integer(ccs_int) :: mat_counter
-
-    mat_coeffs%setter_mode = add_mode
-    allocate(mat_coeffs%global_row_indices(1))
-    allocate(mat_coeffs%global_col_indices(2))
-    allocate(mat_coeffs%values(2))
-
-    ! Advection coefficients
-    
-    if (flow == x_dir) then
-      ! CDS and flow along +x direction
-      do i = 1, mesh%nlocal
-        mat_counter = 1
-        ii = mesh%global_indices(i)
-        if (mod(ii, cps) == 1) then
-          call pack_entries(1, mat_counter, ii, ii, -0.3_ccs_real, mat_coeffs) ! Make this more flexible so that the coeffs depend on cps
-          mat_counter = mat_counter + 1
-          call pack_entries(1, mat_counter, ii, ii+1, 0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-        else if (mod(ii, cps) == 0) then
-          call pack_entries(1, mat_counter, ii, ii, -0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-          call pack_entries(1, mat_counter, ii, ii-1, -0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
+    do index_p = 1, mesh%nlocal
+      adv_coeff_total = 0.0_ccs_real
+      diff_coeff_total = 0.0_ccs_real
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
+      do j = 1, nnb
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        if (.not. is_boundary) then
+          dx = 1.0_ccs_real/cps
+          diff_coeff = -face_area * diffusion_factor / dx
+          call get_global_index(loc_nb, global_index_nb)
+          call get_local_index(loc_nb, index_nb)
+          if (index_nb < index_p) then
+            sgn = -1
+          else
+            sgn = 1
+          endif
+          adv_coeff = 0.5_ccs_real*mf_value*sgn*face_area
+          call pack_entries(1, 1, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_values)
+          call set_values(mat_values, M)
+          adv_coeff_total = adv_coeff_total + adv_coeff
+          diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          call pack_entries(1, mat_counter, ii, ii+1, 0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-          call pack_entries(1, mat_counter, ii, ii-1, -0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-        end if
-        call set_values(mat_coeffs, M)
+          dx = 1.0_ccs_real/cps
+          diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
+          adv_coeff = mf_value*face_area
+          call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_values)
+          call set_values(mat_values, M)
+        endif
       end do
-    else if (flow == y_dir) then
-      ! CDS and flow along +y direction
-      do i = 1, mesh%nlocal
-        mat_counter = 1
-        ii = mesh%global_indices(i)
-        if (ii .le. cps) then
-          call pack_entries(1, mat_counter, ii, ii, -0.3_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-        else if (ii > mesh%nglobal - cps) then
-          call pack_entries(1, mat_counter, ii, ii, -0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-        end if
-
-        if (ii + cps .le. mesh%nglobal) then
-          call pack_entries(1, mat_counter, ii, ii+cps, 0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-        end if
-        if (ii - cps > 0) then
-          call pack_entries(1, mat_counter, ii, ii-cps, -0.1_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
-        end if
-        call set_values(mat_coeffs, M)
-      end do
-    end if
-
-    deallocate(mat_coeffs%global_col_indices)
-    deallocate(mat_coeffs%global_row_indices)
-    deallocate(mat_coeffs%values)
-  end subroutine compute_exact_advection_matrix
+      call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff_total + diff_coeff_total), mat_values)
+      call set_values(mat_values, M)
+    end do
+  end subroutine compute_exact_matrix
   
+  !> Computes the expected RHS for a mass flux of 1
+  subroutine compute_exact_vector(mesh, mf_value, cps, bcs, b)
+    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
+    real(ccs_real), intent(in) :: mf_value  !< The value of the mass flux field
+    integer(ccs_int), intent(in) :: cps     !< The number of cells per side
+    type(bc_config), intent(in) :: bcs      !< The bc structure
+    class(ccs_vector), intent(inout) :: b   !< The RHS vector
+
+    type(vector_values) :: vec_values
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) loc_nb
+    integer(ccs_int) :: index_p, j, nnb
+    integer(ccs_int) :: global_index_p
+    real(ccs_real) :: face_area
+    real(ccs_real) :: dx
+    real(ccs_real) :: bc_value
+    real(ccs_real) :: adv_coeff, diff_coeff
+    real(ccs_real) :: adv_coeff_total, diff_coeff_total
+    logical :: is_boundary
+
+    allocate(vec_values%global_indices(1))
+    allocate(vec_values%values(1))
+
+    vec_values%setter_mode = add_mode
+
+    face_area = 1.0_ccs_real/cps
+    do index_p = 1, mesh%nlocal
+      adv_coeff_total = 0.0_ccs_real
+      diff_coeff_total = 0.0_ccs_real
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
+      do j = 1, nnb
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        if (is_boundary) then
+          dx = 1.0_ccs_real/cps
+          diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
+          adv_coeff = mf_value*face_area
+          if (bcs%bc_type(j) == 0) then
+            bc_value = 0.0_ccs_real
+          else
+            bc_value = 1.0_ccs_real
+          endif
+          call pack_entries(1, global_index_p, -(adv_coeff + diff_coeff)*bc_value, vec_values)
+          call set_values(vec_values, b)
+        endif 
+      end do
+    end do
+  end subroutine compute_exact_vector
 end program test_compute_fluxes

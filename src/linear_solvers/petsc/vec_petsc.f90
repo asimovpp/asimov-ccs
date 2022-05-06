@@ -404,7 +404,7 @@ contains
     type is(vector_petsc)
       call VecZeroEntries(vec%v, ierr)
     class default
-      print *, "Invalid vector type"
+      print *, "invalid vector type"
       stop
     end select
     

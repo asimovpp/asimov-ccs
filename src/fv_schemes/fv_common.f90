@@ -10,7 +10,7 @@ submodule (fv) fv_common
   use types, only: vector_values, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
   use vec, only: get_vector_data, restore_vector_data
-  use utils, only: pack_entries, set_values, update, debug_print
+  use utils, only: pack_entries, set_values, update, debug_print, str
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
@@ -207,14 +207,12 @@ contains
     type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
-    integer(ccs_int) :: bc_counter
     integer(ccs_int) :: row, col
     integer(ccs_int) :: nnb, index_nb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff
     real(ccs_real) :: adv_coeff
     real(ccs_real) :: bc_value
-    real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
     integer(ccs_int) :: index_f
@@ -228,7 +226,6 @@ contains
     allocate(b_coeffs%global_indices(1))
     allocate(b_coeffs%values(1))
 
-    bc_counter = 1
     do index_p = 1, mesh%nlocal
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
@@ -243,7 +240,6 @@ contains
 
           call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
-          call get_face_normal(loc_f, face_normal)
           call get_local_index(loc_f, index_f)
           
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
@@ -264,7 +260,6 @@ contains
           call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_coeffs)
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
-          bc_counter = bc_counter + 1
         end if
       end do
     end do
@@ -308,40 +303,31 @@ contains
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 
-  !>  Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-  !
-  !> @param[in] u, v     - arrays containing x, y velocities
-  !> @param[in] p        - array containing pressure
-  !> @param[in] dpdx   - array containing pressure gradient in x
-  !> @param[in] dpdy   - array containing pressure gradient in y
-  !> @param[in] invAu    - array containing inverse momentum diagonal in x
-  !> @param[in] invAv    - array containing inverse momentum diagonal in y
-  !> @param[in] loc_f    - face locator
-  !> @param[out] flux    - The flux across the boundary
+  !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
-    real(ccs_real), dimension(:), intent(in) :: u, v
-    real(ccs_real), dimension(:), intent(in) :: p
-    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy
-    real(ccs_real), dimension(:), intent(in) :: invAu, invAv
-    type(face_locator), intent(in) :: loc_f
-
-    real(ccs_real) :: flux
-
+    real(ccs_real), dimension(:), intent(in) :: u, v          !< arrays containing x, y velocities
+    real(ccs_real), dimension(:), intent(in) :: p             !< array containing pressure
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy    !< arrays containing pressure gradient in x and y
+    real(ccs_real), dimension(:), intent(in) :: invAu, invAv  !< arrays containing inverse momentum diagonal in x and y
+    type(face_locator), intent(in) :: loc_f                   !< face locator
+                                                              
+    real(ccs_real) :: flux                                    !< The flux across the boundary
+                                                              
     ! Local variables
-    logical :: is_boundary                         !< Boundary indicator
-    type(cell_locator) :: loc_p                    !< Primary cell locator
-    type(neighbour_locator) :: loc_nb              !< Neighbour cell locator
-    integer(ccs_int) :: index_nb                   !< Neighbour cell index
-    real(ccs_real) :: flux_corr                    !< Flux correction
-    real(ccs_real), dimension(ndim) :: dx          !< Cell-cell distance
-    real(ccs_real) :: dxmag                        !< Cell-cell distance magnitude
-    real(ccs_real), dimension(ndim) :: face_normal !< (local) face-normal array
-    real(ccs_real) :: Vp                           !< Primary cell volume
-    real(ccs_real) :: V_nb                         !< Neighbour cell volume
-    real(ccs_real) :: Vf                           !< Face "volume"
-    real(ccs_real) :: invAp                        !< Primary cell inverse momentum coefficient
-    real(ccs_real) :: invA_nb                      !< Neighbour cell inverse momentum coefficient
-    real(ccs_real) :: invAf                        !< Face inverse momentum coefficient
+    logical :: is_boundary                         ! Boundary indicator
+    type(cell_locator) :: loc_p                    ! Primary cell locator
+    type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
+    integer(ccs_int) :: index_nb                   ! Neighbour cell index
+    real(ccs_real) :: flux_corr                    ! Flux correction
+    real(ccs_real), dimension(ndim) :: dx          ! Cell-cell distance
+    real(ccs_real) :: dxmag                        ! Cell-cell distance magnitude
+    real(ccs_real), dimension(ndim) :: face_normal ! (local) face-normal array
+    real(ccs_real) :: Vp                           ! Primary cell volume
+    real(ccs_real) :: V_nb                         ! Neighbour cell volume
+    real(ccs_real) :: Vf                           ! Face "volume"
+    real(ccs_real) :: invAp                        ! Primary cell inverse momentum coefficient
+    real(ccs_real) :: invA_nb                      ! Neighbour cell inverse momentum coefficient
+    real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
     
     call get_boundary_status(loc_f, is_boundary)
     if (.not. is_boundary) then
