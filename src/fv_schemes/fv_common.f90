@@ -213,7 +213,6 @@ contains
     real(ccs_real) :: diff_coeff
     real(ccs_real) :: adv_coeff
     real(ccs_real) :: bc_value
-    real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
     integer(ccs_int) :: index_f
@@ -241,7 +240,6 @@ contains
 
           call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
-          call get_face_normal(loc_f, face_normal)    ! XXX: double-check if this is being used here at all.
           call get_local_index(loc_f, index_f)
           
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
