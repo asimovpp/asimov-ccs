@@ -1,0 +1,5 @@
+# RUN: %build_test %s %t1 test_error_abort.f90
+# RUN: %mpirun -n 2 %t1 | grep "test_error_abort.f90(8)\[[0-9]\] : Ending test" 
+
+main: test_error_abort
+base: mpi
