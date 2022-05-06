@@ -89,7 +89,8 @@ module types
     integer(ccs_long), dimension(:), allocatable :: vtxdist                  !< Array that indicates vertices local to a processor - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: vwgt                     !< Weights on vertices - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjwgt                   !< Weights on edges - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: part                     !< Partition array
+    integer(ccs_long), dimension(:), allocatable :: local_partition          !< Local partition array
+    integer(ccs_long), dimension(:), allocatable :: global_partition          !< Local partition array    
 
   end type topology  
 
