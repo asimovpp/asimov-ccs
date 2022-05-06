@@ -362,7 +362,7 @@ contains
         call VecGetArrayF90(vec%v, array, ierr)
       end if
     class default
-      call dprint('invalid vector type')
+      print *, 'invalid vector type'
       stop
     end select
   end subroutine get_vector_data
@@ -388,7 +388,7 @@ contains
         call VecRestoreArrayF90(vec%v, array, ierr)
       end if
     class default
-      call dprint('invalid vector type')
+      print *, 'invalid vector type'
       stop
     end select
   end subroutine restore_vector_data
@@ -404,7 +404,7 @@ contains
     type is(vector_petsc)
       call VecZeroEntries(vec%v, ierr)
     class default
-      call dprint("invalid vector type")
+      print *, "invalid vector type"
       stop
     end select
     

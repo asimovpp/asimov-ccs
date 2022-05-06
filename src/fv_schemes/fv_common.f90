@@ -129,7 +129,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             class default
-              call dprint('invalid velocity field discretisation')
+              print *, 'invalid velocity field discretisation'
               stop
           end select
 
@@ -185,7 +185,7 @@ contains
     else if (bcs%bc_type(index_nb) == 1) then
       bc_value = 1.0_ccs_real ! XXX: might not be correct
     else
-      call dprint("ERROR: Unknown boundary type " // str(bcs%bc_type(index_nb), "(I3)"))
+      print *, "ERROR: Unknown boundary type ", bcs%bc_type(index_nb)
     end if
     
   end subroutine compute_boundary_values
@@ -253,7 +253,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             class default
-              call dprint('invalid velocity field discretisation')
+              print *, 'invalid velocity field discretisation'
               stop
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)

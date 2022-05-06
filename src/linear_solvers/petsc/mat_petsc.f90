@@ -320,12 +320,12 @@ contains
         else if (norm_type == 3) then
           call MatNorm(M%M, NORM_INFINITY, n, ierr)
         else
-          call dprint("ERROR: unknown matrix norm type " // str(norm_type, "(I2)"))
+          print *, "ERROR: unknown matrix norm type ", norm_type
           stop
         end if
 
       class default
-        call dprint("Type unhandled")
+        print *, "Type unhandled"
         stop
     end select
     
