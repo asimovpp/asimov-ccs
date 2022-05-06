@@ -13,7 +13,6 @@ contains
   ! The graph can be weighted or unweighted.
   module subroutine partition_kway(par_env, topo)
 
-    ! use iso_c_binding
     use mpi
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -27,8 +26,6 @@ contains
     integer(ccs_int) :: edgecut
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: ierr
-    ! type(c_ptr) :: vwgt     ! NULL pointer to be used if no weights are attached to vertices
-    ! type(c_ptr) :: adjwgt   ! NULL pointer to be used if no weights are attached to edges
 
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3% 
@@ -42,17 +39,13 @@ contains
     topo%xadj = topo%xadj - 1
     topo%adjncy = topo%adjncy - 1
 
-    ! Set weights to 1 - replace with NULL pointers later
+    ! Set weights to 1
     topo%adjwgt = 1
     topo%vwgt = 1
 
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
     local_part_size = size(topo%local_partition)
-
-    ! NULL pointers
-    ! vwgt = c_null_ptr
-    ! adjwgt = c_null_ptr
 
     ! Partitioning an unweighted graph
     select type(par_env)
@@ -166,7 +159,6 @@ contains
     enddo
 
     num_connections = sum(wkint2d(:, topo%max_faces+1))
-    print*, "num_connections on rank",irank,":", num_connections
 
     ! Allocate adjncy array based on the number of computed connections
     allocate(topo%adjncy(num_connections))
