@@ -6,4 +6,4 @@
 ! use utils, only : debug_print
 #endif
 
-#define error_exit(msg) err_exit(msg, __FILE__, __LINE__)
+#define error_abort(msg) exit_print(msg, __FILE__, __LINE__)
