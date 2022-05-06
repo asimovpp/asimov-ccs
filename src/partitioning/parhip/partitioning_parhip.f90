@@ -30,7 +30,7 @@ contains
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3% 
     seed = 2022       ! "Random" seed
-    mode = 3          ! FASTSOCIAL
+    mode = 4          ! FASTSOCIAL
     suppress = 0      ! Do not suppress the output
     edgecut = -1      ! XXX: silence unused variable warning
 
@@ -46,12 +46,12 @@ contains
     ! NULL pointers
     ! vwgt = c_null_ptr
     ! adjwgt = c_null_ptr
-  
+
     ! Partitioning an unweighted graph
     select type(par_env)
     type is (parallel_environment_mpi)
 
-      call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
+    call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
                                   par_env%num_procs, imbalance, suppress, seed, &
                                   mode, edgecut, topo%part, par_env%comm)
 
@@ -66,8 +66,6 @@ contains
     topo%adjncy = topo%adjncy + 1
 
     print*,"Number of edgecuts:",edgecut
-    ! Make sure partition vector starts from 1
-    topo%part = topo%part + 1
 
   end subroutine partition_kway
 
