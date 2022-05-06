@@ -207,7 +207,6 @@ contains
     type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
-    integer(ccs_int) :: bc_counter    ! XXX: Don't think we need this either
     integer(ccs_int) :: row, col
     integer(ccs_int) :: nnb, index_nb
     real(ccs_real) :: face_area
@@ -228,7 +227,6 @@ contains
     allocate(b_coeffs%global_indices(1))
     allocate(b_coeffs%values(1))
 
-    bc_counter = 1
     do index_p = 1, mesh%nlocal
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
@@ -264,7 +262,6 @@ contains
           call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_coeffs)
           call set_values(b_coeffs, b)
           call set_values(mat_coeffs, M)
-          bc_counter = bc_counter + 1
         end if
       end do
     end do
