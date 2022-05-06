@@ -5,3 +5,5 @@
 #define dprint(msg) debug_print()
 ! use utils, only : debug_print
 #endif
+
+#define error_exit(msg) err_exit(msg, __FILE__, __LINE__)

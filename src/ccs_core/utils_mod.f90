@@ -33,6 +33,7 @@ module utils
   public :: zero
   public :: str
   public :: debug_print
+  public :: err_exit
 
   !>  Generic interface to set values on an object.
   interface set_values
@@ -177,5 +178,17 @@ contains
     end if
     out_string = trim(adjustl(tmp_string))
   end function
+
+  !> Print a message and stop program execution.
+  subroutine err_exit(msg, filepath, line)
+    character(*), intent(in) :: msg      !< text to be printed
+    character(*), intent(in) :: filepath !< calling file, added by __FILE__ macro
+    integer, intent(in) :: line          !< line number in calling file, added by __LINE__ macro
+
+    call debug_print(msg, filepath, line)
+    stop 1
+  end subroutine err_exit
+
+
 
 end module utils
