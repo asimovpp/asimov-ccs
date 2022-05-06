@@ -26,7 +26,6 @@ program test_compute_fluxes
   type(bc_config) :: bcs
   type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
-  class(field), allocatable :: u, v
   class(field), allocatable :: mf
   integer(ccs_int), parameter :: cps = 5
   integer(ccs_int) :: i
@@ -59,7 +58,7 @@ program test_compute_fluxes
   mf_values = (/ -1.0_ccs_real, 0.0_ccs_real, 1.0_ccs_real /)
 
   do i = 1, size(mf_values)
-    call set_mass_flux(mesh, mf, mf_values(i))
+    call set_mass_flux(mf, mf_values(i))
     call run_compute_fluxes_test(scalar, mf, mf_values(i), bcs, mesh, cps)
   enddo
 
@@ -71,8 +70,7 @@ program test_compute_fluxes
   contains
 
   !> Sets the mass flux array
-  subroutine set_mass_flux(mesh, mf, mf_value)
-    class(ccs_mesh), intent(in) :: mesh   !< The mesh structure
+  subroutine set_mass_flux(mf, mf_value)
     class(field), intent(inout) :: mf     !< The mass flux  
     real(ccs_real) :: mf_value            !< The value to set the mass flux field to
     real(ccs_real), dimension(:), pointer :: mf_data
@@ -97,9 +95,6 @@ program test_compute_fluxes
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     real(ccs_real) :: error
-    logical :: assembled
-    integer(ccs_int), dimension(2) :: rows, cols
-    integer(ccs_int), dimension(2) :: sub_M, sub_M_exact
 
     
     call initialise(mat_properties)
@@ -228,8 +223,8 @@ program test_compute_fluxes
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     type(neighbour_locator) loc_nb
-    integer(ccs_int) :: index_p, index_nb, j, nnb
-    integer(ccs_int) :: global_index_p, global_index_nb
+    integer(ccs_int) :: index_p, j, nnb
+    integer(ccs_int) :: global_index_p
     real(ccs_real) :: face_area
     real(ccs_real) :: dx
     real(ccs_real) :: bc_value
