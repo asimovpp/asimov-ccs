@@ -19,6 +19,8 @@ program test_mesh_partitioning_parhip
   implicit none
 
   type(topology) :: topo
+  integer(ccs_long), dimension(:), allocatable :: pvec
+  integer :: i
 
   call init()
 
@@ -27,10 +29,10 @@ program test_mesh_partitioning_parhip
 
     if(par_env%num_procs == 3) then
 
+      allocate(topo%part(5))
       allocate(topo%xadj(6))
       allocate(topo%vwgt(5)) 
       allocate(topo%vtxdist(4))
-      topo%vtxdist = (/ 1, 6, 11, 16 /)
 
       if(par_env%proc_id == 0) then
         allocate(topo%adjncy(13))
@@ -49,16 +51,42 @@ program test_mesh_partitioning_parhip
         topo%adjncy = (/ 6, 12, 7, 11, 13, 8, 12, 14, 9, 13, 15, 10, 14 /)
       end if
 
+      topo%vtxdist = (/ 1, 6, 11, 16 /)
+      topo%adjwgt = 1
+      topo%vwgt = 1
+
     else
       print*,"Test must be run on 3 MPI ranks"
     end if 
+ 
+    class default
+    write(message, *) "ERROR: Unknown parallel environment!"
+    call stop_test(message)
+  end select
+
+  call partition_kway(par_env, topo)
+
+  allocate(pvec(15))
+
+  select type(par_env)
+  type is (parallel_environment_mpi)
+
+    call MPI_Gather(topo%part, 5, MPI_LONG, pvec, 5, MPI_LONG, par_env%root, par_env%comm, ierr)
 
   class default
     write(message, *) "ERROR: Unknown parallel environment!"
     call stop_test(message)
   end select
 
-  call partition_kway(par_env, topo)
+  if(par_env%proc_id == 0) then
+    do i=1,15
+      print*, pvec(i)
+    end do
+  end if
+
+  if(allocated(pvec)) then
+    deallocate(pvec)
+  end if
 
   if(allocated(topo%xadj)) then
     deallocate(topo%xadj)
