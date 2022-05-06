@@ -9,7 +9,7 @@ program test_compute_fluxes
   use mesh_utils, only : build_square_mesh
   use fv, only: compute_fluxes, calc_cell_coords
   use utils, only : update, initialise, finalise, &
-                set_size, pack_entries, set_values, debug_print, str, zero
+                set_size, pack_entries, set_values, zero
   use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location
   use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
@@ -126,7 +126,6 @@ program test_compute_fluxes
 
     call axpy(-1.0_ccs_real, M_exact, M)
     error = norm(M, 1)
-    call dprint("norm " // str(error))
 
     if (error .ge. eps) then
       write(message, *) 'FAIL: matrix difference norm too large ', error
@@ -135,7 +134,6 @@ program test_compute_fluxes
     
     call axpy(-1.0_ccs_real, b_exact, b)
     error = norm(b, 2)
-    call dprint("norm " // str(error))
 
     if (error .ge. eps) then
       write(message, *) 'FAIL: vector difference norm too large ', error
