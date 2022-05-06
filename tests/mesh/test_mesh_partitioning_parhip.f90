@@ -19,7 +19,6 @@ program test_mesh_partitioning_parhip
   implicit none
 
   type(topology) :: topo
-  ! integer(ccs_long), dimension(:), allocatable :: pvec
   integer :: i
 
   call init()
