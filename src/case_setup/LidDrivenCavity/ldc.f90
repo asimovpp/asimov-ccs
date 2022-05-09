@@ -1,4 +1,4 @@
-!> @brief Program file for LidDrivenCavity case
+!>  Program file for LidDrivenCavity case
 !
 !> @build mpi+petsc
 
@@ -267,8 +267,8 @@ program ldc
       call set_values(u_vals, u%values)
       call set_values(v_vals, v%values)
 
-      deallocate(u_vals%indices)
-      deallocate(v_vals%indices)
+      deallocate(u_vals%global_indices)
+      deallocate(v_vals%global_indices)
       deallocate(u_vals%values)
       deallocate(v_vals%values)
     end associate

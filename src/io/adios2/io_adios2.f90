@@ -1,9 +1,8 @@
-!> @brief Submodule file io_adios2.smod
+!>  Submodule file io_adios2.smod
 !
 !> @build mpi adios2
 !
-!> @details Implementation (using MPI and ADIOS@) of parallel 
-!!          IO functionality
+!> Implementation (using MPI and ADIOS2) of parallel IO functionality
 submodule (io) io_adios2
 
   use adios2
@@ -14,15 +13,11 @@ submodule (io) io_adios2
 
   contains
 
-  !> @brief Read a scalar 32-bit integer from file
-  !
-  !> param[in]  io_proc   : ADIOS2 IO process used for reading
-  !> param[in]  attr_name : Name of scalar integer to read
-  !> param[out] attr      : Value of scalar integer
+  !>  Read a scalar 32-bit integer from file
   module subroutine read_scalar_int32(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc
-    character (len=*), intent(in) :: attr_name
-    integer(int32), intent(out) :: attr
+    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
+    character (len=*), intent(in) :: attr_name    !< Name of scalar integer to read
+    integer(int32), intent(out) :: attr           !< Value of scalar integer
 
     type(adios2_attribute) :: adios2_attr
 
@@ -57,15 +52,11 @@ submodule (io) io_adios2
 
   end subroutine
 
-  !> @brief Read a scalar 64-bit integer from file
-  !
-  !> param[in]  io_proc   : ADIOS2 IO process used for reading
-  !> param[in]  attr_name : Name of scalar longinteger to read
-  !> param[out] attr      : Value of scalar long integer
+  !>  Read a scalar 64-bit integer from file
   module subroutine read_scalar_int64(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc
-    character (len=*), intent(in) :: attr_name
-    integer(int64), intent(out) :: attr
+    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
+    character (len=*), intent(in) :: attr_name    !< Name of scalar longinteger to read
+    integer(int64), intent(out) :: attr           !< Value of scalar long integer
 
     type(adios2_attribute) :: adios2_attr
 
@@ -99,15 +90,11 @@ submodule (io) io_adios2
 
   end subroutine
 
-  !> @brief Read a scalar 32-bit real from file
-  !
-  !> param[in]  io_proc   : ADIOS2 IO process used for reading
-  !> param[in]  attr_name : Name of scalar real to read
-  !> param[out] attr      : Value of scalar real
+  !>  Read a scalar 32-bit real from file
   module subroutine read_scalar_real32(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc
-    character (len=*), intent(in) :: attr_name
-    real(real32), intent(out) :: attr
+    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
+    character (len=*), intent(in) :: attr_name    !< Name of scalar real to read
+    real(real32), intent(out) :: attr             !< Value of scalar real
 
     type(adios2_attribute) :: adios2_attr
 
@@ -139,17 +126,13 @@ submodule (io) io_adios2
 
       end select
 
-    end subroutine
+  end subroutine
 
-  !> @brief Read a scalar 64-bit real from file
-  !
-  !> param[in]  io_proc   : ADIOS2 IO process used for reading
-  !> param[in]  attr_name : Name of scalar double precision real to read
-  !> param[out] attr      : Value of scalar double precision real
+  !>  Read a scalar 64-bit real from file
   module subroutine read_scalar_real64(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc
-    character (len=*), intent(in) :: attr_name
-    real(real64), intent(out) :: attr
+    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
+    character (len=*), intent(in) :: attr_name    !< Name of scalar double precision real to read
+    real(real64), intent(out) :: attr             !< Value of scalar double precision real
 
     type(adios2_attribute) :: adios2_attr
 
@@ -183,21 +166,15 @@ submodule (io) io_adios2
     end subroutine
   
 
-    !> @brief Read a 1D 32-bit integer array from file
+    !>  Read a 1D 32-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of integer array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 1D integer array
-    module subroutine read_array_int32_1D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(1), intent(in) :: start
-      integer(int64), dimension(1), intent(in) :: count
-      integer(int32), dimension(:), intent(inout) :: var
+    module subroutine read_array_int32_1D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of integer array to read
+      integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
+      integer(int32), dimension(:), intent(inout) :: var        !< The 1D integer array
 
       type(adios2_variable):: adios2_var
       integer(int64), dimension(:), allocatable :: tmp_var64
@@ -207,7 +184,7 @@ submodule (io) io_adios2
         type is(adios2_io_process)
 
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-          call adios2_set_selection(adios2_var, 1, start, count, ierr)
+          call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
           if (adios2_var%type == adios2_type_integer8) then
 
@@ -234,21 +211,15 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 1D 64-bit integer array from file
+    !>  Read a 1D 64-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of integer array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 1D integer array    
-    module subroutine read_array_int64_1D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(1), intent(in) :: start
-      integer(int64), dimension(1), intent(in) :: count
-      integer(int64), dimension(:), intent(inout) :: var
+    module subroutine read_array_int64_1D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of integer array to read
+      integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
+      integer(int64), dimension(:), intent(inout) :: var        !< The 1D integer array    
 
       type(adios2_variable):: adios2_var
       integer(int32), dimension(:), allocatable :: tmp_var32
@@ -258,7 +229,7 @@ submodule (io) io_adios2
         type is(adios2_io_process)
 
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-          call adios2_set_selection(adios2_var, 1, start, count, ierr)
+          call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
           if (adios2_var%type == adios2_type_integer4) then
 
@@ -284,21 +255,15 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 32-bit integer array from file
+    !>  Read a 2D 32-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of integer array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 2D integer array
-    module subroutine read_array_int32_2D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(2), intent(in) :: start
-      integer(int64), dimension(2), intent(in) :: count
-      integer(int32), dimension(:,:), intent(inout) :: var
+    module subroutine read_array_int32_2D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of integer array to read
+      integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(2), intent(in) :: count         !< How many array elements to read
+      integer(int32), dimension(:,:), intent(inout) :: var      !< The 2D integer array
 
       type(adios2_variable):: adios2_var
       integer(int64), dimension(:,:), allocatable :: tmp_var64
@@ -308,7 +273,7 @@ submodule (io) io_adios2
         type is(adios2_io_process)
 
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-          call adios2_set_selection(adios2_var, 2, start, count, ierr)
+          call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
           if (adios2_var%type == adios2_type_integer8) then
 
@@ -335,21 +300,15 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 64-bit integer array from file
+    !>  Read a 2D 64-bit integer array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of integer array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 2D integer array
-    module subroutine read_array_int64_2D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(2), intent(in) :: start
-      integer(int64), dimension(2), intent(in) :: count
-      integer(int64), dimension(:,:), intent(inout) :: var
+    module subroutine read_array_int64_2D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of integer array to read
+      integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(2), intent(in) :: count         !< How many array element to read
+      integer(int64), dimension(:,:), intent(inout) :: var      !< The 2D integer array
 
       type(adios2_variable):: adios2_var
       integer(int32), dimension(:,:), allocatable :: tmp_var32
@@ -359,7 +318,7 @@ submodule (io) io_adios2
         type is(adios2_io_process)
 
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-          call adios2_set_selection(adios2_var, 2, start, count, ierr)
+          call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
           if (adios2_var%type == adios2_type_integer4) then
 
@@ -385,21 +344,15 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 1D 32-bit real array from file
+    !>  Read a 1D 32-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of real array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 1D real array
-    module subroutine read_array_real32_1D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(1), intent(in) :: start
-      integer(int64), dimension(1), intent(in) :: count
-      real(real32), dimension(:), intent(inout) :: var
+    module subroutine read_array_real32_1D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of real array to read
+      integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
+      real(real32), dimension(:), intent(inout) :: var          !< The 1D real array
 
       type(adios2_variable):: adios2_var
       real(real64), dimension(:), allocatable :: tmp_var64
@@ -409,7 +362,7 @@ submodule (io) io_adios2
         type is(adios2_io_process)
 
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-          call adios2_set_selection(adios2_var, 1, start, count, ierr)
+          call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
           if (adios2_var%type == adios2_type_dp) then
 
@@ -436,21 +389,15 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 1D 64-bit real array from file
+    !>  Read a 1D 64-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of real array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 1D real array
-    module subroutine read_array_real64_1D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(1), intent(in) :: start
-      integer(int64), dimension(1), intent(in) :: count
-      real(real64), dimension(:), intent(inout) :: var
+    module subroutine read_array_real64_1D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of real array to read
+      integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
+      real(real64), dimension(:), intent(inout) :: var          !< The 1D real array
 
       type(adios2_variable):: adios2_var
       real(real32), dimension(:), allocatable :: tmp_var32
@@ -460,7 +407,7 @@ submodule (io) io_adios2
         type is(adios2_io_process)
 
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-          call adios2_set_selection(adios2_var, 1, start, count, ierr)
+          call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
           if (adios2_var%type == adios2_type_real) then
 
@@ -486,21 +433,15 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 32-bit real array from file
+    !>  Read a 2D 32-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of real array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 2D real array
-    module subroutine read_array_real32_2D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(2), intent(in) :: start
-      integer(int64), dimension(2), intent(in) :: count
-      real(real32), dimension(:,:), intent(inout) :: var
+    module subroutine read_array_real32_2D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of real array to read
+      integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(2), intent(in) :: count         !< How many array element to read
+      real(real32), dimension(:,:), intent(inout) :: var        !< The 2D real array
 
       type(adios2_variable):: adios2_var
       real(real64), dimension(:,:), allocatable :: tmp_var64
@@ -510,7 +451,7 @@ submodule (io) io_adios2
         type is(adios2_io_process)
 
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-          call adios2_set_selection(adios2_var, 2, start, count, ierr)
+          call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
           if (adios2_var%type == adios2_type_dp) then
 
@@ -537,21 +478,15 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Read a 2D 64-bit real array from file
+    !>  Read a 2D 64-bit real array from file
     !
     !> @todo Check if the "mode" can be read from the configuration file
-    !
-    !> param[in]    io_proc  : ADIOS2 IO process used for reading
-    !> param[in]    var_name : Name of real array to read
-    !> param[in]    start    : What global index to start reading from
-    !> param[in]    count    : How many array element to read
-    !> param[input] var      : The 2D real array
-        module subroutine read_array_real64_2D(io_proc, var_name, start, count, var)
-      class(io_process), intent(in) :: io_proc
-      character (len=*), intent(in) :: var_name
-      integer(int64), dimension(2), intent(in) :: start
-      integer(int64), dimension(2), intent(in) :: count
-      real(real64), dimension(:,:), intent(inout) :: var
+    module subroutine read_array_real64_2D(io_proc, var_name, global_start, count, var)
+      class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+      character (len=*), intent(in) :: var_name                 !< Name of real array to read
+      integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
+      integer(int64), dimension(2), intent(in) :: count         !< How many array element to read
+      real(real64), dimension(:,:), intent(inout) :: var        !< The 2D real array
 
       type(adios2_variable):: adios2_var
       real(real32), dimension(:,:), allocatable :: tmp_var32
@@ -563,7 +498,7 @@ submodule (io) io_adios2
           call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
 
-          call adios2_set_selection(adios2_var, 2, start, count, ierr)
+          call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
           if (adios2_var%type == adios2_type_real) then
 
             allocate(tmp_var32(size(var,dim=1),size(var,dim=2)))
@@ -588,7 +523,7 @@ submodule (io) io_adios2
 
     end subroutine
 
-    !> @brief Print out downcast warning
+    !>  Print out downcast warning
     subroutine downcast_warning()
       print*,"===> IO Warning:"
       print*,"===> Downcasting from 64-bit to 32-bit, possible loss of precision."

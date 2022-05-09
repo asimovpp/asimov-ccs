@@ -1,4 +1,4 @@
-!> @brief Program file for TaylorGreenVortex case
+!>  Program file for TaylorGreenVortex case
 program tgv
 
   use yaml, only: parse, error_length

@@ -1,6 +1,6 @@
-!> @brief Module file mat_mod.f90
+!>  Module file mat_mod.f90
 !
-!> @details Provides the interface to matrix objects.
+!>  Provides the interface to matrix objects.
 module mat
 
   use kinds, only : ccs_int, ccs_real
@@ -35,7 +35,7 @@ module mat
   
   interface
 
-     !> @brief Interface to create a new matrix object.
+     !>  Interface to create a new matrix object.
      !
      !> @param[in]  mat_properties - contains information about how the matrix should be allocated
      !> @param[out] M       - the matrix object
@@ -48,11 +48,11 @@ module mat
       class(ccs_matrix), intent(inout) :: M
     end subroutine
 
-     !> @brief Interface to set values in a matrix.
-     !
-     !> @param[in]     mat_values - contains the values, their indices and the mode to use when setting
-     !!                             them.
-     !> @param[in/out] M          - the matrix
+    !> @brief Interface to set values in a matrix.
+    !
+    !> @param[in]     mat_values - contains the values, their indices and the mode to use when setting
+    !!                             them.
+    !> @param[in/out] M          - the matrix
     module subroutine set_matrix_values(mat_values, M)
       type(matrix_values), intent(in) :: mat_values
       class(ccs_matrix), intent(inout) :: M
@@ -94,32 +94,32 @@ module mat
       type(matrix_values), intent(out) :: val_dat
     end subroutine create_matrix_values
 
-    !> @brief Interface to perform a parallel update of a matrix.
+     !>  Interface to perform a parallel update of a matrix.
      !
      !> @param[in/out] M - the matrix
      module subroutine update_matrix(M)
        class(ccs_matrix), intent(inout) :: M
      end subroutine
 
-     !> @brief Interface to begin a parallel update of a matrix.
+     !>  Interface to begin a parallel update of a matrix.
      !
      !> @param[in/out] M - the matrix
      !
-     !> @details Begins the parallel update to allow overlapping comms and compute.
+     !> Begins the parallel update to allow overlapping comms and compute.
      module subroutine begin_update_matrix(M)
        class(ccs_matrix), intent(inout) :: M
      end subroutine
 
-     !> @brief Interface to end a parallel update of a matrix.
+     !>  Interface to end a parallel update of a matrix.
      !
      !> @param[in/out] M - the matrix
      !
-     !> @details Ends the parallel update to allow overlapping comms and compute.
+     !>  Ends the parallel update to allow overlapping comms and compute.
      module subroutine end_update_matrix(M)
        class(ccs_matrix), intent(inout) :: M
      end subroutine
 
-     !> @brief Interface to store one matrix coefficient and its index for later setting.
+     !>  Interface to store one matrix coefficient and its index for later setting.
      !
      !> @param[in/out] mat_coeffs - object storing the coefficients, their indices and mode to use
      !!                             when setting them.
@@ -129,8 +129,8 @@ module mat
      !> @param[in]     col        - matrix column index
      !> @param[in]     coeff      - matrix coefficient
      !
-     !> @details Stores a matrix coefficient and associated row and column indices for later
-     !!          setting, ensuring they are set appropriately for the backend.
+     !v  Stores a matrix coefficient and associated row and column indices for later
+     !   setting, ensuring they are set appropriately for the backend.
      module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
        integer(ccs_int), intent(in) :: row_entry
        integer(ccs_int), intent(in) :: col_entry
@@ -140,10 +140,10 @@ module mat
        type(matrix_values), intent(inout) :: mat_coeffs
      end subroutine pack_one_matrix_coefficient
 
-    !> @brief Interface to perform the AXPY matrix operation.
+    !>  Interface to perform the AXPY matrix operation.
     !
-    !> @details Performs the AXPY operation
-    !!          y[i] = a * x[i] + y[i]
+    !>  Performs the AXPY operation
+    !>          y[i] = a * x[i] + y[i]
     !
     !> @param[in]     alpha - a scalar value
     !> @param[in]     x     - an input matrix
@@ -154,7 +154,7 @@ module mat
       class(ccs_matrix), intent(inout) :: y
     end subroutine
 
-    !> @brief Interface to compute the norm of a matrix
+    !>  Interface to compute the norm of a matrix
     !
     !> @param[in]  m         - the matrix
     !> @param[in]  norm_type - which norm to compute? Currently supported is the 2 norm:
@@ -167,27 +167,27 @@ module mat
       real(ccs_real) :: n
     end function
 
-     !> @brief Interface to set equation
+     !>  Interface to set equation
      !
-     !> @param[in]  rows - array of (global) row indices to set the equation on
-     !> @param[in/out] M - the matrix
+     !> @param[in]  global_rows - array of (global) row indices to set the equation on
+     !> @param[in/out]        M - the matrix
      !
-     !> @details Sets equations in a system of equations by zeroing out the corresponding row in the
-     !!          system matrix and setting the diagonal to one such that the solution is given by
-     !!          the corresponding entry in the right-hand side vector.
-     module subroutine set_eqn(rows, M)
-       integer(ccs_int), dimension(:), intent(in) :: rows
+     !v  Sets equations in a system of equations by zeroing out the corresponding row in the
+     !   system matrix and setting the diagonal to one such that the solution is given by
+     !   the corresponding entry in the right-hand side vector.
+     module subroutine set_eqn(global_rows, M)
+       integer(ccs_int), dimension(:), intent(in) :: global_rows
        class(ccs_matrix), intent(inout) :: M
      end subroutine
 
-    !> @brief Constructor for default matrix values
+    !>  Constructor for default matrix values
     !
     !> param[in/out] mat_properties - the initialised matrix values
      module subroutine initialise_matrix(mat_properties)
       type(matrix_spec), intent(inout) :: mat_properties
     end subroutine initialise_matrix
 
-    !> @brief Setter for global matrix size
+    !>  Setter for global matrix size
     !
     !> param[in] par_env                - the parallel environment where 
     !!                                    the matrix resides
@@ -199,7 +199,7 @@ module mat
       type(matrix_spec), intent(inout) :: mat_properties
     end subroutine
 
-    !> @brief Setter for matrix number of non-zeros
+    !>  Setter for matrix number of non-zeros
     !
     !> param[in] nnz                   - the number of non-zeros
     !> param[in/out] mat_properties - the matrix data object
@@ -208,7 +208,7 @@ module mat
       type(matrix_spec), intent(inout) :: mat_properties
     end subroutine
 
-    !> @brief Extract matrix diagonal elements into a vector
+    !>  Extract matrix diagonal elements into a vector
     !
     !> @param[in]  M - the matrix
     !> @param[out] D - a vector containing the diagonal elements of M

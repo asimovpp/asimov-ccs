@@ -4,19 +4,16 @@
 .setup_gnu:
   before_script:
     - source setup_gitlab_runner_env
-    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_gnu_env.sh
-    - cd src
+    - source ${GNU_SETUP}
 
 .setup_intel:
   before_script:
     - source setup_gitlab_runner_env
-    - HOME=${CI_HOME} source ${CI_HOME}ci_vm_setup/setup_intel_env.sh
-    - cd src
+    - source ${INTEL_SETUP}
 
 .setup_cray:
   before_script:
     - source setup_gitlab_runner_env
-    - cd src
 
 .test_common:
   artifacts:
@@ -91,8 +88,8 @@ test_ccs_cray:
     - .setup_cray
     - .test_common
   script:
-    - cray_run_command "slurmctld -vv -L $HOME/slurmdctld.log"
-    - cray_run_command "slurmd -vv -L $HOME/slurmd.log"
+    - cray_run_command "slurmctld -vv"
+    - cray_run_command "slurmd -vv"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
 
 #-----------------------------------------------------------------------------#
@@ -100,12 +97,11 @@ test_ccs_cray:
 generate_code_docs:
   extends: .general_setup
   script:
-    - cd src
     - make docs
     - make docs-latex
   artifacts:
     paths:
-      - src/latex/refman.pdf
+      - latex/refman.pdf
   allow_failure: true
 
 generate_dev_guide:
@@ -129,7 +125,7 @@ profile_ccs_gnu:
     - HOME=${CI_HOME} CMP=gnu PROFILE=yes make all
   artifacts:
     paths:
-      - src/opt_info.txt
+      - opt_info.txt
   allow_failure: true
 
 profile_ccs_intel:
@@ -141,8 +137,8 @@ profile_ccs_intel:
     - HOME=${CI_HOME} CMP=intel PROFILE=yes make all
   artifacts:
     paths:
-      - src/obj/*.html
-      - src/*.html
+      - obj/*.html
+      - ./*.html
   allow_failure: true
 
 profile_ccs_cray:
@@ -154,6 +150,6 @@ profile_ccs_cray:
     - HOME=${CI_HOME} cray_run_command "CMP=cray PROFILE=yes make all"
   artifacts:
     paths:
-      - src/obj/*.lst
-      - src/*.lst
+      - obj/*.lst
+      - ./*.lst
   allow_failure: true

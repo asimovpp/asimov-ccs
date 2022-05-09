@@ -164,8 +164,8 @@ program test_advection_coeff
       call update(u%values)
       call update(v%values)
     
-      deallocate(u_vals%indices)
-      deallocate(v_vals%indices)
+      deallocate(u_vals%global_indices)
+      deallocate(v_vals%global_indices)
       deallocate(u_vals%values)
       deallocate(v_vals%values)
     end associate

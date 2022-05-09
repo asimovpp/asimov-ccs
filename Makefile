@@ -13,10 +13,13 @@ ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs fo
 endif
 
 PY = python3
-CCS_DIR ?= $(shell realpath $(PWD)/..)/
-ARCH_DIR=$(CCS_DIR)/src/build_tools/archs/
-OBJ_DIR=$(CCS_DIR)/src/obj/
+CCS_DIR ?= $(shell realpath $(PWD))/
+ARCH_DIR=$(CCS_DIR)/build_tools/archs/
+OBJ_DIR=$(CCS_DIR)/obj/
 BUILD ?= release
+
+# this enables adding more dirs via `make SRC_DIRS="a b"` (must use absolute paths)
+override SRC_DIRS += $(CCS_DIR)/src $(CCS_DIR)/build_tools
 
 # this can be set to 'yes' in order to include proprietary code
 CCS_PROPRIETARY ?= no
@@ -37,7 +40,7 @@ endif
 
 
 EXE = ccs_app
-TOOLS=$(CCS_DIR)/src/build_tools/
+TOOLS=$(CCS_DIR)/build_tools/
 
 DEP_PREFIX=$(OBJ_DIR)
 EXE_DEPS=$(DEP_PREFIX)/ccs_app.deps
@@ -51,10 +54,13 @@ MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
 IGNORE = " "
 
-ALL_SRC = $(shell find $(CCS_DIR)/src/ -type f -name '*.f90')
 ifeq ($(CCS_PROPRIETARY),yes)
-  ALL_SRC += $(shell find $(CCS_PROPRIETARY_DIR)/src/ -type f -name '*.f90')
+  SRC_DIRS += $(CCS_PROPRIETARY_DIR)/src/
 endif
+
+find_f90_files = $(shell find $(dir) -type f -name '*.f90')
+ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_f90_files))
+
 SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.f90=.o)))
 
@@ -63,7 +69,7 @@ ifeq ($(NEED_CMP),yes)
   include $(EXE_DEPS)
 endif
 
-INC = -I${CCS_DIR}/src/include
+INC = -I${CCS_DIR}/include
 FFLAGS += -DACCS_PETSC
 INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
@@ -89,6 +95,7 @@ app: $(EXE)
 
 obj: $(OBJ)
 
+.PHONY: tests
 tests: FFLAGS+=-DVERBOSE
 tests: obj
 	make -C $(CCS_DIR)/tests all
@@ -130,11 +137,11 @@ docs: doxy
 doxy:
 	doxygen .doxygen.cfg
 ford:
-	ford -d $(CCS_DIR)/src --exclude_dir doc .documentation_settings.ford
+	ford .project_documentation_settings.md
 docs-latex: doxy
 	make -C latex
 clean-docs:
-	rm -rf html latex
+	rm -rf doc html latex
 
 #Needed to pass variables to children Makefiles, e.g. for the testing framework
 export
