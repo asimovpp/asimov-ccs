@@ -271,17 +271,6 @@ contains
 
   end subroutine
 
-  module subroutine pack_one_vector_element(ent, idx, val, val_dat)
-    integer(ccs_int), intent(in) :: ent
-    integer(ccs_int), intent(in) :: idx
-    real(ccs_real), intent(in) :: val
-    type(vector_values), intent(inout) :: val_dat
-
-    val_dat%global_indices(ent) = idx - 1
-    val_dat%values(ent) = val
-
-  end subroutine pack_one_vector_element
-
   !>  Perform the AXPY vector operation using PETSc
   !
   !v  Performs the AXPY operation
