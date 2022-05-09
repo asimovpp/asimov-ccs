@@ -64,6 +64,8 @@ program test_mesh_partitioning_parhip
     call stop_test(message)
   end select
 
+  topo%global_num_cells = 15
+
   call partition_kway(par_env, topo)
 
   if(par_env%proc_id == 0) then
