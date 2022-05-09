@@ -50,8 +50,8 @@ contains
 
     type(ccs_mesh) :: mesh !< The resulting mesh.
 
-    integer(ccs_int) :: global_start    ! The (global) starting index of a partition
-    integer(ccs_int) :: global_end      ! The (global) last index of a partition
+    integer(ccs_int) :: start_global    ! The (global) starting index of a partition
+    integer(ccs_int) :: end_global      ! The (global) last index of a partition
     integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
@@ -76,9 +76,9 @@ contains
           ! Determine ownership range
           comm_rank = par_env%proc_id
           comm_size = par_env%num_procs
-          istart = global_start(nglobal, par_env%proc_id, par_env%num_procs)
+          start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
           mesh%nlocal = local_count(nglobal, par_env%proc_id, par_env%num_procs)
-          iend = istart + (mesh%nlocal - 1)
+          end_global = start_global + (mesh%nlocal - 1)
 
           ! Allocate mesh arrays
           allocate(mesh%global_indices(mesh%nlocal))
@@ -91,7 +91,7 @@ contains
 
           ! First set the global index of local cells
           index_counter = 1_ccs_int
-          do i = global_start, global_end
+          do i = start_global, end_global
             mesh%global_indices(index_counter) = i
             index_counter = index_counter + 1
           end do
@@ -104,7 +104,7 @@ contains
           !        -3 = down boundary
           !        -4 = up boundary
           index_counter = 1_ccs_int ! Set local indexing starting from 1...n
-          do i = global_start, global_end
+          do i = start_global, end_global
             ii = i - 1_ccs_int
 
             ! Construct left (1) face/neighbour
