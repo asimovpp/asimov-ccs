@@ -19,20 +19,30 @@ contains
     type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
 
     ! Local variables
+    integer(ccs_long), dimension(:), allocatable :: tmp_partition
     real(ccs_real) :: imbalance
     integer(ccs_int) :: seed
     integer(ccs_int) :: mode
     integer(ccs_int) :: suppress
-    integer(ccs_int) :: edgecut
+    integer(ccs_int) :: edgecuts
     integer(ccs_int) :: local_part_size
+    integer(ccs_int) :: irank
     integer(ccs_int) :: ierr
+    integer(ccs_int) :: i,n
 
     ! Values hardcoded for now
-    imbalance = 0.03  ! Desired balance - 0.03 = 3% 
+    imbalance = 0.0299999  ! Desired balance - 0.03 = 3% 
     seed = 2022       ! "Random" seed
-    mode = 4          ! FASTSOCIAL
+    mode = 0          ! FASTSOCIAL
     suppress = 0      ! Do not suppress the output
-    edgecut = -1      ! XXX: silence unused variable warning
+    edgecuts = -1      ! XXX: silence unused variable warning
+
+    allocate(tmp_partition(topo%global_num_cells)) ! Temporary partition array
+    tmp_partition = 0
+
+    irank = par_env%proc_id ! Current rank
+
+    print*,"Original: vtxdist on rank ",irank," = ", topo%vtxdist
 
     ! ParHIP needs 0-indexing - shift array contents by -1
     topo%vtxdist = topo%vtxdist - 1
@@ -53,20 +63,35 @@ contains
 
     call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
                                   par_env%num_procs, imbalance, suppress, seed, &
-                                  mode, edgecut, topo%local_partition, par_env%comm)
+                                  mode, edgecuts, topo%local_partition, par_env%comm)
 
-    call MPI_Gather(topo%local_partition, local_part_size , MPI_LONG, &
-                    topo%global_partition, local_part_size, MPI_LONG, par_env%root, par_env%comm, ierr)
+    do i=1,local_part_size
+      tmp_partition(i+topo%vtxdist(irank+1)) = topo%local_partition(i)
+    end do
+
+    call MPI_AllReduce(tmp_partition,topo%global_partition,topo%global_num_cells,MPI_LONG,MPI_SUM,par_env%comm,ierr)
 
     class default
       print*, "ERROR: Unknown parallel environment!"
     end select    
+
+    if(irank == 0) then
+      open(unit=20, file="global_part", status="unknown")
+      do i=1,topo%global_num_cells
+        write(unit=20,fmt=*) topo%global_partition(i)
+      end do
+      close(unit=20)
+    end if
+
+    print*,"Number of edgecuts: ", edgecuts
 
     ! Return to 1-indexing by adding 1. For safety only right now, later on 
     ! these arrays will be deallocated as they are not used beyond this point
     topo%vtxdist = topo%vtxdist + 1
     topo%xadj = topo%xadj + 1
     topo%adjncy = topo%adjncy + 1
+
+    deallocate(tmp_partition)
     
   end subroutine partition_kway
 
@@ -156,7 +181,7 @@ contains
         topo%global_boundaries(face_nb1) = topo%global_boundaries(face_nb1) + 1
       end if
 
-    enddo
+    enddo 
 
     num_connections = sum(wkint2d(:, topo%max_faces+1))
 
