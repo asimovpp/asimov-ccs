@@ -10,7 +10,7 @@ submodule (fv) fv_common
   use types, only: vector_values, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
-  use utils, only: pack_entries, set_entry, set_row, set_values, set_mode, update
+  use utils, only: pack_entries, clear_entries, set_entry, set_row, set_values, set_mode, update
   use utils, only: debug_print
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
@@ -221,19 +221,22 @@ contains
     integer(ccs_int) :: index_f
     
     mat_coeffs%setter_mode = add_mode
-    b_coeffs%setter_mode = add_mode
 
     allocate(mat_coeffs%global_row_indices(1))
     allocate(mat_coeffs%global_col_indices(1))
     allocate(mat_coeffs%values(1))
-    allocate(b_coeffs%global_indices(1))
-    allocate(b_coeffs%values(1))
 
+    call create_vector_values(1_ccs_int, b_coeffs)
+    call set_mode(add_mode, b_coeffs)
+    
     bc_counter = 1
     do index_p = 1, mesh%nlocal
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
+
+      call clear_entries(b_coeffs)
+      
       ! Calculate contribution from neighbours
       do j = 1, nnb
         call set_neighbour_location(loc_p, j, loc_nb)
@@ -272,6 +275,7 @@ contains
         end if
       end do
     end do
+    
     deallocate(mat_coeffs%global_row_indices)
     deallocate(mat_coeffs%global_col_indices)
     deallocate(mat_coeffs%values)
@@ -449,10 +453,13 @@ contains
     call restore_vector_data(phi%y_gradients, y_gradients_data)
     call restore_vector_data(phi%z_gradients, z_gradients_data)
     
+    call dprint("Compute x gradient")
     call update_gradient_component(mesh, 1, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
     call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call dprint("Compute y gradient")
     call update_gradient_component(mesh, 2, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%y_gradients)
     call update(phi%y_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call dprint("Compute z gradient")
     call update_gradient_component(mesh, 3, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
     call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
 
@@ -510,6 +517,8 @@ contains
     call get_vector_data(phi, phi_data)
     
     do i = 1, mesh%nlocal
+      call clear_entries(grad_values)
+      
       grad = 0.0_ccs_int
       
       call set_cell_location(mesh, i, loc_p)

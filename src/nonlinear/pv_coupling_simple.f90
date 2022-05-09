@@ -9,10 +9,11 @@ submodule (pv_coupling) pv_coupling_simple
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
-  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec
+  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
+       create_vector_values
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
   use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
-                   mult, zero, set_entry, set_row, &
+                   mult, zero, clear_entries, set_entry, set_row, set_mode, &
                    str
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm
@@ -255,16 +256,16 @@ contains
 
     real(ccs_real) :: V
     
-    allocate(vec_values%global_indices(1))
-    allocate(vec_values%values(1))
-
-    vec_values%setter_mode = add_mode
+    call create_vector_values(1_ccs_int, vec_values)
+    call set_mode(add_mode, vec_values)
 
     ! Temporary storage for p values
     call get_vector_data(p_gradients, p_gradient_data)
     
     ! Loop over cells
     do index_p = 1, mesh%nlocal
+      call clear_entries(vec_values)
+      
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
@@ -274,7 +275,6 @@ contains
       call set_row(global_index_p, vec_values)
       call set_entry(r, vec_values)
       call set_values(vec_values, vec)
-
     end do
 
     deallocate(vec_values%global_indices)
@@ -338,11 +338,10 @@ contains
     call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
     
-    allocate(vec_values%global_indices(1))
-    allocate(vec_values%values(1))
+    call create_vector_values(1_ccs_int, vec_values)
+    call set_mode(add_mode, vec_values)
 
     mat_coeffs%setter_mode = insert_mode
-    vec_values%setter_mode = add_mode    ! We already have a mass-imbalance vector, BCs get ADDED
 
     call update(M)
     
@@ -353,6 +352,8 @@ contains
     ! Loop over cells
     call dprint("P': cell loop")
     do index_p = 1, mesh%nlocal
+      call clear_entries(vec_values)
+      
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
@@ -494,10 +495,9 @@ contains
     
     real(ccs_real) :: mib !< Cell mass imbalance
 
-    allocate(vec_values%global_indices(1))
-    allocate(vec_values%values(1))
-    vec_values%setter_mode = insert_mode
-
+    call create_vector_values(1_ccs_int, vec_values)
+    call set_mode(insert_mode, vec_values)
+    
     ! First zero RHS
     call zero(b)
 
@@ -517,6 +517,8 @@ contains
     call get_vector_data(invAv, invAv_data)
     
     do i = 1, mesh%nlocal
+      call clear_entries(vec_values)
+      
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
