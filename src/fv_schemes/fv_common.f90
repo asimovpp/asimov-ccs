@@ -544,7 +544,7 @@ contains
 
     call restore_vector_data(phi, phi_data)
 
-    deallocate(grad_values%indices)
+    deallocate(grad_values%global_indices)
     deallocate(grad_values%values)
     
   end subroutine update_gradient_component

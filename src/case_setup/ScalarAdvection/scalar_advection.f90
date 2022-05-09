@@ -112,7 +112,7 @@ contains
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
-    use utils, only: pack_entries, set_values
+    use utils, only: set_row, set_entry, set_values
 
     class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: mf

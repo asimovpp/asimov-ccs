@@ -262,8 +262,8 @@ contains
 
   module procedure clear_matrix_values_entries
 
-    val_dat%row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-    val_dat%col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%global_col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
     val_dat%values(:) = 0.0_ccs_real
     
   end procedure clear_matrix_values_entries
@@ -272,7 +272,7 @@ contains
     integer(ccs_int), intent(in) :: row
     type(matrix_values), intent(inout) :: val_dat
 
-    integer(ccs_int), dimension(rank(val_dat%row_indices)) :: rglobs
+    integer(ccs_int), dimension(rank(val_dat%global_row_indices)) :: rglobs
     integer(ccs_int) :: i
     logical :: new_entry
     integer(ccs_int) :: petsc_row
@@ -280,14 +280,14 @@ contains
     petsc_row = row - 1 ! PETSc is zero-indexed
     new_entry = .false.
     
-    rglobs = findloc(val_dat%row_indices, petsc_row, kind=ccs_int)
+    rglobs = findloc(val_dat%global_row_indices, petsc_row, kind=ccs_int)
     i = rglobs(1) ! We want the first entry
     if (i == 0) then
       new_entry = .true.
     end if
 
     if (new_entry) then
-      rglobs = findloc(val_dat%row_indices, -1_ccs_int, kind=ccs_int)
+      rglobs = findloc(val_dat%global_row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
         print *, "ERROR: Couldn't find a free entry in matrix values!"
@@ -296,7 +296,7 @@ contains
     end if
     
     val_dat%current_entry = i
-    val_dat%row_indices(i) = petsc_row
+    val_dat%global_row_indices(i) = petsc_row
     
   end subroutine set_matrix_values_row
 

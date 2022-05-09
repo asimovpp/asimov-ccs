@@ -40,14 +40,14 @@ program ldc
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
-  integer(ccs_int) :: it_start, it_end, ierr
+  integer(ccs_int) :: it_start, it_end !, ierr
   integer(ccs_int) :: irank !< MPI rank ID
   integer(ccs_int) :: isize !< Size of MPI world
 
   double precision :: start_time
   double precision :: end_time
 
-  type(tPetscViewer) :: viewer
+  ! type(tPetscViewer) :: viewer
 
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
@@ -128,34 +128,34 @@ program ldc
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
+  ! call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 
-  associate (vec => u%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+  ! associate (vec => u%values)
+  !   select type (vec)
+  !   type is (vector_petsc)
+  !     call VecView(vec%v, viewer, ierr)
+  !   end select
+  ! end associate
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v",FILE_MODE_WRITE,viewer, ierr)
+  ! call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v",FILE_MODE_WRITE,viewer, ierr)
 
-  associate (vec => v%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+  ! associate (vec => v%values)
+  !   select type (vec)
+  !   type is (vector_petsc)
+  !     call VecView(vec%v, viewer, ierr)
+  !   end select
+  ! end associate
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p",FILE_MODE_WRITE,viewer, ierr)
+  ! call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p",FILE_MODE_WRITE,viewer, ierr)
 
-  associate (vec => p%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+  ! associate (vec => p%values)
+  !   select type (vec)
+  !   type is (vector_petsc)
+  !     call VecView(vec%v, viewer, ierr)
+  !   end select
+  ! end associate
 
-  call PetscViewerDestroy(viewer,ierr)
+  ! call PetscViewerDestroy(viewer,ierr)
 
   ! Clean-up
   deallocate(u)

@@ -30,8 +30,8 @@ contains
   end subroutine  set_nnz
 
   module procedure create_matrix_values
-    allocate(val_dat%row_indices(nrows))
-    allocate(val_dat%col_indices(nrows))
+    allocate(val_dat%global_row_indices(nrows))
+    allocate(val_dat%global_col_indices(nrows))
     allocate(val_dat%values(nrows))
   end procedure create_matrix_values
 

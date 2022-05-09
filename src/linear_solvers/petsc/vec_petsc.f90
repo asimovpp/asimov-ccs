@@ -351,24 +351,24 @@ contains
 
   module procedure clear_vector_values_entries
 
-    val_dat%indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
     val_dat%values(:) = 0.0_ccs_real
     
   end procedure clear_vector_values_entries
   
   module procedure set_vector_values_row
 
-    integer(ccs_int), dimension(rank(val_dat%indices)) :: idxs
+    integer(ccs_int), dimension(rank(val_dat%global_indices)) :: idxs
     integer(ccs_int) :: i
     integer(ccs_int) :: petsc_row
 
     petsc_row = row - 1 ! PETSc is zero-indexed
     
-    idxs = findloc(val_dat%indices, petsc_row, kind=ccs_int)
+    idxs = findloc(val_dat%global_indices, petsc_row, kind=ccs_int)
     i = idxs(1) ! We want the first entry
     if (i == 0) then
       ! New entry
-      idxs = findloc(val_dat%indices, -1_ccs_int, kind=ccs_int)
+      idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
         print *, "ERROR: Couldn't find a free entry in vector values!"
@@ -377,7 +377,7 @@ contains
     end if
     
     val_dat%current_entry = i
-    val_dat%indices(i) = petsc_row
+    val_dat%global_indices(i) = petsc_row
     
   end procedure set_vector_values_row
 

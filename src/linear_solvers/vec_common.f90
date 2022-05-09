@@ -33,10 +33,10 @@ contains
   end subroutine set_vector_location
 
   module procedure create_vector_values
-    allocate(val_dat%indices(nrows))
+    allocate(val_dat%global_indices(nrows))
     allocate(val_dat%values(nrows))
 
-    val_dat%indices(:) = -1_ccs_int
+    val_dat%global_indices(:) = -1_ccs_int
     val_dat%values(:) = 0.0_ccs_real
   end procedure create_vector_values
 
