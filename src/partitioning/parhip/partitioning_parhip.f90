@@ -35,7 +35,7 @@ contains
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3% 
     seed = 2022       ! "Random" seed
-    mode = 0          ! FASTMESH
+    mode = 4          ! FASTSOCIAL
     suppress = 0      ! Do not suppress the output
     edgecuts = -1     ! XXX: silence unused variable warning
 
