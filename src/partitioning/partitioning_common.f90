@@ -97,23 +97,32 @@ implicit none
     associate(num_procs => par_env%num_procs, &
               irank => par_env%proc_id)
 
-      do k = 1, num_procs
+      ! All ranks loop over the total number of processes from 0 to num_procs - 1
+      do k = 0, num_procs - 1
 
         tmp_int2d = 0
         
+        ! Loop over rank's local vertices
         do i = 1, topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1)
 
-          m = topo%local_partition(i + topo%vtxdist(irank + 1) - 1)
+          ! Look up global partition for current vertex "i"
+          m = topo%global_partition(i + topo%vtxdist(irank + 1) - 1)
 
+          ! If global partition for vertex "i" equals "k"
           if (m == k) then
 
+            ! Loop over the number of vertices adjacent to vertex "i"
             do j = 1, topo%xadj(i + 1) - topo%xadj(i)
 
+              ! Look up the global partition of the adjacent vertex
               n = topo%global_partition(topo%adjncy(topo%xadj(i) + j - 1))
 
+              ! Is the adjacent vertex on the same partition or not?
               if (m /= n) then
+                ! Adjacent vertex on different partition
                 tmp_int2d(n, 2) = tmp_int2d(n, 2) + 1
               else
+                ! Adjacent vertex on same partition
                 tmp_int2d(n, 1) = tmp_int2d(n, 1) + 1
               endif
 
@@ -128,23 +137,28 @@ implicit none
           call MPI_AllReduce(MPI_IN_PLACE, tmp_int2d, num_procs * 2, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
         end select
 
-        if (k == irank + 1) then
-          tmp_int1d = tmp_int2d(:,2)
-          tmp_int1d(irank + 1) = tmp_int2d(k,1) 
+        if (k == irank) then
+          tmp_int1d = tmp_int2d( : , 2)
+          tmp_int1d(irank + 1) = tmp_int2d(k + 1, 1) 
         endif
+
       enddo
 
+      ! Count local non-zero entries
       num_local_entries = count(tmp_int1d /= 0)
     
       select type(par_env)
       type is(parallel_environment_mpi)
+
+        ! Compute total number of non-zero entries
         call MPI_Allreduce(num_local_entries, num_entries, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+
       end select
 
       call dprint("Number of local P2P entries: "//str(num_local_entries))
       call dprint("Total number of P2P entries: "//str(num_entries))
 
-      ! Arrays to story P2P connectivity matrix
+      ! Allocate arrays to store P2P connectivity (as CSR matrix)
       allocate(p2p_value(num_entries))
       allocate(p2p_col_idx(num_entries))
       allocate(p2p_row_idx(num_procs+1))
@@ -159,7 +173,9 @@ implicit none
 
       select type(par_env)
       type is(parallel_environment_mpi)
+
         call MPI_AllReduce(MPI_IN_PLACE, p2p_row_idx, num_procs + 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+
       end select
 
       p2p_row_idx(1) = 1
