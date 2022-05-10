@@ -14,6 +14,7 @@ module partitioning
   public :: partition_kway
   public :: compute_partitioner_input
   public :: read_topology
+  public :: compute_connectivity
 
   interface 
 
@@ -35,6 +36,11 @@ module partitioning
       type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
     end subroutine read_topology
 
-  end interface
+    module subroutine compute_connectivity(par_env, topo)
+      class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+      type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
+    end subroutine compute_connectivity
+ 
+    end interface
 
 end module partitioning

@@ -1,6 +1,8 @@
 submodule (partitioning) partitioning_parhip
+#include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_real
+  use utils, only : str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
 
   implicit none
@@ -28,21 +30,19 @@ contains
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank
     integer(ccs_int) :: ierr
-    integer(ccs_int) :: i,n
+    integer(ccs_int) :: i
 
     ! Values hardcoded for now
-    imbalance = 0.0299999  ! Desired balance - 0.03 = 3% 
+    imbalance = 0.03  ! Desired balance - 0.03 = 3% 
     seed = 2022       ! "Random" seed
-    mode = 0          ! FASTSOCIAL
+    mode = 0          ! FASTMESH
     suppress = 0      ! Do not suppress the output
-    edgecuts = -1      ! XXX: silence unused variable warning
+    edgecuts = -1     ! XXX: silence unused variable warning
 
     allocate(tmp_partition(topo%global_num_cells)) ! Temporary partition array
     tmp_partition = 0
 
     irank = par_env%proc_id ! Current rank
-
-    print*,"Original: vtxdist on rank ",irank," = ", topo%vtxdist
 
     ! ParHIP needs 0-indexing - shift array contents by -1
     topo%vtxdist = topo%vtxdist - 1
@@ -61,9 +61,10 @@ contains
     select type(par_env)
     type is (parallel_environment_mpi)
 
-    call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, topo%vwgt, topo%adjwgt, & 
-                                  par_env%num_procs, imbalance, suppress, seed, &
-                                  mode, edgecuts, topo%local_partition, par_env%comm)
+    call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, &
+                              topo%vwgt, topo%adjwgt, & 
+                              par_env%num_procs, imbalance, suppress, &
+                              seed, mode, edgecuts, topo%local_partition, par_env%comm)
 
     do i=1,local_part_size
       tmp_partition(i+topo%vtxdist(irank+1)) = topo%local_partition(i)
@@ -75,18 +76,9 @@ contains
       print*, "ERROR: Unknown parallel environment!"
     end select    
 
-    if(irank == 0) then
-      open(unit=20, file="global_part", status="unknown")
-      do i=1,topo%global_num_cells
-        write(unit=20,fmt=*) topo%global_partition(i)
-      end do
-      close(unit=20)
-    end if
+    call dprint ("Number of edgecuts: "//str(edgecuts))
 
-    print*,"Number of edgecuts: ", edgecuts
-
-    ! Return to 1-indexing by adding 1. For safety only right now, later on 
-    ! these arrays will be deallocated as they are not used beyond this point
+    ! Return to 1-indexing by adding 1
     topo%vtxdist = topo%vtxdist + 1
     topo%xadj = topo%xadj + 1
     topo%adjncy = topo%adjncy + 1
@@ -107,7 +99,7 @@ contains
     type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
 
     ! Local variables
-    integer(ccs_int), dimension(:,:), allocatable :: wkint2d ! Temporary 2D integer array
+    integer(ccs_int), dimension(:,:), allocatable :: tmp_int2d ! Temporary 2D integer array
 
     integer(ccs_int) :: i, j, k
     integer(ccs_int) :: irank ! MPI rank ID
@@ -146,8 +138,8 @@ contains
     allocate(topo%xadj(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1) + 1)) 
 
     ! Allocated temporary 2D integer work array and initialise to 0
-    allocate(wkint2d(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1), topo%max_faces + 1))
-    wkint2d = 0
+    allocate(tmp_int2d(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1), topo%max_faces + 1))
+    tmp_int2d = 0
 
     ! Allocate global boundaries array
     allocate(topo%global_boundaries(topo%global_num_cells))
@@ -162,18 +154,18 @@ contains
       ! and face neighbour 2 is not 0
       if(face_nb1 .ge. start_index .and. face_nb1 .le. end_index .and. face_nb2 .ne. 0) then
          local_index = face_nb1 - start_index + 1                 ! Local cell index
-         k = wkint2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
-         wkint2d(local_index, k) = face_nb2                       ! Store global index of neighbour cell
-         wkint2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
+         k = tmp_int2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+         tmp_int2d(local_index, k) = face_nb2                       ! Store global index of neighbour cell
+         tmp_int2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
       endif
 
       ! If face neighbour 2 is local to the current rank
       ! and face neighbour 1 is not 0
       if(face_nb2 .ge. start_index .and. face_nb2 .le. end_index .and. face_nb1  .ne. 0) then
          local_index = face_nb2 - start_index + 1                 ! Local cell index
-         k = wkint2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
-         wkint2d(local_index, k) = face_nb1                       ! Store global index of neighbour cell
-         wkint2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
+         k = tmp_int2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+         tmp_int2d(local_index, k) = face_nb1                       ! Store global index of neighbour cell
+         tmp_int2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
       endif
 
       ! If face neighbour 2 is 0 we have a boundary face
@@ -183,7 +175,7 @@ contains
 
     enddo 
 
-    num_connections = sum(wkint2d(:, topo%max_faces+1))
+    num_connections = sum(tmp_int2d(:, topo%max_faces+1))
 
     ! Allocate adjncy array based on the number of computed connections
     allocate(topo%adjncy(num_connections))
@@ -198,11 +190,11 @@ contains
       
       topo%xadj(i) = local_index                          ! Pointer to start of current
        
-      do j=1,wkint2d(i, topo%max_faces+1)               ! Loop over number of faces
-        topo%adjncy(local_index + j - 1) = wkint2d(i,j) ! Store global IDs of neighbour cells
+      do j=1,tmp_int2d(i, topo%max_faces+1)               ! Loop over number of faces
+        topo%adjncy(local_index + j - 1) = tmp_int2d(i,j) ! Store global IDs of neighbour cells
       end do
 
-       local_index = local_index + wkint2d(i,topo%max_faces+1)
+       local_index = local_index + tmp_int2d(i,topo%max_faces+1)
        topo%xadj(i+1) = local_index
 
     end do
@@ -212,7 +204,7 @@ contains
     ! Allocate local partition array
     allocate(topo%vwgt(topo%vtxdist(irank+2)-topo%vtxdist(irank+1)))    
 
-    deallocate(wkint2d)
+    deallocate(tmp_int2d)
 
   end subroutine compute_partitioner_input
 

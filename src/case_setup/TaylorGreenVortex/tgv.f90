@@ -11,7 +11,7 @@ program tgv
   use parallel_types, only: parallel_environment
   use types, only: topology
   use partitioning, only: read_topology, compute_partitioner_input, &
-                          partition_kway
+                          partition_kway, compute_connectivity
 
 
   implicit none
@@ -43,6 +43,7 @@ program tgv
   call read_topology(par_env, case_name, topo)
   call compute_partitioner_input(par_env, topo)
   call partition_kway(par_env, topo)
+  call compute_connectivity(par_env, topo)
 
   call timer(end_time)
 
