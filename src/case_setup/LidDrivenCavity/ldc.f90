@@ -240,7 +240,7 @@ program ldc
     real(ccs_real) :: u_val, v_val
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
+    real(ccs_real), dimension(:), pointer :: mf_data
 
     ! Set alias
     associate(n_local => mesh%nlocal)
@@ -255,8 +255,8 @@ program ldc
         call get_global_index(loc_p, global_index_p)
         call calc_cell_coords(global_index_p, cps, row, col)
 
-        u_val = real(col, ccs_real)/real(cps, ccs_real)
-        v_val = -real(row, ccs_real)/real(cps, ccs_real)
+        u_val = 0.0_ccs_real 
+        v_val = 0.0_ccs_real 
 
         call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
@@ -273,16 +273,8 @@ program ldc
       deallocate(v_vals%values)
     end associate
 
-    call get_vector_data(u%values, u_data)
-    call get_vector_data(v%values, v_data)
     call get_vector_data(mf%values, mf_data)
-
-    u_data(:) = 0.0_ccs_real
-    v_data(:) = 0.0_ccs_real
     mf_data(:) = 0.0_ccs_real
-    
-    call restore_vector_data(u%values, u_data)
-    call restore_vector_data(v%values, v_data)
     call restore_vector_data(mf%values, mf_data)
     
   end subroutine initialise_velocity

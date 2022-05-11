@@ -146,7 +146,6 @@ contains
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: cc
     real(ccs_real) :: V 
-    integer(ccs_int) :: idxg
     integer(ccs_int) :: global_index_p
     integer(ccs_int) :: nrows_working_set
     
@@ -169,7 +168,7 @@ contains
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call set_row(idxg, val_dat)
+          call set_row(global_index_p, val_dat)
           call set_entry(r, val_dat)
           call set_values(val_dat, b)
         end associate
