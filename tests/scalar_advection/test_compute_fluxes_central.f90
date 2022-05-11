@@ -9,8 +9,9 @@ program test_compute_fluxes
   use mesh_utils, only : build_square_mesh
   use fv, only: compute_fluxes
   use utils, only : update, initialise, finalise, &
-                set_size, pack_entries, set_values, zero
-  use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location
+       set_size, pack_entries, set_values, zero, &
+       set_mode, set_entry, set_row, clear_entries
+  use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location, create_vector_values
   use mat, only : create_matrix, set_nnz
   use solver, only : axpy, norm
   use constants, only: add_mode, face
@@ -229,13 +230,13 @@ program test_compute_fluxes
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
     logical :: is_boundary
 
-    allocate(vec_values%global_indices(1))
-    allocate(vec_values%values(1))
-
-    vec_values%setter_mode = add_mode
+    call create_vector_values(1_ccs_int, vec_values)
+    call set_mode(add_mode, vec_values)
 
     face_area = 1.0_ccs_real/cps
     do index_p = 1, mesh%nlocal
+      call clear_entries(vec_values)
+      
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       call set_cell_location(mesh, index_p, loc_p)
@@ -253,7 +254,9 @@ program test_compute_fluxes
           else
             bc_value = 1.0_ccs_real
           endif
-          call pack_entries(1, global_index_p, -(adv_coeff + diff_coeff)*bc_value, vec_values)
+
+          call set_row(global_index_p, vec_values)
+          call set_entry(-(adv_coeff + diff_coeff) * bc_value, vec_values)
           call set_values(vec_values, b)
         endif 
       end do
