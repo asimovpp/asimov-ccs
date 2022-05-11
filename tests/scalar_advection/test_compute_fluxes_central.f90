@@ -81,14 +81,11 @@ program test_compute_fluxes
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
 
-    u_vals%mode = insert_mode
-    v_vals%mode = insert_mode
-    
     associate(n_local => mesh%nlocal)
-      allocate(u_vals%global_indices(n_local))
-      allocate(v_vals%global_indices(n_local))
-      allocate(u_vals%values(n_local))
-      allocate(v_vals%values(n_local))
+      call create_vector_values(n_local, u_vals)
+      call create_vector_values(n_local, v_vals)
+      call set_mode(insert_mode, u_vals)
+      call set_mode(insert_mode, v_vals)
       
       ! Set IC velocity fields
       do index_p = 1, n_local
@@ -105,18 +102,24 @@ program test_compute_fluxes
 
         u_val = 0.0_ccs_real
         v_val = 0.0_ccs_real
-        
-        call pack_entries(index_p, global_index_p, u_val, u_vals)
-        call pack_entries(index_p, global_index_p, v_val, v_vals)
-      end do
-    end associate
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
 
-    call update(u%values)
-    call update(v%values)
+        call set_row(global_index_p, u_vals)
+        call set_entry(u_val, u_vals)
+
+        call set_row(global_index_p, v_vals)
+        call set_entry(v_val, v_vals)
+      end do
+      
+      call set_values(u_vals, u%values)
+      call set_values(v_vals, v%values)
+      
+      deallocate(u_vals%global_indices, v_vals%global_indices, &
+           u_vals%values, v_vals%values)
+
+      call update(u%values)
+      call update(v%values)
+    end associate
     
-    deallocate(u_vals%global_indices, v_vals%global_indices, u_vals%values, v_vals%values)
   end subroutine set_velocity_fields
 
   !> @brief Deallocates the velocity fields
