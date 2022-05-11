@@ -31,9 +31,10 @@ module types
   type, public :: vector_values
     integer(ccs_int), dimension(:), allocatable :: global_indices !< Array of (global) indices to set values
                                                                   !! on, must be same size as values array.
-    real(ccs_real), dimension(:), allocatable :: values   !< Array of values, must be same size as
-                                                          !! index array.
-    integer(ccs_int) :: setter_mode                       !< Which mode to use when setting values?
+    real(ccs_real), dimension(:), allocatable :: values !< Array of values, must be same size as
+                                                        !! index array.
+    integer(ccs_int) :: setter_mode                     !< Which mode to use when setting values?
+    integer(ccs_int) :: current_entry                   !< Which entry are we currently working on?
   end type vector_values
 
   !>  Container type for data required to initialise a matrix.
@@ -51,6 +52,7 @@ module types
                                                             !! of size = size(row_indices) * size(col_indices). Uses 
                                                             !! row-major ordering.
     integer(ccs_int) :: setter_mode !< Which mode to use when setting values?
+    integer(ccs_int) :: current_entry                          !< Which entry are we currently working on?
   end type matrix_values
 
   !>  Container type representing a linear system.

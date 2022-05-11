@@ -33,6 +33,8 @@ module mesh_utils
   
   private
   public :: build_square_mesh
+  public :: global_start
+  public :: local_count
   public :: count_mesh_faces
   
 contains
@@ -48,8 +50,8 @@ contains
 
     type(ccs_mesh) :: mesh !< The resulting mesh.
 
-    integer(ccs_int) :: global_start    ! The (global) starting index of a partition
-    integer(ccs_int) :: global_end      ! The (global) last index of a partition
+    integer(ccs_int) :: start_global    ! The (global) starting index of a partition
+    integer(ccs_int) :: end_global      ! The (global) last index of a partition
     integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
@@ -71,23 +73,12 @@ contains
         associate(nglobal=>mesh%nglobal, &
                   h=>mesh%h)
           
-          ! Determine ownership range (based on PETSc ex3.c)
+          ! Determine ownership range
           comm_rank = par_env%proc_id
           comm_size = par_env%num_procs
-          global_start = comm_rank * (nglobal / comm_size)
-          if (modulo(nglobal, comm_size) < comm_rank) then
-            global_start = global_start + modulo(nglobal, comm_size)
-          else
-            global_start = global_start + comm_rank
-          end if
-          global_end = global_start + nglobal / comm_size
-          if (modulo(nglobal, comm_size) > comm_rank) then
-            global_end = global_end + 1_ccs_int
-          end if
-
-          ! Fix indexing and determine size of local partition
-          global_start = global_start + 1_ccs_int
-          mesh%nlocal = (global_end - (global_start - 1_ccs_int))
+          start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
+          mesh%nlocal = local_count(nglobal, par_env%proc_id, par_env%num_procs)
+          end_global = start_global + (mesh%nlocal - 1)
 
           ! Allocate mesh arrays
           allocate(mesh%global_indices(mesh%nlocal))
@@ -100,7 +91,7 @@ contains
 
           ! First set the global index of local cells
           index_counter = 1_ccs_int
-          do i = global_start, global_end
+          do i = start_global, end_global
             mesh%global_indices(index_counter) = i
             index_counter = index_counter + 1
           end do
@@ -113,7 +104,7 @@ contains
           !        -3 = down boundary
           !        -4 = up boundary
           index_counter = 1_ccs_int ! Set local indexing starting from 1...n
-          do i = global_start, global_end
+          do i = start_global, end_global
             ii = i - 1_ccs_int
 
             ! Construct left (1) face/neighbour
@@ -462,5 +453,39 @@ contains
       endif
     end do
   end function get_neighbour_face_index
+  
+  integer function global_start(n, procid, nproc)
+
+    integer(ccs_int), intent(in) :: n
+    integer(ccs_int), intent(in) :: procid
+    integer(ccs_int), intent(in) :: nproc
+
+    !! Each PE gets an equal split of the problem with any remainder split equally between the lower
+    !! PEs.
+    global_start = procid * (n / nproc) + min(procid, modulo(n, nproc))
+
+    !! Fortran indexing
+    global_start = global_start + 1
+    
+  end function global_start
+
+  integer function local_count(n, procid, nproc)
+
+    integer(ccs_int), intent(in) :: n
+    integer(ccs_int), intent(in) :: procid
+    integer(ccs_int), intent(in) :: nproc
+
+    if (procid < n) then
+      local_count = global_start(n, procid, nproc)
+      if (procid < (nproc - 1)) then
+        local_count = global_start(n, procid + 1, nproc) - local_count
+      else
+        local_count = n - (local_count - 1)
+      end if
+    else
+      local_count = 0
+    end if
+    
+  end function local_count
   
 end module mesh_utils

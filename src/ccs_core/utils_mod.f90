@@ -8,20 +8,24 @@ module utils
   use iso_c_binding
 
   use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
-       initialise_vector, set_vector_size, pack_one_vector_element, &
-       mult_vec_vec, zero_vector
+                  initialise_vector, set_vector_size,         &
+                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
+                  clear_vector_values_entries, &
+                  mult_vec_vec, scale_vec, zero_vector
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_matrix_size, &
-                  pack_one_matrix_coefficient, zero_matrix
-  use solver, only : initialise_equation_system
+                  set_matrix_values_mode, set_matrix_values_row, set_matrix_values_entry, &
+                  clear_matrix_values_entries, pack_one_matrix_coefficient, zero_matrix
+  use solver, only: initialise_equation_system
   use kinds, only : ccs_int, ccs_real
-
   
   implicit none
 
   private
 
   public :: set_values
+  public :: set_entry
+  public :: clear_entries
   public :: begin_update
   public :: end_update
   public :: update
@@ -31,6 +35,8 @@ module utils
   public :: set_size
   public :: mult
   public :: zero
+  public :: set_mode
+  public :: set_row
   public :: str
   public :: debug_print
   public :: exit_print 
@@ -41,9 +47,29 @@ module utils
      module procedure set_matrix_values
   end interface set_values
 
+  interface set_entry
+    module procedure set_vector_values_entry
+    module procedure set_matrix_values_entry
+  end interface set_entry
+ 
+  interface set_mode
+    module procedure set_vector_values_mode
+    module procedure set_matrix_values_mode
+  end interface set_mode
+
+  interface set_row
+    module procedure set_vector_values_row
+    module procedure set_matrix_values_row
+  end interface set_row
+  
   interface finalise
     module procedure finalise_matrix
   end interface finalise
+
+  interface clear_entries
+    module procedure clear_vector_values_entries
+    module procedure clear_matrix_values_entries
+  end interface clear_entries
 
   !>  Generic interface to perform parallel update of an object.
   interface update
@@ -85,7 +111,6 @@ module utils
   !v  Stores the entries and elements in an object for later setting, this ensures the
   !   storage and values of indices in particular are set appropriately for each backend.
   interface pack_entries
-    module procedure pack_one_vector_element
     module procedure pack_one_matrix_coefficient
   end interface pack_entries
 

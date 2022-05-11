@@ -28,6 +28,8 @@ contains
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
 
+    integer(ccs_int), dimension(:), allocatable :: global_halo_indices
+    integer(ccs_int) :: i
     integer(ccs_err) :: ierr !< Error code
 
     allocate(vector_petsc :: v)
@@ -44,11 +46,19 @@ contains
 
             select case(vec_properties%storage_location)
             case (cell)
-              call VecCreateGhost(par_env%comm, &
-                   mesh%nlocal, PETSC_DECIDE, &
-                   mesh%nhalo, &
-                   mesh%global_indices(min(mesh%nlocal+1, mesh%ntotal):mesh%ntotal) - 1_ccs_int, &
-                   v%v, ierr)
+              associate(nhalo => mesh%nhalo, &
+                   nlocal => mesh%nlocal, &
+                   idx_global => mesh%global_indices)
+                allocate(global_halo_indices(nhalo))
+                do i = 1, nhalo
+                  global_halo_indices(i) = idx_global(i + nlocal) - 1_ccs_int
+                end do
+                call VecCreateGhost(par_env%comm, &
+                     nlocal, PETSC_DECIDE, &
+                     nhalo, global_halo_indices, &
+                     v%v, ierr)
+                deallocate(global_halo_indices)
+              end associate
               ! Vector has ghost points, store this information
               v%ghosted = .true.
             case (face)
@@ -261,17 +271,6 @@ contains
 
   end subroutine
 
-  module subroutine pack_one_vector_element(ent, idx, val, val_dat)
-    integer(ccs_int), intent(in) :: ent
-    integer(ccs_int), intent(in) :: idx
-    real(ccs_real), intent(in) :: val
-    type(vector_values), intent(inout) :: val_dat
-
-    val_dat%global_indices(ent) = idx - 1
-    val_dat%values(ent) = val
-
-  end subroutine pack_one_vector_element
-
   !>  Perform the AXPY vector operation using PETSc
   !
   !v  Performs the AXPY operation
@@ -338,6 +337,38 @@ contains
     end select
     
   end function
+
+  module procedure clear_vector_values_entries
+
+    val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%values(:) = 0.0_ccs_real
+    
+  end procedure clear_vector_values_entries
+  
+  module procedure set_vector_values_row
+
+    integer(ccs_int), dimension(rank(val_dat%global_indices)) :: idxs
+    integer(ccs_int) :: i
+    integer(ccs_int) :: petsc_row
+
+    petsc_row = row - 1 ! PETSc is zero-indexed
+    
+    idxs = findloc(val_dat%global_indices, petsc_row, kind=ccs_int)
+    i = idxs(1) ! We want the first entry
+    if (i == 0) then
+      ! New entry
+      idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
+      i = idxs(1) ! We want the first entry
+      if (i == 0) then
+        print *, "ERROR: Couldn't find a free entry in vector values!"
+        stop
+      end if
+    end if
+    
+    val_dat%current_entry = i
+    val_dat%global_indices(i) = petsc_row
+    
+  end procedure set_vector_values_row
 
   !>  Gets the data in a given vector
   !

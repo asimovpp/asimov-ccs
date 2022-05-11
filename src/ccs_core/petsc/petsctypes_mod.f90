@@ -21,24 +21,24 @@ module petsctypes
 
   !>  Implements the vector class backed by a PETSc vector
   type, public, extends(ccs_vector) :: vector_petsc
-    type(tVec) :: v            !< The PETSc vector
-    type(tVec) :: v_local      !< The "local" PETSc vector (inc. ghost points)
-    logical :: allocated       !< Indicates whether the PETSc vector has been allocated
-    logical :: ghosted         !< Does this vector have ghost points?
-    integer(ccs_int) :: mode   !< Current mode for setting values
-    logical :: modeset         !< Is the current mode still valid? i.e. does vector need updated before switching modes?
+    type(tVec) :: v          !< The PETSc vector
+    type(tVec) :: v_local    !< The "local" PETSc vector (inc. ghost points)
+    logical :: allocated     !< Indicates whether the PETSc vector has been allocated
+    logical :: ghosted       !< Does this vector have ghost points?
+    integer(ccs_int) :: mode !< Current mode for setting values
+    logical :: modeset       !< Is the current mode still valid? i.e. does vector need updated before switching modes?
   contains
     final :: free_vector_petsc
   end type vector_petsc
 
   !>  Implements the matrix class backed by a PETSc matrix
   type, public, extends(ccs_matrix) :: matrix_petsc
-     type(tMat) :: M      !< The PETSc matrix
-     logical :: allocated !< Indicates whether the PETSc matrix has been allocated
-     integer(ccs_int) :: mode !< Current mode for setting values
-     logical :: modeset        !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
-   contains
-     final :: free_matrix_petsc
+    type(tMat) :: M          !< The PETSc matrix
+    logical :: allocated     !< Indicates whether the PETSc matrix has been allocated
+    integer(ccs_int) :: mode !< Current mode for setting values
+    logical :: modeset       !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
+  contains
+    final :: free_matrix_petsc
   end type matrix_petsc
 
   type, public, extends(linear_solver) :: linear_solver_petsc

@@ -112,7 +112,7 @@ contains
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
-    use utils, only: pack_entries, set_values
+    use utils, only: set_row, set_entry, set_values
 
     class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: mf
@@ -141,8 +141,9 @@ contains
         v = -real(row, ccs_real)/real(cps, ccs_real)
 
         mf_val = u + v
-        
-        call pack_entries(index_p, global_index_p, mf_val, mf_vals)
+
+        call set_row(global_index_p, mf_vals)
+        call set_entry(mf_val, mf_vals)
       end do
     end associate
     call set_values(mf_vals, mf%values)

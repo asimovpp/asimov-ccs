@@ -227,8 +227,8 @@ program ldc
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
-    use utils, only: pack_entries, set_values
-    use vec, only : get_vector_data, restore_vector_data
+    use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
+    use vec, only : get_vector_data, restore_vector_data, create_vector_values
     
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
@@ -240,21 +240,14 @@ program ldc
     real(ccs_real) :: u_val, v_val
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
-
-    ! Set mode
-    u_vals%setter_mode = add_mode
-    v_vals%setter_mode = add_mode
+    real(ccs_real), dimension(:), pointer :: mf_data
 
     ! Set alias
     associate(n_local => mesh%nlocal)
-      ! Allocate temporary arrays for storing global cell indices 
-      allocate(u_vals%global_indices(n_local))
-      allocate(v_vals%global_indices(n_local))
-
-      ! Allocate temporary arrays for storing values
-      allocate(u_vals%values(n_local))
-      allocate(v_vals%values(n_local))
+      call create_vector_values(n_local, u_vals)
+      call create_vector_values(n_local, v_vals)
+      call set_mode(add_mode, u_vals)
+      call set_mode(add_mode, v_vals)
 
       ! Set initial values for velocity fields
       do index_p = 1, n_local
@@ -262,32 +255,26 @@ program ldc
         call get_global_index(loc_p, global_index_p)
         call calc_cell_coords(global_index_p, cps, row, col)
 
-        u_val = real(col, ccs_real)/real(cps, ccs_real)
-        v_val = -real(row, ccs_real)/real(cps, ccs_real)
+        u_val = 0.0_ccs_real 
+        v_val = 0.0_ccs_real 
 
-        call pack_entries(index_p, global_index_p, u_val, u_vals)
-        call pack_entries(index_p, global_index_p, v_val, v_vals)
+        call set_row(global_index_p, u_vals)
+        call set_entry(u_val, u_vals)
+        call set_row(global_index_p, v_vals)
+        call set_entry(v_val, v_vals)
       end do
+
+      call set_values(u_vals, u%values)
+      call set_values(v_vals, v%values)
+
+      deallocate(u_vals%global_indices)
+      deallocate(v_vals%global_indices)
+      deallocate(u_vals%values)
+      deallocate(v_vals%values)
     end associate
 
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
-
-    deallocate(u_vals%global_indices)
-    deallocate(v_vals%global_indices)
-    deallocate(u_vals%values)
-    deallocate(v_vals%values)
-
-    call get_vector_data(u%values, u_data)
-    call get_vector_data(v%values, v_data)
     call get_vector_data(mf%values, mf_data)
-
-    u_data(:) = 0.0_ccs_real
-    v_data(:) = 0.0_ccs_real
     mf_data(:) = 0.0_ccs_real
-    
-    call restore_vector_data(u%values, u_data)
-    call restore_vector_data(v%values, v_data)
     call restore_vector_data(mf%values, mf_data)
     
   end subroutine initialise_velocity

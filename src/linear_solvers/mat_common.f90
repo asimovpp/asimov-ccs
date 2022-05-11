@@ -29,4 +29,36 @@ contains
     mat_properties%nnz = nnz
   end subroutine  set_nnz
 
-end submodule
+  module procedure create_matrix_values
+    allocate(val_dat%global_row_indices(nrows))
+    allocate(val_dat%global_col_indices(nrows))
+    allocate(val_dat%values(nrows))
+  end procedure create_matrix_values
+
+  module procedure set_matrix_values_mode
+    val_dat%setter_mode = mode
+  end procedure set_matrix_values_mode
+  
+  module subroutine set_matrix_values_entry(val, val_dat)
+
+    use constants, only : add_mode, insert_mode
+
+    real(ccs_real), intent(in) :: val
+    type(matrix_values), intent(inout) :: val_dat
+
+    associate(x => val_dat%values(val_dat%current_entry), &
+         mode => val_dat%setter_mode)
+      if (mode == insert_mode) then
+        x = val
+      else if (mode == add_mode) then
+        x = x + val
+      else
+        print *, "ERROR: Unrecognised entry mode ", mode
+        stop
+      end if
+
+    end associate
+    
+  end subroutine set_matrix_values_entry
+  
+end submodule 

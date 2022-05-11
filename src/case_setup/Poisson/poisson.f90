@@ -25,7 +25,10 @@ program poisson
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_equation_system, axpy, norm
   use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_size, set_values, pack_entries
+                    set_size, &
+                    set_values, clear_entries, set_values, set_row, set_entry, set_mode, &
+                    pack_entries
+  use vec, only : create_vector_values
   use mesh_utils, only : build_square_mesh
   use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
        count_neighbours, get_boundary_status
@@ -133,7 +136,6 @@ contains
 
   subroutine eval_rhs(b)
 
-    
     class(ccs_vector), intent(inout) :: b
 
     integer(ccs_int) :: i
@@ -145,10 +147,11 @@ contains
     real(ccs_real), dimension(ndim) :: cc
     real(ccs_real) :: V 
     integer(ccs_int) :: global_index_p
+    integer(ccs_int) :: nrows_working_set
     
-    val_dat%setter_mode = add_mode
-    allocate(val_dat%global_indices(1))
-    allocate(val_dat%values(1))
+    nrows_working_set = 1_ccs_int
+    call create_vector_values(nrows_working_set, val_dat)
+    call set_mode(add_mode, val_dat)
 
     associate(nloc => mesh%nlocal, &
          h => mesh%h)
@@ -156,6 +159,8 @@ contains
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
+        call clear_entries(val_dat)
+
         call set_cell_location(mesh, i, loc_p)
         call get_centre(loc_p, cc)
         call get_volume(loc_p, V)
@@ -163,7 +168,8 @@ contains
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(1, global_index_p, r, val_dat)
+          call set_row(global_index_p, val_dat)
+          call set_entry(r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
@@ -290,18 +296,21 @@ contains
 
     integer(ccs_int) :: nnb
     logical :: is_boundary
+
+    integer(ccs_int) :: nrows_working_set
     
     allocate(mat_coeffs%global_row_indices(1))
     allocate(mat_coeffs%global_col_indices(1))
     allocate(mat_coeffs%values(1))
-    allocate(vec_values%global_indices(1))
-    allocate(vec_values%values(1))
-
     mat_coeffs%setter_mode = add_mode
-    vec_values%setter_mode = add_mode
+
+    nrows_working_set = 1_ccs_int
+    call create_vector_values(nrows_working_set, vec_values)
+    call set_mode(add_mode, vec_values)
 
     do i = 1, mesh%nlocal
       if (minval(mesh%neighbour_indices(:, i)) < 0) then
+        call clear_entries(vec_values)
         call set_cell_location(mesh, i, loc_p)
         call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real 
@@ -333,7 +342,9 @@ contains
         end do
 
         call pack_entries(1, 1, row, col, coeff, mat_coeffs)
-        call pack_entries(1, idx, r, vec_values)
+
+        call set_row(row, vec_values)
+        call set_entry(r, vec_values)
 
         call set_values(mat_coeffs, M)
         call set_values(vec_values, b)
@@ -355,14 +366,19 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
-    
-    allocate(vec_values%global_indices(1))
-    allocate(vec_values%values(1))
-    vec_values%setter_mode = insert_mode
+    integer(ccs_int) :: nrows_working_set
+
+    nrows_working_set = 1_ccs_int
+    call create_vector_values(nrows_working_set, vec_values)
+    call set_mode(insert_mode, vec_values)
+
     do i = 1, mesh%nlocal
+      call clear_entries(vec_values)
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
-      call pack_entries(1, global_index_p, rhs_val(i), vec_values)
+
+      call set_row(global_index_p, vec_values)
+      call set_entry(rhs_val(i), vec_values)
       call set_values(vec_values, u_exact)
     end do
     deallocate(vec_values%global_indices)
