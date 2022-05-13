@@ -95,14 +95,26 @@ test_ccs_cray:
 #-----------------------------------------------------------------------------#
 
 lint_src:
-  script:
-    - for f in $(find src -name "*.f90"); do echo $f; flint lint -r .flint_config.yaml $f; done
-    - goal=8; score=$(flint score -r .flint_config.yaml src | grep -Eo '[+-]?[0-9]+[.][0-9]+'); echo "flint score: "$score"; goal is: "$goal; (( $score > $goal | bc))
+  script: >
+    - for f in $(find src -name "*.f90"); do
+      echo $f; 
+      flint lint -r .flint_config.yaml $f; 
+      done
+    - goal=8;
+      score=$(flint score -r .flint_config.yaml src | grep -Eo '[+-]?[0-9]+[.][0-9]+'); 
+      echo "flint score: "$score"; goal is: "$goal; 
+      (( $score > $goal | bc))
 
 lint_tests:
-  script:
-    - for f in $(find tests -name "*.f90"); do echo $f; flint lint -r .flint_config.yaml $f; done
-    - goal=8; score=$(flint score -r .flint_config.yaml tests | grep -Eo '[+-]?[0-9]+[.][0-9]+'); echo "flint score: "$score"; goal is: "$goal; (( $score > $goal | bc))
+  script: >
+    - for f in $(find tests -name "*.f90"); do 
+      echo $f; 
+      flint lint -r .flint_config.yaml $f; 
+      done
+    - goal=8; 
+      score=$(flint score -r .flint_config.yaml tests | grep -Eo '[+-]?[0-9]+[.][0-9]+'); 
+      echo "flint score: "$score"; goal is: "$goal; 
+      (( $score > $goal | bc))
 
 #-----------------------------------------------------------------------------#
 
