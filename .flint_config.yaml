@@ -48,10 +48,10 @@ regexp-rules:
   #   case-sensitive: true
   #   active: true
 
-  real-avbp-working-precision:
-    message: Use AVBP working precision
-    regexp: (?<=real)(?!\(\s*pr\s*\))\([^\(]*\)
-    replacement: (pr)
+  real-ccs-working-precision:
+    message: Use CCS working precision
+    regexp: (?<=real)(?!\(\s*ccs_real\s*\))\([^\(]*\)
+    replacement: (ccs_real)
 
   character-string-length:
     message: Use strl or shortstrl
@@ -61,16 +61,19 @@ regexp-rules:
     message: Missing space between subroutine name and parenthesis
     regexp: (?<=call\s)(\s*\w+)\(
     replacement: \1 (
+    active: false
 
   missing-space-after-call-parenthesis:
     message: Missing space after first parenthesis
     regexp: (?<=call\s)(\s*\w+\s*)\((\S)
     replacement: ( \2
+    active: false
 
   missing-space-before-call-parenthesis:
     message: Missing space before last parenthesis
     regexp: (?<=call\s)(\s*\w+\s*\([^)(]*(?:\([^)(]*(?:\([^)(]*\)[^)(]*)*\)[^)(]*)*(?<!\s))\)
     replacement: \1 )
+    active: false
 
   excessive-use-of-space:
     message: Except for indentation, single spaces are sufficient
@@ -209,9 +212,9 @@ regexp-rules:
     message: Bare end statement not recommended
     regexp: ^\s*end\s*$
 
-  not-recommended-bare-stop:
-    message: Bare stop statement not recommended
-    regexp: ^\s*stop\s*$
+  not-recommended-stop:
+    message: Stop statement not recommended
+    regexp: ^\s*stop\s*\d*\s*$
 
   not-recommended-use-exit:
     message: exit is an extension and should be avoided
