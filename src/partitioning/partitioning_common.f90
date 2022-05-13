@@ -88,6 +88,11 @@ implicit none
     integer(ccs_int), dimension(:), allocatable :: p2p_row_idx !< P2P matrix row index
     integer(ccs_int), dimension(:), allocatable :: p2p_col_idx !< P2P matrix col index
     integer(ccs_int), dimension(:), allocatable :: p2p_value   !< P2P matrix values
+    integer(ccs_int), dimension(:), allocatable :: global_boundary_dist ! Global distribution of boundaries
+    integer(ccs_int), dimension(:), allocatable :: global_cell_dist ! Global distribution of cells
+    integer(ccs_int), dimension(:), allocatable :: global_face_dist ! Global distribution of faces
+    integer(ccs_int), dimension(:), allocatable :: global_internalface_dist ! Global distribution of internal faces 
+
 
     allocate(tmp_int1d(par_env%num_procs))
     allocate(tmp_int2d(par_env%num_procs,2))
@@ -96,6 +101,12 @@ implicit none
 
     associate(num_procs => par_env%num_procs, &
               irank => par_env%proc_id)
+
+      if(irank == 0) then
+        do i = 1, topo%global_num_cells
+          call dprint("Global partition: "//str(int(topo%global_partition(i))))
+        end do
+      end if
 
       ! All ranks loop over the total number of processes from 0 to num_procs - 1
       do k = 0, num_procs - 1
@@ -118,6 +129,7 @@ implicit none
               n = topo%global_partition(topo%adjncy(topo%xadj(i) + j - 1))
 
               ! Is the adjacent vertex on the same partition or not?
+              ! XXXX: Currently broken - value of n can be 0...
               if (m /= n) then
                 ! Adjacent vertex on different partition
                 tmp_int2d(n, 2) = tmp_int2d(n, 2) + 1
@@ -208,6 +220,25 @@ implicit none
       do i = 1, num_procs + 1
         call dprint("P2P matrix row index "//str(i)//": "//str(int(p2p_row_idx(i))))
       end do
+
+      allocate(global_cell_dist(num_procs))
+      ! allocate(global_boundary_dist(num_procs))
+      ! allocate(global_face_dist(num_procs))
+      ! allocate(global_internalface_dist(num_procs))
+
+      global_cell_dist = 0
+      ! global_boundary_dist = 0
+      ! global_face_dist = 0
+      ! global_internalface_dist = 0
+
+      do i = 1, topo%global_num_cells
+        global_cell_dist(topo%global_partition(i)+1) = global_cell_dist(topo%global_partition(i)+1) + 1 
+      enddo
+
+      do i = 1, num_procs
+        call dprint("Global cell distribution for rank "//str(i)//": "//str(int(p2p_row_idx(i))))
+      end do
+
       
     end associate
 
