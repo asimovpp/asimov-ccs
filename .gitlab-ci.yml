@@ -98,11 +98,13 @@ lint_src:
   script: 
     - bash build_tools/lint.sh lint src
     - bash build_tools/lint.sh score src
+  allow_failure: true
 
 lint_tests:
   script: 
     - bash build_tools/lint.sh lint tests
     - bash build_tools/lint.sh score tests
+  allow_failure: true
 
 #-----------------------------------------------------------------------------#
 
