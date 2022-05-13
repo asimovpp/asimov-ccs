@@ -47,7 +47,7 @@ submodule (io) io_adios2
       class default
         print*,"Unknown IO process handler type"
         stop 1
-      
+
       end select
 
   end subroutine
@@ -277,7 +277,7 @@ submodule (io) io_adios2
 
           if (adios2_var%type == adios2_type_integer8) then
 
-            allocate(tmp_var64(size(var, dim=1),size(var,dim=2)))
+            allocate(tmp_var64(size(var, dim = 1),size(var, dim = 2)))
 
             call downcast_warning()
             call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
@@ -322,7 +322,7 @@ submodule (io) io_adios2
 
           if (adios2_var%type == adios2_type_integer4) then
 
-            allocate(tmp_var32(size(var, dim=1),size(var,dim=2)))
+            allocate(tmp_var32(size(var, dim = 1),size(var, dim = 2)))
 
             call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
             var = int(tmp_var32, int64)
@@ -455,7 +455,7 @@ submodule (io) io_adios2
 
           if (adios2_var%type == adios2_type_dp) then
 
-            allocate(tmp_var64(size(var,dim=1),size(var,dim=2)))
+            allocate(tmp_var64(size(var, dim = 1),size(var, dim = 2)))
 
             call downcast_warning()
             call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
@@ -501,7 +501,7 @@ submodule (io) io_adios2
           call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
           if (adios2_var%type == adios2_type_real) then
 
-            allocate(tmp_var32(size(var,dim=1),size(var,dim=2)))
+            allocate(tmp_var32(size(var, dim = 1),size(var, dim = 2)))
 
             call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
             var = real(tmp_var32, real64)
