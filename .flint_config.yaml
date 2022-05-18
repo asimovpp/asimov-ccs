@@ -146,12 +146,19 @@ regexp-rules:
   one-space-before-comment:
     message: At least one space before comment
     regexp: (\S)\!
-    replacement: \1 !
+    replacement: '\1 !'
+    include-comments: true
 
   one-space-after-comment:
-    message: Exactly one space after comment
-    regexp: \!(\S)
+    message: At least one space after comment
+    regexp: \!([^><v^\s])
     replacement: '! \1'
+    include-comments: true
+
+  one-space-after-ford-comment-start:
+    message: Exactly one space after FORD comment start symbol
+    regexp: \!([><v^])\s\s+(\S)
+    replacement: '!\1 \2'
     include-comments: true
 
   useless-eol-dotcomma:
