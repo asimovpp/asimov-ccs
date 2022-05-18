@@ -77,3 +77,9 @@ It does the following actions:
 - LIT usage examples in LLVM
   - https://github.com/llvm/llvm-project/tree/main/llvm/test
   - https://github.com/llvm/llvm-project/blob/main/llvm/test/lit.cfg.py
+
+
+# Linting
+The code is linted primarily using Flint. Install via pip: `pip install flinter`.
+
+Invoke the linter via the utility script using: `bash build_tools/lint.sh ACTION TARGET` where ACTION is "lint" or "score" and TARGET is the file or directory to lint. Specifying "lint" will print out detailed information on every discovered issue while "score" will return an overall numberic score (10 corresponds to "no issues").
