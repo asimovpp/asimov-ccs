@@ -295,11 +295,43 @@ contains
       end if
     end if
     
-    val_dat%current_entry = i
+    val_dat%current_row = row
     val_dat%global_row_indices(i) = petsc_row
     
   end subroutine set_matrix_values_row
+  
+  module subroutine set_matrix_values_col(col, val_dat)
+    integer(ccs_int), intent(in) :: col
+    type(matrix_values), intent(inout) :: val_dat
 
+    integer(ccs_int), dimension(rank(val_dat%global_col_indices)) :: cglobs
+    integer(ccs_int) :: i
+    logical :: new_entry
+    integer(ccs_int) :: petsc_col
+
+    petsc_col = col - 1 ! PETSc is zero-indexed
+    new_entry = .false.
+    
+    cglobs = findloc(val_dat%global_col_indices, petsc_col, kind=ccs_int)
+    i = cglobs(1) ! We want the first entry
+    if (i == 0) then
+      new_entry = .true.
+    end if
+
+    if (new_entry) then
+      cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
+      i = cglobs(1) ! We want the first entry
+      if (i == 0) then
+        print *, "ERROR: Couldn't find a free entry in matrix values!"
+        stop
+      end if
+    end if
+    
+    val_dat%current_col = col
+    val_dat%global_col_indices(i) = petsc_col
+    
+  end subroutine set_matrix_values_col
+  
   !>  Perform the AXPY matrix operation using PETSc
   !
   !>  Performs the AXPY operation

@@ -26,7 +26,6 @@ module types
     integer(ccs_int) :: storage_location !< The storage location of the vector values (cell or face)
   end type vector_spec
 
-
   !>  Container type for setting values in a vector.
   type, public :: vector_values
     integer(ccs_int), dimension(:), allocatable :: global_indices !< Array of (global) indices to set values
@@ -51,10 +50,15 @@ module types
     real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and 
                                                             !! of size = size(row_indices) * size(col_indices). Uses 
                                                             !! row-major ordering.
-    integer(ccs_int) :: setter_mode !< Which mode to use when setting values?
-    integer(ccs_int) :: current_entry                          !< Which entry are we currently working on?
+    integer(ccs_int) :: setter_mode                         !< Which mode to use when setting values?
+    integer(ccs_int) :: current_row, current_col            !< Which entry are we currently working on?
   end type matrix_values
 
+  type, public :: matrix_values_spec
+    integer(ccs_int) :: nrows = 0
+    integer(ccs_int) :: ncols = 0
+  end type matrix_values_spec
+  
   !>  Container type representing a linear system.
   type, public :: equation_system
     class(ccs_vector), pointer :: solution !< Solution vector

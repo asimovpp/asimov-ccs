@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : ccs_int, ccs_real
-  use types, only : ccs_matrix, matrix_spec, matrix_values, ccs_mesh, ccs_vector
+  use types, only : ccs_matrix, matrix_spec, matrix_values, matrix_values_spec, ccs_mesh, ccs_vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -19,6 +19,7 @@ module mat
   public :: create_matrix_values
   public :: set_matrix_values_mode
   public :: set_matrix_values_row
+  public :: set_matrix_values_col
   public :: update_matrix
   public :: begin_update_matrix
   public :: end_update_matrix
@@ -85,12 +86,27 @@ module mat
       type(matrix_values), intent(inout) :: val_dat
     end subroutine set_matrix_values_row
 
+    module subroutine set_matrix_values_col(col, val_dat)
+      integer(ccs_int), intent(in) :: col
+      type(matrix_values), intent(inout) :: val_dat
+    end subroutine set_matrix_values_col
+
+    module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
+      integer(ccs_int), intent(in) :: nrows
+      type(matrix_values_spec), intent(inout) :: val_spec
+    end subroutine set_matrix_values_spec_nrows
+
+    module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
+      integer(ccs_int), intent(in) :: ncols
+      type(matrix_values_spec), intent(inout) :: val_spec
+    end subroutine set_matrix_values_spec_ncols
+    
     !> @brief Interface to create a maitrx values object.
     !
     !> @param[in]  nrows   - how many rows will be set?
     !> @param[out] val_dat - the matrix values object
-    module subroutine create_matrix_values(nrows, val_dat)
-      integer(ccs_int), intent(in) :: nrows
+    module subroutine create_matrix_values(val_spec, val_dat)
+      type(matrix_values_spec), intent(in) :: val_spec
       type(matrix_values), intent(out) :: val_dat
     end subroutine create_matrix_values
 

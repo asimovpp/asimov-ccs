@@ -4,6 +4,20 @@ submodule (mat) mat_common
 
 contains
 
+  module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
+    integer(ccs_int), intent(in) :: nrows
+    type(matrix_values_spec), intent(inout) :: val_spec
+
+    val_spec%nrows = nrows
+  end subroutine set_matrix_values_spec_nrows
+
+  module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
+    integer(ccs_int), intent(in) :: ncols
+    type(matrix_values_spec), intent(inout) :: val_spec
+
+    val_spec%ncols = ncols
+  end subroutine set_matrix_values_spec_ncols
+    
   !>  Constructor for default matrix values
   module subroutine initialise_matrix(mat_properties)
     type(matrix_spec), intent(inout) :: mat_properties  !< the initialised matrix values
@@ -29,11 +43,18 @@ contains
     mat_properties%nnz = nnz
   end subroutine  set_nnz
 
-  module procedure create_matrix_values
-    allocate(val_dat%global_row_indices(nrows))
-    allocate(val_dat%global_col_indices(nrows))
-    allocate(val_dat%values(nrows))
-  end procedure create_matrix_values
+  module subroutine create_matrix_values(val_spec, val_dat)
+    type(matrix_values_spec), intent(in) :: val_spec
+    type(matrix_values), intent(out) :: val_dat
+
+    associate(nrows => val_spec%nrows, ncols => val_spec%ncols)
+      allocate(val_dat%global_row_indices(nrows))
+      allocate(val_dat%global_col_indices(ncols))
+      allocate(val_dat%values(nrows * ncols))
+    end associate
+
+    call clear_matrix_values_entries(val_dat)
+  end subroutine create_matrix_values
 
   module procedure set_matrix_values_mode
     val_dat%setter_mode = mode
@@ -46,7 +67,16 @@ contains
     real(ccs_real), intent(in) :: val
     type(matrix_values), intent(inout) :: val_dat
 
-    associate(x => val_dat%values(val_dat%current_entry), &
+    integer(ccs_int) :: current_entry
+
+    associate(row => val_dat%current_row, &
+         col => val_dat%current_col, &
+         nrows => size(val_dat%global_row_indices), &
+         ncols => size(val_dat%global_col_indices))
+      current_entry = (row - 1) * ncols + col
+    end associate
+    
+    associate(x => val_dat%values(current_entry), &
          mode => val_dat%setter_mode)
       if (mode == insert_mode) then
         x = val
