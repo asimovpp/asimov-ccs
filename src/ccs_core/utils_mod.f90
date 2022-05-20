@@ -15,7 +15,7 @@ module utils
   use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                   initialise_matrix, finalise_matrix, set_matrix_size, &
                   set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, set_matrix_values_entry, &
-                  clear_matrix_values_entries, pack_one_matrix_coefficient, zero_matrix
+                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only : ccs_int, ccs_real
   
@@ -30,7 +30,6 @@ module utils
   public :: end_update
   public :: update
   public :: finalise
-  public :: pack_entries
   public :: initialise
   public :: set_size
   public :: mult
@@ -109,14 +108,6 @@ module utils
     module procedure set_vector_size
     module procedure set_matrix_size
   end interface set_size
-
-  !>  Generic interface to pack entries (elements, coefficients) into a computational object.
-  !
-  !v  Stores the entries and elements in an object for later setting, this ensures the
-  !   storage and values of indices in particular are set appropriately for each backend.
-  interface pack_entries
-    module procedure pack_one_matrix_coefficient
-  end interface pack_entries
 
   !>  Generic interface to perform multiplications
   interface mult

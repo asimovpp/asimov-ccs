@@ -20,11 +20,12 @@ module mat
   public :: set_matrix_values_mode
   public :: set_matrix_values_row
   public :: set_matrix_values_col
+  public :: set_matrix_values_spec_nrows
+  public :: set_matrix_values_spec_ncols
   public :: update_matrix
   public :: begin_update_matrix
   public :: end_update_matrix
   public :: set_eqn
-  public :: pack_one_matrix_coefficient
   public :: initialise_matrix
   public :: set_matrix_size
   public :: set_nnz
@@ -134,27 +135,6 @@ module mat
      module subroutine end_update_matrix(M)
        class(ccs_matrix), intent(inout) :: M
      end subroutine
-
-     !>  Interface to store one matrix coefficient and its index for later setting.
-     !
-     !> @param[in/out] mat_coeffs - object storing the coefficients, their indices and mode to use
-     !!                             when setting them.
-     !> @param[in]     row_entry  - which entry in the row indices to set?
-     !> @param[in]     col_entry  - which entry in the column indices to set?
-     !> @param[in]     row        - matrix row index
-     !> @param[in]     col        - matrix column index
-     !> @param[in]     coeff      - matrix coefficient
-     !
-     !v  Stores a matrix coefficient and associated row and column indices for later
-     !   setting, ensuring they are set appropriately for the backend.
-     module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
-       integer(ccs_int), intent(in) :: row_entry
-       integer(ccs_int), intent(in) :: col_entry
-       integer(ccs_int), intent(in) :: row
-       integer(ccs_int), intent(in) :: col
-       real(ccs_real), intent(in) :: coeff
-       type(matrix_values), intent(inout) :: mat_coeffs
-     end subroutine pack_one_matrix_coefficient
 
     !>  Interface to perform the AXPY matrix operation.
     !

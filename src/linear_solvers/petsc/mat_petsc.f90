@@ -152,27 +152,6 @@ contains
     
   end subroutine
 
-  module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
-    integer(ccs_int), intent(in) :: row_entry
-    integer(ccs_int), intent(in) :: col_entry
-    integer(ccs_int), intent(in) :: row
-    integer(ccs_int), intent(in) :: col
-    real(ccs_real), intent(in) :: coeff
-    type(matrix_values), intent(inout) :: mat_coeffs
-
-    integer(ccs_int) :: nc
-    integer(ccs_int) :: coeff_index
-
-    mat_coeffs%global_row_indices(row_entry) = row - 1
-    mat_coeffs%global_col_indices(col_entry) = col - 1
-
-    nc = size(mat_coeffs%global_col_indices)
-
-    coeff_index = (row_entry - 1) * nc + col_entry
-    mat_coeffs%values(coeff_index) = coeff
-    
-  end subroutine pack_one_matrix_coefficient
-
   !>  Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 

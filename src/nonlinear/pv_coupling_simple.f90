@@ -12,8 +12,8 @@ submodule (pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
        create_vector_values
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal
-  use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
-                   mult, zero, clear_entries, set_entry, set_row, set_mode, &
+  use utils, only: update, initialise, finalise, set_size, set_values, &
+                   mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm
@@ -399,7 +399,9 @@ contains
           col = -1
           coeff_nb = 0.0_ccs_real
         endif
-        call pack_entries(1, j+1, row, col, coeff_nb, mat_coeffs)
+        call set_row(row, mat_coeffs)
+        call set_col(col, mat_coeffs)
+        call set_entry(coeff_nb, mat_coeffs)
 
       end do
 
@@ -415,7 +417,9 @@ contains
       
       ! Add the diagonal entry
       col = row
-      call pack_entries(1, 1, row, col, coeff_p, mat_coeffs)
+      call set_row(row, mat_coeffs)
+      call set_col(col, mat_coeffs)
+      call set_entry(coeff_p, mat_coeffs)
 
       call set_row(global_index_p, vec_values)
       call set_entry(r, vec_values)
