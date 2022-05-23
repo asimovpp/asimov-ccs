@@ -269,7 +269,7 @@ contains
       rglobs = findloc(val_dat%global_row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
-        print *, "ERROR: Couldn't find a free entry in matrix values!"
+        print *, "ERROR: Couldn't find a free row entry in matrix values!"
         stop
       end if
     end if
@@ -301,7 +301,7 @@ contains
       cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
       i = cglobs(1) ! We want the first entry
       if (i == 0) then
-        print *, "ERROR: Couldn't find a free entry in matrix values!"
+        print *, "ERROR: Couldn't find a free column entry in matrix values!"
         stop
       end if
     end if
