@@ -237,6 +237,7 @@ contains
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
+      call clear_entries(mat_coeffs)
       call clear_entries(b_coeffs)
       
       ! Calculate contribution from neighbours

@@ -180,8 +180,6 @@ program test_compute_fluxes
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call clear_entries(mat_values)
-        
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (.not. is_boundary) then
@@ -212,14 +210,15 @@ program test_compute_fluxes
           call set_entry(-(adv_coeff + diff_coeff), mat_values)
           call set_values(mat_values, M)
         endif
+        
+        call clear_entries(mat_values)
       end do
 
-      call clear_entries(mat_values)
-      
       call set_row(global_index_p, mat_values)
       call set_col(global_index_p, mat_values)
       call set_entry(-(adv_coeff_total + diff_coeff_total), mat_values)
       call set_values(mat_values, M)
+      call clear_entries(mat_values)
     end do
   end subroutine compute_exact_matrix
   

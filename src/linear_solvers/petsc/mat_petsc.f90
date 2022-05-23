@@ -274,7 +274,7 @@ contains
       end if
     end if
     
-    val_dat%current_row = row
+    val_dat%current_row = i
     val_dat%global_row_indices(i) = petsc_row
     
   end subroutine set_matrix_values_row
@@ -306,7 +306,7 @@ contains
       end if
     end if
     
-    val_dat%current_col = col
+    val_dat%current_col = i
     val_dat%global_col_indices(i) = petsc_col
     
   end subroutine set_matrix_values_col
