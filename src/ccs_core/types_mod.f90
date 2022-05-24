@@ -68,22 +68,17 @@ module types
 
   !> Topology type
   type, public :: topology
-    integer(ccs_int) :: topo_nglobal                                         !< Global mesh size
-    integer(ccs_int) :: topo_nlocal                                          !< Local mesh size
-    integer(ccs_int) :: topo_nhalo                                           !< How many cells in my halo?
-    integer(ccs_int) :: topo_ntotal                                          !< How many cells do I interact with (nlocal + nhalo)?
-    integer(ccs_int) :: topo_nfaces_local                                    !< Number of faces in local mesh
-    integer(ccs_int), dimension(:), allocatable :: topo_global_indices       !< The global index of cells (local + halo)
-    integer(ccs_int), dimension(:), allocatable :: topo_nnb                  !< The per-cell neighbour count
-    integer(ccs_int), dimension(:, :), allocatable :: topo_neighbour_indices !< Cell neighbours (neighbour/face, cell)
-    integer(ccs_int), dimension(:, :), allocatable :: topo_face_indices      !< Cell face index in local face vector (face, cell)
-
     integer(ccs_int) :: global_num_cells                              !< Global number of cells
     integer(ccs_int) :: local_num_cells                               !< Local number of cells
     integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
     integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells        
     integer(ccs_int) :: global_num_faces                              !< Global number of faces
+    integer(ccs_int) :: num_faces                                     !< Local number of faces
     integer(ccs_int) :: max_faces                                     !< Maximum number of faces per cell
+    integer(ccs_int), dimension(:), allocatable :: global_indices         !< The global index of cells (local + halo)
+    integer(ccs_int), dimension(:, :), allocatable :: global_face_indices !< Global list of faces indices
+    integer(ccs_int), dimension(:, :), allocatable :: face_indices        !< Cell face index in local face vector (face, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: nb_indices      !< Cell face index in local face vector (face, cell)
     integer(ccs_int), dimension(:), allocatable :: num_nb             !< The local number of neighbours per cell
     integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
     integer(ccs_int), dimension(:), allocatable :: face_cell1         !< Array of 1st face cells
