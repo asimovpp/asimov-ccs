@@ -96,12 +96,13 @@ contains
     
     do index_p = 1, mesh%nlocal
       call clear_entries(mat_coeffs)
-      call set_row(global_index_p, mat_coeffs)
       
       ! Calculate contribution from neighbours
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
+
+      call set_row(global_index_p, mat_coeffs)
 
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
@@ -236,9 +237,6 @@ contains
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
-
-      call clear_entries(mat_coeffs)
-      call clear_entries(b_coeffs)
       
       ! Calculate contribution from neighbours
       do j = 1, nnb
@@ -266,6 +264,9 @@ contains
 
           call calc_cell_coords(global_index_p, cps, row, col)
           call compute_boundary_values(j, row, col, cps, bcs, bc_value)
+
+          call clear_entries(mat_coeffs)
+          call clear_entries(b_coeffs)
 
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff)*bc_value, b_coeffs)
