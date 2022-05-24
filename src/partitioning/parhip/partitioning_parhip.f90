@@ -28,9 +28,9 @@ contains
     integer(ccs_int) :: suppress
     integer(ccs_int) :: edgecuts
     integer(ccs_int) :: local_part_size
-    integer(ccs_int) :: irank
+    integer(ccs_int) :: irank, isize
     integer(ccs_int) :: ierr
-    integer(ccs_int) :: i
+    integer(ccs_int) :: i, j
 
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3% 
@@ -43,6 +43,7 @@ contains
     tmp_partition = 0
 
     irank = par_env%proc_id ! Current rank
+    isize = par_env%num_procs
 
     ! ParHIP needs 0-indexing - shift array contents by -1
     topo%vtxdist = topo%vtxdist - 1
@@ -56,7 +57,7 @@ contains
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
     local_part_size = size(topo%local_partition)
-
+    
     ! Partitioning an unweighted graph
     select type(par_env)
     type is (parallel_environment_mpi)
@@ -118,6 +119,10 @@ contains
     ! and the total number of ranks in the parallel environment
     allocate(topo%vtxdist(isize + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
 
+    ! Allocate global partition array
+    allocate(topo%global_partition(topo%global_num_cells))
+
+
     topo%vtxdist(1) = 1                                 ! First element is 1
     topo%vtxdist(isize + 1) = topo%global_num_cells + 1 ! Last element is total number of cells + 1
 
@@ -134,10 +139,20 @@ contains
     start_index = int(topo%vtxdist(irank + 1), int32)
     end_index = int(topo%vtxdist(irank + 2), int32) - 1
   
-    ! Allocate adjacency array xadj based on vtxdist
+    ! Initial global partition
+    do i = 1, size(topo%vtxdist) - 1
+      j = i - 1
+      topo%global_partition(topo%vtxdist(i):topo%vtxdist(i+1)-1) = j
+    end do
+
+    ! Count the number of local cells per rank
+    topo%local_num_cells = count(topo%global_partition == irank)
+    call dprint ("Initial number of local cells: "//str(topo%local_num_cells))
+  
+    ! Allocate adjacency index array xadj based on vtxdist
     allocate(topo%xadj(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1) + 1)) 
 
-    ! Allocated temporary 2D integer work array and initialise to 0
+    ! Allocate temporary 2D integer work array and initialise to 0
     allocate(tmp_int2d(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1), topo%max_faces + 1))
     tmp_int2d = 0
 
@@ -147,8 +162,8 @@ contains
     ! All ranks loop over all the faces
     do i=1,topo%global_num_faces
 
-      face_nb1 = topo%face_edge_end1(i)
-      face_nb2 = topo%face_edge_end2(i)
+      face_nb1 = topo%face_cell1(i)
+      face_nb2 = topo%face_cell2(i)
 
       ! If face neighbour 1 is local to the current rank
       ! and face neighbour 2 is not 0
@@ -176,13 +191,12 @@ contains
     enddo 
 
     num_connections = sum(tmp_int2d(:, topo%max_faces+1))
+    call dprint ("Initial number of connections: "//str(num_connections))
 
     ! Allocate adjncy array based on the number of computed connections
     allocate(topo%adjncy(num_connections))
     ! Allocate local partition array
     allocate(topo%local_partition(topo%vtxdist(irank+2)-topo%vtxdist(irank+1)))
-    ! Allocate global partition array
-    allocate(topo%global_partition(topo%global_num_cells))
 
     local_index = 1
 
@@ -192,12 +206,17 @@ contains
        
       do j=1,tmp_int2d(i, topo%max_faces+1)               ! Loop over number of faces
         topo%adjncy(local_index + j - 1) = tmp_int2d(i,j) ! Store global IDs of neighbour cells
+        if(topo%global_partition(tmp_int2d(i,j)) /= irank) then
+          topo%halo_num_cells = topo%halo_num_cells + 1
+        end if
       end do
 
        local_index = local_index + tmp_int2d(i,topo%max_faces+1)
        topo%xadj(i+1) = local_index
 
     end do
+
+    call dprint ("Initial number of halo cells: "//str(topo%halo_num_cells))
 
     ! Allocate weight arrays
     allocate(topo%adjwgt(num_connections))
