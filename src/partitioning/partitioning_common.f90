@@ -53,15 +53,15 @@ implicit none
     ! Read attribute "maxfaces" - the maximum number of faces per cell
     call read_scalar(geo_reader, "maxfaces", topo%max_faces)
 
-    allocate(topo%face_edge_end1(topo%global_num_faces))
-    allocate(topo%face_edge_end2(topo%global_num_faces))
+    allocate(topo%face_cell1(topo%global_num_faces))
+    allocate(topo%face_cell2(topo%global_num_faces))
 
     sel_start(1) = 0 ! Global index to start reading from
     sel_count(1) = topo%global_num_faces ! How many elements to read in total
 
     ! Read arrays face/cell1 and face/cell2
-    call read_array(geo_reader, "/face/cell1", sel_start, sel_count, topo%face_edge_end1)
-    call read_array(geo_reader, "/face/cell2", sel_start, sel_count, topo%face_edge_end2)
+    call read_array(geo_reader, "/face/cell1", sel_start, sel_count, topo%face_cell1)
+    call read_array(geo_reader, "/face/cell2", sel_start, sel_count, topo%face_cell2)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -71,182 +71,134 @@ implicit none
 
   end subroutine read_topology
 
+  ! Compute the new topology connectivity after partitioning
   module subroutine compute_connectivity(par_env, topo)
 
     use mpi
+    use iso_fortran_env, only: int32
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
 
     ! Local variables
-    integer(ccs_int) :: i, j, k, m, n
-    integer(ccs_int) :: ierr
-    integer(ccs_int) :: num_local_entries ! The number of local P2P entries
-    integer(ccs_int) :: num_entries       ! The total number of P2P entries
-    integer(ccs_int), dimension(:), allocatable :: tmp_int1d   ! Temporary 1D integer array
     integer(ccs_int), dimension(:,:), allocatable :: tmp_int2d ! Temporary 2D integer array
-    integer(ccs_int), dimension(:), allocatable :: p2p_row_idx !< P2P matrix row index
-    integer(ccs_int), dimension(:), allocatable :: p2p_col_idx !< P2P matrix col index
-    integer(ccs_int), dimension(:), allocatable :: p2p_value   !< P2P matrix values
-    integer(ccs_int), dimension(:), allocatable :: global_boundary_dist ! Global distribution of boundaries
-    integer(ccs_int), dimension(:), allocatable :: global_cell_dist ! Global distribution of cells
-    integer(ccs_int), dimension(:), allocatable :: global_face_dist ! Global distribution of faces
-    integer(ccs_int), dimension(:), allocatable :: global_internalface_dist ! Global distribution of internal faces 
+    integer(ccs_int) :: irank ! MPI rank ID
+    integer(ccs_int) :: isize ! Size of MPI world
+    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: start_index 
+    integer(ccs_int) :: end_index  
+    integer(ccs_int) :: face_nb1  
+    integer(ccs_int) :: face_nb2
+    integer(ccs_int) :: local_index
+    integer(ccs_int) :: num_connections
+ 
+    irank = par_env%proc_id
+    isize = par_env%num_procs
 
+    ! Count the new number of local cells per rank
+    topo%local_num_cells = count(topo%global_partition == irank)
+    call dprint ("Number of local cells after partitioning: "//str(topo%local_num_cells))
 
-    allocate(tmp_int1d(par_env%num_procs))
-    allocate(tmp_int2d(par_env%num_procs,2))
+    topo%vtxdist(1) = 1
 
-    tmp_int1d = 0
+    ! Recompute vtxdist array based on the new partition
+    do i = 2, isize + 1
+      topo%vtxdist(i) = count(topo%global_partition == i - 2) + topo%vtxdist(i - 1)
+    end do
 
-    associate(num_procs => par_env%num_procs, &
-              irank => par_env%proc_id)
+    if(irank == 0) then
+      do i = 1, isize + 1
+        call dprint("new vtxdist("//str(i)//"): "//str(int(topo%vtxdist(i))))
+      end do    
+    end if
 
-      if(irank == 0) then
-        do i = 1, topo%global_num_cells
-          call dprint("Global partition: "//str(int(topo%global_partition(i))))
-        end do
+    ! Deallocate old xadj array
+    if (allocated(topo%xadj)) then
+      deallocate(topo%xadj)
+    end if
+
+    ! Allocate new adjacency index array xadj based on new vtxdist
+    allocate(topo%xadj(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1) + 1)) 
+  
+    start_index = int(topo%vtxdist(irank + 1), int32)
+    end_index = int(topo%vtxdist(irank + 2), int32) - 1
+
+    ! Allocate array to hold number of neighbours for local cells
+    allocate(topo%num_nb(topo%local_num_cells))
+    topo%num_nb = topo%max_faces ! NOTE: This assumes a mesh of uniform cell types
+
+    ! Reset global_boundaries array
+    topo%global_boundaries = 0
+
+   ! Allocate temporary 2D integer work array and initialise to 0
+    allocate(tmp_int2d(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1), topo%max_faces + 1))
+    tmp_int2d = 0
+
+    ! All ranks loop over all the faces again
+    do i=1,topo%global_num_faces
+
+      face_nb1 = topo%face_cell1(i)
+      face_nb2 = topo%face_cell2(i)
+
+      ! If face neighbour 1 is local to the current rank
+      ! and face neighbour 2 is not 0
+      if(face_nb1 .ge. start_index .and. face_nb1 .le. end_index .and. face_nb2 .ne. 0) then
+         local_index = face_nb1 - start_index + 1                 ! Local cell index
+         k = tmp_int2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+         tmp_int2d(local_index, k) = face_nb2                       ! Store global index of neighbour cell
+         tmp_int2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
+      endif
+
+      ! If face neighbour 2 is local to the current rank
+      ! and face neighbour 1 is not 0
+      if(face_nb2 .ge. start_index .and. face_nb2 .le. end_index .and. face_nb1  .ne. 0) then
+         local_index = face_nb2 - start_index + 1                 ! Local cell index
+         k = tmp_int2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+         tmp_int2d(local_index, k) = face_nb1                       ! Store global index of neighbour cell
+         tmp_int2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
+      endif
+
+      ! If face neighbour 2 is 0 we have a boundary face
+      if(face_nb2 .eq. 0) then
+        topo%global_boundaries(face_nb1) = topo%global_boundaries(face_nb1) + 1
       end if
 
-      ! All ranks loop over the total number of processes from 0 to num_procs - 1
-      do k = 0, num_procs - 1
+    enddo 
 
-        tmp_int2d = 0
-        
-        ! Loop over rank's local vertices
-        do i = 1, topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1)
+    ! New number of local connections
+    num_connections = sum(tmp_int2d(:, topo%max_faces+1))
+    call dprint ("Number of connections after partitioning: "//str(num_connections))
 
-          ! Look up global partition for current vertex "i"
-          m = topo%global_partition(i + topo%vtxdist(irank + 1) - 1)
-
-          ! If global partition for vertex "i" equals "k"
-          if (m == k) then
-
-            ! Loop over the number of vertices adjacent to vertex "i"
-            do j = 1, topo%xadj(i + 1) - topo%xadj(i)
-
-              ! Look up the global partition of the adjacent vertex
-              n = topo%global_partition(topo%adjncy(topo%xadj(i) + j - 1))
-
-              ! Is the adjacent vertex on the same partition or not?
-              ! XXXX: Currently broken - value of n can be 0...
-              if (m /= n) then
-                ! Adjacent vertex on different partition
-                tmp_int2d(n, 2) = tmp_int2d(n, 2) + 1
-              else
-                ! Adjacent vertex on same partition
-                tmp_int2d(n, 1) = tmp_int2d(n, 1) + 1
-              endif
-
-            enddo
-
-          endif
-
-        enddo
-
-        select type(par_env)
-        type is(parallel_environment_mpi)
-          call MPI_AllReduce(MPI_IN_PLACE, tmp_int2d, num_procs * 2, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
-        end select
-
-        if (k == irank) then
-          tmp_int1d = tmp_int2d( : , 2)
-          tmp_int1d(irank + 1) = tmp_int2d(k + 1, 1) 
-        endif
-
-      enddo
-
-      ! Count local non-zero entries
-      num_local_entries = count(tmp_int1d /= 0)
+    ! Allocate new adjncy array based on the new number of computed connections
+    if (allocated(topo%adjncy)) then
+      deallocate(topo%adjncy)
+    end if
     
-      select type(par_env)
-      type is(parallel_environment_mpi)
+    allocate(topo%adjncy(num_connections))
 
-        ! Compute total number of non-zero entries
-        call MPI_Allreduce(num_local_entries, num_entries, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+    local_index = 1
 
-      end select
-
-      call dprint("Number of local P2P entries: "//str(num_local_entries))
-      call dprint("Total number of P2P entries: "//str(num_entries))
-
-      ! Allocate arrays to store P2P connectivity (as CSR matrix)
-      allocate(p2p_value(num_entries))
-      allocate(p2p_col_idx(num_entries))
-      allocate(p2p_row_idx(num_procs+1))
+    do i=1,end_index-start_index+1  ! Loop over local cells
       
-      ! Initialise arrays to 0
-      p2p_row_idx = 0
-      p2p_col_idx = 0
-      p2p_value = 0         
-
-      ! Compute row indices
-      p2p_row_idx(irank + 2) = num_local_entries
-
-      select type(par_env)
-      type is(parallel_environment_mpi)
-
-        call MPI_AllReduce(MPI_IN_PLACE, p2p_row_idx, num_procs + 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
-
-      end select
-
-      p2p_row_idx(1) = 1
-      do j = 2, num_procs + 1
-        p2p_row_idx(j) = p2p_row_idx(j) + p2p_row_idx(j-1) 
-      enddo
-      
-      ! Compute column indices and values
-      i = p2p_row_idx(irank + 1)
-
-      do j = 1,num_procs
-        if (tmp_int1d(j) /= 0) then
-          p2p_col_idx(i) = j
-          p2p_value(i) = tmp_int1d(j)
-          i = i + 1
-        endif
-      enddo
-
-      select type(par_env)
-      type is(parallel_environment_mpi)
-        call MPI_AllReduce(MPI_IN_PLACE, p2p_col_idx, num_entries, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
-        call MPI_AllReduce(MPI_IN_PLACE, p2p_value, num_entries, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
-      end select
-
-      do i = 1, num_entries
-        call dprint("P2P matrix value "//str(i)//": "//str(int(p2p_value(i))))
-        call dprint("P2P matrix col index "//str(i)//": "//str(int(p2p_col_idx(i))))
+      topo%xadj(i) = local_index                          ! Pointer to start of current
+       
+      do j=1,tmp_int2d(i, topo%max_faces+1)               ! Loop over number of faces
+        topo%adjncy(local_index + j - 1) = tmp_int2d(i,j) ! Store global IDs of neighbour cells
+        if(topo%global_partition(tmp_int2d(i,j)) /= irank) then
+          topo%halo_num_cells = topo%halo_num_cells + 1   ! Count the number of halo cells
+        end if
       end do
 
-      do i = 1, num_procs + 1
-        call dprint("P2P matrix row index "//str(i)//": "//str(int(p2p_row_idx(i))))
-      end do
+       local_index = local_index + tmp_int2d(i,topo%max_faces+1)
+       topo%xadj(i+1) = local_index
 
-      allocate(global_cell_dist(num_procs))
-      ! allocate(global_boundary_dist(num_procs))
-      ! allocate(global_face_dist(num_procs))
-      ! allocate(global_internalface_dist(num_procs))
+    end do
 
-      global_cell_dist = 0
-      ! global_boundary_dist = 0
-      ! global_face_dist = 0
-      ! global_internalface_dist = 0
+    call dprint ("Number of halo cells after partitioning: "//str(topo%halo_num_cells))
 
-      do i = 1, topo%global_num_cells
-        global_cell_dist(topo%global_partition(i)+1) = global_cell_dist(topo%global_partition(i)+1) + 1 
-      enddo
+    topo%total_num_cells = topo%local_num_cells + topo%halo_num_cells
 
-      do i = 1, num_procs
-        call dprint("Global cell distribution for rank "//str(i)//": "//str(int(p2p_row_idx(i))))
-      end do
-
-      
-    end associate
-
-    deallocate(p2p_col_idx)
-    deallocate(p2p_row_idx)
-    deallocate(p2p_value)
-    deallocate(tmp_int1d)
-    deallocate(tmp_int2d)
+    call dprint ("Total number of cells (local + halo) after partitioning: "//str(topo%total_num_cells))
 
   end subroutine compute_connectivity
 
