@@ -118,5 +118,68 @@ contains
     end select
        
   end subroutine
+
+  module subroutine set_solver_method(method_name, solver)
+
+    use petscksp, only : KSPSetType, KSPSetFromOptions
+    
+    character(len=*), intent(in) :: method_name
+    class(linear_solver), intent(inout) :: solver
+
+    integer(ccs_err) :: ierr
+    
+    select type(solver)
+    type is (linear_solver_petsc)
+      associate(ksp => solver%KSP)
+        if (method_name == "CG") then
+          call KSPSetType(ksp, "cg", ierr)
+        else if (method_name == "GMRES") then
+          call KSPSetType(ksp, "gmres", ierr)
+        else if (method_name == "BCGS") then
+          call KSPSetType(ksp, "bcgs", ierr)
+        else
+          print *, "ERROR: Unknown solver method ", method_name
+          stop
+        end if
+
+        call KSPSetFromOptions(ksp, ierr)
+      end associate
+    class default
+      print *, "ERROR: Unknown solver type"
+      stop
+    end select
+    
+  end subroutine set_solver_method
+
+  module subroutine set_solver_precon(precon_name, solver)
+
+    use petscksp, only : KSPGetPC
+    use petscpc, only : tPC, PCSetType
+    
+    character(len=*), intent(in) :: precon_name
+    class(linear_solver), intent(inout) :: solver
+
+    type(tPC) :: pc
+    integer(ccs_err) :: ierr
+    
+    select type(solver)
+    type is (linear_solver_petsc)
+      associate(ksp => solver%KSP)
+        call KSPGetPC(ksp, pc, ierr)
+        
+        if (precon_name == "BJACOBI") then
+          call PCSetType(pc, "bjacobi", ierr)
+        else if (precon_name == "GAMG") then
+          call PCSetType(pc, "gamg", ierr)
+          print *, "ERROR: Unknown solver precon ", precon_name
+          stop
+        end if
+      end associate
+    class default
+      print *, "ERROR: Unknown solver type"
+      stop
+    end select
+    
+  end subroutine set_solver_precon
   
 end submodule solver_petsc

@@ -19,6 +19,8 @@ module solver
   public :: set_equation_system
   public :: axpy
   public :: norm
+  public :: set_solver_method
+  public :: set_solver_precon
   
   interface
 
@@ -59,6 +61,18 @@ module solver
       type(equation_system), intent(inout) :: lin_sys
     end subroutine
 
+    !> Interface to set the primary method of a linear solver
+    module subroutine set_solver_method(method_name, solver)
+      character(len=*), intent(in) :: method_name       !> String naming the linear solver to be used.
+      class(linear_solver), intent(inout) :: solver !> The linear solver object
+    end subroutine set_solver_method
+
+    !> Interface to set the preconditioner of a linear solver
+    module subroutine set_solver_precon(precon_name, solver)
+      character(len=*), intent(in) :: precon_name       !> String naming the preconditioner to be used.
+      class(linear_solver), intent(inout) :: solver !> The linear solver object
+    end subroutine set_solver_precon
+    
   end interface
   
   !>  Generic interface to perform the AXPY operation (a*x + y)
