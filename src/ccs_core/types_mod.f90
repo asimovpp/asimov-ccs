@@ -79,11 +79,15 @@ module types
     integer(ccs_int), dimension(:, :), allocatable :: topo_face_indices      !< Cell face index in local face vector (face, cell)
 
     integer(ccs_int) :: global_num_cells                              !< Global number of cells
+    integer(ccs_int) :: local_num_cells                               !< Local number of cells
+    integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
+    integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells        
     integer(ccs_int) :: global_num_faces                              !< Global number of faces
     integer(ccs_int) :: max_faces                                     !< Maximum number of faces per cell
+    integer(ccs_int), dimension(:), allocatable :: num_nb             !< The local number of neighbours per cell
     integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
-    integer(ccs_int), dimension(:), allocatable :: face_edge_end1     !< Array of edge endpoints
-    integer(ccs_int), dimension(:), allocatable :: face_edge_end2     !< Array of edge endpoints
+    integer(ccs_int), dimension(:), allocatable :: face_cell1         !< Array of 1st face cells
+    integer(ccs_int), dimension(:), allocatable :: face_cell2         !< Array of 2nd face cells
     integer(ccs_long), dimension(:), allocatable :: xadj              !< Array that points to where in adjncy the list for each vertex 
                                                                       !< begins and ends  - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjncy            !< Array storing adjacency lists for each vertex consecutively
