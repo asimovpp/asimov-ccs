@@ -38,6 +38,9 @@ implicit none
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
 
+    integer(ccs_long), dimension(2) :: sel2_start
+    integer(ccs_long), dimension(2) :: sel2_count
+
     geo_file = case_name//geoext
     adios2_file = case_name//adiosconfig
 
@@ -55,6 +58,7 @@ implicit none
 
     allocate(topo%face_cell1(topo%global_num_faces))
     allocate(topo%face_cell2(topo%global_num_faces))
+    allocate(topo%global_face_indices(topo%max_faces, topo%global_num_cells))
 
     sel_start(1) = 0 ! Global index to start reading from
     sel_count(1) = topo%global_num_faces ! How many elements to read in total
@@ -62,6 +66,12 @@ implicit none
     ! Read arrays face/cell1 and face/cell2
     call read_array(geo_reader, "/face/cell1", sel_start, sel_count, topo%face_cell1)
     call read_array(geo_reader, "/face/cell2", sel_start, sel_count, topo%face_cell2)
+
+    sel2_start = 0
+    sel2_count(1) = topo%max_faces! topo%global_num_cells
+    sel2_count(2) = topo%global_num_cells
+
+    call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, topo%global_face_indices)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -91,6 +101,7 @@ implicit none
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
+    integer(ccs_int) :: current, previous
  
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -199,6 +210,51 @@ implicit none
     topo%total_num_cells = topo%local_num_cells + topo%halo_num_cells
 
     call dprint ("Total number of cells (local + halo) after partitioning: "//str(topo%total_num_cells))
+
+    ! Allocate and then compute global indices
+    allocate(topo%global_indices(topo%total_num_cells))
+    ! First the indices of the local cells
+    k = 1
+    do i = 1, topo%global_num_cells
+      if(topo%global_partition(i) == irank) then
+        topo%global_indices(k) = i
+        k = k + 1
+      end if 
+    end do
+    ! Then the indices of the halo cells
+    k = topo%local_num_cells + 1
+    do i = 1, size(topo%adjncy)
+      if (topo%global_partition(topo%adjncy(i)) /= irank) then
+        topo%global_indices(k) = topo%adjncy(i)
+        k = k + 1
+      end if
+    end do
+
+    ! Now compute the face indices for the local vector
+    allocate(topo%face_indices(topo%max_faces, topo%local_num_cells))
+    do i = 1, topo%local_num_cells
+      k = topo%global_indices(i)
+      do j = 1, topo%max_faces
+        topo%face_indices(j,i) = topo%global_face_indices(j,k)
+      end do
+    end do
+
+    deallocate(topo%global_face_indices) ! No longer needed now we have the local face indices
+
+    topo%num_faces = 0
+    previous = 0
+
+    ! Next, compute the number of local faces, which  
+    ! equals the maximum value in the face_indices array
+    topo%num_faces = maxval(topo%face_indices)
+
+    call dprint("Number of local faces "//str(topo%num_faces))
+
+    if(irank == 0) print*,"Global boundaries: ", topo%global_boundaries(1:10)
+
+    ! Finally, allocate and compute the neighbour indices
+    allocate(topo%nb_indices(topo%max_faces, topo%local_num_cells))
+
 
   end subroutine compute_connectivity
 
