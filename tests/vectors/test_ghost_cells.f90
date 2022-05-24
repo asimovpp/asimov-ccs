@@ -10,7 +10,7 @@ program test_ghost_cells
   use meshing, only: set_neighbour_location, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
   use utils, only : update, initialise, &
-                set_size, pack_entries, set_values
+                set_size, set_values
   use petsctypes, only: vector_petsc
 
   implicit none
