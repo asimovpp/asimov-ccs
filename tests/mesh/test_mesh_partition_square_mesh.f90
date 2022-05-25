@@ -30,6 +30,8 @@ program test_mesh_partitioning_parhip
 
   n = count(mesh%neighbour_indices > 0)
 
+  print*,"Number of positive value neighbour indices: ", n
+
   allocate(topo%adjncy(n))
   allocate(topo%adjwgt(n))
 
@@ -42,6 +44,8 @@ program test_mesh_partitioning_parhip
       end if
     end do
   end do
+
+  print*,"Adjacency array: ", topo%adjncy
 
   j = 1
   topo%xadj(j) = 1
@@ -57,6 +61,8 @@ program test_mesh_partitioning_parhip
   end do
 
   topo%xadj(j + 1) = size(topo%adjncy) + 1
+
+  print*,"Adjacency index array: ", topo%xadj
 
   ! Hardcode for now
   allocate(topo%vtxdist(5))
