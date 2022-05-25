@@ -79,6 +79,8 @@ module boundary_conditions
 
     class(*), pointer, intent(in) :: config_file
     type(bc_config), intent(out) :: bcs
+
+    ! local variables
     character(len=16), dimension(:), allocatable :: region
     character(len=16), dimension(:), allocatable :: bc_type
     real(ccs_real), dimension(:,:), allocatable :: bc_data

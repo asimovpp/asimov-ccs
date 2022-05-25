@@ -22,11 +22,10 @@ submodule (fv) fv_common
 contains
 
   !>  Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, mesh, cps, M, vec)
     class(field), intent(in) :: phi           !< scalar field structure
     class(field), intent(in) :: mf            !< mass flux field structure
     type(ccs_mesh), intent(in) :: mesh        !< the mesh being used
-    type(bc_config), intent(in) :: bcs        !< the boundary conditions structure being used
     integer(ccs_int), intent(in) :: cps       !< the number of cells per side in the (square) mesh
     class(ccs_matrix), intent(inout) :: M     !< Data structure containing matrix to be filled
     class(ccs_vector), intent(inout) :: vec   !< Data structure containing RHS vector to be filled
@@ -45,7 +44,7 @@ contains
 
       ! Loop over boundaries
       call dprint("CF: boundaries")
-      call compute_boundary_coeffs(phi, mf_data, mesh, bcs, cps, M, vec)
+      call compute_boundary_coeffs(phi, mf_data, mesh, cps, M, vec)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
@@ -159,12 +158,12 @@ contains
 
   !v  Computes the value of the scalar field on the boundary based on linear interpolation between 
   !  values provided on box corners
-  subroutine compute_boundary_values(index_nb, row, col, cps, bcs, bc_value)
+  subroutine compute_boundary_values(phi, index_nb, row, col, cps, bc_value)
+    class(field), intent(in) :: phi           !< the field for which boundary values are being computed
     integer, intent(in) :: index_nb           !< index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
     integer, intent(in) :: row                !< global row of cell within square mesh
     integer, intent(in) :: col                !< global column of cell within square mesh
     integer, intent(in) :: cps                !< number of cells per side in square mesh
-    type(bc_config), intent(in) :: bcs        !< BC configuration data structure
     real(ccs_real), intent(out) :: bc_value   !< the value of the scalar field at the specified boundary
     real(ccs_real) :: row_cps, col_cps
 
@@ -193,11 +192,10 @@ contains
   end subroutine compute_boundary_values
 
   !>  Computes the matrix coefficient for cells on the boundary of the mesh
-  subroutine compute_boundary_coeffs(phi, mf, mesh, bcs, cps, M, b)
+  subroutine compute_boundary_coeffs(phi, mf, mesh, cps, M, b)
     class(field), intent(in) :: phi                 !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf  !< mass flux array defined at faces
     type(ccs_mesh), intent(in) :: mesh              !< Mesh structure
-    type(bc_config), intent(in) :: bcs              !< boundary conditions structure
     integer(ccs_int), intent(in) :: cps             !< number of cells per side
     class(ccs_matrix), intent(inout) :: M           !< Matrix structure being assigned
     class(ccs_vector), intent(inout) :: b           !< vector structure being assigned
@@ -259,7 +257,7 @@ contains
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
           call calc_cell_coords(global_index_p, cps, row, col)
-          call compute_boundary_values(j, row, col, cps, bcs, bc_value)
+          call compute_boundary_values(phi, j, row, col, cps, bc_value)
 
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff)*bc_value, b_coeffs)

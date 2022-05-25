@@ -70,7 +70,7 @@ module fv
   !
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure (defined at faces)
-  !> @param[in] mesh - the mesh being used
+  !> @param[in] mesh      - the mesh being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled

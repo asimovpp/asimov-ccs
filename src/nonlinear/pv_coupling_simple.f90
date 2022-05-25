@@ -87,7 +87,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv)
+      call calculate_velocity(par_env, mesh, cps, mf, p, M, source, lin_system, u, v, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -193,7 +193,7 @@ contains
     
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
-    call compute_fluxes(u, mf, mesh, bcs, cps, M, vec)
+    call compute_fluxes(u, mf, mesh, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     call dprint("GV: compute u gradp")
