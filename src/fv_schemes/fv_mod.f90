@@ -1,6 +1,6 @@
-!> @brief Module file fv.mod
+!>  Module file fv.mod
 !
-!> @details An interface to finite volume implementations (CDS, UDS, etc.)
+!>  An interface to finite volume implementations (CDS, UDS, etc.)
 
 module fv
 
@@ -25,7 +25,7 @@ module fv
 
   interface
 
-  !> @brief Calculates advection coefficient for neighbouring cell using CDS discretisation
+  !>  Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
   !> @param[in] phi         - scalar (central) field
   !> @param[in] mf          - mass flux at the face
@@ -38,7 +38,7 @@ module fv
     real(ccs_real), intent(out) :: coeff
   end subroutine calc_advection_coeff_cds
   
-  !> @brief Calculates advection coefficient for neighbouring cell using UDS discretisation
+  !>  Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
   !> @param[in] phi         - scalar (upwind) field
   !> @param[in] mf          - mass flux at the face
@@ -51,7 +51,7 @@ module fv
     real(ccs_real), intent(out) :: coeff
   end subroutine calc_advection_coeff_uds
 
-  !> @brief Sets the diffusion coefficient
+  !>  Sets the diffusion coefficient
   !
   !> @param[in] index_p - the local cell index
   !> @param[in] index_nb  - the local neigbouring cell index
@@ -66,7 +66,7 @@ module fv
     real(ccs_real) :: coeff
   end function calc_diffusion_coeff
 
-  !> @brief Computes fluxes and assign to matrix and RHS
+  !>  Computes fluxes and assign to matrix and RHS
   !
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure (defined at faces)
@@ -84,7 +84,7 @@ module fv
   end subroutine
 
 
-  !> @brief Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
+  !>  Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   !
   !> @param[in] u, v     - arrays containing x, y velocities
   !> @param[in] p        - array containing pressure
@@ -103,7 +103,7 @@ module fv
     real(ccs_real) :: flux
   end function calc_mass_flux
 
-  !> @brief Calculates the row and column indices from flattened vector index. Assumes square mesh
+  !>  Calculates the row and column indices from flattened vector index. Assumes square mesh
   !
   !> @param[in] index  - cell index
   !> @param[in] cps    - number of cells per side
@@ -114,7 +114,7 @@ module fv
     integer(ccs_int), intent(out) :: row, col
   end subroutine calc_cell_coords
 
-  !> @brief Performs an update of the gradients of a field.
+  !>  Performs an update of the gradients of a field.
   !
   !> @param[in]    mesh - the mesh
   !> @param[inout] phi       - the field whose gradients we want to update

@@ -1,17 +1,16 @@
-!> @brief Program file for Poisson case
+!>  Program file for Poisson case
 !
-!> @details Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
-!!          This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
-!!          the code is independent of PETSc.
-!!          The example case solves the equation
-!!          \f[
-!!            {\nabla^2} p = f
-!!          \f]
-!!          in the unit square with Dirichlet boundary conditions
-!!          \f[
-!!            p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
-!!          \f]
-!
+!v  Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
+!  This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note
+!  the code is independent of PETSc.
+!  The example case solves the equation
+!  \[
+!    {\nabla^2} p = f
+!  \]
+!  in the unit square with Dirichlet boundary conditions
+!  \[
+!    p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
+!  \]
 
 program poisson
 
@@ -26,7 +25,10 @@ program poisson
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_equation_system, axpy, norm
   use utils, only : update, begin_update, end_update, finalise, initialise, &
-                    set_size, set_values, pack_entries
+                    set_size, &
+                    set_values, clear_entries, set_values, set_row, set_entry, set_mode, &
+                    pack_entries
+  use vec, only : create_vector_values
   use mesh_utils, only : build_square_mesh
   use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
        count_neighbours, get_boundary_status
@@ -40,7 +42,7 @@ program poisson
 
   class(parallel_environment), allocatable, target :: par_env
   class(ccs_vector), allocatable, target :: u, b
-  class(ccs_vector), allocatable :: ustar
+  class(ccs_vector), allocatable :: u_exact
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
 
@@ -81,7 +83,7 @@ program poisson
   !! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, b)
-  call create_vector(vec_properties, ustar)
+  call create_vector(vec_properties, u_exact)
   call create_vector(vec_properties, u)
 
   call begin_update(u) ! Start the parallel assembly for u
@@ -107,8 +109,8 @@ program poisson
   call solve(poisson_solver)
 
   !! Check solution
-  call set_exact_sol(ustar)
-  call axpy(-1.0_ccs_real, ustar, u)
+  call set_exact_sol(u_exact)
+  call axpy(-1.0_ccs_real, u_exact, u)
 
   err_norm = norm(u, 2) * mesh%h
   if (par_env%proc_id == par_env%root) then
@@ -118,7 +120,7 @@ program poisson
   !! Clean up
   deallocate(u)
   deallocate(b)
-  deallocate(ustar)
+  deallocate(u_exact)
   deallocate(M)
   deallocate(poisson_solver)
 
@@ -134,7 +136,6 @@ contains
 
   subroutine eval_rhs(b)
 
-    
     class(ccs_vector), intent(inout) :: b
 
     integer(ccs_int) :: i
@@ -146,10 +147,11 @@ contains
     real(ccs_real), dimension(ndim) :: cc
     real(ccs_real) :: V 
     integer(ccs_int) :: global_index_p
+    integer(ccs_int) :: nrows_working_set
     
-    val_dat%setter_mode = add_mode
-    allocate(val_dat%indices(1))
-    allocate(val_dat%values(1))
+    nrows_working_set = 1_ccs_int
+    call create_vector_values(nrows_working_set, val_dat)
+    call set_mode(add_mode, val_dat)
 
     associate(nloc => mesh%nlocal, &
          h => mesh%h)
@@ -157,6 +159,8 @@ contains
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
       do i = 1, nloc
+        call clear_entries(val_dat)
+
         call set_cell_location(mesh, i, loc_p)
         call get_centre(loc_p, cc)
         call get_volume(loc_p, V)
@@ -164,18 +168,19 @@ contains
         associate(x => cc(1), y => cc(2))
           call eval_cell_rhs(x, y, h**2, r)
           r = V * r
-          call pack_entries(1, global_index_p, r, val_dat)
+          call set_row(global_index_p, val_dat)
+          call set_entry(r, val_dat)
           call set_values(val_dat, b)
         end associate
       end do
     end associate
     
-    deallocate(val_dat%indices)
+    deallocate(val_dat%global_indices)
     deallocate(val_dat%values)
     
   end subroutine eval_rhs
 
-  !> @brief Apply forcing function
+  !>  Apply forcing function
   pure subroutine eval_cell_rhs (x, y, H, r)
     
     real(ccs_real), intent(in) :: x, y, H
@@ -219,8 +224,8 @@ contains
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
         
-      allocate(mat_coeffs%row_indices(1))
-      allocate(mat_coeffs%col_indices(1 + nnb))
+      allocate(mat_coeffs%global_row_indices(1))
+      allocate(mat_coeffs%global_col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
 
       row = global_index_p
@@ -258,8 +263,8 @@ contains
       !! Set the values
       call set_values(mat_coeffs, M)
 
-      deallocate(mat_coeffs%row_indices)
-      deallocate(mat_coeffs%col_indices)
+      deallocate(mat_coeffs%global_row_indices)
+      deallocate(mat_coeffs%global_col_indices)
       deallocate(mat_coeffs%values)
         
     end do
@@ -291,18 +296,21 @@ contains
 
     integer(ccs_int) :: nnb
     logical :: is_boundary
-    
-    allocate(mat_coeffs%row_indices(1))
-    allocate(mat_coeffs%col_indices(1))
-    allocate(mat_coeffs%values(1))
-    allocate(vec_values%indices(1))
-    allocate(vec_values%values(1))
 
+    integer(ccs_int) :: nrows_working_set
+    
+    allocate(mat_coeffs%global_row_indices(1))
+    allocate(mat_coeffs%global_col_indices(1))
+    allocate(mat_coeffs%values(1))
     mat_coeffs%setter_mode = add_mode
-    vec_values%setter_mode = add_mode
+
+    nrows_working_set = 1_ccs_int
+    call create_vector_values(nrows_working_set, vec_values)
+    call set_mode(add_mode, vec_values)
 
     do i = 1, mesh%nlocal
       if (minval(mesh%neighbour_indices(:, i)) < 0) then
+        call clear_entries(vec_values)
         call set_cell_location(mesh, i, loc_p)
         call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real 
@@ -334,7 +342,9 @@ contains
         end do
 
         call pack_entries(1, 1, row, col, coeff, mat_coeffs)
-        call pack_entries(1, idx, r, vec_values)
+
+        call set_row(row, vec_values)
+        call set_entry(r, vec_values)
 
         call set_values(mat_coeffs, M)
         call set_values(vec_values, b)
@@ -342,34 +352,39 @@ contains
       end if
     end do
   
-    deallocate(vec_values%indices)
+    deallocate(vec_values%global_indices)
     deallocate(vec_values%values)
   
   end subroutine apply_dirichlet_bcs
 
-  subroutine set_exact_sol(ustar)
+  subroutine set_exact_sol(u_exact)
 
-    class(ccs_vector), intent(inout) :: ustar
+    class(ccs_vector), intent(inout) :: u_exact
 
     type(vector_values) :: vec_values
     integer(ccs_int) :: i
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
-    
-    allocate(vec_values%indices(1))
-    allocate(vec_values%values(1))
-    vec_values%setter_mode = insert_mode
+    integer(ccs_int) :: nrows_working_set
+
+    nrows_working_set = 1_ccs_int
+    call create_vector_values(nrows_working_set, vec_values)
+    call set_mode(insert_mode, vec_values)
+
     do i = 1, mesh%nlocal
+      call clear_entries(vec_values)
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
-      call pack_entries(1, global_index_p, rhs_val(i), vec_values)
-      call set_values(vec_values, ustar)
+
+      call set_row(global_index_p, vec_values)
+      call set_entry(rhs_val(i), vec_values)
+      call set_values(vec_values, u_exact)
     end do
-    deallocate(vec_values%indices)
+    deallocate(vec_values%global_indices)
     deallocate(vec_values%values)
 
-    call update(ustar)
+    call update(u_exact)
   end subroutine set_exact_sol
 
   subroutine initialise_poisson(par_env)
