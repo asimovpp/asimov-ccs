@@ -32,20 +32,29 @@ program test_mesh_partitioning_parhip
 
   print*,"Number of positive value neighbour indices: ", n
 
-  allocate(topo%adjncy(n))
-  allocate(topo%adjwgt(n))
+  select type(par_env)
+  type is (parallel_environment_mpi)
 
-  k = 1
-  do j = 1, topo%local_num_cells
-    do i = 1, topo%max_faces
-      if(mesh%neighbour_indices(i,j) > 0) then
-        topo%adjncy(k) = mesh%global_indices(mesh%neighbour_indices(i,j))
-        k = k + 1
+    if(par_env%num_procs == 4) then
+
+      if(par_env%proc_id == 0) then
+        topo%adjncy = (/ 2, 6, 1, 3, 6, 2, 4, 7, 3, 8 /)
+      else if (par_env%proc_id == 1) then
+        topo%adjncy = (/ 1, 6, 9, 2, 5, 7, 10, 3, 6, 8, 11, 4, 7, 12 /)
+      else if (par_env%proc_id == 2) then
+        topo%adjncy = (/ 5, 10, 13, 6, 9, 11, 14, 7, 10, 12, 15, 8, 11, 16 /)
+      else 
+        topo%adjncy = (/ 9, 14, 10, 13, 15, 11, 14, 16, 12, 15 /)
       end if
-    end do
-  end do
 
-  print*,"Adjacency array: ", topo%adjncy
+    else
+      print*,"Test must be run on 4 MPI ranks"
+    end if 
+ 
+    class default
+    write(message, *) "ERROR: Unknown parallel environment!"
+    call stop_test(message)
+  end select
 
   j = 1
   topo%xadj(j) = 1
