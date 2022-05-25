@@ -27,6 +27,7 @@ program test_mesh_partitioning_parhip
   
   allocate(topo%global_partition(topo%global_num_cells))
   allocate(topo%local_partition(topo%local_num_cells))
+  allocate(topo%xadj(topo%local_num_cells) + 1)
 
   n = count(mesh%neighbour_indices > 0)
 
@@ -55,6 +56,8 @@ program test_mesh_partitioning_parhip
     write(message, *) "ERROR: Unknown parallel environment!"
     call stop_test(message)
   end select
+
+  print*,"Adjacency arrays: ", topo%adjncy
 
   j = 1
   topo%xadj(j) = 1
