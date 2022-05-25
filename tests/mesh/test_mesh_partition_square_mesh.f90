@@ -13,7 +13,7 @@ program test_mesh_partitioning_parhip
 
   type(topology) :: topo
   type(ccs_mesh), target :: mesh
-  integer :: i, k, n, current, previous
+  integer :: i, j, k, n, current, previous
 
   call init()
 
