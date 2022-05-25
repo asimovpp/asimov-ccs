@@ -23,6 +23,7 @@ program test_mesh_partitioning_parhip
 
   topo%global_num_cells = mesh%nglobal
   topo%local_num_cells = mesh%nlocal
+  topo%max_faces = mesh%nnb(1)
   
   allocate(topo%global_partition(topo%global_num_cells))
   allocate(topo%local_partition(topo%local_num_cells))
@@ -33,11 +34,13 @@ program test_mesh_partitioning_parhip
   allocate(topo%adjwgt(n))
 
   k = 1
-  do i = 1, size(mesh%neighbour_indices)
-    if(mesh%neighbour_indices(i) > 0) then
-      topo%adjncy(k) = mesh%neighbour_indices(i)
-      k = k + 1
-    end if
+  do j = 1, topo%local_num_cells
+    do i = 1, topo%max_faces
+      if(mesh%neighbour_indices(i,j) > 0) then
+        topo%adjncy(k) = mesh%neighbour_indices(i,j)
+        k = k + 1
+      end if
+    end do
   end do
 
   j = 1
