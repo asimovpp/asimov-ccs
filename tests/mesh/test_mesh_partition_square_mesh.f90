@@ -39,7 +39,7 @@ program test_mesh_partitioning_parhip
   do j = 1, topo%local_num_cells
     do i = 1, topo%max_faces
       if(mesh%neighbour_indices(i,j) > 0) then
-        topo%adjncy(k) = mesh%neighbour_indices(i,j)
+        topo%adjncy(k) = mesh%global_indices(mesh%neighbour_indices(i,j))
         k = k + 1
       end if
     end do
