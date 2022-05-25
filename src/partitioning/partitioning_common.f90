@@ -94,7 +94,7 @@ implicit none
     integer(ccs_int), dimension(:,:), allocatable :: tmp_int2d ! Temporary 2D integer array
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
-    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: i, j, k, n
     integer(ccs_int) :: start_index 
     integer(ccs_int) :: end_index  
     integer(ccs_int) :: face_nb1  
@@ -255,6 +255,18 @@ implicit none
     ! Finally, allocate and compute the neighbour indices
     allocate(topo%nb_indices(topo%max_faces, topo%local_num_cells))
 
+
+    do i = 1, size(topo%xadj) - 1
+      n = topo%xadj(i+1) - topo%xadj(i)
+      do j = 1, n
+        topo%nb_indices(j, i) = topo%adjncy(j+topo%xadj(i)-1)
+      end do 
+      do k = n + 1, topo%max_faces
+        topo%nb_indices(k, i) = 0 ! Set boundaries to 0 - will be updated with correct BCs
+      end do
+    end do
+
+    if (irank == 0) print*, "Neighbour indices ", topo%nb_indices
 
   end subroutine compute_connectivity
 
