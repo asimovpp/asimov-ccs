@@ -138,6 +138,12 @@ implicit none
     allocate(topo%num_nb(topo%local_num_cells))
     topo%num_nb = topo%max_faces ! NOTE: This assumes a mesh of uniform cell types
 
+    call dprint("Number of neighbours "//str(int(topo%num_nb(1))))
+
+    if(allocated(topo%global_boundaries) .eqv. .false.) then
+      allocate(topo%global_boundaries(topo%global_num_cells))
+    end if
+
     ! Reset global_boundaries array
     topo%global_boundaries = 0
 
@@ -212,12 +218,16 @@ implicit none
     call dprint ("Total number of cells (local + halo) after partitioning: "//str(topo%total_num_cells))
 
     ! Allocate and then compute global indices
-    allocate(topo%global_indices(topo%total_num_cells))
+    if(allocated(topo%global_indices) .eqv. .false.) then
+      allocate(topo%global_indices(topo%total_num_cells))
+    end if
+
     ! First the indices of the local cells
     k = 1
     do i = 1, topo%global_num_cells
       if(topo%global_partition(i) == irank) then
         topo%global_indices(k) = i
+        call dprint("Index of local cell: topo%global_indices("//str(k)//") = "//str(i))
         k = k + 1
       end if 
     end do
@@ -225,6 +235,7 @@ implicit none
     k = topo%local_num_cells + 1
     do i = 1, size(topo%adjncy)
       if (topo%global_partition(topo%adjncy(i)) /= irank) then
+        call dprint("Index of halo cell: topo%global_indices("//str(k)//") = "//str(i))
         topo%global_indices(k) = topo%adjncy(i)
         k = k + 1
       end if
@@ -235,8 +246,12 @@ implicit none
     do i = 1, topo%local_num_cells
       k = topo%global_indices(i)
       do j = 1, topo%max_faces
-        topo%face_indices(j,i) = topo%global_face_indices(j,k)
+        topo%face_indices(j,i) = topo%global_face_indices(j,k) ! XXX: currently using global faces numbers
       end do
+    end do
+
+    do i = 1, size(topo%global_indices) 
+      call dprint("Global index "//str(i)//": "//str(int(topo%global_indices(i))))
     end do
 
     deallocate(topo%global_face_indices) ! No longer needed now we have the local face indices
@@ -253,8 +268,10 @@ implicit none
     if(irank == 0) print*,"Global boundaries: ", topo%global_boundaries(1:10)
 
     ! Finally, allocate and compute the neighbour indices
+    if (allocated(topo%nb_indices)) then
+      deallocate(topo%nb_indices)
+    end if
     allocate(topo%nb_indices(topo%max_faces, topo%local_num_cells))
-
 
     do i = 1, size(topo%xadj) - 1
       n = topo%xadj(i+1) - topo%xadj(i)

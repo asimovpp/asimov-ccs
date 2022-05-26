@@ -21,6 +21,7 @@ program test_partition_square_mesh
   print *, "Building mesh"
   mesh = build_square_mesh(par_env, 4, 1.0_ccs_real)
 
+  ! Assign corresponding mesh values to the topology object
   topo%global_num_cells = mesh%nglobal
   topo%local_num_cells = mesh%nlocal
   topo%halo_num_cells = mesh%nhalo
@@ -53,6 +54,7 @@ program test_partition_square_mesh
   select type(par_env)
   type is (parallel_environment_mpi)
 
+    ! Also hardcode the adjncy arrays
     if(par_env%num_procs == 4) then
 
       if(par_env%proc_id == 0) then
@@ -76,6 +78,7 @@ program test_partition_square_mesh
 
   print*,"Adjacency arrays: ", topo%adjncy
 
+  ! Now compute the adjacency index array
   j = 1
   topo%xadj(j) = 1
   previous = topo%adjncy(1)
@@ -93,10 +96,11 @@ program test_partition_square_mesh
 
   print*,"Adjacency index array: ", topo%xadj
 
-  ! Hardcode for now
+  ! Hardcode vtxdist for now
   allocate(topo%vtxdist(5))
   topo%vtxdist = (/ 1, 5, 9, 13, 17 /)
 
+  ! These need to be set to 1 for them to do nothing
   topo%adjwgt = 1
   topo%vwgt = 1
 
@@ -109,6 +113,7 @@ program test_partition_square_mesh
     end do
   end if
 
+  ! Compute new connectivity after partitioning
   call compute_connectivity(par_env, topo)
 
   if(allocated(topo%xadj)) then
