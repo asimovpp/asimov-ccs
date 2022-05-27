@@ -98,7 +98,7 @@ regexp-rules:
     regexp: (?<=\s)::(\S)
     replacement: ':: \1'
 
-  missing-space-after-comm:
+  missing-space-after-comma:
     message: Missing space after comma
     regexp: (,)(\S)
     replacement: \1 \2
