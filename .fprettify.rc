@@ -1,2 +1,12 @@
 indent=2
-whitespace=2
+whitespace-comma=True
+whitespace-assignment=True
+whitespace-relational=True
+whitespace-logical=True
+whitespace-plusminus=True
+whitespace-multdiv=True
+whitespace-print=True
+whitespace-type=True
+whitespace-intrinsics=True
+enable-decl=True
+whitespace-decl=True
