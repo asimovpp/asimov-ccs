@@ -83,3 +83,10 @@ It does the following actions:
 The code is linted primarily using Flint. Install via pip: `pip install flinter`.
 
 Invoke the linter via the utility script using: `bash build_tools/lint.sh ACTION TARGET` where ACTION is "lint" or "score" and TARGET is the file or directory to lint. Specifying "lint" will print out detailed information on every discovered issue while "score" will return an overall numberic score (10 corresponds to "no issues").
+
+Whitespace errors can largely be fixed automatically using fprettify. Install via pip: `pip install fprettify`.
+The config file `.fprettify.rc` is set up to match as closely as possible the configuration of flint, and should be picked up automatically if `fprettify` is run from the root directory of ccs.
+
+Use `fprettify FILE` to fix whitespace in FILE. To see the changes in stdout add `--stdout` or to see the diff add `--diff`; both flags prevent FILE from being changed.
+
+
