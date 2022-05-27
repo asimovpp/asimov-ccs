@@ -98,9 +98,9 @@ regexp-rules:
     regexp: (?<=\s)::(\S)
     replacement: ':: \1'
 
-  missing-space-after-punctuation:
-    message: Missing space after punctuation
-    regexp: ({punctuations})(\S)
+  missing-space-after-comm:
+    message: Missing space after comma
+    regexp: (,)(\S)
     replacement: \1 \2
 
   missing-space-before-parenthesis:
@@ -163,7 +163,7 @@ regexp-rules:
 
   missing-space-around-arithmetic:
     message: Missing space around arithmetic operator
-    regexp: ([^\s\*])([-\+\*\/])([^\s\*])
+    regexp: ([^\s\*])(?<!len=)([-\+\*\/])([^\s\*])
     replacement: \1 \2 \3
   missing-space-before-arithmetic:
     message: Missing space before arithmetic operator
