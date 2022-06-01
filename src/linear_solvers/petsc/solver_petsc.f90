@@ -171,6 +171,7 @@ contains
           call PCSetType(pc, "bjacobi", ierr)
         else if (precon_name == "GAMG") then
           call PCSetType(pc, "gamg", ierr)
+        else
           print *, "ERROR: Unknown solver precon ", precon_name
           stop
         end if
