@@ -369,7 +369,7 @@ contains
     select type(vec)
     type is(vector_petsc)
       if (vec%modeset) then
-        print *, "WARNING: trying to access vector without updating"
+        call error_abort("WARNING: trying to access vector without updating")
       end if
       
       if (vec%ghosted) then
