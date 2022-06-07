@@ -4,11 +4,12 @@
 !
 !>  An implementation of a PETSc solver
 submodule (solver) solver_petsc
+#include "ccs_macros.inc"
 
   use kinds, only : ccs_err
   use petsctypes, only : linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
-  use utils, only: update
+  use utils, only: update, exit_print
   
   implicit none
 
@@ -44,16 +45,14 @@ contains
 
                   call KSPCreate(comm, ksp, ierr)
                   if (ierr /= 0) then
-                    print *, "Error in creating solver KSP"
-                    stop
+                    call error_abort("Error in creating solver KSP")
                   end if
                   call KSPSetOperators(ksp, M%M, M%M, ierr)
                   call KSPSetFromOptions(ksp, ierr)
                   call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
 
                 class default
-                  print *, "ERROR: Trying to use non-PETSc matrix with PETSc solver!"
-                  stop
+                  call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver!")
 
               end select
 
@@ -67,8 +66,7 @@ contains
         solver%allocated = .true.
 
       class default
-        print *, "Unknown solver type"
-        stop
+        call error_abort("Unknown solver type")
 
     end select
     
@@ -100,20 +98,17 @@ contains
                   end if
 
               class default
-                print *, "ERROR: Trying to use non-PETSc vector for solution with PETSc solver!"
-                stop
+                call error_abort("ERROR: Trying to use non-PETSc vector for solution with PETSc solver!")
               end select
 
             class default
-              print *, "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver!"
-              stop
+              call error_abort("ERROR: Trying to use non-PETSc vector for RHS with PETSc solver!")
           end select
 
         end associate
 
       class default
-        print *, "Unknown solver type"
-        stop
+        call error_abort("Unknown solver type")
 
     end select
        

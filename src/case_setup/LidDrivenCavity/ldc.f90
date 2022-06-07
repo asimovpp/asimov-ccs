@@ -3,6 +3,7 @@
 !> @build mpi+petsc
 
 program ldc
+#include "ccs_macros.inc"
 
   use petscvec
   use petscsys
@@ -25,7 +26,7 @@ program ldc
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update
+  use utils, only: set_size, initialise, update, exit_print
 
   implicit none
 
@@ -187,8 +188,7 @@ program ldc
 
     config_file_pointer => parse(config_filename, error=error)
     if (error/='') then
-      print*,trim(error)
-      stop 1
+      call error_abort(trim(error))
     endif
     
     call get_steps(config_file_pointer, num_steps)

@@ -4,7 +4,9 @@
 !
 !> Implementation (using MPI and ADIOS2) of parallel IO functionality
 submodule (io) io_adios2
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use adios2
   use adios2_types, only: adios2_io_process
   use kinds, only: ccs_int, ccs_real
@@ -40,13 +42,11 @@ submodule (io) io_adios2
           call adios2_attribute_data(attr, adios2_attr, ierr)
 
         else
-          print*,"===> IO Error: unsuported integer type"
-          stop 1
+          call error_abort("IO Error: unsuported integer type")
         end if
 
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
       
       end select
 
@@ -78,13 +78,11 @@ submodule (io) io_adios2
           call adios2_attribute_data(attr, adios2_attr, ierr)
 
         else
-          print*,"===> IO Error: unsuported integer type"
-          stop 1
+          call error_abort("IO Error: unsuported integer type")
         end if
 
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -116,13 +114,11 @@ submodule (io) io_adios2
           call adios2_attribute_data(attr, adios2_attr, ierr)
  
         else
-          print*,"===> IO Error: unsuported real type"
-          stop 1
+          call error_abort("IO Error: unsuported real type")
         end if
 
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -153,13 +149,11 @@ submodule (io) io_adios2
           call adios2_attribute_data(attr, adios2_attr, ierr)
   
         else
-          print*,"===> IO Error: unsuported real type"
-          stop 1
+          call error_abort("IO Error: unsuported real type")
         end if
   
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -199,13 +193,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
   
           else
-            print*,"===> IO Error: unsuported integer type"
-            stop 1
+            call error_abort("IO Error: unsuported integer type")
           end if
   
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -243,13 +235,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
   
           else
-            print*,"===> IO Error: unsuported integer type"
-            stop 1
+            call error_abort("IO Error: unsuported integer type")
           end if
   
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -288,13 +278,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
   
           else
-            print*,"===> IO Error: unsuported integer type"
-            stop 1
+            call error_abort("IO Error: unsuported integer type")
           end if
 
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -332,13 +320,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
   
           else
-            print*,"===> IO Error: unsuported integer type"
-            stop 1
+            call error_abort("IO Error: unsuported integer type")
           end if
 
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -377,13 +363,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
           else
-            print*,"===> IO Error: unsuported real type"
-            stop 1
+            call error_abort("IO Error: unsuported real type")
           end if
 
         class default
-          print*,"Unknown IO process handler type"
-          stop 1
+          call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -421,13 +405,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
           else
-            print*,"===> IO Error: unsuported real type"
-            stop 1
+            call error_abort("IO Error: unsuported real type")
           end if
 
         class default
-          print*,"Unknown IO process handler type"
-          stop 1
+          call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -466,13 +448,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
           else
-            print*,"===> IO Error: unsuported real type"
-            stop 1
+            call error_abort("IO Error: unsuported real type")
           end if
 
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
 
       end select
 
@@ -511,13 +491,11 @@ submodule (io) io_adios2
             call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
           else
-            print*,"===> IO Error: unsuported real type"
-            stop 1
+            call error_abort("IO Error: unsuported real type")
           end if
 
       class default
-        print*,"Unknown IO process handler type"
-        stop 1
+        call error_abort("Unknown IO process handler type")
         
       end select
 

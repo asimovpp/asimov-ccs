@@ -11,8 +11,7 @@ submodule (fv) fv_common
                    neighbour_locator
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
   use utils, only: pack_entries, clear_entries, set_entry, set_row, set_values, set_mode, update
-  use utils, only: str
-  use utils, only: debug_print
+  use utils, only: str, debug_print, exit_print
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
@@ -131,8 +130,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             class default
-              print *, 'invalid velocity field discretisation'
-              stop
+              call error_abort("Invalid velocity field discretisation.")
           end select
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
@@ -253,8 +251,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             class default
-              print *, 'invalid velocity field discretisation'
-              stop
+              call error_abort("Invalid velocity field discretisation.")
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 

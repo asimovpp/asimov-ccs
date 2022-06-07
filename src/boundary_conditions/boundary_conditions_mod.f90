@@ -3,6 +3,9 @@
 !>  Various BC related functionality. Need to expand.
 
 module boundary_conditions
+#include "ccs_macros.inc"
+
+  use utils, only: exit_print
   use types, only: bc_config
   use kinds, only: ccs_int, ccs_real
   
@@ -27,8 +30,7 @@ module boundary_conditions
 
     config_file => parse(filename, error=error)
     if (error/='') then
-      print*,trim(error)
-      stop 1
+      call error_abort(trim(error))
     endif
 
     call get_bcs(config_file, bcs)
@@ -62,8 +64,7 @@ module boundary_conditions
         case("bottom")
           bcs%region(i) = bc_region_bottom
         case default
-          print *, 'invalid BC region selected'
-          stop 
+          call error_abort("Invalid BC region selected.")
       end select
 
       select case(bc_type(i))
@@ -76,8 +77,7 @@ module boundary_conditions
         case("const_grad")
           bcs%bc_type(i) = bc_type_const_grad
         case default
-          print *, 'invalid BC type selected'
-          stop 
+          call error_abort("Invalid BC type selected.")
       end select
     end do
     ! ALEXEI: This specifies the values of the boundary conditions at the corners of the box (if dirichlet, 
