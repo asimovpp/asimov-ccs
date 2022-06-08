@@ -78,9 +78,9 @@ contains
 
     integer(ccs_err) :: ierr ! Error code
 
-    if (v % allocated) then
-      call VecDestroy(v % v, ierr)
-      v % allocated = .false.
+    if (v%allocated) then
+      call VecDestroy(v%v, ierr)
+      v%allocated = .false.
     else
       call error_abort("WARNING: attempted double free of vector")
     end if
@@ -100,9 +100,9 @@ contains
 
     integer(ccs_err) :: ierr ! Error code
 
-    if (M % allocated) then
-      call MatDestroy(M % M, ierr)
-      M % allocated = .false.
+    if (M%allocated) then
+      call MatDestroy(M%M, ierr)
+      M%allocated = .false.
     else
       call error_abort("WARNING: attempted double free of matrix")
     end if
@@ -123,9 +123,9 @@ contains
 
     integer(ccs_err) :: ierr ! Error code
 
-    if (solver % allocated) then
-      call KSPDestroy(solver % KSP, ierr)
-      solver % allocated = .false.
+    if (solver%allocated) then
+      call KSPDestroy(solver%KSP, ierr)
+      solver%allocated = .false.
     else
       call error_abort("WARNING: attempted double free of linear solver")
     end if
