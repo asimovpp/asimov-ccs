@@ -5,7 +5,9 @@
 !! error handling
 
 submodule (parallel) parallel_errors_mpi_petsc
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
 
@@ -49,13 +51,11 @@ submodule (parallel) parallel_errors_mpi_petsc
           end if
 
         else 
-          write(*,*) "Unsupported error categroy" 
-          stop 1
+          call error_abort("Unsupported error categroy")
         end if
 
       class default
-        write(*,*) "Unsupported parallel environment"
-        stop 1
+        call error_abort("Unsupported parallel environment")
 
     end select
 

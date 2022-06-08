@@ -12,7 +12,7 @@ submodule (vec) vec_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
-  use utils, only: debug_print
+  use utils, only: debug_print, exit_print, str
 
   implicit none
 
@@ -76,13 +76,12 @@ contains
           v%allocated = .true.
 
         class default
-          print *, "Unknown parallel environment"
+          call error_abort("Unknown parallel environment")
     
         end select
 
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
 
@@ -111,8 +110,8 @@ contains
             ! First check if safe to set
             if (v%modeset) then
               if (val_dat%setter_mode /= v%mode) then
-                print *, "ERROR: trying to set vector using different mode without updating!"
-                stop 1
+                print *, ""
+                call error_abort("ERROR: trying to set vector using different mode without updating!")
               end if
             else
               v%mode = val_dat%setter_mode
@@ -125,21 +124,18 @@ contains
             else if (val_dat%setter_mode == insert_mode) then
               mode = INSERT_VALUES
             else
-              print *, "Unknown mode!"
-              stop
+              call error_abort("Unknown mode!")
             end if
 
             call VecSetValues(v%v, n, val_dat%global_indices, val_dat%values, mode, ierr)
 
           class default
-            print *, "Unknown vector value type!"
-            stop
+            call error_abort("Unknown vector value type!")
    
         end select
 
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
     
@@ -160,8 +156,7 @@ contains
         call end_ghost_update_vector(v)
         
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
 
@@ -184,8 +179,7 @@ contains
         call VecAssemblyBegin(v%v, ierr)
 
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
 
@@ -210,8 +204,7 @@ contains
         v%modeset = .false. ! It is now safe to change value setting mode
         
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
 
@@ -237,8 +230,7 @@ contains
         end if
         
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
 
@@ -264,8 +256,7 @@ contains
         end if
         
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
 
@@ -295,14 +286,12 @@ contains
             call VecAXPY(y%v, alpha, x%v, ierr)
 
           class default
-            print *, "Unknown vector type!"
-            stop
+            call error_abort("Unknown vector type!")
 
         end select
 
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
 
     end select
     
@@ -327,13 +316,11 @@ contains
         if (norm_type == 2) then
           call VecNorm(v%v, NORM_2, n, ierr)
         else
-          print *, "ERROR: unknown vector norm type ", norm_type
-          stop
+          call error_abort("ERROR: unknown vector norm type " // str(norm_type))
         end if
 
       class default
-        print *, "Type unhandled"
-        stop
+        call error_abort("Type unhandled")
     end select
     
   end function
@@ -360,8 +347,7 @@ contains
       idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
-        print *, "ERROR: Couldn't find a free entry in vector values!"
-        stop
+        call error_abort("ERROR: Couldn't find a free entry in vector values!")
       end if
     end if
     
@@ -383,7 +369,7 @@ contains
     select type(vec)
     type is(vector_petsc)
       if (vec%modeset) then
-        print *, "WARNING: trying to access vector without updating"
+        call error_abort("WARNING: trying to access vector without updating")
       end if
       
       if (vec%ghosted) then
@@ -393,8 +379,7 @@ contains
         call VecGetArrayF90(vec%v, array, ierr)
       end if
     class default
-      print *, 'invalid vector type'
-      stop
+      call error_abort('Invalid vector type.')
     end select
   end subroutine get_vector_data
 
@@ -419,8 +404,7 @@ contains
         call VecRestoreArrayF90(vec%v, array, ierr)
       end if
     class default
-      print *, 'invalid vector type'
-      stop
+      call error_abort('Invalid vector type.')
     end select
   end subroutine restore_vector_data
 
@@ -435,8 +419,7 @@ contains
     type is(vector_petsc)
       call VecZeroEntries(vec%v, ierr)
     class default
-      print *, "invalid vector type"
-      stop
+      call error_abort('Invalid vector type.')
     end select
     
   end subroutine zero_vector
@@ -458,8 +441,7 @@ contains
        call VecReciprocal(vec%v, ierr)
 
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
     end select
   end subroutine vec_reciprocal
 
@@ -477,12 +459,10 @@ contains
       type is (vector_petsc)
         call VecPointwiseMult(b%v, a%v, b%v, ierr)
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
       end select
     class default
-      print *, "Unknown vector type!"
-      stop
+      call error_abort("Unknown vector type!")
     end select
       
   end subroutine mult_vec_vec
@@ -499,8 +479,7 @@ contains
     type is(vector_petsc)
       call VecScale(v%v, alpha, ierr)
     class default
-      print *, "Unknown vector type!"
-      stop
+      call error_abort("Unknown vector type!")
     end select
   
   end subroutine
@@ -531,12 +510,11 @@ contains
 !           call PetscViewerDestroy(viewer, ierr)
 
 !         class default
-!           print *, "Unknown parallel environment"
+!           call error_abort("Unknown parallel environment")
 !       end select
 
 !       class default
-!         print *, "Unknown vector type!"
-!         stop
+!         call error_abort("Unknown vector type!")
 !     end select
 !   end subroutine vec_view
 

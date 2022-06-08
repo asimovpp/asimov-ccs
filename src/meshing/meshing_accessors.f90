@@ -1,4 +1,7 @@
 submodule (meshing) meshing_accessors
+#include "ccs_macros.inc"
+
+  use utils, only: exit_print, str
 
   implicit none
   
@@ -41,8 +44,7 @@ contains
 
     ! XXX: Potentially expensive...
     if (index_p > mesh%ntotal) then
-      print *, "ERROR: trying to access cell I don't have access to!", index_p, mesh%nlocal
-      stop
+      call error_abort("ERROR: trying to access cell I don't have access to!" // str(index_p) // str(mesh%nlocal))
     else
       loc_p%mesh => mesh
       loc_p%index_p = index_p
@@ -71,10 +73,9 @@ contains
     !! ! XXX: Potentially expensive...
     !! call count_neighbours(loc_p, nnb)
     !! if (nb_counter > nnb) then
-    !!   print *, "ERROR: cell has fewer neighbours than neighbour count requested!"
-    !!   stop
+    !!   call error_abort("ERROR: cell has fewer neighbours than neighbour count requested!")
     !! else if (nb_counter < 1) then
-    !!   print *, "ERROR: cell neighbour counter must be >= 1!"
+    !!   call error_abort("ERROR: cell neighbour counter must be >= 1!")
     !! else
     !!   loc_nb%nb_counter = nb_counter
     !! end if
@@ -85,7 +86,7 @@ contains
          i => loc_nb%index_p, &
          j => loc_nb%nb_counter)
       if (mymesh%neighbour_indices(j, i) == i) then
-        print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
+        call error_abort("ERROR: trying to set self as neighbour! Cell: " // str(i) // str(j))
       end if
     end associate
   end subroutine set_neighbour_location
@@ -266,8 +267,7 @@ contains
     else if (index_nb < 0) then
       is_boundary = .true.
     else
-      print *, "ERROR: neighbour index (0) is invalid"
-      stop
+      call error_abort("ERROR: neighbour index (0) is invalid")
     end if
   end subroutine get_neighbour_boundary_status
 

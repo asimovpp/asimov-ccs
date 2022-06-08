@@ -4,7 +4,9 @@
 !> @details Implementation of the parallel environment using MPI
 !!          and PETSc
 submodule (parallel) parallel_env_mpi_petsc
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use mpi
   use petsc, only:  PetscInitialize, PetscFinalize, PETSC_NULL_CHARACTER
   use parallel_types_mpi, only: parallel_environment_mpi
@@ -45,8 +47,7 @@ submodule (parallel) parallel_env_mpi_petsc
         par_env%root=0
     
       class default
-        write(*,*) "Unsupported parallel environment"
-        stop 1
+        call error_abort("Unsupported parallel environment")
     
     end select
 
@@ -69,8 +70,7 @@ submodule (parallel) parallel_env_mpi_petsc
         call error_handling(ierr, "mpi", par_env)
     
       class default
-        write(*,*) "Unsupported parallel environment"
-        stop 1
+        call error_abort("Unsupported parallel environment")
     
     end select
 

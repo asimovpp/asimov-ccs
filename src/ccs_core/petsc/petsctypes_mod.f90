@@ -13,7 +13,7 @@ module petsctypes
 
   use kinds, only : ccs_err, ccs_int
   use types, only : ccs_vector, ccs_matrix, linear_solver
-  use utils, only : debug_print
+  use utils, only : debug_print, exit_print
   
   implicit none
 
@@ -82,7 +82,7 @@ contains
        call VecDestroy(v%v, ierr)
        v%allocated = .false.
     else
-       print *, "WARNING: attempted double free of vector"
+       call error_abort("WARNING: attempted double free of vector")
     end if
     
   end subroutine
@@ -104,7 +104,7 @@ contains
        call MatDestroy(M%M, ierr)
        M%allocated = .false.
     else
-       print *, "WARNING: attempted double free of matrix"
+       call error_abort("WARNING: attempted double free of matrix")
     end if
 
   end subroutine
@@ -127,7 +127,7 @@ contains
        call KSPDestroy(solver%KSP, ierr)
        solver%allocated = .false.
     else
-       print *, "WARNING: attempted double free of linear solver"
+      call error_abort("WARNING: attempted double free of linear solver")
     end if
 
   end subroutine 

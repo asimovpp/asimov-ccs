@@ -1,7 +1,9 @@
 module mesh_utils
+#include "ccs_macros.inc"
 
   use constants, only : ndim
   
+  use utils, only: exit_print
   use kinds, only: ccs_int, ccs_real
   use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
   use parallel_types, only: parallel_environment
@@ -218,8 +220,7 @@ contains
         call set_cell_face_indices(mesh)
 
       class default
-        print *, "Unknown parallel environment type!"
-        stop
+        call error_abort("Unknown parallel environment type!")
 
     end select    
   end function build_square_mesh
@@ -253,8 +254,7 @@ contains
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
       if (.not. (index_nb < 0_ccs_int)) then
-        print *, "ERROR: boundary neighbours should have -ve indices!"
-        stop
+        call error_abort("ERROR: boundary neighbours should have -ve indices!")
       end if
       mesh%neighbour_indices(index_p_nb, index_p) = index_nb
     else
@@ -277,8 +277,7 @@ contains
       !      the (extended) original array.
       if (.not. found) then
         if ((ng + 1) > mesh%nglobal) then
-          print *, "ERROR: Trying to create halo that exceeds global mesh size!"
-          stop
+          call error_abort("ERROR: Trying to create halo that exceeds global mesh size!")
         end if
         
         call append_to_arr(global_index_nb, mesh%global_indices)
@@ -448,8 +447,7 @@ contains
         call get_local_index(loc_f, index_f)
         exit ! Exit the loop, as found shared face
       else if (k == nnb_nb) then
-        print *, "ERROR: Failed to find face in owning cell"
-        stop 1
+        call error_abort("ERROR: Failed to find face in owning cell")
       endif
     end do
   end function get_neighbour_face_index

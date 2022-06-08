@@ -6,7 +6,7 @@ submodule (mat) mat_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only : ADD_VALUES, INSERT_VALUES
-  use utils, only : debug_print, str, update
+  use utils, only : debug_print, str, update, exit_print
   
   implicit none
 
@@ -60,13 +60,12 @@ contains
           end if
 
           class default
-            print *, "Unknown parallel environment"
+            call error_abort("Unknown parallel environment")
     
         end select
 
       class default
-        write(*,*) "Unsupported matrix type"
-        stop
+        call error_abort("Unsupported matrix type")
 
     end select
     
@@ -100,8 +99,7 @@ contains
         call end_update_matrix(M)
 
       class default
-        write(*,*) "Unsupported matrix type"
-        stop
+        call error_abort("Unsupported matrix type")
 
     end select
   
@@ -122,8 +120,7 @@ contains
         call MatAssemblyBegin(M%M, MAT_FLUSH_ASSEMBLY, ierr)
 
       class default
-        write(*,*) "Unsupported matrix type"
-        stop
+        call error_abort("Unsupported matrix type")
 
     end select
     
@@ -145,8 +142,7 @@ contains
 
         M%modeset = .false. ! It's safe to change modes now
       class default
-        write(*,*) "Unsupported matrix type"
-        stop
+        call error_abort("Unsupported matrix type")
 
     end select
     
@@ -197,8 +193,7 @@ contains
 
           if (M%modeset) then
             if (matmode /= M%mode) then
-              print *, "ERROR: changing matrix mode without updating"
-              stop 1
+              call error_abort("ERROR: changing matrix mode without updating")
             end if
           else
             M%mode = matmode
@@ -208,23 +203,20 @@ contains
           nrows = size(ridx)
           ncols = size(cidx)
           if (nrows * ncols /= size(val)) then
-            print *, "Invalid matrix values!"
-            stop
+            call error_abort("Invalid matrix values!")
           end if
           if (matmode == add_mode) then
             mode = ADD_VALUES
           else if (matmode == insert_mode) then
             mode = INSERT_VALUES
           else
-            print *, "Unknown mode!"
-            stop
+            call error_abort("Unknown mode!")
           end if
 
           call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
 
         class default
-          print *, "Unknown matrix type!"
-          stop
+          call error_abort("Unknown matrix type!")
 
       end select
 
@@ -253,8 +245,7 @@ contains
         call MatZeroRows(M%M, size(global_rows), global_rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
 
       class default
-        print *, "Unknown matrix type!"
-        stop
+        call error_abort("Unknown matrix type!")
 
     end select
     
@@ -290,8 +281,7 @@ contains
       rglobs = findloc(val_dat%global_row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
-        print *, "ERROR: Couldn't find a free entry in matrix values!"
-        stop
+        call error_abort("ERROR: Couldn't find a free entry in matrix values!")
       end if
     end if
     
@@ -324,14 +314,12 @@ contains
             call MatAXPY(y%M, alpha, x%M, DIFFERENT_NONZERO_PATTERN, ierr)
 
           class default
-            print *, "Unknown matrix type!"
-            stop
+            call error_abort("Unknown matrix type!")
 
         end select
 
       class default
-        print *, "Unknown matrix type!"
-        stop
+        call error_abort("Unknown matrix type!")
 
     end select
     
@@ -360,13 +348,11 @@ contains
         else if (norm_type == 3) then
           call MatNorm(M%M, NORM_INFINITY, n, ierr)
         else
-          print *, "ERROR: unknown matrix norm type ", norm_type
-          stop
+          call error_abort("ERROR: unknown matrix norm type " // str(norm_type))
         end if
 
       class default
-        print *, "Type unhandled"
-        stop
+        call error_abort("Type unhandled")
     end select
     
   end function
@@ -389,13 +375,11 @@ contains
             call MatGetDiagonal(M%M, D%v, ierr)
 
           class default
-            print *, "Unknown vector type!"
-            stop
+            call error_abort("Unknown vector type!")
         end select
 
       class default
-        print *, "Unknown matrix type!"
-        stop
+        call error_abort("Unknown matrix type!")
     end select
 
   end subroutine
@@ -416,13 +400,11 @@ contains
         call MatDiagonalSet(M%M, D%v, INSERT_VALUES, ierr)
 
       class default
-        print *, "Unknown vector type!"
-        stop
+        call error_abort("Unknown vector type!")
       end select
 
     class default
-      print *, "Unknown matrix type!"
-      stop
+      call error_abort("Unknown matrix type!")
     end select
 
   end subroutine set_matrix_diagonal
@@ -439,9 +421,7 @@ contains
     type is (matrix_petsc)
       call MatZeroEntries(M%M, ierr)
     class default
-
-      print *, "Unknown matrix type!"
-      stop
+      call error_abort("Unknown matrix type!")
 
     end select
     
