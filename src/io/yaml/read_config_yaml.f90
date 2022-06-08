@@ -33,7 +33,7 @@ contains
     select type (dict)
     type is (type_dictionary)
 
-      int_val = dict % get_integer(keyword, error=io_err)
+      int_val = dict%get_integer(keyword, error=io_err)
       call error_handler(io_err)
 
     class default
@@ -56,7 +56,7 @@ contains
     select type (dict)
     type is (type_dictionary)
 
-      real_val = dict % get_real(keyword, error=io_err)
+      real_val = dict%get_real(keyword, error=io_err)
       call error_handler(io_err)
 
     class default
@@ -79,7 +79,7 @@ contains
     select type (dict)
     type is (type_dictionary)
 
-      string_val = trim(dict % get_string(keyword, error=io_err))
+      string_val = trim(dict%get_string(keyword, error=io_err))
       call error_handler(io_err)
 
     class default
@@ -96,7 +96,7 @@ contains
     type(type_error), pointer, intent(inout) :: io_err
 
     if (associated(io_err)) then
-      print *, trim(io_err % message)
+      print *, trim(io_err%message)
     end if
 
   end subroutine
@@ -156,7 +156,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('init', required=.true., error=io_err)
+      dict => config_file%get_dictionary('init', required=.true., error=io_err)
 
       call get_value(dict, "type", init)
 
@@ -217,7 +217,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('reference_numbers', required=.true., error=io_err)
+      dict => config_file%get_dictionary('reference_numbers', required=.true., error=io_err)
 
       ! Pressure
       if (present(p_ref)) then
@@ -286,7 +286,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('solve', required=.true., error=io_err)
+      dict => config_file%get_dictionary('solve', required=.true., error=io_err)
 
       ! Solve u?
       if (present(u_sol)) then
@@ -343,7 +343,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('solver', required=.true., error=io_err)
+      dict => config_file%get_dictionary('solver', required=.true., error=io_err)
 
       ! Get u_solver
       if (present(u_solver)) then
@@ -403,7 +403,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('transient', required=.false., error=io_err)
+      dict => config_file%get_dictionary('transient', required=.false., error=io_err)
 
       ! Transient type (euler/quad)
       call get_value(dict, "type", transient_type)
@@ -475,7 +475,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('convection_scheme', required=.false., error=io_err)
+      dict => config_file%get_dictionary('convection_scheme', required=.false., error=io_err)
 
       if (present(u_conv)) then
         call get_value(dict, "u", u_conv)
@@ -527,7 +527,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('blending_factor', required=.false., error=io_err)
+      dict => config_file%get_dictionary('blending_factor', required=.false., error=io_err)
 
       if (present(u_blend)) then
         call get_value(dict, "u", u_blend)
@@ -579,7 +579,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('relaxation_factor', required=.false., error=io_err)
+      dict => config_file%get_dictionary('relaxation_factor', required=.false., error=io_err)
 
       if (present(u_relax)) then
         call get_value(dict, "u", u_relax)
@@ -625,7 +625,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('output', required=.false., error=io_err)
+      dict => config_file%get_dictionary('output', required=.false., error=io_err)
 
       call get_value(dict, "every", output_freq)
       call get_value(dict, "iter", output_iter)
@@ -667,24 +667,24 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('post', required=.false., error=io_err)
+      dict => config_file%get_dictionary('post', required=.false., error=io_err)
 
       call get_value(dict, "type", post_type)
 
       select type (dict)
       type is (type_dictionary)
 
-        list => dict % get_list('variables', required=.false., error=io_err)
+        list => dict%get_list('variables', required=.false., error=io_err)
         call error_handler(io_err)
 
-        item => list % first
+        item => list%first
         idx = 1
         do while (associated(item))
-          select type (element => item % node)
+          select type (element => item%node)
           class is (type_scalar)
-            post_vars(idx) = trim(element % string)
+            post_vars(idx) = trim(element%string)
             print *, post_vars(idx)
-            item => item % next
+            item => item%next
             idx = idx + 1
           end select
         end do
@@ -727,82 +727,82 @@ contains
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file % get_dictionary('boundary', required=.false., error=io_err)
+      dict => config_file%get_dictionary('boundary', required=.false., error=io_err)
       call error_handler(io_err)
 
-      list => dict % get_list('region', required=.false., error=io_err)
+      list => dict%get_list('region', required=.false., error=io_err)
       call error_handler(io_err)
 
-      item => list % first
+      item => list%first
       do while (associated(item))
         num_boundaries = num_boundaries + 1
-        item => item % next
+        item => item%next
       end do
 
       allocate (bnd_region(num_boundaries))
       allocate (bnd_type(num_boundaries))
       allocate (bnd_vector(3, num_boundaries))
 
-      list => dict % get_list('region', required=.false., error=io_err)
+      list => dict%get_list('region', required=.false., error=io_err)
       call error_handler(io_err)
 
-      item => list % first
+      item => list%first
       do while (associated(item))
-        select type (element => item % node)
+        select type (element => item%node)
         class is (type_scalar)
-          bnd_region(idx) = trim(element % string)
+          bnd_region(idx) = trim(element%string)
           print *, bnd_region(idx)
-          item => item % next
+          item => item%next
           idx = idx + 1
         end select
       end do
 
-      list => dict % get_list('type', required=.false., error=io_err)
+      list => dict%get_list('type', required=.false., error=io_err)
       call error_handler(io_err)
 
       idx = 1
 
-      item => list % first
+      item => list%first
       do while (associated(item))
-        select type (element => item % node)
+        select type (element => item%node)
         class is (type_scalar)
-          bnd_type(idx) = trim(element % string)
+          bnd_type(idx) = trim(element%string)
           print *, bnd_type(idx)
-          item => item % next
+          item => item%next
           idx = idx + 1
         end select
       end do
 
       if (present(bnd_vector)) then
 
-        list => dict % get_list('vector', required=.false., error=io_err)
+        list => dict%get_list('vector', required=.false., error=io_err)
         call error_handler(io_err)
 
         idx = 1
 
-        item => list % first
+        item => list%first
 
         do while (associated(item))
 
-          select type (inner_list => item % node)
+          select type (inner_list => item%node)
           type is (type_list)
 
-            inner_item => inner_list % first
+            inner_item => inner_list%first
             inner_idx = 1
 
             do while (associated(inner_item))
-              select type (inner_element => inner_item % node)
+              select type (inner_element => inner_item%node)
               class is (type_scalar)
-                inner_item => inner_item % next
+                inner_item => inner_item%next
                 inner_idx = inner_idx + 1
-                bnd_vector(inner_idx, idx) = inner_element % to_real(real(bnd_vector(inner_idx, idx), real_kind), success)
+                bnd_vector(inner_idx, idx) = inner_element%to_real(real(bnd_vector(inner_idx, idx), real_kind), success)
                 print *, bnd_vector(inner_idx, idx)
               end select
             end do
 
           end select
 
-          item => item % next
+          item => item%next
           idx = idx + 1
 
         end do

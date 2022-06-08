@@ -29,15 +29,15 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_attribute(adios2_attr, io_proc % io_task, attr_name, ierr)
+      call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
 
-      if (adios2_attr % type == adios2_type_integer8) then
+      if (adios2_attr%type == adios2_type_integer8) then
 
         call downcast_warning()
         call adios2_attribute_data(tmp_attr64, adios2_attr, ierr)
         attr = int(tmp_attr64, int32)
 
-      else if (adios2_attr % type == adios2_type_integer4) then
+      else if (adios2_attr%type == adios2_type_integer4) then
 
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
@@ -66,14 +66,14 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_attribute(adios2_attr, io_proc % io_task, attr_name, ierr)
+      call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
 
-      if (adios2_attr % type == adios2_type_integer4) then
+      if (adios2_attr%type == adios2_type_integer4) then
 
         call adios2_attribute_data(tmp_attr32, adios2_attr, ierr)
         attr = int(tmp_attr32, int64)
 
-      else if (adios2_attr % type == adios2_type_integer8) then
+      else if (adios2_attr%type == adios2_type_integer8) then
 
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
@@ -102,14 +102,14 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_attribute(adios2_attr, io_proc % io_task, attr_name, ierr)
-      if (adios2_attr % type == adios2_type_dp) then
+      call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
+      if (adios2_attr%type == adios2_type_dp) then
 
         call downcast_warning()
         call adios2_attribute_data(tmp_attr64, adios2_attr, ierr)
         attr = real(tmp_attr64, real32)
 
-      else if (adios2_attr % type == adios2_type_real) then
+      else if (adios2_attr%type == adios2_type_real) then
 
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
@@ -138,13 +138,13 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_attribute(adios2_attr, io_proc % io_task, attr_name, ierr)
-      if (adios2_attr % type == adios2_type_real) then
+      call adios2_inquire_attribute(adios2_attr, io_proc%io_task, attr_name, ierr)
+      if (adios2_attr%type == adios2_type_real) then
 
         call adios2_attribute_data(tmp_attr32, adios2_attr, ierr)
         attr = real(tmp_attr32, real64)
 
-      else if (adios2_attr % type == adios2_type_dp) then
+      else if (adios2_attr%type == adios2_type_dp) then
 
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
@@ -176,20 +176,20 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (adios2_var % type == adios2_type_integer8) then
+      if (adios2_var%type == adios2_type_integer8) then
 
         allocate (tmp_var64(size(var)))
 
         call downcast_warning()
-        call adios2_get(io_proc % engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
         var = int(tmp_var64, int32)
 
-      else if (adios2_var % type == adios2_type_integer4) then
+      else if (adios2_var%type == adios2_type_integer4) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported integer type")
@@ -219,19 +219,19 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (adios2_var % type == adios2_type_integer4) then
+      if (adios2_var%type == adios2_type_integer4) then
 
         allocate (tmp_var32(size(var)))
 
-        call adios2_get(io_proc % engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
         var = int(tmp_var32, int64)
 
-      else if (adios2_var % type == adios2_type_integer8) then
+      else if (adios2_var%type == adios2_type_integer8) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported integer type")
@@ -261,20 +261,20 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-      if (adios2_var % type == adios2_type_integer8) then
+      if (adios2_var%type == adios2_type_integer8) then
 
         allocate (tmp_var64(size(var, dim=1), size(var, dim=2)))
 
         call downcast_warning()
-        call adios2_get(io_proc % engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
         var = int(tmp_var64, int32)
 
-      else if (adios2_var % type == adios2_type_integer4) then
+      else if (adios2_var%type == adios2_type_integer4) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported integer type")
@@ -304,19 +304,19 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-      if (adios2_var % type == adios2_type_integer4) then
+      if (adios2_var%type == adios2_type_integer4) then
 
         allocate (tmp_var32(size(var, dim=1), size(var, dim=2)))
 
-        call adios2_get(io_proc % engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
         var = int(tmp_var32, int64)
 
-      else if (adios2_var % type == adios2_type_integer8) then
+      else if (adios2_var%type == adios2_type_integer8) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported integer type")
@@ -346,20 +346,20 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (adios2_var % type == adios2_type_dp) then
+      if (adios2_var%type == adios2_type_dp) then
 
         allocate (tmp_var64(size(var)))
 
         call downcast_warning()
-        call adios2_get(io_proc % engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
         var = real(tmp_var64, real32)
 
-      else if (adios2_var % type == adios2_type_real) then
+      else if (adios2_var%type == adios2_type_real) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported real type")
@@ -389,19 +389,19 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (adios2_var % type == adios2_type_real) then
+      if (adios2_var%type == adios2_type_real) then
 
         allocate (tmp_var32(size(var)))
 
-        call adios2_get(io_proc % engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
         var = real(tmp_var32, real64)
 
-      else if (adios2_var % type == adios2_type_dp) then
+      else if (adios2_var%type == adios2_type_dp) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported real type")
@@ -431,20 +431,20 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-      if (adios2_var % type == adios2_type_dp) then
+      if (adios2_var%type == adios2_type_dp) then
 
         allocate (tmp_var64(size(var, dim=1), size(var, dim=2)))
 
         call downcast_warning()
-        call adios2_get(io_proc % engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
         var = real(tmp_var64, real32)
 
-      else if (adios2_var % type == adios2_type_real) then
+      else if (adios2_var%type == adios2_type_real) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported real type")
@@ -474,19 +474,19 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_inquire_variable(adios2_var, io_proc % io_task, var_name, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
       call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
-      if (adios2_var % type == adios2_type_real) then
+      if (adios2_var%type == adios2_type_real) then
 
         allocate (tmp_var32(size(var, dim=1), size(var, dim=2)))
 
-        call adios2_get(io_proc % engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
         var = real(tmp_var32, real64)
 
-      else if (adios2_var % type == adios2_type_dp) then
+      else if (adios2_var%type == adios2_type_dp) then
 
-        call adios2_get(io_proc % engine, adios2_var, var, adios2_mode_sync, ierr)
+        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
       else
         call error_abort("IO Error: unsuported real type")

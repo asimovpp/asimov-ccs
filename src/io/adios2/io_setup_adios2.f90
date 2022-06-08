@@ -37,7 +37,7 @@ contains
 
         if (present(config_file)) then
           ! Initialise the ADIOS2 environment
-          call adios2_init(io_env % adios, trim(config_file), par_env % comm, adios2_debug_mode_on, ierr)
+          call adios2_init(io_env%adios, trim(config_file), par_env%comm, adios2_debug_mode_on, ierr)
         else
           call error_abort("ADIOS2 requires a config file!")
         end if
@@ -63,7 +63,7 @@ contains
     type is (adios2_env)
 
       ! Finalise ADIOS2 environment
-      call adios2_finalize(io_env % adios, ierr)
+      call adios2_finalize(io_env%adios, ierr)
 
     class default
       call error_abort("Unknown IO environment")
@@ -89,7 +89,7 @@ contains
       select type (io_proc)
       type is (adios2_io_process)
 
-        call adios2_declare_io(io_proc % io_task, io_env % adios, process_name, ierr)
+        call adios2_declare_io(io_proc%io_task, io_env%adios, process_name, ierr)
 
       class default
 
@@ -115,7 +115,7 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_open(io_proc % engine, io_proc % io_task, filename, get_mode(mode), ierr)
+      call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -133,7 +133,7 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_close(io_proc % engine, ierr)
+      call adios2_close(io_proc%engine, ierr)
 
     class default
       call error_abort("Unknown IO process handler type")
