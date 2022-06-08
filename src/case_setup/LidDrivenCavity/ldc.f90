@@ -26,6 +26,7 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update
+  use boundary_conditions, only: set_all_bcs
 
   implicit none
 
@@ -123,6 +124,11 @@ program ldc
   call update(u%values)
   call update(v%values)
   call update(mf%values)
+
+  ! Set BCs
+  call set_all_bcs(0, u%bcs)
+  call set_all_bcs(0, v%bcs)
+  u%bcs%bc_type(4) = 1  ! Manually set here because we haven't read from file
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
