@@ -1,11 +1,11 @@
-!>  Module file bc_constants.mod
+!v Module file bc_constants.mod
 !
-!>  Defines constants for specifying boundary conditions
+!  Defines constants for specifying boundary conditions
 
 module bc_constants
 
   use kinds, only: ccs_int
-  
+
   implicit none
 
   integer(ccs_int), parameter :: bc_region_left = -1
