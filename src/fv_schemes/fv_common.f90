@@ -185,7 +185,7 @@ contains
     else if (bcs%bc_type(index_nb) == 1) then
       bc_value = 1.0_ccs_real ! XXX: might not be correct
     else
-      print *, "ERROR: Unknown boundary type ", bcs%bc_type(index_nb)
+      call error_abort("ERROR: Unknown boundary type " // str(bcs%bc_type(index_nb)))
     end if
     
   end subroutine compute_boundary_values

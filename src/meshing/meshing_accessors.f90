@@ -75,7 +75,7 @@ contains
     !! if (nb_counter > nnb) then
     !!   call error_abort("ERROR: cell has fewer neighbours than neighbour count requested!")
     !! else if (nb_counter < 1) then
-    !!   print *, "ERROR: cell neighbour counter must be >= 1!"
+    !!   call error_abort("ERROR: cell neighbour counter must be >= 1!")
     !! else
     !!   loc_nb%nb_counter = nb_counter
     !! end if
@@ -86,7 +86,7 @@ contains
          i => loc_nb%index_p, &
          j => loc_nb%nb_counter)
       if (mymesh%neighbour_indices(j, i) == i) then
-        print *, "ERROR: trying to set self as neighbour! Cell: ", i, j
+        call error_abort("ERROR: trying to set self as neighbour! Cell: " // str(i) // str(j))
       end if
     end associate
   end subroutine set_neighbour_location

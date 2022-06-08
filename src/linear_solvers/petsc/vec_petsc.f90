@@ -76,7 +76,7 @@ contains
           v%allocated = .true.
 
         class default
-          print *, "Unknown parallel environment"
+          call error_abort("Unknown parallel environment")
     
         end select
 
@@ -510,7 +510,7 @@ contains
 !           call PetscViewerDestroy(viewer, ierr)
 
 !         class default
-!           print *, "Unknown parallel environment"
+!           call error_abort("Unknown parallel environment")
 !       end select
 
 !       class default

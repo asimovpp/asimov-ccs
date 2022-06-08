@@ -60,7 +60,7 @@ contains
           end if
 
           class default
-            print *, "Unknown parallel environment"
+            call error_abort("Unknown parallel environment")
     
         end select
 

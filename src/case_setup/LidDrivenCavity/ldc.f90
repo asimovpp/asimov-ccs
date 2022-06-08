@@ -193,12 +193,12 @@ program ldc
     
     call get_steps(config_file_pointer, num_steps)
     if(num_steps == huge(0)) then
-      print*,"No value assigned to num-steps."
+      call error_abort("No value assigned to num-steps.")
     end if
 
     call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
     if(velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
-      print*,"No values assigned to velocity and pressure underrelaxation."
+      call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
   end subroutine

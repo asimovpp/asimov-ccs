@@ -59,7 +59,7 @@ contains
             end associate
 
           class default
-            print *, "Unknown parallel environment"
+            call error_abort("Unknown parallel environment")
     
         end select         
 
@@ -94,7 +94,7 @@ contains
                   call KSPSolve(ksp, b%v, u%v, ierr)
                   call update(u)
                   if (ierr /= 0) then
-                    print *, "ERROR in linear solve!"
+                    call error_abort("ERROR in linear solve!")
                   end if
 
               class default

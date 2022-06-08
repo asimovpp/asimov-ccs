@@ -4,7 +4,9 @@
 !
 !>  Implementation (using MPI and ADIOS2) of parallel IO setup functionality
 submodule (io) io_setup_adios2
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use adios2
   use adios2_types, only: adios2_env, adios2_io_process
   use parallel_types_mpi, only: parallel_environment_mpi
@@ -37,15 +39,15 @@ submodule (io) io_setup_adios2
               ! Initialise the ADIOS2 environment
               call adios2_init(io_env%adios, trim(config_file), par_env%comm, adios2_debug_mode_on, ierr)
             else
-              print*,"ADIOS2 requires a config file!"
+              call error_abort("ADIOS2 requires a config file!")
             endif
 
           class default
-            print*, "Unknown parallel environment"
+            call error_abort( "Unknown parallel environment")
           end select
 
       class default
-        print*, "Unknown IO environment"
+        call error_abort("Unknown IO environment")
 
     end select
 
@@ -64,7 +66,7 @@ submodule (io) io_setup_adios2
         call adios2_finalize(io_env%adios, ierr)
 
       class default
-        print*, "Unknown IO environment"
+        call error_abort("Unknown IO environment")
 
     end select
 
@@ -91,12 +93,12 @@ submodule (io) io_setup_adios2
 
         class default
 
-          print*,"Unknown IO process handler type"
+          call error_abort("Unknown IO process handler type")
 
       end select
 
       class default
-        print*, "Unknown IO environment"
+        call error_abort("Unknown IO environment")
   
     end select
 
@@ -116,7 +118,7 @@ submodule (io) io_setup_adios2
         call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
       
       class default
-        print*,"Unknown IO process handler type"
+        call error_abort("Unknown IO process handler type")
 
     end select
 
@@ -134,7 +136,7 @@ submodule (io) io_setup_adios2
         call adios2_close(io_proc%engine, ierr)
       
       class default
-        print*,"Unknown IO process handler type"
+        call error_abort("Unknown IO process handler type")
 
     end select
 
@@ -154,7 +156,7 @@ submodule (io) io_setup_adios2
         mode = adios2_mode_append
       case default
         mode = -1
-        print*, "Not a valid file mode!"  
+        call error_abort("Not a valid file mode!")
       end select
 
   end function
