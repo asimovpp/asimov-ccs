@@ -3,6 +3,7 @@
 !> @build mpi+petsc
 
 program ldc
+#include "ccs_macros.inc"
 
   use petscvec
   use petscsys
@@ -25,7 +26,7 @@ program ldc
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update
+  use utils, only: set_size, initialise, update, exit_print
   use boundary_conditions, only: set_all_bcs
 
   implicit none
@@ -193,18 +194,17 @@ program ldc
 
     config_file_pointer => parse(config_filename, error=error)
     if (error/='') then
-      print*,trim(error)
-      stop 1
+      call error_abort(trim(error))
     endif
     
     call get_steps(config_file_pointer, num_steps)
     if(num_steps == huge(0)) then
-      print*,"No value assigned to num-steps."
+      call error_abort("No value assigned to num-steps.")
     end if
 
     call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
     if(velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
-      print*,"No values assigned to velocity and pressure underrelaxation."
+      call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
   end subroutine

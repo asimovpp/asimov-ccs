@@ -4,7 +4,9 @@
 !
 !>  Module implementing the interface to read YAML config file
 submodule (read_config) read_config_utils
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use yaml_types, only: type_dictionary, &
                         type_error, &
                         type_list, &
@@ -36,11 +38,11 @@ submodule (read_config) read_config_utils
       call error_handler(io_err)
       
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
    
     if(associated(io_err) .eqv. .true.) then 
-      print*,"Error reading ",keyword
+      call error_abort("Error reading " // keyword)
     end if
 
   end subroutine
@@ -59,11 +61,11 @@ submodule (read_config) read_config_utils
       call error_handler(io_err)  
       
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
     if(associated(io_err) .eqv. .true.) then 
-      print*,"Error reading ",keyword
+      call error_abort("Error reading " // keyword)
     end if
 
   end subroutine
@@ -82,11 +84,11 @@ submodule (read_config) read_config_utils
       call error_handler(io_err)  
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
     if(associated(io_err) .eqv. .true.) then 
-      print*,"Error reading ",keyword
+      call error_abort("Error reading " // keyword)
     end if
 
   end subroutine
@@ -180,7 +182,7 @@ submodule (read_config) read_config_utils
       end if
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -259,7 +261,7 @@ submodule (read_config) read_config_utils
       end if
 
       class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -308,7 +310,7 @@ submodule (read_config) read_config_utils
       end if
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -375,7 +377,7 @@ submodule (read_config) read_config_utils
       end if
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -417,7 +419,7 @@ submodule (read_config) read_config_utils
       call get_value(dict, "max_sub_steps", max_sub_steps)
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -497,7 +499,7 @@ submodule (read_config) read_config_utils
       end if
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -549,7 +551,7 @@ submodule (read_config) read_config_utils
       end if
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -601,7 +603,7 @@ submodule (read_config) read_config_utils
       end if
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -630,7 +632,7 @@ submodule (read_config) read_config_utils
       call get_value(dict, "iter", output_iter)
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -689,11 +691,11 @@ submodule (read_config) read_config_utils
         end do
 
       class default
-        print*,"Unknown type"
+        call error_abort("Unknown type")
       end select
      
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine
@@ -809,7 +811,7 @@ submodule (read_config) read_config_utils
       end if
 
     class default
-      print*,"Unknown type"
+      call error_abort("Unknown type")
     end select
 
   end subroutine

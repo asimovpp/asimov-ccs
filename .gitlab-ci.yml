@@ -94,6 +94,20 @@ test_ccs_cray:
 
 #-----------------------------------------------------------------------------#
 
+lint_src:
+  script: 
+    - bash build_tools/lint.sh lint src
+    - bash build_tools/lint.sh score src
+  allow_failure: true
+
+lint_tests:
+  script: 
+    - bash build_tools/lint.sh lint tests
+    - bash build_tools/lint.sh score tests
+  allow_failure: true
+
+#-----------------------------------------------------------------------------#
+
 generate_code_docs:
   extends: .general_setup
   script:
