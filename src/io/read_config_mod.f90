@@ -4,11 +4,11 @@
 
 module read_config
 
-  use kinds, only : ccs_real
-    
+  use kinds, only: ccs_real
+
   implicit none
-  
-  private  
+
+  private
 
   public :: get_case_name
   public :: get_steps
@@ -31,27 +31,27 @@ module read_config
 
     !>  Get the name of the test case
     !
-    !v  Get the case name for the configuration file and 
+    !v  Get the case name for the configuration file and
     !   store it in a string.
     module subroutine get_case_name(config_file, title)
-      class(*), pointer, intent(in) :: config_file            !< the entry point to the config file    
-      character(len=:), allocatable, intent(inout) :: title   !< the case name string    
+      class(*), pointer, intent(in) :: config_file            !< the entry point to the config file
+      character(len=:), allocatable, intent(inout) :: title   !< the case name string
     end subroutine
-      
+
     !>  Get the number of steps
     !
-    !v  Get the maximum number of iterations 
-    !   to be preformed in the current run 
-    module  subroutine get_steps(config_file, steps)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
-      integer, intent(inout) :: steps               !< the maximum number of iterations    
+    !v  Get the maximum number of iterations
+    !   to be preformed in the current run
+    module subroutine get_steps(config_file, steps)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+      integer, intent(inout) :: steps               !< the maximum number of iterations
     end subroutine
-      
+
     !>  Get source of initial values
     !
     !v  Get the source of the initial values - accepted
-    !   values are "user", "field" or "step" 
-    module  subroutine get_init(config_file, init, u_init, v_init, w_init, te_init, ed_init)
+    !   values are "user", "field" or "step"
+    module subroutine get_init(config_file, init, u_init, v_init, w_init, te_init, ed_init)
       class(*), pointer, intent(in) :: config_file
       character(len=:), allocatable, intent(inout) :: init
       integer, optional, intent(inout) :: u_init
@@ -64,19 +64,19 @@ module read_config
 
     !>  Get reference numbers
     !
-    !>  Get the reference numbers, the fluid properties and the operating condition 
+    !>  Get the reference numbers, the fluid properties and the operating condition
     !
-    !> @param[in] config_file - the entry point to the config file    
-    !> @param[in,out] p_ref - reference pressure 
-    !> @param[in,out] p_total - total pressure 
-    !> @param[in,out] temp_ref - reference temperature      
-    !> @param[in,out] dens_ref - reference density      
-    !> @param[in,out] visc_ref - laminar viscosity      
-    !> @param[in,out] velo_ref - reference velocity      
-    !> @param[in,out] len_ref - reference length, used to define the Reynolds number of the flow      
-    !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
+    !> @param[in] config_file - the entry point to the config file
+    !> @param[in,out] p_ref - reference pressure
+    !> @param[in,out] p_total - total pressure
+    !> @param[in,out] temp_ref - reference temperature
+    !> @param[in,out] dens_ref - reference density
+    !> @param[in,out] visc_ref - laminar viscosity
+    !> @param[in,out] velo_ref - reference velocity
+    !> @param[in,out] len_ref - reference length, used to define the Reynolds number of the flow
+    !> @param[in,out] pref_at_cell - cell at which the reference pressure is set
     module subroutine get_reference_number(config_file, p_ref, p_total, temp_ref, &
-                                            dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
+                                           dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
       class(*), pointer, intent(in) :: config_file
       real(ccs_real), optional, intent(inout) :: p_ref
       real(ccs_real), optional, intent(inout) :: p_total
@@ -84,19 +84,19 @@ module read_config
       real(ccs_real), optional, intent(inout) :: dens_ref
       real(ccs_real), optional, intent(inout) :: visc_ref
       real(ccs_real), optional, intent(inout) :: velo_ref
-      real(ccs_real), optional, intent(inout) :: len_ref      
+      real(ccs_real), optional, intent(inout) :: len_ref
       integer, optional, intent(inout) :: pref_at_cell
     end subroutine
 
     !>  Get variables to be solved
     !
-    !v  By default, all variables will be solved. Using this 
-    ! "solve" keyword, the user can specifically request that 
+    !v  By default, all variables will be solved. Using this
+    ! "solve" keyword, the user can specifically request that
     ! certain variables will not be solved by setting in to "off"
     !
     !> @todo extend list of variables
     module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
-      class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file    
+      class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
       character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
       character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
       character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
@@ -108,15 +108,15 @@ module read_config
     !v  Get the solvers that are to be used for each of
     ! the variables. Solver types are defined by integer values
     !
-    !> @param[in] config_file  
-    !> @param[in,out] u_solver 
-    !> @param[in,out] v_solver 
-    !> @param[in,out] w_solver 
-    !> @param[in,out] p_solver 
+    !> @param[in] config_file
+    !> @param[in,out] u_solver
+    !> @param[in,out] v_solver
+    !> @param[in,out] w_solver
+    !> @param[in,out] p_solver
     !
-    !> @todo extend list of variables   
+    !> @todo extend list of variables
     module subroutine get_solver(config_file, u_solver, v_solver, w_solver, p_solver, te_solver, ed_solver)
-      class(*), pointer, intent(in) :: config_file    !< the entry point to the config file    
+      class(*), pointer, intent(in) :: config_file    !< the entry point to the config file
       integer, optional, intent(inout) :: u_solver    !< solver to be used for u
       integer, optional, intent(inout) :: v_solver    !< solver to be used for v
       integer, optional, intent(inout) :: w_solver    !< solver to be used for w
@@ -129,7 +129,7 @@ module read_config
     !
     !>  Enables/disables unsteady solution algorithm
     !
-    !> @param[in] config_file - the entry point to the config file   
+    !> @param[in] config_file - the entry point to the config file
     !> @param[in,out] transient_type - "euler" (first order) or "quad" (second order)
     !> @param[in,out] dt - time interval (seconds) between two consecutive time steps
     !> @param[in,out] euler_blend - gamma, euler blending factor which blends quad
@@ -144,11 +144,11 @@ module read_config
 
     !>  Get target residual
     !
-    !v Get the convergence criterion. 
-    !  The calculation will stop when the residuals (L2-norm) of the 
+    !v Get the convergence criterion.
+    !  The calculation will stop when the residuals (L2-norm) of the
     !  governing equations are less than the target residual.
-    module  subroutine get_target_residual(config_file, residual)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+    module subroutine get_target_residual(config_file, residual)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
       real(ccs_real), intent(inout) :: residual     !< convergence criterion
     end subroutine
 
@@ -157,20 +157,20 @@ module read_config
     !v Get the grid cell at which to monitor the values
     !  of the flow variables (U,V,W,P,TE,ED and T)
     !
-    !> @param[in] config_file      
-    !> @param[in,out] monitor_cell 
-    module  subroutine get_monitor_cell(config_file, monitor_cell)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+    !> @param[in] config_file
+    !> @param[in,out] monitor_cell
+    module subroutine get_monitor_cell(config_file, monitor_cell)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
       integer, intent(inout) :: monitor_cell        !< grid cell ID
     end subroutine
 
-    !>  Get convection schemes 
+    !>  Get convection schemes
     !
-    !v  Get convection schemes to be used for the 
+    !v  Get convection schemes to be used for the
     !   different variables. The convection schemes are defined
     !   by integer values.
-    module  subroutine get_convection_scheme(config_file, u_conv, v_conv, w_conv, te_conv, ed_conv)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+    module subroutine get_convection_scheme(config_file, u_conv, v_conv, w_conv, te_conv, ed_conv)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
       integer, optional, intent(inout) :: u_conv    !< convection scheme for u
       integer, optional, intent(inout) :: v_conv    !< convection scheme for v
       integer, optional, intent(inout) :: w_conv    !< convection scheme for w
@@ -178,7 +178,7 @@ module read_config
       integer, optional, intent(inout) :: ed_conv   !< convection scheme for ed
     end subroutine
 
-    !>  Get blending factor values 
+    !>  Get blending factor values
     !
     !>  Get blending factors
     !
@@ -197,7 +197,7 @@ module read_config
       real(ccs_real), optional, intent(inout) :: ed_blend
     end subroutine
 
-    !>  Get relaxation factor values 
+    !>  Get relaxation factor values
     !
     !> Get relaxation factors
     !
@@ -216,7 +216,7 @@ module read_config
       real(ccs_real), optional, intent(inout) :: ed_relax
     end subroutine
 
-    !>  Get output frequency 
+    !>  Get output frequency
     !
     !>  Get output frequency, set with keywords "every", "iter", or both.
     !
@@ -229,7 +229,7 @@ module read_config
       integer, intent(inout) :: output_iter
     end subroutine
 
-    !>  Get output file format 
+    !>  Get output file format
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[inout] plot_format - output format (e.g. vtk)
@@ -238,7 +238,7 @@ module read_config
       character(len=:), allocatable, intent(inout) :: plot_format
     end subroutine
 
-    !>  Get output type variables 
+    !>  Get output type variables
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[inout] post_type - values at cell centres or cell vertices?
@@ -246,11 +246,10 @@ module read_config
     module subroutine get_output_type(config_file, post_type, post_vars)
       class(*), pointer, intent(in) :: config_file
       character(len=:), allocatable, intent(inout) :: post_type
-      character(len=2), dimension(10), intent(inout) :: post_vars    
+      character(len=2), dimension(10), intent(inout) :: post_vars
     end subroutine
 
-
-    !>  Get boundary conditions 
+    !>  Get boundary conditions
     !
     !> @param[in] config_file - the entry point to the config file
     !> @param[inout] bnd_region - array of boundary region names
@@ -261,9 +260,9 @@ module read_config
       class(*), pointer, intent(in) :: config_file
       character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
       character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-      real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
+      real(ccs_real), optional, dimension(:, :), allocatable, intent(inout) :: bnd_vector
     end subroutine
 
   end interface
 end module read_config
-  
+

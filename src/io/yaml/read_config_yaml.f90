@@ -3,7 +3,7 @@
 !>  @build yaml
 !
 !>  Module implementing the interface to read YAML config file
-submodule (read_config) read_config_utils
+submodule(read_config) read_config_utils
 #include "ccs_macros.inc"
 
   use utils, only: exit_print
@@ -13,7 +13,6 @@ submodule (read_config) read_config_utils
                         type_list_item, &
                         type_scalar
 
-
   implicit none
 
   interface get_value
@@ -22,73 +21,73 @@ submodule (read_config) read_config_utils
     module procedure get_string_value
   end interface
 
-  contains 
+contains
 
   subroutine get_integer_value(dict, keyword, int_val)
-    class (*), pointer, intent(in) :: dict
-    character (len=*), intent(in) :: keyword
-    integer, intent(out)  :: int_val
+    class(*), pointer, intent(in) :: dict
+    character(len=*), intent(in) :: keyword
+    integer, intent(out) :: int_val
 
     type(type_error), pointer :: io_err
 
-    select type(dict)
-    type is(type_dictionary)
+    select type (dict)
+    type is (type_dictionary)
 
-      int_val = dict%get_integer(keyword,error=io_err)
+      int_val = dict % get_integer(keyword, error=io_err)
       call error_handler(io_err)
-      
+
     class default
       call error_abort("Unknown type")
     end select
-   
-    if(associated(io_err) .eqv. .true.) then 
-      call error_abort("Error reading " // keyword)
+
+    if (associated(io_err) .eqv. .true.) then
+      call error_abort("Error reading "//keyword)
     end if
 
   end subroutine
-    
+
   subroutine get_real_value(dict, keyword, real_val)
-    class (*), pointer, intent(in) :: dict
-    character (len=*), intent(in) :: keyword
-    real(ccs_real), intent(out)  :: real_val
+    class(*), pointer, intent(in) :: dict
+    character(len=*), intent(in) :: keyword
+    real(ccs_real), intent(out) :: real_val
 
     type(type_error), pointer :: io_err
 
-    select type(dict)
-    type is(type_dictionary)
+    select type (dict)
+    type is (type_dictionary)
 
-      real_val = dict%get_real(keyword,error=io_err)
-      call error_handler(io_err)  
-      
+      real_val = dict % get_real(keyword, error=io_err)
+      call error_handler(io_err)
+
     class default
       call error_abort("Unknown type")
     end select
 
-    if(associated(io_err) .eqv. .true.) then 
-      call error_abort("Error reading " // keyword)
+    if (associated(io_err) .eqv. .true.) then
+      call error_abort("Error reading "//keyword)
     end if
 
   end subroutine
 
   subroutine get_string_value(dict, keyword, string_val)
-    class (*), pointer, intent(in) :: dict
-    character (len=*), intent(in) :: keyword
-    character (len=:), allocatable, intent(inout) :: string_val
+    class(*), pointer, intent(in) :: dict
+    character(len=*), intent(in) :: keyword
+    character(len=:), allocatable, intent(inout) :: string_val
 
     type(type_error), pointer :: io_err
 
-    select type(dict)
-    type is(type_dictionary)
+    select type (dict)
+    type is (type_dictionary)
 
-      string_val = trim(dict%get_string(keyword,error=io_err))
-      call error_handler(io_err)  
+      string_val = trim(dict % get_string(keyword, error=io_err))
+      call error_handler(io_err)
 
     class default
       call error_abort("Unknown type")
     end select
 
-    if(associated(io_err) .eqv. .true.) then 
-      call error_abort("Error reading " // keyword)
+    if (associated(io_err) .eqv. .true.) then
+      call error_abort("Error reading "//keyword)
     end if
 
   end subroutine
@@ -97,17 +96,17 @@ submodule (read_config) read_config_utils
     type(type_error), pointer, intent(inout) :: io_err
 
     if (associated(io_err)) then
-      print*,trim(io_err%message)
-    endif
-  
+      print *, trim(io_err % message)
+    end if
+
   end subroutine
 
   !>  Get the name of the test case
   !
   !>  Get the case name for the configuration file and store it in a string.
   !
-  !> @param[in] config_file - the entry point to the config file    
-  !> @param[in,out] title - the case name string    
+  !> @param[in] config_file - the entry point to the config file
+  !> @param[in,out] title - the case name string
   module subroutine get_case_name(config_file, title)
     class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: title
@@ -115,26 +114,26 @@ submodule (read_config) read_config_utils
     call get_value(config_file, "title", title)
 
   end subroutine
-    
+
   !>  Get the number of steps
   !
-  !>  Get the maximum number of iterations to be preformed in the current run 
+  !>  Get the maximum number of iterations to be preformed in the current run
   !
-  !> @param[in] config_file - the entry point to the config file    
-  !> @param[in,out] steps - the maximum number of iterations    
-  module  subroutine get_steps(config_file, steps)
+  !> @param[in] config_file - the entry point to the config file
+  !> @param[in,out] steps - the maximum number of iterations
+  module subroutine get_steps(config_file, steps)
     class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: steps
 
     call get_value(config_file, 'steps', steps)
 
   end subroutine
-    
+
   !>  Get source of initial values
   !
-  !>  Get the source of the initial values - accepted values are "user", "field" or "step" 
+  !>  Get the source of the initial values - accepted values are "user", "field" or "step"
   !
-  !> @param[in] config_file - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file
   !> @param[in,out] init - the source of the initial values (user or field)
   !> @param[in,out] u_init - initial value for u
   !> @param[in,out] v_init - initial value for v
@@ -142,7 +141,7 @@ submodule (read_config) read_config_utils
   !> @param[in,out] te_init - initial value for te
   !> @param[in,out] ed_init - initial value for ed
 
-  module  subroutine get_init(config_file, init, u_init, v_init, w_init, te_init, ed_init)
+  module subroutine get_init(config_file, init, u_init, v_init, w_init, te_init, ed_init)
     class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: init
     integer, optional, intent(inout) :: u_init
@@ -154,30 +153,30 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('init',required=.true.,error=io_err)
+      dict => config_file % get_dictionary('init', required=.true., error=io_err)
 
       call get_value(dict, "type", init)
 
-      if(present(u_init)) then
+      if (present(u_init)) then
         call get_value(dict, "u", u_init)
       end if
 
-      if(present(v_init)) then
+      if (present(v_init)) then
         call get_value(dict, "v", v_init)
       end if
 
-      if(present(w_init)) then
+      if (present(w_init)) then
         call get_value(dict, "w", w_init)
       end if
 
-      if(present(te_init)) then
+      if (present(te_init)) then
         call get_value(dict, "te", te_init)
       end if
 
-      if(present(ed_init)) then
+      if (present(ed_init)) then
         call get_value(dict, "ed", ed_init)
       end if
 
@@ -189,19 +188,19 @@ submodule (read_config) read_config_utils
 
   !>  Get reference numbers
   !
-  !>  Get the reference numbers, the fluid properties and the operating condition 
+  !>  Get the reference numbers, the fluid properties and the operating condition
   !
-  !> @param[in] config_file - the entry point to the config file    
-  !> @param[in,out] p_ref - reference pressure 
-  !> @param[in,out] p_total - total pressure 
-  !> @param[in,out] temp_ref - reference temperature      
-  !> @param[in,out] dens_ref - reference density      
-  !> @param[in,out] visc_ref - laminar viscosity      
-  !> @param[in,out] velo_ref - reference velocity      
-  !> @param[in,out] leng_ref - reference length, used to define the Reynolds number of the flow      
-  !> @param[in,out] pref_at_cell - cell at which the reference pressure is set      
+  !> @param[in] config_file - the entry point to the config file
+  !> @param[in,out] p_ref - reference pressure
+  !> @param[in,out] p_total - total pressure
+  !> @param[in,out] temp_ref - reference temperature
+  !> @param[in,out] dens_ref - reference density
+  !> @param[in,out] visc_ref - laminar viscosity
+  !> @param[in,out] velo_ref - reference velocity
+  !> @param[in,out] leng_ref - reference length, used to define the Reynolds number of the flow
+  !> @param[in,out] pref_at_cell - cell at which the reference pressure is set
   module subroutine get_reference_number(config_file, p_ref, p_total, temp_ref, &
-                                          dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
+                                         dens_ref, visc_ref, velo_ref, len_ref, pref_at_cell)
     class(*), pointer, intent(in) :: config_file
     real(ccs_real), optional, intent(inout) :: p_ref
     real(ccs_real), optional, intent(inout) :: p_total
@@ -209,58 +208,58 @@ submodule (read_config) read_config_utils
     real(ccs_real), optional, intent(inout) :: dens_ref
     real(ccs_real), optional, intent(inout) :: visc_ref
     real(ccs_real), optional, intent(inout) :: velo_ref
-    real(ccs_real), optional, intent(inout) :: len_ref      
+    real(ccs_real), optional, intent(inout) :: len_ref
     integer, optional, intent(inout) :: pref_at_cell
 
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('reference_numbers',required=.true.,error=io_err)
+      dict => config_file % get_dictionary('reference_numbers', required=.true., error=io_err)
 
       ! Pressure
-      if(present(p_ref)) then
+      if (present(p_ref)) then
         call get_value(dict, "pressure", p_ref)
       end if
 
       ! Pressure_total
-      if(present(p_total)) then
+      if (present(p_total)) then
         call get_value(dict, "pressure_total", p_total)
       end if
 
       ! Temperature
-      if(present(temp_ref)) then
+      if (present(temp_ref)) then
         call get_value(dict, "temperature", temp_ref)
       end if
 
       ! Density
-      if(present(dens_ref)) then
+      if (present(dens_ref)) then
         call get_value(dict, "density", dens_ref)
       end if
 
       ! Viscosity
-      if(present(visc_ref)) then
+      if (present(visc_ref)) then
         call get_value(dict, "viscosity", visc_ref)
       end if
-      
+
       ! Velocity
-      if(present(velo_ref)) then
+      if (present(velo_ref)) then
         call get_value(dict, "velocity", velo_ref)
       end if
 
       ! Length
-      if(present(len_ref)) then
+      if (present(len_ref)) then
         call get_value(dict, "length", len_ref)
       end if
 
       ! Pref_at_cell
-      if(present(pref_at_cell)) then
+      if (present(pref_at_cell)) then
         call get_value(dict, "pref_at_cell", pref_at_cell)
       end if
 
-      class default
+    class default
       call error_abort("Unknown type")
     end select
 
@@ -268,14 +267,14 @@ submodule (read_config) read_config_utils
 
   !>  Get variables to be solved
   !
-  !v  By default, all variables will be solved. Using this 
-  ! "solve" keyword, the user can specifically request that 
+  !v  By default, all variables will be solved. Using this
+  ! "solve" keyword, the user can specifically request that
   ! certain variables will not be solved by setting in to "off"
   !
   !> @todo extend list of variables
   module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
 
-    class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file    
+    class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
     character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
     character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
     character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
@@ -284,28 +283,28 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('solve',required=.true.,error=io_err)
+      dict => config_file % get_dictionary('solve', required=.true., error=io_err)
 
       ! Solve u?
-      if(present(u_sol)) then
+      if (present(u_sol)) then
         call get_value(dict, "u", u_sol)
-      end if   
-      
+      end if
+
       ! Solve v?
-      if(present(v_sol)) then
+      if (present(v_sol)) then
         call get_value(dict, "v", v_sol)
       end if
 
       ! Solve w?
-      if(present(w_sol)) then
+      if (present(w_sol)) then
         call get_value(dict, "w", w_sol)
-      end if 
-      
+      end if
+
       ! Solve p?
-      if(present(p_sol)) then
+      if (present(p_sol)) then
         call get_value(dict, "p", p_sol)
       end if
 
@@ -319,7 +318,7 @@ submodule (read_config) read_config_utils
   !
   !>  Get the solvers that are to be used for each of the variables. Solver types are defined by integer values
   !
-  !> @param[in] config_file - the entry point to the config file    
+  !> @param[in] config_file - the entry point to the config file
   !> @param[in,out] u_solver - solver to be used for u
   !> @param[in,out] v_solver - solver to be used for v
   !> @param[in,out] w_solver - solver to be used for w
@@ -327,7 +326,7 @@ submodule (read_config) read_config_utils
   !> @param[in,out] te_solver - solver to be used for te
   !> @param[in,out] ed_solver - solver to be used for ed
   !
-  !> @todo extend list of variables   
+  !> @todo extend list of variables
   module subroutine get_solver(config_file, u_solver, v_solver, w_solver, p_solver, te_solver, ed_solver)
 
     class(*), pointer, intent(in) :: config_file
@@ -341,38 +340,38 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('solver',required=.true.,error=io_err)
+      dict => config_file % get_dictionary('solver', required=.true., error=io_err)
 
       ! Get u_solver
-      if(present(u_solver)) then
+      if (present(u_solver)) then
         call get_value(dict, "u", u_solver)
       end if
-      
+
       ! Get v_solver
-      if(present(v_solver)) then
+      if (present(v_solver)) then
         call get_value(dict, "v", v_solver)
       end if
 
       ! Get w_solver
-      if(present(w_solver)) then
+      if (present(w_solver)) then
         call get_value(dict, "w", w_solver)
       end if
-      
+
       ! Get p_solver
-      if(present(p_solver)) then
+      if (present(p_solver)) then
         call get_value(dict, "p", p_solver)
       end if
 
       ! Get te_solver
-      if(present(te_solver)) then
+      if (present(te_solver)) then
         call get_value(dict, "te", te_solver)
       end if
 
       ! Get ed_solver
-      if(present(ed_solver)) then
+      if (present(ed_solver)) then
         call get_value(dict, "ed", ed_solver)
       end if
 
@@ -386,7 +385,7 @@ submodule (read_config) read_config_utils
   !
   !>  Enables/disables unsteady solution algorithm
   !
-  !> @param[in] config_file - the entry point to the config file   
+  !> @param[in] config_file - the entry point to the config file
   !> @param[in,out] transient_type - "euler" (first order) or "quad" (second order)
   !> @param[in,out] dt - time interval (seconds) between two consecutive time steps
   !> @param[in,out] euler_blend - gamma, euler blending factor which blends quad
@@ -401,20 +400,20 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('transient',required=.false.,error=io_err)
+      dict => config_file % get_dictionary('transient', required=.false., error=io_err)
 
       ! Transient type (euler/quad)
       call get_value(dict, "type", transient_type)
-      
+
       ! Dt
       call get_value(dict, "dt", dt)
 
       ! Gamma
       call get_value(dict, "gamma", euler_blend)
-      
+
       ! Maximum number of sub steps
       call get_value(dict, "max_sub_steps", max_sub_steps)
 
@@ -426,11 +425,11 @@ submodule (read_config) read_config_utils
 
   !>  Get target residual
   !
-  !v  Get the convergence criterion. 
-  !   The calculation will stop when the residuals (L2-norm) of the 
+  !v  Get the convergence criterion.
+  !   The calculation will stop when the residuals (L2-norm) of the
   !   governing equations are less than the target residual.
-  module  subroutine get_target_residual(config_file, residual)
-    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file   
+  module subroutine get_target_residual(config_file, residual)
+    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
     real(ccs_real), intent(inout) :: residual     !< convergence criterion
 
     call get_value(config_file, "target_residual", residual)
@@ -441,9 +440,9 @@ submodule (read_config) read_config_utils
   !
   !>  Get the grid cell at which to monitor the values of the flow variables (U,V,W,P,TE,ED and T)
   !
-  !> @param[in] config_file - the entry point to the config file   
+  !> @param[in] config_file - the entry point to the config file
   !> @param[in,out] monitor_cell - grid cell ID
-  module  subroutine get_monitor_cell(config_file, monitor_cell)
+  module subroutine get_monitor_cell(config_file, monitor_cell)
     class(*), pointer, intent(in) :: config_file
     integer, intent(inout) :: monitor_cell
 
@@ -451,18 +450,18 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !>  Get convection schemes 
+  !>  Get convection schemes
   !
   !>  Get convection schemes to be used for the different variables. The convection schemes are defined
   !! by integer values.
   !
-  !> @param[in] config_file - the entry point to the config file   
+  !> @param[in] config_file - the entry point to the config file
   !> @param[in,out] u_conv - convection scheme for u
   !> @param[in,out] v_conv - convection scheme for v
   !> @param[in,out] w_conv - convection scheme for w
   !> @param[in,out] te_conv - convection scheme for te
   !> @param[in,out] ed_conv - convection scheme for ed
-  module  subroutine get_convection_scheme(config_file, u_conv, v_conv, w_conv, te_conv, ed_conv)
+  module subroutine get_convection_scheme(config_file, u_conv, v_conv, w_conv, te_conv, ed_conv)
     class(*), pointer, intent(in) :: config_file
     integer, optional, intent(inout) :: u_conv
     integer, optional, intent(inout) :: v_conv
@@ -473,28 +472,28 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('convection_scheme',required=.false.,error=io_err)
+      dict => config_file % get_dictionary('convection_scheme', required=.false., error=io_err)
 
-      if(present(u_conv)) then
+      if (present(u_conv)) then
         call get_value(dict, "u", u_conv)
       end if
-      
-      if(present(v_conv)) then
+
+      if (present(v_conv)) then
         call get_value(dict, "v", v_conv)
       end if
-      
-      if(present(w_conv)) then
+
+      if (present(w_conv)) then
         call get_value(dict, "w", w_conv)
       end if
-      
-      if(present(te_conv)) then
+
+      if (present(te_conv)) then
         call get_value(dict, "te", te_conv)
       end if
-      
-      if(present(ed_conv)) then
+
+      if (present(ed_conv)) then
         call get_value(dict, "ed", ed_conv)
       end if
 
@@ -504,7 +503,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !>  Get blending factor values 
+  !>  Get blending factor values
   !
   !>  Get blending factors
   !
@@ -525,28 +524,28 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('blending_factor',required=.false.,error=io_err)
+      dict => config_file % get_dictionary('blending_factor', required=.false., error=io_err)
 
-      if(present(u_blend)) then
+      if (present(u_blend)) then
         call get_value(dict, "u", u_blend)
       end if
 
-      if(present(v_blend)) then
+      if (present(v_blend)) then
         call get_value(dict, "v", v_blend)
-      end if 
+      end if
 
-      if(present(w_blend)) then
+      if (present(w_blend)) then
         call get_value(dict, "w", w_blend)
       end if
 
-      if(present(te_blend)) then
+      if (present(te_blend)) then
         call get_value(dict, "te", te_blend)
       end if
 
-      if(present(ed_blend)) then
+      if (present(ed_blend)) then
         call get_value(dict, "ed", ed_blend)
       end if
 
@@ -556,7 +555,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !>  Get relaxation factor values 
+  !>  Get relaxation factor values
   !
   !>  Get relaxation factors
   !
@@ -577,28 +576,28 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('relaxation_factor',required=.false.,error=io_err)
+      dict => config_file % get_dictionary('relaxation_factor', required=.false., error=io_err)
 
-      if(present(u_relax)) then
+      if (present(u_relax)) then
         call get_value(dict, "u", u_relax)
       end if
 
-      if(present(v_relax)) then
+      if (present(v_relax)) then
         call get_value(dict, "v", v_relax)
       end if
 
-      if(present(p_relax)) then
+      if (present(p_relax)) then
         call get_value(dict, "p", p_relax)
       end if
 
-      if(present(te_relax)) then
+      if (present(te_relax)) then
         call get_value(dict, "te", te_relax)
       end if
 
-      if(present(ed_relax)) then
+      if (present(ed_relax)) then
         call get_value(dict, "ed", ed_relax)
       end if
 
@@ -608,7 +607,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !>  Get output frequency 
+  !>  Get output frequency
   !
   !>  Get output frequency, set with keywords "every", "iter", or both.
   !
@@ -623,10 +622,10 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict
     type(type_error), pointer :: io_err
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('output',required=.false.,error=io_err)
+      dict => config_file % get_dictionary('output', required=.false., error=io_err)
 
       call get_value(dict, "every", output_freq)
       call get_value(dict, "iter", output_iter)
@@ -637,7 +636,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !>  Get output file format 
+  !>  Get output file format
   !
   !> @param[in] config_file - the entry point to the config file
   !> @param[inout] plot_format - output format (e.g. vtk)
@@ -649,7 +648,7 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !>  Get output type and variables 
+  !>  Get output type and variables
   !
   !> @param[in] config_file - the entry point to the config file
   !> @param[inout] post_type - values at cell centres or cell vertices?
@@ -657,7 +656,7 @@ submodule (read_config) read_config_utils
   module subroutine get_output_type(config_file, post_type, post_vars)
     class(*), pointer, intent(in) :: config_file
     character(len=:), allocatable, intent(inout) :: post_type
-    character(len=2), dimension(10), intent(inout) :: post_vars    
+    character(len=2), dimension(10), intent(inout) :: post_vars
 
     class(*), pointer :: dict
     class(type_list), pointer :: list
@@ -665,42 +664,42 @@ submodule (read_config) read_config_utils
     type(type_error), pointer :: io_err
     integer :: idx
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('post',required=.false.,error=io_err)
+      dict => config_file % get_dictionary('post', required=.false., error=io_err)
 
       call get_value(dict, "type", post_type)
 
-      select type(dict)
-      type is(type_dictionary)
-         
-        list => dict%get_list('variables',required=.false.,error=io_err)
-        call error_handler(io_err)  
+      select type (dict)
+      type is (type_dictionary)
 
-        item => list%first
+        list => dict % get_list('variables', required=.false., error=io_err)
+        call error_handler(io_err)
+
+        item => list % first
         idx = 1
-        do while(associated(item))
-          select type (element => item%node)
+        do while (associated(item))
+          select type (element => item % node)
           class is (type_scalar)
-            post_vars(idx) = trim(element%string)
-            print*,post_vars(idx)
-            item => item%next
+            post_vars(idx) = trim(element % string)
+            print *, post_vars(idx)
+            item => item % next
             idx = idx + 1
-           end select
+          end select
         end do
 
       class default
         call error_abort("Unknown type")
       end select
-     
+
     class default
       call error_abort("Unknown type")
     end select
 
   end subroutine
 
-  !>  Get boundary conditions 
+  !>  Get boundary conditions
   !
   !> @param[in] config_file - the entry point to the config file
   !> @param[inout] bnd_region - array of boundary region names
@@ -713,8 +712,8 @@ submodule (read_config) read_config_utils
     class(*), pointer, intent(in) :: config_file
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
     character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-    real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
-  
+    real(ccs_real), optional, dimension(:, :), allocatable, intent(inout) :: bnd_vector
+
     type(type_error), pointer :: io_err
     integer :: num_boundaries = 0
     integer :: idx = 1
@@ -725,85 +724,85 @@ submodule (read_config) read_config_utils
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item, inner_item
 
-    select type(config_file)
-    type is(type_dictionary)
+    select type (config_file)
+    type is (type_dictionary)
 
-      dict => config_file%get_dictionary('boundary', required=.false., error=io_err)
-      call error_handler(io_err)  
+      dict => config_file % get_dictionary('boundary', required=.false., error=io_err)
+      call error_handler(io_err)
 
-      list => dict%get_list('region', required=.false.,error=io_err)
-      call error_handler(io_err)  
+      list => dict % get_list('region', required=.false., error=io_err)
+      call error_handler(io_err)
 
-      item => list%first
-      do while(associated(item))
+      item => list % first
+      do while (associated(item))
         num_boundaries = num_boundaries + 1
-        item => item%next
+        item => item % next
       end do
 
-      allocate(bnd_region(num_boundaries))
-      allocate(bnd_type(num_boundaries))
-      allocate(bnd_vector(3,num_boundaries))
+      allocate (bnd_region(num_boundaries))
+      allocate (bnd_type(num_boundaries))
+      allocate (bnd_vector(3, num_boundaries))
 
-      list => dict%get_list('region', required=.false.,error=io_err)
-      call error_handler(io_err)  
+      list => dict % get_list('region', required=.false., error=io_err)
+      call error_handler(io_err)
 
-      item => list%first
-      do while(associated(item))
-        select type(element => item%node)
+      item => list % first
+      do while (associated(item))
+        select type (element => item % node)
         class is (type_scalar)
-          bnd_region(idx) = trim(element%string)
-          print*,bnd_region(idx)
-          item => item%next
+          bnd_region(idx) = trim(element % string)
+          print *, bnd_region(idx)
+          item => item % next
           idx = idx + 1
-          end select  
+        end select
       end do
 
-      list => dict%get_list('type', required=.false.,error=io_err)
-      call error_handler(io_err)  
+      list => dict % get_list('type', required=.false., error=io_err)
+      call error_handler(io_err)
 
-      idx = 1 
-      
-      item => list%first
-      do while(associated(item))
-        select type(element => item%node)
+      idx = 1
+
+      item => list % first
+      do while (associated(item))
+        select type (element => item % node)
         class is (type_scalar)
-          bnd_type(idx) = trim(element%string)
-          print*,bnd_type(idx)
-          item => item%next
+          bnd_type(idx) = trim(element % string)
+          print *, bnd_type(idx)
+          item => item % next
           idx = idx + 1
-          end select  
+        end select
       end do
 
-      if(present(bnd_vector)) then
-    
-        list => dict%get_list('vector', required=.false.,error=io_err)
-        call error_handler(io_err)  
+      if (present(bnd_vector)) then
+
+        list => dict % get_list('vector', required=.false., error=io_err)
+        call error_handler(io_err)
 
         idx = 1
 
-        item => list%first
+        item => list % first
 
-        do while(associated(item))
+        do while (associated(item))
 
-          select type(inner_list => item%node)
-          type is(type_list)
+          select type (inner_list => item % node)
+          type is (type_list)
 
-            inner_item => inner_list%first
+            inner_item => inner_list % first
             inner_idx = 1
 
-            do while(associated(inner_item))
-              select type(inner_element => inner_item%node)
-              class is(type_scalar)
-                inner_item => inner_item%next
+            do while (associated(inner_item))
+              select type (inner_element => inner_item % node)
+              class is (type_scalar)
+                inner_item => inner_item % next
                 inner_idx = inner_idx + 1
-                bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
-                print*,bnd_vector(inner_idx,idx)
+                bnd_vector(inner_idx, idx) = inner_element % to_real(real(bnd_vector(inner_idx, idx), real_kind), success)
+                print *, bnd_vector(inner_idx, idx)
               end select
             end do
 
           end select
 
-          item => item%next
+          item => item % next
           idx = idx + 1
 
         end do
@@ -815,5 +814,5 @@ submodule (read_config) read_config_utils
     end select
 
   end subroutine
-    
+
 end submodule read_config_utils
