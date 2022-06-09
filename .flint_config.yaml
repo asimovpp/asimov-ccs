@@ -151,14 +151,9 @@ regexp-rules:
     regexp: ;\s*$
     replacement: ''
 
-  nospace-endif:
-    message: Missing space after "end"
-    regexp: \#endif
-    replacement: null
-
   nospace-end:
     message: Missing space after "end"
-    regexp: end({blocks}|{structs})
+    regexp: (?<!\#)end({blocks}|{structs})
     replacement: end \1
 
   missing-space-around-arithmetic:

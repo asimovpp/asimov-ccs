@@ -1,6 +1,8 @@
 !>  Program file for TaylorGreenVortex case
 program tgv
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use yaml, only: parse, error_length
   use read_config, only: get_case_name
   use kinds, only : ccs_int, ccs_real
@@ -130,8 +132,7 @@ program tgv
 
     config_file_pointer => parse(ccs_config_file, error=error)
     if (error/='') then
-      print*,trim(error)
-      stop 1
+      call error_abort(trim(error))
     endif
     
     ! Get case name
