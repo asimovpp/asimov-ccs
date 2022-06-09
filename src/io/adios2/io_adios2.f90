@@ -1,8 +1,8 @@
-!>  Submodule file io_adios2.smod
+!v Submodule file io_adios2.smod
 !
-!> @build mpi adios2
+! Implementation (using MPI and ADIOS2) of parallel IO functionality
 !
-!> Implementation (using MPI and ADIOS2) of parallel IO functionality
+! @build mpi adios2
 submodule(io) io_adios2
 #include "ccs_macros.inc"
 
@@ -15,11 +15,11 @@ submodule(io) io_adios2
 
 contains
 
-  !>  Read a scalar 32-bit integer from file
+  !> Read a scalar 32-bit integer from file
   module subroutine read_scalar_int32(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
-    character(len=*), intent(in) :: attr_name    !< Name of scalar integer to read
-    integer(int32), intent(out) :: attr           !< Value of scalar integer
+    class(io_process), intent(in) :: io_proc  !< ADIOS2 IO process used for reading
+    character(len=*), intent(in) :: attr_name !< Name of scalar integer to read
+    integer(int32), intent(out) :: attr       !< Value of scalar integer
 
     type(adios2_attribute) :: adios2_attr
 
@@ -52,11 +52,11 @@ contains
 
   end subroutine
 
-  !>  Read a scalar 64-bit integer from file
+  !> Read a scalar 64-bit integer from file
   module subroutine read_scalar_int64(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
-    character(len=*), intent(in) :: attr_name    !< Name of scalar longinteger to read
-    integer(int64), intent(out) :: attr           !< Value of scalar long integer
+    class(io_process), intent(in) :: io_proc  !< ADIOS2 IO process used for reading
+    character(len=*), intent(in) :: attr_name !< Name of scalar longinteger to read
+    integer(int64), intent(out) :: attr       !< Value of scalar long integer
 
     type(adios2_attribute) :: adios2_attr
 
@@ -88,11 +88,11 @@ contains
 
   end subroutine
 
-  !>  Read a scalar 32-bit real from file
+  !> Read a scalar 32-bit real from file
   module subroutine read_scalar_real32(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
-    character(len=*), intent(in) :: attr_name    !< Name of scalar real to read
-    real(real32), intent(out) :: attr             !< Value of scalar real
+    class(io_process), intent(in) :: io_proc  !< ADIOS2 IO process used for reading
+    character(len=*), intent(in) :: attr_name !< Name of scalar real to read
+    real(real32), intent(out) :: attr         !< Value of scalar real
 
     type(adios2_attribute) :: adios2_attr
 
@@ -124,11 +124,11 @@ contains
 
   end subroutine
 
-  !>  Read a scalar 64-bit real from file
+  !> Read a scalar 64-bit real from file
   module subroutine read_scalar_real64(io_proc, attr_name, attr)
-    class(io_process), intent(in) :: io_proc      !< ADIOS2 IO process used for reading
-    character(len=*), intent(in) :: attr_name    !< Name of scalar double precision real to read
-    real(real64), intent(out) :: attr             !< Value of scalar double precision real
+    class(io_process), intent(in) :: io_proc  !< ADIOS2 IO process used for reading
+    character(len=*), intent(in) :: attr_name !< Name of scalar double precision real to read
+    real(real64), intent(out) :: attr         !< Value of scalar double precision real
 
     type(adios2_attribute) :: adios2_attr
 
@@ -159,15 +159,15 @@ contains
 
   end subroutine
 
-  !>  Read a 1D 32-bit integer array from file
+  !v Read a 1D 32-bit integer array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_int32_1D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of integer array to read
-    integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
-    integer(int32), dimension(:), intent(inout) :: var        !< The 1D integer array
+    integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
+    integer(int32), dimension(:), intent(inout) :: var       !< The 1D integer array
 
     type(adios2_variable) :: adios2_var
     integer(int64), dimension(:), allocatable :: tmp_var64
@@ -202,15 +202,15 @@ contains
 
   end subroutine
 
-  !>  Read a 1D 64-bit integer array from file
+  !v Read a 1D 64-bit integer array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_int64_1D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of integer array to read
-    integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
-    integer(int64), dimension(:), intent(inout) :: var        !< The 1D integer array
+    integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
+    integer(int64), dimension(:), intent(inout) :: var       !< The 1D integer array
 
     type(adios2_variable) :: adios2_var
     integer(int32), dimension(:), allocatable :: tmp_var32
@@ -244,15 +244,15 @@ contains
 
   end subroutine
 
-  !>  Read a 2D 32-bit integer array from file
+  !v Read a 2D 32-bit integer array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_int32_2D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of integer array to read
-    integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(2), intent(in) :: count         !< How many array elements to read
-    integer(int32), dimension(:, :), intent(inout) :: var      !< The 2D integer array
+    integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(2), intent(in) :: count        !< How many array elements to read
+    integer(int32), dimension(:, :), intent(inout) :: var    !< The 2D integer array
 
     type(adios2_variable) :: adios2_var
     integer(int64), dimension(:, :), allocatable :: tmp_var64
@@ -287,15 +287,15 @@ contains
 
   end subroutine
 
-  !>  Read a 2D 64-bit integer array from file
+  !v Read a 2D 64-bit integer array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_int64_2D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of integer array to read
-    integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(2), intent(in) :: count         !< How many array element to read
-    integer(int64), dimension(:, :), intent(inout) :: var      !< The 2D integer array
+    integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(2), intent(in) :: count        !< How many array element to read
+    integer(int64), dimension(:, :), intent(inout) :: var    !< The 2D integer array
 
     type(adios2_variable) :: adios2_var
     integer(int32), dimension(:, :), allocatable :: tmp_var32
@@ -329,15 +329,15 @@ contains
 
   end subroutine
 
-  !>  Read a 1D 32-bit real array from file
+  !v Read a 1D 32-bit real array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_real32_1D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of real array to read
-    integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
-    real(real32), dimension(:), intent(inout) :: var          !< The 1D real array
+    integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
+    real(real32), dimension(:), intent(inout) :: var         !< The 1D real array
 
     type(adios2_variable) :: adios2_var
     real(real64), dimension(:), allocatable :: tmp_var64
@@ -372,15 +372,15 @@ contains
 
   end subroutine
 
-  !>  Read a 1D 64-bit real array from file
+  !v Read a 1D 64-bit real array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_real64_1D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of real array to read
-    integer(int64), dimension(1), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(1), intent(in) :: count         !< How many array element to read
-    real(real64), dimension(:), intent(inout) :: var          !< The 1D real array
+    integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
+    real(real64), dimension(:), intent(inout) :: var         !< The 1D real array
 
     type(adios2_variable) :: adios2_var
     real(real32), dimension(:), allocatable :: tmp_var32
@@ -414,15 +414,15 @@ contains
 
   end subroutine
 
-  !>  Read a 2D 32-bit real array from file
+  !v Read a 2D 32-bit real array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_real32_2D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of real array to read
-    integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(2), intent(in) :: count         !< How many array element to read
-    real(real32), dimension(:, :), intent(inout) :: var        !< The 2D real array
+    integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(2), intent(in) :: count        !< How many array element to read
+    real(real32), dimension(:, :), intent(inout) :: var      !< The 2D real array
 
     type(adios2_variable) :: adios2_var
     real(real64), dimension(:, :), allocatable :: tmp_var64
@@ -457,15 +457,15 @@ contains
 
   end subroutine
 
-  !>  Read a 2D 64-bit real array from file
+  !v Read a 2D 64-bit real array from file
   !
-  !> @todo Check if the "mode" can be read from the configuration file
+  !  @todo Check if the "mode" can be read from the configuration file
   module subroutine read_array_real64_2D(io_proc, var_name, global_start, count, var)
-    class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for reading
+    class(io_process), intent(in) :: io_proc                 !< ADIOS2 IO process used for reading
     character(len=*), intent(in) :: var_name                 !< Name of real array to read
-    integer(int64), dimension(2), intent(in) :: global_start  !< What global index to start reading from
-    integer(int64), dimension(2), intent(in) :: count         !< How many array element to read
-    real(real64), dimension(:, :), intent(inout) :: var        !< The 2D real array
+    integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
+    integer(int64), dimension(2), intent(in) :: count        !< How many array element to read
+    real(real64), dimension(:, :), intent(inout) :: var      !< The 2D real array
 
     type(adios2_variable) :: adios2_var
     real(real32), dimension(:, :), allocatable :: tmp_var32
@@ -499,7 +499,7 @@ contains
 
   end subroutine
 
-  !>  Print out downcast warning
+  !> Print out downcast warning
   subroutine downcast_warning()
     print *, "===> IO Warning:"
     print *, "===> Downcasting from 64-bit to 32-bit, possible loss of precision."
