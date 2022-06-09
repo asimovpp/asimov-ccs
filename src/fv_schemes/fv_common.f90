@@ -10,10 +10,11 @@ submodule (fv) fv_common
   use types, only: vector_values, matrix_values_spec, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
+
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
   use utils, only: str
-  use utils, only: debug_print
+  use utils, only: debug_print, exit_print
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
@@ -135,8 +136,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
             class default
-              print *, 'invalid velocity field discretisation'
-              stop
+              call error_abort("Invalid velocity field discretisation.")
           end select
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
@@ -192,7 +192,7 @@ contains
     else if (bcs%bc_type(index_nb) == 1) then
       bc_value = 1.0_ccs_real ! XXX: might not be correct
     else
-      print *, "ERROR: Unknown boundary type ", bcs%bc_type(index_nb)
+      call error_abort("ERROR: Unknown boundary type " // str(bcs%bc_type(index_nb)))
     end if
     
   end subroutine compute_boundary_values
@@ -257,8 +257,7 @@ contains
             type is(upwind_field)
               call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
             class default
-              print *, 'invalid velocity field discretisation'
-              stop
+              call error_abort("Invalid velocity field discretisation.")
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 

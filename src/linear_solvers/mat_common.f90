@@ -1,4 +1,7 @@
 submodule (mat) mat_common
+#include "ccs_macros.inc"
+
+  use utils, only : exit_print, str
 
   implicit none
 
@@ -83,8 +86,7 @@ contains
       else if (mode == add_mode) then
         x = x + val
       else
-        print *, "ERROR: Unrecognised entry mode ", mode
-        stop
+        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
       end if
 
     end associate

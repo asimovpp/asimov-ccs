@@ -15,7 +15,8 @@ submodule (pv_coupling) pv_coupling_simple
        set_matrix_values_spec_ncols, create_matrix_values
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
-                   str
+                   str, exit_print
+
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm
   use parallel_types, only: parallel_environment
@@ -207,8 +208,7 @@ contains
     else if (component == 2) then
       call calculate_momentum_pressure_source(mesh, p%y_gradients, vec)
     else
-      print *, "Unsupported vector component: ", component
-      stop 1
+      call error_abort("Unsupported vector component: " // str(component))
     end if
     
     ! Underrelax the equations

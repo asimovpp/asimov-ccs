@@ -5,7 +5,9 @@
 !> Implementation (using MPI) of the parallel utilities
 
 submodule (parallel) parallel_utils_mpi
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
 
@@ -27,8 +29,7 @@ submodule (parallel) parallel_utils_mpi
         call error_handling(ierr, "mpi", par_env)
 
       class default
-        write(*,*) "Unsupported parallel environment"
-        stop 1
+        call error_abort("Unsupported parallel environment")
 
     end select
 
@@ -77,20 +78,19 @@ submodule (parallel) parallel_utils_mpi
                 print *, "--ccs_case <string>: Test case name."
               end if
               call cleanup_parallel_environment(par_env)
-              stop
+              stop 0
             case default
               if(par_env%proc_id == par_env%root) then
                 print *, "Argument ",trim(arg)," not supported by ASiMoV-CCS!"
               end if
               call cleanup_parallel_environment(par_env)
-              stop
+              stop 1
             end select
           end if
         end do 
 
       class default
-        write(*,*) "Unsupported parallel environment"
-        stop 1
+        call error_abort("Unsupported parallel environment")
     end select
 
   end subroutine read_command_line_arguments
