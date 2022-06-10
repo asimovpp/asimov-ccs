@@ -7,14 +7,16 @@ submodule (pv_coupling) pv_coupling_simple
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
-                   face_locator, neighbour_locator, matrix_values
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
        create_vector_values
-  use mat, only: create_matrix, set_nnz, get_matrix_diagonal
-  use utils, only: update, initialise, finalise, set_size, set_values, pack_entries, &
-                   mult, zero, clear_entries, set_entry, set_row, set_mode, &
+  use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
+       set_matrix_values_spec_ncols, create_matrix_values
+  use utils, only: update, initialise, finalise, set_size, set_values, &
+                   mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print
+
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use parallel_types, only: parallel_environment
@@ -332,6 +334,12 @@ contains
 
     integer(ccs_int) :: cps   ! Cells per side
     integer(ccs_int) :: rcrit ! Global index of approximate central cell
+
+    ! Specify block size (how many elements to set at once?)
+    integer(ccs_int) :: block_nrows
+    integer(ccs_int) :: block_ncols
+
+    type(matrix_values_spec) :: mat_val_spec
     
     ! First zero matrix
     call zero(M)
@@ -343,8 +351,6 @@ contains
     
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
-
-    mat_coeffs%setter_mode = insert_mode
 
     call update(M)
     
@@ -364,6 +370,13 @@ contains
       allocate(mat_coeffs%global_row_indices(1))
       allocate(mat_coeffs%global_col_indices(1 + nnb))
       allocate(mat_coeffs%values(1 + nnb))
+
+      block_nrows = 1_ccs_int
+      block_ncols = 1_ccs_int + nnb
+      call set_matrix_values_spec_nrows(block_nrows, mat_val_spec)
+      call set_matrix_values_spec_ncols(block_ncols, mat_val_spec)
+      call create_matrix_values(mat_val_spec, mat_coeffs)
+      call set_mode(insert_mode, mat_coeffs)
 
       row = global_index_p
       coeff_p = 0.0_ccs_real
@@ -402,7 +415,11 @@ contains
           col = -1
           coeff_nb = 0.0_ccs_real
         endif
-        call pack_entries(1, j+1, row, col, coeff_nb, mat_coeffs)
+
+        call set_row(row, mat_coeffs)
+        call set_col(col, mat_coeffs)
+        call set_entry(coeff_nb, mat_coeffs)
+        call clear_entries(mat_coeffs)
 
       end do
 
@@ -418,7 +435,9 @@ contains
       
       ! Add the diagonal entry
       col = row
-      call pack_entries(1, 1, row, col, coeff_p, mat_coeffs)
+      call set_row(row, mat_coeffs)
+      call set_col(col, mat_coeffs)
+      call set_entry(coeff_p, mat_coeffs)
 
       call set_row(global_index_p, vec_values)
       call set_entry(r, vec_values)
@@ -426,6 +445,7 @@ contains
       ! Set the values
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
+      call clear_entries(mat_coeffs)
 
       deallocate(mat_coeffs%global_row_indices)
       deallocate(mat_coeffs%global_col_indices)

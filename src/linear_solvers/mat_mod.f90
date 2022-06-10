@@ -4,7 +4,7 @@
 module mat
 
   use kinds, only : ccs_int, ccs_real
-  use types, only : ccs_matrix, matrix_spec, matrix_values, ccs_mesh, ccs_vector
+  use types, only : ccs_matrix, matrix_spec, matrix_values, matrix_values_spec, ccs_mesh, ccs_vector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -19,11 +19,13 @@ module mat
   public :: create_matrix_values
   public :: set_matrix_values_mode
   public :: set_matrix_values_row
+  public :: set_matrix_values_col
+  public :: set_matrix_values_spec_nrows
+  public :: set_matrix_values_spec_ncols
   public :: update_matrix
   public :: begin_update_matrix
   public :: end_update_matrix
   public :: set_eqn
-  public :: pack_one_matrix_coefficient
   public :: initialise_matrix
   public :: set_matrix_size
   public :: set_nnz
@@ -58,18 +60,31 @@ module mat
       class(ccs_matrix), intent(inout) :: M
     end subroutine
     
+    !> Clear working set of values to begin new working set.
     module subroutine clear_matrix_values_entries(val_dat)
-      type(matrix_values), intent(inout) ::val_dat
+
+      ! Arguments
+      type(matrix_values), intent(inout) ::val_dat !< Working set object
+      
     end subroutine clear_matrix_values_entries
 
+    !> Store a coefficient in the current working set at the current row,col coordinate, using the
+    !> current storage mode.
     module subroutine set_matrix_values_entry(val, val_dat)
-      real(ccs_real), intent(in) :: val
-      type(matrix_values), intent(inout) :: val_dat
+
+      ! Arguments
+      real(ccs_real), intent(in) :: val             !< The coefficient value
+      type(matrix_values), intent(inout) :: val_dat !< The object storing the working set
+      
     end subroutine set_matrix_values_entry
 
+    !> Set the storage mode.
     module subroutine set_matrix_values_mode(mode, val_dat)
-      integer(ccs_int), intent(in) :: mode
-      type(matrix_values), intent(inout) :: val_dat
+
+      ! Arguments
+      integer(ccs_int), intent(in) :: mode          !< The storage mode
+      type(matrix_values), intent(inout) :: val_dat !< The object storing the working set
+      
     end subroutine set_matrix_values_mode
 
     !> @brief Interface to set the row currently being worked on by matrix values.
@@ -85,12 +100,35 @@ module mat
       type(matrix_values), intent(inout) :: val_dat
     end subroutine set_matrix_values_row
 
+    module subroutine set_matrix_values_col(col, val_dat)
+      integer(ccs_int), intent(in) :: col
+      type(matrix_values), intent(inout) :: val_dat
+    end subroutine set_matrix_values_col
+
+    !> Set number of rows in working set specifier
+    module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
+
+      ! Arguments
+      integer(ccs_int), intent(in) :: nrows               !< Number of rows to be used in the working set
+      type(matrix_values_spec), intent(inout) :: val_spec !< The current working set specifier object
+
+    end subroutine set_matrix_values_spec_nrows
+
+    !> Set number of columns in working set specifier
+    module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
+
+      ! Arguments
+      integer(ccs_int), intent(in) :: ncols               !< Number of columns to be used in the working set
+      type(matrix_values_spec), intent(inout) :: val_spec !< The current working setspecifier object
+
+    end subroutine set_matrix_values_spec_ncols
+    
     !> @brief Interface to create a maitrx values object.
     !
     !> @param[in]  nrows   - how many rows will be set?
     !> @param[out] val_dat - the matrix values object
-    module subroutine create_matrix_values(nrows, val_dat)
-      integer(ccs_int), intent(in) :: nrows
+    module subroutine create_matrix_values(val_spec, val_dat)
+      type(matrix_values_spec), intent(in) :: val_spec
       type(matrix_values), intent(out) :: val_dat
     end subroutine create_matrix_values
 
@@ -118,27 +156,6 @@ module mat
      module subroutine end_update_matrix(M)
        class(ccs_matrix), intent(inout) :: M
      end subroutine
-
-     !>  Interface to store one matrix coefficient and its index for later setting.
-     !
-     !> @param[in/out] mat_coeffs - object storing the coefficients, their indices and mode to use
-     !!                             when setting them.
-     !> @param[in]     row_entry  - which entry in the row indices to set?
-     !> @param[in]     col_entry  - which entry in the column indices to set?
-     !> @param[in]     row        - matrix row index
-     !> @param[in]     col        - matrix column index
-     !> @param[in]     coeff      - matrix coefficient
-     !
-     !v  Stores a matrix coefficient and associated row and column indices for later
-     !   setting, ensuring they are set appropriately for the backend.
-     module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
-       integer(ccs_int), intent(in) :: row_entry
-       integer(ccs_int), intent(in) :: col_entry
-       integer(ccs_int), intent(in) :: row
-       integer(ccs_int), intent(in) :: col
-       real(ccs_real), intent(in) :: coeff
-       type(matrix_values), intent(inout) :: mat_coeffs
-     end subroutine pack_one_matrix_coefficient
 
     !>  Interface to perform the AXPY matrix operation.
     !

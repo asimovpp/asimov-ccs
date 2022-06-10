@@ -47,14 +47,19 @@ module types
   type, public :: matrix_values
     integer(ccs_int), dimension(:), allocatable :: global_row_indices !< Array of (global) row indices to set values on.
     integer(ccs_int), dimension(:), allocatable :: global_col_indices !< Array of (global) column indices to set values on.
-    real(ccs_real), dimension(:), allocatable :: values               !< Array of values, must be logically 2D and
-                                                                      !< of size = size(row_indices) * size(col_indices). Uses
-                                                                      !< row-major ordering.
-    integer(ccs_int) :: setter_mode                                   !< Which mode to use when setting values?
-    integer(ccs_int) :: current_entry                                 !< Which entry are we currently working on?
+    real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and 
+                                                            !< of size = size(row_indices) * size(col_indices). Uses 
+                                                            !< row-major ordering.
+    integer(ccs_int) :: setter_mode                         !< Which mode to use when setting values?
+    integer(ccs_int) :: current_row, current_col            !< Which entry are we currently working on?
   end type matrix_values
 
-  !> Container type representing a linear system.
+  type, public :: matrix_values_spec
+    integer(ccs_int) :: nrows = 0
+    integer(ccs_int) :: ncols = 0
+  end type matrix_values_spec
+  
+  !>  Container type representing a linear system.
   type, public :: equation_system
     character(len=:), allocatable :: name  !< Name of the equation system
     class(ccs_vector), pointer :: solution !< Solution vector

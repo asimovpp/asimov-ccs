@@ -5,14 +5,14 @@ program test_compute_fluxes
 #include "ccs_macros.inc"
 
   use testing_lib
-  use types, only: field, central_field, face_field
+  use types, only: field, central_field, face_field, matrix_values_spec
   use mesh_utils, only : build_square_mesh
   use fv, only: compute_fluxes
   use utils, only : update, initialise, finalise, &
-       set_size, pack_entries, set_values, zero, &
-       set_mode, set_entry, set_row, clear_entries
+       set_size, set_values, zero, &
+       set_mode, set_entry, set_col, set_row, clear_entries
   use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location, create_vector_values
-  use mat, only : create_matrix, set_nnz
+  use mat, only : create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use solver, only : axpy, norm
   use constants, only: add_mode, face
   use bc_constants
@@ -154,6 +154,7 @@ program test_compute_fluxes
     class(ccs_matrix), intent(inout) :: M   !< The matrix
 
     ! Local variables
+    type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_values
     type(cell_locator) :: loc_p
     type(neighbour_locator) loc_nb
@@ -165,12 +166,11 @@ program test_compute_fluxes
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
     logical :: is_boundary
 
-    allocate(mat_values%global_row_indices(1))
-    allocate(mat_values%global_col_indices(1))
-    allocate(mat_values%values(1))
-
-    mat_values%setter_mode = add_mode
-
+    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+    call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
+    call create_matrix_values(mat_val_spec, mat_values)
+    call set_mode(add_mode, mat_values)
+    
     face_area = 1.0_ccs_real/cps
 
     do index_p = 1, mesh%nlocal
@@ -193,7 +193,10 @@ program test_compute_fluxes
             sgn = 1
           endif
           adv_coeff = 0.5_ccs_real*mf_value*sgn*face_area
-          call pack_entries(1, 1, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_values)
+
+          call set_row(global_index_p, mat_values)
+          call set_col(global_index_nb, mat_values)
+          call set_entry(adv_coeff + diff_coeff, mat_values)
           call set_values(mat_values, M)
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
@@ -201,12 +204,21 @@ program test_compute_fluxes
           dx = 1.0_ccs_real/cps
           diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
           adv_coeff = mf_value*face_area
-          call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_values)
+
+          call set_row(global_index_p, mat_values)
+          call set_col(global_index_p, mat_values)
+          call set_entry(-(adv_coeff + diff_coeff), mat_values)
           call set_values(mat_values, M)
         endif
+        
+        call clear_entries(mat_values)
       end do
-      call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff_total + diff_coeff_total), mat_values)
+
+      call set_row(global_index_p, mat_values)
+      call set_col(global_index_p, mat_values)
+      call set_entry(-(adv_coeff_total + diff_coeff_total), mat_values)
       call set_values(mat_values, M)
+      call clear_entries(mat_values)
     end do
   end subroutine compute_exact_matrix
   
