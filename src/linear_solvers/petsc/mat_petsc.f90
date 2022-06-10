@@ -230,6 +230,7 @@ contains
     
   end subroutine
 
+  !> Clear working set of values to begin new working set.
   module procedure clear_matrix_values_entries
 
     val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
@@ -237,15 +238,19 @@ contains
     val_dat%values(:) = 0.0_ccs_real
     
   end procedure clear_matrix_values_entries
-  
-  module subroutine set_matrix_values_row(row, val_dat)
-    integer(ccs_int), intent(in) :: row
-    type(matrix_values), intent(inout) :: val_dat
 
-    integer(ccs_int), dimension(rank(val_dat%global_row_indices)) :: rglobs
-    integer(ccs_int) :: i
-    logical :: new_entry
-    integer(ccs_int) :: petsc_row
+  !> Set working row.
+  module subroutine set_matrix_values_row(row, val_dat)
+
+    ! Arguments
+    integer(ccs_int), intent(in) :: row           !< Which (global) row to work on?
+    type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
+
+    ! Local
+    integer(ccs_int), dimension(rank(val_dat%global_row_indices)) :: rglobs !< Temporary array mapping rows to indices in the current working set.
+    integer(ccs_int) :: i         !< The mapped index in the current working set
+    logical :: new_entry          !< Flag to indicate if we are revisiting a row
+    integer(ccs_int) :: petsc_row !< The (zero-indexed) row as used by PETSc
 
     petsc_row = row - 1 ! PETSc is zero-indexed
     new_entry = .false.
@@ -268,15 +273,19 @@ contains
     val_dat%global_row_indices(i) = petsc_row
     
   end subroutine set_matrix_values_row
-  
-  module subroutine set_matrix_values_col(col, val_dat)
-    integer(ccs_int), intent(in) :: col
-    type(matrix_values), intent(inout) :: val_dat
 
-    integer(ccs_int), dimension(rank(val_dat%global_col_indices)) :: cglobs
-    integer(ccs_int) :: i
-    logical :: new_entry
-    integer(ccs_int) :: petsc_col
+  !> Set working column.
+  module subroutine set_matrix_values_col(col, val_dat)
+
+    ! Arguments
+    integer(ccs_int), intent(in) :: col           !< Which (global) column to work on ?
+    type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
+
+    ! Local
+    integer(ccs_int), dimension(rank(val_dat%global_col_indices)) :: cglobs !< Temporary array mapping colums to indices in the current working set.
+    integer(ccs_int) :: i         !< The mapped index in the current working set
+    logical :: new_entry          !< Flag to indicate if we are revisiting a column
+    integer(ccs_int) :: petsc_col !< The (zero-indexed) column as used by PETSc
 
     petsc_col = col - 1 ! PETSc is zero-indexed
     new_entry = .false.
@@ -395,6 +404,7 @@ contains
 
   end subroutine
 
+  !> Store a vector in the matrix diagonal
   module subroutine set_matrix_diagonal(D, M)
     use petscmat, only : MatDiagonalSet
 
@@ -420,13 +430,14 @@ contains
 
   end subroutine set_matrix_diagonal
 
+  !> Overwite a matrix with zeros.
   module subroutine zero_matrix(M)
 
     use petscmat, only: MatZeroEntries
     
     class(ccs_matrix), intent(inout) :: M   !< the PETSc matrix
 
-    integer(ccs_err) :: ierr
+    integer(ccs_err) :: ierr !< Error code
 
     select type (M)
     type is (matrix_petsc)

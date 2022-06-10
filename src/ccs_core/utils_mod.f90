@@ -47,28 +47,34 @@ module utils
     module procedure set_matrix_values
   end interface set_values
 
+  !> Generic interface to store a value for later setting.
   interface set_entry
     module procedure set_vector_values_entry
     module procedure set_matrix_values_entry
   end interface set_entry
 
+  !> Generic interface to set the storage mode (ADD/INSERT) of an object.
   interface set_mode
     module procedure set_vector_values_mode
     module procedure set_matrix_values_mode
   end interface set_mode
 
+  !> Generic interface to set the working row.
   interface set_row
     module procedure set_vector_values_row
     module procedure set_matrix_values_row
   end interface set_row
+  !> Generic interface to set the working column.
   interface set_col
     module procedure set_matrix_values_col
   end interface set_col
-  
+
+  !> Generic interface to indicate an object is ready for use.
   interface finalise
     module procedure finalise_matrix
   end interface finalise
 
+  !> Generic interface to clear stored entries.
   interface clear_entries
     module procedure clear_vector_values_entries
     module procedure clear_matrix_values_entries
