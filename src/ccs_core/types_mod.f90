@@ -48,8 +48,8 @@ module types
     integer(ccs_int), dimension(:), allocatable :: global_row_indices !< Array of (global) row indices to set values on.
     integer(ccs_int), dimension(:), allocatable :: global_col_indices !< Array of (global) column indices to set values on.
     real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and 
-                                                            !! of size = size(row_indices) * size(col_indices). Uses 
-                                                            !! row-major ordering.
+                                                            !< of size = size(row_indices) * size(col_indices). Uses 
+                                                            !< row-major ordering.
     integer(ccs_int) :: setter_mode                         !< Which mode to use when setting values?
     integer(ccs_int) :: current_row, current_col            !< Which entry are we currently working on?
   end type matrix_values
