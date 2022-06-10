@@ -113,5 +113,77 @@ contains
     end select
        
   end subroutine
+
+  !> Interface to set the primary method of a linear solver
+  module subroutine set_solver_method(method_name, solver)
+
+    use petscksp, only : KSPSetType, KSPSetFromOptions
+
+    ! Arguments
+    character(len=*), intent(in) :: method_name   !< String naming the linear solver to be used.
+    class(linear_solver), intent(inout) :: solver !< The linear solver object
+
+    ! Local
+    integer(ccs_err) :: ierr !< Error code
+    
+    select type(solver)
+    type is (linear_solver_petsc)
+      associate(ksp => solver%KSP)
+        ! Use linear solver name to set linear solver type
+        if (method_name == "CG") then
+          call KSPSetType(ksp, "cg", ierr)
+        else if (method_name == "GMRES") then
+          call KSPSetType(ksp, "gmres", ierr)
+        else if (method_name == "BCGS") then
+          call KSPSetType(ksp, "bcgs", ierr)
+        else
+          print *, "ERROR: Unknown solver method ", method_name
+          stop
+        end if
+
+        call KSPSetFromOptions(ksp, ierr)
+      end associate
+    class default
+      print *, "ERROR: Unknown solver type"
+      stop
+    end select
+    
+  end subroutine set_solver_method
+
+  !> Interface to set the preconditioner of a linear solver
+  module subroutine set_solver_precon(precon_name, solver)
+
+    use petscksp, only : KSPGetPC
+    use petscpc, only : tPC, PCSetType
+
+    ! Arguments
+    character(len=*), intent(in) :: precon_name   !< String naming the preconditioner to be used.
+    class(linear_solver), intent(inout) :: solver !< The linear solver object
+
+    ! Local
+    type(tPC) :: pc          !< PETSc preconditioner object
+    integer(ccs_err) :: ierr !< Error code
+    
+    select type(solver)
+    type is (linear_solver_petsc)
+      associate(ksp => solver%KSP)
+        call KSPGetPC(ksp, pc, ierr)
+
+        ! Use preconditioner name to set preconditioner type
+        if (precon_name == "BJACOBI") then
+          call PCSetType(pc, "bjacobi", ierr)
+        else if (precon_name == "GAMG") then
+          call PCSetType(pc, "gamg", ierr)
+        else
+          print *, "ERROR: Unknown solver precon ", precon_name
+          stop
+        end if
+      end associate
+    class default
+      print *, "ERROR: Unknown solver type"
+      stop
+    end select
+    
+  end subroutine set_solver_precon
   
 end submodule solver_petsc

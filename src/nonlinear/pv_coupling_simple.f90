@@ -16,7 +16,7 @@ submodule (pv_coupling) pv_coupling_simple
                    mult, zero, clear_entries, set_entry, set_row, set_mode, &
                    str, exit_print
   use utils, only: debug_print
-  use solver, only: create_solver, solve, set_equation_system, axpy, norm
+  use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -228,6 +228,10 @@ contains
     ! Create linear solver
     call set_equation_system(par_env, vec, u%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
+
+    ! Customise linear solver
+    call set_solver_method("GMRES", lin_solver)
+    call set_solver_precon("BJACOBI", lin_solver)
 
     ! Solve the linear system
     call dprint("GV: solve u")
@@ -442,6 +446,10 @@ contains
     call dprint("P': create lin sys")
     call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
+
+    ! Customise linear solver
+    call set_solver_method("CG", lin_solver)
+    call set_solver_precon("GAMG", lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")

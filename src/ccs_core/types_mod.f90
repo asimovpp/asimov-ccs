@@ -56,9 +56,10 @@ module types
 
   !> Container type representing a linear system.
   type, public :: equation_system
-    class(ccs_vector), pointer :: solution          !< Solution vector
-    class(ccs_vector), pointer :: rhs               !< Right-hand side vector
-    class(ccs_matrix), pointer :: matrix            !< Matrix
+    character(len=:), allocatable :: name  !< Name of the equation system
+    class(ccs_vector), pointer :: solution !< Solution vector
+    class(ccs_vector), pointer :: rhs      !< Right-hand side vector
+    class(ccs_matrix), pointer :: matrix   !< Matrix
     class(parallel_environment), pointer :: par_env !< The parallel environment
   end type equation_system
 
