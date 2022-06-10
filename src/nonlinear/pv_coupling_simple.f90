@@ -227,8 +227,9 @@ contains
 
     ! Create linear solver
     call set_equation_system(par_env, vec, u%values, M, lin_sys)
-
     call create_solver(lin_sys, lin_solver)
+
+    ! Customise linear solver
     call set_solver_method("GMRES", lin_solver)
     call set_solver_precon("BJACOBI", lin_solver)
 
@@ -445,6 +446,8 @@ contains
     call dprint("P': create lin sys")
     call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
     call create_solver(lin_sys, lin_solver)
+
+    ! Customise linear solver
     call set_solver_method("CG", lin_solver)
     call set_solver_precon("GAMG", lin_solver)
 
