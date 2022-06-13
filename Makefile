@@ -80,7 +80,7 @@ LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
 INC += -I${PARHIP}/include
-LIB += -L${PARHIP}/lib -lparhip_interface
+LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
 
 
 ifeq ($(NEED_CMP),yes)
