@@ -75,12 +75,62 @@ module boundary_conditions
   !
   !> @param[in] config_file - pointer to configuration file
   !> @param[out] bcs        - boundary conditions structure
+  !subroutine get_bcs(config_file, bcs)
+  !  use bc_constants
+  !  use read_config, only: get_boundaries
+
+  !  class(*), pointer, intent(in) :: config_file
+  !  type(bc_config), intent(out) :: bcs
+
+  !  ! local variables
+  !  character(len=16), dimension(:), allocatable :: region
+  !  character(len=16), dimension(:), allocatable :: bc_type
+  !  real(ccs_real), dimension(:,:), allocatable :: bc_data
+  !  integer(ccs_int) :: i
+
+  !  call get_boundaries(config_file, region, bc_type, bc_data)
+
+  !  do i = 1, size(region)
+  !    select case(region(i))
+  !      case("left")
+  !        bcs%region(i) = bc_region_left
+  !      case("right")
+  !        bcs%region(i) = bc_region_right
+  !      case("top")
+  !        bcs%region(i) = bc_region_top
+  !      case("bottom")
+  !        bcs%region(i) = bc_region_bottom
+  !      case default
+  !        call error_abort("Invalid BC region selected.")
+  !    end select
+
+  !    select case(bc_type(i))
+  !      case("periodic")
+  !        bcs%bc_type(i) = bc_type_periodic
+  !      case("sym")
+  !        bcs%bc_type(i) = bc_type_sym
+  !      case("dirichlet")
+  !        bcs%bc_type(i) = bc_type_dirichlet
+  !      case("const_grad")
+  !        bcs%bc_type(i) = bc_type_const_grad
+  !      case default
+  !        call error_abort("Invalid BC type selected.")
+  !    end select
+  !  end do
+  !  ! ALEXEI: This specifies the values of the boundary conditions at the corners of the box (if dirichlet, 
+  !  ! otherwise ignored).This is necessary for the scalar_advection case setup and the tests, but should be 
+  !  ! generalised in the longer term. Since we are working in 2D for now we only need a subset of the 
+  !  ! vectors specified
+  !  bcs%endpoints(:,:) = bc_data(2:,:2)
+  !end subroutine get_bcs
+
+  !>  Assigns bc data to structure
   subroutine get_bcs(config_file, bcs)
-    use bc_constants
+    use bc_constants                    
     use read_config, only: get_boundaries
 
-    class(*), pointer, intent(in) :: config_file
-    type(bc_config), intent(out) :: bcs
+    class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
+    type(bc_config), intent(out) :: bcs           !< boundary conditions structure
 
     ! local variables
     character(len=16), dimension(:), allocatable :: region
@@ -88,39 +138,29 @@ module boundary_conditions
     real(ccs_real), dimension(:,:), allocatable :: bc_data
     integer(ccs_int) :: i
 
-    call get_boundaries(config_file, region, bc_type, bc_data)
+    !call get_boundaries(config_file, region, bc_type, bc_data)
+    select type (config_file)
+    type is (type_dictionary)
+      list => config_file%get_dictionary('boundaries', required=.false., error=io_err)
+      call error_handler(io_err)
 
-    do i = 1, size(region)
-      select case(region(i))
-        case("left")
-          bcs%region(i) = bc_region_left
-        case("right")
-          bcs%region(i) = bc_region_right
-        case("top")
-          bcs%region(i) = bc_region_top
-        case("bottom")
-          bcs%region(i) = bc_region_bottom
-        case default
-          call error_abort("Invalid BC region selected.")
-      end select
+      item => list%first
+      do while (associated(item))
+        select type (inner_element => item%node)
+        type is (type_dictionary)
+          ! Insert what to do with a dictionary
+        type is (type_list)
+          ! Insert what to do with a list
+        class default
+          call error_abort("type unhandled")
+        end select
 
-      select case(bc_type(i))
-        case("periodic")
-          bcs%bc_type(i) = bc_type_periodic
-        case("sym")
-          bcs%bc_type(i) = bc_type_sym
-        case("dirichlet")
-          bcs%bc_type(i) = bc_type_dirichlet
-        case("const_grad")
-          bcs%bc_type(i) = bc_type_const_grad
-        case default
-          call error_abort("Invalid BC type selected.")
-      end select
-    end do
-    ! ALEXEI: This specifies the values of the boundary conditions at the corners of the box (if dirichlet, 
-    ! otherwise ignored).This is necessary for the scalar_advection case setup and the tests, but should be 
-    ! generalised in the longer term. Since we are working in 2D for now we only need a subset of the 
-    ! vectors specified
-    bcs%endpoints(:,:) = bc_data(2:,:2)
+        item => item%next
+      end do
+    class default
+      call error_abort("type unhandled")
+    end select
+
+
   end subroutine get_bcs
 end module boundary_conditions
