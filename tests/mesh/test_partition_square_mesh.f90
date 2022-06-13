@@ -13,8 +13,11 @@ program test_partition_square_mesh
 
   type(topology) :: topo
   type(ccs_mesh), target :: mesh
-  integer :: i, j, k, n, current, previous
+  integer :: i, j, k, n
 
+  integer, parameter :: topo_idx_type = kind(topo%adjncy(1))
+  integer(topo_idx_type) :: current, previous
+  
   call init()
 
   ! Create a square mesh
