@@ -247,7 +247,7 @@ contains
     type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
 
     ! Local
-    integer(ccs_int), dimension(rank(val_dat%global_row_indices)) :: rglobs !< Temporary array mapping rows to indices in the current working set.
+    integer(ccs_int), dimension(1) :: rglobs !< Temporary array mapping rows to indices in the current working set.
     integer(ccs_int) :: i         !< The mapped index in the current working set
     logical :: new_entry          !< Flag to indicate if we are revisiting a row
     integer(ccs_int) :: petsc_row !< The (zero-indexed) row as used by PETSc
@@ -282,7 +282,7 @@ contains
     type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
 
     ! Local
-    integer(ccs_int), dimension(rank(val_dat%global_col_indices)) :: cglobs !< Temporary array mapping colums to indices in the current working set.
+    integer(ccs_int), dimension(1) :: cglobs !< Temporary array mapping colums to indices in the current working set.
     integer(ccs_int) :: i         !< The mapped index in the current working set
     logical :: new_entry          !< Flag to indicate if we are revisiting a column
     integer(ccs_int) :: petsc_col !< The (zero-indexed) column as used by PETSc

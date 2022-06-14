@@ -334,7 +334,7 @@ contains
   
   module procedure set_vector_values_row
 
-    integer(ccs_int), dimension(rank(val_dat%global_indices)) :: idxs
+    integer(ccs_int), dimension(1) :: idxs
     integer(ccs_int) :: i
     integer(ccs_int) :: petsc_row
 
