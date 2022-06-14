@@ -334,7 +334,10 @@ contains
   
   module procedure set_vector_values_row
 
-    integer(ccs_int), dimension(1) :: idxs
+    integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
+                                           !< current working set. N.B. the dimension of this
+                                           !< array must match the rank of
+                                           !< vector_values%global_indices!
     integer(ccs_int) :: i
     integer(ccs_int) :: petsc_row
 
