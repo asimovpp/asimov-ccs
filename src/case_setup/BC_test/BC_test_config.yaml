@@ -65,6 +65,7 @@ post:
 #  -
 
 boundaries:
+  n_boundaries: 4
   boundary_1:
     location: jet
     type: inlet

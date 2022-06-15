@@ -826,48 +826,52 @@ submodule (read_config) read_config_utils
     class(*), pointer :: dict2
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item
-    real(ccs_real), dimension(:,:), allocatable :: bc_data
     integer(ccs_int) :: i
+    integer(ccs_int) :: n_boundaries
     type(type_error), pointer :: io_err
     character(len=10) :: boundary_index
     
     i = 1
     select type (config_file)
     type is (type_dictionary)
-      write(boundary_index, '(A9, I1)') "boundary_", i
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
       call error_handler(io_err)
+
+      call get_value(dict, "n_boundaries", n_boundaries)
       
-      select type (dict)
-      type is (type_dictionary)
-        dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
-        call error_handler(io_err)
-      end select
+      i = 1
+      do while (i <= n_boundaries)
+        write(boundary_index, '(A9, I1)') "boundary_", i
+        select type (dict)
+        type is (type_dictionary)
+          dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
+          call error_handler(io_err)
 
-      call get_value(dict2, "location", location)
-      call dprint("location " // location)
-      !open(17, file="node_dump.txt")
-      !call dict%dump(17, 2)
-      !close(17)
-      !do while (associated(item))
-      !  !select type (inner_element => item%node)
-      !  !type is (type_list)
-      !  !  ! Insert what to do with a list
-      !  !  continue
-      !  !type is (type_dictionary)
-      !  !  call get_string_value(item, "location", location) ! XXX: should try to use get_value here somehow
-      !  !  call get_string_value(item, "type", bc_type)
-      !  !class default
-      !  !  call error_abort("type unhandled")
-      !  !end select
+          call get_value(dict2, "location", location)
+          call get_value(dict2, "type", bc_type)
+          call dprint("location " // location)
+          call dprint("bc_type " // bc_type)
+        end select
+        !select type (inner_element => item%node)
+        !type is (type_list)
+        !  ! Insert what to do with a list
+        !  continue
+        !type is (type_dictionary)
+        !  call get_string_value(item, "location", location) ! XXX: should try to use get_value here somehow
+        !  call get_string_value(item, "type", bc_type)
+        !class default
+        !  call error_abort("type unhandled")
+        !end select
 
-      !  !call get_value(item, "location", location)
+        !call get_value(item, "location", location)
 
 
-      !  !call get_value(dict, "location", location)
+        !call get_value(dict, "location", location)
 
-      !  item => item%next
-      !end do
+        !item => item%next
+
+        i = i+1
+      end do
     class default
       call error_abort("type unhandled")
     end select
