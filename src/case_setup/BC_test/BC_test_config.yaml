@@ -65,7 +65,8 @@ post:
 #  -
 
 boundaries:
-  - location: jet
+  boundary_1:
+    location: jet
     type: inlet
     uvw: [49.6, 0., 0.]
     den: 1.1099
@@ -73,7 +74,8 @@ boundaries:
     fmix: 0.158
     ti_ls: [0.1, 0.003]
  
-  - location: coflow
+  boundary_2:
+    location: coflow
     type: inlet
     uvw: [0.9 0. 0.]
     den: 1.17643
@@ -82,8 +84,10 @@ boundaries:
     pgr: 0.0
     ti_ls: [0.05, 0.01]
  
-  - location: outflow
+  boundary_3:
+    location: outflow
     type: outlet
  
-  - location: atmos
+  boundary_4:
+    location: atmos
     type: symp

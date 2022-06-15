@@ -127,39 +127,43 @@ module boundary_conditions
   !>  Assigns bc data to structure
   subroutine get_bcs(config_file, bcs)
     use bc_constants                    
-    use read_config, only: get_boundaries
+    use read_config, only: get_boundary_conditions_new_yaml
 
     class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
     type(bc_config), intent(out) :: bcs           !< boundary conditions structure
 
     ! local variables
-    character(len=16), dimension(:), allocatable :: region
-    character(len=16), dimension(:), allocatable :: bc_type
-    real(ccs_real), dimension(:,:), allocatable :: bc_data
-    integer(ccs_int) :: i
+    character(len=:), allocatable :: location
+    character(len=:), allocatable :: bc_type
+    !class(type_list), pointer :: list
+    !class(type_list_item), pointer :: item
+    !real(ccs_real), dimension(:,:), allocatable :: bc_data
+    !integer(ccs_int) :: i
+    !type(type_error), pointer :: io_err
 
     !call get_boundaries(config_file, region, bc_type, bc_data)
-    select type (config_file)
-    type is (type_dictionary)
-      list => config_file%get_dictionary('boundaries', required=.false., error=io_err)
-      call error_handler(io_err)
+    call get_boundary_conditions_new_yaml(config_file, location, bc_type)
+    !select type (config_file)
+    !type is (type_dictionary)
+    !  list => config_file%get_list('boundaries', required=.false., error=io_err)
+    !  call error_handler(io_err)
 
-      item => list%first
-      do while (associated(item))
-        select type (inner_element => item%node)
-        type is (type_dictionary)
-          ! Insert what to do with a dictionary
-        type is (type_list)
-          ! Insert what to do with a list
-        class default
-          call error_abort("type unhandled")
-        end select
+    !  item => list%first
+    !  do while (associated(item))
+    !    select type (inner_element => item%node)
+    !    type is (type_list)
+    !      ! Insert what to do with a list
+    !      continue
+    !    class default
+    !      call get_value(inner_element, "location", location)
+    !      call get_value(inner_element, "type", bc_type)
+    !    end select
 
-        item => item%next
-      end do
-    class default
-      call error_abort("type unhandled")
-    end select
+    !    item => item%next
+    !  end do
+    !class default
+    !  call error_abort("type unhandled")
+    !end select
 
 
   end subroutine get_bcs

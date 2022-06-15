@@ -4,7 +4,7 @@
 
 module read_config
 
-  use kinds, only : ccs_real
+  use kinds, only : ccs_real, ccs_int
     
   implicit none
   
@@ -25,7 +25,8 @@ module read_config
   public :: get_output_frequency
   public :: get_plot_format
   public :: get_output_type
-  public :: get_boundaries
+  public :: get_boundaries                      ! XXX: only keep one BC getter function
+  public :: get_boundary_conditions_new_yaml    ! XXX: only keep one BC getter function
 
   interface
 
@@ -264,6 +265,11 @@ module read_config
       real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
     end subroutine
 
+    module subroutine get_boundary_conditions_new_yaml(config_file, location, bc_type)
+      class(*), pointer, intent(in) :: config_file
+      character(len=:), allocatable, intent(inout) :: location
+      character(len=:), allocatable, intent(inout) :: bc_type
+    end subroutine
   end interface
 end module read_config
   

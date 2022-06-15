@@ -6,7 +6,7 @@
 submodule (read_config) read_config_utils
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print
+  use utils, only: exit_print, debug_print, str
   use yaml_types, only: type_dictionary, &
                         type_error, &
                         type_list, &
@@ -815,5 +815,62 @@ submodule (read_config) read_config_utils
     end select
 
   end subroutine
+
+  module subroutine get_boundary_conditions_new_yaml(config_file, location, bc_type) ! XXX: come up with name that isn't this stupid
+    class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
+    character(len=:), allocatable, intent(inout) :: location
+    character(len=:), allocatable, intent(inout) :: bc_type
+    
+    ! local variables
+    class(*), pointer :: dict
+    class(*), pointer :: dict2
+    class(type_list), pointer :: list
+    class(type_list_item), pointer :: item
+    real(ccs_real), dimension(:,:), allocatable :: bc_data
+    integer(ccs_int) :: i
+    type(type_error), pointer :: io_err
+    character(len=10) :: boundary_index
+    
+    i = 1
+    select type (config_file)
+    type is (type_dictionary)
+      write(boundary_index, '(A9, I1)') "boundary_", i
+      dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
+      call error_handler(io_err)
+      
+      select type (dict)
+      type is (type_dictionary)
+        dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
+        call error_handler(io_err)
+      end select
+
+      call get_value(dict2, "location", location)
+      call dprint("location " // location)
+      !open(17, file="node_dump.txt")
+      !call dict%dump(17, 2)
+      !close(17)
+      !do while (associated(item))
+      !  !select type (inner_element => item%node)
+      !  !type is (type_list)
+      !  !  ! Insert what to do with a list
+      !  !  continue
+      !  !type is (type_dictionary)
+      !  !  call get_string_value(item, "location", location) ! XXX: should try to use get_value here somehow
+      !  !  call get_string_value(item, "type", bc_type)
+      !  !class default
+      !  !  call error_abort("type unhandled")
+      !  !end select
+
+      !  !call get_value(item, "location", location)
+
+
+      !  !call get_value(dict, "location", location)
+
+      !  item => item%next
+      !end do
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_boundary_conditions_new_yaml
 
 end submodule read_config_utils
