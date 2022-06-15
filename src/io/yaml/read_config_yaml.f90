@@ -852,24 +852,6 @@ submodule (read_config) read_config_utils
           call dprint("location " // location)
           call dprint("bc_type " // bc_type)
         end select
-        !select type (inner_element => item%node)
-        !type is (type_list)
-        !  ! Insert what to do with a list
-        !  continue
-        !type is (type_dictionary)
-        !  call get_string_value(item, "location", location) ! XXX: should try to use get_value here somehow
-        !  call get_string_value(item, "type", bc_type)
-        !class default
-        !  call error_abort("type unhandled")
-        !end select
-
-        !call get_value(item, "location", location)
-
-
-        !call get_value(dict, "location", location)
-
-        !item => item%next
-
         i = i+1
       end do
     class default
