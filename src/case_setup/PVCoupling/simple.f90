@@ -33,12 +33,15 @@ program simple
 
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
 
-  integer(ccs_int) :: it_start, it_end, ierr
+  integer(ccs_int) :: it_start, it_end
 
   double precision :: start_time
   double precision :: end_time
- 
+
+#ifndef EXCLUDE_MISSING_INTERFACE
+  integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
+#endif
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
@@ -106,6 +109,7 @@ program simple
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
 
+#ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 
   associate (vec => u%values)
@@ -134,7 +138,8 @@ program simple
   end associate
 
   call PetscViewerDestroy(viewer,ierr)
-
+#endif
+  
   ! Clean-up
   deallocate(u)
   deallocate(v)

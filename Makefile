@@ -87,7 +87,9 @@ ifeq ($(CCS_PROPRIETARY),yes)
   include $(CCS_PROPRIETARY_MAKEFILE)
 endif
 
-
+ifeq ($(BUILD),debug)
+	FFLAGS += -DEXCLUDE_MISSING_INTERFACE
+endif
 
 all: obj app
 
