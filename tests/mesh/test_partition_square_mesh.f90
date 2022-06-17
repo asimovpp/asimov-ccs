@@ -16,7 +16,7 @@ program test_partition_square_mesh
 
   type(topology) :: topo
   type(ccs_mesh), target :: mesh
-  integer :: i, j, k, n
+  integer :: i, j, n
 
   integer, parameter :: topo_idx_type = kind(topo%adjncy(1))
   integer(topo_idx_type) :: current, previous
@@ -27,22 +27,14 @@ program test_partition_square_mesh
   print *, "Building mesh"
   mesh = build_square_mesh(par_env, 4, 1.0_ccs_real)
 
-  ! Assign corresponding mesh values to the topology object
+  !! --- read_topology() ---
   topo%global_num_cells = mesh%nglobal
-  topo%local_num_cells = mesh%nlocal
-  topo%halo_num_cells = mesh%nhalo
-  topo%total_num_cells = mesh%ntotal
-  topo%num_faces = mesh%nfaces_local
-  topo%global_indices = mesh%global_indices
-  topo%max_faces = mesh%nnb(1)
   topo%global_num_faces = 40 ! Hardcoded for now
-  
-  allocate(topo%global_partition(topo%global_num_cells))
-  allocate(topo%local_partition(topo%local_num_cells))
-  allocate(topo%xadj(topo%local_num_cells + 1))
+  topo%max_faces = mesh%nnb(1)
   allocate(topo%face_cell1(topo%global_num_faces))
   allocate(topo%face_cell2(topo%global_num_faces))
-
+  allocate(topo%global_face_indices(topo%max_faces, topo%global_num_cells))
+  
   ! Hardcode for now
   topo%face_cell1 = (/ 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, &
                        5, 5, 5, 6,  6, 7,  7, 8,  8, &
@@ -53,9 +45,35 @@ program test_partition_square_mesh
                        10, 13, 11, 14, 12, 15,  0, 16, &
                        0, 14,  0, 15,  0, 16,  0,  0,  0/)
 
-  n = count(mesh%neighbour_indices > 0)
+  ! <MISSING> set topo%global_face_indices
+  
+  !! --- read_topology() --- end
 
-  print*,"Number of positive value neighbour indices: ", n
+  !! --- compute_partitioner_input() ---
+  allocate(topo%vtxdist(5))
+  allocate(topo%global_partition(topo%global_num_cells))
+
+  ! Hardcode vtxdist for now
+  topo%vtxdist = (/ 1, 5, 9, 13, 17 /)
+
+  ! <MISSING> set topo%global_partition array?
+  ! FAKE partition array based on initial mesh decomposition
+  do i = 1, topo%global_num_cells
+    if (any(mesh%global_indices(1:mesh%nlocal) == i)) then
+      topo%global_partition(i) = par_env%proc_id
+    else
+      topo%global_partition(i) = -1
+    end if
+  end do
+  
+  topo%local_num_cells = mesh%nlocal
+  allocate(topo%xadj(topo%local_num_cells + 1))
+
+  ! <MISSING> allocate topo%global_boundaries
+  ! <MISSING> allocate topo%adjncy
+  
+  allocate(topo%local_partition(topo%local_num_cells))
+  topo%halo_num_cells = mesh%nhalo
 
   select type(par_env)
   type is (parallel_environment_mpi)
@@ -82,8 +100,6 @@ program test_partition_square_mesh
     call stop_test(message)
   end select
 
-  print*,"Adjacency arrays: ", topo%adjncy
-
   ! Now compute the adjacency index array
   j = 1
   topo%xadj(j) = 1
@@ -100,28 +116,59 @@ program test_partition_square_mesh
 
   topo%xadj(j + 1) = size(topo%adjncy) + 1
 
+  ! <MISSING> allocate topo%adjwgt
+  ! <MISSING> allocate topo%vwgt
+  
+  !! --- compute_partitioner_input() --- end
+  
+  ! Assign corresponding mesh values to the topology object
+  topo%total_num_cells = mesh%ntotal
+  topo%num_faces = mesh%nfaces_local
+  topo%global_indices = mesh%global_indices
+
+  n = count(mesh%neighbour_indices > 0)
+
+  print*,"Number of positive value neighbour indices: ", n
+
+  print*,"Adjacency arrays: ", topo%adjncy
+
   print*,"Adjacency index array: ", topo%xadj
 
-  ! Hardcode vtxdist for now
-  allocate(topo%vtxdist(5))
-  topo%vtxdist = (/ 1, 5, 9, 13, 17 /)
-
-  ! These need to be set to 1 for them to do nothing
-  topo%adjwgt = 1
-  topo%vwgt = 1
-
+  ! ! These need to be set to 1 for them to do nothing
+  ! if (allocated(topo%adjwgt).and.allocated(topo%vwgt)) then
+  !   topo%adjwgt = 1
+  !   topo%vwgt = 1
+  ! else
+  !   call stop_test("Not allocated!!!")
+  ! end if
+  
   !call partition_kway(par_env, topo)
 
-  if(par_env%proc_id == 0) then
-    print*, "Global partition after partitioning:"
-    do i=1,15
-      print*, topo%global_partition(i)
-    end do
-  end if
+  ! if(par_env%proc_id == 0) then
+  !   print*, "Global partition after partitioning:"
+  !   do i=1,topo%global_num_cells
+  !     print*, topo%global_partition(i)
+  !   end do
+  ! end if
 
   ! Compute new connectivity after partitioning
   call compute_connectivity(par_env, topo)
+  if (size(topo%nb_indices, 2) /= size(mesh%neighbour_indices, 2) .or. &
+       size(topo%nb_indices, 1) /= size(mesh%neighbour_indices, 1)) then
+    print *, "TOPO local_num_cells: ", topo%local_num_cells
+    print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
+    print *, "TOPO partitoin: ", topo%global_partition
+    print *, "MESH nlocal: ", mesh%nlocal
+    print *, "MESH nb_indices: ", size(mesh%neighbour_indices, 1), size(mesh%neighbour_indices, 2)
+    write(message, *) "ERROR: topology size is wrong!"
+    call stop_test(message)
+  end if
 
+  if (all(topo%nb_indices == mesh%neighbour_indices)) then
+    write(message, *) "ERROR: topology changed!"
+    call stop_test(message)
+  end if
+  
   if(allocated(topo%xadj)) then
     deallocate(topo%xadj)
   end if
