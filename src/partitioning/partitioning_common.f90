@@ -136,7 +136,7 @@ implicit none
 
     ! Allocate array to hold number of neighbours for local cells
     allocate(topo%num_nb(topo%local_num_cells))
-    topo%num_nb = topo%max_faces ! NOTE: This assumes a mesh of uniform cell types
+    topo%num_nb(:) = topo%max_faces ! NOTE: This assumes a mesh of uniform cell types
 
     call dprint("Number of neighbours "//str(int(topo%num_nb(1))))
 
