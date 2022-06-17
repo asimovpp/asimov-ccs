@@ -3,6 +3,7 @@
 !
 
 program scalar_advection
+#include "ccs_macros.inc"
 
   !! ASiMoV-CCS uses
   use kinds, only : ccs_real, ccs_int
@@ -12,7 +13,7 @@ program scalar_advection
   use vec, only : create_vector
   use mat, only : create_matrix, set_nnz
   use solver, only : create_solver, solve, set_equation_system
-  use utils, only : update, initialise, set_size
+  use utils, only : update, initialise, set_size, debug_print, str
   use mesh_utils, only : build_square_mesh
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
@@ -54,7 +55,9 @@ program scalar_advection
   allocate(upwind_field :: scalar)
 
   ! Read bc configuration
-  call read_bc_config("BC_test_config.yaml", mf%bcs)
+  call read_bc_config("src/case_setup/BC_test/BC_test_config.yaml", mf%bcs)
+
+  call dprint("mf bcs name type " // str(mf%bcs%name(1)) // " " // str(mf%bcs%bc_type(1)) // " " // str(mf%bcs%den(1)))
 
   call cleanup_parallel_environment(par_env)
 

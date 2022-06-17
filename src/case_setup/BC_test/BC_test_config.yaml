@@ -54,20 +54,10 @@ post:
   type: center
   variables: [u, v, w, p]
 
-#boundary:
-#  region: [left, right, bottom, top]
-#  type: [dirichlet, const_grad, const_grad, dirichlet]
-#  vector: 
-#  - [ 1.0, 0.0, 0.0 ]
-#  - [ 0.0, 0.0, 0.0 ]
-#  - [ 0.0, 0.0, 0.0 ]
-#  - [ 0.0, 0.0, 0.0 ]
-#  -
-
 boundaries:
   n_boundaries: 4
   boundary_1:
-    location: jet
+    name: jet
     type: inlet
     uvw: [49.6, 0., 0.]
     den: 1.1099
@@ -76,7 +66,7 @@ boundaries:
     ti_ls: [0.1, 0.003]
  
   boundary_2:
-    location: coflow
+    name: coflow
     type: inlet
     uvw: [0.9 0. 0.]
     den: 1.17643
@@ -86,9 +76,9 @@ boundaries:
     ti_ls: [0.05, 0.01]
  
   boundary_3:
-    location: outflow
+    name: outflow
     type: outlet
  
   boundary_4:
-    location: atmos
+    name: atmos
     type: symp

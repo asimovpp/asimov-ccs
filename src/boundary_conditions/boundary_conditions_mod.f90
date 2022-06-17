@@ -68,7 +68,7 @@ module boundary_conditions
       call error_abort(trim(error))
     endif
 
-    call get_bcs(config_file, bcs)
+    call get_bcs(config_file, "den", bcs)
   end subroutine read_bc_config
   
   !>  Assigns bc data to structure
@@ -124,47 +124,15 @@ module boundary_conditions
   !  bcs%endpoints(:,:) = bc_data(2:,:2)
   !end subroutine get_bcs
 
-  !>  Assigns bc data to structure
-  subroutine get_bcs(config_file, bcs)
+  !>  Assigns bc data to structure XXX: this function is almost certainly redundant now
+  subroutine get_bcs(config_file, bc_field, bcs)
     use bc_constants                    
-    use read_config, only: get_boundary_conditions_new_yaml
+    use read_config, only: get_boundary_conditions_for_field
 
     class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
+    character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
     type(bc_config), intent(out) :: bcs           !< boundary conditions structure
 
-    ! local variables
-    character(len=:), allocatable :: location
-    character(len=:), allocatable :: bc_type
-    !class(type_list), pointer :: list
-    !class(type_list_item), pointer :: item
-    !real(ccs_real), dimension(:,:), allocatable :: bc_data
-    !integer(ccs_int) :: i
-    !type(type_error), pointer :: io_err
-
-    !call get_boundaries(config_file, region, bc_type, bc_data)
-    call get_boundary_conditions_new_yaml(config_file, location, bc_type)
-    !select type (config_file)
-    !type is (type_dictionary)
-    !  list => config_file%get_list('boundaries', required=.false., error=io_err)
-    !  call error_handler(io_err)
-
-    !  item => list%first
-    !  do while (associated(item))
-    !    select type (inner_element => item%node)
-    !    type is (type_list)
-    !      ! Insert what to do with a list
-    !      continue
-    !    class default
-    !      call get_value(inner_element, "location", location)
-    !      call get_value(inner_element, "type", bc_type)
-    !    end select
-
-    !    item => item%next
-    !  end do
-    !class default
-    !  call error_abort("type unhandled")
-    !end select
-
-
+    call get_boundary_conditions_for_field(config_file, bc_field, bcs)
   end subroutine get_bcs
 end module boundary_conditions

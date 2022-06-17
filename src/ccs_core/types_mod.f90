@@ -11,7 +11,7 @@ module types
 
   private
 
-  !>  Stub type for vectors to be extended in sub-modules.
+
   type, public :: ccs_vector
   end type ccs_vector
 
@@ -70,10 +70,10 @@ module types
 
   !> BC data type
   type, public :: bc_config
+    integer(ccs_int), dimension(4) :: name
     integer(ccs_int), dimension(4) :: region
     integer(ccs_int), dimension(4) :: bc_type
-    real(ccs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests, 
-                                                  ! possibly remove/improve for general
+    real(ccs_real), dimension(4) :: den
   end type bc_config
 
   !>  Mesh type

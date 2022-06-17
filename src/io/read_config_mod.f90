@@ -5,6 +5,7 @@
 module read_config
 
   use kinds, only : ccs_real, ccs_int
+  use types, only : bc_config
     
   implicit none
   
@@ -27,6 +28,7 @@ module read_config
   public :: get_output_type
   public :: get_boundaries                      ! XXX: only keep one BC getter function
   public :: get_boundary_conditions_new_yaml    ! XXX: only keep one BC getter function
+  public :: get_boundary_conditions_for_field   ! XXX: only keep one BC getter function
 
   interface
 
@@ -269,6 +271,12 @@ module read_config
       class(*), pointer, intent(in) :: config_file
       character(len=:), allocatable, intent(inout) :: location
       character(len=:), allocatable, intent(inout) :: bc_type
+    end subroutine
+    
+    module subroutine get_boundary_conditions_for_field(config_file, bc_field, bcs)
+      class(*), pointer, intent(in) :: config_file
+      character(len=*), intent(in) :: bc_field      
+      type(bc_config), intent(out) :: bcs           
     end subroutine
   end interface
 end module read_config

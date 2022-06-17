@@ -47,10 +47,11 @@ submodule (read_config) read_config_utils
 
   end subroutine
     
-  subroutine get_real_value(dict, keyword, real_val)
+  subroutine get_real_value(dict, keyword, real_val, required)
     class (*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     real(ccs_real), intent(out)  :: real_val
+    logical, optional :: required
 
     type(type_error), pointer :: io_err
 
@@ -58,13 +59,15 @@ submodule (read_config) read_config_utils
     type is(type_dictionary)
 
       real_val = dict%get_real(keyword,error=io_err)
-      call error_handler(io_err)  
+      if (present(required) .and. required .eqv. .true.) then
+        call error_handler(io_err)  
+      end if
       
     class default
       call error_abort("Unknown type")
     end select
 
-    if(associated(io_err) .eqv. .true.) then 
+    if((associated(io_err) .eqv. .true.) .and. (present(required) .and. required .eqv. .true.)) then 
       call error_abort("Error reading " // keyword)
     end if
 
@@ -829,9 +832,9 @@ submodule (read_config) read_config_utils
     integer(ccs_int) :: i
     integer(ccs_int) :: n_boundaries
     type(type_error), pointer :: io_err
-    character(len=10) :: boundary_index
+    character(len=25) :: boundary_index
+    real(ccs_real) :: density
     
-    i = 1
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
@@ -841,16 +844,18 @@ submodule (read_config) read_config_utils
       
       i = 1
       do while (i <= n_boundaries)
-        write(boundary_index, '(A9, I1)') "boundary_", i
+        write(boundary_index, '(A, I0)') "boundary_", i
         select type (dict)
         type is (type_dictionary)
           dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
           call error_handler(io_err)
 
-          call get_value(dict2, "location", location)
+          call get_value(dict2, "name", location)
           call get_value(dict2, "type", bc_type)
+          call get_value(dict2, "den", density, .false.)
           call dprint("location " // location)
           call dprint("bc_type " // bc_type)
+          call dprint("density " // str(density))
         end select
         i = i+1
       end do
@@ -859,4 +864,101 @@ submodule (read_config) read_config_utils
     end select
   end subroutine get_boundary_conditions_new_yaml
 
+  module subroutine get_boundary_conditions_for_field(config_file, bc_field, bcs) ! XXX: come up with name that isn't this stupid
+    class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
+    character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
+    type(bc_config), intent(out) :: bcs           !< boundary conditions structure
+    
+    ! local variables
+    class(*), pointer :: dict
+    class(*), pointer :: dict2
+    class(type_list), pointer :: list
+    class(type_list_item), pointer :: item
+    integer(ccs_int) :: i
+    integer(ccs_int) :: n_boundaries
+    type(type_error), pointer :: io_err
+    character(len=:), allocatable :: name
+    character(len=:), allocatable :: bc_type
+    character(len=25) :: boundary_index
+    real(ccs_real) :: bc_field_value
+    
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
+      call error_handler(io_err)
+
+      call get_value(dict, "n_boundaries", n_boundaries)
+      
+      i = 1
+      do while (i <= n_boundaries)
+        write(boundary_index, '(A, I0)') "boundary_", i
+        select type (dict)
+        type is (type_dictionary)
+          dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
+          call error_handler(io_err)
+
+          call get_value(dict2, "name", name)
+          call get_value(dict2, "type", bc_type)
+          call get_value(dict2, bc_field, bc_field_value)
+
+		      ! Store ints instead of strings in bc structure
+          call set_bc_string_attribute(i, "name", name, bcs)
+          call set_bc_string_attribute(i, "type", bc_type, bcs)
+          call set_bc_real_attribute(i, bc_field, bc_field_value, bcs)
+          
+        end select
+        i = i+1
+      end do
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_boundary_conditions_for_field
+
+  subroutine set_bc_string_attribute(boundary_index, attribute, value, bcs)
+    integer(ccs_int), intent(in) :: boundary_index
+    character(len=*), intent(in) :: attribute
+    character(len=*), intent(in) :: value
+    type(bc_config), intent(out) :: bcs
+
+    select case (attribute)
+    case ("name")
+      select case (value)
+      case ("jet")
+        bcs%name(boundary_index) = 1
+      case ("coflow")
+        bcs%name(boundary_index) = 2
+      case ("outflow")
+        bcs%name(boundary_index) = 3
+      case ("atmos")
+        bcs%name(boundary_index) = 4
+      end select
+    
+    case ("type")
+      select case (value)
+      case ("inlet")
+        bcs%bc_type(boundary_index) = 1
+      case ("outlet")
+        bcs%bc_type(boundary_index) = 2
+      case ("symp")
+        bcs%bc_type(boundary_index) = 3
+      end select
+
+    end select
+
+  end subroutine set_bc_string_attribute
+  
+  subroutine set_bc_real_attribute(boundary_index, attribute, value, bcs)
+    integer(ccs_int), intent(in) :: boundary_index
+    character(len=*), intent(in) :: attribute
+    real(ccs_real), intent(in) :: value
+    type(bc_config), intent(out) :: bcs
+
+    select case (attribute)
+
+    case ("den")
+      bcs%den(boundary_index) = value
+    
+    end select
+
+  end subroutine set_bc_real_attribute
 end submodule read_config_utils
