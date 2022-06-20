@@ -61,19 +61,21 @@ boundaries:
     type: inlet
     uvw: [49.6, 0., 0.]
     den: 1.1099
-    t: 294.
+    T: 294.
     fmix: 0.158
-    ti_ls: [0.1, 0.003]
+    ti: 0.1
+    ls: 0.003
  
   boundary_2:
     name: coflow
     type: inlet
-    uvw: [0.9 0. 0.]
+    uvw: [0.9, 0., 0.]
     den: 1.17643
-    t: 291.
+    T: 291.
     fmix: 0.0
     pgr: 0.0
-    ti_ls: [0.05, 0.01]
+    ti: 0.05
+    ls: 0.01
  
   boundary_3:
     name: outflow

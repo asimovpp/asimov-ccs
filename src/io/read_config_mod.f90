@@ -26,9 +26,7 @@ module read_config
   public :: get_output_frequency
   public :: get_plot_format
   public :: get_output_type
-  public :: get_boundaries                      ! XXX: only keep one BC getter function
-  public :: get_boundary_conditions_new_yaml    ! XXX: only keep one BC getter function
-  public :: get_boundary_conditions_for_field   ! XXX: only keep one BC getter function
+  public :: get_bc_field_data   
 
   interface
 
@@ -251,32 +249,11 @@ module read_config
       character(len=:), allocatable, intent(inout) :: post_type
       character(len=2), dimension(10), intent(inout) :: post_vars    
     end subroutine
-
-
-    !>  Get boundary conditions 
-    !
-    !> @param[in] config_file - the entry point to the config file
-    !> @param[inout] bnd_region - array of boundary region names
-    !> @param[inout] bnd_type - array of boundary types (e.g. periodic, symmetric, ...)
-    !> @param[inout] bnd_vector - array of boundary vectors
-
-    module subroutine get_boundaries(config_file, bnd_region, bnd_type, bnd_vector)
-      class(*), pointer, intent(in) :: config_file
-      character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
-      character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-      real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
-    end subroutine
-
-    module subroutine get_boundary_conditions_new_yaml(config_file, location, bc_type)
-      class(*), pointer, intent(in) :: config_file
-      character(len=:), allocatable, intent(inout) :: location
-      character(len=:), allocatable, intent(inout) :: bc_type
-    end subroutine
     
-    module subroutine get_boundary_conditions_for_field(config_file, bc_field, bcs)
+    module subroutine get_bc_field_data(config_file, bc_field, bcs)
       class(*), pointer, intent(in) :: config_file
       character(len=*), intent(in) :: bc_field      
-      type(bc_config), intent(out) :: bcs           
+      type(bc_config), intent(inout) :: bcs           
     end subroutine
   end interface
 end module read_config

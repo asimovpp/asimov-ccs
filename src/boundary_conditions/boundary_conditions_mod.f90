@@ -5,7 +5,7 @@
 module boundary_conditions
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print
+  use utils, only: exit_print, debug_print, str
   use types, only: bc_config
   use kinds, only: ccs_int, ccs_real
   
@@ -13,43 +13,15 @@ module boundary_conditions
 
   private
   public :: read_bc_config
-  public :: set_all_bcs
-  public :: set_region_bcs
+  public :: set_bc_attribute
+  public :: allocate_bc_field
+
+  interface set_bc_attribute
+    module procedure set_bc_real_attribute
+    module procedure set_bc_string_attribute
+  end interface
 
   contains
-
-  !> @brief Sets all BCs to the same type
-  !
-  !> @param[in] bc_type - the bc type to set for all regions 
-  !> @param[inout] bcs  - the bc_config struct being set
-  subroutine set_all_bcs(bc_type, bcs)
-    integer(ccs_int), intent(in) :: bc_type
-    type(bc_config), intent(inout) :: bcs
-    integer(ccs_int) :: i
-
-    do i = 1, size(bcs%region)
-      bcs%region(i) = -i
-      bcs%bc_type(i) = bc_type
-    end do 
-  end subroutine set_all_bcs
-
-  !> @brief Sets individual region's BC type 
-  !
-  !> @param[in] region  - the region being updated 
-  !> @param[in] bc_type - the bc type to set for all regions 
-  !> @param[inout] bcs  - the bc_config struct being set
-  subroutine set_region_bcs(region, bc_type, bcs)
-    integer(ccs_int), intent(in) :: region
-    integer(ccs_int), intent(in) :: bc_type
-    type(bc_config), intent(inout) :: bcs
-    integer(ccs_int) :: i
-
-    do i = 1, size(bcs%region)
-      if (bcs%region(i) == region) then
-        bcs%bc_type(i) = bc_type
-      end if
-    end do 
-  end subroutine set_region_bcs
 
   !>  Wrapper for reading config file and assigning data to BC structure
   !
@@ -57,8 +29,9 @@ module boundary_conditions
   !> @param[out] bcs     - boundary conditions structure
   subroutine read_bc_config(filename, bcs) 
     use yaml, only: parse, error_length
+    use read_config, only: get_bc_field_data
     character(len=*), intent(in) :: filename
-    type(bc_config), intent(out) :: bcs
+    type(bc_config), intent(inout) :: bcs
 
     class(*), pointer :: config_file
     character(len=error_length) :: error
@@ -68,71 +41,121 @@ module boundary_conditions
       call error_abort(trim(error))
     endif
 
-    call get_bcs(config_file, "den", bcs)
+    call get_bc_field_data(config_file, "name", bcs)
+    call get_bc_field_data(config_file, "type", bcs)
+    call get_bc_field_data(config_file, "den", bcs)
+    call get_bc_field_data(config_file, "T", bcs)
+    call get_bc_field_data(config_file, "fmix", bcs)
+    call get_bc_field_data(config_file, "pgr", bcs)
+    call get_bc_field_data(config_file, "ti", bcs)
+    call get_bc_field_data(config_file, "ls", bcs)
   end subroutine read_bc_config
   
-  !>  Assigns bc data to structure
-  !
-  !> @param[in] config_file - pointer to configuration file
-  !> @param[out] bcs        - boundary conditions structure
-  !subroutine get_bcs(config_file, bcs)
-  !  use bc_constants
-  !  use read_config, only: get_boundaries
+  subroutine set_bc_string_attribute(boundary_index, attribute, value, bcs)
+    integer(ccs_int), intent(in) :: boundary_index
+    character(len=*), intent(in) :: attribute
+    character(len=*), intent(in) :: value
+    type(bc_config), intent(inout) :: bcs
 
-  !  class(*), pointer, intent(in) :: config_file
-  !  type(bc_config), intent(out) :: bcs
+    select case (attribute)
+    case ("name")
+      call dprint("name size " // str(size(bcs%name)) // " " // str(boundary_index) // " " // value)
+      select case (value)
+      case ("jet")
+        bcs%name(boundary_index) = 1
+      case ("coflow")
+        bcs%name(boundary_index) = 2
+      case ("outflow")
+        bcs%name(boundary_index) = 3
+      case ("atmos")
+        bcs%name(boundary_index) = 4
+      end select
+    case ("type")
+      select case (value)
+      case ("inlet")
+        bcs%bc_type(boundary_index) = 1
+      case ("outlet")
+        bcs%bc_type(boundary_index) = 2
+      case ("symp")
+        bcs%bc_type(boundary_index) = 3
+      end select
+    case default
+      call dprint("invalid bc attribute")
+    end select
 
-  !  ! local variables
-  !  character(len=16), dimension(:), allocatable :: region
-  !  character(len=16), dimension(:), allocatable :: bc_type
-  !  real(ccs_real), dimension(:,:), allocatable :: bc_data
-  !  integer(ccs_int) :: i
+  end subroutine set_bc_string_attribute
+  
+  subroutine set_bc_real_attribute(boundary_index, attribute, value, bcs)
+    integer(ccs_int), intent(in) :: boundary_index
+    character(len=*), intent(in) :: attribute
+    real(ccs_real), intent(in) :: value
+    type(bc_config), intent(inout) :: bcs
 
-  !  call get_boundaries(config_file, region, bc_type, bc_data)
+    select case (attribute)
+    case ("den")
+      bcs%den(boundary_index) = value
+    case ("T")
+      bcs%T(boundary_index) = value
+    case ("fmix")
+      bcs%fmix(boundary_index) = value
+    case ("pgr")
+      bcs%pgr(boundary_index) = value
+    case ("ti")
+      bcs%ti(boundary_index) = value
+    case ("ls")
+      bcs%ls(boundary_index) = value
+    case default
+      call dprint("invalid bc attribute " // attribute)
+    end select
 
-  !  do i = 1, size(region)
-  !    select case(region(i))
-  !      case("left")
-  !        bcs%region(i) = bc_region_left
-  !      case("right")
-  !        bcs%region(i) = bc_region_right
-  !      case("top")
-  !        bcs%region(i) = bc_region_top
-  !      case("bottom")
-  !        bcs%region(i) = bc_region_bottom
-  !      case default
-  !        call error_abort("Invalid BC region selected.")
-  !    end select
+  end subroutine set_bc_real_attribute
 
-  !    select case(bc_type(i))
-  !      case("periodic")
-  !        bcs%bc_type(i) = bc_type_periodic
-  !      case("sym")
-  !        bcs%bc_type(i) = bc_type_sym
-  !      case("dirichlet")
-  !        bcs%bc_type(i) = bc_type_dirichlet
-  !      case("const_grad")
-  !        bcs%bc_type(i) = bc_type_const_grad
-  !      case default
-  !        call error_abort("Invalid BC type selected.")
-  !    end select
-  !  end do
-  !  ! ALEXEI: This specifies the values of the boundary conditions at the corners of the box (if dirichlet, 
-  !  ! otherwise ignored).This is necessary for the scalar_advection case setup and the tests, but should be 
-  !  ! generalised in the longer term. Since we are working in 2D for now we only need a subset of the 
-  !  ! vectors specified
-  !  bcs%endpoints(:,:) = bc_data(2:,:2)
-  !end subroutine get_bcs
+  subroutine allocate_bc_field(field, n_boundaries, bcs)
+    character(len=*), intent(in) :: field
+    integer(ccs_int), intent(in) :: n_boundaries
+    type(bc_config), intent(inout) :: bcs
 
-  !>  Assigns bc data to structure XXX: this function is almost certainly redundant now
-  subroutine get_bcs(config_file, bc_field, bcs)
-    use bc_constants                    
-    use read_config, only: get_boundary_conditions_for_field
-
-    class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
-    character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
-    type(bc_config), intent(out) :: bcs           !< boundary conditions structure
-
-    call get_boundary_conditions_for_field(config_file, bc_field, bcs)
-  end subroutine get_bcs
+    select case (field)
+    case ("name")
+      if (.not. allocated(bcs%name)) then
+        allocate(bcs%name(n_boundaries))
+        call dprint("allocated name")
+      end if
+    case ("type")
+      if (.not. allocated(bcs%bc_type)) then
+        allocate(bcs%bc_type(n_boundaries))
+        call dprint("allocated type")
+      end if
+    case ("den")
+      if (.not. allocated(bcs%den)) then
+        allocate(bcs%den(n_boundaries))
+        call dprint("allocated den")
+      end if
+    case ("T")
+      if (.not. allocated(bcs%T)) then
+        allocate(bcs%T(n_boundaries))
+        call dprint("allocated T")
+      end if
+    case ("fmix")
+      if (.not. allocated(bcs%fmix)) then
+        allocate(bcs%fmix(n_boundaries))
+        call dprint("allocated fmix")
+      end if
+    case ("pgr")
+      if (.not. allocated(bcs%pgr)) then
+        allocate(bcs%pgr(n_boundaries))
+        call dprint("allocated pgr")
+      end if
+    case ("ti")
+      if (.not. allocated(bcs%ti)) then
+        allocate(bcs%ti(n_boundaries))
+        call dprint("allocated ti")
+      end if
+    case ("ls")
+      if (.not. allocated(bcs%ls)) then
+        allocate(bcs%ls(n_boundaries))
+        call dprint("allocated ls")
+      end if
+    end select
+  end subroutine allocate_bc_field
 end module boundary_conditions

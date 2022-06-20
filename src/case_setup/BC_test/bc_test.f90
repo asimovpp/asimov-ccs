@@ -2,7 +2,7 @@
 !
 !
 
-program scalar_advection
+program bc_test
 #include "ccs_macros.inc"
 
   !! ASiMoV-CCS uses
@@ -56,9 +56,10 @@ program scalar_advection
 
   ! Read bc configuration
   call read_bc_config("src/case_setup/BC_test/BC_test_config.yaml", mf%bcs)
-
-  call dprint("mf bcs name type " // str(mf%bcs%name(1)) // " " // str(mf%bcs%bc_type(1)) // " " // str(mf%bcs%den(1)))
+  call dprint("name bc_type det T fmix pgr ti ls " // str(mf%bcs%name(1)) // " " // str(mf%bcs%bc_type(1)) &
+              // " " // str(mf%bcs%den(1)) // " " // str(mf%bcs%T(1)) // " " // str(mf%bcs%fmix(1)) // " " // &
+              str(mf%bcs%pgr(1)) // " " // str(mf%bcs%ti(1)) // " " // str(mf%bcs%ls(1)))
 
   call cleanup_parallel_environment(par_env)
 
-end program scalar_advection
+end program bc_test

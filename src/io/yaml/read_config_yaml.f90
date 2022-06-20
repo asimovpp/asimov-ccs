@@ -12,6 +12,7 @@ submodule (read_config) read_config_utils
                         type_list, &
                         type_list_item, &
                         type_scalar
+  use boundary_conditions, only: set_bc_attribute, allocate_bc_field
 
 
   implicit none
@@ -703,171 +704,10 @@ submodule (read_config) read_config_utils
 
   end subroutine
 
-  !>  Get boundary conditions 
-  !
-  !> @param[in] config_file - the entry point to the config file
-  !> @param[inout] bnd_region - array of boundary region names
-  !> @param[inout] bnd_type - array of boundary types (e.g. periodic, symmetric, ...)
-  !> @param[inout] bnd_vector - array of boundary vectors
-  module subroutine get_boundaries(config_file, bnd_region, bnd_type, bnd_vector)
-
-    use yaml_types, only: real_kind
-
-    class(*), pointer, intent(in) :: config_file
-    character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region
-    character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type
-    real(ccs_real), optional, dimension(:,:), allocatable, intent(inout) :: bnd_vector
-  
-    type(type_error), pointer :: io_err
-    integer :: num_boundaries = 0
-    integer :: idx = 1
-    integer :: inner_idx = 1
-    logical :: success
-
-    class(type_dictionary), pointer :: dict
-    class(type_list), pointer :: list
-    class(type_list_item), pointer :: item, inner_item
-
-    select type(config_file)
-    type is(type_dictionary)
-
-      dict => config_file%get_dictionary('boundary', required=.false., error=io_err)
-      call error_handler(io_err)  
-
-      list => dict%get_list('region', required=.false.,error=io_err)
-      call error_handler(io_err)  
-
-      item => list%first
-      do while(associated(item))
-        num_boundaries = num_boundaries + 1
-        item => item%next
-      end do
-
-      allocate(bnd_region(num_boundaries))
-      allocate(bnd_type(num_boundaries))
-      allocate(bnd_vector(3,num_boundaries))
-
-      list => dict%get_list('region', required=.false.,error=io_err)
-      call error_handler(io_err)  
-
-      item => list%first
-      do while(associated(item))
-        select type(element => item%node)
-        class is (type_scalar)
-          bnd_region(idx) = trim(element%string)
-          print*,bnd_region(idx)
-          item => item%next
-          idx = idx + 1
-          end select  
-      end do
-
-      list => dict%get_list('type', required=.false.,error=io_err)
-      call error_handler(io_err)  
-
-      idx = 1 
-      
-      item => list%first
-      do while(associated(item))
-        select type(element => item%node)
-        class is (type_scalar)
-          bnd_type(idx) = trim(element%string)
-          print*,bnd_type(idx)
-          item => item%next
-          idx = idx + 1
-          end select  
-      end do
-
-      if(present(bnd_vector)) then
-    
-        list => dict%get_list('vector', required=.false.,error=io_err)
-        call error_handler(io_err)  
-
-        idx = 1
-
-        item => list%first
-
-        do while(associated(item))
-
-          select type(inner_list => item%node)
-          type is(type_list)
-
-            inner_item => inner_list%first
-            inner_idx = 1
-
-            do while(associated(inner_item))
-              select type(inner_element => inner_item%node)
-              class is(type_scalar)
-                inner_item => inner_item%next
-                inner_idx = inner_idx + 1
-                bnd_vector(inner_idx,idx) = inner_element%to_real(real(bnd_vector(inner_idx,idx),real_kind),success)
-                print*,bnd_vector(inner_idx,idx)
-              end select
-            end do
-
-          end select
-
-          item => item%next
-          idx = idx + 1
-
-        end do
-
-      end if
-
-    class default
-      call error_abort("Unknown type")
-    end select
-
-  end subroutine
-
-  module subroutine get_boundary_conditions_new_yaml(config_file, location, bc_type) ! XXX: come up with name that isn't this stupid
-    class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
-    character(len=:), allocatable, intent(inout) :: location
-    character(len=:), allocatable, intent(inout) :: bc_type
-    
-    ! local variables
-    class(*), pointer :: dict
-    class(*), pointer :: dict2
-    class(type_list), pointer :: list
-    class(type_list_item), pointer :: item
-    integer(ccs_int) :: i
-    integer(ccs_int) :: n_boundaries
-    type(type_error), pointer :: io_err
-    character(len=25) :: boundary_index
-    real(ccs_real) :: density
-    
-    select type (config_file)
-    type is (type_dictionary)
-      dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      call error_handler(io_err)
-
-      call get_value(dict, "n_boundaries", n_boundaries)
-      
-      i = 1
-      do while (i <= n_boundaries)
-        write(boundary_index, '(A, I0)') "boundary_", i
-        select type (dict)
-        type is (type_dictionary)
-          dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
-          call error_handler(io_err)
-
-          call get_value(dict2, "name", location)
-          call get_value(dict2, "type", bc_type)
-          call get_value(dict2, "den", density, .false.)
-          call dprint("location " // location)
-          call dprint("bc_type " // bc_type)
-          call dprint("density " // str(density))
-        end select
-        i = i+1
-      end do
-    class default
-      call error_abort("type unhandled")
-    end select
-  end subroutine get_boundary_conditions_new_yaml
-
-  module subroutine get_boundary_conditions_for_field(config_file, bc_field, bcs) ! XXX: come up with name that isn't this stupid
+  module subroutine get_bc_field_data(config_file, bc_field, bcs) 
     class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
     character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
-    type(bc_config), intent(out) :: bcs           !< boundary conditions structure
+    type(bc_config), intent(inout) :: bcs         !< boundary conditions structure
     
     ! local variables
     class(*), pointer :: dict
@@ -879,6 +719,7 @@ submodule (read_config) read_config_utils
     type(type_error), pointer :: io_err
     character(len=:), allocatable :: name
     character(len=:), allocatable :: bc_type
+    character(len=:), allocatable :: bc_field_string
     character(len=25) :: boundary_index
     real(ccs_real) :: bc_field_value
     
@@ -888,6 +729,8 @@ submodule (read_config) read_config_utils
       call error_handler(io_err)
 
       call get_value(dict, "n_boundaries", n_boundaries)
+
+      call allocate_bc_field(bc_field, n_boundaries, bcs)
       
       i = 1
       do while (i <= n_boundaries)
@@ -897,68 +740,23 @@ submodule (read_config) read_config_utils
           dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
           call error_handler(io_err)
 
-          call get_value(dict2, "name", name)
-          call get_value(dict2, "type", bc_type)
-          call get_value(dict2, bc_field, bc_field_value)
-
-		      ! Store ints instead of strings in bc structure
-          call set_bc_string_attribute(i, "name", name, bcs)
-          call set_bc_string_attribute(i, "type", bc_type, bcs)
-          call set_bc_real_attribute(i, bc_field, bc_field_value, bcs)
-          
+          select case (bc_field)
+          case ("name")
+            call get_value(dict2, bc_field, bc_field_string)
+            call set_bc_attribute(i, bc_field, bc_field_string, bcs)
+          case ("type")
+            call get_value(dict2, bc_field, bc_field_string)
+            call set_bc_attribute(i, bc_field, bc_field_string, bcs)
+          case default
+            call get_value(dict2, bc_field, bc_field_value)
+            call set_bc_attribute(i, bc_field, bc_field_value, bcs)
+          end select
         end select
         i = i+1
       end do
     class default
       call error_abort("type unhandled")
     end select
-  end subroutine get_boundary_conditions_for_field
+  end subroutine get_bc_field_data
 
-  subroutine set_bc_string_attribute(boundary_index, attribute, value, bcs)
-    integer(ccs_int), intent(in) :: boundary_index
-    character(len=*), intent(in) :: attribute
-    character(len=*), intent(in) :: value
-    type(bc_config), intent(out) :: bcs
-
-    select case (attribute)
-    case ("name")
-      select case (value)
-      case ("jet")
-        bcs%name(boundary_index) = 1
-      case ("coflow")
-        bcs%name(boundary_index) = 2
-      case ("outflow")
-        bcs%name(boundary_index) = 3
-      case ("atmos")
-        bcs%name(boundary_index) = 4
-      end select
-    
-    case ("type")
-      select case (value)
-      case ("inlet")
-        bcs%bc_type(boundary_index) = 1
-      case ("outlet")
-        bcs%bc_type(boundary_index) = 2
-      case ("symp")
-        bcs%bc_type(boundary_index) = 3
-      end select
-
-    end select
-
-  end subroutine set_bc_string_attribute
-  
-  subroutine set_bc_real_attribute(boundary_index, attribute, value, bcs)
-    integer(ccs_int), intent(in) :: boundary_index
-    character(len=*), intent(in) :: attribute
-    real(ccs_real), intent(in) :: value
-    type(bc_config), intent(out) :: bcs
-
-    select case (attribute)
-
-    case ("den")
-      bcs%den(boundary_index) = value
-    
-    end select
-
-  end subroutine set_bc_real_attribute
 end submodule read_config_utils
