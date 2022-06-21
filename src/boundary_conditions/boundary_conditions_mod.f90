@@ -27,10 +27,11 @@ module boundary_conditions
   !
   !> @param[in] filename - name of config file
   !> @param[out] bcs     - boundary conditions structure
-  subroutine read_bc_config(filename, bcs) 
+  subroutine read_bc_config(filename, bc_field, bcs) 
     use yaml, only: parse, error_length
     use read_config, only: get_bc_field_data
     character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: bc_field
     type(bc_config), intent(inout) :: bcs
 
     class(*), pointer :: config_file
@@ -43,15 +44,17 @@ module boundary_conditions
 
     call get_bc_field_data(config_file, "name", bcs)
     call get_bc_field_data(config_file, "type", bcs)
-    call get_bc_field_data(config_file, "u", bcs)
-    call get_bc_field_data(config_file, "v", bcs)
-    call get_bc_field_data(config_file, "w", bcs)
-    call get_bc_field_data(config_file, "den", bcs)
-    call get_bc_field_data(config_file, "T", bcs)
-    call get_bc_field_data(config_file, "fmix", bcs)
-    call get_bc_field_data(config_file, "pgr", bcs)
-    call get_bc_field_data(config_file, "ti", bcs)
-    call get_bc_field_data(config_file, "ls", bcs)
+    call get_bc_field_data(config_file, bc_field, bcs)
+    !call get_bc_field_data(config_file, "u", bcs)
+    !call get_bc_field_data(config_file, "v", bcs)
+    !call get_bc_field_data(config_file, "w", bcs)
+    !call get_bc_field_data(config_file, "p", bcs)
+    !call get_bc_field_data(config_file, "den", bcs)
+    !call get_bc_field_data(config_file, "T", bcs)
+    !call get_bc_field_data(config_file, "fmix", bcs)
+    !call get_bc_field_data(config_file, "pgr", bcs)
+    !call get_bc_field_data(config_file, "ti", bcs)
+    !call get_bc_field_data(config_file, "ls", bcs)
   end subroutine read_bc_config
   
   subroutine set_bc_string_attribute(boundary_index, attribute, value, bcs)
@@ -72,6 +75,14 @@ module boundary_conditions
         bcs%name(boundary_index) = 3
       case ("atmos")
         bcs%name(boundary_index) = 4
+      case ("left")
+        bcs%name(boundary_index) = 5
+      case ("right")
+        bcs%name(boundary_index) = 6
+      case ("top")
+        bcs%name(boundary_index) = 7
+      case ("bottom")
+        bcs%name(boundary_index) = 8
       end select
     case ("type")
       select case (value)
@@ -81,6 +92,8 @@ module boundary_conditions
         bcs%bc_type(boundary_index) = 2
       case ("symp")
         bcs%bc_type(boundary_index) = 3
+      case ("wall")
+        bcs%bc_type(boundary_index) = 4
       end select
     case default
       call dprint("invalid bc attribute")
@@ -94,28 +107,31 @@ module boundary_conditions
     real(ccs_real), intent(in) :: value
     type(bc_config), intent(inout) :: bcs
 
-    select case (attribute)
-    case ("u")
-      bcs%u(boundary_index) = value
-    case ("v")
-      bcs%v(boundary_index) = value
-    case ("w")
-      bcs%w(boundary_index) = value
-    case ("den")
-      bcs%den(boundary_index) = value
-    case ("T")
-      bcs%T(boundary_index) = value
-    case ("fmix")
-      bcs%fmix(boundary_index) = value
-    case ("pgr")
-      bcs%pgr(boundary_index) = value
-    case ("ti")
-      bcs%ti(boundary_index) = value
-    case ("ls")
-      bcs%ls(boundary_index) = value
-    case default
-      call dprint("invalid bc attribute " // attribute)
-    end select
+	  bcs%value = value
+    !select case (attribute)
+    !case ("u")
+    !  bcs%u(boundary_index) = value
+    !case ("v")
+    !  bcs%v(boundary_index) = value
+    !case ("w")
+    !  bcs%w(boundary_index) = value
+    !case ("p")
+    !  bcs%p(boundary_index) = value
+    !case ("den")
+    !  bcs%den(boundary_index) = value
+    !case ("T")
+    !  bcs%T(boundary_index) = value
+    !case ("fmix")
+    !  bcs%fmix(boundary_index) = value
+    !case ("pgr")
+    !  bcs%pgr(boundary_index) = value
+    !case ("ti")
+    !  bcs%ti(boundary_index) = value
+    !case ("ls")
+    !  bcs%ls(boundary_index) = value
+    !case default
+    !  call dprint("invalid bc attribute " // attribute)
+    !end select
 
   end subroutine set_bc_real_attribute
 
@@ -135,51 +151,61 @@ module boundary_conditions
         allocate(bcs%bc_type(n_boundaries))
         call dprint("allocated type")
       end if
-    case ("u")
-      if (.not. allocated(bcs%u)) then
-        allocate(bcs%u(n_boundaries))
-        call dprint("allocated u")
+    case default
+      if (.not. allocated(bcs%value)) then
+        allocate(bcs%value(n_boundaries))
+        call dprint("allocated value")
       end if
-    case ("v")
-      if (.not. allocated(bcs%v)) then
-        allocate(bcs%v(n_boundaries))
-        call dprint("allocated v")
-      end if
-    case ("w")
-      if (.not. allocated(bcs%w)) then
-        allocate(bcs%w(n_boundaries))
-        call dprint("allocated w")
-      end if
-    case ("den")
-      if (.not. allocated(bcs%den)) then
-        allocate(bcs%den(n_boundaries))
-        call dprint("allocated den")
-      end if
-    case ("T")
-      if (.not. allocated(bcs%T)) then
-        allocate(bcs%T(n_boundaries))
-        call dprint("allocated T")
-      end if
-    case ("fmix")
-      if (.not. allocated(bcs%fmix)) then
-        allocate(bcs%fmix(n_boundaries))
-        call dprint("allocated fmix")
-      end if
-    case ("pgr")
-      if (.not. allocated(bcs%pgr)) then
-        allocate(bcs%pgr(n_boundaries))
-        call dprint("allocated pgr")
-      end if
-    case ("ti")
-      if (.not. allocated(bcs%ti)) then
-        allocate(bcs%ti(n_boundaries))
-        call dprint("allocated ti")
-      end if
-    case ("ls")
-      if (.not. allocated(bcs%ls)) then
-        allocate(bcs%ls(n_boundaries))
-        call dprint("allocated ls")
-      end if
+    !case ("u")
+    !  if (.not. allocated(bcs%u)) then
+    !    allocate(bcs%u(n_boundaries))
+    !    call dprint("allocated u")
+    !  end if
+    !case ("v")
+    !  if (.not. allocated(bcs%v)) then
+    !    allocate(bcs%v(n_boundaries))
+    !    call dprint("allocated v")
+    !  end if
+    !case ("w")
+    !  if (.not. allocated(bcs%w)) then
+    !    allocate(bcs%w(n_boundaries))
+    !    call dprint("allocated w")
+    !  end if
+    !case ("p")
+    !  if (.not. allocated(bcs%p)) then
+    !    allocate(bcs%p(n_boundaries))
+    !    call dprint("allocated p")
+    !  end if
+    !case ("den")
+    !  if (.not. allocated(bcs%den)) then
+    !    allocate(bcs%den(n_boundaries))
+    !    call dprint("allocated den")
+    !  end if
+    !case ("T")
+    !  if (.not. allocated(bcs%T)) then
+    !    allocate(bcs%T(n_boundaries))
+    !    call dprint("allocated T")
+    !  end if
+    !case ("fmix")
+    !  if (.not. allocated(bcs%fmix)) then
+    !    allocate(bcs%fmix(n_boundaries))
+    !    call dprint("allocated fmix")
+    !  end if
+    !case ("pgr")
+    !  if (.not. allocated(bcs%pgr)) then
+    !    allocate(bcs%pgr(n_boundaries))
+    !    call dprint("allocated pgr")
+    !  end if
+    !case ("ti")
+    !  if (.not. allocated(bcs%ti)) then
+    !    allocate(bcs%ti(n_boundaries))
+    !    call dprint("allocated ti")
+    !  end if
+    !case ("ls")
+    !  if (.not. allocated(bcs%ls)) then
+    !    allocate(bcs%ls(n_boundaries))
+    !    call dprint("allocated ls")
+    !  end if
     end select
   end subroutine allocate_bc_field
 end module boundary_conditions

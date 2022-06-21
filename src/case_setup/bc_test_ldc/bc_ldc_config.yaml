@@ -1,0 +1,81 @@
+---
+title: LidDrivenCavity
+
+# "steps" - currently the number of iterations
+steps: 10
+
+relaxation_factor:
+  u: 0.9
+  v: 0.9
+  p: 0.1
+
+### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
+
+#reference_numbers:
+#    pressure: 101325.0
+#    temperature: 289.0
+#    density: 1.0
+#    viscosity: 1.0e-03
+#    pref_at_cell: 4096
+
+#solve:
+#  w: off
+
+#init: 
+#  type: user
+
+#target_residual: 1.0e-10
+
+#monitor_cell: 1990
+
+# 1 = central
+#convection_scheme:
+#  u: 1 
+#  v: 1
+#  w: 1
+
+#blending_factor:
+#  u: 1.0
+#  v: 1.0
+#  w: 1.0
+  
+#output:
+#  every: 1000
+
+#post:
+#  type: center
+#  variables: [u, v, w, p]
+
+# Note: for boundary "top": u = 1.0
+#boundary:
+#  regions: [left, right, top, bottom]
+#  left:
+#    type: wall
+#  right:
+#    type: wall
+#  top:
+#    variables: [u, v, p]
+#    type: [constant, wall, wall]
+#    value: [1.0, 0.0, 0.0]
+#  bottom:
+#    type: wall
+
+boundaries:
+  n_boundaries: 4
+  boundary_1:
+    name: left
+    type: wall
+  boundary_2:
+    name: right
+    type: wall
+  boundary_3:
+    name: top
+    type: wall
+    u: 1.0
+    v: 0.0
+    p: 0.0
+  boundary_4:
+    name: bottom
+    type: wall
+
+      

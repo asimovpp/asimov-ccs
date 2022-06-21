@@ -72,15 +72,17 @@ module types
   type, public :: bc_config
     integer(ccs_int), dimension(:), allocatable :: name
     integer(ccs_int), dimension(:), allocatable :: bc_type
-    real(ccs_real), dimension(:), allocatable :: u
-    real(ccs_real), dimension(:), allocatable :: v
-    real(ccs_real), dimension(:), allocatable :: w
-    real(ccs_real), dimension(:), allocatable :: den
-    real(ccs_real), dimension(:), allocatable :: T
-    real(ccs_real), dimension(:), allocatable :: fmix
-    real(ccs_real), dimension(:), allocatable :: pgr
-    real(ccs_real), dimension(:), allocatable :: ti
-    real(ccs_real), dimension(:), allocatable :: ls
+    real(ccs_real), dimension(:), allocatable :: value
+    !real(ccs_real), dimension(:), allocatable :: u
+    !real(ccs_real), dimension(:), allocatable :: v
+    !real(ccs_real), dimension(:), allocatable :: w
+    !real(ccs_real), dimension(:), allocatable :: p
+    !real(ccs_real), dimension(:), allocatable :: den
+    !real(ccs_real), dimension(:), allocatable :: T
+    !real(ccs_real), dimension(:), allocatable :: fmix
+    !real(ccs_real), dimension(:), allocatable :: pgr
+    !real(ccs_real), dimension(:), allocatable :: ti
+    !real(ccs_real), dimension(:), allocatable :: ls
   end type bc_config
 
   !>  Mesh type
