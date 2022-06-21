@@ -59,7 +59,9 @@ boundaries:
   boundary_1:
     name: jet
     type: inlet
-    uvw: [49.6, 0., 0.]
+    u: 49.6
+    v: 0.0
+    w: 0.0
     den: 1.1099
     T: 294.
     fmix: 0.158
@@ -69,7 +71,9 @@ boundaries:
   boundary_2:
     name: coflow
     type: inlet
-    uvw: [0.9, 0., 0.]
+    u: 0.9
+    v: 0.0
+    w: 0.0
     den: 1.17643
     T: 291.
     fmix: 0.0

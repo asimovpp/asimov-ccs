@@ -43,6 +43,9 @@ module boundary_conditions
 
     call get_bc_field_data(config_file, "name", bcs)
     call get_bc_field_data(config_file, "type", bcs)
+    call get_bc_field_data(config_file, "u", bcs)
+    call get_bc_field_data(config_file, "v", bcs)
+    call get_bc_field_data(config_file, "w", bcs)
     call get_bc_field_data(config_file, "den", bcs)
     call get_bc_field_data(config_file, "T", bcs)
     call get_bc_field_data(config_file, "fmix", bcs)
@@ -92,6 +95,12 @@ module boundary_conditions
     type(bc_config), intent(inout) :: bcs
 
     select case (attribute)
+    case ("u")
+      bcs%u(boundary_index) = value
+    case ("v")
+      bcs%v(boundary_index) = value
+    case ("w")
+      bcs%w(boundary_index) = value
     case ("den")
       bcs%den(boundary_index) = value
     case ("T")
@@ -125,6 +134,21 @@ module boundary_conditions
       if (.not. allocated(bcs%bc_type)) then
         allocate(bcs%bc_type(n_boundaries))
         call dprint("allocated type")
+      end if
+    case ("u")
+      if (.not. allocated(bcs%u)) then
+        allocate(bcs%u(n_boundaries))
+        call dprint("allocated u")
+      end if
+    case ("v")
+      if (.not. allocated(bcs%v)) then
+        allocate(bcs%v(n_boundaries))
+        call dprint("allocated v")
+      end if
+    case ("w")
+      if (.not. allocated(bcs%w)) then
+        allocate(bcs%w(n_boundaries))
+        call dprint("allocated w")
       end if
     case ("den")
       if (.not. allocated(bcs%den)) then
