@@ -23,10 +23,10 @@ program ldc
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_square_mesh
-  use vec, only: create_vector, set_vector_location
+  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print
+  use utils, only: set_size, initialise, update, exit_print, str
 
   implicit none
 
@@ -41,14 +41,19 @@ program ldc
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
-  integer(ccs_int) :: it_start, it_end, ierr
+  integer(ccs_int) :: it_start, it_end, t_count, ierr
   integer(ccs_int) :: irank !< MPI rank ID
   integer(ccs_int) :: isize !< Size of MPI world
+  
+  real(ccs_real) :: dt, t, t_start, t_end
+
+  real(ccs_real), dimension(:), pointer :: values_data, old_values_data
 
   double precision :: start_time
   double precision :: end_time
 
   type(tPetscViewer) :: viewer
+
 
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
@@ -74,6 +79,12 @@ program ldc
   it_start = 1
   it_end   = num_steps
 
+  ! Temporary: initialise time loop variables
+  dt = 0.1
+  t_start = 0
+  t_end = 1
+  t_count = 0
+
   ! Create a square mesh
   print *, "Building mesh"
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
@@ -93,7 +104,9 @@ program ldc
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, u%values)
+  call create_vector(vec_properties, u%old_values)
   call create_vector(vec_properties, v%values)
+  call create_vector(vec_properties, v%old_values)
   call create_vector(vec_properties, p%values)
   call create_vector(vec_properties, p%x_gradients)
   call create_vector(vec_properties, p%y_gradients)
@@ -103,7 +116,9 @@ program ldc
   call create_vector(vec_properties, p_prime%y_gradients)
   call create_vector(vec_properties, p_prime%z_gradients)
   call update(u%values)
+  call update(u%old_values)
   call update(v%values)
+  call update(v%old_values)
   call update(p%values)
   call update(p%x_gradients)
   call update(p%y_gradients)
@@ -125,38 +140,68 @@ program ldc
   call update(v%values)
   call update(mf%values)
 
-  ! Solve using SIMPLE algorithm
-  print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+  ! temporary handling of first iter
+  !u%old_values = u%values
+  !v%old_values = v%values
+  call get_vector_data(u%values, values_data)
+  call get_vector_data(u%old_values, old_values_data)
+  old_values_data = values_data
+  call restore_vector_data(u%old_values, old_values_data)
+  call get_vector_data(v%values, values_data)
+  call get_vector_data(v%old_values, old_values_data)
+  old_values_data = values_data
+  call restore_vector_data(v%old_values, old_values_data)
+  ! Start time-stepping 
+  t = t_start
+  do while (t < t_end)
+    ! Solve using SIMPLE algorithm
+    print *, "Start SIMPLE at t=" // str(t)
+    call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+    !u%old_values = u%values
+    !v%old_values = v%values
+    call get_vector_data(u%values, values_data)
+    call get_vector_data(u%old_values, old_values_data)
+    old_values_data = values_data
+    call restore_vector_data(u%old_values, old_values_data)
+    call get_vector_data(v%values, values_data)
+    call get_vector_data(v%old_values, old_values_data)
+    old_values_data = values_data
+    call restore_vector_data(v%old_values, old_values_data)
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
-
-  associate (vec => u%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v",FILE_MODE_WRITE,viewer, ierr)
-
-  associate (vec => v%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p",FILE_MODE_WRITE,viewer, ierr)
-
-  associate (vec => p%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+  
+    call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
+  
+    associate (vec => u%values)
+      select type (vec)
+      type is (vector_petsc)
+        call VecView(vec%v, viewer, ierr)
+      end select
+    end associate
+  
+    call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
+  
+    associate (vec => v%values)
+      select type (vec)
+      type is (vector_petsc)
+        call VecView(vec%v, viewer, ierr)
+      end select
+    end associate
+  
+    call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
+  
+    associate (vec => p%values)
+      select type (vec)
+      type is (vector_petsc)
+        call VecView(vec%v, viewer, ierr)
+      end select
+    end associate
+  
+    t = t + dt
+    t_count = t_count + 1
+  end do
 
   call PetscViewerDestroy(viewer,ierr)
+
 
   ! Clean-up
   deallocate(u)

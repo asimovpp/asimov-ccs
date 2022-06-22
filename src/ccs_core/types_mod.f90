@@ -98,6 +98,8 @@ module types
     class(ccs_vector), allocatable :: x_gradients !< Vector representing the x gradient
     class(ccs_vector), allocatable :: y_gradients !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients !< Vector representing the z gradient
+    
+    class(ccs_vector), allocatable :: old_values  !< Vector representing the old field
   end type field
 
   type, public, extends(field) :: upwind_field

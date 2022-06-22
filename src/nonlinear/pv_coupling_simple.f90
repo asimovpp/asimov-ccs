@@ -201,6 +201,9 @@ contains
     call dprint("GV: compute u flux")
     call compute_fluxes(u, mf, mesh, bcs, cps, M, vec)
 
+    ! =======Temporarily put time stepping here
+    call apply_timestep(mesh, u, invAu, M, vec)
+
     ! Calculate pressure source term and populate RHS vector
     call dprint("GV: compute u gradp")
     if (component == 1) then
@@ -777,5 +780,44 @@ contains
     call set_matrix_diagonal(diag, M)
     
   end subroutine underrelax
+
+  subroutine apply_timestep(mesh, phi, diag, M, b)
+    use mat, only : set_matrix_diagonal
+    
+    type(ccs_mesh), intent(in) :: mesh
+    class(field), intent(in) :: phi
+    class(ccs_vector), intent(inout) :: diag
+    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(inout) :: b
+
+    real(ccs_real), dimension(:), pointer :: diag_data
+    real(ccs_real), dimension(:), pointer :: b_data
+    real(ccs_real), dimension(:), pointer :: phi_data
+    
+    real(ccs_real) :: dt
+    integer(ccs_int) :: i
+
+    ! V = mesh%volumes
+    dt = 0.1
+    call finalise(M)
+    call get_matrix_diagonal(M, diag)
+   
+    call get_vector_data(phi%old_values, phi_data)
+    call get_vector_data(diag, diag_data)
+    call update(b)
+    call get_vector_data(b, b_data)
+
+    
+    do i = 1, mesh%nlocal
+    ! A = A + V/dt
+      diag_data(i) = diag_data(i) + mesh%volumes(i) / dt
+
+    ! b = b + V/dt * phi_old
+      b_data(i) = b_data(i) + mesh%volumes(i) / dt * phi_data(i)
+    end do
+    call restore_vector_data(diag, diag_data)
+    call restore_vector_data(b, b_data)
+    call set_matrix_diagonal(diag, M)
+  end subroutine apply_timestep
   
 end submodule pv_coupling_simple
