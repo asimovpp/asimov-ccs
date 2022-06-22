@@ -333,7 +333,7 @@ program ldc
     sel2_shape(1) = ndim
     sel2_shape(2) = mesh%nglobal
     sel2_start(1) = 0
-    sel2_start(2) = 0
+    sel2_start(2) = mesh%global_indices(1) - 1
     sel2_count(1) = ndim
     sel2_count(2) = mesh%nlocal
 
