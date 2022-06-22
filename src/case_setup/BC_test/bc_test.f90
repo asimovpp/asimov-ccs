@@ -56,10 +56,6 @@ program bc_test
 
   ! Read bc configuration
   call read_bc_config("src/case_setup/BC_test/BC_test_config.yaml", mf%bcs)
-  call dprint("name bc_type det T fmix pgr ti ls " // str(mf%bcs%name(1)) // " " // str(mf%bcs%bc_type(1)) &
-              // " " // str(mf%bcs%u(1))// " " // str(mf%bcs%v(1))// " " // str(mf%bcs%w(1)) // " " // str(mf%bcs%den(1)) &
-              // " " // str(mf%bcs%T(1)) // " " // str(mf%bcs%fmix(1)) // " " // str(mf%bcs%pgr(1)) // " " // str(mf%bcs%ti(1)) &
-              // " " // str(mf%bcs%ls(1)))
 
   call cleanup_parallel_environment(par_env)
 

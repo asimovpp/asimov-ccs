@@ -70,7 +70,7 @@ module types
 
   !> BC data type
   type, public :: bc_config
-    integer(ccs_int), dimension(:), allocatable :: name
+    integer(ccs_int), dimension(:), allocatable :: name  ! XXX: should we change this to names, bc_types, etc since these are arrays?
     integer(ccs_int), dimension(:), allocatable :: bc_type
     real(ccs_real), dimension(:), allocatable :: value
     !real(ccs_real), dimension(:), allocatable :: u

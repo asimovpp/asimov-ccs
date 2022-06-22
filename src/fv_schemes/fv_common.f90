@@ -162,6 +162,14 @@ contains
     real(ccs_real), intent(out) :: bc_value   !< the value of the scalar field at the specified boundary
 
     bc_value = phi%bcs%value(index_nb)
+    !if (phi%bcs%bc_type(index_nb) == 0) then
+    !  bc_value = 0.0_ccs_real
+    !else if (phi%bcs%bc_type(index_nb) == 1) then
+    !  bc_value = 1.0_ccs_real ! XXX: might not be correct
+    !else
+    !  call error_abort("ERROR: Unknown boundary type " // str(phi%bcs%bc_type(index_nb)))
+    !end if
+
   end subroutine compute_boundary_values
 
   !>  Computes the matrix coefficient for cells on the boundary of the mesh

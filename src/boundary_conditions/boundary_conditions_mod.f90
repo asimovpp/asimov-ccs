@@ -107,7 +107,7 @@ module boundary_conditions
     real(ccs_real), intent(in) :: value
     type(bc_config), intent(inout) :: bcs
 
-	  bcs%value = value
+	  bcs%value(boundary_index) = value
     !select case (attribute)
     !case ("u")
     !  bcs%u(boundary_index) = value

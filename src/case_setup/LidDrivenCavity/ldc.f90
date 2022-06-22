@@ -129,7 +129,7 @@ program ldc
   ! Set BCs
   call set_all_bcs(0, u%bcs)
   call set_all_bcs(0, v%bcs)
-  u%bcs%bc_type(4) = 1  ! Manually set here because we haven't read from file
+  u%bcs%bc_types(4) = 1  ! Manually set here because we haven't read from file
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
