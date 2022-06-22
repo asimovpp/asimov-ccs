@@ -157,6 +157,9 @@ program ldc
 
   call PetscViewerDestroy(viewer,ierr)
 
+  ! Write out mesh and solution
+  call write_solution(par_env, case_name, mesh)
+
   ! Clean-up
   deallocate(u)
   deallocate(v)
@@ -291,6 +294,59 @@ program ldc
     call restore_vector_data(mf%values, mf_data)
     
   end subroutine initialise_velocity
+
+  subroutine write_solution(par_env, case_name, mesh)
+
+    use io, only: initialise_io, cleanup_io, configure_io, &
+                  open_file, close_file, write_array
+    use kinds, only: ccs_long
+    use constants, only: ndim, adiosconfig
+    use types, only: io_environment, io_process
+
+    ! Arguments
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    character(len=:), allocatable, intent(in) :: case_name
+    type(ccs_mesh), intent(in) :: mesh
+
+    ! Local variables
+    character(len=:), allocatable :: sol_file
+    character(len=:), allocatable :: adios2_file
+
+    class(io_environment), allocatable :: io_env
+    class(io_process), allocatable :: sol_writer
+
+    integer(ccs_long), dimension(1) :: sel_start
+    integer(ccs_long), dimension(1) :: sel_count
+
+    integer(ccs_long), dimension(2) :: sel2_shape
+    integer(ccs_long), dimension(2) :: sel2_start
+    integer(ccs_long), dimension(2) :: sel2_count
+
+    sol_file = case_name//'.sol'
+    adios2_file = case_name//adiosconfig
+
+    call initialise_io(par_env, adios2_file, io_env)
+    call configure_io(io_env, "sol_writer", sol_writer)
+
+    call open_file(sol_file, "write", sol_writer)
+
+    sel2_shape(1) = ndim
+    sel2_shape(2) = mesh%nglobal
+    sel2_start(1) = 0
+    sel2_start(2) = 0
+    sel2_count(1) = ndim
+    sel2_count(2) = mesh%nlocal
+
+    ! Write mesh cell centre coords
+    call write_array(sol_writer, "/cell/xc", sel2_shape, sel2_start, sel2_count, mesh%x_p)
+
+    ! Close the file and ADIOS2 engine
+    call close_file(sol_writer)
+
+    ! Finalise the ADIOS2 IO environment
+    call cleanup_io(io_env)
+
+  end subroutine
 
 
 end program ldc

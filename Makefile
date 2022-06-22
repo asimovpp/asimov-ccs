@@ -79,8 +79,8 @@ INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
-INC += -I${PARHIP}/include
-LIB += -L${PARHIP}/lib -lparhip_interface
+INC += -I${PARHIP_INC}
+LIB += -L${PARHIP_LIB} -lparhip_interface
 
 
 ifeq ($(NEED_CMP),yes)
