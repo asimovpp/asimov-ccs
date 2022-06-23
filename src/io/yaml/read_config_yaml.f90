@@ -749,7 +749,8 @@ submodule (read_config) read_config_utils
             call set_bc_attribute(i, bc_field, bc_field_string, bcs)
           case default
             call get_value(dict2, bc_field, bc_field_value)
-            call set_bc_attribute(i, bc_field, bc_field_value, bcs)
+            call set_bc_attribute(i, bc_field_value, bcs)
+            call dprint("i value " // str(i) // " " // str(bc_field_value))
           end select
         end select
         i = i+1

@@ -126,12 +126,11 @@ program bc_ldc
   call update(v%values)
   call update(mf%values)
 
-  ! Set BCs
-  !call set_all_bcs(0, u%bcs)
-  !call set_all_bcs(0, v%bcs)
-  !u%bcs%bc_type(4) = 1  ! Manually set here because we haven't read from file
+  ! Read BCs
   call read_bc_config(ccs_config_file, "u", u%bcs)
   call read_bc_config(ccs_config_file, "v", v%bcs)
+  print *, 'u names ', u%bcs%name
+  print *, 'u values ', u%bcs%value
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"

@@ -158,18 +158,19 @@ contains
   !  values provided on box corners
   subroutine compute_boundary_values(phi, index_nb, bc_value)
     class(field), intent(in) :: phi           !< the field for which boundary values are being computed
-    integer, intent(in) :: index_nb           !< index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
+    integer, intent(in) :: index_nb           !< index of neighbour 
     real(ccs_real), intent(out) :: bc_value   !< the value of the scalar field at the specified boundary
 
-    bc_value = phi%bcs%value(index_nb)
-    !if (phi%bcs%bc_type(index_nb) == 0) then
-    !  bc_value = 0.0_ccs_real
-    !else if (phi%bcs%bc_type(index_nb) == 1) then
-    !  bc_value = 1.0_ccs_real ! XXX: might not be correct
-    !else
-    !  call error_abort("ERROR: Unknown boundary type " // str(phi%bcs%bc_type(index_nb)))
-    !end if
+    ! local variables
+    integer(ccs_int) :: i
 
+    do i = 1, size(phi%bcs%name)
+      if (phi%bcs%name(i) == index_nb) then
+        exit
+      end if
+    end do
+    !call dprint("name index value " // str(i) // " " // str(phi%bcs%name(i)) // " " // str(index_nb) // " " // str(phi%bcs%value(i)))
+    bc_value = phi%bcs%value(i)
   end subroutine compute_boundary_values
 
   !>  Computes the matrix coefficient for cells on the boundary of the mesh
@@ -237,7 +238,7 @@ contains
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
           call calc_cell_coords(global_index_p, cps, row, col)
-          call compute_boundary_values(phi, j, bc_value)
+          call compute_boundary_values(phi, index_nb, bc_value)
 
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff)*bc_value, b_coeffs)
