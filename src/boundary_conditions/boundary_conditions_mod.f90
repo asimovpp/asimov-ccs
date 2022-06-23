@@ -55,7 +55,6 @@ module boundary_conditions
 
     select case (attribute)
     case ("name")
-      call dprint("name size " // str(size(bcs%name)) // " " // str(boundary_index) // " " // value)
       select case (value)
       case ("left")
         bcs%name(boundary_index) = -1
@@ -108,17 +107,14 @@ module boundary_conditions
     case ("name")
       if (.not. allocated(bcs%name)) then
         allocate(bcs%name(n_boundaries))
-        call dprint("allocated name")
       end if
     case ("type")
       if (.not. allocated(bcs%bc_type)) then
         allocate(bcs%bc_type(n_boundaries))
-        call dprint("allocated type")
       end if
     case default
       if (.not. allocated(bcs%value)) then
         allocate(bcs%value(n_boundaries))
-        call dprint("allocated value")
       end if
     end select
   end subroutine allocate_bc_field
