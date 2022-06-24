@@ -218,9 +218,10 @@ implicit none
     call dprint ("Total number of cells (local + halo) after partitioning: "//str(topo%total_num_cells))
 
     ! Allocate and then compute global indices
-    if(allocated(topo%global_indices) .eqv. .false.) then
-      allocate(topo%global_indices(topo%total_num_cells))
+    if(allocated(topo%global_indices)) then
+      deallocate(topo%global_indices)
     end if
+    allocate(topo%global_indices(topo%total_num_cells))
 
     ! First the indices of the local cells
     k = 1
