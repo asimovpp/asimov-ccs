@@ -164,7 +164,7 @@ program test_partition_square_mesh
     call stop_test(message)
   end if
 
-  if (all(topo%nb_indices == mesh%neighbour_indices)) then
+  if (all(topo%nb_indices /= mesh%neighbour_indices)) then
     write(message, *) "ERROR: topology changed!"
     call stop_test(message)
   end if
