@@ -101,7 +101,7 @@ implicit none
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
-    integer(ccs_int) :: current, previous
+    integer(ccs_int) :: previous
  
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -237,6 +237,7 @@ implicit none
       if (topo%global_partition(topo%adjncy(i)) /= irank) then
         call dprint("Index of halo cell: topo%global_indices("//str(k)//") = "//str(i))
         topo%global_indices(k) = topo%adjncy(i)
+        topo%global_indices(k) = int(topo%adjncy(i)) ! XXX: OK for small meshes...
         k = k + 1
       end if
     end do
@@ -274,9 +275,9 @@ implicit none
     allocate(topo%nb_indices(topo%max_faces, topo%local_num_cells))
 
     do i = 1, size(topo%xadj) - 1
-      n = topo%xadj(i+1) - topo%xadj(i)
+      n = int(topo%xadj(i+1) - topo%xadj(i)) ! XXX: OK for small meshes!
       do j = 1, n
-        topo%nb_indices(j, i) = topo%adjncy(j+topo%xadj(i)-1)
+        topo%nb_indices(j, i) = int(topo%adjncy(j+topo%xadj(i)-1)) ! XXX: OK for small meshes!
       end do 
       do k = n + 1, topo%max_faces
         topo%nb_indices(k, i) = 0 ! Set boundaries to 0 - will be updated with correct BCs

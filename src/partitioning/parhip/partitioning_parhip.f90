@@ -30,7 +30,7 @@ contains
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank, isize
     integer(ccs_int) :: ierr
-    integer(ccs_int) :: i, j
+    integer(ccs_int) :: i
 
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3% 
