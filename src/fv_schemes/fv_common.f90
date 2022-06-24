@@ -15,6 +15,7 @@ submodule (fv) fv_common
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
+  use boundary_conditions, only: get_bc_index
 
   implicit none
 
@@ -162,15 +163,10 @@ contains
     real(ccs_real), intent(out) :: bc_value   !< the value of the scalar field at the specified boundary
 
     ! local variables
-    integer(ccs_int) :: i
+    integer(ccs_int) :: index_bc
 
-    do i = 1, size(phi%bcs%name)
-      if (phi%bcs%name(i) == index_nb) then
-        exit
-      end if
-    end do
-    !call dprint("name index value " // str(i) // " " // str(phi%bcs%name(i)) // " " // str(index_nb) // " " // str(phi%bcs%value(i)))
-    bc_value = phi%bcs%value(i)
+    call get_bc_index(phi, index_nb, index_bc)
+    bc_value = phi%bcs%value(index_bc)
   end subroutine compute_boundary_values
 
   !>  Computes the matrix coefficient for cells on the boundary of the mesh

@@ -48,11 +48,12 @@ submodule (read_config) read_config_utils
 
   end subroutine
     
-  subroutine get_real_value(dict, keyword, real_val, required)
+  subroutine get_real_value(dict, keyword, real_val, value_present, required)
     class (*), pointer, intent(in) :: dict
     character (len=*), intent(in) :: keyword
     real(ccs_real), intent(out)  :: real_val
-    logical, optional :: required
+    logical, intent(inout), optional :: value_present
+    logical, intent(out), optional :: required
 
     type(type_error), pointer :: io_err
 
@@ -60,6 +61,9 @@ submodule (read_config) read_config_utils
     type is(type_dictionary)
 
       real_val = dict%get_real(keyword,error=io_err)
+      if (associated(io_err) .and. present(value_present)) then 
+        value_present = .false.
+      end if
       if (present(required) .and. required .eqv. .true.) then
         call error_handler(io_err)  
       end if
@@ -722,6 +726,7 @@ submodule (read_config) read_config_utils
     character(len=:), allocatable :: bc_field_string
     character(len=25) :: boundary_index
     real(ccs_real) :: bc_field_value
+    logical :: field_exists
     
     select type (config_file)
     type is (type_dictionary)
@@ -733,6 +738,7 @@ submodule (read_config) read_config_utils
       call allocate_bc_field(bc_field, n_boundaries, bcs)
       
       i = 1
+      field_exists = .true. 
       do while (i <= n_boundaries)
         write(boundary_index, '(A, I0)') "boundary_", i
         select type (dict)
@@ -748,8 +754,12 @@ submodule (read_config) read_config_utils
             call get_value(dict2, bc_field, bc_field_string)
             call set_bc_attribute(i, bc_field, bc_field_string, bcs)
           case default
-            call get_value(dict2, bc_field, bc_field_value)
-            call set_bc_attribute(i, bc_field_value, bcs)
+            call get_value(dict2, bc_field, bc_field_value, field_exists)
+            if (field_exists .eqv. .true.) then
+              call set_bc_attribute(i, bc_field_value, bcs)
+            end if
+            !call set_bc_attribute(i, real(i, kind=ccs_real), bcs)
+            !call dprint("i field value " // str(i) // " " // bc_field // " " // str(bc_field_value)) ! XXX: figure out why if this line is absent we get repeated (incorrect) values in bcs struct
           end select
         end select
         i = i+1
@@ -757,6 +767,7 @@ submodule (read_config) read_config_utils
     class default
       call error_abort("type unhandled")
     end select
+    print *, 'bcs values ', bcs%value
   end subroutine get_bc_field_data
 
 end submodule read_config_utils

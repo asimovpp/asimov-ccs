@@ -129,6 +129,8 @@ program bc_ldc
   ! Read BCs
   call read_bc_config(ccs_config_file, "u", u%bcs)
   call read_bc_config(ccs_config_file, "v", v%bcs)
+  print *, 'u names ', u%bcs%name
+  print *, 'u values ', u%bcs%value
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"

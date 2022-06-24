@@ -67,7 +67,6 @@ boundaries:
     type: wall
     u: 1.0
     v: 0.0
-    p: 0.0
   boundary_2:
     name: left
     type: wall
