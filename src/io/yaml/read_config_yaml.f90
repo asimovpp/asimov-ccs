@@ -64,16 +64,20 @@ submodule (read_config) read_config_utils
       if (associated(io_err) .and. present(value_present)) then 
         value_present = .false.
       end if
-      if (present(required) .and. required .eqv. .true.) then
-        call error_handler(io_err)  
+      if (present(required)) then
+        if (required .eqv. .true.) then
+          call error_handler(io_err)  
+        end if
       end if
       
     class default
       call error_abort("Unknown type")
     end select
 
-    if((associated(io_err) .eqv. .true.) .and. (present(required) .and. required .eqv. .true.)) then 
-      call error_abort("Error reading " // keyword)
+    if((associated(io_err) .eqv. .true.) .and. present(required)) then 
+      if (required .eqv. .true.) then
+        call error_abort("Error reading " // keyword)
+      end if
     end if
 
   end subroutine
@@ -716,13 +720,9 @@ submodule (read_config) read_config_utils
     ! local variables
     class(*), pointer :: dict
     class(*), pointer :: dict2
-    class(type_list), pointer :: list
-    class(type_list_item), pointer :: item
     integer(ccs_int) :: i
     integer(ccs_int) :: n_boundaries
     type(type_error), pointer :: io_err
-    character(len=:), allocatable :: name
-    character(len=:), allocatable :: bc_type
     character(len=:), allocatable :: bc_field_string
     character(len=25) :: boundary_index
     real(ccs_real) :: bc_field_value
@@ -758,8 +758,6 @@ submodule (read_config) read_config_utils
             if (field_exists .eqv. .true.) then
               call set_bc_attribute(i, bc_field_value, bcs)
             end if
-            !call set_bc_attribute(i, real(i, kind=ccs_real), bcs)
-            !call dprint("i field value " // str(i) // " " // bc_field // " " // str(bc_field_value)) ! XXX: figure out why if this line is absent we get repeated (incorrect) values in bcs struct
           end select
         end select
         i = i+1
@@ -767,7 +765,6 @@ submodule (read_config) read_config_utils
     class default
       call error_abort("type unhandled")
     end select
-    print *, 'bcs values ', bcs%value
   end subroutine get_bc_field_data
 
 end submodule read_config_utils
