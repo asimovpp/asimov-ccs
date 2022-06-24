@@ -124,6 +124,8 @@ program test_partition_square_mesh
   ! Assign corresponding mesh values to the topology object
   topo%total_num_cells = mesh%ntotal
   topo%num_faces = mesh%nfaces_local
+
+  allocate(topo%global_indices, source=mesh%global_indices)
   topo%global_indices = mesh%global_indices
 
   n = count(mesh%neighbour_indices > 0)
