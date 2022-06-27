@@ -79,12 +79,6 @@ program ldc
   it_start = 1
   it_end   = num_steps
 
-  ! Temporary: initialise time loop variables
-  dt = 0.1
-  t_start = 0
-  t_end = 1
-  t_count = 0
-
   ! Create a square mesh
   print *, "Building mesh"
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
@@ -147,10 +141,19 @@ program ldc
   call get_vector_data(u%old_values, old_values_data)
   old_values_data = values_data
   call restore_vector_data(u%old_values, old_values_data)
+  !call restore_vector_data(u%values, values_data)
   call get_vector_data(v%values, values_data)
   call get_vector_data(v%old_values, old_values_data)
   old_values_data = values_data
   call restore_vector_data(v%old_values, old_values_data)
+  !call restore_vector_data(v%values, values_data)
+  
+  ! Temporary: initialise time loop variables
+  dt = 0.9 / 1.0 * mesh%h
+  t_start = 0.0
+  t_end = 10.0
+  t_count = 0
+
   ! Start time-stepping 
   t = t_start
   do while (t < t_end)
@@ -163,42 +166,45 @@ program ldc
     call get_vector_data(u%old_values, old_values_data)
     old_values_data = values_data
     call restore_vector_data(u%old_values, old_values_data)
+    !call restore_vector_data(u%values, values_data)
     call get_vector_data(v%values, values_data)
     call get_vector_data(v%old_values, old_values_data)
     old_values_data = values_data
     call restore_vector_data(v%old_values, old_values_data)
+    !call restore_vector_data(v%values, values_data)
 
   
-    call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
-  
-    associate (vec => u%values)
-      select type (vec)
-      type is (vector_petsc)
-        call VecView(vec%v, viewer, ierr)
-      end select
-    end associate
-  
-    call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
-  
-    associate (vec => v%values)
-      select type (vec)
-      type is (vector_petsc)
-        call VecView(vec%v, viewer, ierr)
-      end select
-    end associate
-  
-    call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
-  
-    associate (vec => p%values)
-      select type (vec)
-      type is (vector_petsc)
-        call VecView(vec%v, viewer, ierr)
-      end select
-    end associate
   
     t = t + dt
     t_count = t_count + 1
   end do
+    
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => u%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => v%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => p%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
 
   call PetscViewerDestroy(viewer,ierr)
 

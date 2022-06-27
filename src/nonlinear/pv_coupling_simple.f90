@@ -798,7 +798,7 @@ contains
     integer(ccs_int) :: i
 
     ! V = mesh%volumes
-    dt = 0.1
+    dt = 0.9 / 1.0 * mesh%h
     call finalise(M)
     call get_matrix_diagonal(M, diag)
    
@@ -815,6 +815,7 @@ contains
     ! b = b + V/dt * phi_old
       b_data(i) = b_data(i) + mesh%volumes(i) / dt * phi_data(i)
     end do
+    !call restore_vector_data(phi%values, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
