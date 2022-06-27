@@ -1,9 +1,10 @@
+import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-sys.path.append("/usr/local/install/petsc-gnu/lib/petsc/bin/")
+sys.path.append(os.environ["PETSC_DIR"] + "/lib/petsc/bin")
 import PetscBinaryIO 
 
 def plot_field(field, fig, axs, index, nlevels, name):
@@ -27,15 +28,16 @@ mp  = int(np.floor((cps + 1) / 2))
 io = PetscBinaryIO.PetscBinaryIO()
 
 # Load data
-p = io.readBinaryFile("p")
-u = io.readBinaryFile("u")
-v = io.readBinaryFile("v")
-outstub = ""
 if len(sys.argv) > 4:
     p = io.readBinaryFile(sys.argv[1])
     u = io.readBinaryFile(sys.argv[2])
     v = io.readBinaryFile(sys.argv[3])
     outstub = sys.argv[4]
+else:
+    p = io.readBinaryFile("p")
+    u = io.readBinaryFile("u")
+    v = io.readBinaryFile("v")
+    outstub = ""
 
 # Reshape data
 P = np.reshape(p, (cps, cps))
