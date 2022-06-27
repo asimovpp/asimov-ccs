@@ -141,17 +141,17 @@ program ldc
   call get_vector_data(u%old_values, old_values_data)
   old_values_data = values_data
   call restore_vector_data(u%old_values, old_values_data)
-  !call restore_vector_data(u%values, values_data)
+  call restore_vector_data(u%values, values_data)
   call get_vector_data(v%values, values_data)
   call get_vector_data(v%old_values, old_values_data)
   old_values_data = values_data
   call restore_vector_data(v%old_values, old_values_data)
-  !call restore_vector_data(v%values, values_data)
+  call restore_vector_data(v%values, values_data)
   
   ! Temporary: initialise time loop variables
   dt = 0.9 / 1.0 * mesh%h
   t_start = 0.0
-  t_end = 10.0
+  t_end = 1.0
   t_count = 0
 
   ! Start time-stepping 
@@ -166,12 +166,12 @@ program ldc
     call get_vector_data(u%old_values, old_values_data)
     old_values_data = values_data
     call restore_vector_data(u%old_values, old_values_data)
-    !call restore_vector_data(u%values, values_data)
+    call restore_vector_data(u%values, values_data)
     call get_vector_data(v%values, values_data)
     call get_vector_data(v%old_values, old_values_data)
     old_values_data = values_data
     call restore_vector_data(v%old_values, old_values_data)
-    !call restore_vector_data(v%values, values_data)
+    call restore_vector_data(v%values, values_data)
 
   
   

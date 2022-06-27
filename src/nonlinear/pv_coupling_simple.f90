@@ -815,7 +815,7 @@ contains
     ! b = b + V/dt * phi_old
       b_data(i) = b_data(i) + mesh%volumes(i) / dt * phi_data(i)
     end do
-    !call restore_vector_data(phi%values, phi_data)
+    call restore_vector_data(phi%old_values, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
