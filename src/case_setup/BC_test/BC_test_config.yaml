@@ -1,90 +1,22 @@
 ---
-title: scalar_advection_poisson
-
-reference_numbers:
-    pressure: 101325.0
-    temperature: 289.0
-    density: 1.0
-    viscosity: 1.0e-05
-    pref_at_cell: 4096
-
-steps: 1000
-
-solve:
-  w: off
-
-solver:
-  u: 12
-  v: 12
-
-init: 
-  type: user
-
-transient:
-  type: quad
-  dt: 0.0001
-  gamma: 1.0
-  max_sub_steps: 10
-
-target_residual: 1.0e-12
-
-monitor_cell: 8094
-
-convection_scheme:
-  u: 1
-  v: 1
-  w: 1
-
-blending_factor:
-  u: 1.0
-  v: 1.0
-  w: 1.0
-  
-relaxation_factor:
-  u: 0.8
-  v: 0.8
-  p: 0.5
-
-output:
-  every: 1000
-
-plot_format: vtk
-
-post:
-  type: center
-  variables: [u, v, w, p]
+title: bc_test
 
 boundaries:
   n_boundaries: 4
   boundary_1:
-    name: jet
-    type: inlet
-    u: 49.6
-    v: 0.0
-    w: 0.0
-    den: 1.1099
-    T: 294.
-    fmix: 0.158
-    ti: 0.1
-    ls: 0.003
+    name: left
+    type: wall
+    u: 107.345
  
   boundary_2:
-    name: coflow
-    type: inlet
-    u: 0.9
-    v: 0.0
-    w: 0.0
-    den: 1.17643
-    T: 291.
-    fmix: 0.0
-    pgr: 0.0
-    ti: 0.05
-    ls: 0.01
+    name: top
+    type: periodic
  
   boundary_3:
-    name: outflow
-    type: outlet
+    name: right
+    type: dirichlet
+    u: -5.0
  
   boundary_4:
-    name: atmos
-    type: symp
+    name: bottom
+    type: periodic

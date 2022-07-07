@@ -738,8 +738,8 @@ submodule (read_config) read_config_utils
       call allocate_bc_field(bc_field, n_boundaries, bcs)
       
       i = 1
-      field_exists = .true. 
       do while (i <= n_boundaries)
+        field_exists = .true. 
         write(boundary_index, '(A, I0)') "boundary_", i
         select type (dict)
         type is (type_dictionary)

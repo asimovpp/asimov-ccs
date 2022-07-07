@@ -75,6 +75,14 @@ module boundary_conditions
       end select
     case ("type")
       select case (value)
+      case ("periodic")
+        bcs%bc_type(boundary_index) = bc_type_periodic
+      case ("sym")
+        bcs%bc_type(boundary_index) = bc_type_sym
+      case ("dirichlet")
+        bcs%bc_type(boundary_index) = bc_type_dirichlet
+      case ("const_grad")
+        bcs%bc_type(boundary_index) = bc_type_const_grad
       case ("inlet")
         bcs%bc_type(boundary_index) = bc_type_inlet
       case ("outlet")
