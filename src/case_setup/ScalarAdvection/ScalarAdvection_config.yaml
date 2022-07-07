@@ -54,12 +54,22 @@ post:
   type: center
   variables: [u, v, w, p]
 
-boundary:
-  region: [left, right, bottom, top]
-  type: [dirichlet, const_grad, const_grad, dirichlet]
-  vector: 
-  - [ 1.0, 0.0, 0.0 ]
-  - [ 0.0, 0.0, 0.0 ]
-  - [ 0.0, 0.0, 0.0 ]
-  - [ 0.0, 0.0, 0.0 ]
-  -
+boundaries:
+  n_boundaries: 4
+  boundary_1:
+    name: left
+    type: dirichlet
+    mf: 1.0
+  
+  boundary_2:
+    name: right
+    type: const_grad
+
+  boundary_3:
+    name: bottom
+    type: const_grad
+  
+  boundary_4:
+    name: top
+    type: dirichlet
+    mf: 0.0
