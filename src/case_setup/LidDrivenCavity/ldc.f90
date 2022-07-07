@@ -27,7 +27,6 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print
-  use boundary_conditions, only: set_all_bcs
 
   implicit none
 
@@ -42,14 +41,17 @@ program ldc
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
-  integer(ccs_int) :: it_start, it_end, ierr
+  integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank !< MPI rank ID
   integer(ccs_int) :: isize !< Size of MPI world
 
   double precision :: start_time
   double precision :: end_time
 
+#ifndef EXCLUDE_MISSING_INTERFACE
+  integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
+#endif
 
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
@@ -126,15 +128,11 @@ program ldc
   call update(v%values)
   call update(mf%values)
 
-  ! Set BCs
-  call set_all_bcs(0, u%bcs)
-  call set_all_bcs(0, v%bcs)
-  u%bcs%bc_types(4) = 1  ! Manually set here because we haven't read from file
-
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
 
+#ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
 
   associate (vec => u%values)
@@ -163,7 +161,8 @@ program ldc
   end associate
 
   call PetscViewerDestroy(viewer,ierr)
-
+#endif
+  
   ! Clean-up
   deallocate(u)
   deallocate(v)
