@@ -174,6 +174,7 @@ contains
     case (bc_type_wall)
       bc_value = 0.0_ccs_real
     case default
+      bc_value = 0.0_ccs_real
       call error_abort("unknown bc type")
     end select
   end subroutine compute_boundary_values
