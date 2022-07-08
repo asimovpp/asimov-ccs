@@ -11,6 +11,7 @@ module mesh_utils
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
                      set_cell_location, set_neighbour_location, set_face_location, &
                      set_face_index, get_boundary_status, get_local_status
+  use bc_constants
 
   
   implicit none
@@ -112,8 +113,8 @@ contains
             ! Construct left (1) face/neighbour
             face_counter = left
             if (modulo(ii, cps) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
+              index_nb = bc_region_left
+              global_index_nb = bc_region_left
             else
               index_nb = index_counter - 1_ccs_int
               global_index_nb = i - 1_ccs_int
@@ -123,8 +124,8 @@ contains
             ! Construct right (2) face/neighbour
             face_counter = right
             if (modulo(ii, cps) == (cps - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
+              index_nb = bc_region_right
+              global_index_nb = bc_region_right
             else
               index_nb = index_counter + 1_ccs_int
               global_index_nb = i + 1_ccs_int
@@ -134,8 +135,8 @@ contains
             ! Construct down (3) face/neighbour
             face_counter = down
             if ((ii / cps) == 0_ccs_int) then
-              index_nb = -down
-              global_index_nb = -down
+              index_nb = bc_region_bottom
+              global_index_nb = bc_region_bottom
             else
               index_nb = index_counter - cps
               global_index_nb = i - cps
@@ -145,8 +146,8 @@ contains
             ! Construct up (4) face/neighbour
             face_counter = up
             if ((ii / cps) == (cps - 1_ccs_int)) then
-              index_nb = -up
-              global_index_nb = -up
+              index_nb = bc_region_top
+              global_index_nb = bc_region_top
             else
               index_nb = index_counter + cps
               global_index_nb = i + cps
