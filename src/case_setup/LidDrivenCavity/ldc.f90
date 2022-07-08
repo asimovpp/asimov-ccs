@@ -10,10 +10,6 @@ program ldc
 
   use case_config, only: num_steps, velocity_relax, pressure_relax
   use constants, only : cell, face, ccsconfig
-  use bc_constants, only: bc_region_left, bc_region_right, &
-                          bc_region_top, bc_region_bottom, &
-                          bc_region_live, &
-                          bc_type_sym, bc_type_wall
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector
@@ -27,6 +23,8 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print
+  use boundary_conditions, only: read_bc_config
+  
 
   implicit none
 
@@ -88,6 +86,11 @@ program ldc
   allocate(central_field :: p)
   allocate(central_field :: p_prime)
   allocate(face_field :: mf)
+
+  ! Read boundary conditions
+  call read_bc_config(ccs_config_file, "u", u%bcs)
+  call read_bc_config(ccs_config_file, "v", v%bcs)
+  call read_bc_config(ccs_config_file, "p", p%bcs)
 
   ! Create and initialise field vectors
   call initialise(vec_properties)

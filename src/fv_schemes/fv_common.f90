@@ -16,6 +16,7 @@ submodule (fv) fv_common
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
   use boundary_conditions, only: get_bc_index
+  use bc_constants
 
   implicit none
 
@@ -166,7 +167,15 @@ contains
     integer(ccs_int) :: index_bc
 
     call get_bc_index(phi, index_nb, index_bc)
-    bc_value = phi%bcs%value(index_bc)
+    
+    select case (phi%bcs%bc_type(index_bc))
+    case (bc_type_dirichlet)
+      bc_value = phi%bcs%value(index_bc)
+    case (bc_type_wall)
+      bc_value = 0.0_ccs_real
+    case default
+      call error_abort("unknown bc type")
+    end select
   end subroutine compute_boundary_values
 
   !>  Computes the matrix coefficient for cells on the boundary of the mesh

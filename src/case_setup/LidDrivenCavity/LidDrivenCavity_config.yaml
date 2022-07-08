@@ -46,17 +46,21 @@ relaxation_factor:
 #  type: center
 #  variables: [u, v, w, p]
 
-# Note: for boundary "top": u = 1.0
-boundary:
-  regions: [left, right, top, bottom]
-  left:
+boundaries:
+  n_boundaries: 4
+  boundary_1: 
+    name: left
     type: wall
-  right:
+  boundary_2:
+    name: right
     type: wall
-  top:
-    variables: [u, v, p]
-    type: [constant, wall, wall]
-    value: [1.0, 0.0, 0.0]
-  bottom:
+  boundary_3:
+    name: top
+    type: dirichlet
+    u: 1.0
+    v: 0.0
+    p: 0.0
+  boundary_4:
+    name: bottom
     type: wall
       
