@@ -42,12 +42,12 @@ contains
     integer(ccs_int), intent(in) :: index_p
     type(cell_locator), intent(out) :: loc_p
 
+    loc_p%mesh => mesh
+    loc_p%index_p = index_p
+    
     ! XXX: Potentially expensive...
     if (index_p > mesh%ntotal) then
       call error_abort("ERROR: trying to access cell I don't have access to!" // str(index_p) // str(mesh%nlocal))
-    else
-      loc_p%mesh => mesh
-      loc_p%index_p = index_p
     end if
   end subroutine set_cell_location
   

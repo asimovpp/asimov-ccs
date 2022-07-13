@@ -7,11 +7,14 @@
 submodule (fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode, ndim
-  use types, only: vector_values, matrix_values, cell_locator, face_locator, &
+  use types, only: vector_values, matrix_values_spec, matrix_values, cell_locator, face_locator, &
                    neighbour_locator
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
-  use utils, only: pack_entries, clear_entries, set_entry, set_row, set_values, set_mode, update
-  use utils, only: str, debug_print, exit_print
+
+  use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
+  use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
+  use utils, only: str
+  use utils, only: debug_print, exit_print
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location
@@ -70,13 +73,13 @@ contains
     integer(ccs_int), intent(in) :: n_int_cells     !< number of cells in the interior of the mesh
     class(ccs_matrix), intent(inout) :: M           !< Matrix structure being assigned
 
+    type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
-    integer(ccs_int) :: mat_counter
     integer(ccs_int) :: nnb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
@@ -88,18 +91,21 @@ contains
 
     real(ccs_real) :: sgn !< Sign indicating face orientation
 
-    mat_coeffs%setter_mode = add_mode
-
-    allocate(mat_coeffs%global_row_indices(1))
-    allocate(mat_coeffs%global_col_indices(n_int_cells))
-    allocate(mat_coeffs%values(n_int_cells))
-
+    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+    call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
+    call create_matrix_values(mat_val_spec, mat_coeffs)
+    call set_mode(add_mode, mat_coeffs)
+    
     do index_p = 1, mesh%nlocal
+      call clear_entries(mat_coeffs)
+      
       ! Calculate contribution from neighbours
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
-      mat_counter = 1
+
+      call set_row(global_index_p, mat_coeffs)
+
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       do j = 1, nnb
@@ -136,18 +142,19 @@ contains
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
-          
-          call pack_entries(1, mat_counter, global_index_p, global_index_nb, adv_coeff + diff_coeff, mat_coeffs)
-          mat_counter = mat_counter + 1
+
+          call set_col(global_index_nb, mat_coeffs)
+          call set_entry(adv_coeff + diff_coeff, mat_coeffs)
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          call pack_entries(1, mat_counter, global_index_p, -1, 0.0_ccs_real, mat_coeffs)
-          mat_counter = mat_counter + 1
+          call set_col(-1, mat_coeffs)
+          call set_entry(0.0_ccs_real, mat_coeffs)
         end if
       end do
-      call pack_entries(1, mat_counter, global_index_p, global_index_p, -(adv_coeff_total + diff_coeff_total), mat_coeffs)
-      mat_counter = mat_counter + 1
+
+      call set_col(global_index_p, mat_coeffs)
+      call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
       call set_values(mat_coeffs, M)
     end do
 
@@ -188,6 +195,7 @@ contains
     class(ccs_matrix), intent(inout) :: M           !< Matrix structure being assigned
     class(ccs_vector), intent(inout) :: b           !< vector structure being assigned
 
+    type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
     type(cell_locator) :: loc_p
@@ -204,12 +212,12 @@ contains
     logical :: is_boundary
 
     integer(ccs_int) :: index_f
-    
-    allocate(mat_coeffs%global_row_indices(1))
-    allocate(mat_coeffs%global_col_indices(1))
-    allocate(mat_coeffs%values(1))
-    mat_coeffs%setter_mode = add_mode
 
+    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+    call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
+    call create_matrix_values(mat_val_spec, mat_coeffs)
+    call set_mode(add_mode, mat_coeffs)
+    
     call create_vector_values(1_ccs_int, b_coeffs)
     call set_mode(add_mode, b_coeffs)
     
@@ -217,8 +225,6 @@ contains
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
-
-      call clear_entries(b_coeffs)
       
       ! Calculate contribution from neighbours
       do j = 1, nnb
@@ -246,11 +252,16 @@ contains
           call calc_cell_coords(global_index_p, cps, row, col)
           call compute_boundary_values(phi, index_nb, bc_value)
 
+          call clear_entries(mat_coeffs)
+          call clear_entries(b_coeffs)
+
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff)*bc_value, b_coeffs)
           call set_values(b_coeffs, b)
 
-          call pack_entries(1, 1, global_index_p, global_index_p, -(adv_coeff + diff_coeff), mat_coeffs)
+          call set_row(global_index_p, mat_coeffs)
+          call set_col(global_index_p, mat_coeffs)
+          call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
           call set_values(mat_coeffs, M)
         end if
       end do

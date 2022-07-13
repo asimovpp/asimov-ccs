@@ -51,6 +51,7 @@ regexp-rules:
   character-string-length:
     message: Use strl or shortstrl
     regexp: (?<=character)(\s*\(\s*len\s*=\s*)(?!\s*strl\b|\s*shortstrl\b)[^\(]*?(\s*\))
+    active: False
 
   # missing-space-before-call-parameters:
   #   message: Missing space between subroutine name and parenthesis
@@ -151,40 +152,35 @@ regexp-rules:
     regexp: ;\s*$
     replacement: ''
 
-  nospace-endif:
-    message: Missing space after "end"
-    regexp: \#endif
-    replacement: null
-
   nospace-end:
     message: Missing space after "end"
-    regexp: end({blocks}|{structs})
+    regexp: (?<!\#)end({blocks}|{structs})
     replacement: end \1
 
   missing-space-around-arithmetic:
     message: Missing space around arithmetic operator
-    regexp: ([^\s\*])(?<!len=)([-\+\*\/])([^\s\*])
+    regexp: ([^\s\*\/])(?<!len=)(?<!class\()([-\+\*\/])([^\s\*\/])
     replacement: \1 \2 \3
   missing-space-before-arithmetic:
     message: Missing space before arithmetic operator
-    regexp: ([^\s\*])([-\+\*\/]) ([^\s\*])
+    regexp: ([^\s\*\/])([-\+\*\/])\s+([^\s\*])
     replacement: \1 \2 \3
   missing-space-after-arithmetic:
     message: Missing space after arithmetic operator
-    regexp: ([^\s\*]) ([-\+\*\/])([^\s\*])
+    regexp: ([^\s\*])\s+([-\+\*\/])([^\s\*\/,])
     replacement: \1 \2 \3
 
   space-around-exponential:
     message: Space around exponent operator
-    regexp: ([^\s\*]) \*\* ([^\s\*])
+    regexp: ([^\s\*])\s+\*\*\s+([^\s\*])
     replacement: \1**\3
   space-before-exponential:
     message: Space before exponent operator
-    regexp: ([^\s\*]) \*\*([^\s\*])
+    regexp: ([^\s\*])\s+\*\*([^\s\*])
     replacement: \1**\3
   space-after-exponential:
     message: Space after exponent operator
-    regexp: ([^\s\*])\*\* ([^\s\*])
+    regexp: ([^\s\*])\*\*\s+([^\s\*])
     replacement: \1**\3
 
   missing-space-around-=:
@@ -197,8 +193,34 @@ regexp-rules:
     replacement: \1 =
   missing-space-after-=:
     message: Missing space after "="
-    regexp: (?<!kind|.len|...\s)\s+=([^\s=])
+    regexp: (?<!kind|.len|...\s)\s+=([^\s=\>])
     replacement: = \1
+  
+  missing-space-around-concatenation:
+    message: Missing space around concatenation operator
+    regexp: (\S)\/\/(\S)
+    replacement: '\1 // \2'
+  missing-space-before-concatenation:
+    message: Missing space before concatenation operator
+    regexp: (\S)\/\/(?=\s)
+    replacement: '\1 //'
+  missing-space-after-concatenation:
+    message: Missing space after concatenation operator
+    regexp: (?<=\s)\/\/(\S)
+    replacement: '// \1'
+  
+  space-around-%:
+    message: Space around % operator
+    regexp: (\S) % (\S)
+    replacement: '\1%\2'
+  space-before-%:
+    message: Space before % operator
+    regexp: (?<=\s)%(\S)
+    replacement: '%\1'
+  space-after-%:
+    message: Space after % operator
+    regexp: (\S)%(?=\s)
+    replacement: '\1%'
 
 
   trailing-whitespaces:

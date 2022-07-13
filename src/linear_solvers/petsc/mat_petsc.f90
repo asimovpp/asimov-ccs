@@ -148,27 +148,6 @@ contains
     
   end subroutine
 
-  module subroutine pack_one_matrix_coefficient(row_entry, col_entry, row, col, coeff, mat_coeffs)
-    integer(ccs_int), intent(in) :: row_entry
-    integer(ccs_int), intent(in) :: col_entry
-    integer(ccs_int), intent(in) :: row
-    integer(ccs_int), intent(in) :: col
-    real(ccs_real), intent(in) :: coeff
-    type(matrix_values), intent(inout) :: mat_coeffs
-
-    integer(ccs_int) :: nc
-    integer(ccs_int) :: coeff_index
-
-    mat_coeffs%global_row_indices(row_entry) = row - 1
-    mat_coeffs%global_col_indices(col_entry) = col - 1
-
-    nc = size(mat_coeffs%global_col_indices)
-
-    coeff_index = (row_entry - 1) * nc + col_entry
-    mat_coeffs%values(coeff_index) = coeff
-    
-  end subroutine pack_one_matrix_coefficient
-
   !>  Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 
@@ -251,6 +230,7 @@ contains
     
   end subroutine
 
+  !> Clear working set of values to begin new working set.
   module procedure clear_matrix_values_entries
 
     val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
@@ -258,15 +238,22 @@ contains
     val_dat%values(:) = 0.0_ccs_real
     
   end procedure clear_matrix_values_entries
-  
-  module subroutine set_matrix_values_row(row, val_dat)
-    integer(ccs_int), intent(in) :: row
-    type(matrix_values), intent(inout) :: val_dat
 
-    integer(ccs_int), dimension(rank(val_dat%global_row_indices)) :: rglobs
-    integer(ccs_int) :: i
-    logical :: new_entry
-    integer(ccs_int) :: petsc_row
+  !> Set working row.
+  module subroutine set_matrix_values_row(row, val_dat)
+
+    ! Arguments
+    integer(ccs_int), intent(in) :: row           !< Which (global) row to work on?
+    type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
+
+    ! Local
+    integer(ccs_int), dimension(1) :: rglobs !< Temporary array mapping rows to indices in the
+                                             !< current working set. N.B. the dimension of this
+                                             !< array must match the rank of
+                                             !< matrix_values%global_row_indices!
+    integer(ccs_int) :: i         !< The mapped index in the current working set
+    logical :: new_entry          !< Flag to indicate if we are revisiting a row
+    integer(ccs_int) :: petsc_row !< The (zero-indexed) row as used by PETSc
 
     petsc_row = row - 1 ! PETSc is zero-indexed
     new_entry = .false.
@@ -285,11 +272,50 @@ contains
       end if
     end if
     
-    val_dat%current_entry = i
+    val_dat%current_row = i
     val_dat%global_row_indices(i) = petsc_row
     
   end subroutine set_matrix_values_row
 
+  !> Set working column.
+  module subroutine set_matrix_values_col(col, val_dat)
+
+    ! Arguments
+    integer(ccs_int), intent(in) :: col           !< Which (global) column to work on ?
+    type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
+
+    ! Local
+    integer(ccs_int), dimension(1) :: cglobs !< Temporary array mapping columns to indices in the
+                                             !< current working set. N.B. the dimension of this
+                                             !< array must match the rank of
+                                             !< matrix_values%global_col_indices!
+    integer(ccs_int) :: i         !< The mapped index in the current working set
+    logical :: new_entry          !< Flag to indicate if we are revisiting a column
+    integer(ccs_int) :: petsc_col !< The (zero-indexed) column as used by PETSc
+
+    petsc_col = col - 1 ! PETSc is zero-indexed
+    new_entry = .false.
+    
+    cglobs = findloc(val_dat%global_col_indices, petsc_col, kind=ccs_int)
+    i = cglobs(1) ! We want the first entry
+    if (i == 0) then
+      new_entry = .true.
+    end if
+
+    if (new_entry) then
+      cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
+      i = cglobs(1) ! We want the first entry
+      if (i == 0) then
+        print *, "ERROR: Couldn't find a free column entry in matrix values!"
+        stop
+      end if
+    end if
+    
+    val_dat%current_col = i
+    val_dat%global_col_indices(i) = petsc_col
+    
+  end subroutine set_matrix_values_col
+  
   !>  Perform the AXPY matrix operation using PETSc
   !
   !>  Performs the AXPY operation
@@ -384,6 +410,7 @@ contains
 
   end subroutine
 
+  !> Store a vector in the matrix diagonal
   module subroutine set_matrix_diagonal(D, M)
     use petscmat, only : MatDiagonalSet
 
@@ -409,13 +436,14 @@ contains
 
   end subroutine set_matrix_diagonal
 
+  !> Overwite a matrix with zeros.
   module subroutine zero_matrix(M)
 
     use petscmat, only: MatZeroEntries
     
     class(ccs_matrix), intent(inout) :: M   !< the PETSc matrix
 
-    integer(ccs_err) :: ierr
+    integer(ccs_err) :: ierr !< Error code
 
     select type (M)
     type is (matrix_petsc)

@@ -19,15 +19,15 @@ program poisson
   use kinds, only : ccs_real, ccs_int
   use types, only : vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
        equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
-       neighbour_locator, vector_values, matrix_values
+       neighbour_locator, vector_values, matrix_values, matrix_values_spec
   use meshing, only : set_cell_location, set_face_location, set_neighbour_location
   use vec, only : create_vector
-  use mat, only : create_matrix, set_nnz
+  use mat, only : create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
+       set_matrix_values_spec_ncols
   use solver, only : create_solver, solve, set_equation_system, axpy, norm
   use utils, only : update, begin_update, end_update, finalise, initialise, &
                     set_size, &
-                    set_values, clear_entries, set_values, set_row, set_entry, set_mode, &
-                    pack_entries
+                    set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
   use vec, only : create_vector_values
   use mesh_utils, only : build_square_mesh
   use meshing, only : get_face_area, get_centre, get_volume, get_global_index, &
@@ -195,6 +195,7 @@ contains
 
     class(ccs_matrix), intent(inout) :: M
 
+    type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
     integer(ccs_int) :: i, j
 
@@ -212,8 +213,6 @@ contains
     logical :: is_boundary
     integer(ccs_int) :: global_index_nb
 
-    mat_coeffs%setter_mode = insert_mode
-
     !! Loop over cells
     do i = 1, mesh%nlocal
       !> @todo: Doing this in a loop is awful code - malloc maximum coefficients per row once,
@@ -223,11 +222,12 @@ contains
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
-        
-      allocate(mat_coeffs%global_row_indices(1))
-      allocate(mat_coeffs%global_col_indices(1 + nnb))
-      allocate(mat_coeffs%values(1 + nnb))
 
+      call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+      call set_matrix_values_spec_ncols((1_ccs_int + nnb), mat_val_spec)
+      call create_matrix_values(mat_val_spec, mat_coeffs)
+      call set_mode(insert_mode, mat_coeffs)
+      
       row = global_index_p
       coeff_p = 0.0_ccs_real
       
@@ -252,20 +252,21 @@ contains
           col = -1
           coeff_nb = 0.0_ccs_real
         end if
-        call pack_entries(1, j + 1, row, col, coeff_nb, mat_coeffs)
+
+        call set_row(row, mat_coeffs)
+        call set_col(col, mat_coeffs)
+        call set_entry(coeff_nb, mat_coeffs)
 
       end do
 
       !! Add the diagonal entry
       col = row
-      call pack_entries(1, 1, row, col, coeff_p, mat_coeffs)
+      call set_row(row, mat_coeffs)
+      call set_col(col, mat_coeffs)
+      call set_entry(coeff_p, mat_coeffs)
       
       !! Set the values
       call set_values(mat_coeffs, M)
-
-      deallocate(mat_coeffs%global_row_indices)
-      deallocate(mat_coeffs%global_col_indices)
-      deallocate(mat_coeffs%values)
         
     end do
     
@@ -285,6 +286,7 @@ contains
     real(ccs_real) :: r, coeff
     
     type(vector_values) :: vec_values
+    type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
 
     type(face_locator) :: loc_f
@@ -299,10 +301,10 @@ contains
 
     integer(ccs_int) :: nrows_working_set
     
-    allocate(mat_coeffs%global_row_indices(1))
-    allocate(mat_coeffs%global_col_indices(1))
-    allocate(mat_coeffs%values(1))
-    mat_coeffs%setter_mode = add_mode
+    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+    call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
+    call create_matrix_values(mat_val_spec, mat_coeffs)
+    call set_mode(add_mode, mat_coeffs)
 
     nrows_working_set = 1_ccs_int
     call create_vector_values(nrows_working_set, vec_values)
@@ -310,6 +312,7 @@ contains
 
     do i = 1, mesh%nlocal
       if (minval(mesh%neighbour_indices(:, i)) < 0) then
+        call clear_entries(mat_coeffs)
         call clear_entries(vec_values)
         call set_cell_location(mesh, i, loc_p)
         call get_global_index(loc_p, global_index_p)
@@ -341,7 +344,9 @@ contains
             
         end do
 
-        call pack_entries(1, 1, row, col, coeff, mat_coeffs)
+        call set_row(row, mat_coeffs)
+        call set_col(col, mat_coeffs)
+        call set_entry(coeff, mat_coeffs)
 
         call set_row(row, vec_values)
         call set_entry(r, vec_values)
