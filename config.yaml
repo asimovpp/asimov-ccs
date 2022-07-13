@@ -1,4 +1,4 @@
-main: bc_test
+main: ldc
 base: mpi_petsc
 #options:
   #component: opt_2
