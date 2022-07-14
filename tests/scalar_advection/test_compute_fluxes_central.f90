@@ -35,17 +35,18 @@ program test_compute_fluxes
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  mf%bcs%name(1) = bc_region_left
-  mf%bcs%name(2) = bc_region_right
-  mf%bcs%name(3) = bc_region_top
-  mf%bcs%name(4) = bc_region_bottom
-  mf%bcs%bc_type(:) = 0
-  mf%bcs%bc_type(3) = 1
-  mf%bcs%value = 1.0_ccs_real
-    
   allocate(central_field :: scalar)
   allocate(face_field :: mf)
 
+  call allocate_bc_field("scalar", 4, scalar%bcs)
+  scalar%bcs%name(1) = bc_region_left
+  scalar%bcs%name(2) = bc_region_right
+  scalar%bcs%name(3) = bc_region_top
+  scalar%bcs%name(4) = bc_region_bottom
+  scalar%bcs%bc_type(:) = 0
+  scalar%bcs%bc_type(3) = 1
+  scalar%bcs%value = 1.0_ccs_real
+    
   call initialise(vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, scalar%values)
@@ -59,7 +60,7 @@ program test_compute_fluxes
 
   do i = 1, size(mf_values)
     call set_mass_flux(mf, mf_values(i))
-    call run_compute_fluxes_test(scalar, mf, mf_values(i), mf%bcs, mesh, cps)
+    call run_compute_fluxes_test(scalar, mf, mf_values(i), mesh, cps)
   enddo
 
   deallocate(scalar)
@@ -82,11 +83,10 @@ program test_compute_fluxes
   end subroutine set_mass_flux
 
   !> Compares the matrix computed for a given velocity field and discretisation to the known solution
-  subroutine run_compute_fluxes_test(scalar, mf, mf_value, bcs, mesh, cps)
+  subroutine run_compute_fluxes_test(scalar, mf, mf_value, mesh, cps)
     class(field), intent(in) :: scalar      !< The scalar field structure
     class(field), intent(in) :: mf          !< The mass flux field
     real(ccs_real), intent(in) :: mf_value  !< The constant value of the mass flux
-    class(bc_config), intent(in) :: bcs     !< The BC structure
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
     integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh 
 
@@ -109,7 +109,7 @@ program test_compute_fluxes
 
     call zero(M)
 
-    call compute_fluxes(scalar, mf, mesh, bcs, cps, M, b)
+    call compute_fluxes(scalar, mf, mesh, cps, M, b)
 
     call update(M)
     call update(b)
