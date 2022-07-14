@@ -35,13 +35,13 @@ program test_compute_fluxes
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  bcs%region(1) = bc_region_left
-  bcs%region(2) = bc_region_right
-  bcs%region(3) = bc_region_top
-  bcs%region(4) = bc_region_bottom
-  bcs%bc_type(:) = 0
-  bcs%bc_type(3) = 1
-  bcs%endpoints(:,:) = 1.0_ccs_real
+  mf%bcs%name(1) = bc_region_left
+  mf%bcs%name(2) = bc_region_right
+  mf%bcs%name(3) = bc_region_top
+  mf%bcs%name(4) = bc_region_bottom
+  mf%bcs%bc_type(:) = 0
+  mf%bcs%bc_type(3) = 1
+  mf%bcs%value = 1.0_ccs_real
     
   allocate(central_field :: scalar)
   allocate(face_field :: mf)
@@ -59,7 +59,7 @@ program test_compute_fluxes
 
   do i = 1, size(mf_values)
     call set_mass_flux(mf, mf_values(i))
-    call run_compute_fluxes_test(scalar, mf, mf_values(i), bcs, mesh, cps)
+    call run_compute_fluxes_test(scalar, mf, mf_values(i), mf%bcs, mesh, cps)
   enddo
 
   deallocate(scalar)
