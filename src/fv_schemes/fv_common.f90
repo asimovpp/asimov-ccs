@@ -13,8 +13,7 @@ submodule (fv) fv_common
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
-  use utils, only: str
-  use utils, only: debug_print, exit_print
+  use utils, only: debug_print, exit_print, str
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                       get_local_index, get_global_index, get_volume, get_distance, &
                       set_face_location, get_face_area, get_face_normal, set_cell_location

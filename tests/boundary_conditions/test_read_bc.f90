@@ -9,16 +9,11 @@ program bc_test
   use testing_lib
   use kinds, only : ccs_real, ccs_int
   use types, only : field, central_field
-  use mat, only : create_matrix, set_nnz
   use utils, only : debug_print, exit_print, str
-  use parallel_types, only: parallel_environment
-  use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment
   use boundary_conditions, only : read_bc_config
 
   implicit none
 
-  !class(parallel_environment), allocatable, target :: par_env
   class(field), allocatable :: u
   integer(ccs_int) :: i
   real(ccs_real) :: abs_err
@@ -71,7 +66,6 @@ program bc_test
       end if
     end select
   end do
-  call dprint("completed successfully")
 
   call fin()
 end program bc_test
