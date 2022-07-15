@@ -24,7 +24,6 @@ program test_compute_fluxes
 
   real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
   type(ccs_mesh) :: mesh
-  type(bc_config) :: bcs
   type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
   class(field), allocatable :: mf
