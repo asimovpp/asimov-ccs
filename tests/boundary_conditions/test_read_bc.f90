@@ -33,41 +33,41 @@ program bc_test
   do i = 1, 4
     select case (i)
     case (1)
-      if (u%bcs%name(i) /= -1) then
-        call error_abort("bc name incorrect. Expected " // str(-1) // " received " // str(u%bcs%name(i)))
+      if (u%bcs%names(i) /= -1) then
+        call error_abort("bc name incorrect. Expected " // str(-1) // " received " // str(u%bcs%names(i)))
       end if
-      if (u%bcs%bc_type(i) /= 5) then
-        call error_abort("bc name incorrect. Expected " // str(5) // " received " // str(u%bcs%bc_type(i)))
+      if (u%bcs%bc_types(i) /= 5) then
+        call error_abort("bc name incorrect. Expected " // str(5) // " received " // str(u%bcs%bc_types(i)))
       end if
-      abs_err = u%bcs%value(i) - 107.345 
+      abs_err = u%bcs%values(i) - 107.345 
       if (abs_err > eps) then
-        print *, u%bcs%value(i), abs_err
-        call error_abort("bc name incorrect. Expected 107.345"  // " received " // str(u%bcs%value(i)))
+        print *, u%bcs%values(i), abs_err
+        call error_abort("bc name incorrect. Expected 107.345"  // " received " // str(u%bcs%values(i)))
       end if
     case (2)
-      if (u%bcs%name(i) /= -4) then
-        call error_abort("bc name incorrect. Expected " // str(-4) // " received " // str(u%bcs%name(i)))
+      if (u%bcs%names(i) /= -4) then
+        call error_abort("bc name incorrect. Expected " // str(-4) // " received " // str(u%bcs%names(i)))
       end if
-      if (u%bcs%bc_type(i) /= 1) then
-        call error_abort("bc name incorrect. Expected " // str(1) // " received " // str(u%bcs%bc_type(i)))
+      if (u%bcs%bc_types(i) /= 1) then
+        call error_abort("bc name incorrect. Expected " // str(1) // " received " // str(u%bcs%bc_types(i)))
       end if
     case (3)
-      if (u%bcs%name(i) /= -2) then
-        call error_abort("bc name incorrect. Expected " // str(-2) // " received " // str(u%bcs%name(i)))
+      if (u%bcs%names(i) /= -2) then
+        call error_abort("bc name incorrect. Expected " // str(-2) // " received " // str(u%bcs%names(i)))
       end if
-      if (u%bcs%bc_type(i) /= 3) then
-        call error_abort("bc name incorrect. Expected " // str(3) // " received " // str(u%bcs%bc_type(i)))
+      if (u%bcs%bc_types(i) /= 3) then
+        call error_abort("bc name incorrect. Expected " // str(3) // " received " // str(u%bcs%bc_types(i)))
       end if
-      abs_err = abs(u%bcs%value(i) - (-5))
+      abs_err = abs(u%bcs%values(i) - (-5))
       if (abs_err > eps) then
-        call error_abort("bc name incorrect. Expected " // str(-5) // " received " // str(u%bcs%value(i)))
+        call error_abort("bc name incorrect. Expected " // str(-5) // " received " // str(u%bcs%values(i)))
       end if
     case (4)
-      if (u%bcs%name(i) /= -3) then
-        call error_abort("bc name incorrect. Expected " // str(-3) // " received " // str(u%bcs%name(i)))
+      if (u%bcs%names(i) /= -3) then
+        call error_abort("bc name incorrect. Expected " // str(-3) // " received " // str(u%bcs%names(i)))
       end if
-      if (u%bcs%bc_type(i) /= 1) then
-        call error_abort("bc name incorrect. Expected " // str(1) // " received " // str(u%bcs%bc_type(i)))
+      if (u%bcs%bc_types(i) /= 1) then
+        call error_abort("bc name incorrect. Expected " // str(1) // " received " // str(u%bcs%bc_types(i)))
       end if
     end select
   end do

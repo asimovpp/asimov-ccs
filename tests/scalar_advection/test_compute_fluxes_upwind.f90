@@ -36,7 +36,7 @@ program test_compute_fluxes
   bcs%region(2) = bc_region_right
   bcs%region(3) = bc_region_top
   bcs%region(4) = bc_region_bottom
-  bcs%bc_type(:) = bc_type_dirichlet
+  bcs%bc_types(:) = bc_type_dirichlet
   bcs%endpoints(:,:) = 1.0_ccs_real
     
   do direction = x_dir, y_dir

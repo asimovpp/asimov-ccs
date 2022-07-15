@@ -57,40 +57,40 @@ module boundary_conditions
     case ("name")
       select case (value)
       case ("left")
-        bcs%name(boundary_index) = bc_region_left
+        bcs%names(boundary_index) = bc_region_left
       case ("right")
-        bcs%name(boundary_index) = bc_region_right
+        bcs%names(boundary_index) = bc_region_right
       case ("bottom")
-        bcs%name(boundary_index) = bc_region_bottom
+        bcs%names(boundary_index) = bc_region_bottom
       case ("top")
-        bcs%name(boundary_index) = bc_region_top
+        bcs%names(boundary_index) = bc_region_top
       case ("jet")
-        bcs%name(boundary_index) = bc_region_jet
+        bcs%names(boundary_index) = bc_region_jet
       case ("coflow")
-        bcs%name(boundary_index) = bc_region_coflow
+        bcs%names(boundary_index) = bc_region_coflow
       case ("outflow")
-        bcs%name(boundary_index) = bc_region_outflow
+        bcs%names(boundary_index) = bc_region_outflow
       case ("atmos")
-        bcs%name(boundary_index) = bc_region_atmos
+        bcs%names(boundary_index) = bc_region_atmos
       end select
     case ("type")
       select case (value)
       case ("periodic")
-        bcs%bc_type(boundary_index) = bc_type_periodic
+        bcs%bc_types(boundary_index) = bc_type_periodic
       case ("sym")
-        bcs%bc_type(boundary_index) = bc_type_sym
+        bcs%bc_types(boundary_index) = bc_type_sym
       case ("dirichlet")
-        bcs%bc_type(boundary_index) = bc_type_dirichlet
+        bcs%bc_types(boundary_index) = bc_type_dirichlet
       case ("const_grad")
-        bcs%bc_type(boundary_index) = bc_type_const_grad
+        bcs%bc_types(boundary_index) = bc_type_const_grad
       case ("inlet")
-        bcs%bc_type(boundary_index) = bc_type_inlet
+        bcs%bc_types(boundary_index) = bc_type_inlet
       case ("outlet")
-        bcs%bc_type(boundary_index) = bc_type_outlet
+        bcs%bc_types(boundary_index) = bc_type_outlet
       case ("symp")
-        bcs%bc_type(boundary_index) = bc_type_symp
+        bcs%bc_types(boundary_index) = bc_type_symp
       case ("wall")
-        bcs%bc_type(boundary_index) = bc_type_wall
+        bcs%bc_types(boundary_index) = bc_type_wall
       end select
     case default
       call error_abort("invalid bc attribute")
@@ -104,7 +104,7 @@ module boundary_conditions
     real(ccs_real), intent(in) :: value             !< the value to set 
     type(bc_config), intent(inout) :: bcs           !< the bcs struct
 
-    bcs%value(boundary_index) = value
+    bcs%values(boundary_index) = value
   end subroutine set_bc_real_attribute
 
   !> Allocates arrays of the appropriate size for the name, type and value of the bcs
@@ -115,16 +115,16 @@ module boundary_conditions
 
     select case (field)
     case ("name")
-      if (.not. allocated(bcs%name)) then
-        allocate(bcs%name(n_boundaries))
+      if (.not. allocated(bcs%names)) then
+        allocate(bcs%names(n_boundaries))
       end if
     case ("type")
-      if (.not. allocated(bcs%bc_type)) then
-        allocate(bcs%bc_type(n_boundaries))
+      if (.not. allocated(bcs%bc_types)) then
+        allocate(bcs%bc_types(n_boundaries))
       end if
     case default
-      if (.not. allocated(bcs%value)) then
-        allocate(bcs%value(n_boundaries))
+      if (.not. allocated(bcs%values)) then
+        allocate(bcs%values(n_boundaries))
       end if
     end select
   end subroutine allocate_bc_field
@@ -136,8 +136,8 @@ module boundary_conditions
     integer(ccs_int), intent(out) :: index_bc   !< The index of the appropriate boundary in the bc struct
 
     ! XXX: There might be a better way of doing this on the assumption that the boundary condition labels are ordered.
-    do index_bc = 1, size(phi%bcs%name)
-      if (phi%bcs%name(index_bc) == index_nb) then
+    do index_bc = 1, size(phi%bcs%names)
+      if (phi%bcs%names(index_bc) == index_nb) then
         exit
       end if
     end do

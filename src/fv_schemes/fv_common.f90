@@ -175,9 +175,9 @@ contains
 
     call get_bc_index(phi, index_nb, index_bc)
     
-    select case (phi%bcs%bc_type(index_bc))
+    select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
-      bc_value = phi%bcs%value(index_bc)
+      bc_value = phi%bcs%values(index_bc)
     case (bc_type_wall)
       bc_value = 0.0_ccs_real
     case default

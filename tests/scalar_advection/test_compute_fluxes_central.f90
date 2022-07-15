@@ -41,13 +41,13 @@ program test_compute_fluxes
   call allocate_bc_field("name", 4, scalar%bcs)
   call allocate_bc_field("type", 4, scalar%bcs)
   call allocate_bc_field("value", 4, scalar%bcs)
-  scalar%bcs%name(1) = bc_region_left
-  scalar%bcs%name(2) = bc_region_right
-  scalar%bcs%name(3) = bc_region_bottom
-  scalar%bcs%name(4) = bc_region_top
-  scalar%bcs%bc_type(:) = bc_type_wall
-  scalar%bcs%bc_type(4) = bc_type_dirichlet
-  scalar%bcs%value = 1.0_ccs_real
+  scalar%bcs%names(1) = bc_region_left
+  scalar%bcs%names(2) = bc_region_right
+  scalar%bcs%names(3) = bc_region_bottom
+  scalar%bcs%names(4) = bc_region_top
+  scalar%bcs%bc_types(:) = bc_type_wall
+  scalar%bcs%bc_types(4) = bc_type_dirichlet
+  scalar%bcs%values = 1.0_ccs_real
     
   call initialise(vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -263,7 +263,7 @@ program test_compute_fluxes
           dx = 1.0_ccs_real/cps
           diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
           adv_coeff = mf_value*face_area
-          if (bcs%bc_type(j) == bc_type_wall) then
+          if (bcs%bc_types(j) == bc_type_wall) then
             bc_value = 0.0_ccs_real
           else
             bc_value = 1.0_ccs_real
