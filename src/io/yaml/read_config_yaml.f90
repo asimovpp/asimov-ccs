@@ -49,14 +49,12 @@ contains
   end subroutine
     
   !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating 
-  !  whether the key-value pair is present in the dictionary. Takes a flag indicating whether the 
-  !  value is required.
-  subroutine get_real_value(dict, keyword, real_val, value_present, required)
+  !  whether the key-value pair is present in the dictionary. 
+  subroutine get_real_value(dict, keyword, real_val, value_present)
     class (*), pointer, intent(in) :: dict            !< The dictionary to read from
     character (len=*), intent(in) :: keyword          !< The key to read
     real(ccs_real), intent(out)  :: real_val          !< The value read from the dictionary
     logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
-    logical, intent(in), optional :: required         !< Flag indicating whether the value is required
 
     type(type_error), pointer :: io_err
 
@@ -67,20 +65,14 @@ contains
       if (associated(io_err) .and. present(value_present)) then 
         value_present = .false.
       end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          call error_handler(io_err)  
-        end if
-      end if
+      call error_handler(io_err)  
       
     class default
       call error_abort("Unknown type")
     end select
 
-    if((associated(io_err) .eqv. .true.) .and. present(required)) then 
-      if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
-      end if
+    if(associated(io_err) .eqv. .true.) then 
+      call error_abort("Error reading " // keyword)
     end if
 
   end subroutine

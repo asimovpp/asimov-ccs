@@ -155,16 +155,11 @@ contains
     ! u-velocity
     ! ----------
 
-    ! TODO: Do boundaries properly
-    !u%bcs%bc_types(:) = 0 !< Fixed zero BC
-    !u%bcs%bc_types(4) = 1 !< Fixed one BC at lid
     call calculate_velocity_component(par_env, mesh, cps, mf, p, 1, M, vec, lin_sys, u, invAu)
     
     ! v-velocity
     ! ----------
     
-    ! TODO: Do boundaries properly
-    !v%bcs%bc_types(:) = 0 !< Fixed zero BC
     call calculate_velocity_component(par_env, mesh, cps, mf, p, 2, M, vec, lin_sys, v, invAv)
 
   end subroutine calculate_velocity
