@@ -18,6 +18,7 @@ program test_compute_fluxes
   use bc_constants
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
                      set_cell_location, set_neighbour_location, count_neighbours
+  use boundary_conditions, only: allocate_bc_field
 
   implicit none
 
@@ -38,13 +39,15 @@ program test_compute_fluxes
   allocate(central_field :: scalar)
   allocate(face_field :: mf)
 
-  call allocate_bc_field("scalar", 4, scalar%bcs)
+  call allocate_bc_field("name", 4, scalar%bcs)
+  call allocate_bc_field("type", 4, scalar%bcs)
+  call allocate_bc_field("value", 4, scalar%bcs)
   scalar%bcs%name(1) = bc_region_left
   scalar%bcs%name(2) = bc_region_right
-  scalar%bcs%name(3) = bc_region_top
-  scalar%bcs%name(4) = bc_region_bottom
-  scalar%bcs%bc_type(:) = 0
-  scalar%bcs%bc_type(3) = 1
+  scalar%bcs%name(3) = bc_region_bottom
+  scalar%bcs%name(4) = bc_region_top
+  scalar%bcs%bc_type(:) = bc_type_wall
+  scalar%bcs%bc_type(4) = bc_type_dirichlet
   scalar%bcs%value = 1.0_ccs_real
     
   call initialise(vec_properties)
@@ -117,7 +120,7 @@ program test_compute_fluxes
     call finalise(M)
 
     call compute_exact_matrix(mesh, mf_value, cps, M_exact)
-    call compute_exact_vector(mesh, mf_value, cps, bcs, b_exact)
+    call compute_exact_vector(mesh, mf_value, cps, scalar%bcs, b_exact)
 
     call update(M_exact)
     call update(b_exact)
@@ -261,7 +264,7 @@ program test_compute_fluxes
           dx = 1.0_ccs_real/cps
           diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
           adv_coeff = mf_value*face_area
-          if (bcs%bc_type(j) == 0) then
+          if (bcs%bc_type(j) == bc_type_wall) then
             bc_value = 0.0_ccs_real
           else
             bc_value = 1.0_ccs_real

@@ -135,7 +135,7 @@ module boundary_conditions
     integer(ccs_int), intent(in) :: index_nb    !< The index of the neighbouring boundary cell
     integer(ccs_int), intent(out) :: index_bc   !< The index of the appropriate boundary in the bc struct
 
-	  ! XXX: There might be a better way of doing this on the assumption that the boundary condition labels are ordered.
+    ! XXX: There might be a better way of doing this on the assumption that the boundary condition labels are ordered.
     do index_bc = 1, size(phi%bcs%name)
       if (phi%bcs%name(index_bc) == index_nb) then
         exit
