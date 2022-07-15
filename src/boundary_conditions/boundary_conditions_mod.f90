@@ -5,7 +5,7 @@
 module boundary_conditions
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, debug_print, str
+  use utils, only: exit_print
   use types, only: bc_config, field
   use kinds, only: ccs_int, ccs_real
   use yaml, only: parse, error_length
@@ -93,7 +93,7 @@ module boundary_conditions
         bcs%bc_type(boundary_index) = bc_type_wall
       end select
     case default
-      call dprint("invalid bc attribute")
+      call error_abort("invalid bc attribute")
     end select
 
   end subroutine set_bc_string_attribute
