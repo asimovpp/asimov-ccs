@@ -90,7 +90,7 @@ program ldc
   ! Read boundary conditions
   call read_bc_config(ccs_config_file, "u", u)
   call read_bc_config(ccs_config_file, "v", v)
-  call read_bc_config(ccs_config_file, "p", p)
+  !call read_bc_config(ccs_config_file, "p", p)
 
   ! Create and initialise field vectors
   call initialise(vec_properties)
