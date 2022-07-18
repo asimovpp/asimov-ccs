@@ -18,7 +18,7 @@ program test_compute_fluxes
   use bc_constants
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
                      set_cell_location, set_neighbour_location, count_neighbours
-  use boundary_conditions, only: allocate_bc_field
+  use boundary_conditions, only: allocate_bc_arrays
 
   implicit none
 
@@ -38,9 +38,9 @@ program test_compute_fluxes
   allocate(central_field :: scalar)
   allocate(face_field :: mf)
 
-  call allocate_bc_field("name", 4, scalar%bcs)
-  call allocate_bc_field("type", 4, scalar%bcs)
-  call allocate_bc_field("value", 4, scalar%bcs)
+  call allocate_bc_arrays("name", 4, scalar%bcs)
+  call allocate_bc_arrays("type", 4, scalar%bcs)
+  call allocate_bc_arrays("value", 4, scalar%bcs)
   scalar%bcs%names(1) = bc_region_left
   scalar%bcs%names(2) = bc_region_right
   scalar%bcs%names(3) = bc_region_bottom
