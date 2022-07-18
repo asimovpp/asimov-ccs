@@ -5,7 +5,7 @@
 module read_config
 
   use kinds, only : ccs_real, ccs_int
-  use types, only : bc_config
+  use types, only : bc_config, field
     
   implicit none
 
@@ -199,10 +199,10 @@ module read_config
       character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
     end subroutine
     
-    module subroutine get_bc_field_data(config_file, bc_field, bcs)
+    module subroutine get_bc_field_data(config_file, bc_field, phi)
       class(*), pointer, intent(in) :: config_file
-      character(len=*), intent(in) :: bc_field      
-      type(bc_config), intent(inout) :: bcs           
+      character(len=*), intent(in) :: bc_field
+      class(field), intent(inout) :: phi
     end subroutine
   end interface
 end module read_config

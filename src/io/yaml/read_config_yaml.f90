@@ -12,7 +12,7 @@ submodule(read_config) read_config_utils
                         type_list, &
                         type_list_item, &
                         type_scalar
-  use boundary_conditions, only: set_bc_attribute, allocate_bc_field
+  use boundary_conditions, only: set_bc_attribute, allocate_bc_arrays
 
   implicit none
 
@@ -643,10 +643,10 @@ contains
   end subroutine
 
   !> Gets the specified field value from the config file and writes to given bcs struct
-  module subroutine get_bc_field_data(config_file, bc_field, bcs) 
+  module subroutine get_bc_field_data(config_file, bc_field, phi) 
     class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
     character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
-    type(bc_config), intent(inout) :: bcs         !< boundary conditions structure
+    class(field), intent(inout) :: phi            !< field structure
     
     ! local variables
     class(*), pointer :: dict
@@ -666,7 +666,7 @@ contains
 
       call get_value(dict, "n_boundaries", n_boundaries)
 
-      call allocate_bc_field(bc_field, n_boundaries, bcs)
+      call allocate_bc_arrays(bc_field, n_boundaries, phi%bcs)
       
       i = 1
       do while (i <= n_boundaries)
@@ -680,14 +680,14 @@ contains
           select case (bc_field)
           case ("name")
             call get_value(dict2, bc_field, bc_field_string)
-            call set_bc_attribute(i, bc_field, bc_field_string, bcs)
+            call set_bc_attribute(i, bc_field, bc_field_string, phi%bcs)
           case ("type")
             call get_value(dict2, bc_field, bc_field_string)
-            call set_bc_attribute(i, bc_field, bc_field_string, bcs)
+            call set_bc_attribute(i, bc_field, bc_field_string, phi%bcs)
           case default
             call get_value(dict2, bc_field, bc_field_value, field_exists)
             if (field_exists .eqv. .true.) then
-              call set_bc_attribute(i, bc_field_value, bcs)
+              call set_bc_attribute(i, bc_field_value, phi%bcs)
             end if
           end select
         end select

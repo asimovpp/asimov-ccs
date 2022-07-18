@@ -17,7 +17,7 @@ module boundary_conditions
   private
   public :: read_bc_config
   public :: set_bc_attribute
-  public :: allocate_bc_field
+  public :: allocate_bc_arrays
   public :: get_bc_index
 
   interface set_bc_attribute
@@ -28,10 +28,10 @@ module boundary_conditions
   contains
 
   !>  Reads config file and assigns data to BC structure
-  subroutine read_bc_config(filename, bc_field, bcs) 
+  subroutine read_bc_config(filename, bc_field, phi) 
     character(len=*), intent(in) :: filename  !< name of the config file
     character(len=*), intent(in) :: bc_field  !< string denoting which field we want to read in
-    type(bc_config), intent(inout) :: bcs     !< the bc struct of the corresponding field
+    class(field), intent(inout) :: phi        !< the bc struct of the corresponding field
 
     class(*), pointer :: config_file
     character(len=error_length) :: error
@@ -41,9 +41,9 @@ module boundary_conditions
       call error_abort(trim(error))
     endif
 
-    call get_bc_field_data(config_file, "name", bcs)
-    call get_bc_field_data(config_file, "type", bcs)
-    call get_bc_field_data(config_file, bc_field, bcs)
+    call get_bc_field_data(config_file, "name", phi)
+    call get_bc_field_data(config_file, "type", phi)
+    call get_bc_field_data(config_file, bc_field, phi)
   end subroutine read_bc_config
   
   !> Sets the appropriate integer values for strings with given by the key-value pair attribute, value
@@ -108,7 +108,7 @@ module boundary_conditions
   end subroutine set_bc_real_attribute
 
   !> Allocates arrays of the appropriate size for the name, type and value of the bcs
-  subroutine allocate_bc_field(field, n_boundaries, bcs)
+  subroutine allocate_bc_arrays(field, n_boundaries, bcs)
     character(len=*), intent(in) :: field         !< string denoting which array to allocate within the bc struct
     integer(ccs_int), intent(in) :: n_boundaries  !< the number of boundaries 
     type(bc_config), intent(inout) :: bcs         !< the bc struct
@@ -127,7 +127,7 @@ module boundary_conditions
         allocate(bcs%values(n_boundaries))
       end if
     end select
-  end subroutine allocate_bc_field
+  end subroutine allocate_bc_arrays
 
   !> Gets the index of the given boundary condition within the bc struct arrays
   subroutine get_bc_index(phi, index_nb, index_bc)

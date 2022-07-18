@@ -54,7 +54,7 @@ program scalar_advection
   allocate(upwind_field :: scalar)
 
   ! Read bc configuration
-  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", "mf", mf%bcs)
+  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", "mf", mf)
 
   ! Initialise with default values
   call initialise(vec_properties)
