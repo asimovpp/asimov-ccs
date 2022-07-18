@@ -64,14 +64,6 @@ module boundary_conditions
         bcs%names(boundary_index) = bc_region_bottom
       case ("top")
         bcs%names(boundary_index) = bc_region_top
-      case ("jet")
-        bcs%names(boundary_index) = bc_region_jet
-      case ("coflow")
-        bcs%names(boundary_index) = bc_region_coflow
-      case ("outflow")
-        bcs%names(boundary_index) = bc_region_outflow
-      case ("atmos")
-        bcs%names(boundary_index) = bc_region_atmos
       end select
     case ("type")
       select case (value)
@@ -83,12 +75,6 @@ module boundary_conditions
         bcs%bc_types(boundary_index) = bc_type_dirichlet
       case ("const_grad")
         bcs%bc_types(boundary_index) = bc_type_const_grad
-      case ("inlet")
-        bcs%bc_types(boundary_index) = bc_type_inlet
-      case ("outlet")
-        bcs%bc_types(boundary_index) = bc_type_outlet
-      case ("symp")
-        bcs%bc_types(boundary_index) = bc_type_symp
       case ("wall")
         bcs%bc_types(boundary_index) = bc_type_wall
       end select
