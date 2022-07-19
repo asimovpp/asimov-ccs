@@ -24,7 +24,7 @@ program bc_test
   allocate(central_field :: u)
 
   ! Read bc configuration
-  call read_bc_config("test_read_bc_config.yaml", "u", u)
+  call read_bc_config("test_read_bc_config.in", "u", u)
   do i = 1, 4
     select case (i)
     case (1)
