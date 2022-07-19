@@ -75,10 +75,6 @@ program ldc
   it_start = 1
   it_end   = num_steps
 
-  ! Create a square mesh
-  print *, "Building mesh"
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
-
   ! Initialise fields
   print *, "Initialise fields"
   allocate(upwind_field :: u)
@@ -91,6 +87,10 @@ program ldc
   call read_bc_config(ccs_config_file, "u", u)
   call read_bc_config(ccs_config_file, "v", v)
   !call read_bc_config(ccs_config_file, "p", p)
+
+  ! Create a square mesh
+  print *, "Building mesh"
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real, u%bcs)
 
   ! Create and initialise field vectors
   call initialise(vec_properties)

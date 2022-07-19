@@ -5,7 +5,7 @@ module mesh_utils
   
   use utils, only: exit_print
   use kinds, only: ccs_int, ccs_real
-  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
+  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator, bc_config
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
@@ -45,11 +45,12 @@ contains
   !v Utility constructor to build a square mesh.
   !
   !  Builds a Cartesian grid of NxN cells on the domain LxL.
-  function build_square_mesh(par_env, cps, side_length) result(mesh)
+  function build_square_mesh(par_env, cps, side_length, bcs) result(mesh)
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
     real(ccs_real), intent(in) :: side_length          !< The length of each side.
+    type(bc_config), intent(in) :: bcs                 !< BC struct used for identifying boundaries
 
     type(ccs_mesh) :: mesh !< The resulting mesh.
 
@@ -113,8 +114,8 @@ contains
             ! Construct left (1) face/neighbour
             face_counter = left
             if (modulo(ii, cps) == 0_ccs_int) then
-              index_nb = bc_region_left
-              global_index_nb = bc_region_left
+              index_nb = bcs%names(1)
+              global_index_nb = bcs%names(1)
             else
               index_nb = index_counter - 1_ccs_int
               global_index_nb = i - 1_ccs_int
@@ -124,8 +125,8 @@ contains
             ! Construct right (2) face/neighbour
             face_counter = right
             if (modulo(ii, cps) == (cps - 1_ccs_int)) then
-              index_nb = bc_region_right
-              global_index_nb = bc_region_right
+              index_nb = bcs%names(2)
+              global_index_nb = bcs%names(2)
             else
               index_nb = index_counter + 1_ccs_int
               global_index_nb = i + 1_ccs_int
@@ -135,8 +136,8 @@ contains
             ! Construct down (3) face/neighbour
             face_counter = down
             if ((ii / cps) == 0_ccs_int) then
-              index_nb = bc_region_bottom
-              global_index_nb = bc_region_bottom
+              index_nb = bcs%names(4)
+              global_index_nb = bcs%names(4)
             else
               index_nb = index_counter - cps
               global_index_nb = i - cps
@@ -146,8 +147,8 @@ contains
             ! Construct up (4) face/neighbour
             face_counter = up
             if ((ii / cps) == (cps - 1_ccs_int)) then
-              index_nb = bc_region_top
-              global_index_nb = bc_region_top
+              index_nb = bcs%names(3)
+              global_index_nb = bcs%names(3)
             else
               index_nb = index_counter + cps
               global_index_nb = i + cps
