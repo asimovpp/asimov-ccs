@@ -59,7 +59,7 @@ boundaries:
   boundary_1:
     name: left
     type: dirichlet
-    mf: 1.0
+    scalar: 1.0
   
   boundary_2:
     name: right
