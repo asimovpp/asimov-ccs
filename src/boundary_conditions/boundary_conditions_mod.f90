@@ -55,7 +55,16 @@ module boundary_conditions
 
     select case (attribute)
     case ("name")
-      bcs%names(boundary_index) = -boundary_index
+      select case (value)
+      case ("left")
+        bcs%names(boundary_index) = bc_region_left
+      case ("right")
+        bcs%names(boundary_index) = bc_region_right
+      case ("bottom")
+        bcs%names(boundary_index) = bc_region_bottom
+      case ("top")
+        bcs%names(boundary_index) = bc_region_top
+      end select
     case ("type")
       select case (value)
       case ("periodic")
