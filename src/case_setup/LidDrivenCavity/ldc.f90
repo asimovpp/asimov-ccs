@@ -24,13 +24,14 @@ program ldc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print
   use boundary_conditions, only: read_bc_config
-  
+  use read_config, only: get_bc_variables
 
   implicit none
 
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: case_name       !< Case name
   character(len=:), allocatable :: ccs_config_file !< Config file for CCS
+  character(len=6), dimension(:), allocatable :: variable_names  !< variable names for BC reading
 
   type(ccs_mesh)    :: mesh
   type(vector_spec) :: vec_properties
@@ -88,9 +89,9 @@ program ldc
   allocate(face_field :: mf)
 
   ! Read boundary conditions
+  call get_bc_variables(ccs_config_file, variable_names)
   call read_bc_config(ccs_config_file, "u", u)
   call read_bc_config(ccs_config_file, "v", v)
-  !call read_bc_config(ccs_config_file, "p", p)
 
   ! Create and initialise field vectors
   call initialise(vec_properties)

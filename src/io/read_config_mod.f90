@@ -26,7 +26,8 @@ module read_config
   public :: get_output_frequency
   public :: get_plot_format
   public :: get_output_type
-  public :: get_bc_field_data   
+  public :: get_bc_variables
+  public :: get_bc_field_data
 
   interface
 
@@ -203,6 +204,11 @@ module read_config
       class(*), pointer, intent(in) :: config_file
       character(len=*), intent(in) :: bc_field
       class(field), intent(inout) :: phi
+    end subroutine
+
+    module subroutine get_bc_variables(filename, variables)
+      character(len=*), intent(in) :: filename                              !< name of the config file
+      character(len=6), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
     end subroutine
   end interface
 end module read_config

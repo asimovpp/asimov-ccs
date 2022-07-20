@@ -12,6 +12,7 @@ submodule(read_config) read_config_utils
                         type_list, &
                         type_list_item, &
                         type_scalar
+  use yaml, only: parse, error_length
   use boundary_conditions, only: set_bc_attribute, allocate_bc_arrays
 
   implicit none
@@ -641,6 +642,50 @@ contains
     end select
 
   end subroutine
+
+  module subroutine get_bc_variables(filename, variables)
+    character(len=*), intent(in) :: filename                              !< name of the config file
+    character(len=6), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
+    
+    class(*), pointer :: config_file
+    class(*), pointer :: dict
+    class(*), pointer :: dict_var
+    type(type_error), pointer :: io_err
+    integer(ccs_int) :: i
+    integer(ccs_int) :: n_var
+    character(len=25) :: key
+    character(len=:), allocatable :: variable
+    character(len=error_length) :: error
+
+    config_file => parse(filename, error=error)
+    if (error/='') then
+      call error_abort(trim(error))
+    endif
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("variables", required=.true., error=io_err)
+      call error_handler(io_err)
+      
+      call get_value(dict, "n_variables", n_var)
+      allocate(variables(n_var))
+
+      do i = 1, n_var
+        write(key, '(A, I0)') "variable_", i 
+        select type (dict)
+        type is (type_dictionary)
+           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
+           call error_handler(io_err)
+           call get_value(dict_var, "name", variable)
+           write(variables(i), '(A)') trim(variable)
+        class default
+          call error_abort("type unhandled")
+        end select
+      end do
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_bc_variables
 
   !> Gets the specified field value from the config file and writes to given bcs struct
   module subroutine get_bc_field_data(config_file, bc_field, phi) 
