@@ -10,7 +10,7 @@ module parallel_types_mpi
 
   implicit none
 
-  private 
+  private
 
   !>  reduction operator type for MPI
   !
@@ -38,11 +38,11 @@ module parallel_types_mpi
     integer :: bor_op
     integer :: maxloc_op
     integer :: minloc_op
-    contains
-      procedure :: set_rop => set_mpi_reduction_operator
+  contains
+    procedure :: set_rop => set_mpi_reduction_operator
   end type parallel_environment_mpi
 
-  contains 
+contains
   !>  Set the values of the reduction operators
   subroutine set_mpi_reduction_operator(this)
     class(parallel_environment_mpi), intent(inout) :: this

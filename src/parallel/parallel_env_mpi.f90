@@ -4,7 +4,7 @@
 !
 !>  Implementation of the parallel environment using MPI
 
-submodule (parallel) parallel_env_mpi
+submodule(parallel) parallel_env_mpi
 #include "ccs_macros.inc"
 
   use utils, only: exit_print
@@ -13,7 +13,7 @@ submodule (parallel) parallel_env_mpi
 
   implicit none
 
-  contains
+contains
 
   !>  Create the MPI parallel environment
   module subroutine initialise_parallel_environment(par_env)
@@ -22,29 +22,29 @@ submodule (parallel) parallel_env_mpi
 
     integer :: ierr !< Error code
 
-    allocate(parallel_environment_mpi :: par_env)
+    allocate (parallel_environment_mpi :: par_env)
 
     select type (par_env)
 
-      type is (parallel_environment_mpi)   
-        call mpi_init(ierr)
-        call error_handling(ierr, "mpi", par_env)
+    type is (parallel_environment_mpi)
+      call mpi_init(ierr)
+      call error_handling(ierr, "mpi", par_env)
 
-        par_env%comm = MPI_COMM_WORLD
+      par_env%comm = MPI_COMM_WORLD
 
-        call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-        call error_handling(ierr, "mpi", par_env)
+      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
+      call error_handling(ierr, "mpi", par_env)
 
-        call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-        call error_handling(ierr, "mpi", par_env)
+      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
+      call error_handling(ierr, "mpi", par_env)
 
-        call par_env%set_rop()
-      
-        par_env%root=0
-    
-      class default
-        call error_abort("Unsupported parallel environment")
-    
+      call par_env%set_rop()
+
+      par_env%root = 0
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
     end select
 
   end subroutine
@@ -55,20 +55,20 @@ submodule (parallel) parallel_env_mpi
   module subroutine cleanup_parallel_environment(par_env)
 
     class(parallel_environment), intent(in) :: par_env
-    
+
     integer :: ierr !< Error code
 
     select type (par_env)
 
-      type is (parallel_environment_mpi)   
-        call mpi_finalize(ierr)
-        call error_handling(ierr, "mpi", par_env)
-    
-      class default
-        call error_abort("Unsupported parallel environment")
-    
+    type is (parallel_environment_mpi)
+      call mpi_finalize(ierr)
+      call error_handling(ierr, "mpi", par_env)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
     end select
 
-    end subroutine
+  end subroutine
 
-  end submodule parallel_env_mpi
+end submodule parallel_env_mpi

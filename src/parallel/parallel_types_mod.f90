@@ -6,10 +6,10 @@
 module parallel_types
 
   use kinds, only: ccs_int
-  
+
   implicit none
 
-  private 
+  private
 
   !>  placeholder reduction operator type
   type, public :: reduction_operator

@@ -10,14 +10,14 @@ module parallel
   implicit none
 
   private
-  
+
   public :: initialise_parallel_environment
   public :: cleanup_parallel_environment
   public :: sync
   public :: read_command_line_arguments
   public :: timer
   public :: allreduce
-  
+
   interface
 
     !>  Create the parallel environment
@@ -58,7 +58,7 @@ module parallel
     !>  Error handling for parallel environment
     module subroutine error_handling(error_code, error_category, par_env)
       integer, intent(in) :: error_code
-      character (len=*), intent (in) :: error_category
+      character(len=*), intent(in) :: error_category
       class(parallel_environment), intent(in) :: par_env
     end subroutine
 
