@@ -1,4 +1,4 @@
-!> Submodule file parallel_errors_mpi.smod
+!v Submodule file parallel_errors_mpi.smod
 !
 !  Implementation (using MPI) of parallel error handling
 !

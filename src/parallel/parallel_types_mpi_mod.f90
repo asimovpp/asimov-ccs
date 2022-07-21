@@ -1,4 +1,4 @@
-!> Module file parallel_types.mod
+!v Module file parallel_types.mod
 !
 !  Module that defines the parallel environment types for ASiMoV-CCS
 !

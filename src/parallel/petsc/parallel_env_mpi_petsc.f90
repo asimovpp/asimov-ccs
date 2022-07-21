@@ -1,4 +1,4 @@
-!> Submodule file parallel_env_mpi_petsc.smod
+!v Submodule file parallel_env_mpi_petsc.smod
 !
 !  Implementation of the parallel environment using MPI and PETSc
 !
