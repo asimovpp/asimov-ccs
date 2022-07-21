@@ -181,7 +181,7 @@ contains
       bc_value = 0.0_ccs_real
     case default
       bc_value = 0.0_ccs_real
-      call error_abort("unknown bc type")
+      call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
     end select
   end subroutine compute_boundary_values
 

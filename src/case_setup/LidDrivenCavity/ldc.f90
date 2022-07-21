@@ -23,8 +23,8 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print
-  use boundary_conditions, only: read_bc_config
-  use read_config, only: get_bc_variables
+  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
+  use read_config, only: get_bc_variables, get_n_boundaries
 
   implicit none
 
@@ -38,6 +38,7 @@ program ldc
 
   class(field), allocatable :: u, v, p, p_prime, mf
 
+  integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
@@ -89,7 +90,10 @@ program ldc
   allocate(face_field :: mf)
 
   ! Read boundary conditions
+  call get_n_boundaries(ccs_config_file, n_boundaries)
   call get_bc_variables(ccs_config_file, variable_names)
+  call allocate_bc_arrays(n_boundaries, u%bcs)
+  call allocate_bc_arrays(n_boundaries, v%bcs)
   call read_bc_config(ccs_config_file, "u", u)
   call read_bc_config(ccs_config_file, "v", v)
 

@@ -9,7 +9,7 @@ module boundary_conditions
   use types, only: bc_config, field
   use kinds, only: ccs_int, ccs_real
   use yaml, only: parse, error_length
-  use read_config, only: get_bc_field_data
+  use read_config, only: get_bc_field
   use bc_constants
   
   implicit none
@@ -23,6 +23,7 @@ module boundary_conditions
   interface set_bc_attribute
     module procedure set_bc_real_attribute
     module procedure set_bc_string_attribute
+    module procedure set_bc_id
   end interface
 
   contains
@@ -41,9 +42,9 @@ module boundary_conditions
       call error_abort(trim(error))
     endif
 
-    call get_bc_field_data(config_file, "name", phi)
-    call get_bc_field_data(config_file, "type", phi)
-    call get_bc_field_data(config_file, bc_field, phi)
+    call get_bc_field(config_file, "name", phi)
+    call get_bc_field(config_file, "id", phi)
+    call get_bc_field(config_file, bc_field, phi)
   end subroutine read_bc_config
   
   !> Sets the appropriate integer values for strings with given by the key-value pair attribute, value
@@ -79,11 +80,20 @@ module boundary_conditions
         bcs%bc_types(boundary_index) = bc_type_wall
       end select
     case default
-      call error_abort("invalid bc attribute")
+      call error_abort("invalid bc attribute " // attribute // " " // value)
     end select
 
   end subroutine set_bc_string_attribute
   
+  !> Sets the bc struct's value field to the given integer value
+  subroutine set_bc_id(boundary_index, value, bcs)
+    integer(ccs_int), intent(in) :: boundary_index  !< index of the boundary within the bc struct's arrays
+    integer(ccs_int), intent(in) :: value           !< the value to set 
+    type(bc_config), intent(inout) :: bcs           !< the bcs struct
+
+    bcs%ids(boundary_index) = value
+  end subroutine set_bc_id
+
   !> Sets the bc struct's value field to the given real value
   subroutine set_bc_real_attribute(boundary_index, value, bcs)
     integer(ccs_int), intent(in) :: boundary_index  !< index of the boundary within the bc struct's arrays
@@ -94,25 +104,22 @@ module boundary_conditions
   end subroutine set_bc_real_attribute
 
   !> Allocates arrays of the appropriate size for the name, type and value of the bcs
-  subroutine allocate_bc_arrays(field, n_boundaries, bcs)
-    character(len=*), intent(in) :: field         !< string denoting which array to allocate within the bc struct
+  subroutine allocate_bc_arrays(n_boundaries, bcs)
     integer(ccs_int), intent(in) :: n_boundaries  !< the number of boundaries 
     type(bc_config), intent(inout) :: bcs         !< the bc struct
 
-    select case (field)
-    case ("name")
-      if (.not. allocated(bcs%names)) then
-        allocate(bcs%names(n_boundaries))
-      end if
-    case ("type")
-      if (.not. allocated(bcs%bc_types)) then
-        allocate(bcs%bc_types(n_boundaries))
-      end if
-    case default
-      if (.not. allocated(bcs%values)) then
-        allocate(bcs%values(n_boundaries))
-      end if
-    end select
+    if (.not. allocated(bcs%names)) then
+      allocate(bcs%names(n_boundaries))
+    end if
+    if (.not. allocated(bcs%ids)) then
+      allocate(bcs%ids(n_boundaries))
+    end if
+    if (.not. allocated(bcs%bc_types)) then
+      allocate(bcs%bc_types(n_boundaries))
+    end if
+    if (.not. allocated(bcs%values)) then
+      allocate(bcs%values(n_boundaries))
+    end if
   end subroutine allocate_bc_arrays
 
   !> Gets the index of the given boundary condition within the bc struct arrays

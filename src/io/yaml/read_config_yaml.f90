@@ -65,8 +65,12 @@ contains
     type is (type_dictionary)
 
       real_val = dict%get_real(keyword,error=io_err)
-      if (associated(io_err) .and. present(value_present)) then 
-        value_present = .false.
+      if (present(value_present)) then
+        if (associated(io_err)) then 
+          value_present = .false.
+        else
+          value_present = .true.
+        end if
       end if
       if (present(required)) then
         if (required .eqv. .true.) then
@@ -643,6 +647,31 @@ contains
 
   end subroutine
 
+  module subroutine get_n_boundaries(filename, n_boundaries)
+    character(len=*), intent(in) :: filename      !< name of the config file
+    integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
+
+    class(*), pointer :: config_file
+    class(*), pointer :: dict
+    character(len=error_length) :: error
+    type(type_error), pointer :: io_err
+
+    config_file => parse(filename, error=error)
+    if (error/='') then
+      call error_abort(trim(error))
+    endif
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
+      call error_handler(io_err)
+
+      call get_value(dict, "n_boundaries", n_boundaries)
+    class default
+       call error_abort("type unhandled")
+    end select
+  end subroutine get_n_boundaries
+
   module subroutine get_bc_variables(filename, variables)
     character(len=*), intent(in) :: filename                              !< name of the config file
     character(len=6), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
@@ -688,7 +717,7 @@ contains
   end subroutine get_bc_variables
 
   !> Gets the specified field value from the config file and writes to given bcs struct
-  module subroutine get_bc_field_data(config_file, bc_field, phi) 
+  module subroutine get_bc_field(config_file, bc_field, phi) 
     class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
     character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
     class(field), intent(inout) :: phi            !< field structure
@@ -701,7 +730,12 @@ contains
     type(type_error), pointer :: io_err
     character(len=:), allocatable :: bc_field_string
     character(len=25) :: boundary_index
-    real(ccs_real) :: bc_field_value
+    integer(ccs_int) :: bc_id
+
+    class(*), pointer :: variable_dict
+    character(len=25) :: variable
+    character(len=:), allocatable :: bc_type
+    real(ccs_real) :: bc_value
     logical :: field_exists
     
     select type (config_file)
@@ -709,13 +743,9 @@ contains
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
       call error_handler(io_err)
 
-      call get_value(dict, "n_boundaries", n_boundaries)
-
-      call allocate_bc_arrays(bc_field, n_boundaries, phi%bcs)
-      
       i = 1
+      n_boundaries = size(phi%bcs%ids)
       do while (i <= n_boundaries)
-        field_exists = .true. 
         write(boundary_index, '(A, I0)') "boundary_", i
         select type (dict)
         type is (type_dictionary)
@@ -724,20 +754,71 @@ contains
 
           select case (bc_field)
           case ("name")
+            call dprint("starting reading name")
             call get_value(dict2, bc_field, bc_field_string)
             call set_bc_attribute(i, bc_field, bc_field_string, phi%bcs)
-          case ("type")
-            call get_value(dict2, bc_field, bc_field_string)
-            call set_bc_attribute(i, bc_field, bc_field_string, phi%bcs)
+            call dprint("finished reading name")
+          case ("id")
+            call dprint("starting reading id")
+            call get_value(dict2, bc_field, bc_id)
+            call set_bc_attribute(i, bc_id, phi%bcs)
+            call dprint("finished reading id")
           case default
-            call get_value(dict2, bc_field, bc_field_value, field_exists)
-            if (field_exists .eqv. .true.) then
-              call set_bc_attribute(i, bc_field_value, phi%bcs)
-            end if
+            call dprint("starting reading " // bc_field)
+            !call get_bc_field_data(dict2, i, bc_field, phi)
+            select type (dict2)
+            type is (type_dictionary)
+              write (variable, '(A, A)') "variable_", bc_field
+              variable_dict => dict2%get_dictionary(variable, required=.false., error=io_err)
+              !call error_handler(io_err)
+              call dprint("read dictionary " // bc_field)
+
+              call get_value(variable_dict, "type", bc_type)
+              call set_bc_attribute(i, "type", bc_type, phi%bcs)
+              call dprint("read type " // bc_type)
+
+              call get_value(variable_dict, "value", bc_value, field_exists)
+              call dprint("read value " // bc_field // " " // str(bc_value))
+              if (field_exists) then
+                call set_bc_attribute(i, bc_value, phi%bcs)
+              end if
+              call dprint("finished reading " // bc_field)
+            end select
           end select
         end select
         i = i+1
       end do
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_bc_field
+
+  subroutine get_bc_field_data(dict, boundary_index, bc_field, phi)
+    class(*), pointer, intent(in) :: dict
+    integer(ccs_int), intent(in) :: boundary_index
+    character(len=*), intent(in) :: bc_field       !< string indicating which field to read from BCs
+    class(field), intent(inout) :: phi
+
+    class(*), pointer :: variable_dict
+    character(len=25) :: variable
+    !character(len=:), allocatable :: bc_type
+    real(ccs_real) :: bc_value
+    logical :: field_exists
+    type(type_error), pointer :: io_err
+
+    select type (dict)
+    type is (type_dictionary)
+      write (variable, '(A, A)') "variable_", bc_field
+      variable_dict => dict%get_dictionary(variable, required=.false., error=io_err)
+      !call error_handler(io_err)
+
+      !call get_value(variable_dict, "type", bc_type)
+      !call set_bc_attribute(boundary_index, bc_field, bc_type, phi%bcs)
+
+      call get_value(variable_dict, "value", bc_value, field_exists)
+      if (field_exists) then
+        call set_bc_attribute(boundary_index, bc_value, phi%bcs)
+      end if
     class default
       call error_abort("type unhandled")
     end select

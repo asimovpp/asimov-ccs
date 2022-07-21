@@ -71,6 +71,14 @@ boundaries:
     name: left
     id: 92749
     type: wall
+    variable_u:
+      type: dirichlet
+      value: 1
+    variable_v:
+      type: neumann
+      value: 0
+    variable_p:
+      type: extrapolate      
   boundary_3:
     name: top
     id: 17648
@@ -86,7 +94,23 @@ boundaries:
     name: right
     id: 0
     type: wall
+    variable_u:
+      type: dirichlet
+      value: 1
+    variable_v:
+      type: neumann
+      value: 0
+    variable_p:
+      type: extrapolate      
   boundary_4:
     name: bottom
     id: 1
     type: wall
+    variable_u:
+      type: dirichlet
+      value: 1
+    variable_v:
+      type: neumann
+      value: 0
+    variable_p:
+      type: extrapolate      
