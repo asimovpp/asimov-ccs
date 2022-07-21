@@ -1,8 +1,8 @@
-!>  Submodule file parallel_env_mpi_petsc.smod
-!> @build mpi petsc
+!> Submodule file parallel_env_mpi_petsc.smod
 !
-!> @details Implementation of the parallel environment using MPI
-!!          and PETSc
+!  Implementation of the parallel environment using MPI and PETSc
+!
+!  @build mpi petsc
 submodule(parallel) parallel_env_mpi_petsc
 #include "ccs_macros.inc"
 
@@ -15,14 +15,12 @@ submodule(parallel) parallel_env_mpi_petsc
 
 contains
 
-  !>  Create the MPI and PETSc parallel environments
-  !
-  !> @param[out] parallel_environment_mpi par_env
+  !> Create the MPI and PETSc parallel environments
   module subroutine initialise_parallel_environment(par_env)
 
-    class(parallel_environment), allocatable, intent(out) :: par_env
+    class(parallel_environment), allocatable, intent(out) :: par_env !< parallel_environment_mpi
 
-    integer :: ierr !< Error code
+    integer :: ierr ! Error code
 
     allocate (parallel_environment_mpi :: par_env)
 
@@ -53,14 +51,12 @@ contains
 
   end subroutine
 
-  !>  Cleanup the PETSc and MPI parallel environments
-  !
-  !> @param[in] parallel_environment_mpi par_env
+  !> Cleanup the PETSc and MPI parallel environments
   module subroutine cleanup_parallel_environment(par_env)
 
-    class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
 
-    integer :: ierr !< Error code
+    integer :: ierr ! Error code
 
     select type (par_env)
 
@@ -76,12 +72,12 @@ contains
 
   end subroutine
 
-  !>  Initalise PETSc
+  !> Initalise PETSc
   subroutine initialise_petsc(par_env)
 
-    type(parallel_environment_mpi), intent(in) :: par_env
+    type(parallel_environment_mpi), intent(in) :: par_env !< parallel_environment_mpi
 
-    integer :: ierr !< Error code
+    integer :: ierr ! Error code
 
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
@@ -91,12 +87,12 @@ contains
 
   end subroutine
 
-  !>  Finalise PETSc
+  !> Finalise PETSc
   subroutine finalise_petsc(par_env)
 
-    type(parallel_environment_mpi), intent(in) :: par_env
+    type(parallel_environment_mpi), intent(in) :: par_env !< parallel_environment_mpi
 
-    integer :: ierr !< Error code
+    integer :: ierr ! Error code
 
     call PetscFinalize(ierr) ! Finalises MPI
 

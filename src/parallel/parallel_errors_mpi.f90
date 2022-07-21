@@ -1,8 +1,8 @@
-!>  Submodule file parallel_errors_mpi.smod
+!> Submodule file parallel_errors_mpi.smod
 !
-!>  @build mpi
+!  Implementation (using MPI) of parallel error handling
 !
-!>  Implementation (using MPI) of parallel error handling
+!  @build mpi
 
 submodule(parallel) parallel_errors_mpi
 #include "ccs_macros.inc"
@@ -15,12 +15,12 @@ submodule(parallel) parallel_errors_mpi
 
 contains
 
-  !>  Error handling for parallel environment that uses MPI only
+  !> Error handling for parallel environment that uses MPI only
   module subroutine error_handling(error_code, error_category, par_env)
 
-    integer, intent(in) :: error_code                   !< Variable the holds the error code
-    character(len=*), intent(in) :: error_category    !< String description of the error category
-    class(parallel_environment), intent(in) :: par_env  !< par_env
+    integer, intent(in) :: error_code                  !< Variable the holds the error code
+    character(len=*), intent(in) :: error_category     !< String description of the error category
+    class(parallel_environment), intent(in) :: par_env !< par_env
 
     integer(ccs_int) :: length
     integer :: ierr

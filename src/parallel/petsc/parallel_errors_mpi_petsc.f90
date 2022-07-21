@@ -1,8 +1,8 @@
-!>  Submodule file parallel_errors_mpi_petsc.smod
-!> @build mpi petsc
+!v Submodule file parallel_errors_mpi_petsc.smod
 !
-!> @details Implementation (using MPI and PETSc) of parallel
-!! error handling
+!  @details Implementation (using MPI and PETSc) of parallel error handling
+!
+!  @build mpi petsc
 
 submodule(parallel) parallel_errors_mpi_petsc
 #include "ccs_macros.inc"
@@ -15,17 +15,13 @@ submodule(parallel) parallel_errors_mpi_petsc
 
 contains
 
-  !>  Error handling for parallel environment that use
-  !> both MPI and PETSc
-  !
-  !> @param[in] integer error_code - Variable the holds the error code
-  !> @param[in] string error_category - String description of the error category
-  !> @param[in] parallel_environment_mpi par_env
+  !v Error handling for parallel environment that use
+  !  both MPI and PETSc
   module subroutine error_handling(error_code, error_category, par_env)
 
-    integer, intent(in) :: error_code
-    character(len=*), intent(in) :: error_category
-    class(parallel_environment), intent(in) :: par_env
+    integer, intent(in) :: error_code !< integer error_code - Variable the holds the error code
+    character(len=*), intent(in) :: error_category !< string error_category - String description of the error category
+    class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
 
     integer(ccs_int) :: length
     integer :: ierr

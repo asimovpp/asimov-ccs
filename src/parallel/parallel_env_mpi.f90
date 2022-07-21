@@ -1,8 +1,8 @@
-!>  Submodule file parallel_env_mpi.smod
+!v Submodule file parallel_env_mpi.smod
 !
-!>  @build mpi
+!  Implementation of the parallel environment using MPI
 !
-!>  Implementation of the parallel environment using MPI
+!  @build mpi
 
 submodule(parallel) parallel_env_mpi
 #include "ccs_macros.inc"
@@ -15,12 +15,12 @@ submodule(parallel) parallel_env_mpi
 
 contains
 
-  !>  Create the MPI parallel environment
+  !> Create the MPI parallel environment
   module subroutine initialise_parallel_environment(par_env)
 
-    class(parallel_environment), allocatable, intent(out) :: par_env
+    class(parallel_environment), allocatable, intent(out) :: par_env !< parallel_environment_mpi
 
-    integer :: ierr !< Error code
+    integer :: ierr ! Error code
 
     allocate (parallel_environment_mpi :: par_env)
 
@@ -49,14 +49,12 @@ contains
 
   end subroutine
 
-  !>  Cleanup the MPI parallel environment
-  !
-  !> @param[in] parallel_environment_mpi par_env
+  !> Cleanup the MPI parallel environment
   module subroutine cleanup_parallel_environment(par_env)
 
-    class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
 
-    integer :: ierr !< Error code
+    integer :: ierr ! Error code
 
     select type (par_env)
 
