@@ -144,7 +144,7 @@ program test_partition_square_mesh
   !   call stop_test("Not allocated!!!")
   ! end if
   
-  !call partition_kway(par_env, topo)
+  call partition_kway(par_env, topo)
 
   ! if(par_env%proc_id == 0) then
   !   print*, "Global partition after partitioning:"
