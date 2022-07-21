@@ -11,6 +11,8 @@
 
 program test_mesh_partitioning_parhip
 
+  use MPI
+
   use testing_lib
   use partitioning, only: partition_kway
   use kinds, only: ccs_int, ccs_long
@@ -21,14 +23,17 @@ program test_mesh_partitioning_parhip
   type(topology) :: topo
   integer :: i
 
+  integer :: nnew, ntotal
+
   call init()
+
+  topo%global_num_cells = 15
 
   select type(par_env)
   type is (parallel_environment_mpi)
 
     if(par_env%num_procs == 3) then
 
-      allocate(topo%global_partition(15))
       allocate(topo%local_partition(5))
       allocate(topo%xadj(6))
       allocate(topo%vwgt(5)) 
@@ -56,22 +61,33 @@ program test_mesh_partitioning_parhip
       topo%vwgt = 1
 
     else
-      print*,"Test must be run on 3 MPI ranks"
+      write(message, *) "Test must be run on 3 MPI ranks"
+      call stop_test(message)
     end if 
  
     class default
-    write(message, *) "ERROR: Unknown parallel environment!"
-    call stop_test(message)
+      write(message, *) "ERROR: Unknown parallel environment!"
+      call stop_test(message)
   end select
 
-  topo%global_num_cells = 15
-
+  allocate(topo%global_partition(topo%global_num_cells))
   call partition_kway(par_env, topo)
 
+  ! Check the total number of cells in global parition is correct
+  nnew = 0
+  do i = 1, topo%global_num_cells
+     if (topo%global_partition(i) == par_env%proc_id) then
+        nnew = nnew + 1
+     end if
+  end do
+  call MPI_Allreduce(nnew, ntotal, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
+  if (ntotal /= topo%global_num_cells) then
+     write(message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", topo%global_num_cells
+     call stop_test(message)
+  end if
+
   if(par_env%proc_id == 0) then
-    do i=1,15
-      print*, topo%global_partition(i)
-    end do
+     print *, topo%global_partition
   end if
 
   if(allocated(topo%xadj)) then
