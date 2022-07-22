@@ -163,11 +163,11 @@ regexp-rules:
     replacement: \1 \2 \3
   missing-space-before-arithmetic:
     message: Missing space before arithmetic operator
-    regexp: ([^\s\*\/])([-\+\*\/])\s+([^\s\*])
+    regexp: ([^\s\*\/=])([-\+\*\/])\s+([^\s\*])
     replacement: \1 \2 \3
   missing-space-after-arithmetic:
     message: Missing space after arithmetic operator
-    regexp: ([^\s\*])\s+([-\+\*\/])([^\s\*\/,])
+    regexp: ([^\s\*])\s+([-\+\*\/])([^\s\*\/=,])
     replacement: \1 \2 \3
 
   space-around-exponential:
@@ -189,7 +189,7 @@ regexp-rules:
     replacement: \1 = \2
   missing-space-before-=:
     message: Missing space before "="
-    regexp: ([^\s=])(?<!kind|.len)=(?=\s)
+    regexp: ([^\s=\/])(?<!kind|.len)=(?=\s)
     replacement: \1 =
   missing-space-after-=:
     message: Missing space after "="
