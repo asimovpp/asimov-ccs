@@ -4,10 +4,10 @@
 
 module vec
 
-  use kinds, only : ccs_real, ccs_int
-  use types, only : ccs_mesh, ccs_vector, vector_spec, vector_values
+  use kinds, only: ccs_real, ccs_int
+  use types, only: ccs_mesh, ccs_vector, vector_spec, vector_values
   use parallel_types, only: parallel_environment
-  
+
   implicit none
 
   private
@@ -33,9 +33,9 @@ module vec
   public :: zero_vector
   public :: mult_vec_vec
   public :: scale_vec
-  
+
   interface
-     
+
     !>  Interface to create a new vector object.
     !
     !> @param[in] vector_spec vec_properties - Data structure containing the global and local sizes
@@ -65,7 +65,7 @@ module vec
       real(ccs_real), intent(in) :: val
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_entry
-    
+
     !> @brief Interface to create a vector values object.
     !
     !> @param[in]  nrows   - how many rows will be set?
@@ -108,7 +108,7 @@ module vec
     module subroutine begin_update_vector(v)
       class(ccs_vector), intent(inout) :: v
     end subroutine
-    
+
     !>  Interface to end a parallel update of a vector.
     !
     !>  Ends the parallel update to allow overlapping comms and compute.
@@ -144,7 +144,7 @@ module vec
       integer(ccs_int), intent(in) :: norm_type
       real(ccs_real) :: n
     end function
-    
+
     !>  Constructor for default vector values
     !
     !> param[in/out] vec_properties - the initialised vector values
@@ -154,7 +154,7 @@ module vec
 
     !>  Setter for vector size
     !
-    !> param[in]     par_env           - the parallel environment 
+    !> param[in]     par_env           - the parallel environment
     !!                                   where the vector resides
     !> param[in]     mesh          - the mesh - contains the
     !!                                   information to set the
@@ -214,5 +214,5 @@ module vec
     end subroutine scale_vec
 
   end interface
-  
+
 end module vec

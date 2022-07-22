@@ -4,11 +4,11 @@
 
 module solver
 
-  use types, only : linear_solver, equation_system, ccs_vector, ccs_matrix
+  use types, only: linear_solver, equation_system, ccs_vector, ccs_matrix
   use parallel_types, only: parallel_environment
-  use vec, only : vec_axpy, vec_norm
-  use mat, only : mat_axpy, mat_norm
-  
+  use vec, only: vec_axpy, vec_norm
+  use mat, only: mat_axpy, mat_norm
+
   implicit none
 
   private
@@ -21,7 +21,7 @@ module solver
   public :: norm
   public :: set_solver_method
   public :: set_solver_precon
-  
+
   interface
 
     !>  Interface to create a new solver object.
@@ -47,7 +47,7 @@ module solver
 
     !>  Setter for the linear system
     !
-    !> @param[in] par_env       - the parallel environment where the linear 
+    !> @param[in] par_env       - the parallel environment where the linear
     !!                            system resides
     !> @param[in] rhs           - the right hand side vector
     !> @param[in] solution      - the solution vector
@@ -72,19 +72,19 @@ module solver
       character(len=*), intent(in) :: precon_name   !< String naming the preconditioner to be used.
       class(linear_solver), intent(inout) :: solver !< The linear solver object
     end subroutine set_solver_precon
-    
+
   end interface
-  
+
   !>  Generic interface to perform the AXPY operation (a*x + y)
   interface axpy
     module procedure vec_axpy
     module procedure mat_axpy
   end interface axpy
-  
+
   !>  Generic interface to compute the norm of an element
   interface norm
     module procedure vec_norm
     module procedure mat_norm
   end interface norm
-  
+
 end module solver

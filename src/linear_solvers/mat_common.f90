@@ -1,7 +1,7 @@
-submodule (mat) mat_common
+submodule(mat) mat_common
 #include "ccs_macros.inc"
 
-  use utils, only : exit_print, str
+  use utils, only: exit_print, str
 
   implicit none
 
@@ -26,7 +26,7 @@ contains
 
     val_spec%ncols = ncols
   end subroutine set_matrix_values_spec_ncols
-    
+
   !> Constructor for default matrix values
   module subroutine initialise_matrix(mat_properties)
 
@@ -57,7 +57,7 @@ contains
     type(matrix_spec), intent(inout) :: mat_properties !< the matrix data object
 
     mat_properties%nnz = nnz
-  end subroutine  set_nnz
+  end subroutine set_nnz
 
   !> Constructor for matrix values object
   module subroutine create_matrix_values(val_spec, val_dat)
@@ -66,10 +66,10 @@ contains
     type(matrix_values_spec), intent(in) :: val_spec !< Object describing the size (nrows, ncol) of working set.
     type(matrix_values), intent(out) :: val_dat      !< The working set object.
 
-    associate(nrows => val_spec%nrows, ncols => val_spec%ncols)
-      allocate(val_dat%global_row_indices(nrows))
-      allocate(val_dat%global_col_indices(ncols))
-      allocate(val_dat%values(nrows * ncols))
+    associate (nrows => val_spec%nrows, ncols => val_spec%ncols)
+      allocate (val_dat%global_row_indices(nrows))
+      allocate (val_dat%global_col_indices(ncols))
+      allocate (val_dat%values(nrows * ncols))
     end associate
 
     ! Run clear entries to ensure correct default values.
@@ -78,14 +78,14 @@ contains
 
   !> Set the storage mode.
   module procedure set_matrix_values_mode
-    val_dat%setter_mode = mode
+  val_dat%setter_mode = mode
   end procedure set_matrix_values_mode
 
   !> Store a coefficient in the current working set at the current row,col coordinate, using the
   !> current storage mode.
   module subroutine set_matrix_values_entry(val, val_dat)
 
-    use constants, only : add_mode, insert_mode
+    use constants, only: add_mode, insert_mode
 
     ! Arguments
     real(ccs_real), intent(in) :: val             !< The coefficient value
@@ -93,29 +93,29 @@ contains
 
     ! Local
     integer(ccs_int) :: current_entry !< Logically 2D index of current row,col coordinate.
-                                      !< XXX: This may be PETSc-specific, but seems sensible for now
+    !< XXX: This may be PETSc-specific, but seems sensible for now
 
     ! Locate row,col coordinate in logically-2D array
-    associate(row => val_dat%current_row, &
-         col => val_dat%current_col, &
-         nrows => size(val_dat%global_row_indices), &
-         ncols => size(val_dat%global_col_indices))
+    associate (row => val_dat%current_row, &
+               col => val_dat%current_col, &
+               nrows => size(val_dat%global_row_indices), &
+               ncols => size(val_dat%global_col_indices))
       current_entry = (row - 1) * ncols + col
     end associate
 
     ! Store value according to working set mode.
-    associate(x => val_dat%values(current_entry), &
-         mode => val_dat%setter_mode)
+    associate (x => val_dat%values(current_entry), &
+               mode => val_dat%setter_mode)
       if (mode == insert_mode) then
         x = val
       else if (mode == add_mode) then
         x = x + val
       else
-        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+        call error_abort("ERROR: Unrecognised entry mode "//str(mode))
       end if
 
     end associate
-    
+
   end subroutine set_matrix_values_entry
-  
-end submodule 
+
+end submodule
