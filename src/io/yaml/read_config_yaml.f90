@@ -754,35 +754,26 @@ contains
 
           select case (bc_field)
           case ("name")
-            call dprint("starting reading name")
             call get_value(dict2, bc_field, bc_field_string)
             call set_bc_attribute(i, bc_field, bc_field_string, phi%bcs)
-            call dprint("finished reading name")
           case ("id")
-            call dprint("starting reading id")
             call get_value(dict2, bc_field, bc_id)
             call set_bc_attribute(i, bc_id, phi%bcs)
-            call dprint("finished reading id")
           case default
-            call dprint("starting reading " // bc_field)
             !call get_bc_field_data(dict2, i, bc_field, phi)
             select type (dict2)
             type is (type_dictionary)
               write (variable, '(A, A)') "variable_", bc_field
               variable_dict => dict2%get_dictionary(variable, required=.false., error=io_err)
-              !call error_handler(io_err)
-              call dprint("read dictionary " // bc_field)
+              call error_handler(io_err)
 
               call get_value(variable_dict, "type", bc_type)
               call set_bc_attribute(i, "type", bc_type, phi%bcs)
-              call dprint("read type " // bc_type)
 
               call get_value(variable_dict, "value", bc_value, field_exists)
-              call dprint("read value " // bc_field // " " // str(bc_value))
               if (field_exists) then
                 call set_bc_attribute(i, bc_value, phi%bcs)
               end if
-              call dprint("finished reading " // bc_field)
             end select
           end select
         end select

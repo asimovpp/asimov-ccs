@@ -11,13 +11,21 @@ module testing_lib
 
   implicit none
 
+  public :: assert_equal
+
+  interface assert_equal
+    module procedure assert_equal_integer
+    module procedure assert_equal_real
+    module procedure assert_equal_string
+  end interface
+  
   class(parallel_environment), allocatable, target :: par_env
   integer(ccs_err) :: ierr
   integer :: real_type
   character(1024) :: message
 
   real(ccs_real), parameter :: eps = epsilon(0.0_ccs_real)
-  
+
 contains
 
   !>  Test initialisation
@@ -107,7 +115,7 @@ contains
   !>  Assertion for integer equality
   !
   !> @description Check whether input integers are equal. If not, construct message, print and stop.
-  subroutine assert_equal(a, b, msg_format)
+  module subroutine assert_equal_integer(a, b, msg_format)
 
     integer(ccs_int), intent(in) :: a
     integer(ccs_int), intent(in) :: b
@@ -119,7 +127,40 @@ contains
       call stop_test(message)
     end if
 
-  end subroutine assert_equal
+  end subroutine assert_equal_integer
   
+  !>  assertion for real equality
+  !
+  !> @description check whether input reals are equal. if not, construct message, print and stop.
+  module subroutine assert_equal_real(a, b, msg_format)
+
+    real(ccs_real), intent(in) :: a
+    real(ccs_real), intent(in) :: b
+    character(*), intent(in) :: msg_format
+    character(1024) :: message
+
+    if (a /= b) then
+      write (message, msg_format) a, b
+      call stop_test(message)
+    end if
+
+  end subroutine assert_equal_real
   
+  !>  assertion for string equality
+  !
+  !> @description check whether input strings are equal. if not, construct message, print and stop.
+  module subroutine assert_equal_string(a, b, msg_format)
+
+    character(*), intent(in) :: a
+    character(*), intent(in) :: b
+    character(*), intent(in) :: msg_format
+    character(1024) :: message
+
+    if (a /= b) then
+      write (message, msg_format) a, b
+      call stop_test(message)
+    end if
+
+  end subroutine assert_equal_string
+
 end module testing_lib
