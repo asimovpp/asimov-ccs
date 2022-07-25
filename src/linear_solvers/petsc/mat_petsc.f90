@@ -306,8 +306,7 @@ contains
       cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
       i = cglobs(1) ! We want the first entry
       if (i == 0) then
-        print *, "ERROR: Couldn't find a free column entry in matrix values."
-        stop
+        call error_abort("ERROR: Couldn't find a free column entry in matrix values.")
       end if
     end if
 

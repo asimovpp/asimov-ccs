@@ -137,15 +137,13 @@ contains
         else if (method_name == "BCGS") then
           call KSPSetType(ksp, "bcgs", ierr)
         else
-          print *, "ERROR: Unknown solver method ", method_name
-          stop
+          call error_abort("ERROR: Unknown solver method " // method_name)
         end if
 
         call KSPSetFromOptions(ksp, ierr)
       end associate
     class default
-      print *, "ERROR: Unknown solver type"
-      stop
+      call error_abort("ERROR: Unknown solver type")
     end select
 
   end subroutine set_solver_method
@@ -175,13 +173,11 @@ contains
         else if (precon_name == "GAMG") then
           call PCSetType(pc, "gamg", ierr)
         else
-          print *, "ERROR: Unknown solver precon ", precon_name
-          stop
+          call error_abort("ERROR: Unknown solver precon " // precon_name)
         end if
       end associate
     class default
-      print *, "ERROR: Unknown solver type"
-      stop
+      call error_abort("ERROR: Unknown solver type")
     end select
 
   end subroutine set_solver_precon
