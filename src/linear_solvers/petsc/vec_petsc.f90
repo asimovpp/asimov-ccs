@@ -1,9 +1,9 @@
-!>  Submodule file vec_petsc.smod
+!v Submodule file vec_petsc.smod
 !
-!>  @build petsc
+!  An implementation of vector objects using PETSc - the datatype and operations on it
+!  (creation, destruction, setting/getting, ...)
 !
-!v  An implementation of vector objects using PETSc - the datatype and operations on it
-!   (creation, destruction, setting/getting, ...)
+!  @build petsc
 submodule(vec) vec_petsc
 #include "ccs_macros.inc"
 
@@ -18,7 +18,7 @@ submodule(vec) vec_petsc
 
 contains
 
-  !>  Create a PETSc-backed vector
+  !> Create a PETSc-backed vector
   module subroutine create_vector(vec_properties, v)
 
     use petsc, only: PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
@@ -30,7 +30,7 @@ contains
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
     integer(ccs_int) :: i
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     allocate (vector_petsc :: v)
 
@@ -87,7 +87,7 @@ contains
 
   end subroutine
 
-  !>  Sets values in a PETSc vector
+  !> Sets values in a PETSc vector
   module subroutine set_vector_values(val_dat, v)
 
     use petsc, only: VecSetValues
@@ -97,9 +97,9 @@ contains
     class(*), intent(in) :: val_dat         !< contains the values, their indices and the mode to use for setting them.
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector.
 
-    integer(ccs_int) :: n    !< Number of elements to add
-    integer(ccs_int) :: mode !< Append or insert mode
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_int) :: n    ! Number of elements to add
+    integer(ccs_int) :: mode ! Append or insert mode
+    integer(ccs_err) :: ierr ! Error code
 
     select type (v)
     type is (vector_petsc)
@@ -141,7 +141,7 @@ contains
 
   end subroutine
 
-  !>  Perform a parallel update of a PETSc vector
+  !> Perform a parallel update of a PETSc vector
   module subroutine update_vector(v)
 
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector
@@ -162,16 +162,16 @@ contains
 
   end subroutine
 
-  !>  Begin a parallel update of a PETSc vector
+  !v Begin a parallel update of a PETSc vector
   !
-  !>  Begins the parallel update to allow overlapping comms and compute
+  !  Begins the parallel update to allow overlapping comms and compute
   module subroutine begin_update_vector(v)
 
     use petsc, only: VecAssemblyBegin
 
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (v)
     type is (vector_petsc)
@@ -185,16 +185,16 @@ contains
 
   end subroutine
 
-  !>  End a parallel update of a PETSc vector.
+  !v End a parallel update of a PETSc vector.
   !
-  !>  Ends the parallel update to allow overlapping comms and compute.
+  !  Ends the parallel update to allow overlapping comms and compute.
   module subroutine end_update_vector(v)
 
     use petsc, only: VecAssemblyEnd
 
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (v)
     type is (vector_petsc)
@@ -210,16 +210,16 @@ contains
 
   end subroutine
 
-  !>  Begin a ghost update of a PETSc vector
+  !v Begin a ghost update of a PETSc vector
   !
-  !>  Begins the ghost update to allow overlapping comms and compute
+  !  Begins the ghost update to allow overlapping comms and compute
   subroutine begin_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateBegin
 
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (v)
     type is (vector_petsc)
@@ -236,16 +236,16 @@ contains
 
   end subroutine
 
-  !>  End a ghost update of a PETSc vector.
+  !v End a ghost update of a PETSc vector.
   !
-  !>  Ends the ghost update to allow overlapping comms and compute.
+  !  Ends the ghost update to allow overlapping comms and compute.
   subroutine end_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateEnd
 
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (v)
     type is (vector_petsc)
@@ -262,9 +262,8 @@ contains
 
   end subroutine
 
-  !>  Perform the AXPY vector operation using PETSc
+  !v Perform the AXPY vector operation using PETSc
   !
-  !v  Performs the AXPY operation
   !          y[i] = alpha * x[i] + y[i]
   module subroutine vec_axpy(alpha, x, y)
 
@@ -274,7 +273,7 @@ contains
     class(ccs_vector), intent(in) :: x      !< a PETSc input vector
     class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (x)
     type is (vector_petsc)
@@ -297,7 +296,7 @@ contains
 
   end subroutine
 
-  !>  Compute the norm of a PETSc vector
+  !> Compute the norm of a PETSc vector
   module function vec_norm(v, norm_type) result(n)
 
     use petscvec, only: NORM_2, VecNorm
@@ -306,7 +305,7 @@ contains
     integer(ccs_int), intent(in) :: norm_type   !< which norm to compute? Currently supported is the 2 norm: norm_type=2.
 
     real(ccs_real) :: n      !< The computed norm
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     n = 0.0_ccs_real ! initialise norm to 0
 
@@ -335,9 +334,9 @@ contains
   module procedure set_vector_values_row
 
     integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
-    !< current working set. N.B. the dimension of this
-    !< array must match the rank of
-    !< vector_values%global_indices!
+                                           !< current working set. N.B. the dimension of this
+                                           !< array must match the rank of
+                                           !< vector_values%global_indices!
     integer(ccs_int) :: i
     integer(ccs_int) :: petsc_row
 
@@ -359,14 +358,11 @@ contains
 
   end procedure set_vector_values_row
 
-  !>  Gets the data in a given vector
-  !
-  !> @param[in] vec   - the vector to get data from
-  !> @param[in] array - an array to store the data in
+  !> Gets the data in a given vector
   module subroutine get_vector_data(vec, array)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
-    class(ccs_vector), intent(in) :: vec
-    real(ccs_real), dimension(:), pointer, intent(out) :: array
+    class(ccs_vector), intent(in) :: vec !< the vector to get data from
+    real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
 
     select type (vec)
@@ -386,15 +382,12 @@ contains
     end select
   end subroutine get_vector_data
 
-  !>  Resets the vector data if required for further processing
-  !
-  !> @param[in] vec   - the vector to reset
-  !> @param[in] array - the array containing the data to restore
+  !> Resets the vector data if required for further processing
   module subroutine restore_vector_data(vec, array)
     use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
 
-    class(ccs_vector), intent(in) :: vec
-    real(ccs_real), dimension(:), pointer, intent(in) :: array
+    class(ccs_vector), intent(in) :: vec !< the vector to reset
+    real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
 
     integer :: ierr
 
@@ -427,16 +420,14 @@ contains
 
   end subroutine zero_vector
 
-  !>  Replaces each component of a vector by its reciprocal
-  !
-  !> @param[inout] vec - the vector
+  !> Replaces each component of a vector by its reciprocal
   module subroutine vec_reciprocal(vec)
 
     use petscvec, only: VecReciprocal
 
-    class(ccs_vector), intent(inout) :: vec
+    class(ccs_vector), intent(inout) :: vec !< the vector
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (vec)
     type is (vector_petsc)

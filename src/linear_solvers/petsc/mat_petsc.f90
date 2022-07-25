@@ -12,7 +12,7 @@ submodule(mat) mat_petsc
 
 contains
 
-  !>  Create a new PETSc matrix object.
+  !> Create a new PETSc matrix object.
   module subroutine create_matrix(mat_properties, M)
 
     use mpi
@@ -24,7 +24,7 @@ contains
     type(matrix_spec), intent(in) :: mat_properties   !< contains information about how the matrix should be allocated
     class(ccs_matrix), allocatable, intent(out) :: M  !< the matrix object
 
-    integer(ccs_err) :: ierr  !< Error code
+    integer(ccs_err) :: ierr  ! Error code
 
     allocate (matrix_petsc :: M)
 
@@ -87,7 +87,7 @@ contains
 
   end subroutine finalise_matrix
 
-  !>  Perform a parallel update of a PETSc matrix.
+  !> Perform a parallel update of a PETSc matrix.
   module subroutine update_matrix(M)
 
     class(ccs_matrix), intent(inout) :: M   !< the matrix
@@ -105,14 +105,14 @@ contains
 
   end subroutine
 
-  !>  Begin a parallel update of a PETSc matrix.
+  !v Begin a parallel update of a PETSc matrix.
   !
-  !>  Begins the parallel update to allow overlapping comms and compute.
+  !  Begins the parallel update to allow overlapping comms and compute.
   module subroutine begin_update_matrix(M)
 
     class(ccs_matrix), intent(inout) :: M   !< the matrix
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (M)
     type is (matrix_petsc)
@@ -126,14 +126,14 @@ contains
 
   end subroutine
 
-  !>  End a parallel update of a PETSc matrix.
+  !v End a parallel update of a PETSc matrix.
   !
-  !>  Ends the parallel update to allow overlapping comms and compute.
+  !  Ends the parallel update to allow overlapping comms and compute.
   module subroutine end_update_matrix(M)
 
     class(ccs_matrix), intent(inout) :: M   !< the matrix
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (M)
     type is (matrix_petsc)
@@ -148,7 +148,7 @@ contains
 
   end subroutine
 
-  !>  Set values in a PETSc matrix.
+  !> Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 
     use petscmat, only: MatSetValues
@@ -157,10 +157,10 @@ contains
     type(matrix_values), intent(in) :: mat_values   !< contains the values, their indices and the mode to use when setting them.
     class(ccs_matrix), intent(inout) :: M           !< the matrix
 
-    integer(ccs_int) :: nrows, ncols !< number of rows/columns
-    integer(ccs_int) :: mode !< Add or insert values?
+    integer(ccs_int) :: nrows, ncols ! number of rows/columns
+    integer(ccs_int) :: mode ! Add or insert values?
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     associate (ridx => mat_values%global_row_indices, &
                cidx => mat_values%global_col_indices, &
@@ -203,11 +203,11 @@ contains
 
   end subroutine
 
-  !>  Set equation
+  !v Set equation
   !
-  !v  Sets equations in a system of equations by zeroing out the corresponding row in the
-  !   system matrix and setting the diagonal to one such that the solution is given by
-  !   the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
+  !  Sets equations in a system of equations by zeroing out the corresponding row in the
+  !  system matrix and setting the diagonal to one such that the solution is given by
+  !  the corresponding entry in the right-hand side vector.  module subroutine set_eqn(rows, M)
   module subroutine set_eqn(global_rows, M)
 
     use petsc, only: PETSC_NULL_VEC
@@ -247,13 +247,13 @@ contains
     type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
 
     ! Local
-    integer(ccs_int), dimension(1) :: rglobs !< Temporary array mapping rows to indices in the
-    !< current working set. N.B. the dimension of this
-    !< array must match the rank of
-    !< matrix_values%global_row_indices!
-    integer(ccs_int) :: i         !< The mapped index in the current working set
-    logical :: new_entry          !< Flag to indicate if we are revisiting a row
-    integer(ccs_int) :: petsc_row !< The (zero-indexed) row as used by PETSc
+    integer(ccs_int), dimension(1) :: rglobs ! Temporary array mapping rows to indices in the
+                                             ! current working set. N.B. the dimension of this
+                                             ! array must match the rank of
+                                             ! matrix_values%global_row_indices!
+    integer(ccs_int) :: i         ! The mapped index in the current working set
+    logical :: new_entry          ! Flag to indicate if we are revisiting a row
+    integer(ccs_int) :: petsc_row ! The (zero-indexed) row as used by PETSc
 
     petsc_row = row - 1 ! PETSc is zero-indexed
     new_entry = .false.
@@ -285,13 +285,13 @@ contains
     type(matrix_values), intent(inout) :: val_dat !< Object recording values and their coordinates
 
     ! Local
-    integer(ccs_int), dimension(1) :: cglobs !< Temporary array mapping columns to indices in the
-    !< current working set. N.B. the dimension of this
-    !< array must match the rank of
-    !< matrix_values%global_col_indices!
-    integer(ccs_int) :: i         !< The mapped index in the current working set
-    logical :: new_entry          !< Flag to indicate if we are revisiting a column
-    integer(ccs_int) :: petsc_col !< The (zero-indexed) column as used by PETSc
+    integer(ccs_int), dimension(1) :: cglobs ! Temporary array mapping columns to indices in the
+                                             ! current working set. N.B. the dimension of this
+                                             ! array must match the rank of
+                                             ! matrix_values%global_col_indices!
+    integer(ccs_int) :: i         ! The mapped index in the current working set
+    logical :: new_entry          ! Flag to indicate if we are revisiting a column
+    integer(ccs_int) :: petsc_col ! The (zero-indexed) column as used by PETSc
 
     petsc_col = col - 1 ! PETSc is zero-indexed
     new_entry = .false.
@@ -316,10 +316,9 @@ contains
 
   end subroutine set_matrix_values_col
 
-  !>  Perform the AXPY matrix operation using PETSc
+  !v Perform the AXPY matrix operation using PETSc
   !
-  !>  Performs the AXPY operation
-  !>         y[i] = alpha * x[i] + y[i]
+  !         y[i] = alpha * x[i] + y[i]
   module subroutine mat_axpy(alpha, x, y)
 
     use petscmat, only: MatAXPY, DIFFERENT_NONZERO_PATTERN
@@ -328,7 +327,7 @@ contains
     class(ccs_matrix), intent(in) :: x      !< a PETSc input matrix
     class(ccs_matrix), intent(inout) :: y   !< PETSc matrix serving as input, overwritten with result
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (x)
     type is (matrix_petsc)
@@ -351,7 +350,7 @@ contains
 
   end subroutine
 
-  !>  Compute the norm of a PETSc matrix
+  !> Compute the norm of a PETSc matrix
   module function mat_norm(M, norm_type) result(n)
 
     use petscmat, only: NORM_1, NORM_FROBENIUS, NORM_INFINITY, MatNorm
@@ -360,7 +359,7 @@ contains
     integer(ccs_int), intent(in) :: norm_type  !< which norm to compute
 
     real(ccs_real) :: n      !< The computed norm
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     n = 0.0_ccs_real ! initialise norm to 0
 
@@ -383,15 +382,15 @@ contains
 
   end function
 
-  !>  Extract the diagonal elements of a matrix and store in a vector
+  !> Extract the diagonal elements of a matrix and store in a vector
   module subroutine get_matrix_diagonal(M, D)
 
     use petscmat, only: MatGetDiagonal
 
     class(ccs_matrix), intent(in) :: M     !< the PETSc matrix
-    class(ccs_vector), intent(inout) :: D   !< the PETSc vector containing matrix diagonal elements
+    class(ccs_vector), intent(inout) :: D  !< the PETSc vector containing matrix diagonal elements
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (M)
     type is (matrix_petsc)
@@ -443,7 +442,7 @@ contains
 
     class(ccs_matrix), intent(inout) :: M   !< the PETSc matrix
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (M)
     type is (matrix_petsc)

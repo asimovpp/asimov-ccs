@@ -1,8 +1,8 @@
-!>  Submodule file solver_petsc.smod
+!v Submodule file solver_petsc.smod
 !
-!>  @build petsc
+!  An implementation of a PETSc solver
 !
-!>  An implementation of a PETSc solver
+!  @build petsc
 submodule(solver) solver_petsc
 #include "ccs_macros.inc"
 
@@ -15,7 +15,7 @@ submodule(solver) solver_petsc
 
 contains
 
-  !>  Create a new PETSc solver object.
+  !> Create a new PETSc solver object.
   module subroutine create_solver(linear_system, solver)
 
     use petsc, only: PETSC_TRUE
@@ -24,7 +24,7 @@ contains
     type(equation_system), intent(in) :: linear_system        !< Data structure containing equation system to be solved.
     class(linear_solver), allocatable, intent(out) :: solver  !< The linear solver returned allocated.
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     allocate (linear_solver_petsc :: solver)
 
@@ -72,14 +72,14 @@ contains
 
   end subroutine
 
-  !>  Solve the linear system in a PETSc solver.
+  !> Solve the linear system in a PETSc solver.
   module subroutine solve(solver)
 
     use petscksp, only: KSPSolve
 
     class(linear_solver), intent(inout) :: solver   !< The linear solver object.
 
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
     type is (linear_solver_petsc)
@@ -124,7 +124,7 @@ contains
     class(linear_solver), intent(inout) :: solver !< The linear solver object
 
     ! Local
-    integer(ccs_err) :: ierr !< Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
     type is (linear_solver_petsc)
@@ -161,8 +161,8 @@ contains
     class(linear_solver), intent(inout) :: solver !< The linear solver object
 
     ! Local
-    type(tPC) :: pc          !< PETSc preconditioner object
-    integer(ccs_err) :: ierr !< Error code
+    type(tPC) :: pc          ! PETSc preconditioner object
+    integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
     type is (linear_solver_petsc)

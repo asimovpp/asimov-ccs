@@ -81,8 +81,8 @@ contains
     val_dat%setter_mode = mode
   end procedure set_matrix_values_mode
 
-  !> Store a coefficient in the current working set at the current row,col coordinate, using the
-  !> current storage mode.
+  !v Store a coefficient in the current working set at the current row,col coordinate, using the
+  !  current storage mode.
   module subroutine set_matrix_values_entry(val, val_dat)
 
     use constants, only: add_mode, insert_mode
@@ -92,8 +92,8 @@ contains
     type(matrix_values), intent(inout) :: val_dat !< The object storing the working set
 
     ! Local
-    integer(ccs_int) :: current_entry !< Logically 2D index of current row,col coordinate.
-    !< XXX: This may be PETSc-specific, but seems sensible for now
+    integer(ccs_int) :: current_entry ! Logically 2D index of current row,col coordinate.
+                                      ! XXX: This may be PETSc-specific, but seems sensible for now
 
     ! Locate row,col coordinate in logically-2D array
     associate (row => val_dat%current_row, &
