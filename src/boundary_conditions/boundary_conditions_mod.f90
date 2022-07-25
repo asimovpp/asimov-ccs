@@ -74,6 +74,10 @@ module boundary_conditions
         bcs%bc_types(boundary_index) = bc_type_sym
       case ("dirichlet")
         bcs%bc_types(boundary_index) = bc_type_dirichlet
+      case ("neumann")
+        bcs%bc_types(boundary_index) = bc_type_neumann
+      case ("extrapolate")
+        bcs%bc_types(boundary_index) = bc_type_extrapolate
       case ("const_grad")
         bcs%bc_types(boundary_index) = bc_type_const_grad
       case ("wall")
