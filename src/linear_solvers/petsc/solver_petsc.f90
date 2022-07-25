@@ -52,7 +52,7 @@ contains
             call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
 
           class default
-            call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver!")
+            call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver.")
 
           end select
 
@@ -94,15 +94,15 @@ contains
             call KSPSolve(ksp, b%v, u%v, ierr)
             call update(u)
             if (ierr /= 0) then
-              call error_abort("ERROR in linear solve!")
+              call error_abort("ERROR in linear solve.")
             end if
 
           class default
-            call error_abort("ERROR: Trying to use non-PETSc vector for solution with PETSc solver!")
+            call error_abort("ERROR: Trying to use non-PETSc vector for solution with PETSc solver.")
           end select
 
         class default
-          call error_abort("ERROR: Trying to use non-PETSc vector for RHS with PETSc solver!")
+          call error_abort("ERROR: Trying to use non-PETSc vector for RHS with PETSc solver.")
         end select
 
       end associate

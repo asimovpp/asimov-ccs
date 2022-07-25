@@ -50,7 +50,7 @@ contains
 
         if (mat_properties%nnz < 1) then
           if (par_env%proc_id == par_env%root) then
-            call dprint("WARNING: No matrix preallocation set, potentially inefficient!")
+            call dprint("WARNING: No matrix preallocation set, potentially inefficient.")
           end if
           call MatSetUp(M%M, ierr)
         else
@@ -182,20 +182,20 @@ contains
         nrows = size(ridx)
         ncols = size(cidx)
         if (nrows * ncols /= size(val)) then
-          call error_abort("Invalid matrix values!")
+          call error_abort("Invalid matrix values.")
         end if
         if (matmode == add_mode) then
           mode = ADD_VALUES
         else if (matmode == insert_mode) then
           mode = INSERT_VALUES
         else
-          call error_abort("Unknown mode!")
+          call error_abort("Unknown mode.")
         end if
 
         call MatSetValues(M%M, nrows, ridx, ncols, cidx, val, mode, ierr)
 
       class default
-        call error_abort("Unknown matrix type!")
+        call error_abort("Unknown matrix type.")
 
       end select
 
@@ -224,7 +224,7 @@ contains
       call MatZeroRows(M%M, size(global_rows), global_rows, 1.0_ccs_real, PETSC_NULL_VEC, PETSC_NULL_VEC, ierr)
 
     class default
-      call error_abort("Unknown matrix type!")
+      call error_abort("Unknown matrix type.")
 
     end select
 
@@ -268,7 +268,7 @@ contains
       rglobs = findloc(val_dat%global_row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free entry in matrix values!")
+        call error_abort("ERROR: Couldn't find a free entry in matrix values.")
       end if
     end if
 
@@ -306,7 +306,7 @@ contains
       cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
       i = cglobs(1) ! We want the first entry
       if (i == 0) then
-        print *, "ERROR: Couldn't find a free column entry in matrix values!"
+        print *, "ERROR: Couldn't find a free column entry in matrix values."
         stop
       end if
     end if
@@ -339,12 +339,12 @@ contains
         call MatAXPY(y%M, alpha, x%M, DIFFERENT_NONZERO_PATTERN, ierr)
 
       class default
-        call error_abort("Unknown matrix type!")
+        call error_abort("Unknown matrix type.")
 
       end select
 
     class default
-      call error_abort("Unknown matrix type!")
+      call error_abort("Unknown matrix type.")
 
     end select
 
@@ -373,7 +373,7 @@ contains
       else if (norm_type == 3) then
         call MatNorm(M%M, NORM_INFINITY, n, ierr)
       else
-        call error_abort("ERROR: unknown matrix norm type "//str(norm_type))
+        call error_abort("ERROR: unknown matrix norm type " // str(norm_type))
       end if
 
     class default
@@ -400,11 +400,11 @@ contains
         call MatGetDiagonal(M%M, D%v, ierr)
 
       class default
-        call error_abort("Unknown vector type!")
+        call error_abort("Unknown vector type.")
       end select
 
     class default
-      call error_abort("Unknown matrix type!")
+      call error_abort("Unknown matrix type.")
     end select
 
   end subroutine
@@ -426,11 +426,11 @@ contains
         call MatDiagonalSet(M%M, D%v, INSERT_VALUES, ierr)
 
       class default
-        call error_abort("Unknown vector type!")
+        call error_abort("Unknown vector type.")
       end select
 
     class default
-      call error_abort("Unknown matrix type!")
+      call error_abort("Unknown matrix type.")
     end select
 
   end subroutine set_matrix_diagonal
@@ -448,7 +448,7 @@ contains
     type is (matrix_petsc)
       call MatZeroEntries(M%M, ierr)
     class default
-      call error_abort("Unknown matrix type!")
+      call error_abort("Unknown matrix type.")
 
     end select
 

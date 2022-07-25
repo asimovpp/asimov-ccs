@@ -41,7 +41,7 @@ module vec
       type(vector_spec), intent(in) :: vec_properties  !< Data structure containing the global and local sizes
                                                        !< of the vector, -1 is interpreted as unset. If both
                                                        !< are set the local size is used.
-      class(ccs_vector), allocatable, intent(out) :: v !< The vector returned allocated, 
+      class(ccs_vector), allocatable, intent(out) :: v !< The vector returned allocated,
                                                        !< but (potentially) uninitialised.
     end subroutine
 
@@ -126,7 +126,7 @@ module vec
 
     !> Setter for vector size
     module subroutine set_vector_size(par_env, mesh, vec_properties)
-      class(parallel_environment), allocatable, target, intent(in) :: par_env !< the parallel environment 
+      class(parallel_environment), allocatable, target, intent(in) :: par_env !< the parallel environment
                                                                               !< where the vector resides
       class(ccs_mesh), target, intent(in) :: mesh !< the mesh - contains the information to set the vector size
       type(vector_spec), intent(inout) :: vec_properties !< the vector data object

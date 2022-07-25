@@ -81,7 +81,7 @@ contains
       end select
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -111,7 +111,7 @@ contains
         if (v%modeset) then
           if (val_dat%setter_mode /= v%mode) then
             print *, ""
-            call error_abort("ERROR: trying to set vector using different mode without updating!")
+            call error_abort("ERROR: trying to set vector using different mode without updating.")
           end if
         else
           v%mode = val_dat%setter_mode
@@ -124,18 +124,18 @@ contains
         else if (val_dat%setter_mode == insert_mode) then
           mode = INSERT_VALUES
         else
-          call error_abort("Unknown mode!")
+          call error_abort("Unknown mode.")
         end if
 
         call VecSetValues(v%v, n, val_dat%global_indices, val_dat%values, mode, ierr)
 
       class default
-        call error_abort("Unknown vector value type!")
+        call error_abort("Unknown vector value type.")
 
       end select
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -156,7 +156,7 @@ contains
       call end_ghost_update_vector(v)
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -179,7 +179,7 @@ contains
       call VecAssemblyBegin(v%v, ierr)
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -204,7 +204,7 @@ contains
       v%modeset = .false. ! It is now safe to change value setting mode
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -225,12 +225,12 @@ contains
     type is (vector_petsc)
 
       if (v%ghosted) then
-        ! Cant update ghosts if not ghost points!
+        ! Cant update ghosts if not ghost points.
         call VecGhostUpdateBegin(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
       end if
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -251,12 +251,12 @@ contains
     type is (vector_petsc)
 
       if (v%ghosted) then
-        ! Cant update ghosts if not ghost points!
+        ! Cant update ghosts if not ghost points.
         call VecGhostUpdateEnd(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
       end if
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -285,12 +285,12 @@ contains
         call VecAXPY(y%v, alpha, x%v, ierr)
 
       class default
-        call error_abort("Unknown vector type!")
+        call error_abort("Unknown vector type.")
 
       end select
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
 
     end select
 
@@ -315,7 +315,7 @@ contains
       if (norm_type == 2) then
         call VecNorm(v%v, NORM_2, n, ierr)
       else
-        call error_abort("ERROR: unknown vector norm type "//str(norm_type))
+        call error_abort("ERROR: unknown vector norm type " // str(norm_type))
       end if
 
     class default
@@ -336,7 +336,7 @@ contains
     integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
                                            !< current working set. N.B. the dimension of this
                                            !< array must match the rank of
-                                           !< vector_values%global_indices!
+                                           !< vector_values%global_indices.
     integer(ccs_int) :: i
     integer(ccs_int) :: petsc_row
 
@@ -349,7 +349,7 @@ contains
       idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free entry in vector values!")
+        call error_abort("ERROR: Couldn't find a free entry in vector values.")
       end if
     end if
 
@@ -435,7 +435,7 @@ contains
       call VecReciprocal(vec%v, ierr)
 
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
     end select
   end subroutine vec_reciprocal
 
@@ -453,10 +453,10 @@ contains
       type is (vector_petsc)
         call VecPointwiseMult(b%v, a%v, b%v, ierr)
       class default
-        call error_abort("Unknown vector type!")
+        call error_abort("Unknown vector type.")
       end select
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
     end select
 
   end subroutine mult_vec_vec
@@ -473,7 +473,7 @@ contains
     type is (vector_petsc)
       call VecScale(v%v, alpha, ierr)
     class default
-      call error_abort("Unknown vector type!")
+      call error_abort("Unknown vector type.")
     end select
 
   end subroutine
@@ -508,7 +508,7 @@ contains
 !       end select
 
 !       class default
-!         call error_abort("Unknown vector type!")
+!         call error_abort("Unknown vector type.")
 !     end select
 !   end subroutine vec_view
 
