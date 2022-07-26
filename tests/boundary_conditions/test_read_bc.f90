@@ -18,7 +18,7 @@ program bc_test
 
   class(field), allocatable :: u, v, w, p
   type(central_field), dimension(:), allocatable :: phi
-  integer(ccs_int) :: i
+  integer(ccs_int) :: i, j
   integer(ccs_int) :: n_boundaries
   character(len=*), parameter :: config_file = "test_read_bc_config.in"
   character(len=6), dimension(:), allocatable :: variable_names
@@ -83,8 +83,12 @@ program bc_test
   bc_types = bc_type_neumann
   bc_values = 0
   call check_bcs(v%bcs, bc_names, bc_ids, bc_types, bc_values)
+  call check_bcs(w%bcs, bc_names, bc_ids, bc_types, bc_values)
   bc_types = bc_type_extrapolate
   call check_bcs(p%bcs, bc_names, bc_ids, bc_types)
+  do j = 1, size(variable_names) - 4
+    call check_bcs(phi(j)%bcs, bc_names, bc_ids, bc_types)
+  end do
 
   call fin()
 

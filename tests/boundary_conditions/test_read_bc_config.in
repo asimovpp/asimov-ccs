@@ -32,6 +32,9 @@ boundaries:
     variable_v:
       type: neumann
       value: 0
+    variable_w:
+      type: neumann
+      value: 0
     variable_p:
       type: extrapolate      
     variable_phi_1:
