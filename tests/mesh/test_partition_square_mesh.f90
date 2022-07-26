@@ -70,8 +70,26 @@ contains
     !  call stop_test(message)
     !end if
 
+    call check_self_loops(stage)
     call check_connectivity(stage)
 
+  end subroutine
+
+  subroutine check_self_loops(stage)
+
+    character(len=*), intent(in) :: stage
+
+    integer :: i
+
+    do i = 1, topo%local_num_cells
+      do j = topo%xadj(i), topo%xadj(i + 1) - 1
+        if (topo%adjncy(j) == topo%global_indices(i)) then
+          print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
+          write(message, *) "ERROR: found self-loop "//stage//"-partitioning!"
+          call stop_test(message)
+        end if
+      end do
+    end do
   end subroutine
 
   subroutine check_connectivity(stage)
@@ -80,7 +98,7 @@ contains
 
     integer :: i, j
     integer :: nadj
-    integer, dimension(:), allocatable :: adjncy_expected
+    integer, dimension(:), allocatable :: adjncy_global_expected
 
     !if (all(topo%nb_indices /= mesh%neighbour_indices)) then
     !  write(message, *) "ERROR: topology changed!"
@@ -90,60 +108,57 @@ contains
     do i = 1, topo%local_num_cells ! Loop over local cells
       
       nadj = topo%xadj(i+1) - topo%xadj(i)
-      allocate( adjncy_expected(nadj) )
+      allocate( adjncy_global_expected(nadj) )
 
-      call compute_expected_adjncy(i, adjncy_expected)
+      call compute_expected_global_adjncy(i, adjncy_global_expected)
 
       do j = topo%xadj(i), topo%xadj(i + 1) - 1
-        if (.not. any(adjncy_expected == topo%adjncy(j))) then
-          print *, "TOPO neighbours: ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
-          print *, "Expected nieghbours: ", adjncy_expected
+        if (.not. any(adjncy_global_expected == topo%adjncy(j))) then
+          print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
+          print *, "Expected nieghbours @ global idx ", topo%global_indices(i), ": ", adjncy_global_expected
           write(message, *) "ERROR: neighbours are wrong "//stage//"-partitioning!"
           call stop_test(message)
         end if
-          !print *, "TOPO neighbours: ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
-          !print *, "Expected nieghbours: ", adjncy_expected
-          !write(message, *) "ERROR: neighbours are wrong post-partitioning!"
       end do
 
-      deallocate(adjncy_expected)
+      deallocate(adjncy_global_expected)
     end do
 
   end subroutine
           
-  subroutine compute_expected_adjncy(i, adjncy_expected)
+  subroutine compute_expected_global_adjncy(i, adjncy_global_expected)
 
     integer, intent(in) :: i
-    integer, dimension(:), intent(inout) :: adjncy_expected
+    integer, dimension(:), intent(inout) :: adjncy_global_expected
 
     integer :: interior_ctr
 
-    adjncy_expected(:) = 0
+    adjncy_global_expected(:) = 0
     interior_ctr = 1
 
     associate( idx_global => topo%global_indices(i), &
                cidx_global => (topo%global_indices(i) - 1) )
-      if (modulo(cidx_global, 4) /= 0) then
+      if ((modulo(cidx_global, 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
         ! NOT @ left boundary
-        adjncy_expected(interior_ctr) = idx_global - 1
+        adjncy_global_expected(interior_ctr) = idx_global - 1
         interior_ctr = interior_ctr + 1
       end if
 
-      if (modulo(cidx_global, 4) /= (4 - 1)) then
+      if ((modulo(cidx_global, 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
         ! NOT @ right boundary
-        adjncy_expected(interior_ctr) = idx_global + 1
+        adjncy_global_expected(interior_ctr) = idx_global + 1
         interior_ctr = interior_ctr + 1
       end if
 
-      if ((cidx_global / 4) /= 0) then
+      if (((cidx_global / 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
         ! NOT @ bottom boundary
-        adjncy_expected(interior_ctr) = idx_global - 4
+        adjncy_global_expected(interior_ctr) = idx_global - 4
         interior_ctr = interior_ctr + 1
       end if
 
-      if ((cidx_global / 4) /= (4 - 1)) then
+      if (((cidx_global / 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
         ! NOT @ top boundary
-        adjncy_expected(interior_ctr) = idx_global + 4
+        adjncy_global_expected(interior_ctr) = idx_global + 4
         interior_ctr = interior_ctr + 1
       end if
     end associate
