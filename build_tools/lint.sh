@@ -14,4 +14,14 @@ elif [ $ACTION = "score" ]; then
   # the comparison sign is the opposite of what one might expect because
   # we need an exit status of 0 to indicate success, but bc returns 0 for False
   exit $(echo "$score < $GOAL_SCORE" | bc -l)
+elif [ $ACTION = "fprettify" ]; then
+  fprettify -r $TARGET
+  # remove spaces around '%'
+  find $TARGET -name "*.f90" -exec sed -i 's/ % /%/g' {} \;
+  # add spaces around '//'
+  find $TARGET -name "*.f90" -exec sed -i 's/\/\// \/\/ /g' {} \;
+  if grep -rq "module procedure" $TARGET; then
+    echo 'DOUBLE CHECK THAT "module procedure" INDENTATION IS OK IN FILES:'
+    grep -rl "module procedure" $TARGET
+  fi
 fi
