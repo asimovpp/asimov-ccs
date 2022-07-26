@@ -49,7 +49,7 @@ contains
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
     real(ccs_real), intent(in) :: side_length          !< The length of each side.
 
-    type(ccs_mesh) :: mesh !< The resulting mesh.
+    type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     integer(ccs_int) :: start_global    ! The (global) starting index of a partition
     integer(ccs_int) :: end_global      ! The (global) last index of a partition
@@ -227,13 +227,14 @@ contains
   !v Helper subroutine to add a neighbour to a cell's neighbour list.
   !
   !  Given a local and global index for a neighbour there are 3 possibilities:
-  !  1) the local and the neighbour is added immediately
-  !  2) the global index is negative indicating it is a boundary and the "neighbour" is
+  !
+  !  1. the local and the neighbour is added immediately
+  !  2. the global index is negative indicating it is a boundary and the "neighbour" is
   !     added immediately
-  !  3) the index is not local:
-  !     a) the global index is already in the off-process list (halos), the neighbour
+  !  3. the index is not local:
+  !     1. the global index is already in the off-process list (halos), the neighbour
   !        is added immediately
-  !     b) this is a new halo cell, the list of global indices must be grown to
+  !     2. this is a new halo cell, the list of global indices must be grown to
   !        accomodate before adding the neighbour.
   subroutine build_local_mesh_add_neighbour(index_p, index_p_nb, index_nb, global_index_nb, mesh)
 
@@ -292,9 +293,9 @@ contains
 
     integer(ccs_int), intent(in) :: i
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
-    !      dragons! If this were
-    !      intent(out) it would
-    !      be deallocated on entry!
+                                                                      !      dragons! If this were
+                                                                      !      intent(out) it would
+                                                                      !      be deallocated on entry!
     integer(ccs_int) :: n
     integer(ccs_int), dimension(:), allocatable :: tmp
 
@@ -457,11 +458,11 @@ contains
     integer(ccs_int), intent(in) :: procid
     integer(ccs_int), intent(in) :: nproc
 
-    !! Each PE gets an equal split of the problem with any remainder split equally between the lower
-    !! PEs.
+    ! Each PE gets an equal split of the problem with any remainder split equally between the lower
+    ! PEs.
     global_start = procid * (n / nproc) + min(procid, modulo(n, nproc))
 
-    !! Fortran indexing
+    ! Fortran indexing
     global_start = global_start + 1
 
   end function global_start
