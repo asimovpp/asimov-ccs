@@ -160,16 +160,16 @@ contains
       mesh%nhalo = mesh%ntotal - mesh%nlocal
 
       allocate (mesh%x_p(ndim, mesh%ntotal))
-      allocate (mesh%x_f(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh! @endnote
+      allocate (mesh%x_f(ndim, 4, mesh%nlocal)) !< @note Currently hardcoded as a 2D mesh. @endnote
       allocate (mesh%volumes(mesh%ntotal))
       allocate (mesh%face_areas(4, mesh%nlocal))
-      allocate (mesh%face_normals(ndim, 4, mesh%nlocal)) !        Currently hardcoded as a 2D mesh!
+      allocate (mesh%face_normals(ndim, 4, mesh%nlocal)) ! Currently hardcoded as a 2D mesh.
 
       mesh%volumes(:) = mesh%h**2 !< @note Mesh is square and 2D @endnote
       mesh%face_normals(:, :, :) = 0.0_ccs_real
       mesh%x_p(:, :) = 0.0_ccs_real
       mesh%x_f(:, :, :) = 0.0_ccs_real
-      mesh%face_areas(:, :) = mesh%h  !        Mesh is square and 2D
+      mesh%face_areas(:, :) = mesh%h  ! Mesh is square and 2D
 
       associate (h => mesh%h)
         do i = 1_ccs_int, mesh%ntotal
@@ -219,7 +219,7 @@ contains
       call set_cell_face_indices(mesh)
 
     class default
-      call error_abort("Unknown parallel environment type!")
+      call error_abort("Unknown parallel environment type.")
 
     end select
   end function build_square_mesh
@@ -254,7 +254,7 @@ contains
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
       if (.not. (index_nb < 0_ccs_int)) then
-        call error_abort("ERROR: boundary neighbours should have -ve indices!")
+        call error_abort("ERROR: boundary neighbours should have -ve indices.")
       end if
       mesh%neighbour_indices(index_p_nb, index_p) = index_nb
     else
@@ -277,7 +277,7 @@ contains
       !      the (extended) original array.
       if (.not. found) then
         if ((ng + 1) > mesh%nglobal) then
-          call error_abort("ERROR: Trying to create halo that exceeds global mesh size!")
+          call error_abort("ERROR: Trying to create halo that exceeds global mesh size.")
         end if
 
         call append_to_arr(global_index_nb, mesh%global_indices)
@@ -447,7 +447,7 @@ contains
         call get_local_index(loc_f, index_f)
         exit ! Exit the loop, as found shared face
       else if (k == nnb_nb) then
-        call error_abort("ERROR: Failed to find face in owning cell")
+        call error_abort("ERROR: Failed to find face in owning cell.")
       end if
     end do
   end function get_neighbour_face_index

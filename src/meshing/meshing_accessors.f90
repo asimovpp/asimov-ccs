@@ -36,7 +36,7 @@ contains
 
     ! XXX: Potentially expensive...
     if (index_p > mesh%ntotal) then
-      call error_abort("ERROR: trying to access cell I don't have access to!" // str(index_p) // str(mesh%nlocal))
+      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // str(mesh%nlocal))
     end if
   end subroutine set_cell_location
 
@@ -48,7 +48,7 @@ contains
     type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell
                                                    !< whose neighbour is being accessed.
     integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
-    type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a 
+    type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a
                                                    !< cell-relative index with the mesh.
 
     loc_nb%mesh => loc_p%mesh
@@ -58,9 +58,9 @@ contains
     ! XXX: Potentially expensive...
     ! call count_neighbours(loc_p, nnb)
     ! if (nb_counter > nnb) then
-    !   call error_abort("ERROR: cell has fewer neighbours than neighbour count requested!")
+    !   call error_abort("ERROR: cell has fewer neighbours than neighbour count requested.")
     ! else if (nb_counter < 1) then
-    !   call error_abort("ERROR: cell neighbour counter must be >= 1!")
+    !   call error_abort("ERROR: cell neighbour counter must be >= 1.")
     ! else
     !   loc_nb%nb_counter = nb_counter
     ! end if
@@ -71,7 +71,7 @@ contains
                i => loc_nb%index_p, &
                j => loc_nb%nb_counter)
       if (mymesh%neighbour_indices(j, i) == i) then
-        call error_abort("ERROR: trying to set self as neighbour! Cell: " // str(i) // str(j))
+        call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
       end if
     end associate
   end subroutine set_neighbour_location
@@ -217,7 +217,7 @@ contains
     else if (index_nb < 0) then
       is_boundary = .true.
     else
-      call error_abort("ERROR: neighbour index (0) is invalid")
+      call error_abort("ERROR: neighbour index (0) is invalid.")
     end if
   end subroutine get_neighbour_boundary_status
 
