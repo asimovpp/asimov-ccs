@@ -1,4 +1,4 @@
-submodule (meshing) meshing_operators
+submodule(meshing) meshing_operators
 
   implicit none
 
@@ -16,8 +16,8 @@ contains
     call get_centre(loc_p, xp)
     call get_centre(loc_nb, xnb)
 
-    dx(:) = xnb(:) - xp(:)  
-    
+    dx(:) = xnb(:) - xp(:)
+
   end subroutine get_neighbour_distance
 
   !>  Returns the distance from cell to face centres
@@ -33,7 +33,7 @@ contains
     call get_centre(loc_f, xf)
 
     dx(:) = xf(:) - xp(:)
-    
+
   end subroutine get_face_distance
-    
+
 end submodule meshing_operators

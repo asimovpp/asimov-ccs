@@ -1,22 +1,22 @@
-submodule (meshing) meshing_accessors
+submodule(meshing) meshing_accessors
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, str
 
   implicit none
-  
+
 contains
-  
+
   !>  Constructs a face locator object.
   !
   !> @description Creates the association between a face relative to a cell, i.e. to access the
   !!              nth face of cell i.
   !
-  !> @param[in]  mesh         mesh          
-  !> @param[in]  ccs_int     index_p        
-  !> @param[in]  ccs_int     cell_face_ctr  
-  !> @param[out] face_locator loc_f         
-  !!                                        
+  !> @param[in]  mesh         mesh
+  !> @param[in]  ccs_int     index_p
+  !> @param[in]  ccs_int     cell_face_ctr
+  !> @param[out] face_locator loc_f
+  !!
   module subroutine set_face_location(mesh, index_p, cell_face_ctr, loc_f)
     type(ccs_mesh), target, intent(in) :: mesh      !< the mesh object being referred to.
     integer(ccs_int), intent(in) :: index_p         !< the index of the cell whose face is being accessed.
@@ -34,7 +34,7 @@ contains
   !!              returned cell locator object.
   !
   !> @param[in]  mesh         mesh      - the mesh object being referred to.
-  !> @param[in]  ccs_int     index_p      - the cell index. 
+  !> @param[in]  ccs_int     index_p      - the cell index.
   !> @param[out] cell_locator loc_p - the cell locator object linking a cell index with
   !!                                          the mesh.
   module subroutine set_cell_location(mesh, index_p, loc_p)
@@ -44,13 +44,13 @@ contains
 
     loc_p%mesh => mesh
     loc_p%index_p = index_p
-    
+
     ! XXX: Potentially expensive...
     if (index_p > mesh%ntotal) then
-      call error_abort("ERROR: trying to access cell I don't have access to!" // str(index_p) // str(mesh%nlocal))
+      call error_abort("ERROR: trying to access cell I don't have access to!"//str(index_p)//str(mesh%nlocal))
     end if
   end subroutine set_cell_location
-  
+
   !>  Constructs a neighbour locator object.
   !
   !> @description Creates the association between a neighbour cell F relative to cell P, i.e. to
@@ -79,14 +79,14 @@ contains
     !! else
     !!   loc_nb%nb_counter = nb_counter
     !! end if
-    
+
     loc_nb%nb_counter = nb_counter
 
-    associate(mymesh => loc_nb%mesh, &
-         i => loc_nb%index_p, &
-         j => loc_nb%nb_counter)
+    associate (mymesh => loc_nb%mesh, &
+               i => loc_nb%index_p, &
+               j => loc_nb%nb_counter)
       if (mymesh%neighbour_indices(j, i) == i) then
-        call error_abort("ERROR: trying to set self as neighbour! Cell: " // str(i) // str(j))
+        call error_abort("ERROR: trying to set self as neighbour! Cell: "//str(i)//str(j))
       end if
     end associate
   end subroutine set_neighbour_location
@@ -110,9 +110,9 @@ contains
     type(face_locator), intent(in) :: loc_f
     real(ccs_real), dimension(ndim), intent(out) :: normal
 
-    associate(mesh => loc_f%mesh, &
-         cell => loc_f%index_p, &
-         face => loc_f%cell_face_ctr)
+    associate (mesh => loc_f%mesh, &
+               cell => loc_f%index_p, &
+               face => loc_f%cell_face_ctr)
       normal(:) = mesh%face_normals(:, face, cell)
     end associate
   end subroutine get_face_normal
@@ -125,9 +125,9 @@ contains
     type(face_locator), intent(in) :: loc_f
     real(ccs_real), intent(out) :: area
 
-    associate(mesh => loc_f%mesh, &
-         cell =>loc_f%index_p, &
-         face =>loc_f%cell_face_ctr)
+    associate (mesh => loc_f%mesh, &
+               cell => loc_f%index_p, &
+               face => loc_f%cell_face_ctr)
       area = mesh%face_areas(face, cell)
     end associate
   end subroutine get_face_area
@@ -140,8 +140,8 @@ contains
     type(cell_locator), intent(in) :: loc_p
     real(ccs_real), dimension(ndim), intent(out) :: x
 
-    associate(mesh => loc_p%mesh, &
-         cell => loc_p%index_p)
+    associate (mesh => loc_p%mesh, &
+               cell => loc_p%index_p)
       x(:) = mesh%x_p(:, cell)
     end associate
   end subroutine get_cell_centre
@@ -156,11 +156,11 @@ contains
     real(ccs_real), dimension(ndim), intent(out) :: x
 
     type(cell_locator) :: cell_loc_nb
-    
+
     call get_neighbour_cell_locator(loc_nb, cell_loc_nb)
     call get_cell_centre(cell_loc_nb, x)
   end subroutine get_neighbour_centre
-  
+
   !>  Returns the centre of a face
   !
   !> @param[in]  face_locator     loc_f - the face locator object.
@@ -169,9 +169,9 @@ contains
     type(face_locator), intent(in) :: loc_f
     real(ccs_real), dimension(ndim), intent(out) :: x
 
-    associate(mesh => loc_f%mesh, &
-         cell => loc_f%index_p, &
-         face => loc_f%cell_face_ctr)
+    associate (mesh => loc_f%mesh, &
+               cell => loc_f%index_p, &
+               face => loc_f%cell_face_ctr)
       x(:) = mesh%x_f(:, face, cell)
     end associate
   end subroutine get_face_centre
@@ -184,8 +184,8 @@ contains
     type(cell_locator), intent(in) :: loc_p
     real(ccs_real), intent(out) :: V
 
-    associate(mesh => loc_p%mesh, &
-         cell => loc_p%index_p)
+    associate (mesh => loc_p%mesh, &
+               cell => loc_p%index_p)
       V = mesh%volumes(cell)
     end associate
   end subroutine get_cell_volume
@@ -212,9 +212,9 @@ contains
     type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(out) :: global_index_p
 
-    associate(mesh => loc_p%mesh)
+    associate (mesh => loc_p%mesh)
       if (mesh%nlocal > 0) then ! XXX: Potentially expensive...
-        associate(cell => loc_p%index_p)
+        associate (cell => loc_p%index_p)
           global_index_p = mesh%global_indices(cell)
         end associate
       else
@@ -244,8 +244,8 @@ contains
     type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(out) :: nnb
 
-    associate(mesh => loc_p%mesh, &
-         cell => loc_p%index_p)
+    associate (mesh => loc_p%mesh, &
+               cell => loc_p%index_p)
       nnb = mesh%nnb(cell)
     end associate
   end subroutine cell_count_neighbours
@@ -282,15 +282,15 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    associate(mesh => loc_f%mesh, &
-         i => loc_f%index_p, &
-         j => loc_f%cell_face_ctr)
+    associate (mesh => loc_f%mesh, &
+               i => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
       call set_cell_location(mesh, i, loc_p)
       call set_neighbour_location(loc_p, j, loc_nb)
     end associate
     call get_neighbour_boundary_status(loc_nb, is_boundary)
   end subroutine get_face_boundary_status
-  
+
   !>  Returns the local distribution status of a neighbouring cell
   !
   !> @description Given a distributed mesh, a processor needs both the cells within its partition
@@ -298,15 +298,15 @@ contains
   !!              cell's neighbour is within the local partition or the halo.
   !
   !> @param[in]  neighbour_locator loc_nb - the neighbour locator object.
-  !> @param[out] logical           is_local           - the local status of the neighbour.  
+  !> @param[out] logical           is_local           - the local status of the neighbour.
   module subroutine get_local_status(loc_nb, is_local)
     type(neighbour_locator), intent(in) :: loc_nb
     logical, intent(out) :: is_local
-    
+
     integer :: index_nb
 
     call get_neighbour_local_index(loc_nb, index_nb)
-    associate(mesh => loc_nb%mesh)
+    associate (mesh => loc_nb%mesh)
       if ((index_nb > 0) .and. (index_nb <= mesh%nlocal)) then
         is_local = .true.
       else
@@ -326,7 +326,7 @@ contains
   module subroutine get_cell_local_index(loc_p, index_p)
     type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(out) :: index_p
-    
+
     index_p = loc_p%index_p
   end subroutine get_cell_local_index
 
@@ -338,9 +338,9 @@ contains
     type(neighbour_locator), intent(in) :: loc_nb
     integer(ccs_int), intent(out) :: index_nb
 
-    associate(mesh => loc_nb%mesh, &
-         i => loc_nb%index_p, &
-         j => loc_nb%nb_counter)
+    associate (mesh => loc_nb%mesh, &
+               i => loc_nb%index_p, &
+               j => loc_nb%nb_counter)
       index_nb = mesh%neighbour_indices(j, i)
     end associate
   end subroutine get_neighbour_local_index
@@ -353,10 +353,10 @@ contains
     type(face_locator), intent(in) :: loc_f
     integer(ccs_int), intent(out) :: index_f
 
-    associate(mesh => loc_f%mesh, &
-      i => loc_f%index_p, &
-      j => loc_f%cell_face_ctr)
-      index_f = mesh%face_indices(j,i)
+    associate (mesh => loc_f%mesh, &
+               i => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
+      index_f = mesh%face_indices(j, i)
     end associate
   end subroutine get_face_local_index
 
@@ -365,7 +365,7 @@ contains
     type(cell_locator), intent(out) :: loc_p
 
     integer(ccs_int) :: index_nb
-    
+
     call get_local_index(loc_nb, index_nb)
     call set_cell_location(loc_nb%mesh, index_nb, loc_p)
   end subroutine get_neighbour_cell_locator

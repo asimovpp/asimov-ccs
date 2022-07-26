@@ -4,10 +4,10 @@
 
 module meshing
 
-  use constants, only : ndim
-  use kinds, only : ccs_int, ccs_real
-  use types, only : ccs_mesh, face_locator, cell_locator, neighbour_locator
-  
+  use constants, only: ndim
+  use kinds, only: ccs_int, ccs_real
+  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
+
   implicit none
 
   private
@@ -25,7 +25,7 @@ module meshing
   public :: get_local_status
   public :: count_neighbours
   public :: get_distance
-  
+
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
@@ -42,7 +42,7 @@ module meshing
     module procedure get_neighbour_local_index
     module procedure get_face_local_index
   end interface get_local_index
-  
+
   interface count_neighbours
     module procedure cell_count_neighbours
   end interface count_neighbours
@@ -56,12 +56,12 @@ module meshing
     module procedure get_cell_volume
     module procedure get_neighbour_volume
   end interface get_volume
-  
+
   interface get_distance
     module procedure get_neighbour_distance
     module procedure get_face_distance
   end interface get_distance
-  
+
   interface
 
     !>  Constructs a cell locator object.
@@ -70,15 +70,15 @@ module meshing
     !!              returned cell locator object.
     !
     !> @param[in]  mesh         mesh      - the mesh object being referred to.
-    !> @param[in]  ccs_int     index_p      - the cell index. 
+    !> @param[in]  ccs_int     index_p      - the cell index.
     !> @param[out] cell_locator loc_p - the cell locator object linking a cell index with
     !!                                          the mesh.
-  module subroutine set_cell_location(mesh, index_p, loc_p)
+    module subroutine set_cell_location(mesh, index_p, loc_p)
       type(ccs_mesh), target, intent(in) :: mesh
       integer(ccs_int), intent(in) :: index_p
       type(cell_locator), intent(out) :: loc_p
     end subroutine set_cell_location
-  
+
     !>  Constructs a face locator object.
     !
     !> @description Creates the association between a face relative to a cell, i.e. to access the
@@ -298,4 +298,4 @@ module meshing
   end interface
 
 end module meshing
-  
+
