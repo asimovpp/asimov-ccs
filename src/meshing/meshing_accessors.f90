@@ -47,7 +47,7 @@ contains
 
     ! XXX: Potentially expensive...
     if (index_p > mesh%ntotal) then
-      call error_abort("ERROR: trying to access cell I don't have access to!"//str(index_p)//str(mesh%nlocal))
+      call error_abort("ERROR: trying to access cell I don't have access to!" // str(index_p) // str(mesh%nlocal))
     end if
   end subroutine set_cell_location
 
@@ -86,7 +86,7 @@ contains
                i => loc_nb%index_p, &
                j => loc_nb%nb_counter)
       if (mymesh%neighbour_indices(j, i) == i) then
-        call error_abort("ERROR: trying to set self as neighbour! Cell: "//str(i)//str(j))
+        call error_abort("ERROR: trying to set self as neighbour! Cell: " // str(i) // str(j))
       end if
     end associate
   end subroutine set_neighbour_location
