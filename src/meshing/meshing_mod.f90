@@ -175,7 +175,7 @@ module meshing
       logical, intent(out) :: is_boundary     !< the boundary status of the neighbour.
     end subroutine get_face_boundary_status
 
-    !> Returns the local distribution status of a neighbouring cell
+    !v Returns the local distribution status of a neighbouring cell
     !
     !  Given a distributed mesh, a processor needs both the cells within its partition
     !  and cells from the surrounding halo - this subroutine get_indicates whether a
@@ -185,7 +185,7 @@ module meshing
       logical, intent(out) :: is_local !< the local status of the neighbour.
     end subroutine get_local_status
 
-    !> Returns the local index of a cell
+    !v Returns the local index of a cell
     !
     !  Generally the local index of a cell is should be the same as its location within
     !  the local cell vector - this particular subroutine get_is therefore expected of
