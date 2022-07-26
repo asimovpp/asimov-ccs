@@ -36,7 +36,7 @@ program test_partition_square_mesh
   print*,"Adjacency arrays: ", topo%adjncy
   print*,"Adjacency index array: ", topo%xadj
   
-  !call partition_kway(par_env, topo)
+  call partition_kway(par_env, topo)
 
   if(par_env%proc_id == 0) then
     print*, "Global partition after partitioning:"
@@ -48,36 +48,105 @@ program test_partition_square_mesh
   ! Compute new connectivity after partitioning
   call compute_connectivity(par_env, topo)
 
-  call check_topology()
+  call check_topology("post")
 
   call clean_test()
   call fin()
 
 contains
 
-  subroutine check_topology
+  subroutine check_topology(stage)
 
-    if (size(topo%nb_indices, 2) /= size(mesh%neighbour_indices, 2) .or. &
-         size(topo%nb_indices, 1) /= size(mesh%neighbour_indices, 1)) then
-      print *, "TOPO local_num_cells: ", topo%local_num_cells
-      print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
-      print *, "TOPO partition: ", topo%global_partition
-      print *, "MESH nlocal: ", mesh%nlocal
-      print *, "MESH nb_indices: ", size(mesh%neighbour_indices, 1), size(mesh%neighbour_indices, 2)
-      write(message, *) "ERROR: topology size is wrong!"
-      call stop_test(message)
-    end if
+    character(len=*), intent(in) :: stage
 
-    call check_connectivity()
+    !if (size(topo%nb_indices, 2) /= size(mesh%neighbour_indices, 2) .or. &
+    !     size(topo%nb_indices, 1) /= size(mesh%neighbour_indices, 1)) then
+    !  print *, "TOPO local_num_cells: ", topo%local_num_cells
+    !  print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
+    !  print *, "TOPO partition: ", topo%global_partition
+    !  print *, "MESH nlocal: ", mesh%nlocal
+    !  print *, "MESH nb_indices: ", size(mesh%neighbour_indices, 1), size(mesh%neighbour_indices, 2)
+    !  write(message, *) "ERROR: topology size is wrong!"
+    !  call stop_test(message)
+    !end if
+
+    call check_connectivity(stage)
 
   end subroutine
 
-  subroutine check_connectivity
-  
-    if (all(topo%nb_indices /= mesh%neighbour_indices)) then
-      write(message, *) "ERROR: topology changed!"
-      call stop_test(message)
-    end if
+  subroutine check_connectivity(stage)
+ 
+    character(len=*), intent(in) :: stage
+
+    integer :: i, j
+    integer :: nadj
+    integer, dimension(:), allocatable :: adjncy_expected
+
+    !if (all(topo%nb_indices /= mesh%neighbour_indices)) then
+    !  write(message, *) "ERROR: topology changed!"
+    !  call stop_test(message)
+    !end if
+   
+    do i = 1, topo%local_num_cells ! Loop over local cells
+      
+      nadj = topo%xadj(i+1) - topo%xadj(i)
+      allocate( adjncy_expected(nadj) )
+
+      call compute_expected_adjncy(i, adjncy_expected)
+
+      do j = topo%xadj(i), topo%xadj(i + 1) - 1
+        if (.not. any(adjncy_expected == topo%adjncy(j))) then
+          print *, "TOPO neighbours: ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
+          print *, "Expected nieghbours: ", adjncy_expected
+          write(message, *) "ERROR: neighbours are wrong "//stage//"-partitioning!"
+          call stop_test(message)
+        end if
+          !print *, "TOPO neighbours: ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
+          !print *, "Expected nieghbours: ", adjncy_expected
+          !write(message, *) "ERROR: neighbours are wrong post-partitioning!"
+      end do
+
+      deallocate(adjncy_expected)
+    end do
+
+  end subroutine
+          
+  subroutine compute_expected_adjncy(i, adjncy_expected)
+
+    integer, intent(in) :: i
+    integer, dimension(:), intent(inout) :: adjncy_expected
+
+    integer :: interior_ctr
+
+    adjncy_expected(:) = 0
+    interior_ctr = 1
+
+    associate( idx_global => topo%global_indices(i), &
+               cidx_global => (topo%global_indices(i) - 1) )
+      if (modulo(cidx_global, 4) /= 0) then
+        ! NOT @ left boundary
+        adjncy_expected(interior_ctr) = idx_global - 1
+        interior_ctr = interior_ctr + 1
+      end if
+
+      if (modulo(cidx_global, 4) /= (4 - 1)) then
+        ! NOT @ right boundary
+        adjncy_expected(interior_ctr) = idx_global + 1
+        interior_ctr = interior_ctr + 1
+      end if
+
+      if ((cidx_global / 4) /= 0) then
+        ! NOT @ bottom boundary
+        adjncy_expected(interior_ctr) = idx_global - 4
+        interior_ctr = interior_ctr + 1
+      end if
+
+      if ((cidx_global / 4) /= (4 - 1)) then
+        ! NOT @ top boundary
+        adjncy_expected(interior_ctr) = idx_global + 4
+        interior_ctr = interior_ctr + 1
+      end if
+    end associate
 
   end subroutine
 
@@ -212,6 +281,9 @@ contains
     else
       call stop_test("Not allocated!!!")
     end if
+
+    ! Run test to check we agree
+    call check_topology("pre")
 
   end subroutine
   
