@@ -114,7 +114,7 @@ implicit none
 
     ! Recompute vtxdist array based on the new partition
     do i = 2, isize + 1
-      topo%vtxdist(i) = count(topo%global_partition == i - 2) + topo%vtxdist(i - 1)
+      topo%vtxdist(i) = count(topo%global_partition == (i - 2)) + topo%vtxdist(i - 1)
     end do
 
     if(irank == 0) then

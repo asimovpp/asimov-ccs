@@ -62,16 +62,16 @@ contains
     select type(par_env)
     type is (parallel_environment_mpi)
 
-    call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, &
-                              topo%vwgt, topo%adjwgt, & 
-                              par_env%num_procs, imbalance, suppress, &
-                              seed, mode, edgecuts, topo%local_partition, par_env%comm)
+      call partition_parhipkway(topo%vtxdist, topo%xadj, topo%adjncy, &
+                                topo%vwgt, topo%adjwgt, & 
+                                par_env%num_procs, imbalance, suppress, &
+                                seed, mode, edgecuts, topo%local_partition, par_env%comm)
 
-    do i=1,local_part_size
-      tmp_partition(i+topo%vtxdist(irank+1)) = topo%local_partition(i)
-    end do
+      do i=1,local_part_size
+        tmp_partition(i+topo%vtxdist(irank+1)) = topo%local_partition(i)
+      end do
 
-    call MPI_AllReduce(tmp_partition,topo%global_partition,topo%global_num_cells,MPI_LONG,MPI_SUM,par_env%comm,ierr)
+      call MPI_AllReduce(tmp_partition,topo%global_partition,topo%global_num_cells,MPI_LONG,MPI_SUM,par_env%comm,ierr)
 
     class default
       print*, "ERROR: Unknown parallel environment!"
