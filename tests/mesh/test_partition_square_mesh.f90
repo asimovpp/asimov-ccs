@@ -4,6 +4,9 @@
 !> should not change the connectivity.
 
 program test_partition_square_mesh
+#include "ccs_macros.inc"
+
+  use mpi
 
   use testing_lib
   use partitioning, only: compute_partitioner_input, &
@@ -11,6 +14,8 @@ program test_partition_square_mesh
   use kinds, only: ccs_int, ccs_long
   use types, only: topology
   use mesh_utils, only : build_square_mesh
+
+  use utils, only : debug_print
 
   implicit none
 
@@ -20,6 +25,8 @@ program test_partition_square_mesh
 
   integer, parameter :: topo_idx_type = kind(topo%adjncy(1))
   integer(topo_idx_type) :: current, previous
+
+  integer(topo_idx_type), dimension(:), allocatable :: tmp_partition
   
   call init()
 
@@ -50,7 +57,7 @@ program test_partition_square_mesh
   !! --- read_topology() --- end
 
   !! --- compute_partitioner_input() ---
-  allocate(topo%vtxdist(5))
+  allocate(topo%vtxdist(par_env%num_procs + 1))
   allocate(topo%global_partition(topo%global_num_cells))
 
   ! Hardcode vtxdist for now
@@ -65,6 +72,22 @@ program test_partition_square_mesh
       topo%global_partition(i) = -1
     end if
   end do
+ 
+  !select type(par_env)
+  !type is (parallel_environment_mpi)
+  !  allocate(tmp_partition, source=topo%global_partition)
+  !  write(message, *) "Initial partition: ", tmp_partition
+  !  call dprint(message)
+  !  call MPI_Allreduce(tmp_partition, topo%global_partition, topo%global_num_cells, &
+  !          MPI_LONG, MPI_SUM, &
+  !          par_env%comm, ierr)
+  !  deallocate(tmp_partition)
+  !  write(message, *) "Using partition: ", topo%global_partition
+  !  call dprint(message)
+  !class default
+  !  write(message, *) "ERROR: This test only works for MPI!"
+  !  call stop_test(message)
+  !end select
   
   topo%local_num_cells = mesh%nlocal
   allocate(topo%xadj(topo%local_num_cells + 1))
@@ -92,10 +115,11 @@ program test_partition_square_mesh
       end if
 
     else
-      print*,"Test must be run on 4 MPI ranks"
+      write(message, *) "Test must be run on 4 MPI ranks"
+      call stop_test(message)
     end if 
  
-    class default
+  class default
     write(message, *) "ERROR: Unknown parallel environment!"
     call stop_test(message)
   end select
@@ -116,9 +140,9 @@ program test_partition_square_mesh
 
   topo%xadj(j + 1) = size(topo%adjncy) + 1
 
-  ! <MISSING> allocate topo%adjwgt
-  ! <MISSING> allocate topo%vwgt
-  
+  allocate(topo%adjwgt(size(topo%adjncy)))
+  allocate(topo%vwgt(topo%local_num_cells))
+
   !! --- compute_partitioner_input() --- end
   
   ! Assign corresponding mesh values to the topology object
@@ -136,25 +160,26 @@ program test_partition_square_mesh
 
   print*,"Adjacency index array: ", topo%xadj
 
-  ! ! These need to be set to 1 for them to do nothing
-  ! if (allocated(topo%adjwgt).and.allocated(topo%vwgt)) then
-  !   topo%adjwgt = 1
-  !   topo%vwgt = 1
-  ! else
-  !   call stop_test("Not allocated!!!")
-  ! end if
+  ! These need to be set to 1 for them to do nothing
+  if (allocated(topo%adjwgt).and.allocated(topo%vwgt)) then
+    topo%adjwgt = 1
+    topo%vwgt = 1
+  else
+    call stop_test("Not allocated!!!")
+  end if
   
-  call partition_kway(par_env, topo)
+  !call partition_kway(par_env, topo)
 
-  ! if(par_env%proc_id == 0) then
-  !   print*, "Global partition after partitioning:"
-  !   do i=1,topo%global_num_cells
-  !     print*, topo%global_partition(i)
-  !   end do
-  ! end if
+  if(par_env%proc_id == 0) then
+    print*, "Global partition after partitioning:"
+    do i=1,topo%global_num_cells
+      print*, topo%global_partition(i)
+    end do
+  end if
 
   ! Compute new connectivity after partitioning
   call compute_connectivity(par_env, topo)
+
   if (size(topo%nb_indices, 2) /= size(mesh%neighbour_indices, 2) .or. &
        size(topo%nb_indices, 1) /= size(mesh%neighbour_indices, 1)) then
     print *, "TOPO local_num_cells: ", topo%local_num_cells
