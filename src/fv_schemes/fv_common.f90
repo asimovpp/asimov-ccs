@@ -177,7 +177,7 @@ contains
     select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
       bc_value = phi%bcs%values(index_bc)
-    case (bc_type_wall)
+    case (bc_type_wall)                   ! XXX: implement BCs properly
       bc_value = 0.0_ccs_real
     case default
       bc_value = 0.0_ccs_real

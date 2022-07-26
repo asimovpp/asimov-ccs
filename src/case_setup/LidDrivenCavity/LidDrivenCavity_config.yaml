@@ -47,7 +47,7 @@ relaxation_factor:
 #  variables: [u, v, w, p]
 
 variables:
-  n_variables: 6
+  n_variables: 3
   variable_1:
     name: u
     type: central
@@ -55,15 +55,8 @@ variables:
     name: v
     type: upwind
   variable_3:
-    name: w
-    type: upwind
-  variable_4:
     name: p
     type: central
-  variable_5:
-    name: phi_1
-  variable_6:
-    name: phi_2
 
 boundaries:
   n_boundaries: 4
@@ -72,13 +65,11 @@ boundaries:
     id: 92749
     type: wall
     variable_u:
-      type: dirichlet
-      value: 1
-    variable_v:
-      type: neumann
+      type: wall
       value: 0
-    variable_p:
-      type: extrapolate      
+    variable_v:
+      type: wall
+      value: 0
   boundary_3:
     name: top
     id: 17648
@@ -86,31 +77,25 @@ boundaries:
       type: dirichlet
       value: 1
     variable_v:
-      type: neumann
+      type: wall
       value: 0
-    variable_p:
-      type: extrapolate      
   boundary_2:
     name: right
     id: 0
     type: wall
     variable_u:
-      type: dirichlet
-      value: 1
-    variable_v:
-      type: neumann
+      type: wall
       value: 0
-    variable_p:
-      type: extrapolate      
+    variable_v:
+      type: wall
+      value: 0
   boundary_4:
     name: bottom
     id: 1
     type: wall
     variable_u:
-      type: dirichlet
-      value: 1
-    variable_v:
-      type: neumann
+      type: wall
       value: 0
-    variable_p:
-      type: extrapolate      
+    variable_v:
+      type: wall
+      value: 0
