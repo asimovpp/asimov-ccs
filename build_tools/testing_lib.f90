@@ -14,9 +14,9 @@ module testing_lib
   public :: assert_equal
 
   interface assert_equal
-    module procedure assert_equal_integer
-    module procedure assert_equal_real
-    module procedure assert_equal_string
+    procedure assert_equal_integer
+    procedure assert_equal_real
+    procedure assert_equal_string
   end interface
   
   class(parallel_environment), allocatable, target :: par_env
@@ -115,7 +115,7 @@ contains
   !>  Assertion for integer equality
   !
   !> @description Check whether input integers are equal. If not, construct message, print and stop.
-  module subroutine assert_equal_integer(a, b, msg_format)
+  subroutine assert_equal_integer(a, b, msg_format)
 
     integer(ccs_int), intent(in) :: a
     integer(ccs_int), intent(in) :: b
@@ -132,7 +132,7 @@ contains
   !>  assertion for real equality
   !
   !> @description check whether input reals are equal. if not, construct message, print and stop.
-  module subroutine assert_equal_real(a, b, msg_format)
+  subroutine assert_equal_real(a, b, msg_format)
 
     real(ccs_real), intent(in) :: a
     real(ccs_real), intent(in) :: b
@@ -149,7 +149,7 @@ contains
   !>  assertion for string equality
   !
   !> @description check whether input strings are equal. if not, construct message, print and stop.
-  module subroutine assert_equal_string(a, b, msg_format)
+  subroutine assert_equal_string(a, b, msg_format)
 
     character(*), intent(in) :: a
     character(*), intent(in) :: b
