@@ -738,6 +738,7 @@ contains
     real(ccs_real) :: bc_value
     logical :: field_exists
     
+    field_exists = .true.
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
@@ -760,11 +761,13 @@ contains
             call get_value(dict2, bc_field, bc_id)
             call set_bc_attribute(i, bc_id, phi%bcs)
           case default
-            !call get_bc_field_data(dict2, i, bc_field, phi)
             select type (dict2)
             type is (type_dictionary)
               write (variable, '(A, A)') "variable_", bc_field
               variable_dict => dict2%get_dictionary(variable, required=.false., error=io_err)
+              if (.not. associated(variable_dict)) then
+                exit  ! If the variable isn't specified for the given boundary, skip to the next one.
+              end if
               call error_handler(io_err)
 
               call get_value(variable_dict, "type", bc_type)
@@ -783,36 +786,5 @@ contains
       call error_abort("type unhandled")
     end select
   end subroutine get_bc_field
-
-  subroutine get_bc_field_data(dict, boundary_index, bc_field, phi)
-    class(*), pointer, intent(in) :: dict
-    integer(ccs_int), intent(in) :: boundary_index
-    character(len=*), intent(in) :: bc_field       !< string indicating which field to read from BCs
-    class(field), intent(inout) :: phi
-
-    class(*), pointer :: variable_dict
-    character(len=25) :: variable
-    !character(len=:), allocatable :: bc_type
-    real(ccs_real) :: bc_value
-    logical :: field_exists
-    type(type_error), pointer :: io_err
-
-    select type (dict)
-    type is (type_dictionary)
-      write (variable, '(A, A)') "variable_", bc_field
-      variable_dict => dict%get_dictionary(variable, required=.false., error=io_err)
-      !call error_handler(io_err)
-
-      !call get_value(variable_dict, "type", bc_type)
-      !call set_bc_attribute(boundary_index, bc_field, bc_type, phi%bcs)
-
-      call get_value(variable_dict, "value", bc_value, field_exists)
-      if (field_exists) then
-        call set_bc_attribute(boundary_index, bc_value, phi%bcs)
-      end if
-    class default
-      call error_abort("type unhandled")
-    end select
-  end subroutine get_bc_field_data
 
 end submodule read_config_utils

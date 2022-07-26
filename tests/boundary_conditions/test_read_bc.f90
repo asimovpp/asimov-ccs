@@ -80,14 +80,11 @@ program bc_test
   bc_types = bc_type_dirichlet
   bc_values = 1
   call check_bcs(u%bcs, bc_names, bc_ids, bc_types, bc_values)
-  call dprint("finished checking u")
   bc_types = bc_type_neumann
   bc_values = 0
   call check_bcs(v%bcs, bc_names, bc_ids, bc_types, bc_values)
-  call dprint("finished checking v")
   bc_types = bc_type_extrapolate
   call check_bcs(p%bcs, bc_names, bc_ids, bc_types)
-  call dprint("finished checking p")
 
   call fin()
 
