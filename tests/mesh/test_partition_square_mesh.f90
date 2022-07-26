@@ -70,8 +70,40 @@ contains
     !  call stop_test(message)
     !end if
 
+    call check_distribution(stage)
     call check_self_loops(stage)
     call check_connectivity(stage)
+
+  end subroutine
+
+  subroutine check_distribution(stage)
+
+    character(len=*), intent(in) :: stage
+
+    integer :: i
+    integer :: ctr
+
+    ! Do some basic verification
+
+    if (size(topo%vtxdist) /= (par_env%num_procs + 1)) then
+      write(message, *) "ERROR: global vertex distribution is wrong size "//stage//"-partitioning!"
+      call stop_test(message)
+    end if
+
+    ctr = 0
+    do i = 2, size(topo%vtxdist)
+      if (topo%vtxdist(i) < topo%vtxdist(i-1)) then
+        write(message, *) "ERROR: global vertex distribution ordering is wrong "//stage//"-partitioning!"
+        call stop_test(message)
+      end if
+
+      ctr = ctr + (topo%vtxdist(i) - topo%vtxdist(i - 1))
+    end do
+
+    if (ctr /= topo%global_num_cells) then
+      write(message, *) "ERROR: global vertex distribution count is wrong "//stage//"-partitioning!"
+      call stop_test(message)
+    end if
 
   end subroutine
 
@@ -90,6 +122,7 @@ contains
         end if
       end do
     end do
+
   end subroutine
 
   subroutine check_connectivity(stage)
