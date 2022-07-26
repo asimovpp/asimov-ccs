@@ -57,7 +57,7 @@ contains
     character (len=*), intent(in) :: keyword          !< The key to read
     real(ccs_real), intent(out)  :: real_val          !< The value read from the dictionary
     logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
-    logical, intent(in), optional :: required         !< Flag indicating whether the value is required
+    logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
 
     type(type_error), pointer :: io_err
 
@@ -95,7 +95,7 @@ contains
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
     character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
-    logical, optional, intent(in) :: required
+    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies required.
 
     type(type_error), pointer :: io_err
     logical :: is_required
