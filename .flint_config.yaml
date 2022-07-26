@@ -225,8 +225,8 @@ regexp-rules:
 
   trailing-whitespaces:
     message: Trailing whitespaces
-    regexp: ([ \t])+$
-    replacement: ''
+    regexp:  ([^ \t\r\n])[ \t]+$
+    replacement: '\1'
     include-comments: true
 
   reommended-use-of-sp-dp:
