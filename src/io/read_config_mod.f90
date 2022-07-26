@@ -201,10 +201,11 @@ module read_config
       character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
     end subroutine
     
-    module subroutine get_bc_field(config_file, bc_field, phi)
+    module subroutine get_bc_field(config_file, bc_field, phi, required)
       class(*), pointer, intent(in) :: config_file
       character(len=*), intent(in) :: bc_field
       class(field), intent(inout) :: phi
+      logical, optional, intent(in) :: required
     end subroutine
 
     module subroutine get_bc_variables(filename, variables)

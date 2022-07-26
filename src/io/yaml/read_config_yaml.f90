@@ -91,24 +91,39 @@ contains
   end subroutine
 
   !> Gets the string associated with the keyword from dict
-  subroutine get_string_value(dict, keyword, string_val)
+  subroutine get_string_value(dict, keyword, string_val, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
     character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
+    logical, optional, intent(in) :: required
 
     type(type_error), pointer :: io_err
+    logical :: is_required
+
+    if (present(required)) then
+      if (required .eqv. .false.) then
+        is_required = .false. 
+      else 
+        is_required = .true. 
+      end if
+    else
+      is_required = .true. 
+    end if
 
     select type (dict)
     type is (type_dictionary)
 
       string_val = trim(dict%get_string(keyword, error=io_err))
-      call error_handler(io_err)
+      if (is_required) then
+        call error_handler(io_err)
+      end if
 
     class default
       call error_abort("Unknown type")
     end select
 
-    if (associated(io_err) .eqv. .true.) then
+    if ((associated(io_err) .eqv. .true.) .and. is_required) then
+      print *, 'is_required ', is_required
       call error_abort("Error reading " // keyword)
     end if
 
@@ -717,10 +732,11 @@ contains
   end subroutine get_bc_variables
 
   !> Gets the specified field value from the config file and writes to given bcs struct
-  module subroutine get_bc_field(config_file, bc_field, phi) 
+  module subroutine get_bc_field(config_file, bc_field, phi, required) 
     class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
     character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
     class(field), intent(inout) :: phi            !< field structure
+    logical, optional, intent(in) :: required
     
     ! local variables
     class(*), pointer :: dict
@@ -760,22 +776,27 @@ contains
           case ("id")
             call get_value(dict2, bc_field, bc_id)
             call set_bc_attribute(i, bc_id, phi%bcs)
+          case ("type") 
+            call get_value(dict2, bc_field, bc_type, required=required)
+            call set_bc_attribute(i, "type", bc_type, phi%bcs)
+          case ("value") 
+            call get_value(dict2, bc_field, bc_value, required=required)
+            call set_bc_attribute(i, bc_value, phi%bcs)
           case default
             select type (dict2)
             type is (type_dictionary)
               write (variable, '(A, A)') "variable_", bc_field
               variable_dict => dict2%get_dictionary(variable, required=.false., error=io_err)
-              if (.not. associated(variable_dict)) then
-                exit  ! If the variable isn't specified for the given boundary, skip to the next one.
-              end if
               call error_handler(io_err)
 
-              call get_value(variable_dict, "type", bc_type)
-              call set_bc_attribute(i, "type", bc_type, phi%bcs)
+              if (associated(variable_dict)) then
+                call get_value(variable_dict, "type", bc_type)
+                call set_bc_attribute(i, "type", bc_type, phi%bcs)
 
-              call get_value(variable_dict, "value", bc_value, field_exists)
-              if (field_exists) then
-                call set_bc_attribute(i, bc_value, phi%bcs)
+                call get_value(variable_dict, "value", bc_value, field_exists)
+                if (field_exists) then
+                  call set_bc_attribute(i, bc_value, phi%bcs)
+                end if
               end if
             end select
           end select

@@ -26,13 +26,11 @@ boundaries:
     name: left
     id: 92749
     type: wall
+    value: 0
     variable_u:
       type: dirichlet
       value: 1
     variable_v:
-      type: neumann
-      value: 0
-    variable_w:
       type: neumann
       value: 0
     variable_p:
@@ -44,6 +42,7 @@ boundaries:
   boundary_3:
     name: top
     id: 17648
+    type: wall
     variable_u:
       type: dirichlet
       value: 1

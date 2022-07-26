@@ -83,6 +83,7 @@ program bc_test
   bc_types = bc_type_neumann
   bc_values = 0
   call check_bcs(v%bcs, bc_names, bc_ids, bc_types, bc_values)
+  bc_types(1) = bc_type_wall
   call check_bcs(w%bcs, bc_names, bc_ids, bc_types, bc_values)
   bc_types = bc_type_extrapolate
   call check_bcs(p%bcs, bc_names, bc_ids, bc_types)

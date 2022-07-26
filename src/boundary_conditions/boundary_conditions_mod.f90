@@ -44,6 +44,8 @@ module boundary_conditions
 
     call get_bc_field(config_file, "name", phi)
     call get_bc_field(config_file, "id", phi)
+    call get_bc_field(config_file, "type", phi, required=.false.)
+    call get_bc_field(config_file, "value", phi, required=.false.)
     call get_bc_field(config_file, bc_field, phi)
   end subroutine read_bc_config
   
