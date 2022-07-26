@@ -84,7 +84,7 @@ module mat
 
     !v Interface to set the row currently being worked on by matrix values.
     !
-    !  Sets the current row in the maitrx value object, the implementation of this is
+    !  Sets the current row in the matrix value object, the implementation of this is
     !  backend-dependent as it should immediately convert to the correct indexing
     !  (whether that's 0, 1 or X-based) as used by the backend.
     module subroutine set_matrix_values_row(row, val_dat)
@@ -115,7 +115,7 @@ module mat
 
     end subroutine set_matrix_values_spec_ncols
 
-    !> Interface to create a maitrx values object.
+    !> Interface to create a matrix values object.
     module subroutine create_matrix_values(val_spec, val_dat)
       type(matrix_values_spec), intent(in) :: val_spec !< how many rows will be set?
       type(matrix_values), intent(out) :: val_dat      !< the matrix values object

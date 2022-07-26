@@ -47,7 +47,7 @@ module vec
 
     !> Interface to set values in a vector.
     module subroutine set_vector_values(val_dat, v)
-      class(*), intent(in) :: val_dat !< contains the values, their indices and the mode to use for setting them.
+      class(*), intent(in) :: val_dat       !< contains the values, their indices and the mode to use for setting them.
       class(ccs_vector), intent(inout) :: v !< the vector.
     end subroutine set_vector_values
 
@@ -62,7 +62,7 @@ module vec
 
     !> Interface to create a vector values object.
     module subroutine create_vector_values(nrows, val_dat)
-      integer(ccs_int), intent(in) :: nrows !< how many rows will be set?
+      integer(ccs_int), intent(in) :: nrows       !< how many rows will be set?
       type(vector_values), intent(out) :: val_dat !< the vector values object
     end subroutine create_vector_values
 
@@ -77,7 +77,7 @@ module vec
     !  backend-dependent as it should immediately convert to the correct indexing
     !  (whether that's 0, 1 or X-based) as used by the backend.
     module subroutine set_vector_values_row(row, val_dat)
-      integer(ccs_int), intent(in) :: row !< the row
+      integer(ccs_int), intent(in) :: row           !< the row
       type(vector_values), intent(inout) :: val_dat !< the vector values object
     end subroutine set_vector_values_row
 
