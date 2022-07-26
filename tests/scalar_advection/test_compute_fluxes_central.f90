@@ -30,6 +30,7 @@ program test_compute_fluxes
   integer(ccs_int), parameter :: cps = 5
   integer(ccs_int) :: i
   real(ccs_real), dimension(3) :: mf_values
+  integer(ccs_int), parameter :: n_boundaries = 4
 
   call init()
 
@@ -38,9 +39,10 @@ program test_compute_fluxes
   allocate(central_field :: scalar)
   allocate(face_field :: mf)
 
-  call allocate_bc_arrays("name", 4, scalar%bcs)
-  call allocate_bc_arrays("type", 4, scalar%bcs)
-  call allocate_bc_arrays("value", 4, scalar%bcs)
+  call allocate_bc_arrays(n_boundaries, scalar%bcs)
+  call allocate_bc_arrays(n_boundaries, scalar%bcs)
+  call allocate_bc_arrays(n_boundaries, scalar%bcs)
+  call allocate_bc_arrays(n_boundaries, scalar%bcs)
   scalar%bcs%names(1) = bc_region_left
   scalar%bcs%names(2) = bc_region_right
   scalar%bcs%names(3) = bc_region_bottom
