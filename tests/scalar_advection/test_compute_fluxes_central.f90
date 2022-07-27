@@ -43,10 +43,9 @@ program test_compute_fluxes
   call allocate_bc_arrays(n_boundaries, scalar%bcs)
   call allocate_bc_arrays(n_boundaries, scalar%bcs)
   call allocate_bc_arrays(n_boundaries, scalar%bcs)
-  scalar%bcs%names(1) = bc_region_left
-  scalar%bcs%names(2) = bc_region_right
-  scalar%bcs%names(3) = bc_region_bottom
-  scalar%bcs%names(4) = bc_region_top
+  do i = 1, n_boundaries
+    scalar%bcs%ids(i) = i
+  end do
   scalar%bcs%bc_types(:) = bc_type_wall
   scalar%bcs%bc_types(4) = bc_type_dirichlet
   scalar%bcs%values = 1.0_ccs_real
