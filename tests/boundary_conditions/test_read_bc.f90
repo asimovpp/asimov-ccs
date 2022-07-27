@@ -103,11 +103,11 @@ program bc_test
     real(ccs_real), dimension(:), intent(in), optional :: values
 
     do i = 1, size(bcs%names)
-      call assert_equal(bcs%names(i), names(i), "bc name does not match")
-      call assert_equal(bcs%ids(i), ids(i), "bc id does not match")
-      call assert_equal(bcs%bc_types(i), types(i), "bc type does not match")
+      call assert_equal(bcs%names(i), names(i), '("bc name does not match. expected ", i0, " received ", i0)')
+      call assert_equal(bcs%ids(i), ids(i), '("bc id does not match. expected ", i0, " received ", i0)')
+      call assert_equal(bcs%bc_types(i), types(i), '("bc type does not match. expected ", i0, " received ", i0)')
       if (present(values)) then
-        call assert_equal(bcs%values(i), values(i), "bc value does not match")
+        call assert_equal(bcs%values(i), values(i), '("bc value does not match. expected ", f0, " received ", f0)')
       end if 
     end do
   end subroutine check_bcs

@@ -115,15 +115,15 @@ contains
   !>  Assertion for integer equality
   !
   !> @description Check whether input integers are equal. If not, construct message, print and stop.
-  subroutine assert_equal_integer(a, b, msg_format)
+  subroutine assert_equal_integer(test_value, reference_value, msg_format)
 
-    integer(ccs_int), intent(in) :: a
-    integer(ccs_int), intent(in) :: b
-    character(*), intent(in) :: msg_format
+    integer(ccs_int), intent(in) :: test_value       !< Test value
+    integer(ccs_int), intent(in) :: reference_value  !< reference value
+    character(*), intent(in) :: msg_format           !< Error message 
     character(1024) :: message
 
-    if (a /= b) then
-      write (message, msg_format) a, b
+    if (test_value /= reference_value) then
+      write (message, msg_format) test_value, reference_value
       call stop_test(message)
     end if
 
@@ -132,15 +132,15 @@ contains
   !>  assertion for real equality
   !
   !> @description check whether input reals are equal. if not, construct message, print and stop.
-  subroutine assert_equal_real(a, b, msg_format)
+  subroutine assert_equal_real(test_value, reference_value, msg_format)
 
-    real(ccs_real), intent(in) :: a
-    real(ccs_real), intent(in) :: b
-    character(*), intent(in) :: msg_format
+    real(ccs_real), intent(in) :: test_value      !< Test value
+    real(ccs_real), intent(in) :: reference_value !< reference value
+    character(*), intent(in) :: msg_format        !< Error message 
     character(1024) :: message
 
-    if (a /= b) then
-      write (message, msg_format) a, b
+    if (abs(test_value - reference_value) > epsilon(reference_value) * abs(reference_value)) then
+      write (message, msg_format) test_value, reference_value
       call stop_test(message)
     end if
 
@@ -149,15 +149,15 @@ contains
   !>  assertion for string equality
   !
   !> @description check whether input strings are equal. if not, construct message, print and stop.
-  subroutine assert_equal_string(a, b, msg_format)
+  subroutine assert_equal_string(test_value, reference_value, msg_format)
 
-    character(*), intent(in) :: a
-    character(*), intent(in) :: b
-    character(*), intent(in) :: msg_format
+    character(*), intent(in) :: test_value      !< Test value
+    character(*), intent(in) :: reference_value !< reference value
+    character(*), intent(in) :: msg_format      !< Error message 
     character(1024) :: message
 
-    if (a /= b) then
-      write (message, msg_format) a, b
+    if (test_value /= reference_value) then
+      write (message, msg_format) test_value, reference_value
       call stop_test(message)
     end if
 
