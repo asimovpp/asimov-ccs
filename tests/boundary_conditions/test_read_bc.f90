@@ -75,39 +75,36 @@ program bc_test
   allocate(bc_ids(n_boundaries))
   allocate(bc_types(n_boundaries))
   allocate(bc_values(n_boundaries))
-  bc_names = (/ bc_region_left, bc_region_right, bc_region_top, bc_region_bottom /)
-  bc_ids = (/ 92749, 0, 17648, 1 /)
+  bc_ids = (/ 1, 2, 4, 3 /)
   bc_types = bc_type_dirichlet
   bc_values = 1
-  call check_bcs(u%bcs, bc_names, bc_ids, bc_types, bc_values)
+  call check_bcs(u%bcs, bc_ids, bc_types, bc_values)
   bc_types = bc_type_neumann
   bc_values = 0
-  call check_bcs(v%bcs, bc_names, bc_ids, bc_types, bc_values)
+  call check_bcs(v%bcs, bc_ids, bc_types, bc_values)
   bc_types(1) = bc_type_wall
-  call check_bcs(w%bcs, bc_names, bc_ids, bc_types, bc_values)
+  call check_bcs(w%bcs, bc_ids, bc_types, bc_values)
   bc_types = bc_type_extrapolate
-  call check_bcs(p%bcs, bc_names, bc_ids, bc_types)
+  call check_bcs(p%bcs, bc_ids, bc_types)
   do j = 1, size(variable_names) - 4
-    call check_bcs(phi(j)%bcs, bc_names, bc_ids, bc_types)
+    call check_bcs(phi(j)%bcs, bc_ids, bc_types)
   end do
 
   call fin()
 
   contains
 
-  subroutine check_bcs(bcs, names, ids, types, values)
+  subroutine check_bcs(bcs, ids, types, values)
     type(bc_config), intent(in) :: bcs
-    integer(ccs_int), dimension(:), intent(in) :: names
     integer(ccs_int), dimension(:), intent(in) :: ids
     integer(ccs_int), dimension(:), intent(in) :: types
     real(ccs_real), dimension(:), intent(in), optional :: values
 
-    do i = 1, size(bcs%names)
-      call assert_equal(bcs%names(i), names(i), '("bc name does not match. expected ", i0, " received ", i0)')
-      call assert_equal(bcs%ids(i), ids(i), '("bc id does not match. expected ", i0, " received ", i0)')
-      call assert_equal(bcs%bc_types(i), types(i), '("bc type does not match. expected ", i0, " received ", i0)')
+    do i = 1, size(bcs%ids)
+      call assert_equal(bcs%ids(i), ids(i), '("bc id does not match. received ", i0, " expected ", i0)')
+      call assert_equal(bcs%bc_types(i), types(i), '("bc type does not match. received ", i0, " expected ", i0)')
       if (present(values)) then
-        call assert_equal(bcs%values(i), values(i), '("bc value does not match. expected ", f0, " received ", f0)')
+        call assert_equal(bcs%values(i), values(i), '("bc value does not match. received ", f0, " expected ", f0)')
       end if 
     end do
   end subroutine check_bcs

@@ -8,11 +8,6 @@ module bc_constants
 
   implicit none
 
-  integer(ccs_int), parameter :: bc_region_left = -1
-  integer(ccs_int), parameter :: bc_region_right = -2
-  integer(ccs_int), parameter :: bc_region_bottom = -3
-  integer(ccs_int), parameter :: bc_region_top = -4
-
   integer(ccs_int), parameter :: bc_type_periodic = 1
   integer(ccs_int), parameter :: bc_type_sym = 2
   integer(ccs_int), parameter :: bc_type_dirichlet = 3

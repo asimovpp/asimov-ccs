@@ -62,7 +62,6 @@ boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    id: 1
     type: wall
     variable_u:
       type: dirichlet
@@ -71,7 +70,7 @@ boundaries:
       type: wall
   boundary_3:
     name: top
-    id: 4
+    type: wall
     variable_u:
       type: dirichlet
       value: 1
@@ -80,7 +79,6 @@ boundaries:
       value: 0
   boundary_2:
     name: right
-    id: 2
     type: wall
     variable_u:
       type: dirichlet
@@ -89,7 +87,6 @@ boundaries:
       type: wall
   boundary_4:
     name: bottom
-    id: 3
     type: wall
     variable_u:
       type: wall

@@ -32,10 +32,10 @@ program test_compute_fluxes
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  bcs%region(1) = bc_region_left
-  bcs%region(2) = bc_region_right
-  bcs%region(3) = bc_region_top
-  bcs%region(4) = bc_region_bottom
+  bcs%region(1) = -1
+  bcs%region(2) = -2
+  bcs%region(3) = -4
+  bcs%region(4) = -3
   bcs%bc_types(:) = bc_type_dirichlet
   bcs%endpoints(:,:) = 1.0_ccs_real
     

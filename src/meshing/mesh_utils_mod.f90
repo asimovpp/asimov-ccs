@@ -113,8 +113,8 @@ contains
             ! Construct left (1) face/neighbour
             face_counter = left
             if (modulo(ii, cps) == 0_ccs_int) then
-              index_nb = bc_region_left
-              global_index_nb = bc_region_left
+              index_nb = -left
+              global_index_nb = -left
             else
               index_nb = index_counter - 1_ccs_int
               global_index_nb = i - 1_ccs_int
@@ -124,8 +124,8 @@ contains
             ! Construct right (2) face/neighbour
             face_counter = right
             if (modulo(ii, cps) == (cps - 1_ccs_int)) then
-              index_nb = bc_region_right
-              global_index_nb = bc_region_right
+              index_nb = -right
+              global_index_nb = -right
             else
               index_nb = index_counter + 1_ccs_int
               global_index_nb = i + 1_ccs_int
@@ -135,8 +135,8 @@ contains
             ! Construct down (3) face/neighbour
             face_counter = down
             if ((ii / cps) == 0_ccs_int) then
-              index_nb = bc_region_bottom
-              global_index_nb = bc_region_bottom
+              index_nb = -down
+              global_index_nb = -down
             else
               index_nb = index_counter - cps
               global_index_nb = i - cps
@@ -146,8 +146,8 @@ contains
             ! Construct up (4) face/neighbour
             face_counter = up
             if ((ii / cps) == (cps - 1_ccs_int)) then
-              index_nb = bc_region_top
-              global_index_nb = bc_region_top
+              index_nb = -up
+              global_index_nb = -up
             else
               index_nb = index_counter + cps
               global_index_nb = i + cps

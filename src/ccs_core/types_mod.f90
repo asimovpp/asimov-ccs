@@ -75,7 +75,6 @@ module types
 
   !> BC data type
   type, public :: bc_config
-    integer(ccs_int), dimension(:), allocatable :: names  
     integer(ccs_int), dimension(:), allocatable :: ids
     integer(ccs_int), dimension(:), allocatable :: bc_types
     real(ccs_real), dimension(:), allocatable :: values

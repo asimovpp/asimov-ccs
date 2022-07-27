@@ -24,7 +24,6 @@ boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    id: 92749
     type: wall
     value: 0
     variable_u:
@@ -41,7 +40,6 @@ boundaries:
       type: extrapolate      
   boundary_3:
     name: top
-    id: 17648
     type: wall
     variable_u:
       type: dirichlet
@@ -60,7 +58,6 @@ boundaries:
       type: extrapolate      
   boundary_2:
     name: right
-    id: 0
     type: wall
     variable_u:
       type: dirichlet
@@ -79,7 +76,6 @@ boundaries:
       type: extrapolate      
   boundary_4:
     name: bottom
-    id: 1
     type: wall
     variable_u:
       type: dirichlet

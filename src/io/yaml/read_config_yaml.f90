@@ -13,7 +13,7 @@ submodule(read_config) read_config_utils
                         type_list_item, &
                         type_scalar
   use yaml, only: parse, error_length
-  use boundary_conditions, only: set_bc_attribute, allocate_bc_arrays
+  use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type, allocate_bc_arrays
 
   implicit none
 
@@ -746,7 +746,6 @@ contains
     type(type_error), pointer :: io_err
     character(len=:), allocatable :: bc_field_string
     character(len=25) :: boundary_index
-    integer(ccs_int) :: bc_id
 
     class(*), pointer :: variable_dict
     character(len=25) :: variable
@@ -772,16 +771,13 @@ contains
           select case (bc_field)
           case ("name")
             call get_value(dict2, bc_field, bc_field_string)
-            call set_bc_attribute(i, bc_field, bc_field_string, phi%bcs)
-          case ("id")
-            call get_value(dict2, bc_field, bc_id)
-            call set_bc_attribute(i, bc_id, phi%bcs)
+            call set_bc_id(i, bc_field_string, phi%bcs)
           case ("type") 
             call get_value(dict2, bc_field, bc_type, required=required)
-            call set_bc_attribute(i, "type", bc_type, phi%bcs)
+            call set_bc_type(i, trim(bc_type), phi%bcs)
           case ("value") 
             call get_value(dict2, bc_field, bc_value, required=required)
-            call set_bc_attribute(i, bc_value, phi%bcs)
+            call set_bc_real_value(i, bc_value, phi%bcs)
           case default
             select type (dict2)
             type is (type_dictionary)
@@ -791,11 +787,11 @@ contains
 
               if (associated(variable_dict)) then
                 call get_value(variable_dict, "type", bc_type)
-                call set_bc_attribute(i, "type", bc_type, phi%bcs)
+                call set_bc_type(i, bc_type, phi%bcs)
 
                 call get_value(variable_dict, "value", bc_value, field_exists)
                 if (field_exists) then
-                  call set_bc_attribute(i, bc_value, phi%bcs)
+                  call set_bc_real_value(i, bc_value, phi%bcs)
                 end if
               end if
             end select
