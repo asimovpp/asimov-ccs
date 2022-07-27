@@ -164,13 +164,15 @@ contains
 
   !v  Computes the value of the scalar field on the boundary based on linear interpolation between 
   !  values provided on box corners
-  subroutine compute_boundary_values(phi, index_nb, bc_value)
+  subroutine compute_boundary_values(phi, index_p, index_nb, bc_value)
     class(field), intent(in) :: phi           !< the field for which boundary values are being computed
+    integer, intent(in) :: index_p            !< index of cell
     integer, intent(in) :: index_nb           !< index of neighbour 
     real(ccs_real), intent(out) :: bc_value   !< the value of the scalar field at the specified boundary
 
     ! local variables
     integer(ccs_int) :: index_bc
+    real(ccs_real), dimension(:), pointer :: phi_values
 
     call get_bc_index(phi, index_nb, index_bc)
     
@@ -249,7 +251,7 @@ contains
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
           call calc_cell_coords(global_index_p, cps, row, col)
-          call compute_boundary_values(phi, index_nb, bc_value)
+          call compute_boundary_values(phi, index_p, index_nb, bc_value)
 
           call clear_entries(mat_coeffs)
           call clear_entries(b_coeffs)

@@ -134,11 +134,10 @@ module boundary_conditions
     integer(ccs_int), intent(in) :: index_nb    !< The index of the neighbouring boundary cell
     integer(ccs_int), intent(out) :: index_bc   !< The index of the appropriate boundary in the bc struct
 
-    ! XXX: There might be a better way of doing this on the assumption that the boundary condition labels are ordered.
-    do index_bc = 1, size(phi%bcs%names)
-      if (phi%bcs%names(index_bc) == index_nb) then
-        exit
-      end if
-    end do
+    ! Local variable
+    integer(ccs_int), dimension(1) :: index_tmp ! The intrinsic returns a rank-1 array ...
+    
+    index_tmp = findloc(phi%bcs%ids, -index_nb) ! Hardcoded for square mesh
+    index_bc = index_tmp(1)
   end subroutine get_bc_index
 end module boundary_conditions
