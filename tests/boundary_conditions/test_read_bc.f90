@@ -12,6 +12,7 @@ program bc_test
   use utils, only : debug_print, exit_print, str
   use boundary_conditions, only : read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_n_boundaries
+  use constants, only: ccs_string_len
   use bc_constants
 
   implicit none
@@ -21,7 +22,7 @@ program bc_test
   integer(ccs_int) :: i, j
   integer(ccs_int) :: n_boundaries
   character(len=*), parameter :: config_file = "test_read_bc_config.in"
-  character(len=6), dimension(:), allocatable :: variable_names
+  character(len=ccs_string_len), dimension(:), allocatable :: variable_names
   character(len=6) :: variable_name
   integer(ccs_int), dimension(:), allocatable :: bc_names, bc_ids, bc_types
   real(ccs_real), dimension(:), allocatable :: bc_values

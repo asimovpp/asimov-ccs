@@ -264,11 +264,7 @@ program test_compute_fluxes
           dx = 1.0_ccs_real/cps
           diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
           adv_coeff = mf_value*face_area
-          if (bcs%bc_types(j) == bc_type_wall) then
-            bc_value = 0.0_ccs_real
-          else
-            bc_value = 1.0_ccs_real
-          endif
+          bc_value = bcs%values(j)
 
           call set_row(global_index_p, vec_values)
           call set_entry(-(adv_coeff + diff_coeff) * bc_value, vec_values)
