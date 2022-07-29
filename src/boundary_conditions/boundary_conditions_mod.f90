@@ -77,6 +77,7 @@ module boundary_conditions
     character(len=*), intent(in) :: name            !< string giving the bc name
     type(bc_config), intent(inout) :: bcs           !< the bcs struct
 
+    ! XXX: in the general case this mapping should be read in from the mesh file
     select case (name)
     case ("left")
       bcs%ids(boundary_index) = 1
@@ -92,12 +93,12 @@ module boundary_conditions
   end subroutine set_bc_id
 
   !> Sets the bc struct's value field to the given real value
-  subroutine set_bc_real_value(boundary_index, value, bcs)
+  subroutine set_bc_real_value(boundary_index, val, bcs)
     integer(ccs_int), intent(in) :: boundary_index  !< index of the boundary within the bc struct's arrays
-    real(ccs_real), intent(in) :: value             !< the value to set 
+    real(ccs_real), intent(in) :: val             !< the value to set 
     type(bc_config), intent(inout) :: bcs           !< the bcs struct
 
-    bcs%values(boundary_index) = value
+    bcs%values(boundary_index) = val
   end subroutine set_bc_real_value
 
   !> Allocates arrays of the appropriate size for the name, type and value of the bcs
