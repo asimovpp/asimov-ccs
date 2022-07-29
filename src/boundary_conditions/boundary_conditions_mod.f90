@@ -71,7 +71,7 @@ module boundary_conditions
 
   end subroutine set_bc_type
   
-  !> Sets the bc struct's value field to the given integer value
+  !> Sets the bc struct's id field to the appropriate integer value
   subroutine set_bc_id(boundary_index, name, bcs)
     integer(ccs_int), intent(in) :: boundary_index  !< index of the boundary within the bc struct's arrays
     character(len=*), intent(in) :: name            !< string giving the bc name
