@@ -91,42 +91,41 @@ contains
   end subroutine
 
   !> Gets the string associated with the keyword from dict
-  subroutine get_string_value(dict, keyword, string_val, required)
+  subroutine get_string_value(dict, keyword, string_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
     character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
-    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies required.
+    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
     type(type_error), pointer :: io_err
-    logical :: is_required
-
-    if (present(required)) then
-      if (required .eqv. .false.) then
-        is_required = .false. 
-      else 
-        is_required = .true. 
-      end if
-    else
-      is_required = .true. 
-    end if
 
     select type (dict)
     type is (type_dictionary)
 
-      string_val = trim(dict%get_string(keyword, error=io_err))
-      if (is_required) then
-        call error_handler(io_err)
+      string_val = trim(dict%get_string(keyword,error=io_err))
+      if (present(value_present)) then
+        if (associated(io_err)) then 
+          value_present = .false.
+        else
+          value_present = .true.
+        end if
       end if
-
+      if (present(required)) then
+        if (required .eqv. .true.) then
+          call error_handler(io_err)  
+        end if
+      end if
+      
     class default
       call error_abort("Unknown type")
     end select
 
-    if ((associated(io_err) .eqv. .true.) .and. is_required) then
-      print *, 'is_required ', is_required
-      call error_abort("Error reading " // keyword)
+    if((associated(io_err) .eqv. .true.) .and. present(required)) then 
+      if (required .eqv. .true.) then
+        call error_abort("Error reading " // keyword)
+      end if
     end if
-
   end subroutine
 
   subroutine error_handler(io_err)
@@ -773,11 +772,15 @@ contains
             call get_value(dict2, bc_field, bc_field_string)
             call set_bc_id(i, bc_field_string, phi%bcs)
           case ("type") 
-            call get_value(dict2, bc_field, bc_type, required=required)
-            call set_bc_type(i, trim(bc_type), phi%bcs)
+            call get_value(dict2, bc_field, bc_type, field_exists, required=required)
+            if (field_exists) then
+              call set_bc_type(i, bc_type, phi%bcs)
+            end if
           case ("value") 
-            call get_value(dict2, bc_field, bc_value, required=required)
-            call set_bc_real_value(i, bc_value, phi%bcs)
+            call get_value(dict2, bc_field, bc_value, field_exists, required=required)
+            if (field_exists) then
+              call set_bc_real_value(i, bc_value, phi%bcs)
+            end if
           case default
             select type (dict2)
             type is (type_dictionary)
@@ -786,8 +789,10 @@ contains
               call error_handler(io_err)
 
               if (associated(variable_dict)) then
-                call get_value(variable_dict, "type", bc_type)
-                call set_bc_type(i, bc_type, phi%bcs)
+                call get_value(variable_dict, "type", bc_type, field_exists)
+                if (field_exists) then
+                  call set_bc_type(i, bc_type, phi%bcs)
+                end if
 
                 call get_value(variable_dict, "value", bc_value, field_exists)
                 if (field_exists) then

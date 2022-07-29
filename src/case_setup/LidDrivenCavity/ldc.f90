@@ -9,7 +9,7 @@ program ldc
   use petscsys
 
   use case_config, only: num_steps, velocity_relax, pressure_relax
-  use constants, only : cell, face, ccsconfig
+  use constants, only : cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector
@@ -31,7 +31,7 @@ program ldc
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: case_name       !< Case name
   character(len=:), allocatable :: ccs_config_file !< Config file for CCS
-  character(len=6), dimension(:), allocatable :: variable_names  !< variable names for BC reading
+  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  !< variable names for BC reading
 
   type(ccs_mesh)    :: mesh
   type(vector_spec) :: vec_properties

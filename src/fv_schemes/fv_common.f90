@@ -173,12 +173,10 @@ contains
     integer(ccs_int) :: index_bc
 
     call get_bc_index(phi, index_nb, index_bc)
-    
+
     select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
       bc_value = phi%bcs%values(index_bc)
-    case (bc_type_wall)                   ! XXX: implement BCs properly
-      bc_value = 0.0_ccs_real
     case default
       bc_value = 0.0_ccs_real
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
@@ -513,6 +511,7 @@ contains
           call get_local_index(loc_nb, nb)
           phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
+          ! XXX: Add boundary condition treatment
           call get_distance(loc_p, loc_f, dx)
           phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + z_gradients_old(i) * dx(3))
         end if
