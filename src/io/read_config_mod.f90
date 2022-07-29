@@ -29,7 +29,7 @@ module read_config
   public :: get_output_type
   public :: get_bc_variables
   public :: get_bc_field
-  public :: get_n_boundaries
+  public :: get_boundary_count
 
   interface
 
@@ -214,7 +214,7 @@ module read_config
       character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
     end subroutine
 
-    module subroutine get_n_boundaries(filename, n_boundaries)
+    module subroutine get_boundary_count(filename, n_boundaries)
       character(len=*), intent(in) :: filename      !< name of the config file
       integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
     end subroutine

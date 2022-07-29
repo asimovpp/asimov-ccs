@@ -24,7 +24,7 @@ program ldc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_n_boundaries
+  use read_config, only: get_bc_variables, get_boundary_count
 
   implicit none
 
@@ -90,7 +90,7 @@ program ldc
   allocate(face_field :: mf)
 
   ! Read boundary conditions
-  call get_n_boundaries(ccs_config_file, n_boundaries)
+  call get_boundary_count(ccs_config_file, n_boundaries)
   call get_bc_variables(ccs_config_file, variable_names)
   call allocate_bc_arrays(n_boundaries, u%bcs)
   call allocate_bc_arrays(n_boundaries, v%bcs)

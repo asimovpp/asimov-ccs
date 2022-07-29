@@ -11,7 +11,7 @@ program bc_test
   use types, only : field, central_field
   use utils, only : debug_print, exit_print, str
   use boundary_conditions, only : read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_n_boundaries
+  use read_config, only: get_bc_variables, get_boundary_count
   use constants, only: ccs_string_len
   use bc_constants
 
@@ -37,7 +37,7 @@ program bc_test
 
   ! Read bc configuration
   ! First get the number of boundaries and variables
-  call get_n_boundaries(config_file, n_boundaries)
+  call get_boundary_count(config_file, n_boundaries)
   call get_bc_variables(config_file, variable_names)
   allocate(phi(size(variable_names) - 4))
   

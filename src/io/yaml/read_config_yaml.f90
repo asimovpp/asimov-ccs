@@ -661,7 +661,7 @@ contains
 
   end subroutine
 
-  module subroutine get_n_boundaries(filename, n_boundaries)
+  module subroutine get_boundary_count(filename, n_boundaries)
     character(len=*), intent(in) :: filename      !< name of the config file
     integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
 
@@ -684,7 +684,7 @@ contains
     class default
        call error_abort("type unhandled")
     end select
-  end subroutine get_n_boundaries
+  end subroutine get_boundary_count
 
   module subroutine get_bc_variables(filename, variables)
     character(len=*), intent(in) :: filename                              !< name of the config file
