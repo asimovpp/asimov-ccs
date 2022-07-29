@@ -46,9 +46,9 @@ program test_compute_fluxes
   do i = 1, n_boundaries
     scalar%bcs%ids(i) = i
   end do
-  scalar%bcs%bc_types(:) = bc_type_wall
-  scalar%bcs%bc_types(4) = bc_type_dirichlet
-  scalar%bcs%values = 1.0_ccs_real
+  scalar%bcs%bc_types = bc_type_dirichlet
+  scalar%bcs%values = 0.0_ccs_real
+  scalar%bcs%values(4) = 1.0_ccs_real
     
   call initialise(vec_properties)
   call set_size(par_env, mesh, vec_properties)

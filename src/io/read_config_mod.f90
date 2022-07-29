@@ -6,6 +6,7 @@ module read_config
 
   use kinds, only : ccs_real, ccs_int
   use types, only : bc_config, field
+  use constants, only: ccs_string_len
     
   implicit none
 
@@ -210,7 +211,7 @@ module read_config
 
     module subroutine get_bc_variables(filename, variables)
       character(len=*), intent(in) :: filename                              !< name of the config file
-      character(len=6), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
     end subroutine
 
     module subroutine get_n_boundaries(filename, n_boundaries)

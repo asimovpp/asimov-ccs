@@ -688,7 +688,7 @@ contains
 
   module subroutine get_bc_variables(filename, variables)
     character(len=*), intent(in) :: filename                              !< name of the config file
-    character(len=6), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
+    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
     
     class(*), pointer :: config_file
     class(*), pointer :: dict
