@@ -227,36 +227,36 @@ implicit none
     !!   call dprint("Global index "//str(i)//": "//str(int(topo%global_indices(i))))
     !! end do
 
-    deallocate(topo%global_face_indices) ! No longer needed now we have the local face indices
+    !! deallocate(topo%global_face_indices) ! No longer needed now we have the local face indices
 
-    topo%num_faces = 0
-    previous = 0
+    !! topo%num_faces = 0
+    !! previous = 0
 
-    ! Next, compute the number of local faces, which  
-    ! equals the maximum value in the face_indices array
-    topo%num_faces = maxval(topo%face_indices)
+    !! ! Next, compute the number of local faces, which  
+    !! ! equals the maximum value in the face_indices array
+    !! topo%num_faces = maxval(topo%face_indices)
 
-    call dprint("Number of local faces "//str(topo%num_faces))
+    !! call dprint("Number of local faces "//str(topo%num_faces))
 
-    if(irank == 0) print*,"Global boundaries: ", topo%global_boundaries(1:10)
+    !! if(irank == 0) print*,"Global boundaries: ", topo%global_boundaries(1:10)
 
-    ! Finally, allocate and compute the neighbour indices
-    if (allocated(topo%nb_indices)) then
-      deallocate(topo%nb_indices)
-    end if
-    allocate(topo%nb_indices(topo%max_faces, topo%local_num_cells))
+    ! ! Finally, allocate and compute the neighbour indices
+    ! if (allocated(topo%nb_indices)) then
+    !   deallocate(topo%nb_indices)
+    ! end if
+    ! allocate(topo%nb_indices(topo%max_faces, topo%local_num_cells))
 
-    do i = 1, size(topo%xadj) - 1
-      n = int(topo%xadj(i+1) - topo%xadj(i)) ! XXX: OK for small meshes!
-      do j = 1, n
-        topo%nb_indices(j, i) = int(topo%adjncy(j+topo%xadj(i)-1)) ! XXX: OK for small meshes!
-      end do 
-      do k = n + 1, topo%max_faces
-        topo%nb_indices(k, i) = 0 ! Set boundaries to 0 - will be updated with correct BCs
-      end do
-    end do
+    ! do i = 1, size(topo%xadj) - 1
+    !   n = int(topo%xadj(i+1) - topo%xadj(i)) ! XXX: OK for small meshes!
+    !   do j = 1, n
+    !     topo%nb_indices(j, i) = int(topo%adjncy(j+topo%xadj(i)-1)) ! XXX: OK for small meshes!
+    !   end do 
+    !   do k = n + 1, topo%max_faces
+    !     topo%nb_indices(k, i) = 0 ! Set boundaries to 0 - will be updated with correct BCs
+    !   end do
+    ! end do
 
-    if (irank == 0) print*, "Neighbour indices ", topo%nb_indices
+    ! if (irank == 0) print*, "Neighbour indices ", topo%nb_indices
 
   end subroutine compute_connectivity
 
@@ -305,8 +305,8 @@ implicit none
 
   subroutine compute_connectivity_add_connection(face_nb1, face_nb2, topo, tmp_int2d)
 
-    integer, intent(in) :: face_nb1                      !< Local cell global index
-    integer, intent(in) :: face_nb2                      !< Neighbouring cell global index
+    integer(ccs_int), intent(in) :: face_nb1                      !< Local cell global index
+    integer(ccs_int), intent(in) :: face_nb2                      !< Neighbouring cell global index
     type(topology), target, intent(inout) :: topo        !< The topology for which to compute the partition
     integer, dimension(:, :), intent(inout) :: tmp_int2d !< Temporary connectivity array
 
@@ -314,6 +314,14 @@ implicit none
     integer :: fctr
 
     local_index = findloc(topo%global_indices, face_nb1)
+    if (local_index(1) <= 0) then
+      print *, "ERROR: failed to find face neighbour in global indices, findloc: "
+      print *, "- ANY: ", any(topo%global_indices == face_nb1)
+      print *, "- local_index: ", local_index
+      print *, "- Face neighbour index: ", face_nb1
+      print *, "- Global indices: ", topo%global_indices
+      stop
+    end if
          
     fctr = tmp_int2d(local_index(1), topo%max_faces + 1) + 1 ! Increment number of faces for this cell
     tmp_int2d(local_index(1), fctr) = face_nb2               ! Store global index of neighbour cell
@@ -322,6 +330,8 @@ implicit none
 
   end subroutine
 
+  !v Take the 2D connectivity graph and convert to 1D
+  !  Note that cell neighbours are still globally numbered at this point.
   subroutine flatten_connectivity(tmp_int2d, topo)
     
     integer, dimension(:, :), intent(in) :: tmp_int2d
@@ -347,11 +357,7 @@ implicit none
       ! Loop over connections of cell i
       do j = 1, tmp_int2d(i, topo%max_faces + 1)
         associate( nbidx => tmp_int2d(i, j) )
-          if (any(topo%global_indices == nbidx)) then
-            ! Local cell
-            local_idx = findloc(topo%global_indices, nbidx)
-            !topo%adjncy(ctr) = local_idx(1)
-          else
+          if (.not. any(topo%global_indices == nbidx)) then
             ! Halo cell
             if (.not. any(tmp1 == nbidx)) then
               ! New halo cell
@@ -383,10 +389,15 @@ implicit none
       end do ! End j
 
     end do
+    topo%xadj(topo%local_num_cells + 1) = ctr
 
     allocate(tmp2(topo%local_num_cells + topo%halo_num_cells))
-    tmp2(1:topo%local_num_cells) = topo%global_indices(1:topo%local_num_cells)
-    tmp2(topo%local_num_cells+1:topo%halo_num_cells) = tmp1(1:topo%halo_num_cells)
+    do i = 1, topo%local_num_cells
+      tmp2(i) = topo%global_indices(i)
+    end do
+    do i = 1, topo%halo_num_cells
+      tmp2(topo%local_num_cells + i) = tmp1(i)
+    end do
     deallocate(topo%global_indices)
     allocate(topo%global_indices, source=tmp2)
 
