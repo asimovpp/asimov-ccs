@@ -71,6 +71,22 @@ contains
     !end if
 
     call check_distribution(stage)
+
+    if ((maxval(topo%xadj(1:size(topo%xadj)-1)) >= size(topo%adjncy)) &
+            .or. (topo%xadj(size(topo%xadj) - 1) > size(topo%adjncy))) then
+      print *, topo%xadj
+      print *, size(topo%adjncy)
+      write(message, *) "ERROR: xadj array is wrong!"
+      call stop_test(message)
+    end if
+
+    if ((maxval(topo%global_indices) > 16) .or. (minval(topo%global_indices) < 1)) then
+      write(message, *) "ERROR: global indices min/max: ", &
+              minval(topo%global_indices), maxval(topo%global_indices), &
+              " outside expected range: ", 1, 16
+      call stop_test(message)
+    end if
+
     call check_self_loops(stage)
     call check_connectivity(stage)
 
