@@ -132,11 +132,6 @@ contains
     integer :: i, j
     integer :: nadj
     integer, dimension(:), allocatable :: adjncy_global_expected
-
-    !if (all(topo%nb_indices /= mesh%neighbour_indices)) then
-    !  write(message, *) "ERROR: topology changed!"
-    !  call stop_test(message)
-    !end if
    
     do i = 1, topo%local_num_cells ! Loop over local cells
       
@@ -148,8 +143,17 @@ contains
       do j = topo%xadj(i), topo%xadj(i + 1) - 1
         if (.not. any(adjncy_global_expected == topo%adjncy(j))) then
           print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
-          print *, "Expected nieghbours @ global idx ", topo%global_indices(i), ": ", adjncy_global_expected
+          print *, "Expected neighbours @ global idx ", topo%global_indices(i), ": ", adjncy_global_expected
           write(message, *) "ERROR: neighbours are wrong "//stage//"-partitioning!"
+          call stop_test(message)
+        end if
+      end do
+
+      do j = 1, size(adjncy_global_expected)
+        if (.not. any(topo%adjncy == adjncy_global_expected(j))) then
+          print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
+          print *, "Expected neighbours @ global idx ", topo%global_indices(i), ": ", adjncy_global_expected
+          write(message, *) "ERROR: neighbours are missing "//stage//"-partitioning!"
           call stop_test(message)
         end if
       end do
