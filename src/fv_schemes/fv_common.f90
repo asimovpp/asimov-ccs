@@ -383,7 +383,7 @@ contains
         flux = flux + flux_corr
 
         if (index_p > index_nb) then
-          ! XXX: making convention to point from low to high cell!
+          ! XXX: making convention to point from low to high cell.
           flux = -flux
         end if
       end associate
