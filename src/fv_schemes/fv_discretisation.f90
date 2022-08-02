@@ -4,12 +4,12 @@
 !
 !>  Implementations of the finite volume method using the various discretisation schemes scheme
 
-submodule (fv) fv_discretisation
+submodule(fv) fv_discretisation
 
   implicit none
 
 contains
-  
+
   !>  Calculates advection coefficient for neighbouring cell using CDS discretisation
   !
   !> @param[in] phi         - scalar field
@@ -23,13 +23,13 @@ contains
     real(ccs_real), intent(out) :: coeff
 
     real(ccs_real) :: interpolation_factor
-    
-    ! Dummy usage to prevent unused argument. 
-    associate(scalar => phi)
+
+    ! Dummy usage to prevent unused argument.
+    associate (scalar => phi)
     end associate
-    associate(mflux => mf)
+    associate (mflux => mf)
     end associate
-    
+
     if (bc == 0) then
       interpolation_factor = 0.5_ccs_real
     else
@@ -37,7 +37,7 @@ contains
     end if
     coeff = interpolation_factor
   end subroutine calc_advection_coeff_cds
-  
+
   !>  Calculates advection coefficient for neighbouring cell using UDS discretisation
   !
   !> @param[in] phi         - scalar field
@@ -50,8 +50,8 @@ contains
     integer(ccs_int), intent(in) :: bc
     real(ccs_real), intent(out) :: coeff
 
-    ! Dummy usage to prevent unused argument. 
-    associate(scalar => phi, foo => bc)
+    ! Dummy usage to prevent unused argument.
+    associate (scalar => phi, foo => bc)
     end associate
 
     if (mf < 0.0) then
@@ -59,7 +59,7 @@ contains
     else
       coeff = 0.0_ccs_real
     end if
-    
+
   end subroutine calc_advection_coeff_uds
 
 end submodule fv_discretisation

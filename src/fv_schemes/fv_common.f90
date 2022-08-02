@@ -4,7 +4,7 @@
 !
 !>  An implementation of the finite volume method using the CDS scheme
 
-submodule (fv) fv_common
+submodule(fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode, ndim
   use types, only: vector_values, matrix_values_spec, matrix_values, cell_locator, face_locator, &
@@ -16,8 +16,8 @@ submodule (fv) fv_common
   use utils, only: str
   use utils, only: debug_print, exit_print
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
-                      get_local_index, get_global_index, get_volume, get_distance, &
-                      set_face_location, get_face_area, get_face_normal, set_cell_location
+                     get_local_index, get_global_index, get_volume, get_distance, &
+                     set_face_location, get_face_area, get_face_normal, set_cell_location
 
   implicit none
 
@@ -59,7 +59,7 @@ contains
   !
   !>  @note This assumes a square 2d grid
   pure function calc_matrix_nnz() result(nnz)
-    integer(ccs_int) :: nnz   !< number of non-zero entries per row 
+    integer(ccs_int) :: nnz   !< number of non-zero entries per row
 
     nnz = 5_ccs_int
   end function calc_matrix_nnz
@@ -94,10 +94,10 @@ contains
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
     call set_mode(add_mode, mat_coeffs)
-    
+
     do index_p = 1, mesh%nlocal
       call clear_entries(mat_coeffs)
-      
+
       ! Calculate contribution from neighbours
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
@@ -130,13 +130,13 @@ contains
           else
             sgn = 1.0_ccs_real
           end if
-          select type(phi)
-            type is(central_field)
-              call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
-            type is(upwind_field)
-              call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
-            class default
-              call error_abort("Invalid velocity field discretisation.")
+          select type (phi)
+          type is (central_field)
+            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+          type is (upwind_field)
+            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+          class default
+            call error_abort("Invalid velocity field discretisation.")
           end select
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
@@ -157,12 +157,12 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate(mat_coeffs%global_row_indices)
-    deallocate(mat_coeffs%global_col_indices)
-    deallocate(mat_coeffs%values)
+    deallocate (mat_coeffs%global_row_indices)
+    deallocate (mat_coeffs%global_col_indices)
+    deallocate (mat_coeffs%values)
   end subroutine compute_interior_coeffs
 
-  !v  Computes the value of the scalar field on the boundary based on linear interpolation between 
+  !v  Computes the value of the scalar field on the boundary based on linear interpolation between
   !  values provided on box corners
   subroutine compute_boundary_values(index_nb, row, col, cps, bcs, bc_value)
     integer, intent(in) :: index_nb           !< index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
@@ -173,8 +173,8 @@ contains
     real(ccs_real), intent(out) :: bc_value   !< the value of the scalar field at the specified boundary
     real(ccs_real) :: row_cps, col_cps
 
-    row_cps = real(row, ccs_real)/real(cps, ccs_real)
-    col_cps = real(col, ccs_real)/real(cps, ccs_real)
+    row_cps = real(row, ccs_real) / real(cps, ccs_real)
+    col_cps = real(col, ccs_real) / real(cps, ccs_real)
 
     bc_value = 0.0_ccs_real
     ! if (bcs%bc_type(index_nb) == bc_type_dirichlet .and. &
@@ -194,7 +194,7 @@ contains
     else
       call error_abort("ERROR: Unknown boundary type " // str(bcs%bc_type(index_nb)))
     end if
-    
+
   end subroutine compute_boundary_values
 
   !>  Computes the matrix coefficient for cells on the boundary of the mesh
@@ -229,15 +229,15 @@ contains
     call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
     call set_mode(add_mode, mat_coeffs)
-    
+
     call create_vector_values(1_ccs_int, b_coeffs)
     call set_mode(add_mode, b_coeffs)
-    
+
     do index_p = 1, mesh%nlocal
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
-      
+
       ! Calculate contribution from neighbours
       do j = 1, nnb
         call set_neighbour_location(loc_p, j, loc_nb)
@@ -249,15 +249,15 @@ contains
           call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
           call get_local_index(loc_f, index_f)
-          
+
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
-          select type(phi)
-            type is(central_field)
-              call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
-            type is(upwind_field)
-              call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
-            class default
-              call error_abort("Invalid velocity field discretisation.")
+          select type (phi)
+          type is (central_field)
+            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+          type is (upwind_field)
+            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+          class default
+            call error_abort("Invalid velocity field discretisation.")
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
@@ -268,7 +268,7 @@ contains
           call clear_entries(b_coeffs)
 
           call set_row(global_index_p, b_coeffs)
-          call set_entry(-(adv_coeff + diff_coeff)*bc_value, b_coeffs)
+          call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
           call set_values(b_coeffs, b)
 
           call set_row(global_index_p, mat_coeffs)
@@ -278,12 +278,12 @@ contains
         end if
       end do
     end do
-    
-    deallocate(mat_coeffs%global_row_indices)
-    deallocate(mat_coeffs%global_col_indices)
-    deallocate(mat_coeffs%values)
-    deallocate(b_coeffs%global_indices)
-    deallocate(b_coeffs%values)
+
+    deallocate (mat_coeffs%global_row_indices)
+    deallocate (mat_coeffs%global_col_indices)
+    deallocate (mat_coeffs%values)
+    deallocate (b_coeffs%global_indices)
+    deallocate (b_coeffs%values)
 
   end subroutine compute_boundary_coeffs
 
@@ -315,7 +315,7 @@ contains
       call get_distance(loc_p, loc_f, dx)
     end if
     dxmag = sqrt(sum(dx**2))
-    
+
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 
@@ -326,9 +326,9 @@ contains
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy    !< arrays containing pressure gradient in x and y
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv  !< arrays containing inverse momentum diagonal in x and y
     type(face_locator), intent(in) :: loc_f                   !< face locator
-                                                              
+
     real(ccs_real) :: flux                                    !< The flux across the boundary
-                                                              
+
     ! Local variables
     logical :: is_boundary                         ! Boundary indicator
     type(cell_locator) :: loc_p                    ! Primary cell locator
@@ -344,21 +344,21 @@ contains
     real(ccs_real) :: invAp                        ! Primary cell inverse momentum coefficient
     real(ccs_real) :: invA_nb                      ! Neighbour cell inverse momentum coefficient
     real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
-    
+
     call get_boundary_status(loc_f, is_boundary)
     if (.not. is_boundary) then
-      associate(mesh => loc_f%mesh, &
-           index_p => loc_f%index_p, &
-           j => loc_f%cell_face_ctr)
-        
+      associate (mesh => loc_f%mesh, &
+                 index_p => loc_f%index_p, &
+                 j => loc_f%cell_face_ctr)
+
         call set_cell_location(mesh, index_p, loc_p)
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
 
         call get_face_normal(loc_f, face_normal)
-        
+
         flux = 0.5_ccs_real * ((u(index_p) + u(index_nb)) * face_normal(1) &
-             + (v(index_p) + v(index_nb)) * face_normal(2))
+                               + (v(index_p) + v(index_nb)) * face_normal(2))
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -368,7 +368,7 @@ contains
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(index_nb) - p(index_p)) / dxmag
         flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(1) &
-             + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2))
+                                                + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
@@ -378,9 +378,9 @@ contains
         invAp = 0.5_ccs_real * (invAu(index_p) + invAv(index_p))
         invA_nb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
         invAf = 0.5_ccs_real * (invAp + invA_nb)
-        
+
         flux_corr = (Vf * invAf) * flux_corr
-          
+
         ! Apply correction
         flux = flux + flux_corr
 
@@ -389,11 +389,11 @@ contains
           flux = -flux
         end if
       end associate
-    else 
+    else
       ! TODO: Write more general implementation handling BCs
       flux = 0.0_ccs_real ! XXX: hardcoded zero-flux BC
     end if
-    
+
   end function calc_mass_flux
 
   !>  Calculates the row and column indices from flattened vector index. Assumes square mesh
@@ -406,8 +406,8 @@ contains
     integer(ccs_int), intent(in) :: index, cps
     integer(ccs_int), intent(out) :: row, col
 
-    col = modulo(index-1,cps) + 1 
-    row = (index-1)/cps + 1
+    col = modulo(index - 1, cps) + 1
+    row = (index - 1) / cps + 1
   end subroutine calc_cell_coords
 
   !>  Performs an update of the gradients of a field.
@@ -419,7 +419,7 @@ contains
   !!       correctly updated on other PEs.
 
   module subroutine update_gradient(mesh, phi)
-  
+
     type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
 
@@ -427,26 +427,26 @@ contains
     real(ccs_real), dimension(:), allocatable :: x_gradients_old, y_gradients_old, z_gradients_old
 
     integer(ccs_real) :: i
-    
+
     call get_vector_data(phi%x_gradients, x_gradients_data)
     call get_vector_data(phi%y_gradients, y_gradients_data)
     call get_vector_data(phi%z_gradients, z_gradients_data)
 
-    associate(ntotal => mesh%ntotal)
-      allocate(x_gradients_old(ntotal))
-      allocate(y_gradients_old(ntotal))
-      allocate(z_gradients_old(ntotal))
+    associate (ntotal => mesh%ntotal)
+      allocate (x_gradients_old(ntotal))
+      allocate (y_gradients_old(ntotal))
+      allocate (z_gradients_old(ntotal))
       do i = 1, ntotal
         x_gradients_old(i) = x_gradients_data(i)
         y_gradients_old(i) = y_gradients_data(i)
         z_gradients_old(i) = z_gradients_data(i)
       end do
     end associate
-    
+
     call restore_vector_data(phi%x_gradients, x_gradients_data)
     call restore_vector_data(phi%y_gradients, y_gradients_data)
     call restore_vector_data(phi%z_gradients, z_gradients_data)
-    
+
     call dprint("Compute x gradient")
     call update_gradient_component(mesh, 1, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
     call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
@@ -457,10 +457,10 @@ contains
     call update_gradient_component(mesh, 3, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
     call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
 
-    deallocate(x_gradients_old)
-    deallocate(y_gradients_old)
-    deallocate(z_gradients_old)
-    
+    deallocate (x_gradients_old)
+    deallocate (y_gradients_old)
+    deallocate (z_gradients_old)
+
   end subroutine update_gradient
 
   !>  Helper subroutine to calculate a gradient component at a time.
@@ -479,20 +479,20 @@ contains
     real(ccs_real), dimension(:), intent(in) :: y_gradients_old
     real(ccs_real), dimension(:), intent(in) :: z_gradients_old
     class(ccs_vector), intent(inout) :: gradients
-    
+
     type(vector_values) :: grad_values
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: grad
-    
+
     integer(ccs_int) :: i
     integer(ccs_int) :: j
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
-    
+
     integer(ccs_int) :: nnb
     integer(ccs_int) :: nb
-    
+
     real(ccs_real) :: phif
 
     logical :: is_boundary
@@ -509,12 +509,12 @@ contains
     call set_mode(insert_mode, grad_values)
 
     call get_vector_data(phi, phi_data)
-    
+
     do i = 1, mesh%nlocal
       call clear_entries(grad_values)
-      
+
       grad = 0.0_ccs_int
-      
+
       call set_cell_location(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
@@ -538,7 +538,7 @@ contains
 
       call get_volume(loc_p, V)
       grad = grad / V
-      
+
       call get_global_index(loc_p, global_index_p)
       call set_row(global_index_p, grad_values)
       call set_entry(grad, grad_values)
@@ -547,9 +547,9 @@ contains
 
     call restore_vector_data(phi, phi_data)
 
-    deallocate(grad_values%global_indices)
-    deallocate(grad_values%values)
-    
+    deallocate (grad_values%global_indices)
+    deallocate (grad_values%values)
+
   end subroutine update_gradient_component
-  
+
 end submodule fv_common
