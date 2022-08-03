@@ -278,7 +278,7 @@ regexp-rules:
 structure-rules:
   max-statements-in-context: 200
   max-declared-locals: 12
-  min-varlen: 3
+  min-varlen: 1
   max-varlen: 20
   max-arguments: 5
   min-arglen: 3
