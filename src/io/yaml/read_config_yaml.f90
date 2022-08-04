@@ -662,8 +662,8 @@ contains
   end subroutine
 
   module subroutine get_boundary_count(filename, n_boundaries)
-    character(len=*), intent(in) :: filename      !< name of the config file
-    integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
+    character(len=*), intent(in) :: filename      
+    integer(ccs_int), intent(out) :: n_boundaries 
 
     class(*), pointer :: config_file
     class(*), pointer :: dict
@@ -687,8 +687,8 @@ contains
   end subroutine get_boundary_count
 
   module subroutine get_bc_variables(filename, variables)
-    character(len=*), intent(in) :: filename                              !< name of the config file
-    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables used in BCs
+    character(len=*), intent(in) :: filename                                            
+    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables  
     
     class(*), pointer :: config_file
     class(*), pointer :: dict
@@ -730,11 +730,10 @@ contains
     end select
   end subroutine get_bc_variables
 
-  !> Gets the specified field value from the config file and writes to given bcs struct
   module subroutine get_bc_field(config_file, bc_field, phi, required) 
-    class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
-    character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
-    class(field), intent(inout) :: phi            !< field structure
+    class(*), pointer, intent(in) :: config_file  
+    character(len=*), intent(in) :: bc_field      
+    class(field), intent(inout) :: phi            
     logical, optional, intent(in) :: required
     
     ! local variables
