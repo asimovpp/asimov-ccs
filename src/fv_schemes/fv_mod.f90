@@ -70,16 +70,14 @@ module fv
   !
   !> @param[in] phi       - scalar field structure
   !> @param[in] mf        - mass flux field structure (defined at faces)
-  !> @param[in] mesh - the mesh being used
-  !> @param[in] bcs       - the boundary conditions structure being used
+  !> @param[in] mesh      - the mesh being used
   !> @param[in] cps       - the number of cells per side in the (square) mesh
   !> @param[in,out] M     - Data structure containing matrix to be filled
   !> @param[in,out] vec   - Data structure containing RHS vector to be filled
-  module subroutine compute_fluxes(phi, mf, mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, mesh, cps, M, vec)
     class(field), intent(in) :: phi
     class(field), intent(in) :: mf
     type(ccs_mesh), intent(in) :: mesh
-    type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: vec   

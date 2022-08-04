@@ -30,4 +30,6 @@ module constants
   integer(ccs_int), public, parameter :: cell = 1
   integer(ccs_int), public, parameter :: face = 2
 
+  integer(ccs_int), public, parameter :: ccs_string_len = 128
+
 end module constants

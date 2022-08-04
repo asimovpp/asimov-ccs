@@ -4,8 +4,10 @@
 
 module read_config
 
-  use kinds, only: ccs_real
-
+  use kinds, only : ccs_real, ccs_int
+  use types, only : bc_config, field
+  use constants, only: ccs_string_len
+    
   implicit none
 
   private
@@ -25,7 +27,9 @@ module read_config
   public :: get_output_frequency
   public :: get_plot_format
   public :: get_output_type
-  public :: get_boundaries
+  public :: get_bc_variables
+  public :: get_bc_field
+  public :: get_boundary_count
 
   interface
 
@@ -197,14 +201,25 @@ module read_config
       character(len=:), allocatable, intent(inout) :: post_type   !< values at cell centres or cell vertices?
       character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
     end subroutine
-
-    !> Get boundary conditions
-    module subroutine get_boundaries(config_file, bnd_region, bnd_type, bnd_vector)
-      class(*), pointer, intent(in) :: config_file                                        !< the entry point to the config file
-      character(len=16), dimension(:), allocatable, intent(inout) :: bnd_region           !< array of boundary region names
-      character(len=16), dimension(:), allocatable, intent(inout) :: bnd_type             !< array of boundary types (e.g. periodic, symmetric, ...)
-      real(ccs_real), optional, dimension(:, :), allocatable, intent(inout) :: bnd_vector !< array of boundary vectors
+    
+    !> Gets the specified field value from the config file and writes to given bcs struct
+    module subroutine get_bc_field(config_file, bc_field, phi, required)
+      class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
+      character(len=*), intent(in) :: bc_field      !< string indicating which field to read from BCs
+      class(field), intent(inout) :: phi            !< field structure
+      logical, optional, intent(in) :: required     !< flag indicating whether field is required
     end subroutine
 
+    !> Gets variables that bcs are defined for
+    module subroutine get_bc_variables(filename, variables)
+      character(len=*), intent(in) :: filename                                            !< name of the config file
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables  !< string array indicating variables used in BCs
+    end subroutine
+
+    !> Gets the number of boundaries 
+    module subroutine get_boundary_count(filename, n_boundaries)
+      character(len=*), intent(in) :: filename      !< name of the config file
+      integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
+    end subroutine
   end interface
 end module read_config
