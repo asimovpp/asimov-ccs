@@ -11,6 +11,7 @@ module mesh_utils
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
                      set_cell_location, set_neighbour_location, set_face_location, &
                      set_face_index, get_boundary_status, get_local_status
+  use bc_constants
 
   implicit none
 

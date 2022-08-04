@@ -54,7 +54,6 @@ contains
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     type(equation_system)    :: lin_system
-    type(bc_config) :: bcs
 
     logical :: converged
     
@@ -90,7 +89,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv)
+      call calculate_velocity(par_env, mesh, cps, mf, p, M, source, lin_system, u, v, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -125,11 +124,10 @@ contains
   !>  Computes the guessed velocity fields based on a frozen pressure field
   !
   !> @param[in]    par_env      - the parallel environment
-  !> @param[in]    mesh    - the mesh
+  !> @param[in]    mesh         - the mesh
   !> @param[in]    cps          - cells per side of a square mesh (remove)
   !> @param[in]    mf           - the face velocity flux
   !> @param[in]    p            - the pressure field
-  !> @param[inout] bcs          - boundary conditions
   !> @param[inout] M            - matrix object
   !> @param[inout] vec          - vector object
   !> @param[inout] lin_sys      - linear system object
@@ -139,7 +137,7 @@ contains
   !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
   !!              equations) and solve to obtain an intermediate velocity field u* that will not
   !!              satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, vec, lin_sys, u, v, invAu, invAv)
+  subroutine calculate_velocity(par_env, mesh, cps, mf, p, M, vec, lin_sys, u, v, invAu, invAv)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -147,7 +145,6 @@ contains
     integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
-    type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
     type(equation_system), intent(inout) :: lin_sys
@@ -158,21 +155,16 @@ contains
     ! u-velocity
     ! ----------
 
-    ! TODO: Do boundaries properly
-    bcs%bc_type(:) = 0 !< Fixed zero BC
-    bcs%bc_type(4) = 1 !< Fixed one BC at lid
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 1, bcs, M, vec, lin_sys, u, invAu)
+    call calculate_velocity_component(par_env, mesh, cps, mf, p, 1, M, vec, lin_sys, u, invAu)
     
     ! v-velocity
     ! ----------
     
-    ! TODO: Do boundaries properly
-    bcs%bc_type(:) = 0 !< Fixed zero BC
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 2, bcs, M, vec, lin_sys, v, invAv)
+    call calculate_velocity_component(par_env, mesh, cps, mf, p, 2, M, vec, lin_sys, v, invAv)
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, mesh, cps, mf, p, component, bcs, M, vec, lin_sys, u, invAu)
+  subroutine calculate_velocity_component(par_env, mesh, cps, mf, p, component, M, vec, lin_sys, u, invAu)
 
     use case_config, only: velocity_relax
 
@@ -183,7 +175,6 @@ contains
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     integer(ccs_int), intent(in) :: component
-    type(bc_config), intent(inout) :: bcs
     class(ccs_matrix), allocatable, intent(inout)  :: M
     class(ccs_vector), allocatable, intent(inout)  :: vec
     type(equation_system), intent(inout) :: lin_sys
@@ -199,7 +190,7 @@ contains
     
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
-    call compute_fluxes(u, mf, mesh, bcs, cps, M, vec)
+    call compute_fluxes(u, mf, mesh, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     call dprint("GV: compute u gradp")

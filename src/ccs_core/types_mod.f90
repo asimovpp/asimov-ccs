@@ -73,6 +73,13 @@ module types
     type(equation_system) :: linear_system !< System of equations
   end type linear_solver
 
+  !> BC data type
+  type, public :: bc_config
+    integer(ccs_int), dimension(:), allocatable :: ids
+    integer(ccs_int), dimension(:), allocatable :: bc_types
+    real(ccs_real), dimension(:), allocatable :: values
+  end type bc_config
+
   !> Mesh type
   type, public :: ccs_mesh
     integer(ccs_int) :: nglobal      !< Global mesh size
@@ -98,6 +105,7 @@ module types
     class(ccs_vector), allocatable :: x_gradients !< Vector representing the x gradient
     class(ccs_vector), allocatable :: y_gradients !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients !< Vector representing the z gradient
+    type(bc_config) :: bcs !> The bcs data structure for the cell  
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -132,15 +140,8 @@ module types
     integer(ccs_int) :: index_p
     integer(ccs_int) :: nb_counter
   end type neighbour_locator
-
-  type, public :: bc_config
-    integer(ccs_int), dimension(4) :: region
-    integer(ccs_int), dimension(4) :: bc_type
-    real(ccs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests,
-    ! possibly remove/improve for general
-  end type bc_config
-
-  !> IO environment type
+  
+  !>  IO environment type
   type, public :: io_environment
   end type io_environment
 

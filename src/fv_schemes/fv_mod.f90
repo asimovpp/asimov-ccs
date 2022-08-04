@@ -51,11 +51,10 @@ module fv
     end function calc_diffusion_coeff
 
     !> Computes fluxes and assign to matrix and RHS
-    module subroutine compute_fluxes(phi, mf, mesh, bcs, cps, M, vec)
+    module subroutine compute_fluxes(phi, mf, mesh, cps, M, vec)
       class(field), intent(in) :: phi         !< scalar field structure
       class(field), intent(in) :: mf          !< mass flux field structure (defined at faces)
       type(ccs_mesh), intent(in) :: mesh      !< the mesh being used
-      type(bc_config), intent(in) :: bcs      !< the boundary conditions structure being used
       integer(ccs_int), intent(in) :: cps     !< the number of cells per side in the (square) mesh
       class(ccs_matrix), intent(inout) :: M   !< Data structure containing matrix to be filled
       class(ccs_vector), intent(inout) :: vec !< Data structure containing RHS vector to be filled

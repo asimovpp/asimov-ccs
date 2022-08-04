@@ -11,22 +11,22 @@ submodule(fv) fv_common
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
-  use utils, only: str
-  use utils, only: debug_print, exit_print
+  use utils, only: debug_print, exit_print, str
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                      get_local_index, get_global_index, get_volume, get_distance, &
                      set_face_location, get_face_area, get_face_normal, set_cell_location
+  use boundary_conditions, only: get_bc_index
+  use bc_constants
 
   implicit none
 
 contains
 
   !> Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, mesh, bcs, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, mesh, cps, M, vec)
     class(field), intent(in) :: phi         !< scalar field structure
     class(field), intent(in) :: mf          !< mass flux field structure
     type(ccs_mesh), intent(in) :: mesh      !< the mesh being used
-    type(bc_config), intent(in) :: bcs      !< the boundary conditions structure being used
     integer(ccs_int), intent(in) :: cps     !< the number of cells per side in the (square) mesh
     class(ccs_matrix), intent(inout) :: M   !< Data structure containing matrix to be filled
     class(ccs_vector), intent(inout) :: vec !< Data structure containing RHS vector to be filled
@@ -45,7 +45,7 @@ contains
 
       ! Loop over boundaries
       call dprint("CF: boundaries")
-      call compute_boundary_coeffs(phi, mf_data, mesh, bcs, cps, M, vec)
+      call compute_boundary_coeffs(phi, mf_data, mesh, cps, M, vec)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
@@ -162,45 +162,30 @@ contains
 
   !v Computes the value of the scalar field on the boundary based on linear interpolation between
   !  values provided on box corners
-  subroutine compute_boundary_values(index_nb, row, col, cps, bcs, bc_value)
-    integer, intent(in) :: index_nb         !< index of neighbour with respect to CV (i.e. range 1-4 in square mesh)
-    integer, intent(in) :: row              !< global row of cell within square mesh
-    integer, intent(in) :: col              !< global column of cell within square mesh
-    integer, intent(in) :: cps              !< number of cells per side in square mesh
-    type(bc_config), intent(in) :: bcs      !< BC configuration data structure
+  subroutine compute_boundary_values(phi, index_nb, bc_value)
+    class(field), intent(in) :: phi         !< the field for which boundary values are being computed
+    integer, intent(in) :: index_nb         !< index of neighbour 
     real(ccs_real), intent(out) :: bc_value !< the value of the scalar field at the specified boundary
-    real(ccs_real) :: row_cps, col_cps
 
-    row_cps = real(row, ccs_real) / real(cps, ccs_real)
-    col_cps = real(col, ccs_real) / real(cps, ccs_real)
+    ! local variables
+    integer(ccs_int) :: index_bc
 
-    bc_value = 0.0_ccs_real
-    ! if (bcs%bc_type(index_nb) == bc_type_dirichlet .and. &
-    !    (bcs%region(index_nb) == bc_region_left .or. &
-    !    bcs%region(index_nb) == bc_region_right)) then
-    !   bc_value = -((1.0_ccs_real - row_cps) * bcs%endpoints(index_nb, 1) + row_cps * bcs%endpoints(index_nb, 2))
-    ! else if (bcs%bc_type(index_nb) == bc_type_dirichlet .and. &
-    !         (bcs%region(index_nb) == bc_region_top .or. &
-    !         bcs%region(index_nb) == bc_region_bottom)) then
-    !   bc_value = -((1.0_ccs_real - col_cps) * bcs%endpoints(index_nb, 1) + col_cps * bcs%endpoints(index_nb, 2))
-    ! end if
+    call get_bc_index(phi, index_nb, index_bc)
 
-    if (bcs%bc_type(index_nb) == 0) then
+    select case (phi%bcs%bc_types(index_bc))
+    case (bc_type_dirichlet)
+      bc_value = phi%bcs%values(index_bc)
+    case default
       bc_value = 0.0_ccs_real
-    else if (bcs%bc_type(index_nb) == 1) then
-      bc_value = 1.0_ccs_real ! XXX: might not be correct
-    else
-      call error_abort("ERROR: Unknown boundary type " // str(bcs%bc_type(index_nb)))
-    end if
-
+      call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
+    end select
   end subroutine compute_boundary_values
 
   !> Computes the matrix coefficient for cells on the boundary of the mesh
-  subroutine compute_boundary_coeffs(phi, mf, mesh, bcs, cps, M, b)
+  subroutine compute_boundary_coeffs(phi, mf, mesh, cps, M, b)
     class(field), intent(in) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
-    type(bc_config), intent(in) :: bcs             !< boundary conditions structure
     integer(ccs_int), intent(in) :: cps            !< number of cells per side
     class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
     class(ccs_vector), intent(inout) :: b          !< vector structure being assigned
@@ -260,7 +245,7 @@ contains
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
           call calc_cell_coords(global_index_p, cps, row, col)
-          call compute_boundary_values(j, row, col, cps, bcs, bc_value)
+          call compute_boundary_values(phi, index_nb, bc_value)
 
           call clear_entries(mat_coeffs)
           call clear_entries(b_coeffs)
@@ -511,6 +496,7 @@ contains
           call get_local_index(loc_nb, nb)
           phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
         else
+          ! XXX: Add boundary condition treatment
           call get_distance(loc_p, loc_f, dx)
           phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + z_gradients_old(i) * dx(3))
         end if

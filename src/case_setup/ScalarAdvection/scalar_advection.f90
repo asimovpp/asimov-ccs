@@ -33,7 +33,6 @@ program scalar_advection
   type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
   type(ccs_mesh) :: mesh
-  type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
   class(field), allocatable :: mf          ! Prescribed face velocity field
   class(field), allocatable :: scalar
@@ -47,15 +46,15 @@ program scalar_advection
   call read_command_line_arguments(par_env)
   call timer(start_time)
 
-  ! Read bc configuration
-  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
-
   ! Set up the square mesh
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Init velocities and scalar
   allocate(central_field :: mf)
   allocate(upwind_field :: scalar)
+
+  ! Read bc configuration
+  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", "scalar", scalar)
 
   ! Initialise with default values
   call initialise(vec_properties)
@@ -78,7 +77,7 @@ program scalar_advection
   call set_advection_velocity(mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, mesh, bcs, cps, M, source)
+  call compute_fluxes(scalar, mf, mesh, cps, M, source)
 
   call update(M) ! parallel assembly for M
 
