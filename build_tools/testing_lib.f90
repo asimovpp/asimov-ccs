@@ -1,5 +1,6 @@
 !>  Testing library
 module testing_lib
+#include "ccs_macros.inc"
 
   use MPI
 
@@ -8,6 +9,7 @@ module testing_lib
   use parallel
   use parallel_types
   use parallel_types_mpi
+  use utils, only : str
 
   implicit none
 
@@ -24,6 +26,11 @@ module testing_lib
   interface a_eq
     procedure a_eq_integer
     procedure a_eq_real
+  end interface
+
+  interface print_failed
+    procedure print_failed_integer
+    procedure print_failed_real
   end interface
   
   class(parallel_environment), allocatable, target :: par_env
@@ -124,29 +131,25 @@ contains
   !>  Assertion for integer equality
   !
   !> @description Check whether input integers are equal. If not, construct message, print and stop.
-  subroutine assert_eq_integer_rank0(test_value, reference_value, msg_format)
+  subroutine assert_eq_integer_rank0(received, expected, message)
 
-    integer(ccs_int), intent(in) :: test_value       !< Test value
-    integer(ccs_int), intent(in) :: reference_value  !< reference value
-    character(*), intent(in) :: msg_format           !< Error message 
-    character(1024) :: message
+    integer(ccs_int), intent(in) :: received       !< Test value
+    integer(ccs_int), intent(in) :: expected  !< reference value
+    character(*), intent(in) :: message              !< Error message 
 
-    if (.not. a_eq(test_value, reference_value)) then
-      write (message, msg_format) test_value, reference_value
-      call stop_test(message)
+    if (.not. a_eq(received, expected)) then
+      call stop_test(message // "Expected: " // str(expected) // " Received: " // str(received))
     end if
 
   end subroutine assert_eq_integer_rank0
-  subroutine assert_eq_integer_rank1(test_value, reference_value, msg_format)
+  subroutine assert_eq_integer_rank1(received, expected, message)
 
-    integer(ccs_int), dimension(:), intent(in) :: test_value       !< Test value
-    integer(ccs_int), dimension(:), intent(in) :: reference_value  !< reference value
-    character(*), intent(in) :: msg_format                         !< Error message 
-    character(1024) :: message
+    integer(ccs_int), dimension(:), intent(in) :: received       !< Test value
+    integer(ccs_int), dimension(:), intent(in) :: expected  !< reference value
+    character(*), intent(in) :: message              !< Error message 
 
-    if (.not. all(a_eq(test_value, reference_value))) then
-      write (message, msg_format) test_value, reference_value
-      call stop_test(message)
+    if (.not. all(a_eq(received, expected))) then
+      call stop_test(message // print_failed(received, expected))
     end if
 
   end subroutine assert_eq_integer_rank1
@@ -156,29 +159,25 @@ contains
   !>  assertion for real equality
   !
   !> @description check whether input reals are equal. if not, construct message, print and stop.
-  subroutine assert_eq_real_rank0(test_value, reference_value, msg_format)
+  subroutine assert_eq_real_rank0(received, expected, message)
 
-    real(ccs_real), intent(in) :: test_value      !< Test value
-    real(ccs_real), intent(in) :: reference_value !< reference value
-    character(*), intent(in) :: msg_format        !< Error message 
-    character(1024) :: message
+    real(ccs_real), intent(in) :: received      !< Test value
+    real(ccs_real), intent(in) :: expected !< reference value
+    character(*), intent(in) :: message              !< Error message 
 
-    if (.not. a_eq(test_value, reference_value)) then
-      write (message, msg_format) test_value, reference_value
-      call stop_test(message)
+    if (.not. a_eq(received, expected)) then
+      call stop_test(message // "Expected: " // str(expected) // " Received: " // str(received))
     end if
 
   end subroutine assert_eq_real_rank0
-  subroutine assert_eq_real_rank1(test_value, reference_value, msg_format)
+  subroutine assert_eq_real_rank1(received, expected, message)
 
-    real(ccs_real), dimension(:), intent(in) :: test_value      !< Test value
-    real(ccs_real), dimension(:), intent(in) :: reference_value !< reference value
-    character(*), intent(in) :: msg_format                      !< Error message 
-    character(1024) :: message
+    real(ccs_real), dimension(:), intent(in) :: received      !< Test value
+    real(ccs_real), dimension(:), intent(in) :: expected !< reference value
+    character(*), intent(in) :: message              !< Error message 
 
-    if (.not. all(a_eq(test_value, reference_value))) then
-      write (message, msg_format) test_value, reference_value
-      call stop_test(message)
+    if (.not. all(a_eq(received, expected))) then
+      call stop_test(message // print_failed(received, expected))
     end if
 
   end subroutine assert_eq_real_rank1
@@ -188,16 +187,14 @@ contains
   !>  assertion for string equality
   !
   !> @description check whether input strings are equal. if not, construct message, print and stop.
-  subroutine assert_eq_string(test_value, reference_value, msg_format)
+  subroutine assert_eq_string(received, expected, message)
 
-    character(*), intent(in) :: test_value      !< Test value
-    character(*), intent(in) :: reference_value !< reference value
-    character(*), intent(in) :: msg_format      !< Error message 
-    character(1024) :: message
+    character(*), intent(in) :: received      !< Test value
+    character(*), intent(in) :: expected !< reference value
+    character(*), intent(in) :: message         !< Error message 
 
-    if (test_value /= reference_value) then
-      write (message, msg_format) test_value, reference_value
-      call stop_test(message)
+    if (received /= expected) then
+      call stop_test(message // "Expected: " // expected // " Received: " // received)
     end if
 
   end subroutine assert_eq_string
@@ -205,6 +202,39 @@ contains
 
 
 
+  function print_failed_integer(received, expected) result(msg)
+    integer(ccs_int), dimension(:), intent(in) :: expected 
+    integer(ccs_int), dimension(:), intent(in) :: received
+    character(len=:), allocatable :: msg
+
+    integer :: i
+    logical, dimension(:), allocatable :: mask
+    mask = a_eq(received, expected)
+
+    msg = new_line('a') // "Index Expected Received" // new_line('a')
+    do i = 1, size(mask)
+      if (.not. mask(i)) then
+        msg = msg // str(i) // achar(9) // str(expected(i)) // achar(9) // str(received(i)) // new_line('a')
+      end if
+    end do
+  end function print_failed_integer
+  
+  function print_failed_real(received, expected) result(msg)
+    real(ccs_real), dimension(:), intent(in) :: expected 
+    real(ccs_real), dimension(:), intent(in) :: received
+    character(len=:), allocatable :: msg
+
+    integer :: i
+    logical, dimension(:), allocatable :: mask
+    mask = a_eq(received, expected)
+
+    msg = new_line('a') // "Index Expected Received" // new_line('a')
+    do i = 1, size(mask)
+      if (.not. mask(i)) then
+        msg = msg // str(i) // achar(9) // str(expected(i)) // achar(9) // str(received(i)) // new_line('a')
+      end if
+    end do
+  end function print_failed_real
 
   
 
