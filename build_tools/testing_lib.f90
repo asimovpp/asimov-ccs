@@ -128,9 +128,9 @@ contains
  
 
 
-  !>  Assertion for integer equality
-  !
-  !> @description Check whether input integers are equal. If not, construct message, print and stop.
+
+
+!==========================Integers
   subroutine assert_eq_integer_rank0(received, expected, message)
 
     integer(ccs_int), intent(in) :: received       !< Test value
@@ -142,6 +142,7 @@ contains
     end if
 
   end subroutine assert_eq_integer_rank0
+
   subroutine assert_eq_integer_rank1(received, expected, message)
 
     integer(ccs_int), dimension(:), intent(in) :: received       !< Test value
@@ -153,12 +154,11 @@ contains
     end if
 
   end subroutine assert_eq_integer_rank1
+!==========================
  
 
 
-  !>  assertion for real equality
-  !
-  !> @description check whether input reals are equal. if not, construct message, print and stop.
+!==========================Reals
   subroutine assert_eq_real_rank0(received, expected, message)
 
     real(ccs_real), intent(in) :: received      !< Test value
@@ -170,6 +170,7 @@ contains
     end if
 
   end subroutine assert_eq_real_rank0
+
   subroutine assert_eq_real_rank1(received, expected, message)
 
     real(ccs_real), dimension(:), intent(in) :: received      !< Test value
@@ -181,12 +182,11 @@ contains
     end if
 
   end subroutine assert_eq_real_rank1
+!==========================
  
 
 
-  !>  assertion for string equality
-  !
-  !> @description check whether input strings are equal. if not, construct message, print and stop.
+!==========================Strings
   subroutine assert_eq_string(received, expected, message)
 
     character(*), intent(in) :: received      !< Test value
@@ -198,10 +198,12 @@ contains
     end if
 
   end subroutine assert_eq_string
+!==========================
  
 
 
 
+!==========================Printing funcs
   function print_failed_integer(received, expected) result(msg)
     integer(ccs_int), dimension(:), intent(in) :: expected 
     integer(ccs_int), dimension(:), intent(in) :: received
@@ -235,9 +237,11 @@ contains
       end if
     end do
   end function print_failed_real
+!==========================
 
   
 
+!==========================Comparison operators
   elemental logical function a_eq_integer(a, b) result(comparison)
     integer(ccs_int), intent(in) :: a 
     integer(ccs_int), intent(in) :: b 
@@ -251,7 +255,51 @@ contains
 
     comparison = (abs(a - b) < epsilon(b) * abs(b))
   end function a_eq_real
+!==========================
 
+
+
+!==========================Others
+  subroutine assert_lt(received, upper_limit, message)
+    integer(ccs_int), intent(in) :: received       !< Test value
+    integer(ccs_int), intent(in) :: upper_limit  !< reference value
+    character(*), intent(in) :: message              !< Error message 
+
+    if (.not. received < upper_limit) then
+      call stop_test(message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received))
+    end if
+  end subroutine assert_lt
+  
+
+  subroutine assert_gt(received, lower_limit, message)
+    integer(ccs_int), intent(in) :: received       !< Test value
+    integer(ccs_int), intent(in) :: lower_limit  !< reference value
+    character(*), intent(in) :: message              !< Error message 
+
+    if (.not. received > lower_limit) then
+      call stop_test(message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received))
+    end if
+  end subroutine assert_gt
+  
+  subroutine assert_bool(received, message)
+    logical, intent(in) :: received       !< Test value
+    character(*), intent(in) :: message              !< Error message 
+
+    if (.not. received) then
+      call stop_test(message // "Expected: TRUE Received: FALSE")
+    end if
+  end subroutine assert_bool
+
+  subroutine assert_neq(received, notexpected, message)
+    integer(ccs_int), intent(in) :: received       !< Test value
+    integer(ccs_int), intent(in) :: notexpected  !< reference value
+    character(*), intent(in) :: message              !< Error message 
+
+    if (a_eq(received, notexpected)) then
+      call stop_test(message // "Not Expected: " // str(notexpected) // " Received: " // str(received))
+    end if
+  end subroutine assert_neq
+!==========================
 
 
 end module testing_lib
