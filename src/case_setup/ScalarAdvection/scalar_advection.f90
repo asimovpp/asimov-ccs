@@ -1,10 +1,8 @@
-!>  Program file for scalar advection case
-!
-!
+!v  Program file for scalar advection case
 
 program scalar_advection
 
-  !! ASiMoV-CCS uses
+  ! ASiMoV-CCS uses
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, &
@@ -34,10 +32,10 @@ program scalar_advection
   type(equation_system) :: scalar_equation_system
   type(ccs_mesh) :: mesh
 
-  class(field), allocatable :: mf          ! Prescribed face velocity field
+  class(field), allocatable :: mf !< Prescribed face velocity field
   class(field), allocatable :: scalar
 
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
   double precision :: start_time
   double precision :: end_time

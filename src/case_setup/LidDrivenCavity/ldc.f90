@@ -1,6 +1,6 @@
-!>  Program file for LidDrivenCavity case
+!v Program file for LidDrivenCavity case
 !
-!> @build mpi+petsc
+!  @build mpi+petsc
 
 program ldc
 #include "ccs_macros.inc"

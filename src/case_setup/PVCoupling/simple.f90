@@ -1,8 +1,7 @@
-!> @brief Program file for pressure-velocity coupling case
+!v Program file for pressure-velocity coupling case
 !
-!> @details This case demonstrates solution of the Navier-Stokes equations
-!!          using the SIMPLE algorithm for pressure-velocity coupling.
-!
+!  This case demonstrates solution of the Navier-Stokes equations
+!  using the SIMPLE algorithm for pressure-velocity coupling.
 
 program simple
 
@@ -31,7 +30,7 @@ program simple
 
   class(field), allocatable :: u, v, p, pp, mf
 
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
 
