@@ -1,4 +1,4 @@
-!v  Program file for Poisson case
+!v Program file for Poisson case
 !
 !  Based on prototype/ex3 a port of PETSc ksp/tutorial/ex3.c to ASiMoV-CCS style code.
 !  This case demonstrates setting up a linear system and solving it with ASiMoV-CCS, note

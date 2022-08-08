@@ -1,4 +1,4 @@
-!v  Program file for scalar advection case
+!v Program file for scalar advection case
 
 program scalar_advection
 

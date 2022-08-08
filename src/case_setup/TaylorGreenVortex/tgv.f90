@@ -1,4 +1,4 @@
-!>  Program file for TaylorGreenVortex case
+!> Program file for TaylorGreenVortex case
 program tgv
 #include "ccs_macros.inc"
 
