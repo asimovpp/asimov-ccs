@@ -1,6 +1,6 @@
-!>  Module file pv_coupling.mod
+!v Module file pv_coupling.mod
 !
-!>  An interface to pressure-velocity coupling methods (SIMPLE, etc)
+!  An interface to pressure-velocity coupling methods (SIMPLE, etc)
 
 module pv_coupling
 
