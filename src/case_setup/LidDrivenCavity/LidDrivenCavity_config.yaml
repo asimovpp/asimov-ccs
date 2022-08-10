@@ -62,33 +62,20 @@ boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
+    type: dirichlet
+    value: 0
   boundary_3:
     name: top
+    type: dirichlet
+    value: 0
     variable_u:
       type: dirichlet
       value: 1
-    variable_v:
-      type: dirichlet
-      value: 0
   boundary_2:
     name: right
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
+    type: dirichlet
+    value: 0
   boundary_4:
     name: bottom
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
+    type: dirichlet
+    value: 0
