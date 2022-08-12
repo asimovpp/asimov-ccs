@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 ldc_timestepping.f90 
+# RUN: %mpirun -n 4 %t1 --ccs_case LidDrivenCavity
+# temp-disabled: mv p u v p.info u.info v.info Output/
+
+main: ldc_timestepping
+base: mpi_petsc
