@@ -101,11 +101,12 @@ contains
     call create_matrix_values(mat_val_spec, mat_coeffs)
     call set_mode(add_mode, mat_coeffs)
 
-    call create_vector_values(1_ccs_int, b_coeffs)
+    call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
     do index_p = 1, mesh%nlocal
       call clear_entries(mat_coeffs)
+      call clear_entries(b_coeffs)
 
       ! Calculate contribution from neighbours
       call set_cell_location(mesh, index_p, loc_p)
@@ -156,9 +157,6 @@ contains
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          !call set_col(-1, mat_coeffs)
-          !call set_entry(0.0_ccs_real, mat_coeffs)
-          ! call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
           call set_face_location(mesh, index_p, j, loc_f)
@@ -179,19 +177,16 @@ contains
           call calc_cell_coords(global_index_p, cps, row, col)
           call compute_boundary_values(phi, index_nb, bc_value)
 
-          call clear_entries(mat_coeffs)
-          call clear_entries(b_coeffs)
-
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
-          call set_values(b_coeffs, b)
 
           call set_row(global_index_p, mat_coeffs)
           call set_col(global_index_p, mat_coeffs)
           call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
-          call set_values(mat_coeffs, M)
         end if
       end do
+
+      call set_values(b_coeffs, b)
 
       call set_col(global_index_p, mat_coeffs)
       call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
@@ -204,102 +199,102 @@ contains
   end subroutine compute_coeffs
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_interior_coeffs(phi, mf, mesh, n_int_cells, M)
-    class(field), intent(in) :: phi                !< scalar field structure
-    real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
-    type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
-    integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
-    class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
+  !subroutine compute_interior_coeffs(phi, mf, mesh, n_int_cells, M)
+  !  class(field), intent(in) :: phi                !< scalar field structure
+  !  real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
+  !  type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
+  !  integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
+  !  class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
 
-    type(matrix_values_spec) :: mat_val_spec
-    type(matrix_values) :: mat_coeffs
-    type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    type(face_locator) :: loc_f
-    integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
-    integer(ccs_int) :: j
-    integer(ccs_int) :: nnb
-    real(ccs_real) :: face_area
-    real(ccs_real) :: diff_coeff, diff_coeff_total
-    real(ccs_real) :: adv_coeff, adv_coeff_total
-    real(ccs_real), dimension(ndim) :: face_normal
-    logical :: is_boundary
+  !  type(matrix_values_spec) :: mat_val_spec
+  !  type(matrix_values) :: mat_coeffs
+  !  type(cell_locator) :: loc_p
+  !  type(neighbour_locator) :: loc_nb
+  !  type(face_locator) :: loc_f
+  !  integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
+  !  integer(ccs_int) :: j
+  !  integer(ccs_int) :: nnb
+  !  real(ccs_real) :: face_area
+  !  real(ccs_real) :: diff_coeff, diff_coeff_total
+  !  real(ccs_real) :: adv_coeff, adv_coeff_total
+  !  real(ccs_real), dimension(ndim) :: face_normal
+  !  logical :: is_boundary
 
-    integer(ccs_int) :: index_f
+  !  integer(ccs_int) :: index_f
 
-    real(ccs_real) :: sgn ! Sign indicating face orientation
+  !  real(ccs_real) :: sgn ! Sign indicating face orientation
 
-    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
-    call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
-    call create_matrix_values(mat_val_spec, mat_coeffs)
-    call set_mode(add_mode, mat_coeffs)
+  !  call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+  !  call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
+  !  call create_matrix_values(mat_val_spec, mat_coeffs)
+  !  call set_mode(add_mode, mat_coeffs)
 
-    do index_p = 1, mesh%nlocal
-      call clear_entries(mat_coeffs)
+  !  do index_p = 1, mesh%nlocal
+  !    call clear_entries(mat_coeffs)
 
-      ! Calculate contribution from neighbours
-      call set_cell_location(mesh, index_p, loc_p)
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
+  !    ! Calculate contribution from neighbours
+  !    call set_cell_location(mesh, index_p, loc_p)
+  !    call get_global_index(loc_p, global_index_p)
+  !    call count_neighbours(loc_p, nnb)
 
-      call set_row(global_index_p, mat_coeffs)
+  !    call set_row(global_index_p, mat_coeffs)
 
-      adv_coeff_total = 0.0_ccs_real
-      diff_coeff_total = 0.0_ccs_real
-      do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
+  !    adv_coeff_total = 0.0_ccs_real
+  !    diff_coeff_total = 0.0_ccs_real
+  !    do j = 1, nnb
+  !      call set_neighbour_location(loc_p, j, loc_nb)
+  !      call get_boundary_status(loc_nb, is_boundary)
 
-        if (.not. is_boundary) then
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+  !      if (.not. is_boundary) then
+  !        diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
 
-          call get_global_index(loc_nb, global_index_nb)
-          call get_local_index(loc_nb, index_nb)
+  !        call get_global_index(loc_nb, global_index_nb)
+  !        call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, loc_f)
-          call get_face_area(loc_f, face_area)
-          call get_face_normal(loc_f, face_normal)
-          call get_local_index(loc_f, index_f)
+  !        call set_face_location(mesh, index_p, j, loc_f)
+  !        call get_face_area(loc_f, face_area)
+  !        call get_face_normal(loc_f, face_normal)
+  !        call get_local_index(loc_f, index_f)
 
-          ! XXX: Why won't Fortran interfaces distinguish on extended types...
-          ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
-          !       procedure (should also eliminate the type check).
-          if (index_nb < index_p) then
-            sgn = -1.0_ccs_real
-          else
-            sgn = 1.0_ccs_real
-          end if
-          select type (phi)
-          type is (central_field)
-            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
-          type is (upwind_field)
-            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
-          class default
-            call error_abort("Invalid velocity field discretisation.")
-          end select
+  !        ! XXX: Why won't Fortran interfaces distinguish on extended types...
+  !        ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
+  !        !       procedure (should also eliminate the type check).
+  !        if (index_nb < index_p) then
+  !          sgn = -1.0_ccs_real
+  !        else
+  !          sgn = 1.0_ccs_real
+  !        end if
+  !        select type (phi)
+  !        type is (central_field)
+  !          call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+  !        type is (upwind_field)
+  !          call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+  !        class default
+  !          call error_abort("Invalid velocity field discretisation.")
+  !        end select
 
-          ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
-          adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
+  !        ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
+  !        adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
 
-          call set_col(global_index_nb, mat_coeffs)
-          call set_entry(adv_coeff + diff_coeff, mat_coeffs)
-          adv_coeff_total = adv_coeff_total + adv_coeff
-          diff_coeff_total = diff_coeff_total + diff_coeff
-        else
-          call set_col(-1, mat_coeffs)
-          call set_entry(0.0_ccs_real, mat_coeffs)
-        end if
-      end do
+  !        call set_col(global_index_nb, mat_coeffs)
+  !        call set_entry(adv_coeff + diff_coeff, mat_coeffs)
+  !        adv_coeff_total = adv_coeff_total + adv_coeff
+  !        diff_coeff_total = diff_coeff_total + diff_coeff
+  !      else
+  !        call set_col(-1, mat_coeffs)
+  !        call set_entry(0.0_ccs_real, mat_coeffs)
+  !      end if
+  !    end do
 
-      call set_col(global_index_p, mat_coeffs)
-      call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
-      call set_values(mat_coeffs, M)
-    end do
+  !    call set_col(global_index_p, mat_coeffs)
+  !    call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
+  !    call set_values(mat_coeffs, M)
+  !  end do
 
-    deallocate (mat_coeffs%global_row_indices)
-    deallocate (mat_coeffs%global_col_indices)
-    deallocate (mat_coeffs%values)
-  end subroutine compute_interior_coeffs
+  !  deallocate (mat_coeffs%global_row_indices)
+  !  deallocate (mat_coeffs%global_col_indices)
+  !  deallocate (mat_coeffs%values)
+  !end subroutine compute_interior_coeffs
 
   !v Computes the value of the scalar field on the boundary based on linear interpolation between
   !  values provided on box corners
@@ -323,93 +318,93 @@ contains
   end subroutine compute_boundary_values
 
   !> Computes the matrix coefficient for cells on the boundary of the mesh
-  subroutine compute_boundary_coeffs(phi, mf, mesh, cps, M, b)
-    class(field), intent(in) :: phi                !< scalar field structure
-    real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
-    type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
-    integer(ccs_int), intent(in) :: cps            !< number of cells per side
-    class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
-    class(ccs_vector), intent(inout) :: b          !< vector structure being assigned
+  !subroutine compute_boundary_coeffs(phi, mf, mesh, cps, M, b)
+  !  class(field), intent(in) :: phi                !< scalar field structure
+  !  real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
+  !  type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
+  !  integer(ccs_int), intent(in) :: cps            !< number of cells per side
+  !  class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
+  !  class(ccs_vector), intent(inout) :: b          !< vector structure being assigned
 
-    type(matrix_values_spec) :: mat_val_spec
-    type(matrix_values) :: mat_coeffs
-    type(vector_values) :: b_coeffs
-    type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    type(face_locator) :: loc_f
-    integer(ccs_int) :: global_index_p, index_p
-    integer(ccs_int) :: j
-    integer(ccs_int) :: row, col
-    integer(ccs_int) :: nnb, index_nb
-    real(ccs_real) :: face_area
-    real(ccs_real) :: diff_coeff
-    real(ccs_real) :: adv_coeff
-    real(ccs_real) :: bc_value
-    logical :: is_boundary
+  !  type(matrix_values_spec) :: mat_val_spec
+  !  type(matrix_values) :: mat_coeffs
+  !  type(vector_values) :: b_coeffs
+  !  type(cell_locator) :: loc_p
+  !  type(neighbour_locator) :: loc_nb
+  !  type(face_locator) :: loc_f
+  !  integer(ccs_int) :: global_index_p, index_p
+  !  integer(ccs_int) :: j
+  !  integer(ccs_int) :: row, col
+  !  integer(ccs_int) :: nnb, index_nb
+  !  real(ccs_real) :: face_area
+  !  real(ccs_real) :: diff_coeff
+  !  real(ccs_real) :: adv_coeff
+  !  real(ccs_real) :: bc_value
+  !  logical :: is_boundary
 
-    integer(ccs_int) :: index_f
+  !  integer(ccs_int) :: index_f
 
-    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
-    call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
-    call create_matrix_values(mat_val_spec, mat_coeffs)
-    call set_mode(add_mode, mat_coeffs)
+  !  call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+  !  call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
+  !  call create_matrix_values(mat_val_spec, mat_coeffs)
+  !  call set_mode(add_mode, mat_coeffs)
 
-    call create_vector_values(1_ccs_int, b_coeffs)
-    call set_mode(add_mode, b_coeffs)
+  !  call create_vector_values(1_ccs_int, b_coeffs)
+  !  call set_mode(add_mode, b_coeffs)
 
-    do index_p = 1, mesh%nlocal
-      call set_cell_location(mesh, index_p, loc_p)
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
+  !  do index_p = 1, mesh%nlocal
+  !    call set_cell_location(mesh, index_p, loc_p)
+  !    call get_global_index(loc_p, global_index_p)
+  !    call count_neighbours(loc_p, nnb)
 
-      ! Calculate contribution from neighbours
-      do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-        if (is_boundary) then
-          ! call get_global_index(loc_nb, global_index_nb)
-          call get_local_index(loc_nb, index_nb)
+  !    ! Calculate contribution from neighbours
+  !    do j = 1, nnb
+  !      call set_neighbour_location(loc_p, j, loc_nb)
+  !      call get_boundary_status(loc_nb, is_boundary)
+  !      if (is_boundary) then
+  !        ! call get_global_index(loc_nb, global_index_nb)
+  !        call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, loc_f)
-          call get_face_area(loc_f, face_area)
-          call get_local_index(loc_f, index_f)
+  !        call set_face_location(mesh, index_p, j, loc_f)
+  !        call get_face_area(loc_f, face_area)
+  !        call get_local_index(loc_f, index_f)
 
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
-          select type (phi)
-          type is (central_field)
-            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
-          type is (upwind_field)
-            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
-          class default
-            call error_abort("Invalid velocity field discretisation.")
-          end select
-          adv_coeff = adv_coeff * (mf(index_f) * face_area)
+  !        diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+  !        select type (phi)
+  !        type is (central_field)
+  !          call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+  !        type is (upwind_field)
+  !          call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+  !        class default
+  !          call error_abort("Invalid velocity field discretisation.")
+  !        end select
+  !        adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
-          call calc_cell_coords(global_index_p, cps, row, col)
-          call compute_boundary_values(phi, index_nb, bc_value)
+  !        call calc_cell_coords(global_index_p, cps, row, col)
+  !        call compute_boundary_values(phi, index_nb, bc_value)
 
-          call clear_entries(mat_coeffs)
-          call clear_entries(b_coeffs)
+  !        call clear_entries(mat_coeffs)
+  !        call clear_entries(b_coeffs)
 
-          call set_row(global_index_p, b_coeffs)
-          call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
-          call set_values(b_coeffs, b)
+  !        call set_row(global_index_p, b_coeffs)
+  !        call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
+  !        call set_values(b_coeffs, b)
 
-          call set_row(global_index_p, mat_coeffs)
-          call set_col(global_index_p, mat_coeffs)
-          call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
-          call set_values(mat_coeffs, M)
-        end if
-      end do
-    end do
+  !        call set_row(global_index_p, mat_coeffs)
+  !        call set_col(global_index_p, mat_coeffs)
+  !        call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
+  !        call set_values(mat_coeffs, M)
+  !      end if
+  !    end do
+  !  end do
 
-    deallocate (mat_coeffs%global_row_indices)
-    deallocate (mat_coeffs%global_col_indices)
-    deallocate (mat_coeffs%values)
-    deallocate (b_coeffs%global_indices)
-    deallocate (b_coeffs%values)
+  !  deallocate (mat_coeffs%global_row_indices)
+  !  deallocate (mat_coeffs%global_col_indices)
+  !  deallocate (mat_coeffs%values)
+  !  deallocate (b_coeffs%global_indices)
+  !  deallocate (b_coeffs%values)
 
-  end subroutine compute_boundary_coeffs
+  !end subroutine compute_boundary_coeffs
 
   !> Sets the diffusion coefficient
   module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
