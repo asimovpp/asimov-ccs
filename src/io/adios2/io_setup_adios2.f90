@@ -107,7 +107,7 @@ contains
   !> Open file with ADIOS2
   module subroutine open_file(filename, mode, io_proc)
     character(len=*), intent(in) :: filename    !< name of file to open
-    character(len=*), intent(in) :: mode        !< choose whether to read/ write or append valid options are: 
+    character(len=*), intent(in) :: mode        !< choose whether to read/ write or append valid options are:
                                                 !< "read", "write", "append"
     class(io_process), intent(inout) :: io_proc !< object that includes ADIOS2 handler information
 

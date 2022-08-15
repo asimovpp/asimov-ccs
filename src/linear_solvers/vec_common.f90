@@ -34,31 +34,31 @@ contains
   end subroutine set_vector_location
 
   module procedure create_vector_values
-    allocate (val_dat%global_indices(nrows))
-    allocate (val_dat%values(nrows))
+  allocate (val_dat%global_indices(nrows))
+  allocate (val_dat%values(nrows))
 
-    val_dat%global_indices(:) = -1_ccs_int
-    val_dat%values(:) = 0.0_ccs_real
+  val_dat%global_indices(:) = -1_ccs_int
+  val_dat%values(:) = 0.0_ccs_real
   end procedure create_vector_values
 
   module procedure set_vector_values_mode
-    val_dat%setter_mode = mode
+  val_dat%setter_mode = mode
   end procedure set_vector_values_mode
 
   module procedure set_vector_values_entry
 
-    use constants, only: add_mode, insert_mode
+  use constants, only: add_mode, insert_mode
 
-    associate (x => val_dat%values(val_dat%current_entry), &
-               mode => val_dat%setter_mode)
-      if (mode == insert_mode) then
-        x = val
-      else if (mode == add_mode) then
-        x = x + val
-      else
-        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
-      end if
-    end associate
+  associate (x => val_dat%values(val_dat%current_entry), &
+             mode => val_dat%setter_mode)
+    if (mode == insert_mode) then
+      x = val
+    else if (mode == add_mode) then
+      x = x + val
+    else
+      call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+    end if
+  end associate
 
   end procedure set_vector_values_entry
 
