@@ -190,7 +190,7 @@ contains
     
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
-    call compute_fluxes(u, mf, mesh, cps, M, vec)
+    call compute_fluxes(u, mf, mesh, component, cps, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     call dprint("GV: compute u gradp")

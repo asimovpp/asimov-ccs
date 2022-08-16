@@ -23,13 +23,14 @@ submodule(fv) fv_common
 contains
 
   !> Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, mesh, cps, M, vec)
-    class(field), intent(in) :: phi         !< scalar field structure
-    class(field), intent(in) :: mf          !< mass flux field structure
-    type(ccs_mesh), intent(in) :: mesh      !< the mesh being used
-    integer(ccs_int), intent(in) :: cps     !< the number of cells per side in the (square) mesh
-    class(ccs_matrix), intent(inout) :: M   !< Data structure containing matrix to be filled
-    class(ccs_vector), intent(inout) :: vec !< Data structure containing RHS vector to be filled
+  module subroutine compute_fluxes(phi, mf, mesh, component, cps, M, vec)
+    class(field), intent(in) :: phi             
+    class(field), intent(in) :: mf              
+    type(ccs_mesh), intent(in) :: mesh          
+    integer(ccs_int), intent(in) :: component   
+    integer(ccs_int), intent(in) :: cps         
+    class(ccs_matrix), intent(inout) :: M       
+    class(ccs_vector), intent(inout) :: vec     
 
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
@@ -41,7 +42,7 @@ contains
       ! Loop over cells computing advection and diffusion fluxes
       n_int_cells = calc_matrix_nnz()
       call dprint("CF: compute coeffs")
-      call compute_coeffs(phi, mf_data, mesh, n_int_cells, cps, M, vec)
+      call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, cps, M, vec)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
@@ -59,10 +60,11 @@ contains
   end function calc_matrix_nnz
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_coeffs(phi, mf, mesh, n_int_cells, cps, M, b)
+  subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, cps, M, b)
     class(field), intent(in) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
+    integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
     integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
     integer(ccs_int), intent(in) :: cps            !< number of cells per side
     class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
@@ -113,6 +115,8 @@ contains
       do j = 1, nnb
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
+        call set_face_location(mesh, index_p, j, loc_f)
+        call get_face_normal(loc_f, face_normal)
 
         if (.not. is_boundary) then
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
@@ -120,9 +124,7 @@ contains
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
-          call get_face_normal(loc_f, face_normal)
           call get_local_index(loc_f, index_f)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
@@ -167,8 +169,8 @@ contains
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
-          call calc_cell_coords(global_index_p, cps, row, col)
-          call compute_boundary_values(phi, index_nb, bc_value)
+          !call calc_cell_coords(global_index_p, cps, row, col) ! XXX: don't think we need this anymore
+          call compute_boundary_values(phi, component, index_nb, index_p, face_normal, bc_value)
 
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
@@ -193,19 +195,54 @@ contains
 
   !v Computes the value of the scalar field on the boundary based on linear interpolation between
   !  values provided on box corners
-  subroutine compute_boundary_values(phi, index_nb, bc_value)
-    class(field), intent(in) :: phi         !< the field for which boundary values are being computed
-    integer, intent(in) :: index_nb         !< index of neighbour 
-    real(ccs_real), intent(out) :: bc_value !< the value of the scalar field at the specified boundary
+  subroutine compute_boundary_values(phi, component, index_nb, index_p, normal, bc_value)
+    class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
+    integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
+    integer, intent(in) :: index_nb                         !< index of neighbour 
+    integer, intent(in) :: index_p                          !< index of cell 
+    real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
+    real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
 
     ! local variables
     integer(ccs_int) :: index_bc
+    integer(ccs_int) :: i
+    real(ccs_real), dimension(ndim) :: parallel_component_map
+    real(ccs_real), dimension(ndim) :: phi_face_parallel_component
+    real(ccs_real) :: phi_face_parallel_component_norm
+    real(ccs_real) :: phi_face_parallel_component_portion
+    real(ccs_real) :: normal_norm
+    real(ccs_real), dimension(:), pointer :: phi_values
 
     call get_bc_index(phi, index_nb, index_bc)
 
     select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
       bc_value = phi%bcs%values(index_bc)
+    case (bc_type_sym)
+      select case(component)
+      case (1)
+        parallel_component_map = (/ 0, 1, 1 /)
+      case (2)
+        parallel_component_map = (/ 1, 0, 1 /)
+      case (3)
+        parallel_component_map = (/ 1, 1, 0 /)
+      case default
+        call error_abort("invalid component provided " // str(component))
+      end select
+      ! Only keep the components of phi that are parallel to the surface
+      phi_face_parallel_component_norm = 0
+      normal_norm = 0
+      do i = 1, ndim
+        phi_face_parallel_component(i) = parallel_component_map(i) * normal(i)
+        phi_face_parallel_component_norm = phi_face_parallel_component_norm + phi_face_parallel_component(i) * phi_face_parallel_component(i)
+        normal_norm = normal_norm + normal(i) * normal(i)
+      end do
+      phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm/normal_norm)
+      
+      ! Get value of phi at boundary cell
+      call get_vector_data(phi%values, phi_values)
+      bc_value = phi_face_parallel_component_portion*phi_values(index_p)
+
     case default
       bc_value = 0.0_ccs_real
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
@@ -335,7 +372,6 @@ contains
   !v Performs an update of the gradients of a field.
   !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !  correctly updated on other PEs. @endnote
-
   module subroutine update_gradient(mesh, phi)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
