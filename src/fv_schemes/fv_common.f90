@@ -193,8 +193,7 @@ contains
     deallocate (mat_coeffs%values)
   end subroutine compute_coeffs
 
-  !v Computes the value of the scalar field on the boundary based on linear interpolation between
-  !  values provided on box corners
+  !> Computes the value of the scalar field on the boundary 
   subroutine compute_boundary_values(phi, component, index_nb, index_p, normal, bc_value)
     class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
@@ -402,13 +401,13 @@ contains
     call restore_vector_data(phi%z_gradients, z_gradients_data)
 
     call dprint("Compute x gradient")
-    call update_gradient_component(mesh, 1, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
+    call update_gradient_component(mesh, 1, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
     call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
     call dprint("Compute y gradient")
-    call update_gradient_component(mesh, 2, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%y_gradients)
+    call update_gradient_component(mesh, 2, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%y_gradients)
     call update(phi%y_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
     call dprint("Compute z gradient")
-    call update_gradient_component(mesh, 3, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
+    call update_gradient_component(mesh, 3, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
     call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
 
     deallocate (x_gradients_old)
@@ -422,7 +421,7 @@ contains
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
-    class(ccs_vector), intent(in) :: phi !< a cell-centred array of the field whose gradient we want to compute
+    class(field), intent(in) :: phi !< the field whose gradient we want to compute
     real(ccs_real), dimension(:), intent(in) :: x_gradients_old
     real(ccs_real), dimension(:), intent(in) :: y_gradients_old
     real(ccs_real), dimension(:), intent(in) :: z_gradients_old
@@ -432,14 +431,14 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: grad
 
-    integer(ccs_int) :: i
+    integer(ccs_int) :: index_p
     integer(ccs_int) :: j
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: nnb
-    integer(ccs_int) :: nb
+    integer(ccs_int) :: index_nb
 
     real(ccs_real) :: phif
 
@@ -456,31 +455,31 @@ contains
     call create_vector_values(1_ccs_int, grad_values)
     call set_mode(insert_mode, grad_values)
 
-    call get_vector_data(phi, phi_data)
+    call get_vector_data(phi%values, phi_data)
 
-    do i = 1, mesh%nlocal
+    do index_p = 1, mesh%nlocal
       call clear_entries(grad_values)
 
       grad = 0.0_ccs_int
 
-      call set_cell_location(mesh, i, loc_p)
+      call set_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_face_location(mesh, i, j, loc_f)
+        call set_face_location(mesh, index_p, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
+        call get_face_area(loc_f, face_area)
+        call get_face_normal(loc_f, face_norm)
 
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, nb)
-          phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
+          call get_local_index(loc_nb, index_nb)
+          phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
         else
           ! XXX: Add boundary condition treatment
           call get_distance(loc_p, loc_f, dx)
-          phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + z_gradients_old(i) * dx(3))
+          !phif = phi_data(index_p) + (x_gradients_old(index_p) * dx(1) + y_gradients_old(index_p) * dx(2) + z_gradients_old(index_p) * dx(3))
+          call compute_boundary_values(phi, component, index_nb, index_p, face_norm, phif)
         end if
-
-        call get_face_area(loc_f, face_area)
-        call get_face_normal(loc_f, face_norm)
 
         grad = grad + phif * (face_area * face_norm(component))
       end do
@@ -494,7 +493,7 @@ contains
       call set_values(grad_values, gradients)
     end do
 
-    call restore_vector_data(phi, phi_data)
+    call restore_vector_data(phi%values, phi_data)
 
     deallocate (grad_values%global_indices)
     deallocate (grad_values%values)
