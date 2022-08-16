@@ -42,7 +42,7 @@ module vec
                                                        !< of the vector, -1 is interpreted as unset. If both
                                                        !< are set the local size is used.
       class(ccs_vector), allocatable, intent(out) :: v !< The vector returned allocated,
-      !< but (potentially) uninitialised.
+                                                       !< but (potentially) uninitialised.
     end subroutine
 
     !> Interface to set values in a vector.
