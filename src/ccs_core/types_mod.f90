@@ -47,8 +47,8 @@ module types
   type, public :: matrix_values
     integer(ccs_int), dimension(:), allocatable :: global_row_indices !< Array of (global) row indices to set values on.
     integer(ccs_int), dimension(:), allocatable :: global_col_indices !< Array of (global) column indices to set values on.
-    real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and 
-                                                            !< of size = size(row_indices) * size(col_indices). Uses 
+    real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and
+                                                            !< of size = size(row_indices) * size(col_indices). Uses
                                                             !< row-major ordering.
     integer(ccs_int) :: setter_mode                         !< Which mode to use when setting values?
     integer(ccs_int) :: current_row, current_col            !< Which entry are we currently working on?
@@ -58,7 +58,7 @@ module types
     integer(ccs_int) :: nrows = 0
     integer(ccs_int) :: ncols = 0
   end type matrix_values_spec
-  
+
   !>  Container type representing a linear system.
   type, public :: equation_system
     character(len=:), allocatable :: name  !< Name of the equation system
@@ -72,6 +72,13 @@ module types
   type, public :: linear_solver
     type(equation_system) :: linear_system !< System of equations
   end type linear_solver
+
+  !> BC data type
+  type, public :: bc_config
+    integer(ccs_int), dimension(:), allocatable :: ids
+    integer(ccs_int), dimension(:), allocatable :: bc_types
+    real(ccs_real), dimension(:), allocatable :: values
+  end type bc_config
 
   !> Mesh type
   type, public :: ccs_mesh
@@ -95,11 +102,12 @@ module types
   !> Scalar field type
   type, public :: field
     class(ccs_vector), allocatable :: values      !< Vector representing the field
+    class(ccs_vector), allocatable :: old_values  !< Vector representing the old field
     class(ccs_vector), allocatable :: x_gradients !< Vector representing the x gradient
     class(ccs_vector), allocatable :: y_gradients !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients !< Vector representing the z gradient
-    
-    class(ccs_vector), allocatable :: old_values  !< Vector representing the old field
+    type(bc_config) :: bcs                        !< The bcs data structure for the cell
+>>>>>>> develop
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -135,14 +143,7 @@ module types
     integer(ccs_int) :: nb_counter
   end type neighbour_locator
 
-  type, public :: bc_config
-    integer(ccs_int), dimension(4) :: region
-    integer(ccs_int), dimension(4) :: bc_type
-    real(ccs_real), dimension(4, 2) :: endpoints ! Used in scalar_advection case and tests,
-    ! possibly remove/improve for general
-  end type bc_config
-
-  !> IO environment type
+  !>  IO environment type
   type, public :: io_environment
   end type io_environment
 
