@@ -326,35 +326,35 @@ contains
 
   module procedure clear_vector_values_entries
 
-  val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-  val_dat%values(:) = 0.0_ccs_real
+    val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%values(:) = 0.0_ccs_real
 
   end procedure clear_vector_values_entries
 
   module procedure set_vector_values_row
 
-  integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
-                                         !< current working set. N.B. the dimension of this
-                                         !< array must match the rank of
-                                         !< vector_values%global_indices.
-  integer(ccs_int) :: i
-  integer(ccs_int) :: petsc_row
+    integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
+                                           !< current working set. N.B. the dimension of this
+                                           !< array must match the rank of
+                                           !< vector_values%global_indices.
+    integer(ccs_int) :: i
+    integer(ccs_int) :: petsc_row
 
-  petsc_row = row - 1 ! PETSc is zero-indexed
+    petsc_row = row - 1 ! PETSc is zero-indexed
 
-  idxs = findloc(val_dat%global_indices, petsc_row, kind=ccs_int)
-  i = idxs(1) ! We want the first entry
-  if (i == 0) then
-    ! New entry
-    idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
+    idxs = findloc(val_dat%global_indices, petsc_row, kind=ccs_int)
     i = idxs(1) ! We want the first entry
     if (i == 0) then
-      call error_abort("ERROR: Couldn't find a free entry in vector values.")
+      ! New entry
+      idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
+      i = idxs(1) ! We want the first entry
+      if (i == 0) then
+        call error_abort("ERROR: Couldn't find a free entry in vector values.")
+      end if
     end if
-  end if
 
-  val_dat%current_entry = i
-  val_dat%global_indices(i) = petsc_row
+    val_dat%current_entry = i
+    val_dat%global_indices(i) = petsc_row
 
   end procedure set_vector_values_row
 

@@ -78,7 +78,7 @@ contains
 
   !> Set the storage mode.
   module procedure set_matrix_values_mode
-  val_dat%setter_mode = mode
+    val_dat%setter_mode = mode
   end procedure set_matrix_values_mode
 
   !v Store a coefficient in the current working set at the current row,col coordinate, using the
