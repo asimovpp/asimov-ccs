@@ -1,6 +1,6 @@
-!>  boundary conditions module
+!v boundary conditions module
 !
-!>  Various BC related functionality. Need to expand.
+!  Various BC related functionality. Need to expand.
 
 module boundary_conditions
 #include "ccs_macros.inc"
@@ -11,7 +11,7 @@ module boundary_conditions
   use yaml, only: parse, error_length
   use read_config, only: get_bc_field
   use bc_constants
-  
+
   implicit none
 
   private
@@ -22,33 +22,33 @@ module boundary_conditions
   public :: set_bc_type
   public :: set_bc_id
 
-  contains
+contains
 
-  !>  Reads config file and assigns data to BC structure
-  subroutine read_bc_config(filename, bc_field, phi) 
-    character(len=*), intent(in) :: filename  !< name of the config file
-    character(len=*), intent(in) :: bc_field  !< string denoting which field we want to read in
-    class(field), intent(inout) :: phi        !< the bc struct of the corresponding field
+  !> Reads config file and assigns data to BC structure
+  subroutine read_bc_config(filename, bc_field, phi)
+    character(len=*), intent(in) :: filename !< name of the config file
+    character(len=*), intent(in) :: bc_field !< string denoting which field we want to read in
+    class(field), intent(inout) :: phi       !< the bc struct of the corresponding field
 
     class(*), pointer :: config_file
     character(len=error_length) :: error
 
     config_file => parse(filename, error=error)
-    if (error/='') then
+    if (error /= '') then
       call error_abort(trim(error))
-    endif
+    end if
 
     call get_bc_field(config_file, "name", phi)
     call get_bc_field(config_file, "type", phi, required=.false.)
     call get_bc_field(config_file, "value", phi, required=.false.)
     call get_bc_field(config_file, bc_field, phi)
   end subroutine read_bc_config
-  
+
   !> Sets the appropriate integer values for strings with given by the key-value pair attribute, value
   subroutine set_bc_type(boundary_index, bc_type, bcs)
-    integer(ccs_int), intent(in) :: boundary_index  !< Index of the boundary within bcs struct arrays 
-    character(len=*), intent(in) :: bc_type         !< string giving the bc type
-    type(bc_config), intent(inout) :: bcs           !< bcs struct
+    integer(ccs_int), intent(in) :: boundary_index !< Index of the boundary within bcs struct arrays
+    character(len=*), intent(in) :: bc_type        !< string giving the bc type
+    type(bc_config), intent(inout) :: bcs          !< bcs struct
 
     select case (bc_type)
     case ("periodic")
@@ -70,12 +70,12 @@ module boundary_conditions
     end select
 
   end subroutine set_bc_type
-  
+
   !> Sets the bc struct's id field to the appropriate integer value
   subroutine set_bc_id(boundary_index, name, bcs)
-    integer(ccs_int), intent(in) :: boundary_index  !< index of the boundary within the bc struct's arrays
-    character(len=*), intent(in) :: name            !< string giving the bc name
-    type(bc_config), intent(inout) :: bcs           !< the bcs struct
+    integer(ccs_int), intent(in) :: boundary_index !< index of the boundary within the bc struct's arrays
+    character(len=*), intent(in) :: name           !< string giving the bc name
+    type(bc_config), intent(inout) :: bcs          !< the bcs struct
 
     ! XXX: in the general case this mapping should be read in from the mesh file
     select case (name)
@@ -94,38 +94,38 @@ module boundary_conditions
 
   !> Sets the bc struct's value field to the given real value
   subroutine set_bc_real_value(boundary_index, val, bcs)
-    integer(ccs_int), intent(in) :: boundary_index  !< index of the boundary within the bc struct's arrays
-    real(ccs_real), intent(in) :: val             !< the value to set 
-    type(bc_config), intent(inout) :: bcs           !< the bcs struct
+    integer(ccs_int), intent(in) :: boundary_index !< index of the boundary within the bc struct's arrays
+    real(ccs_real), intent(in) :: val              !< the value to set
+    type(bc_config), intent(inout) :: bcs          !< the bcs struct
 
     bcs%values(boundary_index) = val
   end subroutine set_bc_real_value
 
   !> Allocates arrays of the appropriate size for the name, type and value of the bcs
   subroutine allocate_bc_arrays(n_boundaries, bcs)
-    integer(ccs_int), intent(in) :: n_boundaries  !< the number of boundaries 
-    type(bc_config), intent(inout) :: bcs         !< the bc struct
+    integer(ccs_int), intent(in) :: n_boundaries !< the number of boundaries
+    type(bc_config), intent(inout) :: bcs        !< the bc struct
 
     if (.not. allocated(bcs%ids)) then
-      allocate(bcs%ids(n_boundaries))
+      allocate (bcs%ids(n_boundaries))
     end if
     if (.not. allocated(bcs%bc_types)) then
-      allocate(bcs%bc_types(n_boundaries))
+      allocate (bcs%bc_types(n_boundaries))
     end if
     if (.not. allocated(bcs%values)) then
-      allocate(bcs%values(n_boundaries))
+      allocate (bcs%values(n_boundaries))
     end if
   end subroutine allocate_bc_arrays
 
   !> Gets the index of the given boundary condition within the bc struct arrays
   subroutine get_bc_index(phi, index_nb, index_bc)
-    class(field), intent(in) :: phi             !< The field whose bc we're getting
-    integer(ccs_int), intent(in) :: index_nb    !< The index of the neighbouring boundary cell
-    integer(ccs_int), intent(out) :: index_bc   !< The index of the appropriate boundary in the bc struct
+    class(field), intent(in) :: phi           !< The field whose bc we're getting
+    integer(ccs_int), intent(in) :: index_nb  !< The index of the neighbouring boundary cell
+    integer(ccs_int), intent(out) :: index_bc !< The index of the appropriate boundary in the bc struct
 
     ! Local variable
     integer(ccs_int), dimension(1) :: index_tmp ! The intrinsic returns a rank-1 array ...
-    
+
     index_tmp = findloc(phi%bcs%ids, -index_nb) ! Hardcoded for square mesh
     if (index_tmp(1) == 0) then
       call error_abort("bc index not found")
