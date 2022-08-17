@@ -9,11 +9,7 @@ program ldc
   use petscsys
 
   use case_config, only: num_steps, velocity_relax, pressure_relax
-  use constants, only : cell, face, ccsconfig
-  use bc_constants, only: bc_region_left, bc_region_right, &
-                          bc_region_top, bc_region_bottom, &
-                          bc_region_live, &
-                          bc_type_sym, bc_type_wall
+  use constants, only : cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector
@@ -27,21 +23,25 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, str
+  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
+  use read_config, only: get_bc_variables, get_boundary_count
 
   implicit none
 
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: case_name       !< Case name
   character(len=:), allocatable :: ccs_config_file !< Config file for CCS
+  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  !< variable names for BC reading
 
   type(ccs_mesh)    :: mesh
   type(vector_spec) :: vec_properties
 
   class(field), allocatable :: u, v, p, p_prime, mf
 
+  integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
-  integer(ccs_int) :: it_start, it_end, t_count, ierr
+  integer(ccs_int) :: it_start, it_end, t_count
   integer(ccs_int) :: irank !< MPI rank ID
   integer(ccs_int) :: isize !< Size of MPI world
   
@@ -52,7 +52,10 @@ program ldc
   double precision :: start_time
   double precision :: end_time
 
+#ifndef EXCLUDE_MISSING_INTERFACE
+  integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
+#endif
 
 
   ! Launch MPI
@@ -90,6 +93,15 @@ program ldc
   allocate(central_field :: p)
   allocate(central_field :: p_prime)
   allocate(face_field :: mf)
+
+  ! Read boundary conditions
+  call get_boundary_count(ccs_config_file, n_boundaries)
+  call get_bc_variables(ccs_config_file, variable_names)
+  call allocate_bc_arrays(n_boundaries, u%bcs)
+  call allocate_bc_arrays(n_boundaries, v%bcs)
+  call read_bc_config(ccs_config_file, "u", u)
+  call read_bc_config(ccs_config_file, "v", v)
+
 
   ! Create and initialise field vectors
   call initialise(vec_properties)
@@ -179,6 +191,7 @@ program ldc
     t_count = t_count + 1
   end do
     
+#ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
 
   associate (vec => u%values)
@@ -207,6 +220,7 @@ program ldc
   end associate
 
   call PetscViewerDestroy(viewer,ierr)
+#endif
 
 
   ! Clean-up

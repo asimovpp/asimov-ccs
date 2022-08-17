@@ -3,12 +3,12 @@ title: LidDrivenCavity
 
 # ---- setup 1 - normal LDC
 # "steps" - currently the number of iterations
-steps: 10
-
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  p: 0.1
+#steps: 10
+#
+#relaxation_factor:
+#  u: 0.9
+#  v: 0.9
+#  p: 0.1
 
 # ---- setup 2 - pure timestepping
 steps: 1
@@ -17,3 +17,51 @@ relaxation_factor:
   u: 1.0
   v: 1.0
   p: 0.1
+
+
+variables:
+  n_variables: 3
+  variable_1:
+    name: u
+    type: central
+  variable_2:
+    name: v
+    type: upwind
+  variable_3:
+    name: p
+    type: central
+
+boundaries:
+  n_boundaries: 4
+  boundary_1: 
+    name: left
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_3:
+    name: top
+    variable_u:
+      type: dirichlet
+      value: 1
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_2:
+    name: right
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_4:
+    name: bottom
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
