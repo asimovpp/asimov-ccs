@@ -154,7 +154,7 @@ contains
         else
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, loc_f)
+          !call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
           call get_local_index(loc_f, index_f)
 
@@ -170,7 +170,7 @@ contains
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
           !call calc_cell_coords(global_index_p, cps, row, col) ! XXX: don't think we need this anymore
-          call compute_boundary_values(phi, component, index_nb, index_p, face_normal, bc_value)
+          call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_normal, bc_value)
 
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
@@ -194,17 +194,21 @@ contains
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary 
-  subroutine compute_boundary_values(phi, component, index_nb, index_p, normal, bc_value)
+  subroutine compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, normal, bc_value, x_gradients, y_gradients, z_gradients)
     class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     integer, intent(in) :: index_nb                         !< index of neighbour 
     integer, intent(in) :: index_p                          !< index of cell 
+    type(cell_locator), intent(in) :: loc_p                 !< location of cell
+    type(face_locator), intent(in) :: loc_f                 !< location of face
     real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
     real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
+    real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
 
     ! local variables
     integer(ccs_int) :: index_bc
     integer(ccs_int) :: i
+    real(ccs_real), dimension(ndim) :: dx
     real(ccs_real), dimension(ndim) :: parallel_component_map
     real(ccs_real), dimension(ndim) :: phi_face_parallel_component
     real(ccs_real) :: phi_face_parallel_component_norm
@@ -217,6 +221,13 @@ contains
     select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
       bc_value = phi%bcs%values(index_bc)
+    case (bc_type_extrapolate)
+      call get_vector_data(phi%values, phi_values)
+      call get_distance(loc_p, loc_f, dx)
+
+      bc_value = phi_values(index_p) + (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
+
+      call restore_vector_data(phi%values, phi_values)
     case (bc_type_sym)
       select case(component)
       case (1)
@@ -241,7 +252,6 @@ contains
       ! Get value of phi at boundary cell
       call get_vector_data(phi%values, phi_values)
       bc_value = phi_face_parallel_component_portion*phi_values(index_p)
-
     case default
       bc_value = 0.0_ccs_real
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
@@ -470,15 +480,15 @@ contains
         call get_face_area(loc_f, face_area)
         call get_face_normal(loc_f, face_norm)
 
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
-          call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, index_nb)
           phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
         else
           ! XXX: Add boundary condition treatment
-          call get_distance(loc_p, loc_f, dx)
+          !call get_distance(loc_p, loc_f, dx)
           !phif = phi_data(index_p) + (x_gradients_old(index_p) * dx(1) + y_gradients_old(index_p) * dx(2) + z_gradients_old(index_p) * dx(3))
-          call compute_boundary_values(phi, component, index_nb, index_p, face_norm, phif)
+          call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_norm, phif, x_gradients_old, y_gradients_old, z_gradients_old)
         end if
 
         grad = grad + phif * (face_area * face_norm(component))

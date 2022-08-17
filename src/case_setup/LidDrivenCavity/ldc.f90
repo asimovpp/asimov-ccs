@@ -94,8 +94,12 @@ program ldc
   call get_bc_variables(ccs_config_file, variable_names)
   call allocate_bc_arrays(n_boundaries, u%bcs)
   call allocate_bc_arrays(n_boundaries, v%bcs)
+  call allocate_bc_arrays(n_boundaries, p%bcs)
+  call allocate_bc_arrays(n_boundaries, p_prime%bcs)
   call read_bc_config(ccs_config_file, "u", u)
   call read_bc_config(ccs_config_file, "v", v)
+  call read_bc_config(ccs_config_file, "p", p)
+  call read_bc_config(ccs_config_file, "p", p_prime)
 
   ! Create and initialise field vectors
   call initialise(vec_properties)
