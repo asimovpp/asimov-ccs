@@ -11,18 +11,26 @@ module timestepping
   private
 
   public :: apply_timestep
+  public :: set_timestep
+  public :: get_timestep
   
-  !real(ccs_real) :: dt
-
   interface
     module subroutine apply_timestep(mesh, phi, diag, M, b)
-      use mat, only : set_matrix_diagonal
-      
       type(ccs_mesh), intent(in) :: mesh
       class(field), intent(in) :: phi
       class(ccs_vector), intent(inout) :: diag
       class(ccs_matrix), intent(inout) :: M
       class(ccs_vector), intent(inout) :: b
     end subroutine
+
+    module subroutine set_timestep(timestep)
+      real(ccs_real), intent(in) :: timestep
+    end subroutine
+    
+    module function get_timestep() result(timestep)
+      real(ccs_real) :: timestep
+    end function 
+
   end interface
+
 end module timestepping

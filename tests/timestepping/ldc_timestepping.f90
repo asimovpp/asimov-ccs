@@ -25,6 +25,7 @@ program ldc
   use utils, only: set_size, initialise, update, exit_print, str
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
+  use timestepping, only: set_timestep, get_timestep
 
   implicit none
 
@@ -45,7 +46,7 @@ program ldc
   integer(ccs_int) :: irank !< MPI rank ID
   integer(ccs_int) :: isize !< Size of MPI world
   
-  real(ccs_real) :: dt, t, t_start, t_end
+  real(ccs_real) :: t, t_start, t_end
 
   real(ccs_real), dimension(:), pointer :: values_data, old_values_data
 
@@ -161,7 +162,7 @@ program ldc
   call restore_vector_data(v%values, values_data)
   
   ! Temporary: initialise time loop variables
-  dt = 0.9 / 1.0 * mesh%h
+  call set_timestep(0.9 / 1.0 * mesh%h)
   t_start = 0.0
   t_end = 1.0
   t_count = 0
@@ -187,7 +188,7 @@ program ldc
 
   
   
-    t = t + dt
+    t = t + get_timestep()
     t_count = t_count + 1
   end do
     
