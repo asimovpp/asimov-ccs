@@ -7,10 +7,10 @@ submodule (pv_coupling) pv_coupling_simple
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
-       create_vector_values
+       create_vector_values, set_vector_location, zero_vector
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
        set_matrix_values_spec_ncols, create_matrix_values
   use utils, only: update, initialise, finalise, set_size, set_values, &
@@ -20,7 +20,7 @@ submodule (pv_coupling) pv_coupling_simple
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use parallel_types, only: parallel_environment
-  use constants, only: insert_mode, add_mode, ndim
+  use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume
@@ -99,7 +99,7 @@ contains
       
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
-      call update_face_velocity(mesh, invAu, invAv, p_prime, mf)
+      call update_face_velocity(par_env, mesh, invAu, invAv, p_prime, mf)
       call dprint("NONLINEAR: correct velocity")
       call update_velocity(mesh, invAu, invAv, p_prime, u, v)
 
@@ -526,8 +526,8 @@ contains
     call update(p%x_gradients)
     call update(p%y_gradients)
     call get_vector_data(mf%values, mf_data)
-    call get_vector_data(u%values, u_data)
-    call get_vector_data(v%values, v_data)
+    !call get_vector_data(u%values, u_data)
+    !call get_vector_data(v%values, v_data)
     call get_vector_data(p%values, p_data)
     call get_vector_data(p%x_gradients, dpdx_data)
     call get_vector_data(p%y_gradients, dpdy_data)
@@ -557,7 +557,7 @@ contains
             face_area = -face_area
           else
             ! Compute mass flux through face
-            mf_data(index_f) = calc_mass_flux(u_data, v_data, &
+            mf_data(index_f) = calc_mass_flux(u, v, &
                  p_data, dpdx_data, dpdy_data, &
                  invAu_data, invAv_data, &
                  loc_f)
@@ -573,8 +573,8 @@ contains
     end do
 
     call restore_vector_data(mf%values, mf_data)
-    call restore_vector_data(u%values, u_data)
-    call restore_vector_data(v%values, v_data)
+    !call restore_vector_data(u%values, u_data)
+    !call restore_vector_data(v%values, v_data)
     call restore_vector_data(p%values, p_data)
     call restore_vector_data(p%x_gradients, dpdx_data)
     call restore_vector_data(p%y_gradients, dpdy_data)
@@ -640,12 +640,13 @@ contains
   end subroutine update_velocity
 
   !>  Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
+  subroutine update_face_velocity(par_env, mesh, invAu, invAv, p_prime, mf)
 
-    type(ccs_mesh), intent(in) :: mesh              !< The mesh
-    class(ccs_vector), intent(in) :: invAu, invAv   !< The inverse x, y momentum equation diagonal coefficients
-    class(field), intent(inout) :: p_prime          !< The pressure correction
-    class(field), intent(inout) :: mf               !< The face velocity being corrected
+    class(parallel_environment), intent(in), allocatable :: par_env  !< The mesh
+    type(ccs_mesh), intent(in) :: mesh                  !< The mesh
+    class(ccs_vector), intent(in) :: invAu, invAv       !< The inverse x, y momentum equation diagonal coefficients
+    class(field), intent(inout) :: p_prime              !< The pressure correction
+    class(field), intent(inout) :: mf                   !< The face velocity being corrected
     
     integer(ccs_int) :: i
 
@@ -655,6 +656,7 @@ contains
     real(ccs_real), dimension(:), pointer :: pp_data
     real(ccs_real), dimension(:), pointer :: invAu_data
     real(ccs_real), dimension(:), pointer :: invAv_data
+    class(field), allocatable :: zero_field
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
@@ -665,6 +667,7 @@ contains
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: index_nb
+    type(vector_spec) :: vec_properties
     
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
@@ -673,8 +676,17 @@ contains
     call get_vector_data(invAv, invAv_data)
     call get_vector_data(mf%values, mf_data)
     
+    ! Create zero array and field
     allocate(zero_arr(size(pp_data)))
     zero_arr(:) = 0.0_ccs_real
+    call initialise(vec_properties)
+    allocate(upwind_field :: zero_field)
+    call set_vector_location(cell, vec_properties)
+    call set_size(par_env, mesh, vec_properties)
+    call create_vector(vec_properties, zero_field%values)
+    call zero_vector(zero_field%values)
+    call update(zero_field%values)
+    
 
     ! XXX: This should really be a face loop
     do i = 1, mesh%nlocal
@@ -687,7 +699,7 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            mf_prime = calc_mass_flux(zero_arr, zero_arr, &
+            mf_prime = calc_mass_flux(zero_field, zero_field, &
                  pp_data, zero_arr, zero_arr, &
                  invAu_data, invAv_data, &
                  loc_f)

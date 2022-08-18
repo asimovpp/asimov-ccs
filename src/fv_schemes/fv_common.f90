@@ -292,7 +292,9 @@ contains
 
   !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
-    real(ccs_real), dimension(:), intent(in) :: u, v         !< arrays containing x, y velocities
+    !real(ccs_real), dimension(:), intent(in) :: u, v         !< arrays containing x, y velocities
+    class(field), intent(in) :: u
+    class(field), intent(in) :: v
     real(ccs_real), dimension(:), intent(in) :: p            !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy   !< arrays containing pressure gradient in x and y
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv !< arrays containing inverse momentum diagonal in x and y
@@ -315,21 +317,25 @@ contains
     real(ccs_real) :: invAp                        ! Primary cell inverse momentum coefficient
     real(ccs_real) :: invA_nb                      ! Neighbour cell inverse momentum coefficient
     real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
+    real(ccs_real) :: u_bc, v_bc                   ! values of u and v at boundary
+    real(ccs_real), dimension(:), pointer :: u_data, v_data ! the vector data for u and v
 
     call get_boundary_status(loc_f, is_boundary)
-    if (.not. is_boundary) then
-      associate (mesh => loc_f%mesh, &
-                 index_p => loc_f%index_p, &
-                 j => loc_f%cell_face_ctr)
+    call get_vector_data(u%values, u_data)
+    call get_vector_data(v%values, v_data)
+    associate (mesh => loc_f%mesh, &
+               index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
 
-        call set_cell_location(mesh, index_p, loc_p)
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_local_index(loc_nb, index_nb)
+      call set_cell_location(mesh, index_p, loc_p)
+      call set_neighbour_location(loc_p, j, loc_nb)
+      call get_local_index(loc_nb, index_nb)
 
-        call get_face_normal(loc_f, face_normal)
+      call get_face_normal(loc_f, face_normal)
+      if (.not. is_boundary) then
 
-        flux = 0.5_ccs_real * ((u(index_p) + u(index_nb)) * face_normal(1) &
-                               + (v(index_p) + v(index_nb)) * face_normal(2))
+        flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(1) &
+                               + (v_data(index_p) + v_data(index_nb)) * face_normal(2))
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -359,11 +365,16 @@ contains
           ! XXX: making convention to point from low to high cell.
           flux = -flux
         end if
-      end associate
-    else
-      ! TODO: Write more general implementation handling BCs
-      flux = 0.0_ccs_real ! XXX: hardcoded zero-flux BC
-    end if
+      else
+        ! TODO: Write more general implementation handling BCs
+        !flux = 0.0_ccs_real ! XXX: hardcoded zero-flux BC
+        call compute_boundary_values(u, 1, index_nb, index_p, loc_p, loc_f, face_normal, u_bc)
+        call compute_boundary_values(v, 1, index_nb, index_p, loc_p, loc_f, face_normal, v_bc)
+        flux = u_bc * face_normal(1) + v_bc * face_normal(2)
+      end if
+    end associate
+    call restore_vector_data(u%values, u_data)
+    call restore_vector_data(v%values, v_data)
 
   end function calc_mass_flux
 
