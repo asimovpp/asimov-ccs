@@ -148,6 +148,9 @@ implicit none
     end_index = int(topo%vtxdist(irank + 2), int32) - 1
 
     ! Allocate array to hold number of neighbours for local cells
+    if (allocated(topo%num_nb)) then
+      deallocate(topo%num_nb)
+    end if
     allocate(topo%num_nb(topo%local_num_cells))
     
     ! All ranks loop over all the faces again
