@@ -35,6 +35,9 @@ program test_partition_square_mesh
   print*,"Number of positive value neighbour indices: ", n
   print*,"Adjacency arrays: ", topo%adjncy
   print*,"Adjacency index array: ", topo%xadj
+
+  call compute_connectivity(par_env, topo)
+  call check_topology("mid")
   
   call partition_kway(par_env, topo)
 
@@ -220,6 +223,8 @@ contains
 
   subroutine initialise_test
 
+    integer :: ctr
+
     ! Create a square mesh
     print *, "Building mesh"
     mesh = build_square_mesh(par_env, 4, 1.0_ccs_real)
@@ -261,6 +266,15 @@ contains
       else
         topo%global_partition(i) = -1
       end if
+    end do
+
+    ! ALTERNATIVE global partition
+    ctr = 1
+    do i = 1, topo%global_num_cells
+      if (i == topo%vtxdist(ctr + 1)) then
+        ctr = ctr + 1
+      end if
+      topo%global_partition(i) = (ctr - 1) ! Partitions/ranks are zero-indexed
     end do
    
     !select type(par_env)

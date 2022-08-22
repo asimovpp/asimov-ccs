@@ -39,6 +39,9 @@ program test_partition_square_mesh
   print*,"Number of positive value neighbour indices: ", n
   print*,"Adjacency arrays: ", topo%adjncy
   print*,"Adjacency index array: ", topo%xadj
+
+  call compute_connectivity(par_env, topo)
+  call check_topology("mid")
   
   call partition_kway(par_env, topo)
 
@@ -256,11 +259,9 @@ contains
     !    11 -12 -13 -14 -15
     !
     !  N.B. in terms of "top"/"bottom" boundaries this graph should be reflected about the horizontal axis.
-    print *, "Building mesh"
   
     !! --- read_topology() ---
     topo%global_num_cells = nrows * ncols
-
     topo%global_num_faces = 46 ! Hardcoded for now (check face array counts)
     topo%max_faces = 6 ! mesh%nnb(1)
     allocate(topo%face_cell1(topo%global_num_faces))
