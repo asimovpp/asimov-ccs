@@ -25,7 +25,7 @@ program ldc
   use utils, only: set_size, initialise, update, exit_print, str
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use timestepping, only: set_timestep, get_timestep
+  use timestepping, only: set_timestep, get_timestep, update_old_values
 
   implicit none
 
@@ -47,8 +47,6 @@ program ldc
   integer(ccs_int) :: isize !< Size of MPI world
   
   real(ccs_real) :: t, t_start, t_end
-
-  real(ccs_real), dimension(:), pointer :: values_data, old_values_data
 
   double precision :: start_time
   double precision :: end_time
@@ -147,21 +145,11 @@ program ldc
   call update(v%values)
   call update(mf%values)
 
-  ! temporary handling of first iter
-  !u%old_values = u%values
-  !v%old_values = v%values
-  call get_vector_data(u%values, values_data)
-  call get_vector_data(u%old_values, old_values_data)
-  old_values_data = values_data
-  call restore_vector_data(u%old_values, old_values_data)
-  call restore_vector_data(u%values, values_data)
-  call get_vector_data(v%values, values_data)
-  call get_vector_data(v%old_values, old_values_data)
-  old_values_data = values_data
-  call restore_vector_data(v%old_values, old_values_data)
-  call restore_vector_data(v%values, values_data)
+  ! handling of first iter
+  call update_old_values(u)
+  call update_old_values(v)
   
-  ! Temporary: initialise time loop variables
+  ! initialise time loop variables
   call set_timestep(0.9 / 1.0 * mesh%h)
   t_start = 0.0
   t_end = 1.0
@@ -173,20 +161,8 @@ program ldc
     ! Solve using SIMPLE algorithm
     print *, "Start SIMPLE at t=" // str(t)
     call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
-    !u%old_values = u%values
-    !v%old_values = v%values
-    call get_vector_data(u%values, values_data)
-    call get_vector_data(u%old_values, old_values_data)
-    old_values_data = values_data
-    call restore_vector_data(u%old_values, old_values_data)
-    call restore_vector_data(u%values, values_data)
-    call get_vector_data(v%values, values_data)
-    call get_vector_data(v%old_values, old_values_data)
-    old_values_data = values_data
-    call restore_vector_data(v%old_values, old_values_data)
-    call restore_vector_data(v%values, values_data)
-
-  
+    call update_old_values(u)
+    call update_old_values(v)
   
     t = t + get_timestep()
     t_count = t_count + 1

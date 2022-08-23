@@ -13,6 +13,7 @@ module timestepping
   public :: apply_timestep
   public :: set_timestep
   public :: get_timestep
+  public :: update_old_values
   
   interface
     module subroutine apply_timestep(mesh, phi, diag, M, b)
@@ -30,6 +31,10 @@ module timestepping
     module function get_timestep() result(timestep)
       real(ccs_real) :: timestep
     end function 
+
+    module subroutine update_old_values(x)
+      class(field), intent(inout) :: x 
+    end subroutine
 
   end interface
 
