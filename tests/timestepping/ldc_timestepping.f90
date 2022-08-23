@@ -25,7 +25,7 @@ program ldc
   use utils, only: set_size, initialise, update, exit_print, str
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use timestepping, only: set_timestep, get_timestep, update_old_values
+  use timestepping, only: set_timestep, get_timestep, update_old_values, activate_timestepping
 
   implicit none
 
@@ -150,6 +150,7 @@ program ldc
   call update_old_values(v)
   
   ! initialise time loop variables
+  call activate_timestepping()
   call set_timestep(0.9 / 1.0 * mesh%h)
   t_start = 0.0
   t_end = 1.0

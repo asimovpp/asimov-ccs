@@ -7,6 +7,7 @@ submodule (timestepping) timestepping_first_order
 
   real(ccs_real) :: dt
   logical :: timestep_is_set = .false.
+  logical :: timestepping_is_active = .false.
 
 contains
 
@@ -25,8 +26,11 @@ contains
     real(ccs_real), dimension(:), pointer :: diag_data
     real(ccs_real), dimension(:), pointer :: b_data
     real(ccs_real), dimension(:), pointer :: phi_data
-    
     integer(ccs_int) :: i
+
+    if (.not. timestepping_is_active) then
+      return
+    end if
 
     ! V = mesh%volumes
     call finalise(M)
@@ -91,6 +95,10 @@ contains
     old_values_data = values_data
     call restore_vector_data(x%old_values, old_values_data)
     call restore_vector_data(x%values, values_data)
+  end subroutine
+
+  module subroutine activate_timestepping()
+    timestepping_is_active = .true.
   end subroutine
 
 end submodule 

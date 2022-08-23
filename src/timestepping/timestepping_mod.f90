@@ -14,6 +14,7 @@ module timestepping
   public :: set_timestep
   public :: get_timestep
   public :: update_old_values
+  public :: activate_timestepping
   
   interface
     module subroutine apply_timestep(mesh, phi, diag, M, b)
@@ -34,6 +35,9 @@ module timestepping
 
     module subroutine update_old_values(x)
       class(field), intent(inout) :: x 
+    end subroutine
+  
+    module subroutine activate_timestepping()
     end subroutine
 
   end interface
