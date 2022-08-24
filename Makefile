@@ -73,8 +73,8 @@ INC = -I${CCS_DIR}/include
 FFLAGS += -DACCS_PETSC
 INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-INC += -I${FYAML}/build 
-LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
+INC += -I${FYAML}/include 
+LIB += -Wl,-rpath,${FYAML}/lib -L${FYAML}/lib -lfortran-yaml-c -llibyaml_interface -lyaml 
 
 ifeq ($(NEED_CMP),yes)
   INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
