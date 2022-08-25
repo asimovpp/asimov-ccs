@@ -26,8 +26,6 @@ program test_partition_square_mesh
   integer, parameter :: topo_idx_type = kind(topo%adjncy(1))
   integer(topo_idx_type) :: current, previous
 
-  integer(topo_idx_type), dimension(:), allocatable :: tmp_partition
-
   ! Topology grid size
   integer, parameter :: nrows = 3
   integer, parameter :: ncols = 5
