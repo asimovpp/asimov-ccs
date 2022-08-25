@@ -14,9 +14,10 @@ program test_advection_coeff
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
   use utils, only : update, initialise, &
-                set_size, pack_entries, set_values
+                set_size, set_row, set_entry, set_values
   use petsctypes, only: vector_petsc
 
+  implicit none
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
@@ -119,6 +120,10 @@ program test_advection_coeff
   !> @param[in] direction - Integer indicating the direction of the velocity field
   !> @param[out] u, v     - The velocity fields in x and y directions
   subroutine set_velocity_fields(mesh, direction, u, v)
+
+    use vec, only : create_vector_values
+    use utils, only : set_mode
+    
     class(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: direction
     class(field), intent(inout), allocatable :: u, v
@@ -126,15 +131,12 @@ program test_advection_coeff
     type(vector_values) :: u_vals, v_vals
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
-
-    u_vals%setter_mode = insert_mode
-    v_vals%setter_mode = insert_mode
     
     associate(n_local => mesh%nlocal)
-      allocate(u_vals%global_indices(n_local))
-      allocate(v_vals%global_indices(n_local))
-      allocate(u_vals%values(n_local))
-      allocate(v_vals%values(n_local))
+      call create_vector_values(n_local, u_vals)
+      call create_vector_values(n_local, v_vals)
+      call set_mode(insert_mode, u_vals)
+      call set_mode(insert_mode, v_vals)
       
       ! Set IC velocity fields
       do index_p = 1, n_local
@@ -149,20 +151,24 @@ program test_advection_coeff
           v_val = 1.0_ccs_real
         end if
 
-        call pack_entries(index_p, global_index_p, u_val, u_vals)
-        call pack_entries(index_p, global_index_p, v_val, v_vals)
-      end do
-    end associate
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
+        call set_row(global_index_p, u_vals)
+        call set_entry(u_val, u_vals)
 
-    call update(u%values)
-    call update(v%values)
+        call set_row(global_index_p, v_vals)
+        call set_entry(v_val, v_vals)
+      end do
+
+      call set_values(u_vals, u%values)
+      call set_values(v_vals, v%values)
+
+      call update(u%values)
+      call update(v%values)
     
-    deallocate(u_vals%global_indices)
-    deallocate(v_vals%global_indices)
-    deallocate(u_vals%values)
-    deallocate(v_vals%values)
+      deallocate(u_vals%global_indices)
+      deallocate(v_vals%global_indices)
+      deallocate(u_vals%values)
+      deallocate(v_vals%values)
+    end associate
     
   end subroutine set_velocity_fields
 

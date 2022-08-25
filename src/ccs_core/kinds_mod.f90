@@ -1,7 +1,7 @@
-!>  Module file kinds.mod
+!v Module file kinds.mod
 !
-!v  Defines kinds for use in primitive variable definitions 
-!   in ASiMoV-CCS, e.g. integer(kind=ccs_int) :: i
+!  Defines kinds for use in primitive variable definitions
+!  in ASiMoV-CCS, e.g. integer(kind=ccs_int) :: i
 
 module kinds
 
@@ -29,5 +29,5 @@ module kinds
   integer, public, parameter :: ccs_err = kind(ierr)     !< Error kind to be used in ASiMoV-CCS
 
   private
-  
+
 end module kinds

@@ -1,25 +1,23 @@
-!>  Program file for scalar advection case
-!
-!
+!v Program file for scalar advection case
 
 program scalar_advection
 
-  !! ASiMoV-CCS uses
-  use kinds, only : ccs_real, ccs_int
-  use types, only : vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
-                    equation_system, linear_solver, ccs_mesh, &
-                    field, upwind_field, central_field, bc_config
-  use vec, only : create_vector
-  use mat, only : create_matrix, set_nnz
-  use solver, only : create_solver, solve, set_equation_system
-  use utils, only : update, initialise, set_size
-  use mesh_utils, only : build_square_mesh
+  ! ASiMoV-CCS uses
+  use kinds, only: ccs_real, ccs_int
+  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
+                   equation_system, linear_solver, ccs_mesh, &
+                   field, upwind_field, central_field, bc_config
+  use vec, only: create_vector
+  use mat, only: create_matrix, set_nnz
+  use solver, only: create_solver, solve, set_equation_system
+  use utils, only: update, initialise, set_size
+  use mesh_utils, only: build_square_mesh
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments
-  use fv, only : compute_fluxes
-  use boundary_conditions, only : read_bc_config
+  use fv, only: compute_fluxes
+  use boundary_conditions, only: read_bc_config
 
   implicit none
 
@@ -33,29 +31,28 @@ program scalar_advection
   type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
   type(ccs_mesh) :: mesh
-  type(bc_config) :: bcs  !XXX: BCs are part of the fields structure now. fix this.
 
-  class(field), allocatable :: mf          ! Prescribed face velocity field
+  class(field), allocatable :: mf !< Prescribed face velocity field
   class(field), allocatable :: scalar
 
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
   double precision :: start_time
   double precision :: end_time
 
-  call initialise_parallel_environment(par_env) 
+  call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env)
   call timer(start_time)
-
-  ! Read bc configuration
-  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", bcs)
 
   ! Set up the square mesh
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Init velocities and scalar
-  allocate(central_field :: mf)
-  allocate(upwind_field :: scalar)
+  allocate (central_field :: mf)
+  allocate (upwind_field :: scalar)
+
+  ! Read bc configuration
+  call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", "scalar", scalar)
 
   ! Initialise with default values
   call initialise(vec_properties)
@@ -64,7 +61,7 @@ program scalar_advection
 
   ! Create stiffness matrix
   call set_size(par_env, mesh, mat_properties)
-  call set_nnz(5, mat_properties) 
+  call set_nnz(5, mat_properties)
   call create_matrix(mat_properties, M)
 
   ! Create right-hand-side and solution vectors
@@ -78,7 +75,7 @@ program scalar_advection
   call set_advection_velocity(mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, mesh, bcs, cps, M, source)
+  call compute_fluxes(scalar, mf, mesh, cps, M, source)
 
   call update(M) ! parallel assembly for M
 
@@ -88,14 +85,14 @@ program scalar_advection
   call set_equation_system(par_env, source, scalar%values, M, scalar_equation_system)
   call create_solver(scalar_equation_system, scalar_solver)
   call solve(scalar_solver)
-  
+
   ! Clean up
-  deallocate(scalar)
-  deallocate(source)
-  deallocate(solution)
-  deallocate(M)
-  deallocate(mf)
-  deallocate(scalar_solver)
+  deallocate (scalar)
+  deallocate (source)
+  deallocate (solution)
+  deallocate (M)
+  deallocate (mf)
+  deallocate (scalar_solver)
 
   call timer(end_time)
 
@@ -112,7 +109,7 @@ contains
     use types, only: vector_values, cell_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
-    use utils, only: pack_entries, set_values
+    use utils, only: set_row, set_entry, set_values
 
     class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: mf
@@ -126,10 +123,10 @@ contains
 
     mf_vals%setter_mode = add_mode
 
-    associate(n_local => mesh%nlocal)
-      allocate(mf_vals%global_indices(n_local))
-      allocate(mf_vals%values(n_local))
-      
+    associate (n_local => mesh%nlocal)
+      allocate (mf_vals%global_indices(n_local))
+      allocate (mf_vals%values(n_local))
+
       ! Set IC velocity and scalar fields
       do index_p = 1, n_local
         call set_cell_location(mesh, index_p, loc_p)
@@ -137,18 +134,19 @@ contains
         call calc_cell_coords(global_index_p, cps, row, col)
 
         ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
-        u = real(col, ccs_real)/real(cps, ccs_real)
-        v = -real(row, ccs_real)/real(cps, ccs_real)
+        u = real(col, ccs_real) / real(cps, ccs_real)
+        v = -real(row, ccs_real) / real(cps, ccs_real)
 
         mf_val = u + v
-        
-        call pack_entries(index_p, global_index_p, mf_val, mf_vals)
+
+        call set_row(global_index_p, mf_vals)
+        call set_entry(mf_val, mf_vals)
       end do
     end associate
     call set_values(mf_vals, mf%values)
 
-    deallocate(mf_vals%global_indices)
-    deallocate(mf_vals%values)
+    deallocate (mf_vals%global_indices)
+    deallocate (mf_vals%values)
 
   end subroutine set_advection_velocity
 

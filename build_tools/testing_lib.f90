@@ -11,13 +11,21 @@ module testing_lib
 
   implicit none
 
+  public :: assert_equal
+
+  interface assert_equal
+    procedure assert_equal_integer
+    procedure assert_equal_real
+    procedure assert_equal_string
+  end interface
+  
   class(parallel_environment), allocatable, target :: par_env
   integer(ccs_err) :: ierr
   integer :: real_type
   character(1024) :: message
 
   real(ccs_real), parameter :: eps = epsilon(0.0_ccs_real)
-  
+
 contains
 
   !>  Test initialisation
@@ -107,19 +115,52 @@ contains
   !>  Assertion for integer equality
   !
   !> @description Check whether input integers are equal. If not, construct message, print and stop.
-  subroutine assert_equal(a, b, msg_format)
+  subroutine assert_equal_integer(test_value, reference_value, msg_format)
 
-    integer(ccs_int), intent(in) :: a
-    integer(ccs_int), intent(in) :: b
-    character(*), intent(in) :: msg_format
+    integer(ccs_int), intent(in) :: test_value       !< Test value
+    integer(ccs_int), intent(in) :: reference_value  !< reference value
+    character(*), intent(in) :: msg_format           !< Error message 
     character(1024) :: message
 
-    if (a /= b) then
-      write (message, msg_format) a, b
+    if (test_value /= reference_value) then
+      write (message, msg_format) test_value, reference_value
       call stop_test(message)
     end if
 
-  end subroutine assert_equal
+  end subroutine assert_equal_integer
   
+  !>  assertion for real equality
+  !
+  !> @description check whether input reals are equal. if not, construct message, print and stop.
+  subroutine assert_equal_real(test_value, reference_value, msg_format)
+
+    real(ccs_real), intent(in) :: test_value      !< Test value
+    real(ccs_real), intent(in) :: reference_value !< reference value
+    character(*), intent(in) :: msg_format        !< Error message 
+    character(1024) :: message
+
+    if (abs(test_value - reference_value) > epsilon(reference_value) * abs(reference_value)) then
+      write (message, msg_format) test_value, reference_value
+      call stop_test(message)
+    end if
+
+  end subroutine assert_equal_real
   
+  !>  assertion for string equality
+  !
+  !> @description check whether input strings are equal. if not, construct message, print and stop.
+  subroutine assert_equal_string(test_value, reference_value, msg_format)
+
+    character(*), intent(in) :: test_value      !< Test value
+    character(*), intent(in) :: reference_value !< reference value
+    character(*), intent(in) :: msg_format      !< Error message 
+    character(1024) :: message
+
+    if (test_value /= reference_value) then
+      write (message, msg_format) test_value, reference_value
+      call stop_test(message)
+    end if
+
+  end subroutine assert_equal_string
+
 end module testing_lib
