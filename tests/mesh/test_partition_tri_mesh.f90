@@ -33,8 +33,8 @@ program test_partition_square_mesh
   call init()
   call initialise_test()
 
-  n = count(mesh%neighbour_indices > 0)
-  print*,"Number of positive value neighbour indices: ", n
+  !n = count(mesh%neighbour_indices > 0)
+  !print*,"Number of positive value neighbour indices: ", n
   print*,"Adjacency arrays: ", topo%adjncy
   print*,"Adjacency index array: ", topo%xadj
 
