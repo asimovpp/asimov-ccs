@@ -38,9 +38,6 @@ program tgv
   integer(ccs_long), dimension(2) :: xyz_sel_start
   integer(ccs_long), dimension(2) :: xyz_sel_count
 
-  integer(ccs_int) :: irank !< MPI rank ID
-  integer(ccs_int) :: isize !< Size of MPI world
-
   double precision :: start_time, end_time
 
   ! Launch MPI
@@ -70,9 +67,9 @@ program tgv
   end if
 
   ! Starting point for reading chunk of data
-  xyz_sel_start = (/0, int(topo%vtxdist(irank + 1)) - 1/)
+  xyz_sel_start = (/0, int(topo%vtxdist(par_env%proc_id + 1)) - 1/)
   ! How many data points will be read?
-  xyz_sel_count = (/ndim, int(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1))/)
+  xyz_sel_count = (/ndim, int(topo%vtxdist(par_env%proc_id + 2) - topo%vtxdist(par_env%proc_id + 1))/)
 
   ! Allocate memory for XYZ coordinates array on each MPI rank
   allocate (xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
