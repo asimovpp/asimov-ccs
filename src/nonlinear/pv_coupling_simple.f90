@@ -37,12 +37,12 @@ contains
   !> @param[in,out] p      - field containing pressure values
   !> @param[in,out] p_prime     - field containing pressure-correction values
   !> @param[in,out] mf     - field containing the face-centred velocity flux 
-  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+  module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps, it_start, it_end
+    integer(ccs_int), intent(in) :: it_start, it_end
     class(field), intent(inout) :: u, v, p, p_prime, mf
     
     ! Local variables
@@ -89,7 +89,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, cps, mf, p, M, source, lin_system, u, v, invAu, invAv)
+      call calculate_velocity(par_env, mesh, mf, p, M, source, lin_system, u, v, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -137,12 +137,11 @@ contains
   !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
   !!              equations) and solve to obtain an intermediate velocity field u* that will not
   !!              satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, cps, mf, p, M, vec, lin_sys, u, v, invAu, invAv)
+  subroutine calculate_velocity(par_env, mesh, mf, p, M, vec, lin_sys, u, v, invAu, invAv)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_mesh), intent(in)         :: mesh
-    integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     class(ccs_matrix), allocatable, intent(inout)  :: M
@@ -155,23 +154,22 @@ contains
     ! u-velocity
     ! ----------
 
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 1, M, vec, lin_sys, u, invAu)
+    call calculate_velocity_component(par_env, mesh, mf, p, 1, M, vec, lin_sys, u, invAu)
     
     ! v-velocity
     ! ----------
     
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 2, M, vec, lin_sys, v, invAv)
+    call calculate_velocity_component(par_env, mesh, mf, p, 2, M, vec, lin_sys, v, invAv)
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, mesh, cps, mf, p, component, M, vec, lin_sys, u, invAu)
+  subroutine calculate_velocity_component(par_env, mesh, mf, p, component, M, vec, lin_sys, u, invAu)
 
     use case_config, only: velocity_relax
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_mesh), intent(in)         :: mesh
-    integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     integer(ccs_int), intent(in) :: component
@@ -190,7 +188,7 @@ contains
     
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
-    call compute_fluxes(u, mf, mesh, component, cps, M, vec)
+    call compute_fluxes(u, mf, mesh, component, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     call dprint("GV: compute u gradp")
@@ -497,8 +495,6 @@ contains
     integer(ccs_int) :: nnb     !< Cell neighbour count
 
     real(ccs_real), dimension(:), pointer :: mf_data     !< Data array for the mass flux
-    real(ccs_real), dimension(:), pointer :: u_data      !< Data array for x velocity component
-    real(ccs_real), dimension(:), pointer :: v_data      !< Data array for y velocity component
     real(ccs_real), dimension(:), pointer :: p_data      !< Data array for pressure
     real(ccs_real), dimension(:), pointer :: dpdx_data !< Data array for pressure x gradient
     real(ccs_real), dimension(:), pointer :: dpdy_data !< Data array for pressure y gradient
@@ -526,8 +522,6 @@ contains
     call update(p%x_gradients)
     call update(p%y_gradients)
     call get_vector_data(mf%values, mf_data)
-    !call get_vector_data(u%values, u_data)
-    !call get_vector_data(v%values, v_data)
     call get_vector_data(p%values, p_data)
     call get_vector_data(p%x_gradients, dpdx_data)
     call get_vector_data(p%y_gradients, dpdy_data)
@@ -573,8 +567,6 @@ contains
     end do
 
     call restore_vector_data(mf%values, mf_data)
-    !call restore_vector_data(u%values, u_data)
-    !call restore_vector_data(v%values, v_data)
     call restore_vector_data(p%values, p_data)
     call restore_vector_data(p%x_gradients, dpdx_data)
     call restore_vector_data(p%y_gradients, dpdy_data)

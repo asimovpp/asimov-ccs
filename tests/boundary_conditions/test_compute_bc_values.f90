@@ -48,8 +48,8 @@ program test_compute_bc_values
       call set_face_location(mesh, index_p, j, loc_f)
       call get_face_normal(loc_f, face_norm)
       call get_local_index(loc_nb, index_nb)
-	    exit
-	  end if
+      exit
+    end if
   end do 
 
   ! Check Dirichlet BC

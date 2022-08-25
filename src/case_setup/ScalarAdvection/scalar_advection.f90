@@ -77,7 +77,7 @@ program scalar_advection
   call set_advection_velocity(mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, mesh, 0, cps, M, source)
+  call compute_fluxes(scalar, mf, mesh, 0, M, source)
 
   call update(M) ! parallel assembly for M
 

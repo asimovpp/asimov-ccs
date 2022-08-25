@@ -23,12 +23,11 @@ submodule(fv) fv_common
 contains
 
   !> Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, mesh, component, cps, M, vec)
+  module subroutine compute_fluxes(phi, mf, mesh, component, M, vec)
     class(field), intent(in) :: phi             
     class(field), intent(in) :: mf              
     type(ccs_mesh), intent(in) :: mesh          
     integer(ccs_int), intent(in) :: component   
-    integer(ccs_int), intent(in) :: cps         
     class(ccs_matrix), intent(inout) :: M       
     class(ccs_vector), intent(inout) :: vec     
 
@@ -42,7 +41,7 @@ contains
       ! Loop over cells computing advection and diffusion fluxes
       n_int_cells = calc_matrix_nnz()
       call dprint("CF: compute coeffs")
-      call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, cps, M, vec)
+      call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
@@ -60,13 +59,12 @@ contains
   end function calc_matrix_nnz
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, cps, M, b)
+  subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, M, b)
     class(field), intent(in) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
     integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
     integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
-    integer(ccs_int), intent(in) :: cps            !< number of cells per side
     class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
     class(ccs_vector), intent(inout) :: b          !< vector structure being assigned
 
@@ -78,7 +76,6 @@ contains
     type(face_locator) :: loc_f
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
-    integer(ccs_int) :: row, col
     integer(ccs_int) :: nnb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
@@ -169,7 +166,6 @@ contains
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
-          !call calc_cell_coords(global_index_p, cps, row, col) ! XXX: don't think we need this anymore
           call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_normal, bc_value)
 
           call set_row(global_index_p, b_coeffs)
@@ -473,8 +469,6 @@ contains
     real(ccs_real) :: V
     integer(ccs_int) :: global_index_p
 
-    real(ccs_real), dimension(ndim) :: dx
-
     call create_vector_values(1_ccs_int, grad_values)
     call set_mode(insert_mode, grad_values)
 
@@ -498,9 +492,6 @@ contains
         if (.not. is_boundary) then
           phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
         else
-          ! XXX: Add boundary condition treatment
-          !call get_distance(loc_p, loc_f, dx)
-          !phif = phi_data(index_p) + (x_gradients_old(index_p) * dx(1) + y_gradients_old(index_p) * dx(2) + z_gradients_old(index_p) * dx(3))
           call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_norm, phif, x_gradients_old, y_gradients_old, z_gradients_old)
         end if
 
