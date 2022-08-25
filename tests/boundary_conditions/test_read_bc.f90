@@ -1,7 +1,3 @@
-!>  Program file for scalar advection case
-!
-!
-
 program bc_test
 #include "ccs_macros.inc"
 

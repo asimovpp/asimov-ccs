@@ -129,7 +129,6 @@ module boundary_conditions
     
     index_tmp = findloc(phi%bcs%ids, -index_nb) ! XXX: Hardcoded for square mesh
     if (index_tmp(1) == 0) then
-      print *, 'phi bcs ids ', phi%bcs%ids
       call error_abort("bc index not found. searching for " // str(-index_nb))
     end if
     index_bc = index_tmp(1)

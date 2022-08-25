@@ -102,6 +102,7 @@ module types
   !> Scalar field type
   type, public :: field
     class(ccs_vector), allocatable :: values      !< Vector representing the field
+    class(ccs_vector), allocatable :: old_values  !< Vector representing the old field
     class(ccs_vector), allocatable :: x_gradients !< Vector representing the x gradient
     class(ccs_vector), allocatable :: y_gradients !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients !< Vector representing the z gradient

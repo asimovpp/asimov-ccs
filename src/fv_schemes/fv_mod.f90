@@ -5,7 +5,8 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, bc_config, face_locator
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, bc_config, face_locator, cell_locator
+  use constants, only: ndim
 
   implicit none
 
@@ -17,6 +18,7 @@ module fv
   public :: calc_mass_flux
   public :: calc_cell_coords
   public :: update_gradient
+  public :: compute_boundary_values
 
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
@@ -89,6 +91,19 @@ module fv
       type(ccs_mesh), intent(in) :: mesh !< the mesh
       class(field), intent(inout) :: phi !< the field whose gradients we want to update
     end subroutine update_gradient
+
+    !> Computes the value of the scalar field on the boundary 
+    module subroutine compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, normal, bc_value, x_gradients, y_gradients, z_gradients)
+      class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
+      integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
+      integer, intent(in) :: index_nb                         !< index of neighbour 
+      integer, intent(in) :: index_p                          !< index of cell 
+      type(cell_locator), intent(in) :: loc_p                 !< location of cell
+      type(face_locator), intent(in) :: loc_f                 !< location of face
+      real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
+      real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
+      real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
+    end subroutine
 
   end interface
 
