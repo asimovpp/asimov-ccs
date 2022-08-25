@@ -120,7 +120,7 @@ contains
         call stop_test(message)
       end if
 
-      ctr = ctr + (topo%vtxdist(i) - topo%vtxdist(i - 1))
+      ctr = ctr + int(topo%vtxdist(i) - topo%vtxdist(i - 1), ccs_int)
     end do
 
     if (ctr /= topo%global_num_cells) then
@@ -137,7 +137,7 @@ contains
     integer :: i
 
     do i = 1, topo%local_num_cells
-      do j = topo%xadj(i), topo%xadj(i + 1) - 1
+      do j = int(topo%xadj(i), ccs_int), int(topo%xadj(i + 1), ccs_int) - 1
         if (topo%adjncy(j) == topo%global_indices(i)) then
           print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
           write(message, *) "ERROR: found self-loop "//stage//"-partitioning!"
@@ -158,12 +158,12 @@ contains
    
     do i = 1, topo%local_num_cells ! Loop over local cells
       
-      nadj = topo%xadj(i+1) - topo%xadj(i)
+      nadj = int(topo%xadj(i+1) - topo%xadj(i), ccs_int)
       allocate( adjncy_global_expected(nadj) )
 
       call compute_expected_global_adjncy(i, adjncy_global_expected)
 
-      do j = topo%xadj(i), topo%xadj(i + 1) - 1
+      do j = int(topo%xadj(i), ccs_int), int(topo%xadj(i + 1), ccs_int) - 1
         if (.not. any(adjncy_global_expected == topo%adjncy(j))) then
           print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", topo%global_indices(i), ": ", adjncy_global_expected
@@ -313,7 +313,7 @@ contains
     !  call stop_test(message)
     !end select
     
-    topo%local_num_cells = topo%vtxdist(par_env%proc_id + 2) - topo%vtxdist(par_env%proc_id + 1)
+    topo%local_num_cells = int(topo%vtxdist(par_env%proc_id + 2) - topo%vtxdist(par_env%proc_id + 1), ccs_int)
     allocate(topo%xadj(topo%local_num_cells + 1))
   
     ! <MISSING> allocate topo%global_boundaries
@@ -387,7 +387,7 @@ contains
   
     allocate(topo%global_indices(topo%local_num_cells))
     do i = 1, topo%local_num_cells
-      topo%global_indices(i) = topo%vtxdist(par_env%proc_id + 1) + (i - 1)
+      topo%global_indices(i) = int(topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
 
     ! These need to be set to 1 for them to do nothing
