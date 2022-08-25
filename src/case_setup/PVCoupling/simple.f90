@@ -107,7 +107,7 @@ program simple
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, p, pp, mf)
+  call solve_nonlinear(par_env, square_mesh, it_start, it_end, u, v, p, pp, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
