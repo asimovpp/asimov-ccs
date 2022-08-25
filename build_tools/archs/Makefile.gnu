@@ -1,6 +1,8 @@
 CC = mpicc
 CFLAGS = -O3
 
+BUILD := debug
+
 FC = mpif90
 FFLAGS = -cpp -std=f2018 -ffree-line-length-none
 CAFFLAGS = -fcoarray=single
