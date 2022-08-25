@@ -10,9 +10,9 @@ submodule (pv_coupling) pv_coupling_simple
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
-       create_vector_values
+       create_vector_values, vec_norm, vec_aypx
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-       set_matrix_values_spec_ncols, create_matrix_values
+       set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print
@@ -20,7 +20,8 @@ submodule (pv_coupling) pv_coupling_simple
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use parallel_types, only: parallel_environment
-  use constants, only: insert_mode, add_mode, ndim
+  use constants, only: insert_mode, add_mode, ndim, &
+                       VarU, VarV, VarW, VarP
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume
@@ -37,12 +38,13 @@ contains
   !> @param[in,out] p      - field containing pressure values
   !> @param[in,out] p_prime     - field containing pressure-correction values
   !> @param[in,out] mf     - field containing the face-centred velocity flux 
-  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, res_target, u, v, p, p_prime, mf)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: cps, it_start, it_end
+    real(ccs_real), intent(in) :: res_target
     class(field), intent(inout) :: u, v, p, p_prime, mf
     
     ! Local variables
@@ -50,13 +52,17 @@ contains
     class(ccs_vector), allocatable :: source
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invAu, invAv
+    class(ccs_vector), allocatable :: res
+    real(ccs_real), allocatable :: residuals(:)
     
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
-    type(equation_system)    :: lin_system
+    type(equation_system) :: lin_system
     type(bc_config) :: bcs
 
     logical :: converged
+
+    integer(ccs_int), parameter :: NVAR = 3  ! Number of variables (i.e. u,v,p)
     
     ! Initialise linear system
     call dprint("NONLINEAR: init")
@@ -79,6 +85,11 @@ contains
     call dprint("NONLINEAR: setup ind coeff")
     call create_vector(vec_properties, invAu)
     call create_vector(vec_properties, invAv)
+
+    ! Create vectors for storing residuals
+    call dprint("NONLINEAR: setup residuals")
+    call create_vector(vec_properties, res)
+    allocate(residuals(NVAR))
     
     ! Get pressure gradient
     call dprint("NONLINEAR: compute grad p")
@@ -90,7 +101,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv)
+      call calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -113,8 +124,9 @@ contains
       ! Todo:
       !call calculate_scalars()
 
-      call check_convergence(converged)
+      call check_convergence(nvar, residuals, res_target, converged)
       if (converged) then
+        call dprint("NONLINEAR: converged!")
         exit outerloop
       endif
 
@@ -139,7 +151,7 @@ contains
   !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
   !!              equations) and solve to obtain an intermediate velocity field u* that will not
   !!              satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, vec, lin_sys, u, v, invAu, invAv)
+  subroutine calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, vec, lin_sys, u, v, invAu, invAv, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -153,6 +165,8 @@ contains
     type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
     class(ccs_vector), intent(inout)    :: invAu, invAv
+    class(ccs_vector), intent(inout)    :: res
+    real(ccs_real), allocatable, intent(inout) :: residuals(:)
 
     
     ! u-velocity
@@ -162,6 +176,7 @@ contains
     bcs%bc_type(:) = 0 !< Fixed zero BC
     bcs%bc_type(4) = 1 !< Fixed one BC at lid
     call calculate_velocity_component(par_env, mesh, cps, mf, p, 1, bcs, M, vec, lin_sys, u, invAu)
+    call calculate_residual(VarU, M, vec, u, res, residuals)
     
     ! v-velocity
     ! ----------
@@ -169,6 +184,7 @@ contains
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !< Fixed zero BC
     call calculate_velocity_component(par_env, mesh, cps, mf, p, 2, bcs, M, vec, lin_sys, v, invAv)
+    call calculate_residual(VarV, M, vec, v, res, residuals)
 
   end subroutine calculate_velocity
 
@@ -188,7 +204,7 @@ contains
     class(ccs_vector), allocatable, intent(inout)  :: vec
     type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
-    class(ccs_vector), intent(inout)    :: invAu
+    class(ccs_vector), intent(inout)  :: invAu
     
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
@@ -721,12 +737,17 @@ contains
     
   end subroutine update_face_velocity
 
-  subroutine check_convergence(converged)
+  subroutine check_convergence(nvar, residual, res_target, converged)
 
     ! Arguments
-    logical, intent(inout) :: converged
+    integer(ccs_int), intent(in) :: nvar
+    real(ccs_real), intent(in)   :: residual(nvar)
+    real(ccs_real), intent(in)   :: res_target
+    logical, intent(inout)       :: converged
 
     converged = .false. ! XXX: temporary - force run for maximum iterations
+
+    if (maxval(residual(:)) < res_target) converged = .true.
     
   end subroutine check_convergence
 
@@ -777,5 +798,29 @@ contains
     call set_matrix_diagonal(diag, M)
     
   end subroutine underrelax
+
+  !v Calculate the residual
+  !
+  !    res = rhs - M*phi
+  subroutine calculate_residual(iVar, M, rhs, phi, res, residuals)
+
+    ! Arguments:
+    integer(ccs_int), intent(in) :: iVar
+    class(ccs_matrix), intent(in) :: M
+    class(ccs_vector), intent(in) :: rhs
+    class(field), intent(in) :: phi
+    class(ccs_vector), intent(inout) :: res
+    real(ccs_real), intent(inout) :: residuals(:)
+   
+    ! Compute matrix vector product M * phi (store in res)
+    call mat_vec_product(M, phi%values, res)
+
+    ! Subtract result of M * phi from source vector
+    call vec_aypx(rhs, -1.0_ccs_real, res)
+
+    ! Compute L2-norm of residual vector and store in residuals array
+    residuals(iVar) = vec_norm(res, 2)
+
+  end subroutine
   
 end submodule pv_coupling_simple

@@ -48,6 +48,8 @@ program ldc
   double precision :: start_time
   double precision :: end_time
 
+  real(ccs_real) :: res_target = 1.e-6 !< Target residual
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
@@ -130,7 +132,7 @@ program ldc
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, res_target, u, v, p, p_prime, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)

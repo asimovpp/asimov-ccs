@@ -146,6 +146,10 @@ contains
           call set_entry(adv_coeff + diff_coeff, mat_coeffs)
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
+
+          ! Residual
+          !res(index_p) = res(index_p) - (adv_coeff + diff_coeff) * phi(loc_nb)
+
         else
           call set_col(-1, mat_coeffs)
           call set_entry(0.0_ccs_real, mat_coeffs)
@@ -155,6 +159,10 @@ contains
       call set_col(global_index_p, mat_coeffs)
       call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
       call set_values(mat_coeffs, M)
+
+      ! Residual
+
+
     end do
 
     deallocate(mat_coeffs%global_row_indices)

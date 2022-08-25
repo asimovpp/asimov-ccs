@@ -296,6 +296,39 @@ contains
 
   end subroutine
 
+  !v Perform the AYPX vector operation using PETSc
+  !
+  !          y[i] = x[i] + beta * y[i]
+  module subroutine vec_aypx(x, beta, y)
+
+    use petscvec, only: VecAYPX
+
+    real(ccs_real), intent(in) :: beta     !< a scalar value
+    class(ccs_vector), intent(in) :: x      !< a PETSc input vector
+    class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
+
+    integer(ccs_err) :: ierr ! Error code
+
+    select type (x)
+    type is (vector_petsc)
+
+      select type (y)
+      type is (vector_petsc)
+
+        call VecAYPX(y%v, beta, x%v, ierr)
+
+      class default
+        call error_abort("Unknown vector type.")
+
+      end select
+
+    class default
+      call error_abort("Unknown vector type.")
+
+    end select
+
+  end subroutine
+
   !> Compute the norm of a PETSc vector
   module function vec_norm(v, norm_type) result(n)
 

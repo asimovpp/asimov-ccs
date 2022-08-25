@@ -31,6 +31,7 @@ module mat
   public :: set_nnz
   public :: mat_axpy
   public :: mat_norm
+  public :: mat_vec_product
   public :: get_matrix_diagonal
   public :: set_matrix_diagonal
   public :: zero_matrix
@@ -158,6 +159,14 @@ module mat
                                                 !< Currently supported is the 2 norm: norm_type=2.
       real(ccs_real) :: n !< the computed norm returned as the result of the function call.
     end function
+
+    !> Compute matrix-vector product
+    module subroutine mat_vec_product(M, x, y)
+      ! Arguments
+      class(ccs_matrix), intent(in) :: M
+      class(ccs_vector), intent(in) :: x
+      class(ccs_vector), intent(inout) :: y
+    end subroutine
 
     !> Interface to set equation
     !

@@ -23,6 +23,7 @@ module vec
   public :: begin_update_vector
   public :: end_update_vector
   public :: vec_axpy
+  public :: vec_aypx
   public :: vec_norm
   public :: initialise_vector
   public :: set_vector_size
@@ -108,6 +109,17 @@ module vec
     module subroutine vec_axpy(alpha, x, y)
       real(ccs_real), intent(in) :: alpha   !< a scalar value
       class(ccs_vector), intent(in) :: x    !< an input vector
+      class(ccs_vector), intent(inout) :: y !< vector serving as input, overwritten with result
+    end subroutine
+
+    !v Interface to perform the AYPX vector operation.
+    !
+    !  Performs the AYPX operation
+    !
+    !        y[i] = x[i] + beta * y[i]
+    module subroutine vec_aypx(x, beta, y)
+      class(ccs_vector), intent(in) :: x    !< an input vector
+      real(ccs_real), intent(in) :: beta    !< a scalar value
       class(ccs_vector), intent(inout) :: y !< vector serving as input, overwritten with result
     end subroutine
 
