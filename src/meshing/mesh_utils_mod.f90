@@ -33,8 +33,8 @@ module mesh_utils
   integer, parameter :: right = 2_ccs_int
   integer, parameter :: bottom = 3_ccs_int
   integer, parameter :: top = 4_ccs_int
-  integer, parameter :: front = 5_ccs_int
-  integer, parameter :: back = 6_ccs_int
+  integer, parameter :: back = 5_ccs_int
+  integer, parameter :: front = 6_ccs_int
 
 
   private
@@ -279,8 +279,8 @@ contains
           ! Allocate mesh arrays
           allocate (mesh%global_indices(mesh%nlocal))
           allocate (mesh%nnb(mesh%nlocal))
-          allocate (mesh%neighbour_indices(4, mesh%nlocal))
-          allocate (mesh%face_indices(4, mesh%nlocal))
+          allocate (mesh%neighbour_indices(6, mesh%nlocal))
+          allocate (mesh%face_indices(6, mesh%nlocal))
 
           ! Initialise mesh arrays
           mesh%nnb(:) = 6_ccs_int ! All cells have 6 neighbours (possibly ghost/boundary cells)
@@ -299,10 +299,12 @@ contains
           !        -2 = right boundary
           !        -3 = bottom boundary
           !        -4 = top boundary
-          !        -5 = front_boundary
-          !        -6 = back_boundary
+          !        -5 = back_boundary
+          !        -6 = front_boundary
           index_counter = 1_ccs_int ! Set local indexing starting from 1...n
           do i = start_global, end_global
+
+            print*,"i = ",i
             ii = i - 1_ccs_int
 
             ! Construct left (1) face/neighbour
@@ -329,33 +331,48 @@ contains
 
             ! Construct bottom (3) face/neighbour
             face_counter = bottom
-            if ((ii / ny) == 0_ccs_int) then
+            if (modulo(ii/nx, ny) == 0_ccs_int) then
               index_nb = -bottom
               global_index_nb = -bottom
             else
-              index_nb = index_counter - ny
-              global_index_nb = i - ny
+              index_nb = index_counter - nx
+              global_index_nb = i - nx
             end if
             call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct top (4) face/neighbour
             face_counter = top
-            if ((ii / ny) == (ny - 1_ccs_int)) then
+            if (modulo(ii/nx, ny) == (ny - 1_ccs_int)) then
               index_nb = -top
               global_index_nb = -top
             else
-              index_nb = index_counter + ny
-              global_index_nb = i + ny
+              index_nb = index_counter + nx
+              global_index_nb = i + nx
             end if
             call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
-            face_counter = front
-            ! TODO - construct front
-
+            ! Construct back (5) face/neighbour
             face_counter = back
-            ! TODO - construct back
+            if ((ii / (nx * ny)) == nz - 1) then
+              index_nb = -back
+              global_index_nb = -back
+            else
+              index_nb = index_counter + nx * ny
+              global_index_nb = i + nx * ny
+            end if
+
+            ! Construct front (6) face/neighbour
+            face_counter = -front
+            if ((ii / (nx * ny)) == 0_ccs_int) then
+              index_nb = -front
+              global_index_nb = front
+            else
+              index_nb = index_counter - nx * ny
+              global_index_nb = i - nx * ny
+            end if
 
             index_counter = index_counter + 1_ccs_int
+
           end do
         end associate
 
@@ -368,58 +385,80 @@ contains
         allocate (mesh%face_areas(6, mesh%nlocal))
         allocate (mesh%face_normals(ndim, 6, mesh%nlocal))
 
-        ! FIX mesh%volumes(:) = mesh%h**2 !< @note Mesh is square and 2D @endnote
+        mesh%volumes(:) = mesh%h**3 !< @note Mesh is cube @endnote
         mesh%face_normals(:, :, :) = 0.0_ccs_real
         mesh%x_p(:, :) = 0.0_ccs_real
         mesh%x_f(:, :, :) = 0.0_ccs_real
-        ! FIX mesh%face_areas(:, :) = mesh%h  ! Mesh is square and 2D
+        mesh%face_areas(:, :) = mesh%h 
 
-        ! associate (h => mesh%h)
-        !   do i = 1_ccs_int, mesh%ntotal
-        !     ii = mesh%global_indices(i)
+        associate (h => mesh%h)
+          do i = 1_ccs_int, mesh%ntotal
+            ii = mesh%global_indices(i)
 
-        !     associate (x_p => mesh%x_p(:, i))
-        !       ! Set cell centre
-        !       x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
-        !       x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
-        !     end associate
-        !   end do
+            associate (x_p => mesh%x_p(:, i))
+              ! Set cell centre
+              x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
+              x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
+              x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
+            end associate
+          end do
 
-        !   do i = 1_ccs_int, mesh%nlocal
-        !     associate (x_p => mesh%x_p(:, i), &
-        !                x_f => mesh%x_f(:, :, i), &
-        !                normal => mesh%face_normals(:, :, i))
+          do i = 1_ccs_int, mesh%nlocal
+            associate (x_p => mesh%x_p(:, i), &
+                       x_f => mesh%x_f(:, :, i), &
+                       normal => mesh%face_normals(:, :, i))
 
-        !       face_counter = left
-        !       x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
-        !       x_f(2, face_counter) = x_p(2)
-        !       normal(1, face_counter) = -1.0_ccs_real
-        !       normal(2, face_counter) = 0.0_ccs_real
+              face_counter = left
+              x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
+              x_f(2, face_counter) = x_p(2)
+              normal(1, face_counter) = -1.0_ccs_real
+              normal(2, face_counter) = 0.0_ccs_real
+              normal(3, face_counter) = 0.0_ccs_real
 
-        !       face_counter = right
-        !       x_f(1, face_counter) = x_p(1) + 0.5_ccs_real * h
-        !       x_f(2, face_counter) = x_p(2)
-        !       normal(1, face_counter) = 1.0_ccs_real
-        !       normal(2, face_counter) = 0.0_ccs_real
+              face_counter = right
+              x_f(1, face_counter) = x_p(1) + 0.5_ccs_real * h
+              x_f(2, face_counter) = x_p(2)
+              normal(1, face_counter) = 1.0_ccs_real
+              normal(2, face_counter) = 0.0_ccs_real
+              normal(3, face_counter) = 0.0_ccs_real
 
-        !       face_counter = bottom
-        !       x_f(1, face_counter) = x_p(1)
-        !       x_f(2, face_counter) = x_p(2) - 0.5_ccs_real * h
-        !       normal(1, face_counter) = 0.0_ccs_real
-        !       normal(2, face_counter) = -1.0_ccs_real
+              face_counter = bottom
+              x_f(1, face_counter) = x_p(1)
+              x_f(2, face_counter) = x_p(2) - 0.5_ccs_real * h
+              normal(1, face_counter) = 0.0_ccs_real
+              normal(2, face_counter) = -1.0_ccs_real
+              normal(3, face_counter) = 0.0_ccs_real
 
-        !       face_counter = top
-        !       x_f(1, face_counter) = x_p(1)
-        !       x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
-        !       normal(1, face_counter) = 0.0_ccs_real
-        !       normal(2, face_counter) = 1.0_ccs_real
-        !     end associate
-        !   end do
-        ! end associate
+              face_counter = top
+              x_f(1, face_counter) = x_p(1)
+              x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
+              normal(1, face_counter) = 0.0_ccs_real
+              normal(2, face_counter) = 1.0_ccs_real
+              normal(3, face_counter) = 0.0_ccs_real
 
-        ! mesh%nfaces_local = count_mesh_faces(mesh)
+              face_counter = back
+              x_f(1, face_counter) = x_p(1)
+              x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
+              normal(1, face_counter) = 0.0_ccs_real
+              normal(2, face_counter) = 0.0_ccs_real
+              normal(3, face_counter) = -1.0_ccs_real
 
-        ! call set_cell_face_indices(mesh)
+              face_counter = front
+              x_f(1, face_counter) = x_p(1)
+              x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
+              normal(1, face_counter) = 0.0_ccs_real
+              normal(2, face_counter) = 0.0_ccs_real
+              normal(3, face_counter) = 1.0_ccs_real
+
+            end associate
+          end do
+        end associate
+
+        print*,"HERE"
+
+        mesh%nfaces_local = count_mesh_faces(mesh)
+
+        call set_cell_face_indices(mesh)
 
       class default
         call error_abort("Unknown parallel environment type.")
