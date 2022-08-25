@@ -94,14 +94,12 @@ implicit none
     integer(ccs_int), dimension(:,:), allocatable :: tmp_int2d ! Temporary 2D integer array
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
-    integer(ccs_int) :: i, j, k, n
+    integer(ccs_int) :: i
     integer(ccs_int) :: start_index 
     integer(ccs_int) :: end_index  
     integer(ccs_int) :: face_nb1  
     integer(ccs_int) :: face_nb2
-    integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
-    integer(ccs_int) :: previous
  
     irank = par_env%proc_id
     isize = par_env%num_procs
