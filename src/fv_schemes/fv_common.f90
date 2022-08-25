@@ -230,6 +230,8 @@ contains
       call restore_vector_data(phi%values, phi_values)
     case (bc_type_sym)
       select case(component)
+      case (0)
+        parallel_component_map = (/ 1, 1, 1 /)
       case (1)
         parallel_component_map = (/ 0, 1, 1 /)
       case (2)
