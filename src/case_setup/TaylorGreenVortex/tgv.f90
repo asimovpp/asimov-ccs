@@ -86,7 +86,7 @@ program tgv
 
   call timer(end_time)
 
-  if (irank == 0) then
+  if (par_env%proc_id == 0) then
     print *, "Elapsed time: ", end_time - start_time
   end if
 
