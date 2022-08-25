@@ -25,7 +25,7 @@ program ldc
   use utils, only: set_size, initialise, update, exit_print, str
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use timestepping, only: set_timestep, get_timestep, update_old_values, activate_timestepping
+  use timestepping, only: set_timestep, get_timestep, update_old_values, activate_timestepping, initialise_old_values
 
   implicit none
 
@@ -109,9 +109,7 @@ program ldc
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, u%values)
-  call create_vector(vec_properties, u%old_values)
   call create_vector(vec_properties, v%values)
-  call create_vector(vec_properties, v%old_values)
   call create_vector(vec_properties, p%values)
   call create_vector(vec_properties, p%x_gradients)
   call create_vector(vec_properties, p%y_gradients)
@@ -121,9 +119,7 @@ program ldc
   call create_vector(vec_properties, p_prime%y_gradients)
   call create_vector(vec_properties, p_prime%z_gradients)
   call update(u%values)
-  call update(u%old_values)
   call update(v%values)
-  call update(v%old_values)
   call update(p%values)
   call update(p%x_gradients)
   call update(p%y_gradients)
@@ -132,6 +128,8 @@ program ldc
   call update(p_prime%x_gradients)
   call update(p_prime%y_gradients)
   call update(p_prime%z_gradients)
+  call initialise_old_values(vec_properties, u)
+  call initialise_old_values(vec_properties, v)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)

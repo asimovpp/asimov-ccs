@@ -8,6 +8,7 @@ submodule (timestepping) timestepping_first_order
   real(ccs_real) :: dt
   logical :: timestep_is_set = .false.
   logical :: timestepping_is_active = .false.
+  integer(ccs_int), parameter :: num_old_vals = 1
 
 contains
 
@@ -36,7 +37,7 @@ contains
     call finalise(M)
     call get_matrix_diagonal(M, diag)
    
-    call get_vector_data(phi%old_values, phi_data)
+    call get_vector_data(phi%old_values(1)%vec, phi_data)
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
@@ -49,7 +50,7 @@ contains
     ! b = b + V/dt * phi_old
       b_data(i) = b_data(i) + mesh%volumes(i) / get_timestep() * phi_data(i)
     end do
-    call restore_vector_data(phi%old_values, phi_data)
+    call restore_vector_data(phi%old_values(1)%vec, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
@@ -89,16 +90,33 @@ contains
     
     real(ccs_real), dimension(:), pointer :: values_data, old_values_data
 
-    !u%old_values = x%values
+    !u%old_values(1) = x%values
     call get_vector_data(x%values, values_data)
-    call get_vector_data(x%old_values, old_values_data)
+    call get_vector_data(x%old_values(1)%vec, old_values_data)
     old_values_data = values_data
-    call restore_vector_data(x%old_values, old_values_data)
+    call restore_vector_data(x%old_values(1)%vec, old_values_data)
     call restore_vector_data(x%values, values_data)
   end subroutine
 
   module subroutine activate_timestepping()
     timestepping_is_active = .true.
+  end subroutine
+    
+  module subroutine initialise_old_values(vec_properties, x)
+    use types, only: vector_spec
+    use vec, only: create_vector
+    use utils, only: update
+
+    type(vector_spec), intent(in) :: vec_properties
+    class(field), intent(inout) :: x 
+
+    if (.not. allocated (x%old_values)) then
+      allocate (x%old_values(num_old_vals))
+    end if
+
+    call create_vector(vec_properties, x%old_values(1)%vec)
+    call update(x%old_values(1)%vec)
+
   end subroutine
 
 end submodule 
