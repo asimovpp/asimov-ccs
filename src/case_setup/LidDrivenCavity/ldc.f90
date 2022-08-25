@@ -142,7 +142,7 @@ program ldc
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+  call solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
