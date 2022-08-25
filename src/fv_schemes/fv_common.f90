@@ -190,7 +190,8 @@ contains
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary 
-  subroutine compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, normal, bc_value, x_gradients, y_gradients, z_gradients)
+  subroutine compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, normal, bc_value, &
+                                     x_gradients, y_gradients, z_gradients)
     class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     integer, intent(in) :: index_nb                         !< index of neighbour 
@@ -242,7 +243,8 @@ contains
       normal_norm = 0
       do i = 1, ndim
         phi_face_parallel_component(i) = parallel_component_map(i) * normal(i)
-        phi_face_parallel_component_norm = phi_face_parallel_component_norm + phi_face_parallel_component(i) * phi_face_parallel_component(i)
+        phi_face_parallel_component_norm = phi_face_parallel_component_norm + &
+                                           phi_face_parallel_component(i) * phi_face_parallel_component(i)
         normal_norm = normal_norm + normal(i) * normal(i)
       end do
       phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm/normal_norm)
@@ -492,7 +494,8 @@ contains
         if (.not. is_boundary) then
           phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
         else
-          call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_norm, phif, x_gradients_old, y_gradients_old, z_gradients_old)
+          call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_norm, phif, &
+                                       x_gradients_old, y_gradients_old, z_gradients_old)
         end if
 
         grad = grad + phif * (face_area * face_norm(component))
