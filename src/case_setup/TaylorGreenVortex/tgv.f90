@@ -6,14 +6,14 @@ program tgv
   use yaml, only: parse, error_length
   use read_config, only: get_case_name
   use constants, only: ccsconfig
-  use kinds, only: ccs_int, ccs_real
+  use kinds, only: ccs_int, ccs_real, ccs_long
   use constants, only: geoext, adiosconfig, ccsconfig, ndim
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
                       read_command_line_arguments, &
                       timer
   use parallel_types, only: parallel_environment
-  use types, only: topology
+  use types, only: topology, io_environment, io_process
   use partitioning, only: read_topology, compute_partitioner_input, &
                           partition_kway, compute_connectivity
 
@@ -22,19 +22,21 @@ program tgv
 
   type(topology) :: topo
 
-  ! class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
-  ! character(len=error_length) :: error
+  class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
+  character(len=error_length) :: error
 
   character(len=:), allocatable :: case_name   !< Case name
-  ! character(len=:), allocatable :: ccs_config_file  !< Config file for CCS
+  character(len=:), allocatable :: ccs_config_file  !< Config file for CCS
+  character(len=:), allocatable :: geo_file
+  character(len=:), allocatable :: adios2_file
 
   class(parallel_environment), allocatable :: par_env
   class(io_environment), allocatable :: io_env
   class(io_process), allocatable :: geo_reader
 
   real(ccs_real), dimension(:, :), allocatable :: xyz_coords
-  integer(kind=8), dimension(2) :: xyz_sel_start
-  integer(kind=8), dimension(2) :: xyz_sel_count
+  integer(ccs_long), dimension(2) :: xyz_sel_start
+  integer(ccs_long), dimension(2) :: xyz_sel_count
 
   integer(ccs_int) :: irank !< MPI rank ID
   integer(ccs_int) :: isize !< Size of MPI world
@@ -68,9 +70,9 @@ program tgv
   end if
 
   ! Starting point for reading chunk of data
-  xyz_sel_start = (/0, topo%vtxdist(irank + 1) - 1/)
+  xyz_sel_start = (/0, int(topo%vtxdist(irank + 1)) - 1/)
   ! How many data points will be read?
-  xyz_sel_count = (/ndim, topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1)/)
+  xyz_sel_count = (/ndim, int(topo%vtxdist(irank + 2) - topo%vtxdist(irank + 1))/)
 
   ! Allocate memory for XYZ coordinates array on each MPI rank
   allocate (xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
@@ -100,7 +102,7 @@ program tgv
 contains
 
   ! Read YAML configuration file
-  ! subroutine read_configuration()
+  subroutine read_configuration()
 
     config_file_pointer => parse(ccs_config_file, error=error)
     if (error /= '') then
@@ -110,6 +112,6 @@ contains
     ! Get case name
     call get_case_name(config_file_pointer, case_name)
 
-  ! end subroutine
+  end subroutine
 
 end program tgv
