@@ -285,6 +285,9 @@ contains
           ! Initialise mesh arrays
           mesh%nnb(:) = 6_ccs_int ! All cells have 6 neighbours (possibly ghost/boundary cells)
 
+          ! Initalise neighbour indices
+          mesh%neighbour_indices(:,:) = 0_ccs_int
+
           ! First set the global index of local cells
           index_counter = 1_ccs_int
           do i = start_global, end_global
@@ -304,7 +307,6 @@ contains
           index_counter = 1_ccs_int ! Set local indexing starting from 1...n
           do i = start_global, end_global
 
-            print*,"i = ",i
             ii = i - 1_ccs_int
 
             ! Construct left (1) face/neighbour
@@ -360,21 +362,25 @@ contains
               index_nb = index_counter + nx * ny
               global_index_nb = i + nx * ny
             end if
+            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct front (6) face/neighbour
-            face_counter = -front
+            face_counter = front
             if ((ii / (nx * ny)) == 0_ccs_int) then
               index_nb = -front
-              global_index_nb = front
+              global_index_nb = -front
             else
               index_nb = index_counter - nx * ny
               global_index_nb = i - nx * ny
             end if
+            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             index_counter = index_counter + 1_ccs_int
 
           end do
         end associate
+
+        ! print*,"Neighbour indices: ",mesh%neighbour_indices
 
         mesh%ntotal = size(mesh%global_indices)
         mesh%nhalo = mesh%ntotal - mesh%nlocal
@@ -453,8 +459,6 @@ contains
             end associate
           end do
         end associate
-
-        print*,"HERE"
 
         mesh%nfaces_local = count_mesh_faces(mesh)
 
