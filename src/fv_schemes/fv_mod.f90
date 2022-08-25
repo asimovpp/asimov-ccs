@@ -92,12 +92,10 @@ module fv
     end subroutine update_gradient
 
     !> Computes the value of the scalar field on the boundary 
-    module subroutine compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, normal, bc_value, &
+    module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                               x_gradients, y_gradients, z_gradients)
       class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
       integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
-      integer, intent(in) :: index_nb                         !< index of neighbour 
-      integer, intent(in) :: index_p                          !< index of cell 
       type(cell_locator), intent(in) :: loc_p                 !< location of cell
       type(face_locator), intent(in) :: loc_f                 !< location of face
       real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction

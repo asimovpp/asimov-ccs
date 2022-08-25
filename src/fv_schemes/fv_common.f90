@@ -166,7 +166,8 @@ contains
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
-          call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_normal, bc_value)
+          !call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_normal, bc_value)
+          call compute_boundary_values(phi, component, loc_p, loc_f, face_normal, bc_value)
 
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
@@ -190,12 +191,12 @@ contains
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary 
-  module subroutine compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, normal, bc_value, &
+  module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                             x_gradients, y_gradients, z_gradients)
     class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
-    integer, intent(in) :: index_nb                         !< index of neighbour 
-    integer, intent(in) :: index_p                          !< index of cell 
+    !integer, intent(in) :: index_nb                         !< index of neighbour 
+    !integer, intent(in) :: index_p                          !< index of cell 
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
     type(face_locator), intent(in) :: loc_f                 !< location of face
     real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
@@ -204,6 +205,9 @@ contains
 
     ! local variables
     integer(ccs_int) :: index_bc
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: index_p
+    type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: i
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real), dimension(ndim) :: parallel_component_map
@@ -213,6 +217,9 @@ contains
     real(ccs_real) :: normal_norm
     real(ccs_real), dimension(:), pointer :: phi_values
 
+    call get_local_index(loc_p, index_p)
+    call set_neighbour_location(loc_p, loc_f%cell_face_ctr, loc_nb)
+    call get_local_index(loc_nb, index_nb)
     call get_bc_index(phi, index_nb, index_bc)
 
     select case (phi%bcs%bc_types(index_bc))
@@ -252,6 +259,7 @@ contains
       ! Get value of phi at boundary cell
       call get_vector_data(phi%values, phi_values)
       bc_value = phi_face_parallel_component_portion*phi_values(index_p)
+      call restore_vector_data(phi%values, phi_values)
     case default
       bc_value = 0.0_ccs_real
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
@@ -368,8 +376,8 @@ contains
       else
         ! TODO: Write more general implementation handling BCs
         !flux = 0.0_ccs_real ! XXX: hardcoded zero-flux BC
-        call compute_boundary_values(u, 1, index_nb, index_p, loc_p, loc_f, face_normal, u_bc)
-        call compute_boundary_values(v, 1, index_nb, index_p, loc_p, loc_f, face_normal, v_bc)
+        call compute_boundary_values(u, 1, loc_p, loc_f, face_normal, u_bc)
+        call compute_boundary_values(v, 1, loc_p, loc_f, face_normal, v_bc)
         flux = u_bc * face_normal(1) + v_bc * face_normal(2)
       end if
     end associate
@@ -494,7 +502,7 @@ contains
         if (.not. is_boundary) then
           phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
         else
-          call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_norm, phif, &
+          call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif, &
                                        x_gradients_old, y_gradients_old, z_gradients_old)
         end if
 
