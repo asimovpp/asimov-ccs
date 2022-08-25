@@ -15,7 +15,7 @@ ifeq ($(BUILD),debug)
   FFLAGS += -fcheck=bounds
   FFLAGS += -fbacktrace
   FFLAGS += -ffpe-trap=invalid,zero,overflow
-  FFLAGS += -Wimplicit-interface -Wimplicit-procedure
+  #FFLAGS += -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -Wall -Wpedantic -Werror 
 else
   FFLAGS += -O3
