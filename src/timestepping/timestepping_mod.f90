@@ -18,29 +18,38 @@ module timestepping
   public :: initialise_old_values
   
   interface
+    !> Apply one timestep correction 
     module subroutine apply_timestep(mesh, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh
-      class(field), intent(in) :: phi
-      class(ccs_vector), intent(inout) :: diag
-      class(ccs_matrix), intent(inout) :: M
-      class(ccs_vector), intent(inout) :: b
+      type(ccs_mesh), intent(in) :: mesh !< problem mesh
+      class(field), intent(in) :: phi !< problem field ?
+      class(ccs_vector), intent(inout) :: diag !< ?
+      class(ccs_matrix), intent(inout) :: M !< ? 
+      class(ccs_vector), intent(inout) :: b !< ?
     end subroutine
 
+    !> Set timestep size
     module subroutine set_timestep(timestep)
       real(ccs_real), intent(in) :: timestep
     end subroutine
-    
+   
+    !> Get timestep size
     module function get_timestep() result(timestep)
       real(ccs_real) :: timestep
     end function 
 
+    !> Place current field values into old field values 
     module subroutine update_old_values(x)
       class(field), intent(inout) :: x 
     end subroutine
   
+    !v Enable timestepping
+    !
+    !  If this is not called at the start of a program, 
+    !  calls to apply_timestep will return without doing anything. 
     module subroutine activate_timestepping()
     end subroutine
-    
+   
+    !> Create vectors for storing one or more previous timesteps. 
     module subroutine initialise_old_values(vec_properties, x)
       type(vector_spec), intent(in) :: vec_properties
       class(field), intent(inout) :: x 

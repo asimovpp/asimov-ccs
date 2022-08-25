@@ -1,3 +1,4 @@
+!v Implementation of a first order timestepping scheme with a fixed-size timestep.
 submodule (timestepping) timestepping_first_order
 #include "ccs_macros.inc"
 
@@ -5,10 +6,10 @@ submodule (timestepping) timestepping_first_order
   
   implicit none
 
-  real(ccs_real) :: dt
-  logical :: timestep_is_set = .false.
-  logical :: timestepping_is_active = .false.
-  integer(ccs_int), parameter :: num_old_vals = 1
+  real(ccs_real) :: dt !< timestep size
+  logical :: timestep_is_set = .false. !< flag to signify whether dt has already been set 
+  logical :: timestepping_is_active = .false. !< flag to signify whether timestepping should occur
+  integer(ccs_int), parameter :: num_old_vals = 1 !< the number of old field values the scheme uses
 
 contains
 
