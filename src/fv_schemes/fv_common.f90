@@ -195,8 +195,6 @@ contains
                                             x_gradients, y_gradients, z_gradients)
     class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
-    !integer, intent(in) :: index_nb                         !< index of neighbour 
-    !integer, intent(in) :: index_p                          !< index of cell 
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
     type(face_locator), intent(in) :: loc_f                 !< location of face
     real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
@@ -327,6 +325,7 @@ contains
     real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
     real(ccs_real) :: u_bc, v_bc                   ! values of u and v at boundary
     real(ccs_real), dimension(:), pointer :: u_data, v_data ! the vector data for u and v
+    integer(ccs_int), parameter :: x_direction = 1, y_direction = 2
 
     call get_boundary_status(loc_f, is_boundary)
     call get_vector_data(u%values, u_data)
@@ -374,10 +373,8 @@ contains
           flux = -flux
         end if
       else
-        ! TODO: Write more general implementation handling BCs
-        !flux = 0.0_ccs_real ! XXX: hardcoded zero-flux BC
-        call compute_boundary_values(u, 1, loc_p, loc_f, face_normal, u_bc)
-        call compute_boundary_values(v, 1, loc_p, loc_f, face_normal, v_bc)
+        call compute_boundary_values(u, x_direction, loc_p, loc_f, face_normal, u_bc)
+        call compute_boundary_values(v, y_direction, loc_p, loc_f, face_normal, v_bc)
         flux = u_bc * face_normal(1) + v_bc * face_normal(2)
       end if
     end associate
