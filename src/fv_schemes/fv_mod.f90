@@ -25,6 +25,11 @@ module fv
     module procedure calc_advection_coeff_uds
   end interface calc_advection_coeff
 
+  interface calc_mass_flux
+    module procedure calc_mass_flux_uv
+    module procedure calc_mass_flux_no_uv
+  end interface calc_mass_flux
+
   interface
 
     !> Calculates advection coefficient for neighbouring cell using CDS discretisation
@@ -63,7 +68,7 @@ module fv
     end subroutine
 
     !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-    module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f, zero_field_flag) result(flux)
+    module function calc_mass_flux_uv(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
       class(field), intent(in) :: u                     !< x velocities field
       class(field), intent(in) :: v                     !< y velocities field
       real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
@@ -72,9 +77,19 @@ module fv
       real(ccs_real), dimension(:), intent(in) :: invAu !< inverse momentum diagonal in x
       real(ccs_real), dimension(:), intent(in) :: invAv !< inverse momentum diagonal in y
       type(face_locator), intent(in) :: loc_f           !< face locator
-      logical, intent(in), optional :: zero_field_flag
       real(ccs_real) :: flux                            !< the flux across the boundary
-    end function calc_mass_flux
+    end function calc_mass_flux_uv
+
+    !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
+    module function calc_mass_flux_no_uv(p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
+      real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
+      real(ccs_real), dimension(:), intent(in) :: dpdx  !< pressure gradients in x
+      real(ccs_real), dimension(:), intent(in) :: dpdy  !< pressure gradients in y
+      real(ccs_real), dimension(:), intent(in) :: invAu !< inverse momentum diagonal in x
+      real(ccs_real), dimension(:), intent(in) :: invAv !< inverse momentum diagonal in y
+      type(face_locator), intent(in) :: loc_f           !< face locator
+      real(ccs_real) :: flux                            !< the flux across the boundary
+    end function calc_mass_flux_no_uv
 
     !> Calculates the row and column indices from flattened vector index. Assumes square mesh
     module subroutine calc_cell_coords(index, cps, row, col)
