@@ -2,7 +2,7 @@
 !
 !> @description A valid mesh should be "closed" that is the surface integral should be zero. The
 !!              same is true of mesh cells.
-program test_mesh_square_mesh_closed
+program test_square_mesh_closed
 
   use testing_lib
 
@@ -57,4 +57,4 @@ program test_mesh_square_mesh_closed
 
   call fin()
   
-end program test_mesh_square_mesh_closed
+end program test_square_mesh_closed

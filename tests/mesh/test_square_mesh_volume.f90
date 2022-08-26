@@ -2,7 +2,7 @@
 !
 !> @description A "square" domain of side L should result in a mesh of volume L^d, this can be
 !> verified by summing the volumes of all cells.
-program test_mesh_square_mesh_volume
+program test_square_mesh_volume
 
   use testing_lib
   use meshing, only : set_cell_location, get_volume
@@ -67,4 +67,4 @@ program test_mesh_square_mesh_volume
   
   call fin()
 
-end program test_mesh_square_mesh_volume
+end program test_square_mesh_volume
