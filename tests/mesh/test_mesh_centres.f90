@@ -15,7 +15,7 @@ program test_mesh_centres
   type(ccs_mesh) :: mesh
 
   real(ccs_real) :: l
-  integer(ccs_int) :: nx, ny, nz
+  integer(ccs_int) :: n, nx, ny, nz
 
   integer(ccs_int) :: i
   integer(ccs_int) :: j
@@ -27,37 +27,40 @@ program test_mesh_centres
   
   call init()
   
-  nx = 4
-  ny = 4
-  nz = 4
+  do n = 2, 100
 
-  l = parallel_random(par_env)
-  mesh = build_mesh(par_env, nx, ny, nz, l)
+    nx = n
+    ny = n
+    nz = n
 
-  do i = 1, mesh%nlocal
-    call set_cell_location(mesh, i, loc_p)
-    call get_centre(loc_p, cc)
-    associate(x => cc(1), y => cc(2))
-      if ((x > l) .or. (x < 0_ccs_real) &
-            .or. (y > l) .or. (y < 0_ccs_real)) then
-        write (message,*) "FAIL: expected cell centre 0 <= x,y <= ", l, " got ", x, " ", y
-        call stop_test(message)
-      end if
-    end associate
+    l = parallel_random(par_env)
+    mesh = build_mesh(par_env, nx, ny, nz, l)
 
-    associate(nnb => mesh%nnb(i))
-      do j = 1, nnb
-        call set_face_location(mesh, i, j, loc_f)
-        call get_centre(loc_f, fc)
-        associate(x => fc(1), y => fc(2))
-          if ((x > (l + eps)) .or. (x < (0.0_ccs_real - eps)) &
-                .or. (y > (l + eps)) .or. (y < (0.0_ccs_real - eps))) then
-            write(message,*) "FAIL: expected face centre 0 <= x,y <= ", l, " got ", x, " ", y
-            call stop_test(message)
-          end if
-        end associate
-      end do
-    end associate
+    do i = 1, mesh%nlocal
+      call set_cell_location(mesh, i, loc_p)
+      call get_centre(loc_p, cc)
+      associate(x => cc(1), y => cc(2))
+        if ((x > l) .or. (x < 0_ccs_real) &
+              .or. (y > l) .or. (y < 0_ccs_real)) then
+          write (message,*) "FAIL: expected cell centre 0 <= x,y <= ", l, " got ", x, " ", y
+          call stop_test(message)
+        end if
+      end associate
+
+      associate(nnb => mesh%nnb(i))
+        do j = 1, nnb
+          call set_face_location(mesh, i, j, loc_f)
+          call get_centre(loc_f, fc)
+          associate(x => fc(1), y => fc(2))
+            if ((x > (l + eps)) .or. (x < (0.0_ccs_real - eps)) &
+                  .or. (y > (l + eps)) .or. (y < (0.0_ccs_real - eps))) then
+              write(message,*) "FAIL: expected face centre 0 <= x,y <= ", l, " got ", x, " ", y
+              call stop_test(message)
+            end if
+          end associate
+        end do
+      end associate
+    end do
   end do
 
   call fin()

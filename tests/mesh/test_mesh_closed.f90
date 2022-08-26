@@ -16,7 +16,7 @@ program test_mesh_closed
   type(ccs_mesh), target :: mesh
   type(face_locator) :: loc_f
 
-  integer(ccs_int) :: nx, ny, nz
+  integer(ccs_int) :: n, nx, ny, nz
   real(ccs_real) :: l
 
   real(ccs_real), dimension(ndim) :: S
@@ -27,11 +27,12 @@ program test_mesh_closed
 
   call init()
   
-  nx = 2
-  ny = 2
-  nz = 2
+  do n = 1, 100 ! XXX: Should use some named constant, not just "100"
 
-  ! do n = 1, 100 ! XXX: Should use some named constant, not just "100"
+    nx = n
+    ny = n
+    nz = n
+
     l = parallel_random(par_env)
     mesh = build_mesh(par_env, nx, nz, ny, l)
 
@@ -57,7 +58,7 @@ program test_mesh_closed
         end if
       end do
     end do
-  ! end do
+  end do
 
   call fin()
   
