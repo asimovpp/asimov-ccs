@@ -8,7 +8,7 @@ submodule (pv_coupling) pv_coupling_simple
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec
-  use fv, only: compute_fluxes, calc_mass_flux, update_gradient, compute_res
+  use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
        create_vector_values, vec_norm, vec_aypx, vec_axpy, mult_vec_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
@@ -104,7 +104,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv, Ap, res, residuals)
+      call calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, source, lin_system, u, v, invAu, invAv, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -156,7 +156,7 @@ contains
   !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
   !!              equations) and solve to obtain an intermediate velocity field u* that will not
   !!              satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, vec, lin_sys, u, v, invAu, invAv, Ap, res, residuals)
+  subroutine calculate_velocity(par_env, mesh, cps, mf, p, bcs, M, vec, lin_sys, u, v, invAu, invAv, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -170,10 +170,11 @@ contains
     type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u, v
     class(ccs_vector), intent(inout)    :: invAu, invAv
-    class(ccs_vector), intent(inout)    :: Ap
     class(ccs_vector), intent(inout)    :: res
     real(ccs_real), dimension(:), intent(inout) :: residuals
 
+    ! Local variables
+    integer(ccs_int) :: iVar
     
     ! u-velocity
     ! ----------
@@ -181,26 +182,27 @@ contains
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !< Fixed zero BC
     bcs%bc_type(4) = 1 !< Fixed one BC at lid
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 1, bcs, M, vec, lin_sys, u, invAu, res, 1, residuals)
-    !call calculate_residual(VarU, mf, mesh, M, Ap, vec, u, res, residuals)
+    iVar = varU
+    call calculate_velocity_component(par_env, iVar, mesh, cps, mf, p, 1, bcs, M, vec, lin_sys, u, invAu, res, residuals)
     
     ! v-velocity
     ! ----------
     
     ! TODO: Do boundaries properly
     bcs%bc_type(:) = 0 !< Fixed zero BC
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 2, bcs, M, vec, lin_sys, v, invAv, res, 2, residuals)
-    !call calculate_residual(VarV, mf, mesh, M, Ap, vec, v, res, residuals)
+    iVar = varV
+    call calculate_velocity_component(par_env, iVar, mesh, cps, mf, p, 2, bcs, M, vec, lin_sys, v, invAv, res, residuals)
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, mesh, cps, mf, p, component, bcs, M, vec, lin_sys, u, invAu, res, iVar, residuals)
+  subroutine calculate_velocity_component(par_env, iVar, mesh, cps, mf, p, component, bcs, M, vec, lin_sys, u, invAu, res, residuals)
 
     use case_config, only: velocity_relax
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_mesh), intent(in)         :: mesh
+    integer(ccs_int), intent(in)  :: iVar
+    type(ccs_mesh), intent(in)    :: mesh
     integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
@@ -212,7 +214,6 @@ contains
     class(field), intent(inout)    :: u
     class(ccs_vector), intent(inout)  :: invAu
     class(ccs_vector), intent(inout)  :: res
-    integer(ccs_int), intent(in) :: iVar
     real(ccs_real), dimension(:), intent(inout) :: residuals
     
     ! Local variables
@@ -512,9 +513,6 @@ contains
 
     ! Clean up
     deallocate(lin_solver)
-
-    ! Compute residual (of pressure correction equation)
-    !call calculate_residual(VarP, M, vec, p_prime, res, residuals)
     
   end subroutine calculate_pressure_correction
 
@@ -842,82 +840,5 @@ contains
     call set_matrix_diagonal(diag, M)
     
   end subroutine underrelax
-
-  !v Calculate the residual
-  !
-  !    res = rhs - M*phi
-  subroutine calculate_residual(iVar, mf, mesh, M, Ap, rhs, phi, res, residuals)
-
-    ! Arguments:
-    integer(ccs_int), intent(in) :: iVar
-    class(field), intent(in) :: mf            !< mass flux field structure
-    type(ccs_mesh), intent(in) :: mesh        !< the mesh being used
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: Ap
-    class(ccs_vector), intent(in) :: rhs
-    class(field), intent(inout) :: phi
-    class(ccs_vector), intent(inout) :: res
-    real(ccs_real), dimension(:), intent(inout) :: residuals
-
-    ! Local variables
-    integer(ccs_int) :: n_int_cells
-    real(ccs_real), dimension(:), pointer :: mf_data
-    real(ccs_real), dimension(:), pointer :: res_data
-   
-    ! Compute matrix vector product M * phi (store in res)
-    !call mat_vec_product(M, phi%values, res)
-
-    ! Compute:
-    !   res(i) = res(i) + S(i) - Ap(i)*phi(i)
-
-    ! Extract central coefficients of matrix
-    call get_matrix_diagonal(M, Ap)
-
-    ! Compute res
-    call get_vector_data(mf%values, mf_data)
-    n_int_cells = 5_ccs_int ! Assumes 2-D square grid for now
-    call compute_res(phi, mf_data, mesh, n_int_cells, M, res)
-    call restore_vector_data(mf%values, mf_data)
-
-    ! Debugging
-    !call get_vector_data(res, res_data)
-    !write(*,*) 'Step 1'
-    !write (*,*) res_data
-    !call restore_vector_data(res, res_data)
-
-    ! Add res and rhs vectors (store result in res)
-    call vec_axpy(1.0_ccs_real, rhs, res)
-
-    ! Debugging
-    !call get_vector_data(res, res_data)
-    !write(*,*) 'Step 2'
-    !write (*,*) res_data
-    !call restore_vector_data(res, res_data)
-
-    ! Calculate Ap(i)*phi(i)
-    call mult_vec_vec(phi%values, Ap)
-
-    ! Debugging
-    !call get_vector_data(Ap, res_data)
-    !write(*,*) 'Step 3'
-    !write (*,*) res_data
-    !call restore_vector_data(Ap, res_data)
-
-    ! Subtract Ap(i)*phi(*) from res(i)+S(i)
-    call vec_axpy(-1.0_ccs_real, Ap, res)
-
-    ! Debugging
-    !call get_vector_data(res, res_data)
-    !write(*,*) 'Step 4'
-    !write (*,*) res_data
-    !call restore_vector_data(res, res_data)
-
-    ! Subtract result of M * phi from source vector
-    !call vec_aypx(rhs, -1.0_ccs_real, res)
-
-    ! Compute L2-norm of residual vector and store in residuals array
-    residuals(iVar) = vec_norm(res, 2)
-
-  end subroutine
   
 end submodule pv_coupling_simple
