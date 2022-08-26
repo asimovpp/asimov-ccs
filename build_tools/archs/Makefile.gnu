@@ -1,3 +1,6 @@
+CC = mpicc
+CFLAGS = -O3
+
 FC = mpif90
 FFLAGS = -cpp -std=f2018 -ffree-line-length-none
 CAFFLAGS = -fcoarray=single
@@ -10,7 +13,9 @@ ifeq ($(BUILD),debug)
   FFLAGS += -fcheck=bounds
   FFLAGS += -fbacktrace
   FFLAGS += -ffpe-trap=invalid,zero,overflow
-  FFLAGS += -Wimplicit-interface -Wimplicit-procedure
+  #FFLAGS += -Wimplicit-interface -Wimplicit-procedure
+  FFLAGS += -Wall -Wpedantic -Werror 
+  FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 else
   FFLAGS += -O3
 endif
@@ -18,7 +23,6 @@ ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
 FFLAGS += -fopenmp
-FFLAGS += -Wall -Wpedantic -Werror 
 FFLAGS += -J$(OBJ_DIR)
 MPIRUN = mpirun
 

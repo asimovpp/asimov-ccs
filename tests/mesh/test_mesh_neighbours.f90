@@ -39,7 +39,7 @@ program test_mesh_neighbours
     mesh = build_mesh(par_env, nx, ny, nz, l)
 
     boundary_ctr = 0
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
 
       call set_cell_location(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)

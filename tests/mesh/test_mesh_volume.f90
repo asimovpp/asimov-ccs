@@ -37,13 +37,13 @@ program test_mesh_volume
 
   vol = 0.0_ccs_real
   nneg_vol = 0
-  do i = 1, mesh%nlocal
+  do i = 1, mesh%topo%local_num_cells
     call set_cell_location(mesh, i, loc_p)
     call get_volume(loc_p, V)
     if (V <= 0) then
       nneg_vol = nneg_vol + 1
     end if
-    vol = vol + mesh%volumes(i)
+    vol = vol + mesh%geo%volumes(i)
   end do
   
   select type(par_env)
@@ -57,7 +57,7 @@ program test_mesh_volume
 
   ! XXX: This would be a good candidate for a testing library
   if (abs(expected_vol - vol_global) > 1.0e-8) then
-    print *, mesh%h, l/nx !TODO: not sure if this should be put inside message
+    print *, mesh%geo%h, l/nx !TODO: not sure if this should be put inside message
     write (message,*) "FAIL: expected ", expected_vol, " got ", vol_global
     call stop_test(message)
   end if

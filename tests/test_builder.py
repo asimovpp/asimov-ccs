@@ -26,8 +26,8 @@ sp.run("if [ ${MAKEDEPF90_SMODS} = 0 ]; then " + submods_supported + "; else " +
        shell=True, check=True)
 
 print("TEST BUILDER: generating link rule for test")
-submods_supported     = "python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " " + smod_deps
-submods_not_supported = "python3 ${TOOLS}generate_link_deps.py " + config_file + " " + test_deps + " " + test_link
+submods_supported     = "python3 ${TOOLS}/generate_link_deps.py " + config_file + " " + test_deps + " " + test_link + " " + smod_deps
+submods_not_supported = "python3 ${TOOLS}/generate_link_deps.py " + config_file + " " + test_deps + " " + test_link
 sp.run("if [ ${MAKEDEPF90_SMODS} = 0 ]; then " + submods_supported + "; else " + submods_not_supported + "; fi",
        shell=True, check=True)
 
@@ -43,7 +43,7 @@ idx = 0
 if len(test_src_obj) == 0:
   idx = 1 #main is found in src/obj, e.g. for case_setup tests
 else:
-  if any([main in x for x in test_src_obj.keys()]):
+  if any([main == os.path.splitext(os.path.basename(x))[0] for x in test_src_obj.keys()]):
     idx = 2 #normal test case
   else:
     idx = 1 #special case for case_setup tests that also have extra files for the test

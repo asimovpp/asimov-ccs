@@ -32,11 +32,11 @@ program test_square_mesh_closed
     mesh = build_square_mesh(par_env, n, l)
 
     ! Loop over cells
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       S(:) = 0.0_ccs_real
 
       ! Loop over neighbours/faces
-      do j = 1, mesh%nnb(i)
+      do j = 1, mesh%topo%num_nb(i)
 
         call set_face_location(mesh, i, j, loc_f)
         call get_face_area(loc_f, A)

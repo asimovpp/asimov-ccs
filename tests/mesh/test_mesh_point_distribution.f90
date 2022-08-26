@@ -23,8 +23,7 @@ program test_mesh_point_distribution
   nz = 4
 
   mesh = build_mesh(par_env, nx, ny, nz, 1.0_ccs_real)
-
-  associate(nlocal => mesh%nlocal)
+  associate(nlocal => mesh%topo%local_num_cells)
     if (nlocal < 0) then
       ! XXX: Zero cells on a PE is not necessarily invalid...
       ! ? exit
@@ -36,7 +35,7 @@ program test_mesh_point_distribution
       !   call stop_test(message)
       ! end select
     end if
-  
+    
     n_expected = nx * ny * nz
 
     if (nlocal > n_expected) then
@@ -60,8 +59,8 @@ program test_mesh_point_distribution
     call stop_test(message)
   end if
 
-  call assert_equal(n_expected, mesh%nglobal, &
-        '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
+  call assert_equal(n_expected, mesh%topo%global_num_cells, &
+       '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
 
 
   call fin()

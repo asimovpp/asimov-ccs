@@ -2,3 +2,4 @@ main: ldc
 base: mpi_petsc
 #options:
   #component: opt_2
+extra: parhip
