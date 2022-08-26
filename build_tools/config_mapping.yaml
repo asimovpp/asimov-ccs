@@ -19,6 +19,8 @@ bases:
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
       timestepping: timestepping_first_order
+      partitioning: partitioning_parhip
+      partitioning_common: partitioning_common
     #options:
       #component: [opt_1, opt_2, opt_3]
   mpi:
@@ -41,3 +43,5 @@ bases:
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
       timestepping: timestepping_first_order
+      partitioning: partitioning_parhip
+      partitioning_common: partitioning_common

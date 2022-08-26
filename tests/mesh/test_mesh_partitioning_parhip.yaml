@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 test_mesh_partitioning_parhip.f90
+# RUN: %mpirun -n 3 %t1
+
+main: test_mesh_partitioning_parhip
+base: mpi
+extra: parhip
