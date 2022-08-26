@@ -21,7 +21,6 @@ program test_partition_square_mesh
 
   type(topology) :: topo
   type(ccs_mesh), target :: mesh
-  integer :: i, j, n
 
   integer, parameter :: topo_idx_type = kind(topo%adjncy(1))
   integer(topo_idx_type) :: current, previous
@@ -132,7 +131,7 @@ contains
 
     character(len=*), intent(in) :: stage
 
-    integer :: i
+    integer :: i, j
 
     do i = 1, topo%local_num_cells
       do j = int(topo%xadj(i), ccs_int), int(topo%xadj(i + 1), ccs_int) - 1
