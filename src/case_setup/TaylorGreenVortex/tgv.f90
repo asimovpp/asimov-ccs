@@ -67,31 +67,25 @@ program tgv
   end if
 
   ! Starting point for reading chunk of data
-  xyz_sel_start = (/0, int(topo%vtxdist(par_env%proc_id + 1)) - 1/)
+  ! xyz_sel_start = (/0, int(topo%vtxdist(par_env%proc_id + 1)) - 1/)
   ! How many data points will be read?
-  xyz_sel_count = (/ndim, int(topo%vtxdist(par_env%proc_id + 2) - topo%vtxdist(par_env%proc_id + 1))/)
+  ! xyz_sel_count = (/ndim, int(topo%vtxdist(par_env%proc_id + 2) - topo%vtxdist(par_env%proc_id + 1))/)
 
   ! Allocate memory for XYZ coordinates array on each MPI rank
-  allocate (xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
+  ! allocate (xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
 
   ! Read XYZ coordinates for variable "/cell/x"
-  call initialise_io(par_env, adios2_file, io_env)
-  call configure_io(io_env, "geo_reader", geo_reader)  
-  call open_file(geo_file, "read", geo_reader)
-  call read_array(geo_reader, "/cell/x", xyz_sel_start, xyz_sel_count, xyz_coords)
-  call close_file(geo_reader) ! Close the file and ADIOS2 engine
+  ! call initialise_io(par_env, adios2_file, io_env)
+  ! call configure_io(io_env, "geo_reader", geo_reader)  
+  ! call open_file(geo_file, "read", geo_reader)
+  ! call read_array(geo_reader, "/cell/x", xyz_sel_start, xyz_sel_count, xyz_coords)
+  ! call close_file(geo_reader) ! Close the file and ADIOS2 engine
 
   ! Finalise the ADIOS2 IO environment
-  call cleanup_io(io_env)
-
-  call timer(end_time)
-
-  if (par_env%proc_id == 0) then
-    print *, "Elapsed time: ", end_time - start_time
-  end if
+  ! call cleanup_io(io_env)
 
   ! Deallocate memory for XYZ coordinates array
-  deallocate (xyz_coords)
+  ! deallocate (xyz_coords)
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
