@@ -20,6 +20,7 @@ program test_compute_bc_values
   type(cell_locator) :: loc_p
   type(neighbour_locator) :: loc_nb
   type(ccs_mesh) :: mesh
+  real(ccs_real), dimension(ndim) :: face_normal
   logical :: is_boundary
 
   call init()
@@ -28,28 +29,26 @@ program test_compute_bc_values
 
   ! set locations
   index_p = 0
-  k = 2
+  k = 1
   do while (index_p == 0)
     call set_cell_location(mesh, k, loc_p)
     call count_neighbours(loc_p, nnb)
     do j = 1, nnb
       call set_neighbour_location(loc_p, j, loc_nb)
       call get_boundary_status(loc_nb, is_boundary)
-      if (is_boundary) then
+      call set_face_location(mesh, k, j, loc_f)
+      call get_face_normal(loc_f, face_normal)
+      if (is_boundary .and. all(face_normal .eq. (/ 0, -1, 0 /))) then
         index_p = k
-        call set_face_location(mesh, index_p, j, loc_f)
         exit
       end if
     end do 
   end do
 
-  ! Check Dirichlet BC
   call check_dirichlet_bc(loc_p, loc_f)
 
-  ! Check extrapolated BC
   call check_extrapolated_bc(loc_p, loc_f, cps)
 
-  ! Check symmetric test
   call check_symmetric_bc(loc_p, loc_f, cps)
 
   call dprint("done")
@@ -58,9 +57,10 @@ program test_compute_bc_values
 
   contains
 
+  ! Checks whether the dirichlet bcs are being computed correctly
   subroutine check_dirichlet_bc(loc_p, loc_f)
-    type(cell_locator), intent(in) :: loc_p
-    type(face_locator), intent(in) :: loc_f
+    type(cell_locator), intent(in) :: loc_p   !< cell location to check bc at
+    type(face_locator), intent(in) :: loc_f   !< the face location at the boundary
 
     integer(ccs_int) :: component = 1
     real(ccs_real) :: expected_bc_value = 7.5
@@ -81,10 +81,11 @@ program test_compute_bc_values
     call dprint("done dirichlet test")
   end subroutine check_dirichlet_bc
 
+  ! Checks whether extrapolation bcs are being computed correctly
   subroutine check_extrapolated_bc(loc_p, loc_f, cps)
-    type(cell_locator), intent(in) :: loc_p
-    type(face_locator), intent(in) :: loc_f
-    integer(ccs_int), intent(in) :: cps
+    type(cell_locator), intent(in) :: loc_p   !< cell location to check bc at
+    type(face_locator), intent(in) :: loc_f   !< the face location at the boundary
+    integer(ccs_int), intent(in) :: cps       !< the number of cells per side of the mesh
 
     class(field), allocatable :: extrapolated_field
     integer(ccs_int) :: component = 1
@@ -141,10 +142,11 @@ program test_compute_bc_values
     end associate
   end subroutine check_extrapolated_bc
 
+  ! Checks whether symmetric bcs are being computed correctly
   subroutine check_symmetric_bc(loc_p, loc_f, cps)
-    type(cell_locator), intent(in) :: loc_p
-    type(face_locator), intent(in) :: loc_f
-    integer(ccs_int), intent(in) :: cps
+    type(cell_locator), intent(in) :: loc_p   !< cell location to check bc at
+    type(face_locator), intent(in) :: loc_f   !< the face location at the boundary
+    integer(ccs_int), intent(in) :: cps       !< the number of cells per side of the mesh
 
     type(vector_spec) :: vec_properties
     class(field), allocatable :: sym_field
