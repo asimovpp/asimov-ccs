@@ -43,7 +43,7 @@ idx = 0
 if len(test_src_obj) == 0:
   idx = 1 #main is found in src/obj, e.g. for case_setup tests
 else:
-  if any([main in x for x in test_src_obj.keys()]):
+  if any([main == os.path.splitext(os.path.basename(x))[0] for x in test_src_obj.keys()]):
     idx = 2 #normal test case
   else:
     idx = 1 #special case for case_setup tests that also have extra files for the test

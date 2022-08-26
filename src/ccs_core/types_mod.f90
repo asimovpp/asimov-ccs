@@ -126,14 +126,26 @@ module types
     real(ccs_real), dimension(:), allocatable :: values
   end type bc_config
 
+  !v Wrapper class for ccs_vector 
+  !
+  !  A wrapper is required for ccs_vector in order to allow the creation of
+  !  an allocatable array of ccs_vectors. ccs_vectors need to be allocatable themselves,
+  !  but it is not possible to have an allocatable array with allocatable elements. Having a wrapper
+  !  gets around this issue by essentially enabling the creation of a dynamic array of pointers
+  !  which point to ccs_vector elements. This is used in, e.g. the fields datatype to store 
+  !  (an unknown number of) past values for use by timestepping schemes.
+  type :: ccs_vector_ptr
+    class(ccs_vector), allocatable :: vec
+  end type ccs_vector_ptr
 
   !> Scalar field type
   type, public :: field
-    class(ccs_vector), allocatable :: values      !< Vector representing the field
-    class(ccs_vector), allocatable :: x_gradients !< Vector representing the x gradient
-    class(ccs_vector), allocatable :: y_gradients !< Vector representing the y gradient
-    class(ccs_vector), allocatable :: z_gradients !< Vector representing the z gradient
-    type(bc_config) :: bcs                        !< The bcs data structure for the cell
+    class(ccs_vector), allocatable :: values                      !< Vector representing the field
+    type(ccs_vector_ptr), dimension(:), allocatable :: old_values !< Vector representing the old fields
+    class(ccs_vector), allocatable :: x_gradients                 !< Vector representing the x gradient
+    class(ccs_vector), allocatable :: y_gradients                 !< Vector representing the y gradient
+    class(ccs_vector), allocatable :: z_gradients                 !< Vector representing the z gradient
+    type(bc_config) :: bcs                                        !< The bcs data structure for the cell
   end type field
 
   type, public, extends(field) :: upwind_field

@@ -156,6 +156,7 @@ contains
   subroutine calculate_velocity_component(par_env, mesh, cps, mf, p, component, M, vec, lin_sys, u, invAu)
 
     use case_config, only: velocity_relax
+    use timestepping, only: apply_timestep
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
@@ -180,6 +181,8 @@ contains
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
     call compute_fluxes(u, mf, mesh, cps, M, vec)
+
+    call apply_timestep(mesh, u, invAu, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     call dprint("GV: compute u gradp")
