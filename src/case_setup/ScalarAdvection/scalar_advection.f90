@@ -35,12 +35,8 @@ program scalar_advection
   class(field), allocatable :: mf !< Prescribed face velocity field
   class(field), allocatable :: scalar
 
-<<<<<<< HEAD
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
-=======
-  integer(ccs_int) :: cps = 50 !< Default value for cells per side
->>>>>>> develop
 
   double precision :: start_time
   double precision :: end_time

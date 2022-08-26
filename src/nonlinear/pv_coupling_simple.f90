@@ -30,12 +30,11 @@ submodule(pv_coupling) pv_coupling_simple
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
-  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+  module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: cps
     integer(ccs_int), intent(in) :: it_start
     integer(ccs_int), intent(in) :: it_end
     class(field), intent(inout) :: u       !< velocity fields in x direction
@@ -623,7 +622,7 @@ contains
   end subroutine update_velocity
 
   !> Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
+  subroutine update_face_velocity(par_env, mesh, invAu, invAv, p_prime, mf)
 
     class(parallel_environment), intent(in), allocatable :: par_env  !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh                               !< The mesh
