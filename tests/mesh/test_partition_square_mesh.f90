@@ -29,7 +29,7 @@ program test_partition_square_mesh
   call init()
   call initialise_test()
 
-  n = count(mesh%neighbour_indices > 0)
+  n = count(mesh%topo%nb_indices > 0)
   print*,"Number of positive value neighbour indices: ", n
   print*,"Adjacency arrays: ", topo%adjncy
   print*,"Adjacency index array: ", topo%xadj
@@ -60,13 +60,13 @@ contains
 
     character(len=*), intent(in) :: stage
 
-    !if (size(topo%nb_indices, 2) /= size(mesh%neighbour_indices, 2) .or. &
-    !     size(topo%nb_indices, 1) /= size(mesh%neighbour_indices, 1)) then
+    !if (size(topo%nb_indices, 2) /= size(mesh%topo%nb_indices, 2) .or. &
+    !     size(topo%nb_indices, 1) /= size(mesh%topo%nb_indices, 1)) then
     !  print *, "TOPO local_num_cells: ", topo%local_num_cells
     !  print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
     !  print *, "TOPO partition: ", topo%global_partition
-    !  print *, "MESH nlocal: ", mesh%nlocal
-    !  print *, "MESH nb_indices: ", size(mesh%neighbour_indices, 1), size(mesh%neighbour_indices, 2)
+    !  print *, "MESH nlocal: ", mesh%topo%local_num_cells
+    !  print *, "MESH nb_indices: ", size(mesh%topo%nb_indices, 1), size(mesh%topo%nb_indices, 2)
     !  write(message, *) "ERROR: topology size is wrong!"
     !  call stop_test(message)
     !end if
@@ -228,9 +228,9 @@ contains
     mesh = build_square_mesh(par_env, 4, 1.0_ccs_real)
   
     !! --- read_topology() ---
-    topo%global_num_cells = mesh%nglobal
+    topo%global_num_cells = mesh%topo%global_num_cells
     topo%global_num_faces = 40 ! Hardcoded for now
-    topo%max_faces = mesh%nnb(1)
+    topo%max_faces = mesh%topo%num_nb(1)
     allocate(topo%face_cell1(topo%global_num_faces))
     allocate(topo%face_cell2(topo%global_num_faces))
     allocate(topo%global_face_indices(topo%max_faces, topo%global_num_cells))
@@ -259,7 +259,7 @@ contains
     ! <MISSING> set topo%global_partition array?
     ! FAKE partition array based on initial mesh decomposition
     do i = 1, topo%global_num_cells
-      if (any(mesh%global_indices(1:mesh%nlocal) == i)) then
+      if (any(mesh%topo%global_indices(1:mesh%topo%local_num_cells) == i)) then
         topo%global_partition(i) = par_env%proc_id
       else
         topo%global_partition(i) = -1
@@ -291,14 +291,14 @@ contains
     !  call stop_test(message)
     !end select
     
-    topo%local_num_cells = mesh%nlocal
+    topo%local_num_cells = mesh%topo%local_num_cells
     allocate(topo%xadj(topo%local_num_cells + 1))
   
     ! <MISSING> allocate topo%global_boundaries
     ! <MISSING> allocate topo%adjncy
     
     allocate(topo%local_partition(topo%local_num_cells))
-    topo%halo_num_cells = mesh%nhalo
+    topo%halo_num_cells = mesh%topo%halo_num_cells
   
     select type(par_env)
     type is (parallel_environment_mpi)
@@ -348,11 +348,11 @@ contains
     !! --- compute_partitioner_input() --- end
     
     ! Assign corresponding mesh values to the topology object
-    topo%total_num_cells = mesh%ntotal
-    topo%num_faces = mesh%nfaces_local
+    topo%total_num_cells = mesh%topo%total_num_cells
+    topo%num_faces = mesh%topo%num_faces
   
-    allocate(topo%global_indices, source=mesh%global_indices)
-    topo%global_indices = mesh%global_indices
+    allocate(topo%global_indices, source=mesh%topo%global_indices)
+    topo%global_indices = mesh%topo%global_indices
 
     ! These need to be set to 1 for them to do nothing
     if (allocated(topo%adjwgt).and.allocated(topo%vwgt)) then

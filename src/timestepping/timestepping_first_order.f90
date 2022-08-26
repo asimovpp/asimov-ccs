@@ -44,12 +44,12 @@ contains
     call get_vector_data(b, b_data)
 
     
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
     ! A = A + V/dt
-      diag_data(i) = diag_data(i) + mesh%volumes(i) / get_timestep()
+      diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
 
     ! b = b + V/dt * phi_old
-      b_data(i) = b_data(i) + mesh%volumes(i) / get_timestep() * phi_data(i)
+      b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * phi_data(i)
     end do
     call restore_vector_data(phi%old_values(1)%vec, phi_data)
     call restore_vector_data(diag, diag_data)

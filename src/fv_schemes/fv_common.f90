@@ -93,7 +93,7 @@ contains
     call create_matrix_values(mat_val_spec, mat_coeffs)
     call set_mode(add_mode, mat_coeffs)
 
-    do index_p = 1, mesh%nlocal
+    do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(mat_coeffs)
 
       ! Calculate contribution from neighbours
@@ -216,7 +216,7 @@ contains
     call create_vector_values(1_ccs_int, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    do index_p = 1, mesh%nlocal
+    do index_p = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
@@ -408,7 +408,7 @@ contains
     call get_vector_data(phi%y_gradients, y_gradients_data)
     call get_vector_data(phi%z_gradients, z_gradients_data)
 
-    associate (ntotal => mesh%ntotal)
+    associate (ntotal => mesh%topo%total_num_cells)
       allocate (x_gradients_old(ntotal))
       allocate (y_gradients_old(ntotal))
       allocate (z_gradients_old(ntotal))
@@ -480,7 +480,7 @@ contains
 
     call get_vector_data(phi, phi_data)
 
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       call clear_entries(grad_values)
 
       grad = 0.0_ccs_int
