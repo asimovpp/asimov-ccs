@@ -182,7 +182,6 @@ contains
     call dprint("GV: compute u flux")
     call compute_fluxes(u, mf, mesh, cps, M, vec)
 
-    ! =======Temporarily put time stepping here
     call apply_timestep(mesh, u, invAu, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
