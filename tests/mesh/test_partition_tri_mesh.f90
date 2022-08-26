@@ -21,6 +21,7 @@ program test_partition_square_mesh
 
   type(topology) :: topo
   type(ccs_mesh), target :: mesh
+  integer :: i
 
   integer, parameter :: topo_idx_type = kind(topo%adjncy(1))
   integer(topo_idx_type) :: current, previous
@@ -244,6 +245,7 @@ contains
   subroutine initialise_test
 
     integer :: ctr
+    integer :: i, j
 
     ! Create a tri mesh
     !
