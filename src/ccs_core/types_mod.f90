@@ -47,8 +47,8 @@ module types
   type, public :: matrix_values
     integer(ccs_int), dimension(:), allocatable :: global_row_indices !< Array of (global) row indices to set values on.
     integer(ccs_int), dimension(:), allocatable :: global_col_indices !< Array of (global) column indices to set values on.
-    real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and 
-                                                            !< of size = size(row_indices) * size(col_indices). Uses 
+    real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and
+                                                            !< of size = size(row_indices) * size(col_indices). Uses
                                                             !< row-major ordering.
     integer(ccs_int) :: setter_mode                         !< Which mode to use when setting values?
     integer(ccs_int) :: current_row, current_col            !< Which entry are we currently working on?
@@ -58,7 +58,7 @@ module types
     integer(ccs_int) :: nrows = 0
     integer(ccs_int) :: ncols = 0
   end type matrix_values_spec
-  
+
   !>  Container type representing a linear system.
   type, public :: equation_system
     character(len=:), allocatable :: name  !< Name of the equation system
@@ -105,7 +105,7 @@ module types
     class(ccs_vector), allocatable :: x_gradients !< Vector representing the x gradient
     class(ccs_vector), allocatable :: y_gradients !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients !< Vector representing the z gradient
-    type(bc_config) :: bcs !> The bcs data structure for the cell  
+    type(bc_config) :: bcs                        !< The bcs data structure for the cell
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -140,7 +140,7 @@ module types
     integer(ccs_int) :: index_p
     integer(ccs_int) :: nb_counter
   end type neighbour_locator
-  
+
   !>  IO environment type
   type, public :: io_environment
   end type io_environment

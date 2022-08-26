@@ -1,6 +1,6 @@
-!>  Program file for LidDrivenCavity case
+!v Program file for LidDrivenCavity case
 !
-!> @build mpi+petsc
+!  @build mpi+petsc
 
 program ldc
 #include "ccs_macros.inc"
@@ -9,7 +9,7 @@ program ldc
   use petscsys
 
   use case_config, only: num_steps, velocity_relax, pressure_relax
-  use constants, only : cell, face, ccsconfig, ccs_string_len
+  use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector
@@ -33,7 +33,7 @@ program ldc
   character(len=:), allocatable :: ccs_config_file !< Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  !< variable names for BC reading
 
-  type(ccs_mesh)    :: mesh
+  type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
   class(field), allocatable :: u, v, p, p_prime, mf
@@ -54,7 +54,7 @@ program ldc
 #endif
 
   ! Launch MPI
-  call initialise_parallel_environment(par_env) 
+  call initialise_parallel_environment(par_env)
 
   irank = par_env%proc_id
   isize = par_env%num_procs
@@ -62,20 +62,20 @@ program ldc
   call read_command_line_arguments(par_env, cps, case_name=case_name)
 
   print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name//ccsconfig
+  ccs_config_file = case_name // ccsconfig
 
   call timer(start_time)
 
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
-  if(irank == par_env%root) then
+  if (irank == par_env%root) then
     call print_configuration()
   end if
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
-  it_end   = num_steps
+  it_end = num_steps
 
   ! Create a square mesh
   print *, "Building mesh"
@@ -83,11 +83,11 @@ program ldc
 
   ! Initialise fields
   print *, "Initialise fields"
-  allocate(upwind_field :: u)
-  allocate(upwind_field :: v)
-  allocate(central_field :: p)
-  allocate(central_field :: p_prime)
-  allocate(face_field :: mf)
+  allocate (upwind_field :: u)
+  allocate (upwind_field :: v)
+  allocate (central_field :: p)
+  allocate (central_field :: p_prime)
+  allocate (face_field :: mf)
 
   ! Read boundary conditions
   call get_boundary_count(ccs_config_file, n_boundaries)
@@ -132,7 +132,7 @@ program ldc
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, mf%values)
   call update(mf%values)
-  
+
   ! Initialise velocity field
   print *, "Initialise velocity field"
   call initialise_velocity(mesh, u, v, mf)
@@ -145,7 +145,7 @@ program ldc
   call solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
 
   associate (vec => u%values)
     select type (vec)
@@ -154,7 +154,7 @@ program ldc
     end select
   end associate
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v",FILE_MODE_WRITE,viewer, ierr)
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v", FILE_MODE_WRITE, viewer, ierr)
 
   associate (vec => v%values)
     select type (vec)
@@ -163,7 +163,7 @@ program ldc
     end select
   end associate
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"p",FILE_MODE_WRITE,viewer, ierr)
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "p", FILE_MODE_WRITE, viewer, ierr)
 
   associate (vec => p%values)
     select type (vec)
@@ -172,49 +172,49 @@ program ldc
     end select
   end associate
 
-  call PetscViewerDestroy(viewer,ierr)
+  call PetscViewerDestroy(viewer, ierr)
 #endif
-  
+
   ! Clean-up
-  deallocate(u)
-  deallocate(v)
-  deallocate(p)
-  deallocate(p_prime)
+  deallocate (u)
+  deallocate (v)
+  deallocate (p)
+  deallocate (p_prime)
 
   call timer(end_time)
 
-  if(irank == 0) then
-     print*, "Elapsed time: ", end_time - start_time
+  if (irank == 0) then
+    print *, "Elapsed time: ", end_time - start_time
   end if
-  
+
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
 
-  contains
+contains
 
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                            get_convection_scheme, get_relaxation_factor
+                           get_convection_scheme, get_relaxation_factor
 
     character(len=*), intent(in) :: config_filename
-    
+
     class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
     character(len=error_length) :: error
 
     config_file_pointer => parse(config_filename, error=error)
-    if (error/='') then
+    if (error /= '') then
       call error_abort(trim(error))
-    endif
-    
+    end if
+
     call get_steps(config_file_pointer, num_steps)
-    if(num_steps == huge(0)) then
+    if (num_steps == huge(0)) then
       call error_abort("No value assigned to num-steps.")
     end if
 
     call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
-    if(velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
+    if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
@@ -223,18 +223,18 @@ program ldc
   ! Print test case configuration
   subroutine print_configuration()
 
-    print*,"Solving ", case_name, " case"
+    print *, "Solving ", case_name, " case"
 
-    print*,"++++" 
-    print*,"SIMULATION LENGTH"
-    print*,"Running for ",num_steps, "iterations"
-    print*,"++++" 
-    print*,"MESH"
-    print*,"Size is ",cps
-    print*,"++++" 
-    print*,"RELAXATION FACTORS"
-    print*,"velocity: ", velocity_relax 
-    print*,"pressure: ", pressure_relax 
+    print *, "++++"
+    print *, "SIMULATION LENGTH"
+    print *, "Running for ", num_steps, "iterations"
+    print *, "++++"
+    print *, "MESH"
+    print *, "Size is ", cps
+    print *, "++++"
+    print *, "RELAXATION FACTORS"
+    print *, "velocity: ", velocity_relax
+    print *, "pressure: ", pressure_relax
 
   end subroutine
 
@@ -245,8 +245,8 @@ program ldc
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
-    use vec, only : get_vector_data, restore_vector_data, create_vector_values
-    
+    use vec, only: get_vector_data, restore_vector_data, create_vector_values
+
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, mf
@@ -260,7 +260,7 @@ program ldc
     real(ccs_real), dimension(:), pointer :: mf_data
 
     ! Set alias
-    associate(n_local => mesh%nlocal)
+    associate (n_local => mesh%nlocal)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
       call set_mode(add_mode, u_vals)
@@ -272,8 +272,8 @@ program ldc
         call get_global_index(loc_p, global_index_p)
         call calc_cell_coords(global_index_p, cps, row, col)
 
-        u_val = 0.0_ccs_real 
-        v_val = 0.0_ccs_real 
+        u_val = 0.0_ccs_real
+        v_val = 0.0_ccs_real
 
         call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
@@ -284,17 +284,16 @@ program ldc
       call set_values(u_vals, u%values)
       call set_values(v_vals, v%values)
 
-      deallocate(u_vals%global_indices)
-      deallocate(v_vals%global_indices)
-      deallocate(u_vals%values)
-      deallocate(v_vals%values)
+      deallocate (u_vals%global_indices)
+      deallocate (v_vals%global_indices)
+      deallocate (u_vals%values)
+      deallocate (v_vals%values)
     end associate
 
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 0.0_ccs_real
     call restore_vector_data(mf%values, mf_data)
-    
-  end subroutine initialise_velocity
 
+  end subroutine initialise_velocity
 
 end program ldc

@@ -4,10 +4,10 @@
 
 module read_config
 
-  use kinds, only : ccs_real, ccs_int
-  use types, only : bc_config, field
+  use kinds, only: ccs_real, ccs_int
+  use types, only: bc_config, field
   use constants, only: ccs_string_len
-    
+
   implicit none
 
   private
@@ -201,7 +201,7 @@ module read_config
       character(len=:), allocatable, intent(inout) :: post_type   !< values at cell centres or cell vertices?
       character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
     end subroutine
-    
+
     !> Gets the specified field value from the config file and writes to given bcs struct
     module subroutine get_bc_field(config_file, bc_field, phi, required)
       class(*), pointer, intent(in) :: config_file  !< pointer to configuration file
@@ -216,7 +216,7 @@ module read_config
       character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables  !< string array indicating variables used in BCs
     end subroutine
 
-    !> Gets the number of boundaries 
+    !> Gets the number of boundaries
     module subroutine get_boundary_count(filename, n_boundaries)
       character(len=*), intent(in) :: filename      !< name of the config file
       integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries

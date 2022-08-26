@@ -151,7 +151,6 @@ contains
         else
           call get_local_index(loc_nb, index_nb)
 
-          !call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
           call get_local_index(loc_f, index_f)
 
@@ -166,7 +165,6 @@ contains
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
-          !call compute_boundary_values(phi, component, index_nb, index_p, loc_p, loc_f, face_normal, bc_value)
           call compute_boundary_values(phi, component, loc_p, loc_f, face_normal, bc_value)
 
           call set_row(global_index_p, b_coeffs)

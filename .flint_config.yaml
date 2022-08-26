@@ -281,7 +281,7 @@ structure-rules:
   min-varlen: 1
   max-varlen: 20
   max-arguments: 5
-  min-arglen: 3
+  min-arglen: 1
   max-arglen: 20
   max-nesting-levels: 5
   var-declaration: '(?:{types})\s*(?:\(.*\))?\s*(?:::| )\s*([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)'
