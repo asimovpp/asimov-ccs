@@ -112,7 +112,7 @@ program poisson
   call set_exact_sol(u_exact)
   call axpy(-1.0_ccs_real, u_exact, u)
 
-  err_norm = norm(u, 2) * mesh%h
+  err_norm = norm(u, 2) * mesh%geo%h
   if (par_env%proc_id == par_env%root) then
     print *, "Norm of error = ", err_norm
   end if
@@ -154,7 +154,7 @@ contains
     call set_mode(add_mode, val_dat)
 
     associate (nloc => mesh%topo%local_num_cells, &
-               h => mesh%h)
+               h => mesh%geo%h)
       ! this is currently setting 1 vector value at a time
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
@@ -241,7 +241,7 @@ contains
 
           call set_face_location(mesh, i, j, loc_f)
           call get_face_area(loc_f, A)
-          coeff_f = (1.0 / mesh%h) * A
+          coeff_f = (1.0 / mesh%geo%h) * A
 
           call get_global_index(loc_nb, global_index_nb)
 
@@ -332,7 +332,7 @@ contains
           if (is_boundary) then
             call set_face_location(mesh, i, j, loc_f)
             call get_face_area(loc_f, A)
-            boundary_coeff = (2.0 / mesh%h) * A
+            boundary_coeff = (2.0 / mesh%geo%h) * A
             boundary_val = rhs_val(i, j)
 
             ! Coefficient

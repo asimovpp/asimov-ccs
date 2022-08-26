@@ -126,12 +126,12 @@ module types
     ! integer(ccs_int), dimension(:), allocatable :: nnb                  !< The per-cell neighbour count
     ! integer(ccs_int), dimension(:, :), allocatable :: neighbour_indices !< Cell neighbours (neighbour/face, cell)
     ! integer(ccs_int), dimension(:, :), allocatable :: face_indices      !< Cell face index in local face vector (face, cell)
-    real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
-    real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas
-    real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
-    real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
+    ! real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
+    ! real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas
+    ! real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
+    ! real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
+    ! real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
+    ! real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
   end type ccs_mesh
 
   !> BC data type

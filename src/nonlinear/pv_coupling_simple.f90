@@ -375,7 +375,7 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-          coeff_f = (1.0 / mesh%h) * face_area
+          coeff_f = (1.0 / mesh%geo%h) * face_area
 
           call get_volume(loc_p, Vp)
           call get_volume(loc_nb, V_nb)

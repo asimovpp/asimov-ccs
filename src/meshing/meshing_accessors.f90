@@ -94,7 +94,7 @@ contains
     associate (mesh => loc_f%mesh, &
                cell => loc_f%index_p, &
                face => loc_f%cell_face_ctr)
-      normal(:) = mesh%face_normals(:, face, cell)
+      normal(:) = mesh%geo%face_normals(:, face, cell)
     end associate
   end subroutine get_face_normal
 
@@ -106,7 +106,7 @@ contains
     associate (mesh => loc_f%mesh, &
                cell => loc_f%index_p, &
                face => loc_f%cell_face_ctr)
-      area = mesh%face_areas(face, cell)
+      area = mesh%geo%face_areas(face, cell)
     end associate
   end subroutine get_face_area
 
@@ -117,7 +117,7 @@ contains
 
     associate (mesh => loc_p%mesh, &
                cell => loc_p%index_p)
-      x(:) = mesh%x_p(:, cell)
+      x(:) = mesh%geo%x_p(:, cell)
     end associate
   end subroutine get_cell_centre
 
@@ -140,7 +140,7 @@ contains
     associate (mesh => loc_f%mesh, &
                cell => loc_f%index_p, &
                face => loc_f%cell_face_ctr)
-      x(:) = mesh%x_f(:, face, cell)
+      x(:) = mesh%geo%x_f(:, face, cell)
     end associate
   end subroutine get_face_centre
 
@@ -151,7 +151,7 @@ contains
 
     associate (mesh => loc_p%mesh, &
                cell => loc_p%index_p)
-      V = mesh%volumes(cell)
+      V = mesh%geo%volumes(cell)
     end associate
   end subroutine get_cell_volume
 

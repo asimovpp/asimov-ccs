@@ -69,11 +69,11 @@ contains
 
       ! Set the global mesh parameters
       mesh%topo%global_num_cells = cps**2
-      mesh%h = side_length / real(cps, ccs_real)
+      mesh%geo%h = side_length / real(cps, ccs_real)
 
       ! Associate aliases to make code easier to read
       associate (nglobal => mesh%topo%global_num_cells, &
-                 h => mesh%h)
+                 h => mesh%geo%h)
 
         ! Determine ownership range
         comm_rank = par_env%proc_id
@@ -160,23 +160,23 @@ contains
       mesh%topo%total_num_cells = size(mesh%topo%global_indices)
       mesh%topo%halo_num_cells = mesh%topo%total_num_cells - mesh%topo%local_num_cells
 
-      allocate (mesh%x_p(ndim, mesh%topo%total_num_cells))
-      allocate (mesh%x_f(ndim, 4, mesh%topo%local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
-      allocate (mesh%volumes(mesh%topo%total_num_cells))
-      allocate (mesh%face_areas(4, mesh%topo%local_num_cells))
-      allocate (mesh%face_normals(ndim, 4, mesh%topo%local_num_cells)) ! Currently hardcoded as a 2D mesh.
+      allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
+      allocate (mesh%geo%x_f(ndim, 4, mesh%topo%local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
+      allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
+      allocate (mesh%geo%face_areas(4, mesh%topo%local_num_cells))
+      allocate (mesh%geo%face_normals(ndim, 4, mesh%topo%local_num_cells)) ! Currently hardcoded as a 2D mesh.
 
-      mesh%volumes(:) = mesh%h**2 !< @note Mesh is square and 2D @endnote
-      mesh%face_normals(:, :, :) = 0.0_ccs_real
-      mesh%x_p(:, :) = 0.0_ccs_real
-      mesh%x_f(:, :, :) = 0.0_ccs_real
-      mesh%face_areas(:, :) = mesh%h  ! Mesh is square and 2D
+      mesh%geo%volumes(:) = mesh%geo%h**2 !< @note Mesh is square and 2D @endnote
+      mesh%geo%face_normals(:, :, :) = 0.0_ccs_real
+      mesh%geo%x_p(:, :) = 0.0_ccs_real
+      mesh%geo%x_f(:, :, :) = 0.0_ccs_real
+      mesh%geo%face_areas(:, :) = mesh%geo%h  ! Mesh is square and 2D
 
-      associate (h => mesh%h)
+      associate (h => mesh%geo%h)
         do i = 1_ccs_int, mesh%topo%total_num_cells
           ii = mesh%topo%global_indices(i)
 
-          associate (x_p => mesh%x_p(:, i))
+          associate (x_p => mesh%geo%x_p(:, i))
             ! Set cell centre
             x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
             x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
@@ -184,9 +184,9 @@ contains
         end do
 
         do i = 1_ccs_int, mesh%topo%local_num_cells
-          associate (x_p => mesh%x_p(:, i), &
-                     x_f => mesh%x_f(:, :, i), &
-                     normal => mesh%face_normals(:, :, i))
+          associate (x_p => mesh%geo%x_p(:, i), &
+                     x_f => mesh%geo%x_f(:, :, i), &
+                     normal => mesh%geo%face_normals(:, :, i))
 
             face_counter = left
             x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
