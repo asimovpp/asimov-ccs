@@ -17,6 +17,7 @@ module fv
   public :: calc_mass_flux
   public :: calc_cell_coords
   public :: update_gradient
+  public :: compute_res
   
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
@@ -82,7 +83,7 @@ module fv
     type(bc_config), intent(in) :: bcs
     integer(ccs_int), intent(in) :: cps
     class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: vec   
+    class(ccs_vector), intent(inout) :: vec
   end subroutine
 
 
@@ -127,6 +128,15 @@ module fv
     type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
   end subroutine update_gradient
+
+  module subroutine compute_res(phi, mf, mesh, n_int_cells, M, res)
+    class(field), intent(in) :: phi                 !< scalar field structure
+    real(ccs_real), dimension(:), intent(in) :: mf  !< mass flux array defined at faces
+    type(ccs_mesh), intent(in) :: mesh              !< Mesh structure
+    integer(ccs_int), intent(in) :: n_int_cells     !< number of cells in the interior of the mesh
+    class(ccs_matrix), intent(inout) :: M           !< Matrix structure being assigned
+    class(ccs_vector), intent(inout) :: res         !< Residual vector
+  end subroutine compute_res
   
   end interface
 

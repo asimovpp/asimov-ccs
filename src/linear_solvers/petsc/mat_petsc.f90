@@ -453,4 +453,42 @@ contains
 
   end subroutine zero_matrix
 
+  !> Compute matrix-vector product
+  module subroutine mat_vec_product(M, x, y)
+
+    use petscmat, only: MatMult
+
+    ! Arguments
+    class(ccs_matrix), intent(in) :: M
+    class(ccs_vector), intent(in) :: x
+    class(ccs_vector), intent(inout) :: y
+
+    ! Local variables
+    integer(ccs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+
+      select type (x)
+      type is (vector_petsc)
+
+        select type (y)
+        type is (vector_petsc)
+
+          call MatMult(M%M, x%v, y%v, ierr)
+
+        class default
+          call error_abort("Unknown vector type.")
+        end select
+
+      class default
+        call error_abort("Unknown vector type.")
+      end select
+
+    class default
+      call error_abort("Unknown matrix type.")
+    end select
+
+  end subroutine mat_vec_product
+
 end submodule mat_petsc

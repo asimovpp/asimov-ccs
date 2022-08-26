@@ -48,7 +48,7 @@ program ldc
   double precision :: start_time
   double precision :: end_time
 
-  real(ccs_real) :: res_target = 1.e-6 !< Target residual
+  real(ccs_real) :: res_target = 1.e-10 !< Target residual
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
@@ -63,7 +63,7 @@ program ldc
 
   call read_command_line_arguments(par_env, cps, case_name=case_name)
 
-  print *, "Starting ", case_name, " case!"
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name//ccsconfig
 
   call timer(start_time)
@@ -80,11 +80,11 @@ program ldc
   it_end   = num_steps
 
   ! Create a square mesh
-  print *, "Building mesh"
+  if (irank == par_env%root) print *, "Building mesh"
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
-  print *, "Initialise fields"
+  if (irank == par_env%root) print *, "Initialise fields"
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
   allocate(central_field :: p)
@@ -124,14 +124,14 @@ program ldc
   call update(mf%values)
   
   ! Initialise velocity field
-  print *, "Initialise velocity field"
+  if( irank == par_env%root) print *, "Initialise velocity field"
   call initialise_velocity(mesh, u, v, mf)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
 
   ! Solve using SIMPLE algorithm
-  print *, "Start SIMPLE"
+  if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, cps, it_start, it_end, res_target, u, v, p, p_prime, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
@@ -173,7 +173,7 @@ program ldc
 
   call timer(end_time)
 
-  if(irank == 0) then
+  if(irank == par_env%root) then
      print*, "Elapsed time: ", end_time - start_time
   end if
   
@@ -223,8 +223,8 @@ program ldc
     print*,"Size is ",cps
     print*,"++++" 
     print*,"RELAXATION FACTORS"
-    print*,"velocity: ", velocity_relax 
-    print*,"pressure: ", pressure_relax 
+    write(*,'(1x,a,f6.3)') "velocity: ", velocity_relax 
+    write(*,'(1x,a,f6.3)') "pressure: ", pressure_relax 
 
   end subroutine
 
