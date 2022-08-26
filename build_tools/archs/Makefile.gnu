@@ -19,6 +19,7 @@ ifeq ($(BUILD),debug)
   FFLAGS += -Wall -Wpedantic -Werror 
 else
   FFLAGS += -O3
+  FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 endif
 ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
