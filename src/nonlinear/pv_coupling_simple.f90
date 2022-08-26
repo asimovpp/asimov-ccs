@@ -248,7 +248,7 @@ contains
     call get_vector_data(p_gradients, p_gradient_data)
 
     ! Loop over cells
-    do index_p = 1, mesh%nlocal
+    do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(vec_values)
 
       call set_cell_location(mesh, index_p, loc_p)
@@ -340,7 +340,7 @@ contains
 
     ! Loop over cells
     call dprint("P': cell loop")
-    do index_p = 1, mesh%nlocal
+    do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(vec_values)
 
       call set_cell_location(mesh, index_p, loc_p)
@@ -406,7 +406,7 @@ contains
       ! XXX: Need to fix pressure somewhere
       !      Row is the global index - should be unique
       !      Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(mesh%nglobal)), ccs_int)
+      cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
       rcrit = (cps / 2) * (1 + cps)
       if (row == rcrit) then
         coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
@@ -523,7 +523,7 @@ contains
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
 
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       call clear_entries(vec_values)
 
       call set_cell_location(mesh, i, loc_p)
@@ -669,7 +669,7 @@ contains
     zero_arr(:) = 0.0_ccs_real
 
     ! XXX: This should really be a face loop
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
@@ -745,7 +745,7 @@ contains
     call get_vector_data(b, b_data)
 
     call dprint("UR: apply UR")
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       diag_data(i) = diag_data(i) / alpha
 
       b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi_data(i)

@@ -34,7 +34,10 @@ program test_mesh_square_mesh_volume
 
     vol = 0.0_ccs_real
     nneg_vol = 0
-    do i = 1, mesh%nlocal
+
+    print*,"mesh%topo%local_num_cells =", mesh%topo%local_num_cells
+
+    do i = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call get_volume(loc_p, V)
       if (V <= 0) then

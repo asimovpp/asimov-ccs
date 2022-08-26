@@ -35,8 +35,8 @@ contains
     loc_p%index_p = index_p
 
     ! XXX: Potentially expensive...
-    if (index_p > mesh%ntotal) then
-      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // str(mesh%nlocal))
+    if (index_p > mesh%topo%total_num_cells) then
+      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // str(mesh%topo%local_num_cells))
     end if
   end subroutine set_cell_location
 
@@ -70,7 +70,7 @@ contains
     associate (mymesh => loc_nb%mesh, &
                i => loc_nb%index_p, &
                j => loc_nb%nb_counter)
-      if (mymesh%neighbour_indices(j, i) == i) then
+      if (mymesh%topo%nb_indices(j, i) == i) then
         call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
       end if
     end associate
@@ -83,7 +83,7 @@ contains
     integer(ccs_int), intent(in) :: index_f
     type(ccs_mesh), target, intent(inout) :: mesh
 
-    mesh%face_indices(cell_face_ctr, index_p) = index_f
+    mesh%topo%face_indices(cell_face_ctr, index_p) = index_f
   end subroutine set_face_index
 
   !> Returns the normal vector of a face
@@ -172,9 +172,9 @@ contains
     integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
 
     associate (mesh => loc_p%mesh)
-      if (mesh%nlocal > 0) then ! XXX: Potentially expensive...
+      if (mesh%topo%local_num_cells > 0) then ! XXX: Potentially expensive...
         associate (cell => loc_p%index_p)
-          global_index_p = mesh%global_indices(cell)
+          global_index_p = mesh%topo%global_indices(cell)
         end associate
       else
         global_index_p = -1 ! XXX: What should we do in case of too many processors for a given mesh?
@@ -199,7 +199,7 @@ contains
 
     associate (mesh => loc_p%mesh, &
                cell => loc_p%index_p)
-      nnb = mesh%nnb(cell)
+      nnb = mesh%topo%num_nb(cell)
     end associate
   end subroutine cell_count_neighbours
 
@@ -251,7 +251,7 @@ contains
 
     call get_neighbour_local_index(loc_nb, index_nb)
     associate (mesh => loc_nb%mesh)
-      if ((index_nb > 0) .and. (index_nb <= mesh%nlocal)) then
+      if ((index_nb > 0) .and. (index_nb <= mesh%topo%local_num_cells)) then
         is_local = .true.
       else
         is_local = .false.
@@ -279,7 +279,7 @@ contains
     associate (mesh => loc_nb%mesh, &
                i => loc_nb%index_p, &
                j => loc_nb%nb_counter)
-      index_nb = mesh%neighbour_indices(j, i)
+      index_nb = mesh%topo%nb_indices(j, i)
     end associate
   end subroutine get_neighbour_local_index
 
@@ -291,7 +291,7 @@ contains
     associate (mesh => loc_f%mesh, &
                i => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
-      index_f = mesh%face_indices(j, i)
+      index_f = mesh%topo%face_indices(j, i)
     end associate
   end subroutine get_face_local_index
 

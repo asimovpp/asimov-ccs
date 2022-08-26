@@ -24,8 +24,8 @@ program test_square_mesh_indices
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
 
-    associate(nlocal => mesh%nlocal, &
-         nglobal => mesh%nglobal)
+    associate(nlocal => mesh%topo%local_num_cells, &
+         nglobal => mesh%topo%global_num_cells)
       do i = 1, nlocal
         call set_cell_location(mesh, i, loc_p)
         call get_global_index(loc_p, global_index)

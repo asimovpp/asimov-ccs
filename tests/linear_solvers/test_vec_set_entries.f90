@@ -73,7 +73,7 @@ contains
     integer(ccs_int) :: index_p
     integer(ccs_int) :: global_index_p
 
-    associate(nlocal => mesh%nlocal)
+    associate(nlocal => mesh%topo%local_num_cells)
     
       nrows = 1_ccs_int
       nblocks = nlocal / nrows
@@ -112,7 +112,7 @@ contains
     real(ccs_real) :: expectation
     real(ccs_real) :: test_value
     
-    expectation = sqrt(real(mesh%nglobal, ccs_real))
+    expectation = sqrt(real(mesh%topo%global_num_cells, ccs_real))
     test_value = norm(v, 2)
     if (test_value /= expectation) then
       print *, "AAARGH, FAIL: ", test_value, expectation

@@ -153,7 +153,7 @@ contains
     call create_vector_values(nrows_working_set, val_dat)
     call set_mode(add_mode, val_dat)
 
-    associate (nloc => mesh%nlocal, &
+    associate (nloc => mesh%topo%local_num_cells, &
                h => mesh%h)
       ! this is currently setting 1 vector value at a time
       ! consider changing to doing all the updates in one go
@@ -214,7 +214,7 @@ contains
     integer(ccs_int) :: global_index_nb
 
     ! Loop over cells
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       !^ @todo Doing this in a loop is awful code - malloc maximum coefficients per row once,
       !        filling from front, and pass the number of coefficients to be set, requires
       !        modifying the matrix_values type and the implementation of set_values applied to
@@ -310,8 +310,8 @@ contains
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(add_mode, vec_values)
 
-    do i = 1, mesh%nlocal
-      if (minval(mesh%neighbour_indices(:, i)) < 0) then
+    do i = 1, mesh%topo%local_num_cells
+      if (minval(mesh%topo%nb_indices(:, i)) < 0) then
         call clear_entries(mat_coeffs)
         call clear_entries(vec_values)
         call set_cell_location(mesh, i, loc_p)
@@ -377,7 +377,7 @@ contains
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(insert_mode, vec_values)
 
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       call clear_entries(vec_values)
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)

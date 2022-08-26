@@ -21,7 +21,7 @@ program test_mesh_point_distribution
   do n = 1, 100
     mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
 
-    associate(nlocal => mesh%nlocal)
+    associate(nlocal => mesh%topo%local_num_cells)
       if (nlocal < 0) then
         ! XXX: Zero cells on a PE is not necessarily invalid...
         ! ? exit
@@ -57,7 +57,7 @@ program test_mesh_point_distribution
       call stop_test(message)
     end if
 
-    call assert_equal(n_expected, mesh%nglobal, &
+    call assert_equal(n_expected, mesh%topo%global_num_cells, &
          '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
 
   end do

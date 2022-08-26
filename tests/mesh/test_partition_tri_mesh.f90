@@ -33,7 +33,7 @@ program test_partition_square_mesh
   call init()
   call initialise_test()
 
-  !n = count(mesh%neighbour_indices > 0)
+  !n = count(mesh%topo%nb_indices > 0)
   !print*,"Number of positive value neighbour indices: ", n
   print*,"Adjacency arrays: ", topo%adjncy
   print*,"Adjacency index array: ", topo%xadj
@@ -64,13 +64,13 @@ contains
 
     character(len=*), intent(in) :: stage
 
-    !if (size(topo%nb_indices, 2) /= size(mesh%neighbour_indices, 2) .or. &
-    !     size(topo%nb_indices, 1) /= size(mesh%neighbour_indices, 1)) then
+    !if (size(topo%nb_indices, 2) /= size(mesh%topo%nb_indices, 2) .or. &
+    !     size(topo%nb_indices, 1) /= size(mesh%topo%nb_indices, 1)) then
     !  print *, "TOPO local_num_cells: ", topo%local_num_cells
     !  print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
     !  print *, "TOPO partition: ", topo%global_partition
-    !  print *, "MESH nlocal: ", mesh%nlocal
-    !  print *, "MESH nb_indices: ", size(mesh%neighbour_indices, 1), size(mesh%neighbour_indices, 2)
+    !  print *, "MESH nlocal: ", mesh%topo%local_num_cells
+    !  print *, "MESH nb_indices: ", size(mesh%topo%nb_indices, 1), size(mesh%topo%nb_indices, 2)
     !  write(message, *) "ERROR: topology size is wrong!"
     !  call stop_test(message)
     !end if
@@ -262,7 +262,7 @@ contains
     !! --- read_topology() ---
     topo%global_num_cells = nrows * ncols
     topo%global_num_faces = 46 ! Hardcoded for now (check face array counts)
-    topo%max_faces = 6 ! mesh%nnb(1)
+    topo%max_faces = 6 ! mesh%topo%num_nb(1)
     allocate(topo%face_cell1(topo%global_num_faces))
     allocate(topo%face_cell2(topo%global_num_faces))
     allocate(topo%global_face_indices(topo%max_faces, topo%global_num_cells))
@@ -381,8 +381,8 @@ contains
     !! --- compute_partitioner_input() --- end
     
     ! Assign corresponding mesh values to the topology object
-    topo%total_num_cells = mesh%ntotal
-    topo%num_faces = mesh%nfaces_local
+    topo%total_num_cells = mesh%topo%total_num_cells
+    topo%num_faces = mesh%topo%num_faces
   
     allocate(topo%global_indices(topo%local_num_cells))
     do i = 1, topo%local_num_cells

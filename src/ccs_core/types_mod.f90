@@ -101,8 +101,38 @@ module types
     integer(ccs_long), dimension(:), allocatable :: adjwgt            !< Weights on edges - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: local_partition   !< Local partition array
     integer(ccs_long), dimension(:), allocatable :: global_partition  !< Local partition array    
-
   end type topology  
+
+  !> Geometry type
+  type, public :: geometry
+    real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
+    real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas
+    real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
+    real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
+  end type geometry
+
+  !> Mesh type
+  type, public :: ccs_mesh
+    type(topology) :: topo
+    type(geometry) :: geo
+    ! integer(ccs_int) :: nglobal      !< Global mesh size
+    ! integer(ccs_int) :: nlocal       !< Local mesh size
+    ! integer(ccs_int) :: nhalo        !< How many cells in my halo?
+    ! integer(ccs_int) :: ntotal       !< How many cells do I interact with (nlocal + nhalo)?
+    ! integer(ccs_int) :: nfaces_local !< Number of faces in local mesh
+    ! integer(ccs_int), dimension(:), allocatable :: global_indices       !< The global index of cells (local + halo)
+    ! integer(ccs_int), dimension(:), allocatable :: nnb                  !< The per-cell neighbour count
+    ! integer(ccs_int), dimension(:, :), allocatable :: neighbour_indices !< Cell neighbours (neighbour/face, cell)
+    ! integer(ccs_int), dimension(:, :), allocatable :: face_indices      !< Cell face index in local face vector (face, cell)
+    real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
+    real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas
+    real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
+    real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
+  end type ccs_mesh
 
   !> BC data type
   type, public :: bc_config
@@ -111,25 +141,6 @@ module types
     real(ccs_real), dimension(:), allocatable :: values
   end type bc_config
 
-  !> Mesh type
-  type, public :: ccs_mesh
-    type(topology) :: topo
-    integer(ccs_int) :: nglobal      !< Global mesh size
-    integer(ccs_int) :: nlocal       !< Local mesh size
-    integer(ccs_int) :: nhalo        !< How many cells in my halo?
-    integer(ccs_int) :: ntotal       !< How many cells do I interact with (nlocal + nhalo)?
-    integer(ccs_int) :: nfaces_local !< Number of faces in local mesh
-    integer(ccs_int), dimension(:), allocatable :: global_indices       !< The global index of cells (local + halo)
-    integer(ccs_int), dimension(:), allocatable :: nnb                  !< The per-cell neighbour count
-    integer(ccs_int), dimension(:, :), allocatable :: neighbour_indices !< Cell neighbours (neighbour/face, cell)
-    integer(ccs_int), dimension(:, :), allocatable :: face_indices      !< Cell face index in local face vector (face, cell)
-    real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
-    real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas
-    real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
-    real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
-  end type ccs_mesh
 
   !> Scalar field type
   type, public :: field

@@ -31,12 +31,12 @@ program tgv
   character(len=:), allocatable :: adios2_file
 
   class(parallel_environment), allocatable :: par_env
-  class(io_environment), allocatable :: io_env
-  class(io_process), allocatable :: geo_reader
+  ! class(io_environment), allocatable :: io_env
+  ! class(io_process), allocatable :: geo_reader
 
-  real(ccs_real), dimension(:, :), allocatable :: xyz_coords
-  integer(ccs_long), dimension(2) :: xyz_sel_start
-  integer(ccs_long), dimension(2) :: xyz_sel_count
+  ! real(ccs_real), dimension(:, :), allocatable :: xyz_coords
+  ! integer(ccs_long), dimension(2) :: xyz_sel_start
+  ! integer(ccs_long), dimension(2) :: xyz_sel_count
 
   double precision :: start_time, end_time
 
