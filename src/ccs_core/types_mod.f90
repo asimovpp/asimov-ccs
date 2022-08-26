@@ -87,7 +87,7 @@ module types
     integer(ccs_int), dimension(:, :), allocatable :: face_indices        !< Cell face index in local face vector (face, cell)
     integer(ccs_int), dimension(:, :), allocatable :: nb_indices      !< Cell face index in local face vector (face, cell)
     integer(ccs_int), dimension(:), allocatable :: num_nb             !< The local number of neighbours per cell
-    ! integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
+    integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
     integer(ccs_int), dimension(:), allocatable :: face_cell1         !< Array of 1st face cells
     integer(ccs_int), dimension(:), allocatable :: face_cell2         !< Array of 2nd face cells
     integer(ccs_long), dimension(:), allocatable :: xadj              !< Array that points to where in adjncy the list for each vertex 
