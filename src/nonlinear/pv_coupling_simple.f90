@@ -132,6 +132,11 @@ contains
       call check_convergence(par_env, i, residuals, res_target, converged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
+        if (par_env%proc_id == par_env%root) then
+          write(*,*)
+          write(*,'(a)') 'Converged!'
+          write(*,*)
+        endif
         exit outerloop
       endif
 
