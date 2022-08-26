@@ -15,9 +15,9 @@ ifeq ($(BUILD),debug)
   FFLAGS += -ffpe-trap=invalid,zero,overflow
   #FFLAGS += -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -Wall -Wpedantic -Werror 
+  FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 else
   FFLAGS += -O3
-  FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 endif
 ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
