@@ -24,7 +24,7 @@ relaxation_factor:
 #init: 
 #  type: user
 
-#target_residual: 1.0e-10
+target_residual: 1.0e-10
 
 #monitor_cell: 1990
 

@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax
+  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
   use constants, only : cell, face, ccsconfig
   use bc_constants, only: bc_region_left, bc_region_right, &
                           bc_region_top, bc_region_bottom, &
@@ -47,8 +47,6 @@ program ldc
 
   double precision :: start_time
   double precision :: end_time
-
-  real(ccs_real) :: res_target = 1.e-10 !< Target residual
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
@@ -186,7 +184,8 @@ program ldc
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                            get_convection_scheme, get_relaxation_factor
+                            get_convection_scheme, get_relaxation_factor, &
+                            get_target_residual
 
     character(len=*), intent(in) :: config_filename
     
@@ -207,6 +206,11 @@ program ldc
     if(velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
+
+    call get_target_residual(config_file_pointer, res_target )
+    if(res_target == huge(0.0)) then
+      call error_abort("No value assigned to target residual.")
+    endif
 
   end subroutine
 
