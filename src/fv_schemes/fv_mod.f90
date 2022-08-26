@@ -63,7 +63,7 @@ module fv
     end subroutine
 
     !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-    module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
+    module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f, zero_field_flag) result(flux)
       class(field), intent(in) :: u                     !< x velocities field
       class(field), intent(in) :: v                     !< y velocities field
       real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
@@ -72,6 +72,7 @@ module fv
       real(ccs_real), dimension(:), intent(in) :: invAu !< inverse momentum diagonal in x
       real(ccs_real), dimension(:), intent(in) :: invAv !< inverse momentum diagonal in y
       type(face_locator), intent(in) :: loc_f           !< face locator
+      logical, intent(in), optional :: zero_field_flag
       real(ccs_real) :: flux                            !< the flux across the boundary
     end function calc_mass_flux
 

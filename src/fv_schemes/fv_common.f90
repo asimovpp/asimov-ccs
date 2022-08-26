@@ -295,7 +295,7 @@ contains
   end function calc_diffusion_coeff
 
   !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-  module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
+  module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f, zero_field_flag) result(flux)
     !real(ccs_real), dimension(:), intent(in) :: u, v         !< arrays containing x, y velocities
     class(field), intent(in) :: u
     class(field), intent(in) :: v
@@ -303,10 +303,12 @@ contains
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy   !< arrays containing pressure gradient in x and y
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv !< arrays containing inverse momentum diagonal in x and y
     type(face_locator), intent(in) :: loc_f                  !< face locator
+    logical, intent(in), optional :: zero_field_flag
 
     real(ccs_real) :: flux                                   !< The flux across the boundary
 
     ! Local variables
+    logical :: ignore_uv = .false.
     logical :: is_boundary                         ! Boundary indicator
     type(cell_locator) :: loc_p                    ! Primary cell locator
     type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
@@ -326,8 +328,17 @@ contains
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2
 
     call get_boundary_status(loc_f, is_boundary)
-    call get_vector_data(u%values, u_data)
-    call get_vector_data(v%values, v_data)
+    ignore_uv = .false.
+    if (present(zero_field_flag)) then
+      if (zero_field_flag) then
+        ignore_uv = .true.
+      end if
+    end if
+        
+    if (.not. ignore_uv) then
+      call get_vector_data(u%values, u_data)
+      call get_vector_data(v%values, v_data)
+    end if
     associate (mesh => loc_f%mesh, &
                index_p => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
@@ -339,8 +350,12 @@ contains
       call get_face_normal(loc_f, face_normal)
       if (.not. is_boundary) then
 
-        flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(1) &
-                               + (v_data(index_p) + v_data(index_nb)) * face_normal(2))
+        if (ignore_uv) then
+          flux = 0.0_ccs_real
+        else 
+          flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(1) &
+                                 + (v_data(index_p) + v_data(index_nb)) * face_normal(2))
+        end if
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -371,9 +386,14 @@ contains
           flux = -flux
         end if
       else
-        call compute_boundary_values(u, x_direction, loc_p, loc_f, face_normal, u_bc)
-        call compute_boundary_values(v, y_direction, loc_p, loc_f, face_normal, v_bc)
-        flux = u_bc * face_normal(1) + v_bc * face_normal(2)
+        if (.not. ignore_uv) then
+          call compute_boundary_values(u, x_direction, loc_p, loc_f, face_normal, u_bc)
+          call compute_boundary_values(v, y_direction, loc_p, loc_f, face_normal, v_bc)
+          flux = u_bc * face_normal(1) + v_bc * face_normal(2)
+        else
+          flux = 0.0_ccs_real
+        end if
+
       end if
     end associate
     call restore_vector_data(u%values, u_data)

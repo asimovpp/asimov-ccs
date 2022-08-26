@@ -97,7 +97,8 @@ contains
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
-      call update_face_velocity(par_env, mesh, invAu, invAv, p_prime, mf)
+      !call update_face_velocity(par_env, mesh, invAu, invAv, p_prime, mf)
+      call update_face_velocity(mesh, invAu, invAv, p_prime, mf)
       call dprint("NONLINEAR: correct velocity")
       call update_velocity(mesh, invAu, invAv, p_prime, u, v)
 
@@ -622,9 +623,10 @@ contains
   end subroutine update_velocity
 
   !> Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(par_env, mesh, invAu, invAv, p_prime, mf)
+  !subroutine update_face_velocity(par_env, mesh, invAu, invAv, p_prime, mf)
+  subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
 
-    class(parallel_environment), intent(in), allocatable :: par_env  !< The parallel environment
+    !class(parallel_environment), intent(in), allocatable :: par_env  !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh                               !< The mesh
     class(ccs_vector), intent(in) :: invAu                           !< The inverse x momentum equation diagonal coefficient
     class(ccs_vector), intent(in) :: invAv                           !< The inverse y momentum equation diagonal coefficient
@@ -639,7 +641,7 @@ contains
     real(ccs_real), dimension(:), pointer :: pp_data
     real(ccs_real), dimension(:), pointer :: invAu_data
     real(ccs_real), dimension(:), pointer :: invAv_data
-    class(field), allocatable :: zero_field
+    !class(field), allocatable :: zero_field
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
@@ -650,7 +652,7 @@ contains
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: index_nb
-    type(vector_spec) :: vec_properties
+    !type(vector_spec) :: vec_properties
     
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
@@ -661,13 +663,13 @@ contains
 
     allocate (zero_arr(size(pp_data)))
     zero_arr(:) = 0.0_ccs_real
-    call initialise(vec_properties)
-    allocate (upwind_field :: zero_field)
-    call set_vector_location(cell, vec_properties)
-    call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, zero_field%values)
-    call zero_vector(zero_field%values)
-    call update(zero_field%values)
+    !call initialise(vec_properties)
+    !allocate (upwind_field :: zero_field)
+    !call set_vector_location(cell, vec_properties)
+    !call set_size(par_env, mesh, vec_properties)
+    !call create_vector(vec_properties, zero_field%values)
+    !call zero_vector(zero_field%values)
+    !call update(zero_field%values)
     
 
     ! XXX: This should really be a face loop
@@ -681,10 +683,10 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            mf_prime = calc_mass_flux(zero_field, zero_field, &
+            mf_prime = calc_mass_flux(mf, mf, &
                                       pp_data, zero_arr, zero_arr, &
                                       invAu_data, invAv_data, &
-                                      loc_f)
+                                      loc_f, zero_field_flag=.false.)
 
             call get_local_index(loc_f, index_f)
             mf_data(index_f) = mf_data(index_f) + mf_prime
@@ -693,6 +695,7 @@ contains
       end do
     end do
 
+    !deallocate (zero_field)
     deallocate (zero_arr)
 
     call restore_vector_data(p_prime%values, pp_data)
