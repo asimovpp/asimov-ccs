@@ -127,7 +127,7 @@ contains
     ! Local variable
     integer(ccs_int), dimension(1) :: index_tmp ! The intrinsic returns a rank-1 array ...
     
-    index_tmp = findloc(phi%bcs%ids, -index_nb) ! XXX: Hardcoded for square mesh
+    index_tmp = findloc(phi%bcs%ids, -index_nb) 
     if (index_tmp(1) == 0) then
       call error_abort("bc index not found. searching for " // str(-index_nb))
     end if
