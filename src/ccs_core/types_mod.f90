@@ -4,7 +4,7 @@
 
 module types
 
-  use kinds, only: ccs_int, ccs_real
+  use kinds, only: ccs_int, ccs_real, ccs_long
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -73,6 +73,37 @@ module types
     type(equation_system) :: linear_system !< System of equations
   end type linear_solver
 
+  !> Topology type
+  type, public :: topology
+    integer(ccs_int) :: global_num_cells                              !< Global number of cells
+    integer(ccs_int) :: local_num_cells                               !< Local number of cells
+    integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
+    integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells        
+    integer(ccs_int) :: global_num_faces                              !< Global number of faces
+    integer(ccs_int) :: num_faces                                     !< Local number of faces
+    integer(ccs_int) :: max_faces                                     !< Maximum number of faces per cell
+    integer(ccs_int), dimension(:), allocatable :: global_indices         !< The global index of cells (local + halo)
+    integer(ccs_int), dimension(:, :), allocatable :: global_face_indices !< Global list of faces indices
+    integer(ccs_int), dimension(:, :), allocatable :: face_indices        !< Cell face index in local face vector (face, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: nb_indices      !< Cell face index in local face vector (face, cell)
+    integer(ccs_int), dimension(:), allocatable :: num_nb             !< The local number of neighbours per cell
+    integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
+    integer(ccs_int), dimension(:), allocatable :: face_cell1         !< Array of 1st face cells
+    integer(ccs_int), dimension(:), allocatable :: face_cell2         !< Array of 2nd face cells
+    integer(ccs_long), dimension(:), allocatable :: xadj              !< Array that points to where in adjncy the list for each vertex 
+                                                                      !< begins and ends  - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjncy            !< Array storing adjacency lists for each vertex consecutively
+                                                                      !< - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vtxdist           !< Array that indicates vertices local to a processor. Rank p_i stores 
+                                                                      !< the vertices from vtxdist[i] up to (but not including) vertex 
+                                                                      !< vtxdist[i + 1] - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vwgt              !< Weights on vertices - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjwgt            !< Weights on edges - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: local_partition   !< Local partition array
+    integer(ccs_long), dimension(:), allocatable :: global_partition  !< Local partition array    
+
+  end type topology  
+
   !> BC data type
   type, public :: bc_config
     integer(ccs_int), dimension(:), allocatable :: ids
@@ -82,6 +113,7 @@ module types
 
   !> Mesh type
   type, public :: ccs_mesh
+    type(topology) :: topo
     integer(ccs_int) :: nglobal      !< Global mesh size
     integer(ccs_int) :: nlocal       !< Local mesh size
     integer(ccs_int) :: nhalo        !< How many cells in my halo?
