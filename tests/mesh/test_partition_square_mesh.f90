@@ -26,8 +26,6 @@ program test_partition_square_mesh
   integer, parameter :: topo_idx_type = kind(topo%adjncy(1))
   integer(topo_idx_type) :: current, previous
 
-  integer(topo_idx_type), dimension(:), allocatable :: tmp_partition
-  
   call init()
   call initialise_test()
 
@@ -116,7 +114,7 @@ contains
         call stop_test(message)
       end if
 
-      ctr = ctr + (topo%vtxdist(i) - topo%vtxdist(i - 1))
+      ctr = ctr + int(topo%vtxdist(i) - topo%vtxdist(i - 1))
     end do
 
     if (ctr /= topo%global_num_cells) then
@@ -133,7 +131,7 @@ contains
     integer :: i
 
     do i = 1, topo%local_num_cells
-      do j = topo%xadj(i), topo%xadj(i + 1) - 1
+      do j = int(topo%xadj(i)), int(topo%xadj(i + 1)) - 1
         if (topo%adjncy(j) == topo%global_indices(i)) then
           print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
           write(message, *) "ERROR: found self-loop "//stage//"-partitioning!"
@@ -154,12 +152,12 @@ contains
    
     do i = 1, topo%local_num_cells ! Loop over local cells
       
-      nadj = topo%xadj(i+1) - topo%xadj(i)
+      nadj = int(topo%xadj(i+1) - topo%xadj(i))
       allocate( adjncy_global_expected(nadj) )
 
       call compute_expected_global_adjncy(i, adjncy_global_expected)
 
-      do j = topo%xadj(i), topo%xadj(i + 1) - 1
+      do j = int(topo%xadj(i)), int(topo%xadj(i + 1)) - 1
         if (.not. any(adjncy_global_expected == topo%adjncy(j))) then
           print *, "TOPO neighbours @ global idx ", topo%global_indices(i), ": ", topo%adjncy(topo%xadj(i):topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", topo%global_indices(i), ": ", adjncy_global_expected
