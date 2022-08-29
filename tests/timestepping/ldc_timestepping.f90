@@ -159,7 +159,7 @@ program ldc
   do while (t < t_end)
     ! Solve using SIMPLE algorithm
     print *, "Start SIMPLE at t=" // str(t)
-    call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+    call solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
     call update_old_values(u)
     call update_old_values(v)
   
