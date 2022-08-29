@@ -80,7 +80,7 @@ module fv
       real(ccs_real) :: flux                            !< the flux across the boundary
     end function calc_mass_flux_uv
 
-    !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
+    !> Computes Rhie-Chow correction
     module function calc_mass_flux_no_uv(p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
       real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
       real(ccs_real), dimension(:), intent(in) :: dpdx  !< pressure gradients in x

@@ -343,34 +343,6 @@ contains
 
         flux_corr = calc_mass_flux(p, dpdx, dpdy, invAu, invAv, loc_f)
         flux = flux + flux_corr
-        !!
-        !! Rhie-Chow correction from Ferziger & Peric
-        !!
-        !call get_distance(loc_p, loc_nb, dx)
-        !dxmag = sqrt(sum(dx**2))
-        !call get_face_normal(loc_f, face_normal)
-        !flux_corr = -(p(index_nb) - p(index_p)) / dxmag
-        !flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(1) &
-        !                                        + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2))
-
-        !call get_volume(loc_p, Vp)
-        !call get_volume(loc_nb, V_nb)
-        !Vf = 0.5_ccs_real * (Vp + V_nb)
-
-        !! This is probably not quite right ...
-        !invAp = 0.5_ccs_real * (invAu(index_p) + invAv(index_p))
-        !invA_nb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
-        !invAf = 0.5_ccs_real * (invAp + invA_nb)
-
-        !flux_corr = (Vf * invAf) * flux_corr
-
-        !! Apply correction
-        !flux = flux + flux_corr
-
-        !if (index_p > index_nb) then
-        !  ! XXX: making convention to point from low to high cell.
-        !  flux = -flux
-        !end if
       else
         call compute_boundary_values(u, x_direction, loc_p, loc_f, face_normal, u_bc)
         call compute_boundary_values(v, y_direction, loc_p, loc_f, face_normal, v_bc)
@@ -380,6 +352,7 @@ contains
 
   end function calc_mass_flux_uv
 
+  ! Computes Rhie-Chow correction
   module function calc_mass_flux_no_uv(p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: p            !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy   !< arrays containing pressure gradient in x and y
