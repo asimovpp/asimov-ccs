@@ -42,8 +42,8 @@ program test_ghost_cells
   call get_vector_data(v, values)
 
   ! Set vector values to global mesh indices
-  do i = 1, mesh%nlocal
-    values(i) = mesh%global_indices(i)
+  do i = 1, mesh%topo%local_num_cells
+    values(i) = mesh%topo%global_indices(i)
   end do
 
   ! Now update the vector (including ghost cells)
@@ -52,9 +52,9 @@ program test_ghost_cells
   ! Retrieve the new vector values (including ghost cells)
   call get_vector_data(v, values)
 
-  do i = 1, mesh%ntotal
-    if(values(i) /= mesh%global_indices(i)) then
-      write(message, *) 'FAIL: wrong vector value. Expected ', mesh%global_indices(i), ', got ', values(i)
+  do i = 1, mesh%topo%total_num_cells
+    if(values(i) /= mesh%topo%global_indices(i)) then
+      write(message, *) 'FAIL: wrong vector value. Expected ', mesh%topo%global_indices(i), ', got ', values(i)
       call stop_test(message)
     end if
   end do

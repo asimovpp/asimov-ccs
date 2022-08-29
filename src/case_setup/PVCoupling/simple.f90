@@ -177,7 +177,7 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
 
     ! Set alias
-    associate (n_local => cell_mesh%nlocal)
+    associate (n_local => cell_mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
 

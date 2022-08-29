@@ -124,7 +124,7 @@ contains
 
     mf_vals%setter_mode = add_mode
 
-    associate (n_local => mesh%nlocal)
+    associate (n_local => mesh%topo%local_num_cells)
       allocate (mf_vals%global_indices(n_local))
       allocate (mf_vals%values(n_local))
 

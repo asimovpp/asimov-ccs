@@ -260,7 +260,7 @@ contains
     real(ccs_real), dimension(:), pointer :: mf_data
 
     ! Set alias
-    associate (n_local => mesh%nlocal)
+    associate (n_local => mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
       call set_mode(add_mode, u_vals)

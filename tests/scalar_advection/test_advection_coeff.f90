@@ -36,7 +36,7 @@ program test_advection_coeff
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  index_test = int(0.5*mesh%nlocal + 2, ccs_int)
+  index_test = int(0.5*mesh%topo%local_num_cells + 2, ccs_int)
   do direction = x_dir, y_dir
     do discretisation = upwind, central
       if (discretisation == central) then
@@ -132,7 +132,7 @@ program test_advection_coeff
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
     
-    associate(n_local => mesh%nlocal)
+    associate(n_local => mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
       call set_mode(insert_mode, u_vals)
