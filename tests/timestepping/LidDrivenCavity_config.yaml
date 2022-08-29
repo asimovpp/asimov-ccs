@@ -30,38 +30,44 @@ variables:
   variable_3:
     name: p
     type: central
+  variable_4:
+    name: p_prime
+    type: central
 
 boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
   boundary_3:
     name: top
+    type: dirichlet
+    value: 0
     variable_u:
       type: dirichlet
       value: 1
-    variable_v:
-      type: dirichlet
-      value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
   boundary_2:
     name: right
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
   boundary_4:
     name: bottom
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
