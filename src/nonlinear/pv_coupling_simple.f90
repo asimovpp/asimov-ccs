@@ -673,10 +673,6 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            !mf_prime = calc_mass_flux(mf, mf, &
-            !                          pp_data, zero_arr, zero_arr, &
-            !                          invAu_data, invAv_data, &
-            !                          loc_f, zero_field_flag=.false.)
             mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, invAu_data, invAv_data, loc_f)
 
             call get_local_index(loc_f, index_f)

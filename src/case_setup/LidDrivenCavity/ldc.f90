@@ -29,9 +29,9 @@ program ldc
   implicit none
 
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name       !< Case name
-  character(len=:), allocatable :: ccs_config_file !< Config file for CCS
-  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  !< variable names for BC reading
+  character(len=:), allocatable :: case_name       ! Case name
+  character(len=:), allocatable :: ccs_config_file ! Config file for CCS
+  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
@@ -39,11 +39,11 @@ program ldc
   class(field), allocatable :: u, v, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 50 !< Default value for cells per side
+  integer(ccs_int) :: cps = 50 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
-  integer(ccs_int) :: irank !< MPI rank ID
-  integer(ccs_int) :: isize !< Size of MPI world
+  integer(ccs_int) :: irank ! MPI rank ID
+  integer(ccs_int) :: isize ! Size of MPI world
 
   double precision :: start_time
   double precision :: end_time
@@ -104,7 +104,6 @@ program ldc
   ! Create and initialise field vectors
   call initialise(vec_properties)
 
-  ! print *, "Create vectors"
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, u%values)
