@@ -65,8 +65,8 @@ contains
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
     integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
     integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
-    class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
-    class(ccs_vector), intent(inout) :: b          !< vector structure being assigned
+    class(ccs_matrix), intent(inout) :: M          !< equation system matrix 
+    class(ccs_vector), intent(inout) :: b          !< RHS vector 
 
     type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
@@ -293,9 +293,9 @@ contains
   end function calc_diffusion_coeff
 
   !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-  module function calc_mass_flux_uv(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
-    class(field), intent(in) :: u
-    class(field), intent(in) :: v
+  module function calc_mass_flux_uv(u_field, v_field, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
+    class(field), intent(in) :: u_field
+    class(field), intent(in) :: v_field
     real(ccs_real), dimension(:), intent(in) :: p            !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy   !< arrays containing pressure gradient in x and y
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv !< arrays containing inverse momentum diagonal in x and y
@@ -327,12 +327,12 @@ contains
       call get_face_normal(loc_f, face_normal)
       if (.not. is_boundary) then
 
-        call get_vector_data(u%values, u_data)
-        call get_vector_data(v%values, v_data)
+        call get_vector_data(u_field%values, u_data)
+        call get_vector_data(v_field%values, v_data)
         flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(1) &
                                + (v_data(index_p) + v_data(index_nb)) * face_normal(2))
-        call restore_vector_data(u%values, u_data)
-        call restore_vector_data(v%values, v_data)
+        call restore_vector_data(u_field%values, u_data)
+        call restore_vector_data(v_field%values, v_data)
         
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
@@ -342,8 +342,8 @@ contains
         flux_corr = calc_mass_flux(p, dpdx, dpdy, invAu, invAv, loc_f)
         flux = flux + flux_corr
       else
-        call compute_boundary_values(u, x_direction, loc_p, loc_f, face_normal, u_bc)
-        call compute_boundary_values(v, y_direction, loc_p, loc_f, face_normal, v_bc)
+        call compute_boundary_values(u_field, x_direction, loc_p, loc_f, face_normal, u_bc)
+        call compute_boundary_values(v_field, y_direction, loc_p, loc_f, face_normal, v_bc)
         flux = u_bc * face_normal(1) + v_bc * face_normal(2)
       end if
     end associate
