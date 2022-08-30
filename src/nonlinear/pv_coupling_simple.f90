@@ -7,10 +7,10 @@ submodule(pv_coupling) pv_coupling_simple
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
-                 create_vector_values
+                 create_vector_values, set_vector_location, zero_vector
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols, create_matrix_values
   use utils, only: update, initialise, finalise, set_size, set_values, &
@@ -20,7 +20,7 @@ submodule(pv_coupling) pv_coupling_simple
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use parallel_types, only: parallel_environment
-  use constants, only: insert_mode, add_mode, ndim
+  use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume
@@ -30,12 +30,11 @@ submodule(pv_coupling) pv_coupling_simple
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
-  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+  module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: cps
     integer(ccs_int), intent(in) :: it_start
     integer(ccs_int), intent(in) :: it_end
     class(field), intent(inout) :: u       !< velocity fields in x direction
@@ -88,7 +87,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, cps, mf, p, M, source, lin_system, u, v, invAu, invAv)
+      call calculate_velocity(par_env, mesh, mf, p, M, source, lin_system, u, v, invAu, invAv)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -125,12 +124,11 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, cps, mf, p, M, vec, lin_sys, u, v, invAu, invAv)
+  subroutine calculate_velocity(par_env, mesh, mf, p, M, vec, lin_sys, u, v, invAu, invAv)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     type(ccs_mesh), intent(in) :: mesh                   !< the mesh
-    integer(ccs_int), intent(in) :: cps                  !< cells per side of a square mesh (remove)
     class(field), intent(in) :: mf                       !< the face velocity flux
     class(field), intent(in) :: p                        !< the pressure field
     class(ccs_matrix), allocatable, intent(inout) :: M   !< matrix object
@@ -144,24 +142,23 @@ contains
     ! u-velocity
     ! ----------
 
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 1, M, vec, lin_sys, u, invAu)
-
+    call calculate_velocity_component(par_env, mesh, mf, p, 1, M, vec, lin_sys, u, invAu)
+    
     ! v-velocity
     ! ----------
-
-    call calculate_velocity_component(par_env, mesh, cps, mf, p, 2, M, vec, lin_sys, v, invAv)
+    
+    call calculate_velocity_component(par_env, mesh, mf, p, 2, M, vec, lin_sys, v, invAv)
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, mesh, cps, mf, p, component, M, vec, lin_sys, u, invAu)
+  subroutine calculate_velocity_component(par_env, mesh, mf, p, component, M, vec, lin_sys, u, invAu)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
+    type(ccs_mesh), intent(in)         :: mesh
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     integer(ccs_int), intent(in) :: component
@@ -180,7 +177,7 @@ contains
 
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
-    call compute_fluxes(u, mf, mesh, cps, M, vec)
+    call compute_fluxes(u, mf, mesh, component, M, vec)
 
     call apply_timestep(mesh, u, invAu, M, vec)
 
@@ -477,32 +474,30 @@ contains
     class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
 
     type(vector_values) :: vec_values
-    integer(ccs_int) :: i ! Cell counter
-    integer(ccs_int) :: j ! Cell-face counter
+    integer(ccs_int) :: i   ! Cell counter
+    integer(ccs_int) :: j   ! Cell-face counter
 
-    type(cell_locator) :: loc_p ! Central cell locator object
-    type(face_locator) :: loc_f ! Face locator object
+    type(cell_locator) :: loc_p   ! Central cell locator object
+    type(face_locator) :: loc_f   ! Face locator object
 
-    integer(ccs_int) :: global_index_p ! Central cell global index
-    real(ccs_real) :: face_area        ! Face area
-    integer(ccs_int) :: index_f        ! Face index
-    integer(ccs_int) :: nnb            ! Cell neighbour count
+    integer(ccs_int) :: global_index_p  ! Central cell global index
+    real(ccs_real) :: face_area         ! Face area
+    integer(ccs_int) :: index_f         ! Face index
+    integer(ccs_int) :: nnb             ! Cell neighbour count
 
-    real(ccs_real), dimension(:), pointer :: mf_data    ! Data array for the mass flux
-    real(ccs_real), dimension(:), pointer :: u_data     ! Data array for x velocity component
-    real(ccs_real), dimension(:), pointer :: v_data     ! Data array for y velocity component
-    real(ccs_real), dimension(:), pointer :: p_data     ! Data array for pressure
-    real(ccs_real), dimension(:), pointer :: dpdx_data  ! Data array for pressure x gradient
-    real(ccs_real), dimension(:), pointer :: dpdy_data  ! Data array for pressure y gradient
-    real(ccs_real), dimension(:), pointer :: invAu_data ! Data array for inverse x momentum
-                                                        ! diagonal coefficient
-    real(ccs_real), dimension(:), pointer :: invAv_data ! Data array for inverse y momentum
-                                                        ! diagonal coefficient
+    real(ccs_real), dimension(:), pointer :: mf_data      ! Data array for the mass flux
+    real(ccs_real), dimension(:), pointer :: p_data       ! Data array for pressure
+    real(ccs_real), dimension(:), pointer :: dpdx_data    ! Data array for pressure x gradient
+    real(ccs_real), dimension(:), pointer :: dpdy_data    ! Data array for pressure y gradient
+    real(ccs_real), dimension(:), pointer :: invAu_data   ! Data array for inverse x momentum
+                                                          ! diagonal coefficient
+    real(ccs_real), dimension(:), pointer :: invAv_data   ! Data array for inverse y momentum
+                                                          ! diagonal coefficient
 
     logical :: is_boundary            ! Boundary indicator
     type(neighbour_locator) :: loc_nb ! Neighbour cell locator object
     integer(ccs_int) :: index_nb      ! Neighbour cell index
-
+    
     real(ccs_real) :: mib ! Cell mass imbalance
 
     call create_vector_values(1_ccs_int, vec_values)
@@ -518,8 +513,6 @@ contains
     call update(p%x_gradients)
     call update(p%y_gradients)
     call get_vector_data(mf%values, mf_data)
-    call get_vector_data(u%values, u_data)
-    call get_vector_data(v%values, v_data)
     call get_vector_data(p%values, p_data)
     call get_vector_data(p%x_gradients, dpdx_data)
     call get_vector_data(p%y_gradients, dpdy_data)
@@ -549,7 +542,7 @@ contains
             face_area = -face_area
           else
             ! Compute mass flux through face
-            mf_data(index_f) = calc_mass_flux(u_data, v_data, &
+            mf_data(index_f) = calc_mass_flux(u, v, &
                                               p_data, dpdx_data, dpdy_data, &
                                               invAu_data, invAv_data, &
                                               loc_f)
@@ -565,8 +558,6 @@ contains
     end do
 
     call restore_vector_data(mf%values, mf_data)
-    call restore_vector_data(u%values, u_data)
-    call restore_vector_data(v%values, v_data)
     call restore_vector_data(p%values, p_data)
     call restore_vector_data(p%x_gradients, dpdx_data)
     call restore_vector_data(p%y_gradients, dpdy_data)
@@ -636,11 +627,11 @@ contains
   !> Corrects the face velocity flux using the pressure correction
   subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
 
-    type(ccs_mesh), intent(in) :: mesh     !< The mesh
-    class(ccs_vector), intent(in) :: invAu !< The inverse x momentum equation diagonal coefficient
-    class(ccs_vector), intent(in) :: invAv !< The inverse y momentum equation diagonal coefficient
-    class(field), intent(inout) :: p_prime !< The pressure correction
-    class(field), intent(inout) :: mf      !< The face velocity being corrected
+    type(ccs_mesh), intent(in) :: mesh                               !< The mesh
+    class(ccs_vector), intent(in) :: invAu                           !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(in) :: invAv                           !< The inverse y momentum equation diagonal coefficient
+    class(field), intent(inout) :: p_prime                           !< The pressure correction
+    class(field), intent(inout) :: mf                                !< The face velocity being corrected
 
     integer(ccs_int) :: i
 
@@ -660,7 +651,7 @@ contains
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: index_nb
-
+    
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
     call get_vector_data(p_prime%values, pp_data)
@@ -682,10 +673,7 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            mf_prime = calc_mass_flux(zero_arr, zero_arr, &
-                                      pp_data, zero_arr, zero_arr, &
-                                      invAu_data, invAv_data, &
-                                      loc_f)
+            mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, invAu_data, invAv_data, loc_f)
 
             call get_local_index(loc_f, index_f)
             mf_data(index_f) = mf_data(index_f) + mf_prime
