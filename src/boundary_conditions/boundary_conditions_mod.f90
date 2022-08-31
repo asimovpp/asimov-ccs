@@ -83,10 +83,14 @@ contains
       bcs%ids(boundary_index) = 1
     case ("right")
       bcs%ids(boundary_index) = 2
-    case ("top")
-      bcs%ids(boundary_index) = 4
     case ("bottom")
       bcs%ids(boundary_index) = 3
+    case ("top")
+      bcs%ids(boundary_index) = 4
+    case ("back")
+      bcs%ids(boundary_index) = 5
+    case ("front")
+      bcs%ids(boundary_index) = 6
     case default
       call error_abort("unexpected bc name " // name)
     end select
