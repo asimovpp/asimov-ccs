@@ -108,7 +108,7 @@ contains
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
-      call compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, source, residuals)
+      call compute_mass_imbalance(mesh, invAu, invAv, u, v, p, mf, source, residuals)
       call dprint("NONLINEAR: compute p'")
       call calculate_pressure_correction(par_env, mesh, invAu, invAv, M, source, lin_system, p_prime)
       
@@ -521,9 +521,8 @@ contains
   end subroutine calculate_pressure_correction
 
   !>  Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, b, residuals)
+  subroutine compute_mass_imbalance(mesh, invAu, invAv, u, v, p, mf, b, residuals)
 
-    class(parallel_environment), intent(in) :: par_env
     type(ccs_mesh), intent(in) :: mesh      !< The mesh object
     class(ccs_vector), intent(in) :: invAu  !< The inverse x momentum equation diagonal coefficient
     class(ccs_vector), intent(in) :: invAv  !< The inverse y momentum equation diagonal coefficient
