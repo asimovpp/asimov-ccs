@@ -227,8 +227,8 @@ program ldc
     print*,"Size is ",cps
     print*,"++++" 
     print*,"RELAXATION FACTORS"
-    write(*,'(1x,a,f6.3)') "velocity: ", velocity_relax 
-    write(*,'(1x,a,f6.3)') "pressure: ", pressure_relax 
+    write(*,'(1x,a,e10.3)') "velocity: ", velocity_relax 
+    write(*,'(1x,a,e10.3)') "pressure: ", pressure_relax 
 
   end subroutine
 
