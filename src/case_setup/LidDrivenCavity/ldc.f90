@@ -18,7 +18,7 @@ program ldc
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_square_mesh
+  use mesh_utils, only: build_mesh
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
@@ -79,7 +79,7 @@ program ldc
 
   ! Create a square mesh
   print *, "Building mesh"
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)
 
   ! Initialise fields
   print *, "Initialise fields"

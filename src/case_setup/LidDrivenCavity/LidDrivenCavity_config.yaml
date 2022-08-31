@@ -59,7 +59,7 @@ variables:
     type: central
 
 boundaries:
-  n_boundaries: 4
+  n_boundaries: 6
   boundary_1: 
     name: left
     variable_u:
@@ -68,7 +68,7 @@ boundaries:
     variable_v:
       type: dirichlet
       value: 0
-  boundary_3:
+  boundary_4:
     name: top
     variable_u:
       type: dirichlet
@@ -84,8 +84,24 @@ boundaries:
     variable_v:
       type: dirichlet
       value: 0
-  boundary_4:
+  boundary_3:
     name: bottom
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_5:
+    name: back
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_6:
+    name: front
     variable_u:
       type: dirichlet
       value: 0
