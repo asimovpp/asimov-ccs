@@ -26,8 +26,9 @@ program test_mesh_closed
   integer(ccs_int) :: i, j
 
   call init()
-  
-  do n = 1, 100 ! XXX: Should use some named constant, not just "100"
+
+  ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
+  do n = 1, 20 ! XXX: Should use some named constant, not just "20"
 
     nx = n
     ny = n

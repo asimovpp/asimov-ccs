@@ -27,7 +27,8 @@ program test_mesh_centres
   
   call init()
   
-  do n = 2, 100
+  ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
+  do n = 2, 20
 
     nx = n
     ny = n

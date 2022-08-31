@@ -20,7 +20,8 @@ program test_mesh_indices
 
   call init()
   
-  do n = 2, 100 ! TODO: Investigate how we can replicate nmax=100 across multiple test programs
+  ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
+  do n = 2, 20 ! TODO: Investigate how we can replicate nmax=100 across multiple test programs
 
     nx = n
     ny = n
