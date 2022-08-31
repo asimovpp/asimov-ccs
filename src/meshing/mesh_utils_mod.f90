@@ -48,7 +48,7 @@ module mesh_utils
 contains
 
   !v Read mesh from file
-  module subroutine read_mesh(par_env, case_name, mesh)
+  subroutine read_mesh(par_env, case_name, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
@@ -94,7 +94,7 @@ contains
   ! "nfac" - the total number of faces
   ! "maxfaces" - the maximum number of faces per cell
   ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
-  module subroutine read_topology(par_env, case_name, geo_reader, mesh)
+  subroutine read_topology(par_env, case_name, geo_reader, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name                              !< The name of the case that is computed
@@ -134,7 +134,7 @@ contains
   end subroutine read_topology
 
   !v Read the geometry data from an input (HDF5) file
-  module subroutine read_geometry(par_env, case_name, geo_reader, mesh)
+  subroutine read_geometry(par_env, case_name, geo_reader, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
