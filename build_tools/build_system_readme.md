@@ -87,6 +87,9 @@ Invoke the linter via the utility script using: `bash build_tools/lint.sh ACTION
 Whitespace errors can largely be fixed automatically using fprettify. Install via pip: `pip install fprettify`.
 The config file `.fprettify.rc` is set up to match as closely as possible the configuration of flint, and should be picked up automatically if `fprettify` is run from the root directory of ccs.
 
-Use `fprettify FILE` to fix whitespace in FILE. To see the changes in stdout add `--stdout` or to see the diff add `--diff`; both flags prevent FILE from being changed.
+Use `fprettify FILE` to fix whitespace in FILE. To see the changes in stdout add `--stdout` or to see the diff add `--diff`; both flags prevent FILE from being changed. The `build_tools/lint.sh` script provides a `fprettify` ACTION with a few extra fixes after the application of fprettify. 
 
+## Normal linting process
+1. Do `bash build_tools/lint.sh fprettify TARGET` where TARGET is the file or directory to lint. This will fix many issues automatically.
+2. Do `bash build_tools/lint.sh lint TARGET` to get more detailed linting output (but no automatic fixes). Note that some errors are not actually errors - this is a limitation of regex based linters.
 
