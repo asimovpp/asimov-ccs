@@ -142,6 +142,9 @@ contains
 
     end do outerloop
 
+    ! Free up memory
+    deallocate(residuals)
+
   end subroutine solve_nonlinear
 
   !>  Computes the guessed velocity fields based on a frozen pressure field
