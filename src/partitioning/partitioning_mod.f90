@@ -13,7 +13,7 @@ module partitioning
   private
   public :: partition_kway
   public :: compute_partitioner_input
-  public :: read_topology
+  ! public :: read_topology
   public :: compute_connectivity
 
   interface 
@@ -30,11 +30,19 @@ module partitioning
       type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
     end subroutine compute_partitioner_input
 
-    module subroutine read_topology(par_env, case_name, topo)
-      class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-      character(len=:), allocatable :: case_name
-      type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
-    end subroutine read_topology
+    ! !v Read the topology data from an input (HDF5) file
+    ! module subroutine read_topology(par_env, case_name, topo)
+    !   class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    !   character(len=:), allocatable :: case_name
+    !   type(topology), target, intent(inout) :: topo                           !< The mesh topology for which to compute the partition
+    ! end subroutine read_topology
+
+    ! !v Read the geometry data from an input (HDF5) file
+    ! module subroutine read_geometry(par_env, case_name, geo)
+    !   class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    !   character(len=:), allocatable :: case_name
+    !   type(geometry), target, intent(inout) :: geo                            !< The mesh geometry
+    ! end subroutine read_geometry
 
     module subroutine compute_connectivity(par_env, topo)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment

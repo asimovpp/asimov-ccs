@@ -13,14 +13,15 @@ program tgv
                       read_command_line_arguments, &
                       timer
   use parallel_types, only: parallel_environment
-  use types, only: topology, io_environment, io_process
-  use partitioning, only: read_topology, compute_partitioner_input, &
+  use types, only: ccs_mesh, io_environment, io_process
+  use mesh_utils, only: read_mesh
+  use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
 
 
   implicit none
 
-  type(topology) :: topo
+  type(ccs_mesh), allocatable :: mesh
 
   class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
   character(len=error_length) :: error
@@ -55,10 +56,10 @@ program tgv
 
   call timer(start_time)
 
-  call read_topology(par_env, case_name, topo)
-  call compute_partitioner_input(par_env, topo)
-  call partition_kway(par_env, topo)
-  call compute_connectivity(par_env, topo)
+  call read_mesh(par_env, case_name, mesh)
+  call compute_partitioner_input(par_env, mesh%topo)
+  call partition_kway(par_env, mesh%topo)
+  call compute_connectivity(par_env, mesh%topo)
 
   call timer(end_time)
 

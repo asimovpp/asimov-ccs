@@ -1,11 +1,16 @@
 module mesh_utils
 #include "ccs_macros.inc"
 
-  use constants, only: ndim
-
+  use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print
-  use kinds, only: ccs_int, ccs_real
-  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
+  use kinds, only: ccs_int, ccs_long, ccs_real
+  use types, only: ccs_mesh, topology, geometry, &
+                   io_environment, io_process, &
+                   face_locator, cell_locator, neighbour_locator
+  use io, only: read_scalar, read_array, & 
+                configure_io, open_file, close_file, &
+                initialise_io, cleanup_io
+  use parallel, only: read_command_line_arguments
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
@@ -38,8 +43,122 @@ module mesh_utils
   public :: global_start
   public :: local_count
   public :: count_mesh_faces
+  public :: read_mesh
 
 contains
+
+  !v Read mesh from file
+  module subroutine read_mesh(par_env, case_name, mesh)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    character(len=:), allocatable :: case_name
+    type(ccs_mesh), allocatable, intent(inout) :: mesh                          !< The mesh
+
+    ! Local variables
+    character(len=:), allocatable :: geo_file    ! Geo file name
+    character(len=:), allocatable :: adios2_file ! ADIOS2 config file name
+
+    class(io_environment), allocatable :: io_env
+    class(io_process), allocatable :: geo_reader
+
+    integer(ccs_long), dimension(1) :: sel_start
+    integer(ccs_long), dimension(1) :: sel_count
+
+    integer(ccs_long), dimension(2) :: sel2_start
+    integer(ccs_long), dimension(2) :: sel2_count
+
+    geo_file = case_name//geoext
+    adios2_file = case_name//adiosconfig
+
+    allocate(ccs_mesh :: mesh)
+
+    call initialise_io(par_env, adios2_file, io_env)
+    call configure_io(io_env, "geo_reader", geo_reader)  
+  
+    call open_file(geo_file, "read", geo_reader)
+
+    call read_topology(par_env, case_name, geo_reader, mesh)
+    call read_geometry(par_env, case_name, geo_reader, mesh)
+
+    ! Close the file and ADIOS2 engine
+    call close_file(geo_reader)
+
+    ! Finalise the ADIOS2 IO environment
+    call cleanup_io(io_env)
+
+  end subroutine read_mesh
+
+  !v Read the topology data from an input (HDF5) file
+  ! This subroutine assumes the following names are used in the file:
+  ! "ncel" - the total number of cells
+  ! "nfac" - the total number of faces
+  ! "maxfaces" - the maximum number of faces per cell
+  ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
+  module subroutine read_topology(par_env, case_name, geo_reader, mesh)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    character(len=:), allocatable :: case_name                              !< The name of the case that is computed
+    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    type(ccs_mesh), allocatable, intent(inout) :: mesh                      !< The topology for which to compute the parition
+  
+    integer(ccs_long), dimension(1) :: sel_start
+    integer(ccs_long), dimension(1) :: sel_count
+
+    integer(ccs_long), dimension(2) :: sel2_start
+    integer(ccs_long), dimension(2) :: sel2_count
+
+    ! Read attribute "ncel" - the total number of cells
+    call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
+    ! Read attribute "nfac" - the total number of faces
+    call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
+    ! Read attribute "maxfaces" - the maximum number of faces per cell
+    call read_scalar(geo_reader, "maxfaces", mesh%topo%max_faces)
+
+    allocate(mesh%topo%face_cell1(mesh%topo%global_num_faces))
+    allocate(mesh%topo%face_cell2(mesh%topo%global_num_faces))
+    allocate(mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
+
+    sel_start(1) = 0 ! Global index to start reading from
+    sel_count(1) = mesh%topo%global_num_faces ! How many elements to read in total
+
+    ! Read arrays face/cell1 and face/cell2
+    call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
+    call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
+
+    sel2_start = 0
+    sel2_count(1) = mesh%topo%max_faces! topo%global_num_cells
+    sel2_count(2) = mesh%topo%global_num_cells
+
+    call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
+
+  end subroutine read_topology
+
+  !v Read the geometry data from an input (HDF5) file
+  module subroutine read_geometry(par_env, case_name, geo_reader, mesh)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    character(len=:), allocatable :: case_name
+    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    type(ccs_mesh), allocatable, intent(inout) :: mesh                      !< The mesh geometry
+
+    integer(ccs_long), dimension(2) :: sel_start
+    integer(ccs_long), dimension(2) :: sel_count
+
+    ! integer(ccs_long), dimension(2) :: sel2_start
+    ! integer(ccs_long), dimension(2) :: sel2_count
+
+    ! Starting point for reading chunk of data
+    sel_start = (/0, int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
+    ! How many data points will be read?
+    sel_count = (/ndim, int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
+
+    ! Allocate memory for XYZ coordinates array on each MPI rank
+    allocate (mesh%geo%x_p(sel_count(1), sel_count(2)))
+
+    ! Read XYZ coordinates for variable "/cell/x"
+    call read_array(geo_reader, "/cell/x", sel_start, sel_count, mesh%geo%x_p)
+
+  end subroutine read_geometry
 
   !v Utility constructor to build a square mesh.
   !
