@@ -110,7 +110,7 @@ contains
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, mesh, invAu, invAv, M, source, lin_system, p_prime, res, residuals)
+      call calculate_pressure_correction(par_env, mesh, invAu, invAv, M, source, lin_system, p_prime)
       
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -123,8 +123,6 @@ contains
       call update_pressure(p_prime, p)
       call dprint("NONLINEAR: compute gradp")
       call update_gradient(mesh, p)
-
-      call compute_mass_imbalance(par_env, mesh, invAu, invAv, u, v, p, mf, source, residuals)
 
       ! Todo:
       !call calculate_scalars()
@@ -334,7 +332,7 @@ contains
   !>  Solves the pressure correction equation
   !
   !> @description Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, M, vec, lin_sys, p_prime, res, residuals)
+  subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, M, vec, lin_sys, p_prime)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env  !< the parallel environment
@@ -344,8 +342,6 @@ contains
     class(ccs_vector), allocatable, intent(inout)  :: vec            !< the RHS vector
     type(equation_system), intent(inout) :: lin_sys                  !< linear system object
     class(field), intent(inout) :: p_prime                           !< the pressure correction field
-    class(ccs_vector), intent(inout) :: res
-    real(ccs_real), dimension(:), intent(inout) :: residuals
 
     ! Local variables
     type(matrix_values) :: mat_coeffs
