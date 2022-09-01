@@ -65,7 +65,7 @@ contains
     ! Create coefficient matrix
     call dprint("NONLINEAR: setup matrix")
     call set_size(par_env, mesh, mat_properties)
-    call set_nnz(5, mat_properties)
+    call set_nnz(mesh%topo%max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
 
     ! Create RHS vector

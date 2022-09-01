@@ -87,14 +87,18 @@ contains
         mesh%topo%local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
         end_global = start_global + (mesh%topo%local_num_cells - 1)
 
+        ! Set max faces per cell (constant, 4)
+        mesh%topo%max_faces = 4_ccs_int
+        
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
         allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
-        allocate (mesh%topo% nb_indices(4, mesh%topo%local_num_cells))
-        allocate (mesh%topo%face_indices(4, mesh%topo%local_num_cells))
+        allocate (mesh%topo%nb_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+        allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
 
         ! Initialise mesh arrays
-        mesh%topo%num_nb(:) = 4_ccs_int ! All cells have 4 neighbours (possibly ghost/boundary cells)
+    
+        mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
 
         ! First set the global index of local cells
         index_counter = 1_ccs_int
@@ -166,10 +170,10 @@ contains
       mesh%topo%halo_num_cells = mesh%topo%total_num_cells - mesh%topo%local_num_cells
 
       allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
-      allocate (mesh%geo%x_f(ndim, 4, mesh%topo%local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
+      allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
       allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
-      allocate (mesh%geo%face_areas(4, mesh%topo%local_num_cells))
-      allocate (mesh%geo%face_normals(ndim, 4, mesh%topo%local_num_cells)) ! Currently hardcoded as a 2D mesh.
+      allocate (mesh%geo%face_areas(mesh%topo%max_faces, mesh%topo%local_num_cells))
+      allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells)) ! Currently hardcoded as a 2D mesh.
 
       mesh%geo%volumes(:) = mesh%geo%h**2 !< @note Mesh is square and 2D @endnote
       mesh%geo%face_normals(:, :, :) = 0.0_ccs_real
@@ -276,14 +280,17 @@ contains
           mesh%topo%local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
           end_global = start_global + (mesh%topo%local_num_cells - 1)
 
+          ! Set max number of faces (constant, 6)
+          mesh%topo%max_faces = 6_ccs_int
+          
           ! Allocate mesh arrays
           allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
           allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
-          allocate (mesh%topo%nb_indices(6, mesh%topo%local_num_cells))
-          allocate (mesh%topo%face_indices(6, mesh%topo%local_num_cells))
+          allocate (mesh%topo%nb_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+          allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
 
           ! Initialise mesh arrays
-          mesh%topo%num_nb(:) = 6_ccs_int ! All cells have 6 neighbours (possibly ghost/boundary cells)
+          mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
 
           ! Initalise neighbour indices
           mesh%topo%nb_indices(:,:) = 0_ccs_int
@@ -386,10 +393,10 @@ contains
         mesh%topo%halo_num_cells = mesh%topo%total_num_cells - mesh%topo%local_num_cells
 
         allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
-        allocate (mesh%geo%x_f(ndim, 6, mesh%topo%local_num_cells))
+        allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
         allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
-        allocate (mesh%geo%face_areas(6, mesh%topo%local_num_cells))
-        allocate (mesh%geo%face_normals(ndim, 6, mesh%topo%local_num_cells))
+        allocate (mesh%geo%face_areas(mesh%topo%max_faces, mesh%topo%local_num_cells))
+        allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
 
         mesh%geo%volumes(:) = mesh%geo%h**3 !< @note Mesh is cube @endnote
         mesh%geo%face_normals(:, :, :) = 0.0_ccs_real

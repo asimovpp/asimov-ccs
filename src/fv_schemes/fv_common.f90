@@ -39,7 +39,7 @@ contains
       call get_vector_data(mf_values, mf_data)
 
       ! Loop over cells computing advection and diffusion fluxes
-      n_int_cells = calc_matrix_nnz()
+      n_int_cells = mesh%topo%max_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: interior")
       call compute_interior_coeffs(phi, mf_data, mesh, n_int_cells, M)
 
@@ -52,15 +52,6 @@ contains
     end associate
 
   end subroutine compute_fluxes
-
-  !v Returns the number of entries per row that are non-zero
-  !
-  !  @note This assumes a square 2d grid
-  pure function calc_matrix_nnz() result(nnz)
-    integer(ccs_int) :: nnz   !< number of non-zero entries per row
-
-    nnz = 5_ccs_int
-  end function calc_matrix_nnz
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
   subroutine compute_interior_coeffs(phi, mf, mesh, n_int_cells, M)
