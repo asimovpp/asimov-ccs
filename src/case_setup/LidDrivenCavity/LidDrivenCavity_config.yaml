@@ -47,7 +47,7 @@ relaxation_factor:
 #  variables: [u, v, w, p]
 
 variables:
-  n_variables: 3
+  n_variables: 4
   variable_1:
     name: u
     type: central
@@ -55,6 +55,9 @@ variables:
     name: v
     type: upwind
   variable_3:
+    name: w
+    type: upwind
+  variable_4:
     name: p
     type: central
 
@@ -68,12 +71,18 @@ boundaries:
     variable_v:
       type: dirichlet
       value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
   boundary_4:
     name: top
     variable_u:
       type: dirichlet
       value: 1
     variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
       type: dirichlet
       value: 0
   boundary_2:
@@ -84,12 +93,18 @@ boundaries:
     variable_v:
       type: dirichlet
       value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
   boundary_3:
     name: bottom
     variable_u:
       type: dirichlet
       value: 0
     variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
       type: dirichlet
       value: 0
   boundary_5:
@@ -100,11 +115,17 @@ boundaries:
     variable_v:
       type: dirichlet
       value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
   boundary_6:
     name: front
     variable_u:
       type: dirichlet
       value: 0
     variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
       type: dirichlet
       value: 0

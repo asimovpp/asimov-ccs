@@ -37,7 +37,7 @@ program ldc
   type(ccs_mesh)    :: mesh
   type(vector_spec) :: vec_properties
 
-  class(field), allocatable :: u, v, p, p_prime, mf
+  class(field), allocatable :: u, v, w, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
@@ -89,6 +89,7 @@ program ldc
   print *, "Initialise fields"
   allocate(upwind_field :: u)
   allocate(upwind_field :: v)
+  allocate(upwind_field :: w)
   allocate(central_field :: p)
   allocate(central_field :: p_prime)
   allocate(face_field :: mf)
@@ -98,9 +99,10 @@ program ldc
   call get_bc_variables(ccs_config_file, variable_names)
   call allocate_bc_arrays(n_boundaries, u%bcs)
   call allocate_bc_arrays(n_boundaries, v%bcs)
+  call allocate_bc_arrays(n_boundaries, w%bcs)
   call read_bc_config(ccs_config_file, "u", u)
   call read_bc_config(ccs_config_file, "v", v)
-
+  call read_bc_config(ccs_config_file, "w", w)
 
   ! Create and initialise field vectors
   call initialise(vec_properties)
@@ -110,6 +112,7 @@ program ldc
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, u%values)
   call create_vector(vec_properties, v%values)
+  call create_vector(vec_properties, w%values)
   call create_vector(vec_properties, p%values)
   call create_vector(vec_properties, p%x_gradients)
   call create_vector(vec_properties, p%y_gradients)
@@ -120,6 +123,7 @@ program ldc
   call create_vector(vec_properties, p_prime%z_gradients)
   call update(u%values)
   call update(v%values)
+  call update(w%values)
   call update(p%values)
   call update(p%x_gradients)
   call update(p%y_gradients)
@@ -130,6 +134,7 @@ program ldc
   call update(p_prime%z_gradients)
   call initialise_old_values(vec_properties, u)
   call initialise_old_values(vec_properties, v)
+  call initialise_old_values(vec_properties, w)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -138,14 +143,16 @@ program ldc
   
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(mesh, u, v, mf)
+  call initialise_velocity(mesh, u, v, w, mf)
   call update(u%values)
   call update(v%values)
+  call update(w%values)
   call update(mf%values)
 
   ! handling of first iter
   call update_old_values(u)
   call update_old_values(v)
+  call update_old_values(w)
   
   ! initialise time loop variables
   call activate_timestepping()
@@ -159,9 +166,10 @@ program ldc
   do while (t < t_end)
     ! Solve using SIMPLE algorithm
     print *, "Start SIMPLE at t=" // str(t)
-    call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, p, p_prime, mf)
+    call solve_nonlinear(par_env, mesh, cps, it_start, it_end, u, v, w, p, p_prime, mf)
     call update_old_values(u)
     call update_old_values(v)
+    call update_old_values(w)
   
     t = t + get_timestep()
     t_count = t_count + 1
@@ -180,6 +188,15 @@ program ldc
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"v" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
 
   associate (vec => v%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"w" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
+
+  associate (vec => w%values)
     select type (vec)
     type is (vector_petsc)
       call VecView(vec%v, viewer, ierr)
@@ -262,7 +279,7 @@ program ldc
 
   end subroutine
 
-  subroutine initialise_velocity(mesh, u, v, mf)
+  subroutine initialise_velocity(mesh, u, v, w, mf)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -273,22 +290,24 @@ program ldc
     
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, mf
+    class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
     integer(ccs_int) :: row, col
     integer(ccs_int) :: index_p, global_index_p
-    real(ccs_real) :: u_val, v_val
+    real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
-    type(vector_values) :: u_vals, v_vals
+    type(vector_values) :: u_vals, v_vals, w_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
     ! Set alias
     associate(n_local => mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
+      call create_vector_values(n_local, w_vals)
       call set_mode(add_mode, u_vals)
       call set_mode(add_mode, v_vals)
+      call set_mode(add_mode, w_vals)
 
       ! Set initial values for velocity fields
       do index_p = 1, n_local
@@ -298,20 +317,26 @@ program ldc
 
         u_val = 0.0_ccs_real 
         v_val = 0.0_ccs_real 
+        w_val = 0.0_ccs_real 
 
         call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
         call set_row(global_index_p, v_vals)
         call set_entry(v_val, v_vals)
+        call set_row(global_index_p, w_vals)
+        call set_entry(w_val, w_vals)
       end do
 
       call set_values(u_vals, u%values)
       call set_values(v_vals, v%values)
+      call set_values(w_vals, w%values)
 
       deallocate(u_vals%global_indices)
       deallocate(v_vals%global_indices)
+      deallocate(w_vals%global_indices)
       deallocate(u_vals%values)
       deallocate(v_vals%values)
+      deallocate(w_vals%values)
     end associate
 
     call get_vector_data(mf%values, mf_data)

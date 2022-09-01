@@ -294,14 +294,14 @@ contains
   end function calc_diffusion_coeff
 
   !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-  module function calc_mass_flux(u, v, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
-    real(ccs_real), dimension(:), intent(in) :: u, v         !< arrays containing x, y velocities
-    real(ccs_real), dimension(:), intent(in) :: p            !< array containing pressure
-    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy   !< arrays containing pressure gradient in x and y
-    real(ccs_real), dimension(:), intent(in) :: invAu, invAv !< arrays containing inverse momentum diagonal in x and y
-    type(face_locator), intent(in) :: loc_f                  !< face locator
+  module function calc_mass_flux(u, v, w, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
+    real(ccs_real), dimension(:), intent(in) :: u, v, w             !< arrays containing x, y, z velocities
+    real(ccs_real), dimension(:), intent(in) :: p                   !< array containing pressure
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
+    real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
+    type(face_locator), intent(in) :: loc_f                         !< face locator
 
-    real(ccs_real) :: flux                                   !< The flux across the boundary
+    real(ccs_real) :: flux                                          !< The flux across the boundary
 
     ! Local variables
     logical :: is_boundary                         ! Boundary indicator
@@ -332,7 +332,8 @@ contains
         call get_face_normal(loc_f, face_normal)
 
         flux = 0.5_ccs_real * ((u(index_p) + u(index_nb)) * face_normal(1) &
-                               + (v(index_p) + v(index_nb)) * face_normal(2))
+                               + (v(index_p) + v(index_nb)) * face_normal(2) &
+                               + (w(index_p) + w(index_nb)) * face_normal(3))
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -342,15 +343,16 @@ contains
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(index_nb) - p(index_p)) / dxmag
         flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(1) &
-                                                + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2))
+                                                + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2) &
+                                                + (dpdz(index_p) + dpdz(index_nb)) * face_normal(3))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
         Vf = 0.5_ccs_real * (Vp + V_nb)
 
         ! This is probably not quite right ...
-        invAp = 0.5_ccs_real * (invAu(index_p) + invAv(index_p))
-        invA_nb = 0.5_ccs_real * (invAu(index_nb) + invAv(index_nb))
+        invAp = (invAu(index_p) + invAv(index_p) + invAw(index_p)) / 3.0_ccs_real
+        invA_nb = (invAu(index_nb) + invAv(index_nb) + invAw(index_nb)) / 3.0_ccs_real
         invAf = 0.5_ccs_real * (invAp + invA_nb)
 
         flux_corr = (Vf * invAf) * flux_corr
