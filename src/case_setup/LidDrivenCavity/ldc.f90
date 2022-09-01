@@ -48,6 +48,11 @@ program ldc
   double precision :: start_time
   double precision :: end_time
 
+  logical :: u_sol = .true.  !< Default equations to solve for LDC case
+  logical :: v_sol = .true.
+  logical :: w_sol = .false.
+  logical :: p_sol = .true.
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
@@ -130,7 +135,8 @@ program ldc
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, res_target, u, v, p, p_prime, mf)
+  call solve_nonlinear(par_env, mesh, cps, it_start, it_end, res_target, &
+                       U_sol, v_sol, w_sol, p_sol, u, v, p, p_prime, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD,"u",FILE_MODE_WRITE,viewer, ierr)
