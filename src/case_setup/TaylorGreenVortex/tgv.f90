@@ -21,7 +21,7 @@ program tgv
 
   implicit none
 
-  type(ccs_mesh), allocatable :: mesh
+  type(ccs_mesh) :: mesh
 
   class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
   character(len=error_length) :: error
@@ -32,12 +32,6 @@ program tgv
   character(len=:), allocatable :: adios2_file
 
   class(parallel_environment), allocatable :: par_env
-  ! class(io_environment), allocatable :: io_env
-  ! class(io_process), allocatable :: geo_reader
-
-  ! real(ccs_real), dimension(:, :), allocatable :: xyz_coords
-  ! integer(ccs_long), dimension(2) :: xyz_sel_start
-  ! integer(ccs_long), dimension(2) :: xyz_sel_count
 
   double precision :: start_time, end_time
 
@@ -57,36 +51,15 @@ program tgv
   call timer(start_time)
 
   call read_mesh(par_env, case_name, mesh)
-  call compute_partitioner_input(par_env, mesh%topo)
-  call partition_kway(par_env, mesh%topo)
-  call compute_connectivity(par_env, mesh%topo)
+  call compute_partitioner_input(par_env, mesh)
+  call partition_kway(par_env, mesh)
+  call compute_connectivity(par_env, mesh)
 
   call timer(end_time)
 
   if(par_env%proc_id == 0) then
     print*, "Elapsed time: ", end_time - start_time
   end if
-
-  ! Starting point for reading chunk of data
-  ! xyz_sel_start = (/0, int(topo%vtxdist(par_env%proc_id + 1)) - 1/)
-  ! How many data points will be read?
-  ! xyz_sel_count = (/ndim, int(topo%vtxdist(par_env%proc_id + 2) - topo%vtxdist(par_env%proc_id + 1))/)
-
-  ! Allocate memory for XYZ coordinates array on each MPI rank
-  ! allocate (xyz_coords(xyz_sel_count(1), xyz_sel_count(2)))
-
-  ! Read XYZ coordinates for variable "/cell/x"
-  ! call initialise_io(par_env, adios2_file, io_env)
-  ! call configure_io(io_env, "geo_reader", geo_reader)  
-  ! call open_file(geo_file, "read", geo_reader)
-  ! call read_array(geo_reader, "/cell/x", xyz_sel_start, xyz_sel_count, xyz_coords)
-  ! call close_file(geo_reader) ! Close the file and ADIOS2 engine
-
-  ! Finalise the ADIOS2 IO environment
-  ! call cleanup_io(io_env)
-
-  ! Deallocate memory for XYZ coordinates array
-  ! deallocate (xyz_coords)
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)

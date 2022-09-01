@@ -117,8 +117,8 @@ module types
 
   !> Mesh type
   type, public :: ccs_mesh
-    type(topology), allocatable :: topo
-    type(geometry), allocatable :: geo
+    type(topology) :: topo
+    type(geometry) :: geo
   end type ccs_mesh
 
   !> BC data type
