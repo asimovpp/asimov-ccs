@@ -39,9 +39,9 @@ program test_partition_square_mesh
   
   call partition_kway(par_env, mesh)
 
-  if(par_env%proc_id == 0) then
+  if (par_env%proc_id == 0) then
     print*, "Global partition after partitioning:"
-    do i=1,mesh%topo%global_num_cells
+    do i = 1,mesh%topo%global_num_cells
       print*, mesh%topo%global_partition(i)
     end do
   end if
@@ -60,16 +60,16 @@ contains
 
     character(len=*), intent(in) :: stage
 
-    !if (size(topo%nb_indices, 2) /= size(mesh%topo%nb_indices, 2) .or. &
-    !     size(topo%nb_indices, 1) /= size(mesh%topo%nb_indices, 1)) then
-    !  print *, "TOPO local_num_cells: ", topo%local_num_cells
-    !  print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
-    !  print *, "TOPO partition: ", topo%global_partition
-    !  print *, "MESH nlocal: ", mesh%topo%local_num_cells
-    !  print *, "MESH nb_indices: ", size(mesh%topo%nb_indices, 1), size(mesh%topo%nb_indices, 2)
-    !  write(message, *) "ERROR: topology size is wrong!"
-    !  call stop_test(message)
-    !end if
+    ! if (size(topo%nb_indices, 2) /= size(mesh%topo%nb_indices, 2) .or. &
+    !   size(topo%nb_indices, 1) /= size(mesh%topo%nb_indices, 1)) then
+    !   print *, "TOPO local_num_cells: ", topo%local_num_cells
+    !   print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
+    !   print *, "TOPO partition: ", topo%global_partition
+    !   print *, "MESH nlocal: ", mesh%topo%local_num_cells
+    !   print *, "MESH nb_indices: ", size(mesh%topo%nb_indices, 1), size(mesh%topo%nb_indices, 2)
+    !   write(message, *) "ERROR: topology size is wrong!"
+    !   call stop_test(message)
+    ! end if
 
     call check_distribution(stage)
 
@@ -103,14 +103,14 @@ contains
     ! Do some basic verification
 
     if (size(mesh%topo%vtxdist) /= (par_env%num_procs + 1)) then
-      write(message, *) "ERROR: global vertex distribution is wrong size "//stage//"-partitioning!"
+      write(message, *) "ERROR: global vertex distribution is wrong size "  //  stage  //  "- partitioning."
       call stop_test(message)
     end if
 
     ctr = 0
     do i = 2, size(mesh%topo%vtxdist)
       if (mesh%topo%vtxdist(i) < mesh%topo%vtxdist(i-1)) then
-        write(message, *) "ERROR: global vertex distribution ordering is wrong "//stage//"-partitioning!"
+        write(message, *) "ERROR: global vertex distribution ordering is wrong "  //  stage  //  "- partitioning."
         call stop_test(message)
       end if
 
@@ -118,7 +118,7 @@ contains
     end do
 
     if (ctr /= mesh%topo%global_num_cells) then
-      write(message, *) "ERROR: global vertex distribution count is wrong "//stage//"-partitioning!"
+      write(message, *) "ERROR: global vertex distribution count is wrong "  //  stage  //  "- partitioning."
       call stop_test(message)
     end if
 
@@ -133,8 +133,9 @@ contains
     do i = 1, mesh%topo%local_num_cells
       do j = int(mesh%topo%xadj(i)), int(mesh%topo%xadj(i + 1)) - 1
         if (mesh%topo%adjncy(j) == mesh%topo%global_indices(i)) then
-          print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
-          write(message, *) "ERROR: found self-loop "//stage//"-partitioning!"
+          print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", &
+                   mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+          write(message, *) "ERROR: found self-loop "  //  stage  //  "- partitioning."
           call stop_test(message)
         end if
       end do
@@ -161,7 +162,7 @@ contains
         if (.not. any(adjncy_global_expected == mesh%topo%adjncy(j))) then
           print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", mesh%topo%global_indices(i), ": ", adjncy_global_expected
-          write(message, *) "ERROR: neighbours are wrong "//stage//"-partitioning!"
+          write(message, *) "ERROR: neighbours are wrong "  //  stage  //  "- partitioning."
           call stop_test(message)
         end if
       end do
@@ -170,7 +171,7 @@ contains
         if (.not. any(mesh%topo%adjncy == adjncy_global_expected(j))) then
           print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", mesh%topo%global_indices(i), ": ", adjncy_global_expected
-          write(message, *) "ERROR: neighbours are missing "//stage//"-partitioning!"
+          write(message, *) "ERROR: neighbours are missing "  //  stage  //  "- partitioning."
           call stop_test(message)
         end if
       end do
@@ -224,10 +225,10 @@ contains
     integer :: ctr
 
     ! Create a square mesh
-    print *, "Building mesh"
+    print *, "Building mesh."
     mesh = build_square_mesh(par_env, 4, 1.0_ccs_real)
   
-    !! --- read_topology() ---
+    ! --- read_topology() ---
     ! topo%global_num_cells = mesh%topo%global_num_cells
     mesh%topo%global_num_faces = 40 ! Hardcoded for now
     mesh%topo%max_faces = mesh%topo%num_nb(1)
@@ -240,16 +241,16 @@ contains
                          5, 5, 5, 6,  6, 7,  7, 8,  8, &
                          9,  9,  9, 10, 10, 11, 11, 12, 12, &
                          13, 13, 13, 14, 14, 15, 15, 16, 16 /)
-    mesh%topo%face_cell2 = (/ 0, 2, 0, 5, 3, 0, 6, 4, 0, 7, 0, 0, 8, & 
+    mesh%topo%face_cell2 = (/ 0, 2, 0, 5, 3, 0, 6, 4, 0, 7, 0, 0, 8, &
                          0, 6, 9, 7, 10, 8, 11, 0, 12, 0, &
                          10, 13, 11, 14, 12, 15,  0, 16, &
                          0, 14,  0, 15,  0, 16,  0,  0,  0/)
   
-    ! <MISSING> set mesh%topo%global_face_indices
+    !<MISSING> set mesh%topo%global_face_indices
     
-    !! --- read_topology() --- end
+    ! --- read_topology() --- end
   
-    !! --- compute_partitioner_input() ---
+    ! --- compute_partitioner_input() ---
     allocate(mesh%topo%vtxdist(par_env%num_procs + 1))
     allocate(mesh%topo%global_partition(mesh%topo%global_num_cells))
   
@@ -275,21 +276,21 @@ contains
       mesh%topo%global_partition(i) = (ctr - 1) ! Partitions/ranks are zero-indexed
     end do
    
-    !select type(par_env)
-    !type is (parallel_environment_mpi)
-    !  allocate(tmp_partition, source=mesh%topo%global_partition)
-    !  write(message, *) "Initial partition: ", tmp_partition
-    !  call dprint(message)
-    !  call MPI_Allreduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
-    !          MPI_LONG, MPI_SUM, &
-    !          par_env%comm, ierr)
-    !  deallocate(tmp_partition)
-    !  write(message, *) "Using partition: ", mesh%topo%global_partition
-    !  call dprint(message)
-    !class default
-    !  write(message, *) "ERROR: This test only works for MPI!"
-    !  call stop_test(message)
-    !end select
+    ! select type(par_env)
+    ! type is (parallel_environment_mpi)
+    !   allocate(tmp_partition, source=mesh%topo%global_partition)
+    !   write(message, *) "Initial partition: ", tmp_partition
+    !   call dprint(message)
+    !   call MPI_Allreduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
+    !           MPI_LONG, MPI_SUM, &
+    !           par_env%comm, ierr)
+    !   deallocate(tmp_partition)
+    !   write(message, *) "Using partition: ", mesh%topo%global_partition
+    !   call dprint(message)
+    ! class default
+    !   write(message, *) "ERROR: This test only works for MPI."
+    !   call stop_test(message)
+    ! end select
     
     ! topo%local_num_cells = mesh%topo%local_num_cells
     allocate(mesh%topo%xadj(mesh%topo%local_num_cells + 1))
@@ -304,25 +305,25 @@ contains
     type is (parallel_environment_mpi)
   
       ! Also hardcode the adjncy arrays
-      if(par_env%num_procs == 4) then
+      if (par_env%num_procs == 4) then
   
-        if(par_env%proc_id == 0) then
+        if (par_env%proc_id == 0) then
           mesh%topo%adjncy = (/ 2, 5, 1, 3, 6, 2, 4, 7, 3, 8 /)
         else if (par_env%proc_id == 1) then
           mesh%topo%adjncy = (/ 1, 6, 9, 2, 5, 7, 10, 3, 6, 8, 11, 4, 7, 12 /)
         else if (par_env%proc_id == 2) then
           mesh%topo%adjncy = (/ 5, 10, 13, 6, 9, 11, 14, 7, 10, 12, 15, 8, 11, 16 /)
-        else 
+        else
           mesh%topo%adjncy = (/ 9, 14, 10, 13, 15, 11, 14, 16, 12, 15 /)
         end if
   
       else
-        write(message, *) "Test must be run on 4 MPI ranks"
+        write(message, *) "Test must be run on 4 MPI ranks."
         call stop_test(message)
-      end if 
+      end if
    
     class default
-      write(message, *) "ERROR: Unknown parallel environment!"
+      write(message, *) "ERROR: Unknown parallel environment."
       call stop_test(message)
     end select
   
@@ -345,7 +346,7 @@ contains
     allocate(mesh%topo%adjwgt(size(mesh%topo%adjncy)))
     allocate(mesh%topo%vwgt(mesh%topo%local_num_cells))
   
-    !! --- compute_partitioner_input() --- end
+    ! --- compute_partitioner_input() --- end
     
     ! Assign corresponding mesh values to the topology object
     ! mesh%topo%total_num_cells = mesh%topo%total_num_cells
@@ -355,11 +356,11 @@ contains
     ! topo%global_indices = mesh%topo%global_indices
 
     ! These need to be set to 1 for them to do nothing
-    if (allocated(mesh%topo%adjwgt).and.allocated(mesh%topo%vwgt)) then
+    if (allocated(mesh%topo%adjwgt) .and. allocated(mesh%topo%vwgt)) then
       mesh%topo%adjwgt = 1
       mesh%topo%vwgt = 1
     else
-      call stop_test("Not allocated!!!")
+      call stop_test("Not allocated.")
     end if
 
     ! Run test to check we agree
@@ -368,23 +369,23 @@ contains
   end subroutine
   
   subroutine clean_test
-    if(allocated(mesh%topo%xadj)) then
+    if (allocated(mesh%topo%xadj)) then
       deallocate(mesh%topo%xadj)
     end if
 
-    if(allocated(mesh%topo%adjncy)) then
+    if (allocated(mesh%topo%adjncy)) then
       deallocate(mesh%topo%adjncy)
     end if
 
-    if(allocated(mesh%topo%adjwgt)) then
+    if (allocated(mesh%topo%adjwgt)) then
       deallocate(mesh%topo%adjwgt)
     end if
 
-    if(allocated(mesh%topo%vwgt)) then
+    if (allocated(mesh%topo%vwgt)) then
       deallocate(mesh%topo%vwgt)
     end if
 
-    if(allocated(mesh%topo%vtxdist)) then
+    if (allocated(mesh%topo%vtxdist)) then
       deallocate(mesh%topo%vtxdist)
     end if
   end subroutine

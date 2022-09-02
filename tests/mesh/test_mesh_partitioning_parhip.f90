@@ -1,13 +1,12 @@
 !> Test that partitions a very simple graph using ParHIP
 !
-!  Sample graph - adapted from ParMETIS manual to use 1-indexing
-! 
-!     1 -- 2 -- 3 -- 4 -- 5
-!     |    |    |    |    |
-!     6 -- 7 -- 8 -- 9 --10
-!     |    |    |    |    |
-!    11 --12 --13 --14 --15
+! Sample graph - adapted from ParMETIS manual to use 1-indexing
 !
+! 1 -- 2 -- 3 -- 4 -- 5
+! |    |    |    |    |
+! 6 -- 7 -- 8 -- 9 --10
+! |    |    |    |    |
+! 11 --12 --13 --14 --15
 
 program test_mesh_partitioning_parhip
 
@@ -29,7 +28,7 @@ program test_mesh_partitioning_parhip
   allocate(mesh%topo%global_partition(mesh%topo%global_num_cells))
   call partition_kway(par_env, mesh)
   
-  if(par_env%proc_id == 0) then
+  if (par_env%proc_id == 0) then
      print *, mesh%topo%global_partition
   end if
 
@@ -48,14 +47,14 @@ contains
     select type(par_env)
     type is (parallel_environment_mpi)
   
-      if(par_env%num_procs == 3) then
+      if (par_env%num_procs == 3) then
   
         allocate(mesh%topo%local_partition(5))
         allocate(mesh%topo%xadj(6))
-        allocate(mesh%topo%vwgt(5)) 
+        allocate(mesh%topo%vwgt(5))
         allocate(mesh%topo%vtxdist(4))
   
-        if(par_env%proc_id == 0) then
+        if (par_env%proc_id == 0) then
           allocate(mesh%topo%adjncy(13))
           allocate(mesh%topo%adjwgt(13))
           mesh%topo%xadj = (/ 1, 3, 6, 9, 12, 14 /)
@@ -63,9 +62,9 @@ contains
         else if (par_env%proc_id == 1) then
           allocate(mesh%topo%adjncy(18))
           allocate(mesh%topo%adjwgt(18))
-          mesh%topo%xadj = (/ 1, 4, 8, 12, 16, 19 /)      
+          mesh%topo%xadj = (/ 1, 4, 8, 12, 16, 19 /)
           mesh%topo%adjncy = (/ 1, 7, 11, 2, 6, 8, 12, 3, 7, 9, 13, 4, 8, 10, 14, 5, 9, 15 /)
-        else 
+        else
           allocate(mesh%topo%adjncy(13))
           allocate(mesh%topo%adjwgt(13))
           mesh%topo%xadj = (/ 1, 3, 6, 9, 12, 14 /)
@@ -79,7 +78,7 @@ contains
       else
         write(message, *) "Test must be run on 3 MPI ranks"
         call stop_test(message)
-      end if 
+      end if
    
       class default
         write(message, *) "ERROR: Unknown parallel environment!"
@@ -110,23 +109,23 @@ contains
 
   subroutine clean_up
 
-    if(allocated(mesh%topo%xadj)) then
+    if (allocated(mesh%topo%xadj)) then
       deallocate(mesh%topo%xadj)
     end if
   
-    if(allocated(mesh%topo%adjncy)) then
+    if (allocated(mesh%topo%adjncy)) then
       deallocate(mesh%topo%adjncy)
     end if
   
-    if(allocated(mesh%topo%adjwgt)) then
+    if (allocated(mesh%topo%adjwgt)) then
       deallocate(mesh%topo%adjwgt)
     end if
   
-    if(allocated(mesh%topo%vwgt)) then
+    if (allocated(mesh%topo%vwgt)) then
       deallocate(mesh%topo%vwgt)
     end if
   
-    if(allocated(mesh%topo%vtxdist)) then
+    if (allocated(mesh%topo%vtxdist)) then
       deallocate(mesh%topo%vtxdist)
     end if
 
