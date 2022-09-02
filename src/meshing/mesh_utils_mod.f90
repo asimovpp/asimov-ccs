@@ -157,13 +157,33 @@ contains
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
+    integer(ccs_long), dimension(1) :: vol_p_start
+    integer(ccs_long), dimension(1) :: vol_p_count
     integer(ccs_long), dimension(2) :: x_p_start
     integer(ccs_long), dimension(2) :: x_p_count
 
+    ! Read attribute "scalefactor"
+    call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
+
+    ! Starting point for reading chunk of data
+    vol_p_start = (/int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
+    print*,"cell volumes on rank ",par_env%proc_id," start = ", vol_p_start
+    ! How many data points will be read?
+    vol_p_count = (/int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
+    print*,"cell volumes on rank ",par_env%proc_id," count = ", vol_p_count
+
+    ! Allocate memory for XYZ coordinates array on each MPI rank
+    allocate (mesh%geo%volumes(vol_p_count(1)))
+
+    ! Read XYZ coordinates for variable "/cell/x"
+    call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, mesh%geo%volumes)
+
     ! Starting point for reading chunk of data
     x_p_start = (/0, int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
+    print*,"cell centres on rank ",par_env%proc_id," start = ", x_p_start
     ! How many data points will be read?
     x_p_count = (/ndim, int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
+    print*,"cell centres on rank ",par_env%proc_id," count = ", x_p_count
 
     ! Allocate memory for XYZ coordinates array on each MPI rank
     allocate (mesh%geo%x_p(x_p_count(1), x_p_count(2)))
