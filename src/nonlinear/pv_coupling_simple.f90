@@ -156,7 +156,7 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, vec, lin_sys, u, v, invAu, invAvi, &
+  subroutine calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, vec, lin_sys, u, v, invAu, invAv, &
                                 res, residuals)
 
     ! Arguments
@@ -280,7 +280,7 @@ contains
     ! Compute residual
     call mat_vec_product(M, u%values, res)
     call vec_aypx(vec, -1.0_ccs_real, res)
-    residuals(ivar) = vec_norm(res, 2)
+    residuals(ivar) = norm(res, 2)
 
     ! Create linear solver
     call set_equation_system(par_env, vec, u%values, M, lin_sys)
