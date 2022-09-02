@@ -33,6 +33,11 @@ contains
   !
   !> @param[in]  par_env   - parallel environment
   !> @param[in]  mesh - the mesh
+  !> @param[in]  cps  - number of cells per side in the mesh
+  !> @param[in]  it_start - starting iteration
+  !> @param[in]  it_end   - ending iteration
+  !> @param[in]  res_target - target residual
+  !> @param[in]  u_sol, v_sol, w_sol, p_sol - whether u,v,w,p equations are being solved
   !> @param[in,out] u, v   - fields containing velocity fields in x, y directions
   !> @param[in,out] p      - field containing pressure values
   !> @param[in,out] p_prime     - field containing pressure-correction values
