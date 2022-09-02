@@ -167,11 +167,14 @@ contains
     integer(ccs_long), dimension(1) :: vol_p_count
     integer(ccs_long), dimension(2) :: x_p_start
     integer(ccs_long), dimension(2) :: x_p_count
-    integer(ccs_long), dimension(2) :: f_start
-    integer(ccs_long), dimension(2) :: f_count
+    integer(ccs_long), dimension(2) :: f_xn_start
+    integer(ccs_long), dimension(2) :: f_xn_count
+    integer(ccs_long), dimension(1) :: f_a_start
+    integer(ccs_long), dimension(1) :: f_a_count
 
     real(ccs_real), dimension(:,:), allocatable :: temp_x_f ! Temp array for face centres
     real(ccs_real), dimension(:,:), allocatable :: temp_n_f ! Temp array for face normals
+    real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
     ! Read attribute "scalefactor"
     call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
@@ -198,26 +201,34 @@ contains
     ! Read variable "/cell/x"
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, mesh%geo%x_p)
 
-    ! Allocate temporary arrays to hold face centres and normals
+    ! Allocate temporary arrays for face centres, face normals and face areas
     allocate(temp_x_f(ndim,mesh%topo%global_num_faces))
     allocate(temp_n_f(ndim,mesh%topo%global_num_faces))
+    allocate(temp_a_f(mesh%topo%global_num_faces))
 
-    f_start = 0
-    f_count(1) = ndim
-    f_count(2) = mesh%topo%global_num_faces
+    f_xn_start = 0
+    f_xn_count(1) = ndim
+    f_xn_count(2) = mesh%topo%global_num_faces
 
     ! Read variable "/face/x"
-    call read_array(geo_reader, "/face/x", f_start, f_count, temp_x_f)
+    call read_array(geo_reader, "/face/x", f_xn_start, f_xn_count, temp_x_f)
     ! Read variable "/face/n"
-    call read_array(geo_reader, "/face/n", f_start, f_count, temp_n_f)
+    call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
+
+    f_a_start = 0
+    f_a_count(1) = mesh%topo%global_num_faces
+
+    ! Read variable "/face/area"
+    call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
 
     ! Compute start and end points for local cells in global context
     start = mesh%topo%vtxdist(par_env%proc_id + 1)
     end = mesh%topo%vtxdist(par_env%proc_id + 2) -1
 
-    ! Allocate face centres & face normals arrays
+    ! Allocate face centres, face normals and face areas arrays
     allocate(mesh%geo%x_f(ndim, mesh%topo%max_faces,mesh%topo%local_num_cells))
     allocate(mesh%geo%face_normals(ndim, mesh%topo%max_faces,mesh%topo%local_num_cells))
+    allocate(mesh%geo%face_areas(mesh%topo%max_faces,mesh%topo%local_num_cells))
 
     cell_count = 1
 
@@ -232,6 +243,8 @@ contains
           mesh%geo%face_normals(i, j, cell_count) = temp_n_f(i,n)
         end do 
 
+        mesh%geo%face_areas(j,cell_count) = temp_a_f(n)
+
       end do 
       cell_count = cell_count + 1
 
@@ -240,6 +253,7 @@ contains
     ! Delete temp arrays
     deallocate(temp_x_f)
     deallocate(temp_n_f)
+    deallocate(temp_a_f)
 
   end subroutine read_geometry
 
