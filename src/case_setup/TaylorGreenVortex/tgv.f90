@@ -51,7 +51,6 @@ program tgv
   call timer(start_time)
 
   call read_mesh(par_env, case_name, mesh)
-  call compute_partitioner_input(par_env, mesh)
   call partition_kway(par_env, mesh)
   call compute_connectivity(par_env, mesh)
 

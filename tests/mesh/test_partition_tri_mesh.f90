@@ -381,8 +381,8 @@ contains
     !! --- compute_partitioner_input() --- end
     
     ! Assign corresponding mesh values to the topology object
-    mesh%topo%total_num_cells = mesh%topo%total_num_cells
-    mesh%topo%num_faces = mesh%topo%num_faces
+    ! mesh%topo%total_num_cells = mesh%topo%total_num_cells
+    ! mesh%topo%num_faces = mesh%topo%num_faces
   
     allocate(mesh%topo%global_indices(mesh%topo%local_num_cells))
     do i = 1, mesh%topo%local_num_cells
