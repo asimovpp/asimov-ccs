@@ -101,6 +101,7 @@ contains
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
   
     integer(ccs_int) :: i, j, k
+
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
 
@@ -148,7 +149,7 @@ contains
       j = j + k
     enddo
 
-    ! call compute_partitioner_input(par_env, mesh)
+    call compute_partitioner_input(par_env, mesh)
 
   end subroutine read_topology
 
@@ -158,6 +159,9 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
+
+    integer(ccs_int) :: i, j, k, n, cell_count
+    integer(ccs_int) :: start, end
 
     integer(ccs_long), dimension(1) :: vol_p_start
     integer(ccs_long), dimension(1) :: vol_p_count
@@ -174,10 +178,8 @@ contains
 
     ! Starting point for reading chunk of data
     vol_p_start = (/int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
-    print*,"cell volumes on rank ",par_env%proc_id," start = ", vol_p_start
     ! How many data points will be read?
     vol_p_count = (/int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
-    print*,"cell volumes on rank ",par_env%proc_id," count = ", vol_p_count
 
     ! Allocate memory for cell volumes array on each MPI rank
     allocate (mesh%geo%volumes(vol_p_count(1)))
@@ -187,10 +189,8 @@ contains
 
     ! Starting point for reading chunk of data
     x_p_start = (/0, int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
-    print*,"cell centres on rank ",par_env%proc_id," start = ", x_p_start
     ! How many data points will be read?
     x_p_count = (/ndim, int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
-    print*,"cell centres on rank ",par_env%proc_id," count = ", x_p_count
 
     ! Allocate memory for cell centre coordinates array on each MPI rank
     allocate (mesh%geo%x_p(x_p_count(1), x_p_count(2)))
@@ -211,9 +211,35 @@ contains
     ! Read variable "/face/n"
     call read_array(geo_reader, "/face/n", f_start, f_count, temp_n_f)
 
+    ! Compute start and end points for local cells in global context
+    start = mesh%topo%vtxdist(par_env%proc_id + 1)
+    end = mesh%topo%vtxdist(par_env%proc_id + 2) -1
+
+    ! Allocate face centres & face normals arrays
+    allocate(mesh%geo%x_f(ndim, mesh%topo%max_faces,mesh%topo%local_num_cells))
+    allocate(mesh%geo%face_normals(ndim, mesh%topo%max_faces,mesh%topo%local_num_cells))
+
+    cell_count = 1
+
+    do k = start, end ! loop over cells owned by current process
+
+      do j = 1, mesh%topo%max_faces ! loop over all faces for each cell
+        n = mesh%topo%global_face_indices(j,k)
+
+        do i = 1, ndim ! loop over dimensions
+          ! Map from temp array to mesh
+          mesh%geo%x_f(i, j, cell_count) = temp_x_f(i,n) 
+          mesh%geo%face_normals(i, j, cell_count) = temp_n_f(i,n)
+        end do 
+
+      end do 
+      cell_count = cell_count + 1
+
+    end do
+
+    ! Delete temp arrays
     deallocate(temp_x_f)
     deallocate(temp_n_f)
-
 
   end subroutine read_geometry
 
