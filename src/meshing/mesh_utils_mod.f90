@@ -222,8 +222,8 @@ contains
     call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
 
     ! Compute start and end points for local cells in global context
-    start = mesh % topo % vtxdist(par_env % proc_id + 1)
-    end = mesh % topo % vtxdist(par_env % proc_id + 2) - 1
+    start = int(mesh % topo % vtxdist(par_env % proc_id + 1))
+    end = int(mesh % topo % vtxdist(par_env % proc_id + 2) - 1)
 
     ! Allocate face centres, face normals and face areas arrays
     allocate (mesh % geo % x_f(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells))
