@@ -813,7 +813,7 @@ contains
     endif
 
     if (par_env%proc_id == par_env%root) then
-      fmt = '(i6,1x,3(e12.4,1x))'
+      fmt = '(i6,'//str(nvar)//'(1x,e12.4))'
       write(*,fmt) itr, residuals(1:nvar)
     endif
 
