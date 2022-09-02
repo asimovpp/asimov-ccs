@@ -199,7 +199,7 @@ contains
     end do
 
     call dprint ("Initial number of halo cells: "//str(mesh%topo%halo_num_cells))
-    
+
     mesh%topo%total_num_cells = mesh%topo%local_num_cells + mesh%topo%halo_num_cells
 
     call dprint ("Total number of cells (local + halo): "//str(mesh%topo%total_num_cells))

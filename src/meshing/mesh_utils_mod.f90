@@ -16,7 +16,6 @@ module mesh_utils
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
                      set_cell_location, set_neighbour_location, set_face_location, &
                      set_face_index, get_boundary_status, get_local_status
-  use partitioning, only: compute_partitioner_input
   use bc_constants
 
   implicit none
@@ -95,6 +94,8 @@ contains
   ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
   subroutine read_topology(par_env, geo_reader, mesh)
 
+    use partitioning, only: compute_partitioner_input
+
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
@@ -147,7 +148,7 @@ contains
       j = j + k
     enddo
 
-    call compute_partitioner_input(par_env, mesh)
+    ! call compute_partitioner_input(par_env, mesh)
 
   end subroutine read_topology
 
@@ -196,7 +197,7 @@ contains
 
     ! Read variable "/cell/x"
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, mesh%geo%x_p)
-  
+
     ! Allocate temporary arrays to hold face centres and normals
     allocate(temp_x_f(ndim,mesh%topo%global_num_faces))
     allocate(temp_n_f(ndim,mesh%topo%global_num_faces))

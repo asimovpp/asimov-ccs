@@ -3,3 +3,4 @@
 
 main: test_vec_set_entries
 base: mpi_petsc
+extra: parhip

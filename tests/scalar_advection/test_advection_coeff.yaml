@@ -3,3 +3,4 @@
 
 main: test_advection_coeff
 base: mpi_petsc
+extra: parhip
