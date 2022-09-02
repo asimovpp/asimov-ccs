@@ -1,18 +1,19 @@
-!>  Submodule file pv_coupling_simple.smod
+!v Submodule file pv_coupling_simple.smod
 !
-!>  Implementation of the SIMPLE algorithm for pressure-velocity coupling.
+!  Implementation of the SIMPLE algorithm for pressure-velocity coupling.
 
-submodule (pv_coupling) pv_coupling_simple
+submodule(pv_coupling) pv_coupling_simple
 #include "ccs_macros.inc"
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
-       create_vector_values, vec_norm, vec_aypx, vec_axpy, mult_vec_vec
+                 create_vector_values, set_vector_location, zero_vector, vec_aypx, &
+                 mult_vec_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-       set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
+                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print
@@ -20,52 +21,46 @@ submodule (pv_coupling) pv_coupling_simple
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use parallel_types, only: parallel_environment
-  use constants, only: insert_mode, add_mode, ndim
+  use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume
-  
+
   implicit none
 
 contains
 
-  !> @ brief Solve Navier-Stokes equations using the SIMPLE algorithm
-  !
-  !> @param[in]  par_env   - parallel environment
-  !> @param[in]  mesh - the mesh
-  !> @param[in]  cps  - number of cells per side in the mesh
-  !> @param[in]  it_start - starting iteration
-  !> @param[in]  it_end   - ending iteration
-  !> @param[in]  res_target - target residual
-  !> @param[in]  u_sol, v_sol, w_sol, p_sol - whether u,v,w,p equations are being solved
-  !> @param[in,out] u, v   - fields containing velocity fields in x, y directions
-  !> @param[in,out] p      - field containing pressure values
-  !> @param[in,out] p_prime     - field containing pressure-correction values
-  !> @param[in,out] mf     - field containing the face-centred velocity flux 
-  module subroutine solve_nonlinear(par_env, mesh, cps, it_start, it_end, res_target, &
+  !> Solve Navier-Stokes equations using the SIMPLE algorithm
+  module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                                     u_sol, v_sol, w_sol, p_sol, u, v, p, p_prime, mf)
 
     ! Arguments
-    class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps, it_start, it_end
-    real(ccs_real), intent(in) :: res_target
-    logical, intent(in) :: u_sol, v_sol, w_sol, p_sol
-    class(field), intent(inout) :: u, v, p, p_prime, mf
-    
+    class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
+    type(ccs_mesh), intent(in) :: mesh !< the mesh
+    integer(ccs_int), intent(in) :: it_start
+    integer(ccs_int), intent(in) :: it_end
+    real(ccs_real), intent(in)  :: res_target !< Target residual
+    logical, intent(in) :: u_sol !< solve u velocity field
+    logical, intent(in) :: v_sol !< solve v velocity field
+    logical, intent(in) :: w_sol !< solve w velocity field
+    logical, intent(in) :: p_sol !< solve pressure field
+    class(field), intent(inout) :: u       !< velocity fields in x direction
+    class(field), intent(inout) :: v       !< velocity fields in y direction
+    class(field), intent(inout) :: p       !< field containing pressure values
+    class(field), intent(inout) :: p_prime !< field containing pressure-correction values
+    class(field), intent(inout) :: mf      !< field containing the face-centred velocity flux
+
     ! Local variables
     integer(ccs_int) :: i
     class(ccs_vector), allocatable :: source
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invAu, invAv
-    class(ccs_vector), allocatable :: Ap
     class(ccs_vector), allocatable :: res
     real(ccs_real), dimension(:), allocatable :: residuals
     
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
-    type(bc_config) :: bcs
 
     logical :: converged = .false.
 
@@ -93,7 +88,6 @@ contains
     call dprint("NONLINEAR: setup ind coeff")
     call create_vector(vec_properties, invAu)
     call create_vector(vec_properties, invAv)
-    call create_vector(vec_properties, Ap)
 
     ! Create vectors for storing residuals
     call dprint("NONLINEAR: setup residuals")
@@ -115,14 +109,14 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, cps, mf, p, u_sol, v_sol, w_sol, ivar, bcs, M, source, lin_system, u, v, invAu, invAv, res, residuals)
+      call calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, source, lin_system, u, v, invAu, invAv, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(mesh, invAu, invAv, ivar, u, v, p, mf, source, residuals)
       call dprint("NONLINEAR: compute p'")
       call calculate_pressure_correction(par_env, mesh, invAu, invAv, M, source, lin_system, p_prime)
-      
+
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
       call update_face_velocity(mesh, invAu, invAv, p_prime, mf)
@@ -148,7 +142,7 @@ contains
           write(*,*)
         endif
         exit outerloop
-      endif
+      end if
 
     end do outerloop
 
@@ -157,41 +151,32 @@ contains
 
   end subroutine solve_nonlinear
 
-  !>  Computes the guessed velocity fields based on a frozen pressure field
+  !v Computes the guessed velocity fields based on a frozen pressure field
   !
-  !> @param[in]    par_env      - the parallel environment
-  !> @param[in]    mesh    - the mesh
-  !> @param[in]    cps          - cells per side of a square mesh (remove)
-  !> @param[in]    mf           - the face velocity flux
-  !> @param[in]    p            - the pressure field
-  !> @param[inout] bcs          - boundary conditions
-  !> @param[inout] M            - matrix object
-  !> @param[inout] vec          - vector object
-  !> @param[inout] lin_sys      - linear system object
-  !> @param[inout] u, v         - the x and y velocity fields
-  !> @param[inout] invAu, invAv - vectors containing the inverse momentum coefficients
-  !
-  !> @description Given an initial guess of a pressure field form the momentum equations (as scalar
-  !!              equations) and solve to obtain an intermediate velocity field u* that will not
-  !!              satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, cps, mf, p, u_sol, v_sol, w_sol, ivar, bcs, M, vec, lin_sys, u, v, invAu, invAv, res, residuals)
+  !  Given an initial guess of a pressure field form the momentum equations (as scalar
+  !  equations) and solve to obtain an intermediate velocity field u* that will not
+  !  satisfy continuity.
+  subroutine calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, vec, lin_sys, u, v, invAu, invAvi, &
+                                res, residuals)
 
     ! Arguments
-    class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_mesh), intent(in)         :: mesh
-    integer(ccs_int), intent(in)  :: cps
-    class(field), intent(in) :: mf
-    class(field), intent(in) :: p
-    logical, intent(in) :: u_sol, v_sol, w_sol
-    integer(ccs_int), intent(inout) :: ivar
-    type(bc_config), intent(inout) :: bcs
-    class(ccs_matrix), allocatable, intent(inout)  :: M
-    class(ccs_vector), allocatable, intent(inout)  :: vec
-    type(equation_system), intent(inout) :: lin_sys
-    class(field), intent(inout)    :: u, v
-    class(ccs_vector), intent(inout)    :: invAu, invAv
-    class(ccs_vector), intent(inout)    :: res
-    real(ccs_real), dimension(:), intent(inout) :: residuals
+    class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    type(ccs_mesh), intent(in) :: mesh                   !< the mesh
+    class(field), intent(in) :: mf                       !< the face velocity flux
+    class(field), intent(in) :: p                        !< the pressure field
+    logical, intent(in) :: u_sol                         !< solve x-velocity field
+    logical, intent(in) :: v_sol                         !< solve y-velocity field
+    logical, intent(in) :: w_sol                         !< solve w-velocity field
+    integer(ccs_int), intent(inout) :: ivar              !< flow variable counter
+    class(ccs_matrix), allocatable, intent(inout) :: M   !< matrix object
+    class(ccs_vector), allocatable, intent(inout) :: vec !< vector object
+    type(equation_system), intent(inout) :: lin_sys      !< linear system object
+    class(field), intent(inout) :: u                     !< the x velocity field
+    class(field), intent(inout) :: v                     !< the y velocity field
+    class(ccs_vector), intent(inout) :: invAu            !< vector containing the inverse x momentum coefficients
+    class(ccs_vector), intent(inout) :: invAv            !< vector containing the inverse y momentum coefficients
+    class(ccs_vector), intent(inout) :: res              !< residual field
+    real(ccs_real), dimension(:), intent(inout) :: residuals !< L2-norm of residuals for each flow variable
 
     ! Local variables
     logical, save :: first_time = .true.
@@ -215,43 +200,35 @@ contains
       endif
       first_time = .false.
     endif
-    
+
     ! u-velocity
     ! ----------
-
-    ! TODO: Do boundaries properly
     if (u_sol) then
-      bcs%bc_type(:) = 0 !< Fixed zero BC
-      bcs%bc_type(4) = 1 !< Fixed one BC at lid
-      call calculate_velocity_component(par_env, varu, mesh, cps, mf, p, 1, bcs, M, vec, lin_sys, u, invAu, res, residuals)
+      call calculate_velocity_component(par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
     endif
     
     ! v-velocity
     ! ----------
-    
-    ! TODO: Do boundaries properly
     if (v_sol) then
-      bcs%bc_type(:) = 0 !< Fixed zero BC
-      call calculate_velocity_component(par_env, varv, mesh, cps, mf, p, 2, bcs, M, vec, lin_sys, v, invAv, res, residuals)
+      call calculate_velocity_component(par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
     endif
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, ivar, mesh, cps, mf, p, component, bcs, M, vec, lin_sys, u, invAu, res, residuals)
+  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, res, residuals)
 
     use case_config, only: velocity_relax
+    use timestepping, only: apply_timestep
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in)  :: ivar
     type(ccs_mesh), intent(in)    :: mesh
-    integer(ccs_int), intent(in)  :: cps
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     integer(ccs_int), intent(in) :: component
-    type(bc_config), intent(inout) :: bcs
-    class(ccs_matrix), allocatable, intent(inout)  :: M
-    class(ccs_vector), allocatable, intent(inout)  :: vec
+    class(ccs_matrix), allocatable, intent(inout) :: M
+    class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
     class(field), intent(inout)    :: u
     class(ccs_vector), intent(inout)  :: invAu
@@ -270,7 +247,9 @@ contains
     
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
-    call compute_fluxes(u, mf, mesh, bcs, cps, M, vec)
+    call compute_fluxes(u, mf, mesh, component, M, vec)
+
+    call apply_timestep(mesh, u, invAu, M, vec)
 
     ! Calculate pressure source term and populate RHS vector
     call dprint("GV: compute u gradp")
@@ -281,16 +260,16 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
-    
+
     ! Underrelax the equations
     call dprint("GV: underrelax u")
     call underrelax(mesh, velocity_relax, u, invAu, M, vec)
-    
+
     ! Store reciprocal of central coefficient
     call dprint("GV: get u diag")
     call get_matrix_diagonal(M, invAu)
     call vec_reciprocal(invAu)
-    
+
     ! Assembly of coefficient matrix and source vector
     call dprint("GV: build u lin sys")
     call update(M)
@@ -316,17 +295,17 @@ contains
     call solve(lin_solver)
 
     ! Clean up
-    deallocate(lin_solver)
-    
+    deallocate (lin_solver)
+
   end subroutine calculate_velocity_component
-  
+
   !v Adds the momentum source due to pressure gradient
   subroutine calculate_momentum_pressure_source(mesh, p_gradients, vec)
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh           !< the mesh
-    class(ccs_vector), intent(in) :: p_gradients  !< the pressure gradient
-    class(ccs_vector), intent(inout) :: vec       !< the momentum equation RHS vector
+    class(ccs_mesh), intent(in) :: mesh          !< the mesh
+    class(ccs_vector), intent(in) :: p_gradients !< the pressure gradient
+    class(ccs_vector), intent(inout) :: vec      !< the momentum equation RHS vector
 
     ! Local variables
     type(vector_values) :: vec_values
@@ -336,48 +315,48 @@ contains
     real(ccs_real), dimension(:), pointer :: p_gradient_data
 
     real(ccs_real) :: V
-    
+
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
 
     ! Temporary storage for p values
     call get_vector_data(p_gradients, p_gradient_data)
-    
+
     ! Loop over cells
-    do index_p = 1, mesh%nlocal
+    do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(vec_values)
-      
+
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_volume(loc_p, V)
-      
+
       r = -p_gradient_data(index_p) * V
       call set_row(global_index_p, vec_values)
       call set_entry(r, vec_values)
       call set_values(vec_values, vec)
     end do
 
-    deallocate(vec_values%global_indices)
-    deallocate(vec_values%values)
+    deallocate (vec_values%global_indices)
+    deallocate (vec_values%values)
 
     call restore_vector_data(p_gradients, p_gradient_data)
-    
+
   end subroutine calculate_momentum_pressure_source
 
-  !>  Solves the pressure correction equation
+  !v Solves the pressure correction equation
   !
-  !> @description Solves the pressure correction equation formed by the mass-imbalance.
+  !  Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, M, vec, lin_sys, p_prime)
 
     ! Arguments
-    class(parallel_environment), allocatable, intent(in) :: par_env  !< the parallel environment
-    class(ccs_mesh), intent(in) :: mesh                              !< the mesh
-    class(ccs_vector), intent(in) :: invAu, invAv                    !< inverse diagonal momentum coefficients
-    class(ccs_matrix), allocatable, intent(inout)  :: M              !< matrix object
-    class(ccs_vector), allocatable, intent(inout)  :: vec            !< the RHS vector
-    type(equation_system), intent(inout) :: lin_sys                  !< linear system object
-    class(field), intent(inout) :: p_prime                           !< the pressure correction field
+    class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    class(ccs_mesh), intent(in) :: mesh                             !< the mesh
+    class(ccs_vector), intent(in) :: invAu, invAv                   !< inverse diagonal momentum coefficients
+    class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
+    class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
+    type(equation_system), intent(inout) :: lin_sys                 !< linear system object
+    class(field), intent(inout) :: p_prime                          !< the pressure correction field
 
     ! Local variables
     type(matrix_values) :: mat_coeffs
@@ -398,7 +377,7 @@ contains
 
     real(ccs_real), dimension(:), pointer :: invAu_data
     real(ccs_real), dimension(:), pointer :: invAv_data
-    
+
     real(ccs_real) :: Vp
     real(ccs_real) :: V_nb
     real(ccs_real) :: Vf
@@ -416,7 +395,7 @@ contains
     integer(ccs_int) :: block_ncols
 
     type(matrix_values_spec) :: mat_val_spec
-    
+
     ! First zero matrix
     call zero(M)
 
@@ -424,28 +403,28 @@ contains
     call dprint("P': negate RHS")
     call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
-    
+
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
 
     call update(M)
-    
+
     call dprint("P': get invA")
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
-    
+
     ! Loop over cells
     call dprint("P': cell loop")
-    do index_p = 1, mesh%nlocal
+    do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(vec_values)
-      
+
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
-      allocate(mat_coeffs%global_row_indices(1))
-      allocate(mat_coeffs%global_col_indices(1 + nnb))
-      allocate(mat_coeffs%values(1 + nnb))
+      allocate (mat_coeffs%global_row_indices(1))
+      allocate (mat_coeffs%global_col_indices(1 + nnb))
+      allocate (mat_coeffs%values(1 + nnb))
 
       block_nrows = 1_ccs_int
       block_ncols = 1_ccs_int + nnb
@@ -465,13 +444,13 @@ contains
         call get_face_normal(loc_f, face_normal)
 
         call get_boundary_status(loc_f, is_boundary)
-        
+
         if (.not. is_boundary) then
           ! Interior face
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-          coeff_f = (1.0 / mesh%h) * face_area
+          coeff_f = (1.0 / mesh%geo%h) * face_area
 
           call get_volume(loc_p, Vp)
           call get_volume(loc_nb, V_nb)
@@ -482,7 +461,7 @@ contains
           invA_f = 0.5_ccs_real * (invA_p + invA_nb)
 
           coeff_f = -(Vf * invA_f) * coeff_f
-          
+
           coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
           col = global_index_nb
@@ -490,7 +469,7 @@ contains
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
           coeff_nb = 0.0_ccs_real
-        endif
+        end if
 
         call set_row(row, mat_coeffs)
         call set_col(col, mat_coeffs)
@@ -500,15 +479,15 @@ contains
       end do
 
       ! XXX: Need to fix pressure somewhere
-      !!     Row is the global index - should be unique
-      !!     Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(mesh%nglobal)), ccs_int)
+      !      Row is the global index - should be unique
+      !      Locate approximate centre of mesh (assuming a square)
+      cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
       rcrit = (cps / 2) * (1 + cps)
       if (row == rcrit) then
         coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
         call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
       end if
-      
+
       ! Add the diagonal entry
       col = row
       call set_row(row, mat_coeffs)
@@ -523,9 +502,9 @@ contains
       call set_values(vec_values, vec)
       call clear_entries(mat_coeffs)
 
-      deallocate(mat_coeffs%global_row_indices)
-      deallocate(mat_coeffs%global_col_indices)
-      deallocate(mat_coeffs%values)
+      deallocate (mat_coeffs%global_row_indices)
+      deallocate (mat_coeffs%global_col_indices)
+      deallocate (mat_coeffs%values)
     end do
 
     call dprint("P': restore invA")
@@ -537,7 +516,7 @@ contains
     call update(M)
     call update(vec)
     call finalise(M)
-    
+
     ! Create linear solver
     call dprint("P': create lin sys")
     call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
@@ -552,8 +531,8 @@ contains
     call solve(lin_solver)
 
     ! Clean up
-    deallocate(lin_solver)
-    
+    deallocate (lin_solver)
+
   end subroutine calculate_pressure_correction
 
   !>  Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
@@ -571,33 +550,31 @@ contains
     real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
     type(vector_values) :: vec_values
-    integer(ccs_int) :: i !< Cell counter
-    integer(ccs_int) :: j !< Cell-face counter
+    integer(ccs_int) :: i   ! Cell counter
+    integer(ccs_int) :: j   ! Cell-face counter
 
-    type(cell_locator) :: loc_p !< Central cell locator object
-    type(face_locator) :: loc_f !< Face locator object
+    type(cell_locator) :: loc_p   ! Central cell locator object
+    type(face_locator) :: loc_f   ! Face locator object
 
-    integer(ccs_int) :: global_index_p  !< Central cell global index
-    real(ccs_real) :: face_area !< Face area
-    integer(ccs_int) :: index_f    !< Face index
-    integer(ccs_int) :: nnb     !< Cell neighbour count
+    integer(ccs_int) :: global_index_p  ! Central cell global index
+    real(ccs_real) :: face_area         ! Face area
+    integer(ccs_int) :: index_f         ! Face index
+    integer(ccs_int) :: nnb             ! Cell neighbour count
 
-    real(ccs_real), dimension(:), pointer :: mf_data     !< Data array for the mass flux
-    real(ccs_real), dimension(:), pointer :: u_data      !< Data array for x velocity component
-    real(ccs_real), dimension(:), pointer :: v_data      !< Data array for y velocity component
-    real(ccs_real), dimension(:), pointer :: p_data      !< Data array for pressure
-    real(ccs_real), dimension(:), pointer :: dpdx_data   !< Data array for pressure x gradient
-    real(ccs_real), dimension(:), pointer :: dpdy_data   !< Data array for pressure y gradient
-    real(ccs_real), dimension(:), pointer :: invAu_data  !< Data array for inverse x momentum
-                                                          !! diagonal coefficient
-    real(ccs_real), dimension(:), pointer :: invAv_data  !< Data array for inverse y momentum
-                                                          !! diagonal coefficient
+    real(ccs_real), dimension(:), pointer :: mf_data      ! Data array for the mass flux
+    real(ccs_real), dimension(:), pointer :: p_data       ! Data array for pressure
+    real(ccs_real), dimension(:), pointer :: dpdx_data    ! Data array for pressure x gradient
+    real(ccs_real), dimension(:), pointer :: dpdy_data    ! Data array for pressure y gradient
+    real(ccs_real), dimension(:), pointer :: invAu_data   ! Data array for inverse x momentum
+                                                          ! diagonal coefficient
+    real(ccs_real), dimension(:), pointer :: invAv_data   ! Data array for inverse y momentum
+                                                          ! diagonal coefficient
 
-    logical :: is_boundary            !< Boundary indicator
-    type(neighbour_locator) :: loc_nb !< Neighbour cell locator object
-    integer(ccs_int) :: index_nb      !< Neighbour cell index
+    logical :: is_boundary            ! Boundary indicator
+    type(neighbour_locator) :: loc_nb ! Neighbour cell locator object
+    integer(ccs_int) :: index_nb      ! Neighbour cell index
     
-    real(ccs_real) :: mib !< Cell mass imbalance
+    real(ccs_real) :: mib ! Cell mass imbalance
 
     logical, save :: first_time = .true.
     integer(ccs_int), save :: varp = 0
@@ -610,7 +587,7 @@ contains
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
-    
+
     ! First zero RHS
     call zero(b)
 
@@ -621,17 +598,15 @@ contains
     call update(p%x_gradients)
     call update(p%y_gradients)
     call get_vector_data(mf%values, mf_data)
-    call get_vector_data(u%values, u_data)
-    call get_vector_data(v%values, v_data)
     call get_vector_data(p%values, p_data)
     call get_vector_data(p%x_gradients, dpdx_data)
     call get_vector_data(p%y_gradients, dpdy_data)
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
-    
-    do i = 1, mesh%nlocal
+
+    do i = 1, mesh%topo%local_num_cells
       call clear_entries(vec_values)
-      
+
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
@@ -652,13 +627,13 @@ contains
             face_area = -face_area
           else
             ! Compute mass flux through face
-            mf_data(index_f) = calc_mass_flux(u_data, v_data, &
-                 p_data, dpdx_data, dpdy_data, &
-                 invAu_data, invAv_data, &
-                 loc_f)
+            mf_data(index_f) = calc_mass_flux(u, v, &
+                                              p_data, dpdx_data, dpdy_data, &
+                                              invAu_data, invAv_data, &
+                                              loc_f)
           end if
         end if
-        
+
         mib = mib + mf_data(index_f) * face_area
       end do
 
@@ -668,8 +643,6 @@ contains
     end do
 
     call restore_vector_data(mf%values, mf_data)
-    call restore_vector_data(u%values, u_data)
-    call restore_vector_data(v%values, v_data)
     call restore_vector_data(p%values, p_data)
     call restore_vector_data(p%x_gradients, dpdx_data)
     call restore_vector_data(p%y_gradients, dpdy_data)
@@ -686,38 +659,37 @@ contains
     call update(mf%values)
 
     mib = norm(b, 2)
-    !if (par_env%proc_id == par_env%root) then
-    !  print *, "SIMPLE intermediate mass imbalance: " // str(mib)
-    !end if
 
     ! Pressure residual
     residuals(varp) = mib
     
   end subroutine compute_mass_imbalance
 
-  !>  Corrects the pressure field, using explicit underrelaxation
+  !> Corrects the pressure field, using explicit underrelaxation
   subroutine update_pressure(p_prime, p)
 
     use case_config, only: pressure_relax
 
     ! Arguments
-    class(field), intent(in) :: p_prime   !< pressure correction
-    class(field), intent(inout) :: p      !< the pressure field being corrected
+    class(field), intent(in) :: p_prime !< pressure correction
+    class(field), intent(inout) :: p    !< the pressure field being corrected
 
     call axpy(pressure_relax, p_prime%values, p%values)
-    
+
   end subroutine update_pressure
 
-  !>  Corrects the velocity field using the pressure correction gradient
+  !> Corrects the velocity field using the pressure correction gradient
   subroutine update_velocity(mesh, invAu, invAv, p_prime, u, v)
 
-    use vec, only : zero_vector
-    
+    use vec, only: zero_vector
+
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh             !< The mesh
-    class(ccs_vector), intent(in) :: invAu, invAv   !< The inverse x, y momentum equation diagonal coefficients
-    class(field), intent(inout) :: p_prime          !< The pressure correction
-    class(field), intent(inout) :: u, v             !< The x, y velocities being corrected
+    class(ccs_mesh), intent(in) :: mesh    !< The mesh
+    class(ccs_vector), intent(in) :: invAu !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(in) :: invAv !< The inverse y momentum equation diagonal coefficient
+    class(field), intent(inout) :: p_prime !< The pressure correction
+    class(field), intent(inout) :: u       !< The x velocities being corrected
+    class(field), intent(inout) :: v       !< The y velocities being corrected
 
     ! First update gradients
     call zero_vector(p_prime%x_gradients)
@@ -734,17 +706,18 @@ contains
 
     call update(u%values)
     call update(v%values)
-    
+
   end subroutine update_velocity
 
-  !>  Corrects the face velocity flux using the pressure correction
+  !> Corrects the face velocity flux using the pressure correction
   subroutine update_face_velocity(mesh, invAu, invAv, p_prime, mf)
 
-    type(ccs_mesh), intent(in) :: mesh              !< The mesh
-    class(ccs_vector), intent(in) :: invAu, invAv   !< The inverse x, y momentum equation diagonal coefficients
-    class(field), intent(inout) :: p_prime          !< The pressure correction
-    class(field), intent(inout) :: mf               !< The face velocity being corrected
-    
+    type(ccs_mesh), intent(in) :: mesh                               !< The mesh
+    class(ccs_vector), intent(in) :: invAu                           !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(in) :: invAv                           !< The inverse y momentum equation diagonal coefficient
+    class(field), intent(inout) :: p_prime                           !< The pressure correction
+    class(field), intent(inout) :: mf                                !< The face velocity being corrected
+
     integer(ccs_int) :: i
 
     real(ccs_real) :: mf_prime
@@ -770,12 +743,12 @@ contains
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
     call get_vector_data(mf%values, mf_data)
-    
-    allocate(zero_arr(size(pp_data)))
+
+    allocate (zero_arr(size(pp_data)))
     zero_arr(:) = 0.0_ccs_real
 
     ! XXX: This should really be a face loop
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
@@ -785,10 +758,7 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            mf_prime = calc_mass_flux(zero_arr, zero_arr, &
-                 pp_data, zero_arr, zero_arr, &
-                 invAu_data, invAv_data, &
-                 loc_f)
+            mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, invAu_data, invAv_data, loc_f)
 
             call get_local_index(loc_f, index_f)
             mf_data(index_f) = mf_data(index_f) + mf_prime
@@ -797,7 +767,7 @@ contains
       end do
     end do
 
-    deallocate(zero_arr)
+    deallocate (zero_arr)
 
     call restore_vector_data(p_prime%values, pp_data)
     call restore_vector_data(invAu, invAu_data)
@@ -807,7 +777,7 @@ contains
     call update(mf%values)
     ! Update vector on exit (just in case)
     call update(p_prime%values)
-    
+
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
@@ -832,7 +802,6 @@ contains
     if (first_time) then
       if (par_env%proc_id == par_env%root) then
         write(*,*)
-        !write(*,'(a6,1x,4(a12,1x))') 'Iter','u','v','w','p'
         write(*,'(a6)', advance='no') 'Iter'
         if (u_sol) write(*,'(1x,a12)', advance='no') 'u'
         if (v_sol) write(*,'(1x,a12)', advance='no') 'v'
@@ -852,14 +821,14 @@ contains
     
   end subroutine check_convergence
 
-  !>  Applies implicit underrelaxation to an equation
+  !v Applies implicit underrelaxation to an equation
   !
-  !> @description Extracts the diagonal coefficient of a matrix and divides by the URF, adding a
-  !!              proportional explicit term to the RHS vector.
+  !  Extracts the diagonal coefficient of a matrix and divides by the URF, adding a
+  !  proportional explicit term to the RHS vector.
   subroutine underrelax(mesh, alpha, phi, diag, M, b)
 
-    use mat, only : set_matrix_diagonal
-    
+    use mat, only: set_matrix_diagonal
+
     type(ccs_mesh), intent(in) :: mesh
     real(ccs_real), intent(in) :: alpha
     class(field), intent(in) :: phi
@@ -884,7 +853,7 @@ contains
     call get_vector_data(b, b_data)
 
     call dprint("UR: apply UR")
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       diag_data(i) = diag_data(i) / alpha
 
       b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi_data(i)
@@ -897,7 +866,7 @@ contains
 
     call dprint("UR: Set matrix diagonal")
     call set_matrix_diagonal(diag, M)
-    
+
   end subroutine underrelax
-  
+
 end submodule pv_coupling_simple

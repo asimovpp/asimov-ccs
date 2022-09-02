@@ -24,15 +24,23 @@
 
 #-----------------------------------------------------------------------------#
 
-build_ccs_gnu:
+debug_build_gnu:
   extends: .setup_gnu
   script:
-    - HOME=${CI_HOME} CMP=gnu make all
+    - HOME=${CI_HOME} CMP=gnu BUILD=debug make all
+  allow_failure: true
 
-test_ccs_gnu:
+build_gnu:
+  extends: .setup_gnu
+  script:
+    - HOME=${CI_HOME} CMP=gnu make obj
+  artifacts:
+    paths: [obj/]
+
+test_gnu:
   needs: 
-    - job: build_ccs_gnu
-      artifacts: false
+    - job: build_gnu
+      artifacts: true
   extends: 
     - .setup_gnu
     - .test_common
@@ -41,15 +49,23 @@ test_ccs_gnu:
 
 #-----------------------------------------------------------------------------#
 
-build_ccs_intel:
+debug_build_intel:
   extends: .setup_intel
   script:
-    - HOME=${CI_HOME} CMP=intel make all
+    - HOME=${CI_HOME} CMP=intel BUILD=debug make all
+  allow_failure: true
 
-test_ccs_intel:
+build_intel:
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intel make obj
+  artifacts:
+    paths: [obj/]
+
+test_intel:
   needs: 
-    - job: build_ccs_intel
-      artifacts: false
+    - job: build_intel
+      artifacts: true
   extends: 
     - .setup_intel
     - .test_common
@@ -58,15 +74,23 @@ test_ccs_intel:
 
 #-----------------------------------------------------------------------------#
 
-build_ccs_intelx:
+debug_build_intelx:
   extends: .setup_intel
   script:
-    - HOME=${CI_HOME} CMP=intelx make all
+    - HOME=${CI_HOME} CMP=intelx BUILD=debug make all
+  allow_failure: true
 
-test_ccs_intelx:
+build_intelx:
+  extends: .setup_intel
+  script:
+    - HOME=${CI_HOME} CMP=intelx make obj
+  artifacts:
+    paths: [obj/]
+
+test_intelx:
   needs: 
-    - job: build_ccs_intelx
-      artifacts: false
+    - job: build_intelx
+      artifacts: true
   extends: 
     - .setup_intel
     - .test_common
@@ -75,15 +99,23 @@ test_ccs_intelx:
 
 #-----------------------------------------------------------------------------#
 
-build_ccs_cray:
+debug_build_cray:
   extends: .setup_cray
   script:
-    - HOME=${CI_HOME} cray_run_command "CMP=cray make all"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
+  allow_failure: true
 
-test_ccs_cray:
+build_cray:
+  extends: .setup_cray
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"
+  artifacts:
+    paths: [obj/]
+
+test_cray:
   needs: 
-    - job: build_ccs_cray
-      artifacts: false
+    - job: build_cray
+      artifacts: true
   extends: 
     - .setup_cray
     - .test_common
@@ -97,13 +129,13 @@ test_ccs_cray:
 lint_src:
   script: 
     - bash build_tools/lint.sh lint src
-    - bash build_tools/lint.sh score src
+    - bash build_tools/lint.sh score_each_file src
   allow_failure: true
 
 lint_tests:
   script: 
     - bash build_tools/lint.sh lint tests
-    - bash build_tools/lint.sh score tests
+    - bash build_tools/lint.sh score_each_file tests
   allow_failure: true
 
 #-----------------------------------------------------------------------------#
@@ -130,9 +162,9 @@ generate_dev_guide:
 
 #-----------------------------------------------------------------------------#
 
-profile_ccs_gnu:
+profile_gnu:
   needs: 
-    - job: build_ccs_gnu
+    - job: build_gnu
       artifacts: false
   extends: .setup_gnu
   script:
@@ -142,9 +174,9 @@ profile_ccs_gnu:
       - opt_info.txt
   allow_failure: true
 
-profile_ccs_intel:
+profile_intel:
   needs: 
-    - job: build_ccs_intel
+    - job: build_intel
       artifacts: false
   extends: .setup_intel
   script:
@@ -155,9 +187,9 @@ profile_ccs_intel:
       - ./*.html
   allow_failure: true
 
-profile_ccs_cray:
+profile_cray:
   needs: 
-    - job: build_ccs_cray
+    - job: build_cray
       artifacts: false
   extends: .setup_cray
   script:

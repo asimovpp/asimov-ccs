@@ -46,9 +46,9 @@ contains
 
           select case (vec_properties%storage_location)
           case (cell)
-            associate (nhalo => mesh%nhalo, &
-                       nlocal => mesh%nlocal, &
-                       idx_global => mesh%global_indices)
+            associate (nhalo => mesh%topo%halo_num_cells, &
+                       nlocal => mesh%topo%local_num_cells, &
+                       idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo
                 global_halo_indices(i) = idx_global(i + nlocal) - 1_ccs_int
@@ -63,7 +63,7 @@ contains
             v%ghosted = .true.
           case (face)
             call VecCreate(par_env%comm, v%v, ierr)
-            call VecSetSizes(v%v, mesh%nfaces_local, PETSC_DECIDE, ierr)
+            call VecSetSizes(v%v, mesh%topo%num_faces, PETSC_DECIDE, ierr)
 
             ! Vector doesn't have ghost points, store this information
             v%ghosted = .false.

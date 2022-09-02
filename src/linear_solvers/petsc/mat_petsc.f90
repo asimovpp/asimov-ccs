@@ -39,7 +39,7 @@ contains
         call MatCreate(par_env%comm, M%M, ierr)
 
         associate (mesh => mat_properties%mesh)
-          call MatSetSizes(M%M, mesh%nlocal, mesh%nlocal, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+          call MatSetSizes(M%M, mesh%topo%local_num_cells, mesh%topo%local_num_cells, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
         end associate
 
         if (ierr == 0) then

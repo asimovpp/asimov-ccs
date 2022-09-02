@@ -15,7 +15,6 @@ All components can be compiled individually without concern of linking incompata
 Some extra scripts are used to work around inflexibilities in Makefiles: 
 
 - `filter-out.py` : filters out filenames from a list without taking the path into account
-- `fix_makefile.py` : brute force fix to adding the compile command to all file dependency rules 
 
 Additional information can be provided to the build system using doxygen build tags. For example, `!> @build mpi` or `!> @build petsc`. Multiple tags can be put on a single line: `!> @build mpi petsc`. This information could be used to know when to add compile flags for required libraries/headers, though this has not been added to the Makefile yet. 
 Procesisng tags is handled by `process_build_tags.py`, which outputs a variable that can be used in a Makefile rule, e.g. `PETSC_OBJ = file1.o file2.o`.
@@ -27,7 +26,7 @@ Once all object files are built, they need to be linked together according to a 
 
 First, some linking files are populated automatically. `process_dependencies.py` can read the build dependencies produced by `makedepf90` and process them into a graph. Nodes represent files and directed edges represent `use` relationships (e.g. if A contains `use B` then "A <- B" will appear in the graph). The graph can be visualised and analysed. The main analysis that is used in the link rule generation is finding the "internal" nodes of the graph which are here defined as nodes that have one or more outgoing edges, i.e. it the files are used by some other file. This set represents all nodes that are not submodules, programs and lone nodes. This set of files can be automatically added to the link rule because they do not have multiple possible implementations. 
 
-Second, a config file is processed to add user chosen component implementations; this is done in `generate_link_deps.py`. The user config specifies a "main" (which is matched directly with a filename containing the Fortran `program`) and "options". Options can either be groupings of component implementation choices (e.g. parallel: poisson) or individual components to override earlier choices. The `config_mapping.yaml` file provides the mapping from user-facing config keywords to implementation filenames.
+Second, a config file is processed to add user chosen component implementations; this is done in `generate_link_deps.py`. The user config specifies a "main" (which is matched directly with a filename containing the Fortran `program`) and "options". Options can either be groupings of component implementation choices (e.g. base: mpi_petsc) or individual components to override earlier choices. The `config_mapping.yaml` file provides the mapping from user-facing config keywords to implementation filenames. Components that do not appear in `config_mapping.yaml` can be specified with `extra:` and will be added to the link line directly; single items or lists can be specified.
 
 It is possible for a user to provide a configuration that cannot be linked or run. Such cases could be caught automatically at configure/link time given comprehensive compatability rules, but this is not implemented at the moment.
 
@@ -51,7 +50,8 @@ The `main` in the configuration has to be equal to the name of the test program 
 
 The configuration file needs to have one or more comments starting with `RUN:` that say how the test should be executed. 
 The test case fails if any of the RUN commands fail.
-`# RUN: %build_test %s %t1` will compile the test case (identified with the macro `%s`) and store the executable in `t1`.
+`# RUN: %build_test %s %t1 mytest.f90` will compile the test case (identified with the macro `%s`) and store the executable in `t1`.
+Note that the program file name (`mytest.f90` in this case) has to be specified as well; multiple files can be specified if there are, for example, utilities shared between multiple test programs.
 This can then be executed with, for example `# RUN: %mpirun -n 4 %t1` (note, '%mpirun' is a macro that gets resolved to the mpi invocation command set in the used Makefile arch file).
 If a compiled test case returns non-zero, the test case has failed.
 
@@ -87,6 +87,9 @@ Invoke the linter via the utility script using: `bash build_tools/lint.sh ACTION
 Whitespace errors can largely be fixed automatically using fprettify. Install via pip: `pip install fprettify`.
 The config file `.fprettify.rc` is set up to match as closely as possible the configuration of flint, and should be picked up automatically if `fprettify` is run from the root directory of ccs.
 
-Use `fprettify FILE` to fix whitespace in FILE. To see the changes in stdout add `--stdout` or to see the diff add `--diff`; both flags prevent FILE from being changed.
+Use `fprettify FILE` to fix whitespace in FILE. To see the changes in stdout add `--stdout` or to see the diff add `--diff`; both flags prevent FILE from being changed. The `build_tools/lint.sh` script provides a `fprettify` ACTION with a few extra fixes after the application of fprettify. 
 
+## Normal linting process
+1. Do `bash build_tools/lint.sh fprettify TARGET` where TARGET is the file or directory to lint. This will fix many issues automatically.
+2. Do `bash build_tools/lint.sh lint TARGET` to get more detailed linting output (but no automatic fixes). Note that some errors are not actually errors - this is a limitation of regex based linters.
 
