@@ -9,6 +9,8 @@ relaxation_factor:
   v: 0.9
   p: 0.1
 
+target_residual: 1.0e-10
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:
@@ -23,8 +25,6 @@ relaxation_factor:
 
 #init: 
 #  type: user
-
-target_residual: 1.0e-10
 
 #monitor_cell: 1990
 
