@@ -35,7 +35,8 @@ program scalar_advection
   class(field), allocatable :: mf !< Prescribed face velocity field
   class(field), allocatable :: scalar
 
-  integer(ccs_int) :: cps = 50 !< Default value for cells per side
+  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
 
   double precision :: start_time
   double precision :: end_time
@@ -75,7 +76,7 @@ program scalar_advection
   call set_advection_velocity(mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, mesh, cps, M, source)
+  call compute_fluxes(scalar, mf, mesh, direction, M, source)
 
   call update(M) ! parallel assembly for M
 

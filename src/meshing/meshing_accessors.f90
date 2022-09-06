@@ -16,7 +16,7 @@ contains
     integer(ccs_int), intent(in) :: index_p         !< the index of the cell whose face is being accessed.
     integer(ccs_int), intent(in) :: cell_face_ctr   !< the cell-local index of the face.
     type(face_locator), intent(out) :: loc_f        !< the face locator object linking a cell-relative
-                                                    !< index with the mesh.
+    !< index with the mesh.
     loc_f%mesh => mesh
     loc_f%index_p = index_p
     loc_f%cell_face_ctr = cell_face_ctr
@@ -36,7 +36,7 @@ contains
 
     ! XXX: Potentially expensive...
     if (index_p > mesh%topo%total_num_cells) then
-      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // str(mesh%topo%local_num_cells))
+      call error_abort("ERROR: trying to access cell I don't have access to."  //  str(index_p)  //  str(mesh%topo%local_num_cells))
     end if
   end subroutine set_cell_location
 
@@ -46,10 +46,10 @@ contains
   !  access the nth neighbour of cell i.
   module subroutine set_neighbour_location(loc_p, nb_counter, loc_nb)
     type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell
-                                                   !< whose neighbour is being accessed.
+    !< whose neighbour is being accessed.
     integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
     type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a
-                                                   !< cell-relative index with the mesh.
+    !< cell-relative index with the mesh.
 
     loc_nb%mesh => loc_p%mesh
     loc_nb%index_p = loc_p%index_p
@@ -71,7 +71,7 @@ contains
                i => loc_nb%index_p, &
                j => loc_nb%nb_counter)
       if (mymesh%topo%nb_indices(j, i) == i) then
-        call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
+        call error_abort("ERROR: attempted to set self as neighbour. Cell: "  //  str(i)  //  str(j))
       end if
     end associate
   end subroutine set_neighbour_location

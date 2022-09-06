@@ -9,6 +9,8 @@ relaxation_factor:
   v: 0.9
   p: 0.1
 
+target_residual: 1.0e-10
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:
@@ -23,8 +25,6 @@ relaxation_factor:
 
 #init: 
 #  type: user
-
-#target_residual: 1.0e-10
 
 #monitor_cell: 1990
 
@@ -60,72 +60,52 @@ variables:
   variable_4:
     name: p
     type: central
+  variable_5:
+    name: p_prime
+    type: central
 
 boundaries:
   n_boundaries: 6
   boundary_1: 
     name: left
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
+  boundary_2:
+    name: right
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
+  boundary_3:
+    name: bottom
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
   boundary_4:
     name: top
+    type: dirichlet
+    value: 0
     variable_u:
       type: dirichlet
       value: 1
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
-  boundary_2:
-    name: right
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
-  boundary_3:
-    name: bottom
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
   boundary_5:
     name: back
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
+    type: neumann
+    value: 0
   boundary_6:
     name: front
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
+    type: neumann
+    value: 0

@@ -29,9 +29,9 @@ module types
   !> Container type for setting values in a vector.
   type, public :: vector_values
     integer(ccs_int), dimension(:), allocatable :: global_indices !< Array of (global) indices to set values
-                                                                  !< on, must be same size as values array.
+    !< on, must be same size as values array.
     real(ccs_real), dimension(:), allocatable :: values           !< Array of values, must be same size as
-                                                                  !< index array.
+    !< index array.
     integer(ccs_int) :: setter_mode                               !< Which mode to use when setting values?
     integer(ccs_int) :: current_entry                             !< Which entry are we currently working on?
   end type vector_values
@@ -48,8 +48,8 @@ module types
     integer(ccs_int), dimension(:), allocatable :: global_row_indices !< Array of (global) row indices to set values on.
     integer(ccs_int), dimension(:), allocatable :: global_col_indices !< Array of (global) column indices to set values on.
     real(ccs_real), dimension(:), allocatable :: values     !< Array of values, must be logically 2D and
-                                                            !< of size = size(row_indices) * size(col_indices). Uses
-                                                            !< row-major ordering.
+    !< of size = size(row_indices) * size(col_indices). Uses
+    !< row-major ordering.
     integer(ccs_int) :: setter_mode                         !< Which mode to use when setting values?
     integer(ccs_int) :: current_row, current_col            !< Which entry are we currently working on?
   end type matrix_values
@@ -78,39 +78,43 @@ module types
     integer(ccs_int) :: global_num_cells                              !< Global number of cells
     integer(ccs_int) :: local_num_cells                               !< Local number of cells
     integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
+    integer(ccs_int) :: global_num_vertices                           ! Global number of vertices
     integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells        
     integer(ccs_int) :: global_num_faces                              !< Global number of faces
     integer(ccs_int) :: num_faces                                     !< Local number of faces
     integer(ccs_int) :: max_faces                                     !< Maximum number of faces per cell
     integer(ccs_int), dimension(:), allocatable :: global_indices         !< The global index of cells (local + halo)
     integer(ccs_int), dimension(:, :), allocatable :: global_face_indices !< Global list of faces indices
+    integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices
     integer(ccs_int), dimension(:, :), allocatable :: face_indices        !< Cell face index in local face vector (face, cell)
     integer(ccs_int), dimension(:, :), allocatable :: nb_indices      !< Cell face index in local face vector (face, cell)
     integer(ccs_int), dimension(:), allocatable :: num_nb             !< The local number of neighbours per cell
     integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
     integer(ccs_int), dimension(:), allocatable :: face_cell1         !< Array of 1st face cells
     integer(ccs_int), dimension(:), allocatable :: face_cell2         !< Array of 2nd face cells
-    integer(ccs_long), dimension(:), allocatable :: xadj              !< Array that points to where in adjncy the list for each vertex 
-                                                                      !< begins and ends  - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: xadj              !< Array that points to where in adjncy the list for each vertex
+    !< begins and ends  - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjncy            !< Array storing adjacency lists for each vertex consecutively
-                                                                      !< - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: vtxdist           !< Array that indicates vertices local to a processor. Rank p_i stores 
-                                                                      !< the vertices from vtxdist[i] up to (but not including) vertex 
-                                                                      !< vtxdist[i + 1] - name from ParMETIS
+    !< - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vtxdist           !< Array that indicates vertices local to a processor. Rank p_i stores
+    !< the vertices from vtxdist[i] up to (but not including) vertex
+    !< vtxdist[i + 1] - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: vwgt              !< Weights on vertices - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjwgt            !< Weights on edges - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: local_partition   !< Local partition array
-    integer(ccs_long), dimension(:), allocatable :: global_partition  !< Local partition array    
-  end type topology  
+    integer(ccs_long), dimension(:), allocatable :: global_partition  !< Global partition array
+  end type topology
 
   !> Geometry type
   type, public :: geometry
     real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
-    real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas
+    real(ccs_real) :: scalefactor                                       !< Scalefactor 
+    real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas (face, cell)
     real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
     real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
     real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
     real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
+    real(ccs_real), dimension(:, :, :), allocatable :: vert_coords      !< Vertex coordinates (dimension, vertex, cell)
   end type geometry
 
   !> Mesh type
@@ -126,13 +130,13 @@ module types
     real(ccs_real), dimension(:), allocatable :: values
   end type bc_config
 
-  !v Wrapper class for ccs_vector 
+  !v Wrapper class for ccs_vector
   !
   !  A wrapper is required for ccs_vector in order to allow the creation of
   !  an allocatable array of ccs_vectors. ccs_vectors need to be allocatable themselves,
   !  but it is not possible to have an allocatable array with allocatable elements. Having a wrapper
   !  gets around this issue by essentially enabling the creation of a dynamic array of pointers
-  !  which point to ccs_vector elements. This is used in, e.g. the fields datatype to store 
+  !  which point to ccs_vector elements. This is used in, e.g. the fields datatype to store
   !  (an unknown number of) past values for use by timestepping schemes.
   type :: ccs_vector_ptr
     class(ccs_vector), allocatable :: vec

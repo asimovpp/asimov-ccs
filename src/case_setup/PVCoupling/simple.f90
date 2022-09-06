@@ -37,6 +37,13 @@ program simple
   double precision :: start_time
   double precision :: end_time
 
+  real(ccs_real) :: res_target = 1.0e-6 ! Default target residual
+
+  logical :: u_sol = .true.  ! Solve u
+  logical :: v_sol = .true.  ! Solve v
+  logical :: w_sol = .false. ! Don't solve w
+  logical :: p_sol = .true.  ! Solve p
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
@@ -108,7 +115,8 @@ program simple
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, square_mesh, cps, it_start, it_end, u, v, w, p, pp, mf)
+  call solve_nonlinear(par_env, square_mesh, it_start, it_end, res_target, &
+                       u_sol, v_sol, w_sol, p_sol, u, v, w, p, pp, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)

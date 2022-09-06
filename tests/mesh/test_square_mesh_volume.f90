@@ -35,7 +35,7 @@ program test_square_mesh_volume
     vol = 0.0_ccs_real
     nneg_vol = 0
 
-    print*,"mesh%topo%local_num_cells =", mesh%topo%local_num_cells
+    print*, "mesh%topo%local_num_cells = ", mesh%topo%local_num_cells
 
     do i = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, i, loc_p)
@@ -51,19 +51,19 @@ program test_square_mesh_volume
       call MPI_Allreduce(vol, vol_global, 1, real_type, MPI_SUM, par_env%comm, ierr)
       call MPI_Allreduce(nneg_vol, nneg_vol_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
     class default
-      write (message,*) "ERROR: Unknown parallel environment!"
+      write (message, *) "ERROR: Unknown parallel environment."
       call stop_test(message)
     end select
 
     ! XXX: This would be a good candidate for a testing library
     if (abs(expected_vol - vol_global) > 1.0e-8) then
-      print *, mesh%geo%h, l/n !TODO: not sure if this should be put inside message
-      write (message,*) "FAIL: expected ", expected_vol, " got ", vol_global
+      print *, mesh%geo%h, l/n ! TODO: not sure if this should be put inside message
+      write (message, *) "FAIL: expected ", expected_vol, " got ", vol_global
       call stop_test(message)
     end if
 
     if (nneg_vol_global /= 0) then
-      write (message, *) "FAIL: encountered negative cell volume!"
+      write (message, *) "FAIL: encountered negative cell volume."
       call stop_test(message)
     end if
   end do

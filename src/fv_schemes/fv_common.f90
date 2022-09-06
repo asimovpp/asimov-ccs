@@ -23,13 +23,13 @@ submodule(fv) fv_common
 contains
 
   !> Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, mesh, cps, M, vec)
-    class(field), intent(in) :: phi         !< scalar field structure
-    class(field), intent(in) :: mf          !< mass flux field structure
-    type(ccs_mesh), intent(in) :: mesh      !< the mesh being used
-    integer(ccs_int), intent(in) :: cps     !< the number of cells per side in the (square) mesh
-    class(ccs_matrix), intent(inout) :: M   !< Data structure containing matrix to be filled
-    class(ccs_vector), intent(inout) :: vec !< Data structure containing RHS vector to be filled
+  module subroutine compute_fluxes(phi, mf, mesh, component, M, vec)
+    class(field), intent(in) :: phi
+    class(field), intent(in) :: mf
+    type(ccs_mesh), intent(in) :: mesh
+    integer(ccs_int), intent(in) :: component
+    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(inout) :: vec
 
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
@@ -40,12 +40,8 @@ contains
 
       ! Loop over cells computing advection and diffusion fluxes
       n_int_cells = mesh%topo%max_faces + 1 ! 1 neighbour per face + central cell
-      call dprint("CF: interior")
-      call compute_interior_coeffs(phi, mf_data, mesh, n_int_cells, M)
-
-      ! Loop over boundaries
-      call dprint("CF: boundaries")
-      call compute_boundary_coeffs(phi, mf_data, mesh, cps, M, vec)
+      call dprint("CF: compute coeffs")
+      call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
@@ -54,15 +50,18 @@ contains
   end subroutine compute_fluxes
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_interior_coeffs(phi, mf, mesh, n_int_cells, M)
+  subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, M, b)
     class(field), intent(in) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
+    integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
     integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
-    class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
+    class(ccs_matrix), intent(inout) :: M          !< equation system matrix
+    class(ccs_vector), intent(inout) :: b          !< RHS vector
 
     type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
+    type(vector_values) :: b_coeffs
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
@@ -72,6 +71,7 @@ contains
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
     real(ccs_real) :: adv_coeff, adv_coeff_total
+    real(ccs_real) :: bc_value
     real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
@@ -84,8 +84,12 @@ contains
     call create_matrix_values(mat_val_spec, mat_coeffs)
     call set_mode(add_mode, mat_coeffs)
 
+    call create_vector_values(n_int_cells, b_coeffs)
+    call set_mode(add_mode, b_coeffs)
+
     do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(mat_coeffs)
+      call clear_entries(b_coeffs)
 
       ! Calculate contribution from neighbours
       call set_cell_location(mesh, index_p, loc_p)
@@ -96,9 +100,12 @@ contains
 
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
+
       do j = 1, nnb
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
+        call set_face_location(mesh, index_p, j, loc_f)
+        call get_face_normal(loc_f, face_normal)
 
         if (.not. is_boundary) then
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
@@ -106,9 +113,7 @@ contains
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
-          call get_face_normal(loc_f, face_normal)
           call get_local_index(loc_f, index_f)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
@@ -135,92 +140,9 @@ contains
           call set_entry(adv_coeff + diff_coeff, mat_coeffs)
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
+
         else
-          call set_col(-1, mat_coeffs)
-          call set_entry(0.0_ccs_real, mat_coeffs)
-        end if
-      end do
-
-      call set_col(global_index_p, mat_coeffs)
-      call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
-      call set_values(mat_coeffs, M)
-    end do
-
-    deallocate (mat_coeffs%global_row_indices)
-    deallocate (mat_coeffs%global_col_indices)
-    deallocate (mat_coeffs%values)
-  end subroutine compute_interior_coeffs
-
-  !v Computes the value of the scalar field on the boundary based on linear interpolation between
-  !  values provided on box corners
-  subroutine compute_boundary_values(phi, index_nb, bc_value)
-    class(field), intent(in) :: phi         !< the field for which boundary values are being computed
-    integer, intent(in) :: index_nb         !< index of neighbour
-    real(ccs_real), intent(out) :: bc_value !< the value of the scalar field at the specified boundary
-
-    ! local variables
-    integer(ccs_int) :: index_bc
-
-    call get_bc_index(phi, index_nb, index_bc)
-
-    select case (phi%bcs%bc_types(index_bc))
-    case (bc_type_dirichlet)
-      bc_value = phi%bcs%values(index_bc)
-    case default
-      bc_value = 0.0_ccs_real
-      call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
-    end select
-  end subroutine compute_boundary_values
-
-  !> Computes the matrix coefficient for cells on the boundary of the mesh
-  subroutine compute_boundary_coeffs(phi, mf, mesh, cps, M, b)
-    class(field), intent(in) :: phi                !< scalar field structure
-    real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
-    type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
-    integer(ccs_int), intent(in) :: cps            !< number of cells per side
-    class(ccs_matrix), intent(inout) :: M          !< Matrix structure being assigned
-    class(ccs_vector), intent(inout) :: b          !< vector structure being assigned
-
-    type(matrix_values_spec) :: mat_val_spec
-    type(matrix_values) :: mat_coeffs
-    type(vector_values) :: b_coeffs
-    type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    type(face_locator) :: loc_f
-    integer(ccs_int) :: global_index_p, index_p
-    integer(ccs_int) :: j
-    integer(ccs_int) :: row, col
-    integer(ccs_int) :: nnb, index_nb
-    real(ccs_real) :: face_area
-    real(ccs_real) :: diff_coeff
-    real(ccs_real) :: adv_coeff
-    real(ccs_real) :: bc_value
-    logical :: is_boundary
-
-    integer(ccs_int) :: index_f
-
-    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
-    call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
-    call create_matrix_values(mat_val_spec, mat_coeffs)
-    call set_mode(add_mode, mat_coeffs)
-
-    call create_vector_values(1_ccs_int, b_coeffs)
-    call set_mode(add_mode, b_coeffs)
-
-    do index_p = 1, mesh%topo%local_num_cells
-      call set_cell_location(mesh, index_p, loc_p)
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
-
-      ! Calculate contribution from neighbours
-      do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-        if (is_boundary) then
-          ! call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-
-          call set_face_location(mesh, index_p, j, loc_f)
           call get_face_area(loc_f, face_area)
           call get_local_index(loc_f, index_f)
 
@@ -235,31 +157,101 @@ contains
           end select
           adv_coeff = adv_coeff * (mf(index_f) * face_area)
 
-          call calc_cell_coords(global_index_p, cps, row, col)
-          call compute_boundary_values(phi, index_nb, bc_value)
-
-          call clear_entries(mat_coeffs)
-          call clear_entries(b_coeffs)
+          call compute_boundary_values(phi, component, loc_p, loc_f, face_normal, bc_value)
 
           call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
-          call set_values(b_coeffs, b)
 
           call set_row(global_index_p, mat_coeffs)
           call set_col(global_index_p, mat_coeffs)
           call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
-          call set_values(mat_coeffs, M)
         end if
       end do
+
+      call set_values(b_coeffs, b)
+      call set_col(global_index_p, mat_coeffs)
+      call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
+      call set_values(mat_coeffs, M)
     end do
 
     deallocate (mat_coeffs%global_row_indices)
     deallocate (mat_coeffs%global_col_indices)
     deallocate (mat_coeffs%values)
-    deallocate (b_coeffs%global_indices)
-    deallocate (b_coeffs%values)
+  end subroutine compute_coeffs
 
-  end subroutine compute_boundary_coeffs
+  !> Computes the value of the scalar field on the boundary
+  module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
+                                            x_gradients, y_gradients, z_gradients)
+    class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
+    integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
+    type(cell_locator), intent(in) :: loc_p                 !< location of cell
+    type(face_locator), intent(in) :: loc_f                 !< location of face
+    real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
+    real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
+    real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
+
+    ! local variables
+    integer(ccs_int) :: index_bc
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: index_p
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: i
+    real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real), dimension(ndim) :: parallel_component_map
+    real(ccs_real), dimension(ndim) :: phi_face_parallel_component
+    real(ccs_real) :: phi_face_parallel_component_norm
+    real(ccs_real) :: phi_face_parallel_component_portion
+    real(ccs_real) :: normal_norm
+    real(ccs_real), dimension(:), pointer :: phi_values
+
+    call get_local_index(loc_p, index_p)
+    call set_neighbour_location(loc_p, loc_f%cell_face_ctr, loc_nb)
+    call get_local_index(loc_nb, index_nb)
+    call get_bc_index(phi, index_nb, index_bc)
+
+    select case (phi%bcs%bc_types(index_bc))
+    case (bc_type_dirichlet)
+      bc_value = phi%bcs%values(index_bc)
+    case (bc_type_extrapolate)
+      call get_vector_data(phi%values, phi_values)
+      call get_distance(loc_p, loc_f, dx)
+
+      bc_value = phi_values(index_p) + (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
+
+      call restore_vector_data(phi%values, phi_values)
+    case (bc_type_sym)
+      select case (component)
+      case (0)
+        parallel_component_map = (/1, 1, 1/)
+      case (1)
+        parallel_component_map = (/0, 1, 1/)
+      case (2)
+        parallel_component_map = (/1, 0, 1/)
+      case (3)
+        parallel_component_map = (/1, 1, 0/)
+      case default
+        call error_abort("invalid component provided " // str(component))
+      end select
+      ! Only keep the components of phi that are parallel to the surface
+      phi_face_parallel_component_norm = 0
+      normal_norm = 0
+      do i = 1, ndim
+        phi_face_parallel_component(i) = parallel_component_map(i) * normal(i)
+        phi_face_parallel_component_norm = phi_face_parallel_component_norm + &
+                                           phi_face_parallel_component(i) * phi_face_parallel_component(i)
+        normal_norm = normal_norm + normal(i) * normal(i)
+      end do
+      phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm / normal_norm)
+
+      ! Get value of phi at boundary cell
+      call get_vector_data(phi%values, phi_values)
+      bc_value = phi_face_parallel_component_portion * phi_values(index_p)
+      call restore_vector_data(phi%values, phi_values)
+    case default
+      bc_value = 0.0_ccs_real
+      call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
+    end select
+  end subroutine compute_boundary_values
 
   !> Sets the diffusion coefficient
   module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
@@ -294,8 +286,10 @@ contains
   end function calc_diffusion_coeff
 
   !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-  module function calc_mass_flux(u, v, w, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
-    real(ccs_real), dimension(:), intent(in) :: u, v, w             !< arrays containing x, y, z velocities
+  module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
+    class(field), intent(in) :: u_field
+    class(field), intent(in) :: v_field
+    class(field), intent(in) :: w_field
     real(ccs_real), dimension(:), intent(in) :: p                   !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
@@ -304,6 +298,66 @@ contains
     real(ccs_real) :: flux                                          !< The flux across the boundary
 
     ! Local variables
+    logical :: is_boundary                         ! Boundary indicator
+    type(cell_locator) :: loc_p                    ! Primary cell locator
+    type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
+    integer(ccs_int) :: index_nb                   ! Neighbour cell index
+    real(ccs_real) :: flux_corr                    ! Flux correction
+    real(ccs_real), dimension(ndim) :: face_normal ! (local) face-normal array
+    real(ccs_real) :: u_bc, v_bc, w_bc             ! values of u, v and w at boundary
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data ! the vector data for u, v and w
+    integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
+
+    call get_boundary_status(loc_f, is_boundary)
+
+    associate (mesh => loc_f%mesh, &
+               index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
+
+      call set_cell_location(mesh, index_p, loc_p)
+      call set_neighbour_location(loc_p, j, loc_nb)
+      call get_local_index(loc_nb, index_nb)
+
+      call get_face_normal(loc_f, face_normal)
+      if (.not. is_boundary) then
+
+        ! XXX: this is likely expensive inside a loop...
+        call get_vector_data(u_field%values, u_data)
+        call get_vector_data(v_field%values, v_data)
+        call get_vector_data(w_field%values, w_data)
+        flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(x_direction) &
+                                + (v_data(index_p) + v_data(index_nb)) * face_normal(y_direction) &
+                                + (w_data(index_p) + w_data(index_nb)) * face_normal(z_direction))
+        call restore_vector_data(u_field%values, u_data)
+        call restore_vector_data(v_field%values, v_data)
+        call restore_vector_data(w_field%values, w_data)
+
+        if (index_p > index_nb) then
+          ! XXX: making convention to point from low to high cell.
+          flux = -flux
+        end if
+
+        flux_corr = calc_mass_flux(p, dpdx, dpdy, dodz, invAu, invAv, invAw, loc_f)
+        flux = flux + flux_corr
+      else
+        call compute_boundary_values(u_field, x_direction, loc_p, loc_f, face_normal, u_bc)
+        call compute_boundary_values(v_field, y_direction, loc_p, loc_f, face_normal, v_bc)
+        call compute_boundary_values(w_field, z_direction, loc_p, loc_f, face_normal, w_bc)
+        flux = u_bc * face_normal(x_direction) + v_bc * face_normal(y_direction) + w_bc * face_normal(z_direction)
+      end if
+    end associate
+
+  end function calc_mass_flux_uvw
+
+  ! Computes Rhie-Chow correction
+  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdx, invAu, invAv, invAw, loc_f) result(flux)
+    real(ccs_real), dimension(:), intent(in) :: p                   !< array containing pressure
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
+    real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
+    type(face_locator), intent(in) :: loc_f                         !< face locator
+
+    real(ccs_real) :: flux                         !< The flux across the boundary
+
     logical :: is_boundary                         ! Boundary indicator
     type(cell_locator) :: loc_p                    ! Primary cell locator
     type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
@@ -318,22 +372,20 @@ contains
     real(ccs_real) :: invAp                        ! Primary cell inverse momentum coefficient
     real(ccs_real) :: invA_nb                      ! Neighbour cell inverse momentum coefficient
     real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
+    integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
 
     call get_boundary_status(loc_f, is_boundary)
-    if (.not. is_boundary) then
-      associate (mesh => loc_f%mesh, &
-                 index_p => loc_f%index_p, &
-                 j => loc_f%cell_face_ctr)
 
-        call set_cell_location(mesh, index_p, loc_p)
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_local_index(loc_nb, index_nb)
+    associate (mesh => loc_f%mesh, &
+               index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
 
-        call get_face_normal(loc_f, face_normal)
+      call set_cell_location(mesh, index_p, loc_p)
+      call set_neighbour_location(loc_p, j, loc_nb)
+      call get_local_index(loc_nb, index_nb)
 
-        flux = 0.5_ccs_real * ((u(index_p) + u(index_nb)) * face_normal(1) &
-                               + (v(index_p) + v(index_nb)) * face_normal(2) &
-                               + (w(index_p) + w(index_nb)) * face_normal(3))
+      call get_face_normal(loc_f, face_normal)
+      if (.not. is_boundary) then
 
         !
         ! Rhie-Chow correction from Ferziger & Peric
@@ -342,9 +394,9 @@ contains
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(index_nb) - p(index_p)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(1) &
-                                                + (dpdy(index_p) + dpdy(index_nb)) * face_normal(2) &
-                                                + (dpdz(index_p) + dpdz(index_nb)) * face_normal(3))
+        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(x_direction) &
+                                                + (dpdy(index_p) + dpdy(index_nb)) * face_normal(y_direction) &
+                                                + (dpdz(index_p) + dpdz(index_nb)) * face_normal(z_direction))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
@@ -357,20 +409,18 @@ contains
 
         flux_corr = (Vf * invAf) * flux_corr
 
-        ! Apply correction
-        flux = flux + flux_corr
-
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
-          flux = -flux
+          flux_corr = -flux_corr
         end if
-      end associate
-    else
-      ! TODO: Write more general implementation handling BCs
-      flux = 0.0_ccs_real ! XXX: hardcoded zero-flux BC
-    end if
 
-  end function calc_mass_flux
+        ! Apply correction
+        flux = flux_corr
+      else
+        flux = 0.0_ccs_real
+      end if
+    end associate
+  end function calc_mass_flux_no_uv
 
   !> Calculates the row and column indices from flattened vector index. Assumes square mesh
   module subroutine calc_cell_coords(index, cps, row, col)
@@ -386,7 +436,6 @@ contains
   !v Performs an update of the gradients of a field.
   !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !  correctly updated on other PEs. @endnote
-
   module subroutine update_gradient(mesh, phi)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
@@ -417,13 +466,13 @@ contains
     call restore_vector_data(phi%z_gradients, z_gradients_data)
 
     call dprint("Compute x gradient")
-    call update_gradient_component(mesh, 1, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
+    call update_gradient_component(mesh, 1, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
     call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
     call dprint("Compute y gradient")
-    call update_gradient_component(mesh, 2, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%y_gradients)
+    call update_gradient_component(mesh, 2, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%y_gradients)
     call update(phi%y_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
     call dprint("Compute z gradient")
-    call update_gradient_component(mesh, 3, phi%values, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
+    call update_gradient_component(mesh, 3, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
     call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
 
     deallocate (x_gradients_old)
@@ -437,7 +486,7 @@ contains
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
-    class(ccs_vector), intent(in) :: phi !< a cell-centred array of the field whose gradient we want to compute
+    class(field), intent(in) :: phi !< the field whose gradient we want to compute
     real(ccs_real), dimension(:), intent(in) :: x_gradients_old
     real(ccs_real), dimension(:), intent(in) :: y_gradients_old
     real(ccs_real), dimension(:), intent(in) :: z_gradients_old
@@ -447,14 +496,14 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: grad
 
-    integer(ccs_int) :: i
+    integer(ccs_int) :: index_p
     integer(ccs_int) :: j
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: nnb
-    integer(ccs_int) :: nb
+    integer(ccs_int) :: index_nb
 
     real(ccs_real) :: phif
 
@@ -466,36 +515,32 @@ contains
     real(ccs_real) :: V
     integer(ccs_int) :: global_index_p
 
-    real(ccs_real), dimension(ndim) :: dx
-
     call create_vector_values(1_ccs_int, grad_values)
     call set_mode(insert_mode, grad_values)
 
-    call get_vector_data(phi, phi_data)
+    call get_vector_data(phi%values, phi_data)
 
-    do i = 1, mesh%topo%local_num_cells
+    do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(grad_values)
 
       grad = 0.0_ccs_int
 
-      call set_cell_location(mesh, i, loc_p)
+      call set_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_face_location(mesh, i, j, loc_f)
+        call set_face_location(mesh, index_p, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
-
-        if (.not. is_boundary) then
-          call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, nb)
-          phif = 0.5_ccs_real * (phi_data(i) + phi_data(nb)) ! XXX: Need to do proper interpolation
-        else
-          ! XXX: Add boundary condition treatment
-          call get_distance(loc_p, loc_f, dx)
-          phif = phi_data(i) + (x_gradients_old(i) * dx(1) + y_gradients_old(i) * dx(2) + z_gradients_old(i) * dx(3))
-        end if
-
         call get_face_area(loc_f, face_area)
         call get_face_normal(loc_f, face_norm)
+
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_local_index(loc_nb, index_nb)
+        if (.not. is_boundary) then
+          phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
+        else
+          call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif, &
+                                       x_gradients_old, y_gradients_old, z_gradients_old)
+        end if
 
         grad = grad + phif * (face_area * face_norm(component))
       end do
@@ -509,7 +554,7 @@ contains
       call set_values(grad_values, gradients)
     end do
 
-    call restore_vector_data(phi, phi_data)
+    call restore_vector_data(phi%values, phi_data)
 
     deallocate (grad_values%global_indices)
     deallocate (grad_values%values)

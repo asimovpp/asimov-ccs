@@ -38,6 +38,7 @@ contains
       call error_abort(trim(error))
     end if
 
+    call dprint("reading bc config " // bc_field)
     call get_bc_field(config_file, "name", phi)
     call get_bc_field(config_file, "type", phi, required=.false.)
     call get_bc_field(config_file, "value", phi, required=.false.)
@@ -132,7 +133,7 @@ contains
 
     index_tmp = findloc(phi%bcs%ids, -index_nb)
     if (index_tmp(1) == 0) then
-      call error_abort("bc index " // str(index_nb, "(I0)") // " not found")
+      call error_abort("bc index not found. searching for " // str(-index_nb, "(I0)"))
     end if
     index_bc = index_tmp(1)
   end subroutine get_bc_index
