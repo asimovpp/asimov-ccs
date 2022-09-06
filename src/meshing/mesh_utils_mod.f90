@@ -175,6 +175,7 @@ contains
 
     integer(ccs_int) :: i, j, k, n, cell_count
     integer(ccs_int) :: start, end
+    integer(ccs_int) :: vert_per_cell
 
     integer(ccs_long), dimension(1) :: vol_p_start
     integer(ccs_long), dimension(1) :: vol_p_count
@@ -187,7 +188,14 @@ contains
 
     real(ccs_real), dimension(:, :), allocatable :: temp_x_f ! Temp array for face centres
     real(ccs_real), dimension(:, :), allocatable :: temp_n_f ! Temp array for face normals
+    real(ccs_real), dimension(:, :), allocatable :: temp_v_c ! Temp array for vertex coordinates
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
+
+    if(mesh % topo % max_faces == 6) then ! if cell are hexes
+      vert_per_cell = 8 ! 8 vertices per cell
+    else
+      call error_abort("Currently only supporting hex cells.")
+    end if
 
     ! Read attribute "scalefactor"
     call read_scalar(geo_reader, "scalefactor", mesh % geo % scalefactor)
@@ -214,9 +222,10 @@ contains
     ! Read variable "/cell/x"
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, mesh % geo % x_p)
 
-    ! Allocate temporary arrays for face centres, face normals and face areas
+    ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     allocate (temp_x_f(ndim, mesh % topo % global_num_faces))
     allocate (temp_n_f(ndim, mesh % topo % global_num_faces))
+    allocate (temp_v_c(vert_per_cell, mesh % topo % global_num_cells))
     allocate (temp_a_f(mesh % topo % global_num_faces))
 
     f_xn_start = 0
@@ -228,6 +237,11 @@ contains
     ! Read variable "/face/n"
     call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
 
+    f_xn_count(2) = mesh % topo % global_num_cells
+
+    ! Read variable "/vert"
+    call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_v_c)
+
     f_a_start = 0
     f_a_count(1) = mesh % topo % global_num_faces
 
@@ -238,10 +252,11 @@ contains
     start = int(mesh % topo % vtxdist(par_env % proc_id + 1))
     end = int(mesh % topo % vtxdist(par_env % proc_id + 2) - 1)
 
-    ! Allocate face centres, face normals and face areas arrays
+    ! Allocate arrays for face centres, face normals, face areas arrand vertex coordinates
     allocate (mesh % geo % x_f(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells))
     allocate (mesh % geo % face_normals(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells))
     allocate (mesh % geo % face_areas(mesh % topo % max_faces, mesh % topo % local_num_cells))
+    allocate (mesh % geo % vert_coords(ndim, vert_per_cell, mesh % topo % local_num_cells))
 
     cell_count = 1
 
@@ -251,15 +266,27 @@ contains
         n = mesh % topo % global_face_indices(j, k)
 
         do i = 1, ndim ! loop over dimensions
-          ! Map from temp array to mesh
+          ! Map from temp array to mesh for face centres and face normals
           mesh % geo % x_f(i, j, cell_count) = temp_x_f(i, n)
           mesh % geo % face_normals(i, j, cell_count) = temp_n_f(i, n)
         end do
 
+        ! Map from temp array to mesh for face areas
         mesh % geo % face_areas(j, cell_count) = temp_a_f(n)
 
       end do
-      cell_count = cell_count + 1
+
+      do j = 1, vert_per_cell ! loop over all vertices for each cell
+        n = mesh % topo % global_vertex_indices(j, k)
+
+        do i = 1, ndim ! loop over dimensions
+          ! Map from temp array to mesh to vertex coordinates
+          mesh % geo % vert_coords(i, j, cell_count) = temp_v_c(i, n)
+        end do
+
+      end do
+
+      cell_count = cell_count + 1 ! increment cell counter
 
     end do
 
@@ -267,6 +294,7 @@ contains
     deallocate (temp_x_f)
     deallocate (temp_n_f)
     deallocate (temp_a_f)
+    deallocate (temp_v_c)
 
   end subroutine read_geometry
 
