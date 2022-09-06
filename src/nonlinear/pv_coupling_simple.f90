@@ -268,7 +268,6 @@ contains
       call calculate_momentum_pressure_source(mesh, p%x_gradients, vec)
     else if (component == 2) then
       call calculate_momentum_pressure_source(mesh, p%y_gradients, vec)
-    else
     else if (component == 3) then
       call calculate_momentum_pressure_source(mesh, p%z_gradients, vec)
     else
@@ -391,6 +390,7 @@ contains
 
     real(ccs_real), dimension(:), pointer :: invAu_data
     real(ccs_real), dimension(:), pointer :: invAv_data
+    real(ccs_real), dimension(:), pointer :: invAw_data
 
     real(ccs_real) :: Vp
     real(ccs_real) :: V_nb
@@ -653,8 +653,8 @@ contains
           else
             ! Compute mass flux through face
             mf_data(index_f) = calc_mass_flux(u, v, w, &
-                                              p_data, dpdx_data, dpdy_data, &
-                                              invAu_data, invAv_data, &
+                                              p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                              invAu_data, invAv_data, invAw_data, &
                                               loc_f)
           end if
         end if
@@ -796,7 +796,8 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, invAu_data, invAv_data, invAw_data, loc_f)
+             mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
+                  invAu_data, invAv_data, invAw_data, loc_f)
 
             call get_local_index(loc_f, index_f)
             mf_data(index_f) = mf_data(index_f) + mf_prime

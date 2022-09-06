@@ -337,7 +337,7 @@ contains
           flux = -flux
         end if
 
-        flux_corr = calc_mass_flux(p, dpdx, dpdy, dodz, invAu, invAv, invAw, loc_f)
+        flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f)
         flux = flux + flux_corr
       else
         call compute_boundary_values(u_field, x_direction, loc_p, loc_f, face_normal, u_bc)
@@ -350,7 +350,7 @@ contains
   end function calc_mass_flux_uvw
 
   ! Computes Rhie-Chow correction
-  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdx, invAu, invAv, invAw, loc_f) result(flux)
+  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
     real(ccs_real), dimension(:), intent(in) :: p                   !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
@@ -420,7 +420,7 @@ contains
         flux = 0.0_ccs_real
       end if
     end associate
-  end function calc_mass_flux_no_uv
+  end function calc_mass_flux_no_uvw
 
   !> Calculates the row and column indices from flattened vector index. Assumes square mesh
   module subroutine calc_cell_coords(index, cps, row, col)
