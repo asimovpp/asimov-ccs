@@ -15,7 +15,7 @@ module partitioning
   public :: compute_partitioner_input
   public :: compute_connectivity
 
-  interface 
+  interface
 
     !v Partition the mesh
     module subroutine partition_kway(par_env, mesh)
@@ -33,7 +33,7 @@ module partitioning
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
     end subroutine compute_connectivity
- 
-    end interface
+
+  end interface
 
 end module partitioning

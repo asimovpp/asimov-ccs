@@ -1,14 +1,13 @@
-submodule (partitioning) partitioning_common
+submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int
-  use utils, only : str, debug_print
+  use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
 
-implicit none
+  implicit none
 
-  contains
-
+contains
 
   ! Compute the new topology connectivity after partitioning
   module subroutine compute_connectivity(par_env, mesh)
@@ -20,16 +19,16 @@ implicit none
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
     ! Local variables
-    integer(ccs_int), dimension(:,:), allocatable :: tmp_int2d ! Temporary 2D integer array
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
     integer(ccs_int) :: i
-    integer(ccs_int) :: start_index 
-    integer(ccs_int) :: end_index  
-    integer(ccs_int) :: face_nb1  
+    integer(ccs_int) :: start_index
+    integer(ccs_int) :: end_index
+    integer(ccs_int) :: face_nb1
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: num_connections
- 
+
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -46,7 +45,7 @@ implicit none
       mesh%topo%vtxdist(i) = count(mesh%topo%global_partition == (i - 2)) + mesh%topo%vtxdist(i - 1)
     end do
 
-    if(irank == 0) then
+    if (irank == 0) then
       do i = 1, isize + 1
         call dprint("new vtxdist("//str(i)//"): "//str(int(mesh%topo%vtxdist(i))))
       end do    
@@ -103,7 +102,7 @@ implicit none
         mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
       end if
 
-    enddo 
+    end do
 
     ! New number of local connections
     num_connections = sum(tmp_int2d(:, mesh%topo%max_faces+1))
@@ -236,9 +235,9 @@ implicit none
                 tmp2(:) = -1
                 tmp2(1:size(tmp1)) = tmp1(1:size(tmp1))
 
-                deallocate(tmp1)
-                allocate(tmp1, source=tmp2)
-                deallocate(tmp2)
+                deallocate (tmp1)
+                allocate (tmp1, source=tmp2)
+                deallocate (tmp2)
               end if
 
               tmp1(mesh%topo%halo_num_cells) = nbidx
@@ -250,7 +249,7 @@ implicit none
 
           mesh%topo%adjncy(ctr) = nbidx
         end associate
-            
+
         ctr = ctr + 1
       end do ! End j
 
@@ -267,8 +266,8 @@ implicit none
     deallocate(mesh%topo%global_indices)
     allocate(mesh%topo%global_indices, source=tmp2)
 
-    deallocate(tmp1)
-    deallocate(tmp2)
+    deallocate (tmp1)
+    deallocate (tmp2)
 
   end subroutine
 

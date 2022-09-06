@@ -24,12 +24,12 @@ contains
 
   !> Computes fluxes and assign to matrix and RHS
   module subroutine compute_fluxes(phi, mf, mesh, component, M, vec)
-    class(field), intent(in) :: phi             
-    class(field), intent(in) :: mf              
-    type(ccs_mesh), intent(in) :: mesh          
-    integer(ccs_int), intent(in) :: component   
-    class(ccs_matrix), intent(inout) :: M       
-    class(ccs_vector), intent(inout) :: vec     
+    class(field), intent(in) :: phi
+    class(field), intent(in) :: mf
+    type(ccs_mesh), intent(in) :: mesh
+    integer(ccs_int), intent(in) :: component
+    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(inout) :: vec
 
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
@@ -65,8 +65,8 @@ contains
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
     integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
     integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
-    class(ccs_matrix), intent(inout) :: M          !< equation system matrix 
-    class(ccs_vector), intent(inout) :: b          !< RHS vector 
+    class(ccs_matrix), intent(inout) :: M          !< equation system matrix
+    class(ccs_vector), intent(inout) :: b          !< RHS vector
 
     type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
@@ -109,6 +109,7 @@ contains
 
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
+
       do j = 1, nnb
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
@@ -148,6 +149,7 @@ contains
           call set_entry(adv_coeff + diff_coeff, mat_coeffs)
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
+
         else
           call get_local_index(loc_nb, index_nb)
           call get_face_area(loc_f, face_area)
@@ -186,7 +188,7 @@ contains
     deallocate (mat_coeffs%values)
   end subroutine compute_coeffs
 
-  !> Computes the value of the scalar field on the boundary 
+  !> Computes the value of the scalar field on the boundary
   module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                             x_gradients, y_gradients, z_gradients)
     class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
@@ -227,15 +229,15 @@ contains
 
       call restore_vector_data(phi%values, phi_values)
     case (bc_type_sym)
-      select case(component)
+      select case (component)
       case (0)
-        parallel_component_map = (/ 1, 1, 1 /)
+        parallel_component_map = (/1, 1, 1/)
       case (1)
-        parallel_component_map = (/ 0, 1, 1 /)
+        parallel_component_map = (/0, 1, 1/)
       case (2)
-        parallel_component_map = (/ 1, 0, 1 /)
+        parallel_component_map = (/1, 0, 1/)
       case (3)
-        parallel_component_map = (/ 1, 1, 0 /)
+        parallel_component_map = (/1, 1, 0/)
       case default
         call error_abort("invalid component provided " // str(component))
       end select
@@ -248,11 +250,11 @@ contains
                                            phi_face_parallel_component(i) * phi_face_parallel_component(i)
         normal_norm = normal_norm + normal(i) * normal(i)
       end do
-      phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm/normal_norm)
-      
+      phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm / normal_norm)
+
       ! Get value of phi at boundary cell
       call get_vector_data(phi%values, phi_values)
-      bc_value = phi_face_parallel_component_portion*phi_values(index_p)
+      bc_value = phi_face_parallel_component_portion * phi_values(index_p)
       call restore_vector_data(phi%values, phi_values)
     case default
       bc_value = 0.0_ccs_real
@@ -315,7 +317,7 @@ contains
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2
 
     call get_boundary_status(loc_f, is_boundary)
-        
+
     associate (mesh => loc_f%mesh, &
                index_p => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
@@ -333,7 +335,7 @@ contains
                                + (v_data(index_p) + v_data(index_nb)) * face_normal(2))
         call restore_vector_data(u_field%values, u_data)
         call restore_vector_data(v_field%values, v_data)
-        
+
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
           flux = -flux
@@ -376,7 +378,7 @@ contains
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2
 
     call get_boundary_status(loc_f, is_boundary)
-        
+
     associate (mesh => loc_f%mesh, &
                index_p => loc_f%index_p, &
                j => loc_f%cell_face_ctr)

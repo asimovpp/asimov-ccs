@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax
+  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
   use constants, only : cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
@@ -51,11 +51,15 @@ program ldc
   double precision :: start_time
   double precision :: end_time
 
+  logical :: u_sol = .true.  !< Default equations to solve for LDC case
+  logical :: v_sol = .true.
+  logical :: w_sol = .false.
+  logical :: p_sol = .true.
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
 #endif
-
 
   ! Launch MPI
   call initialise_parallel_environment(par_env) 
@@ -161,7 +165,8 @@ program ldc
   do while (t < t_end)
     ! Solve using SIMPLE algorithm
     print *, "Start SIMPLE at t=" // str(t)
-    call solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
+    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+                         u_sol, v_sol, w_sol, p_sol, u, v, p, p_prime, mf)
     call update_old_values(u)
     call update_old_values(v)
   
@@ -222,7 +227,8 @@ program ldc
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                            get_convection_scheme, get_relaxation_factor
+                           get_convection_scheme, get_relaxation_factor, &
+                           get_target_residual
 
     character(len=*), intent(in) :: config_filename
     
@@ -243,6 +249,11 @@ program ldc
     if(velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
+
+    call get_target_residual(config_file_pointer, res_target )
+    if(res_target == huge(0.0)) then
+      call error_abort("No value assigned to target residual.")
+    endif
 
   end subroutine
 

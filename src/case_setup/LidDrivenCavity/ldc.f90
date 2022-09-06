@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax
+  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
@@ -48,6 +48,11 @@ program ldc
   double precision :: start_time
   double precision :: end_time
 
+  logical :: u_sol = .true.  ! Default equations to solve for LDC case
+  logical :: v_sol = .true.
+  logical :: w_sol = .false.
+  logical :: p_sol = .true.
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
@@ -61,7 +66,7 @@ program ldc
 
   call read_command_line_arguments(par_env, cps, case_name=case_name)
 
-  print *, "Starting ", case_name, " case!"
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name // ccsconfig
 
   call timer(start_time)
@@ -78,11 +83,11 @@ program ldc
   it_end = num_steps
 
   ! Create a square mesh
-  print *, "Building mesh"
+  if (irank == par_env%root) print *, "Building mesh"
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
-  print *, "Initialise fields"
+  if (irank == par_env%root) print *, "Initialise fields"
   allocate (upwind_field :: u)
   allocate (upwind_field :: v)
   allocate (central_field :: p)
@@ -133,15 +138,16 @@ program ldc
   call update(mf%values)
 
   ! Initialise velocity field
-  print *, "Initialise velocity field"
+  if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_velocity(mesh, u, v, mf)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
 
   ! Solve using SIMPLE algorithm
-  print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, it_start, it_end, u, v, p, p_prime, mf)
+  if (irank == par_env%root) print *, "Start SIMPLE"
+  call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+                       u_sol, v_sol, w_sol, p_sol, u, v, p, p_prime, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
@@ -182,7 +188,7 @@ program ldc
 
   call timer(end_time)
 
-  if (irank == 0) then
+  if (irank == par_env%root) then
     print *, "Elapsed time: ", end_time - start_time
   end if
 
@@ -195,7 +201,8 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                           get_convection_scheme, get_relaxation_factor
+                           get_convection_scheme, get_relaxation_factor, &
+                           get_target_residual
 
     character(len=*), intent(in) :: config_filename
 
@@ -217,6 +224,11 @@ contains
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
+    call get_target_residual(config_file_pointer, res_target)
+    if (res_target == huge(0.0)) then
+      call error_abort("No value assigned to target residual.")
+    end if
+
   end subroutine
 
   ! Print test case configuration
@@ -232,8 +244,8 @@ contains
     print *, "Size is ", cps
     print *, "++++"
     print *, "RELAXATION FACTORS"
-    print *, "velocity: ", velocity_relax
-    print *, "pressure: ", pressure_relax
+    write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
+    write (*, '(1x,a,e10.3)') "pressure: ", pressure_relax
 
   end subroutine
 
