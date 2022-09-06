@@ -100,7 +100,7 @@ module types
     integer(ccs_long), dimension(:), allocatable :: vwgt              !< Weights on vertices - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjwgt            !< Weights on edges - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: local_partition   !< Local partition array
-    integer(ccs_long), dimension(:), allocatable :: global_partition  !< Local partition array
+    integer(ccs_long), dimension(:), allocatable :: global_partition  !< Global partition array
   end type topology
 
   !> Geometry type
