@@ -551,9 +551,8 @@ contains
 
     integer(ccs_int), intent(in) :: i
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
-    !      dragons! If this were
-    !      intent(out) it would
-    !      be deallocated on entry!
+                                                                      ! dragons. If this were intent(out) it
+                                                                      ! would be deallocated on entry!
     integer(ccs_int) :: n
     integer(ccs_int), dimension(:), allocatable :: tmp
 
@@ -588,7 +587,7 @@ contains
     integer(ccs_int) :: global_index_p, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
-    integer(ccs_int) :: n_faces_internal       ! Internal face count
+    integer(ccs_int) :: n_faces_internal ! Internal face count
     integer(ccs_int) :: nfaces_bnd       ! Boundary face count
     integer(ccs_int) :: nfaces_interface ! Process interface face count
     logical :: is_boundary
@@ -644,7 +643,7 @@ contains
     integer(ccs_int) :: index_f
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
-    integer(ccs_int) :: face_counter              ! Face index counter
+    integer(ccs_int) :: face_counter      ! Face index counter
     logical :: is_boundary
 
     face_counter = 0
@@ -666,7 +665,7 @@ contains
             call set_face_index(index_p, j, face_counter, mesh)
           else
             ! Find corresponding face in neighbour cell
-            ! (To be improved, this seems inefficient!)
+            ! (To be improved, this seems inefficient)
             index_f = get_neighbour_face_index(mesh, index_p, index_nb)
             call set_face_index(index_p, j, index_f, mesh)
           end if
