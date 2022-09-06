@@ -784,17 +784,20 @@ contains
                                u_sol, v_sol, w_sol, p_sol, converged)
 
     ! Arguments
-    class(parallel_environment), allocatable, intent(in) :: par_env
-    integer(ccs_int), intent(in) :: itr
-    real(ccs_real), dimension(:), intent(in)   :: residuals
-    real(ccs_real), intent(in)   :: res_target
-    logical, intent(in) :: u_sol, v_sol, w_sol, p_sol
-    logical, intent(inout)       :: converged
+    class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
+    integer(ccs_int), intent(in) :: itr                             !< Iteration count
+    real(ccs_real), dimension(:), intent(in)   :: residuals         !< L2-norm of residuals for each equation
+    real(ccs_real), intent(in)   :: res_target                      !< Target residual
+    logical, intent(in) :: u_sol                                    !< Is x-velocity being solved (true/false)
+    logical, intent(in) :: v_sol                                    !< Is y-velocity being solved (true/false)
+    logical, intent(in) :: w_sol                                    !< Is z-velocity being solved (true/false)
+    logical, intent(in) :: p_sol                                    !< Is pressure field being solved (true/false)
+    logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
     ! Local variables
-    integer(ccs_int) :: nvar !< Number of variables
-    logical, save :: first_time = .true.
-    character(len=20) :: fmt
+    integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
+    logical, save :: first_time = .true.  ! True on first call to this subroutine
+    character(len=20) :: fmt              ! Format string for writing out residuals
 
     nvar = size(residuals)
 

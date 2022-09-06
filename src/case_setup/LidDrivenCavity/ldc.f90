@@ -48,7 +48,7 @@ program ldc
   double precision :: start_time
   double precision :: end_time
 
-  logical :: u_sol = .true.  !< Default equations to solve for LDC case
+  logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
   logical :: w_sol = .false.
   logical :: p_sol = .true.

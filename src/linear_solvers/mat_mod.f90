@@ -162,10 +162,9 @@ module mat
 
     !> Compute matrix-vector product
     module subroutine mat_vec_product(M, x, y)
-      ! Arguments
-      class(ccs_matrix), intent(in) :: M
-      class(ccs_vector), intent(in) :: x
-      class(ccs_vector), intent(inout) :: y
+      class(ccs_matrix), intent(in) :: M    !< the input matrix
+      class(ccs_vector), intent(in) :: x    !< the input vector
+      class(ccs_vector), intent(inout) :: y !< the output (result) vector
     end subroutine
 
     !> Interface to set equation
