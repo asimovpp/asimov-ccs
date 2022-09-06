@@ -3,3 +3,4 @@
 
 main: test_face_values
 base: mpi_petsc
+extra: parhip

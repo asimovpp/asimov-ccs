@@ -4,3 +4,4 @@
 
 main: ldc_timestepping
 base: mpi_petsc
+extra: parhip

@@ -23,7 +23,7 @@
   
     integer(ccs_int) :: irank !> MPI rank ID
     integer(ccs_int) :: isize !> Size of MPI world
-    integer(ccs_int) :: i, j, k, ierror 
+    integer(ccs_int) :: i, j, k, ierror
     integer(ccs_int) :: local_start
     integer(ccs_int) :: local_end
     integer(ccs_int) :: int_attr
@@ -45,7 +45,7 @@
     adios2_file = "adios2_config.xml"
   
     call initialise_io(par_env, adios2_file, io_env)
-    call configure_io(io_env, "test_reader", test_reader)  
+    call configure_io(io_env, "test_reader", test_reader)
   
     call open_file(test_file, "read", test_reader)
   
@@ -53,11 +53,11 @@
     call read_scalar(test_reader, "adios2_schema/mesh/dimension0", int_attr)
     
     if(int_attr /= 10) then
-      write(message,*) "FAIL: the adios2_schema/mesh/dimension0 attribute should be 10, not ", int_attr
+      write(message, *) "FAIL: the adios2_schema/mesh/dimension0 attribute should be 10, not ", int_attr
       call stop_test(message)
-    end if   
+    end if
 
-    ! Array to store cell range assigned to each process      
+    ! Array to store cell range assigned to each process
     allocate(dist(isize+1))
   
     ! Set for element to 1 and last element to world size + 1
@@ -86,13 +86,13 @@
     allocate(int_var(sel_count(1)))
     allocate(real_var(sel_count(1)))
   
-    ! Read XYZ coordinates for variable "/cell/x" 
+    ! Read XYZ coordinates for variable "/cell/x"
     call read_array(test_reader, "h5Floats", sel_start , sel_count, real_var)
     call read_array(test_reader, "h5Ints", sel_start , sel_count, int_var)
 
-    print*,"Real_var = ", real_var
+    print*, "Real_var = ", real_var
 
-    print*,"Kind ccs_real = ", kind(real_var(1))
+    print*, "Kind ccs_real = ", kind(real_var(1))
 
     loc_sum_int = 0
     loc_sum_real = 0.0
@@ -102,29 +102,29 @@
       loc_sum_real = loc_sum_real + real_var(i)
     end do
 
-    print*,"Loc_sum_real = ", loc_sum_real
+    print*, "Loc_sum_real = ", loc_sum_real
 
     select type(par_env)
     type is (parallel_environment_mpi)
       call mpi_allreduce(loc_sum_int, sum_int, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierror)
       if(kind(sum_real) == 4) then
       call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL4, MPI_SUM, par_env%comm, ierror)
-      else 
+      else
         call mpi_allreduce(loc_sum_real, sum_real, 1, MPI_REAL8, MPI_SUM, par_env%comm, ierror)
       end if
     class default
-      call stop_test("ERROR: Unknown parallel environment!")
+      call stop_test("ERROR: Unknown parallel environment.")
     end select
 
-    print*,"Sum_real = ",sum_real
+    print*, "Sum_real = ", sum_real
 
     if(sum_int /= -45) then
-      write(message,*) "FAIL: Sum of integer array should be -45, not ", sum_int
+      write(message, *) "FAIL: Sum of integer array should be -45, not ", sum_int
       call stop_test(message)
     end if
   
     if(sum_real /= 45.0) then
-      write(message,*) "FAIL: Sum of real array should be 45.0, not ", sum_real
+      write(message, *) "FAIL: Sum of real array should be 45.0, not ", sum_real
       call stop_test(message)
     end if
 
