@@ -39,7 +39,8 @@ contains
         call MatCreate(par_env%comm, M%M, ierr)
 
         associate (mesh => mat_properties%mesh)
-          call MatSetSizes(M%M, mesh%topo%local_num_cells, mesh%topo%local_num_cells, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+          call MatSetSizes(M%M, mesh%topo%local_num_cells, mesh%topo%local_num_cells, &
+                           PETSC_DETERMINE, PETSC_DETERMINE, ierr)
         end associate
 
         if (ierr == 0) then
@@ -233,9 +234,9 @@ contains
   !> Clear working set of values to begin new working set.
   module procedure clear_matrix_values_entries
 
-    val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-    val_dat%global_col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-    val_dat%values(:) = 0.0_ccs_real
+  val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+  val_dat%global_col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+  val_dat%values(:) = 0.0_ccs_real
 
   end procedure clear_matrix_values_entries
 
@@ -248,9 +249,9 @@ contains
 
     ! Local
     integer(ccs_int), dimension(1) :: rglobs ! Temporary array mapping rows to indices in the
-                                             ! current working set. N.B. the dimension of this
-                                             ! array must match the rank of
-                                             ! matrix_values%global_row_indices!
+    ! current working set. N.B. the dimension of this
+    ! array must match the rank of
+    ! matrix_values%global_row_indices!
     integer(ccs_int) :: i         ! The mapped index in the current working set
     logical :: new_entry          ! Flag to indicate if we are revisiting a row
     integer(ccs_int) :: petsc_row ! The (zero-indexed) row as used by PETSc
@@ -286,9 +287,9 @@ contains
 
     ! Local
     integer(ccs_int), dimension(1) :: cglobs ! Temporary array mapping columns to indices in the
-                                             ! current working set. N.B. the dimension of this
-                                             ! array must match the rank of
-                                             ! matrix_values%global_col_indices!
+    ! current working set. N.B. the dimension of this
+    ! array must match the rank of
+    ! matrix_values%global_col_indices!
     integer(ccs_int) :: i         ! The mapped index in the current working set
     logical :: new_entry          ! Flag to indicate if we are revisiting a column
     integer(ccs_int) :: petsc_col ! The (zero-indexed) column as used by PETSc

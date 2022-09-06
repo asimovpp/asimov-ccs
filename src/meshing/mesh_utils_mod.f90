@@ -85,7 +85,7 @@ contains
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
         allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
-        allocate (mesh%topo% nb_indices(4, mesh%topo%local_num_cells))
+        allocate (mesh%topo%nb_indices(4, mesh%topo%local_num_cells))
         allocate (mesh%topo%face_indices(4, mesh%topo%local_num_cells))
 
         ! Initialise mesh arrays
@@ -294,9 +294,9 @@ contains
 
     integer(ccs_int), intent(in) :: i
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
-                                                                      !      dragons! If this were
-                                                                      !      intent(out) it would
-                                                                      !      be deallocated on entry!
+    !      dragons! If this were
+    !      intent(out) it would
+    !      be deallocated on entry!
     integer(ccs_int) :: n
     integer(ccs_int), dimension(:), allocatable :: tmp
 

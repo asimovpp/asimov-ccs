@@ -107,7 +107,7 @@ module fv
       class(field), intent(inout) :: phi !< the field whose gradients we want to update
     end subroutine update_gradient
 
-    !> Computes the value of the scalar field on the boundary 
+    !> Computes the value of the scalar field on the boundary
     module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                               x_gradients, y_gradients, z_gradients)
       class(field), intent(in) :: phi                         !< the field for which boundary values are being computed

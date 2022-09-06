@@ -41,7 +41,7 @@ module mat
     !> Interface to create a new matrix object.
     module subroutine create_matrix(mat_properties, M)
       type(matrix_spec), intent(in) :: mat_properties  !< contains information about
-                                                       !< how the matrix should be allocated
+      !< how the matrix should be allocated
       class(ccs_matrix), allocatable, intent(out) :: M !< the matrix object
     end subroutine
 
@@ -52,7 +52,7 @@ module mat
     !> Interface to set values in a matrix.
     module subroutine set_matrix_values(mat_values, M)
       type(matrix_values), intent(in) :: mat_values !< contains the values, their indices
-                                                    !< and the mode to use when setting them.
+      !< and the mode to use when setting them.
       class(ccs_matrix), intent(inout) :: M         !< the matrix
     end subroutine
 
@@ -156,7 +156,7 @@ module mat
     module function mat_norm(M, norm_type) result(n)
       class(ccs_matrix), intent(in) :: M        !< the matrix
       integer(ccs_int), intent(in) :: norm_type !< which norm to compute?
-                                                !< Currently supported is the 2 norm: norm_type=2.
+      !< Currently supported is the 2 norm: norm_type=2.
       real(ccs_real) :: n !< the computed norm returned as the result of the function call.
     end function
 

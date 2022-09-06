@@ -39,7 +39,7 @@ contains
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: it_start
     integer(ccs_int), intent(in) :: it_end
-    real(ccs_real), intent(in)  :: res_target !< Target residual
+    real(ccs_real), intent(in) :: res_target !< Target residual
     logical, intent(in) :: u_sol !< solve u velocity field
     logical, intent(in) :: v_sol !< solve v velocity field
     logical, intent(in) :: w_sol !< solve w velocity field
@@ -57,7 +57,7 @@ contains
     class(ccs_vector), allocatable :: invAu, invAv
     class(ccs_vector), allocatable :: res
     real(ccs_real), dimension(:), allocatable :: residuals
-    
+
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
@@ -66,7 +66,7 @@ contains
 
     integer(ccs_int) :: nvar = 0   ! Number of flow variables to solve
     integer(ccs_int) :: ivar = 0   ! Counter for flow variables
-    
+
     ! Initialise linear system
     call dprint("NONLINEAR: init")
     call initialise(vec_properties)
@@ -96,9 +96,9 @@ contains
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1
     if (p_sol) nvar = nvar + 1
-    allocate(residuals(nvar))
+    allocate (residuals(nvar))
     residuals(:) = 0.0_ccs_real
-    
+
     ! Get pressure gradient
     call dprint("NONLINEAR: compute grad p")
     call update_gradient(mesh, p)
@@ -109,7 +109,8 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, source, lin_system, u, v, invAu, invAv, res, residuals)
+      call calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, source, &
+                              lin_system, u, v, invAu, invAv, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -137,17 +138,17 @@ contains
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
-          write(*,*)
-          write(*,'(a)') 'Converged!'
-          write(*,*)
-        endif
+          write (*, *)
+          write (*, '(a)') 'Converged!'
+          write (*, *)
+        end if
         exit outerloop
       end if
 
     end do outerloop
 
     ! Free up memory
-    deallocate(residuals)
+    deallocate (residuals)
 
   end subroutine solve_nonlinear
 
@@ -189,29 +190,29 @@ contains
       if (u_sol) then
         ivar = ivar + 1
         varu = ivar
-      endif
+      end if
       if (v_sol) then
         ivar = ivar + 1
         varv = ivar
-      endif
+      end if
       if (w_sol) then
         ivar = ivar + 1
         varw = ivar
-      endif
+      end if
       first_time = .false.
-    endif
+    end if
 
     ! u-velocity
     ! ----------
     if (u_sol) then
       call calculate_velocity_component(par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
-    endif
-    
+    end if
+
     ! v-velocity
     ! ----------
     if (v_sol) then
       call calculate_velocity_component(par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
-    endif
+    end if
 
   end subroutine calculate_velocity
 
@@ -222,19 +223,19 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env
-    integer(ccs_int), intent(in)  :: ivar
-    type(ccs_mesh), intent(in)    :: mesh
+    integer(ccs_int), intent(in) :: ivar
+    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(in) :: mf
     class(field), intent(in) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
-    class(field), intent(inout)    :: u
-    class(ccs_vector), intent(inout)  :: invAu
-    class(ccs_vector), intent(inout)  :: res
+    class(field), intent(inout) :: u
+    class(ccs_vector), intent(inout) :: invAu
+    class(ccs_vector), intent(inout) :: res
     real(ccs_real), dimension(:), intent(inout) :: residuals
-    
+
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
 
@@ -244,7 +245,7 @@ contains
 
     ! Zero residual vector
     call zero(res)
-    
+
     ! Calculate fluxes and populate coefficient matrix
     call dprint("GV: compute u flux")
     call compute_fluxes(u, mf, mesh, component, M, vec)
@@ -566,14 +567,14 @@ contains
     real(ccs_real), dimension(:), pointer :: dpdx_data    ! Data array for pressure x gradient
     real(ccs_real), dimension(:), pointer :: dpdy_data    ! Data array for pressure y gradient
     real(ccs_real), dimension(:), pointer :: invAu_data   ! Data array for inverse x momentum
-                                                          ! diagonal coefficient
+    ! diagonal coefficient
     real(ccs_real), dimension(:), pointer :: invAv_data   ! Data array for inverse y momentum
-                                                          ! diagonal coefficient
+    ! diagonal coefficient
 
     logical :: is_boundary            ! Boundary indicator
     type(neighbour_locator) :: loc_nb ! Neighbour cell locator object
     integer(ccs_int) :: index_nb      ! Neighbour cell index
-    
+
     real(ccs_real) :: mib ! Cell mass imbalance
 
     logical, save :: first_time = .true.
@@ -583,7 +584,7 @@ contains
     if (first_time) then
       varp = ivar + 1
       first_time = .false.
-    endif
+    end if
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
@@ -662,7 +663,7 @@ contains
 
     ! Pressure residual
     residuals(varp) = mib
-    
+
   end subroutine compute_mass_imbalance
 
   !> Corrects the pressure field, using explicit underrelaxation
@@ -736,7 +737,7 @@ contains
     logical :: is_boundary
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: index_nb
-    
+
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
     call get_vector_data(p_prime%values, pp_data)
@@ -786,8 +787,8 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
-    real(ccs_real), dimension(:), intent(in)   :: residuals         !< L2-norm of residuals for each equation
-    real(ccs_real), intent(in)   :: res_target                      !< Target residual
+    real(ccs_real), dimension(:), intent(in) :: residuals         !< L2-norm of residuals for each equation
+    real(ccs_real), intent(in) :: res_target                      !< Target residual
     logical, intent(in) :: u_sol                                    !< Is x-velocity being solved (true/false)
     logical, intent(in) :: v_sol                                    !< Is y-velocity being solved (true/false)
     logical, intent(in) :: w_sol                                    !< Is z-velocity being solved (true/false)
@@ -804,24 +805,24 @@ contains
     ! Print residuals
     if (first_time) then
       if (par_env%proc_id == par_env%root) then
-        write(*,*)
-        write(*,'(a6)', advance='no') 'Iter'
-        if (u_sol) write(*,'(1x,a12)', advance='no') 'u'
-        if (v_sol) write(*,'(1x,a12)', advance='no') 'v'
-        if (w_sol) write(*,'(1x,a12)', advance='no') 'w'
-        if (p_sol) write(*,'(1x,a12)', advance='no') 'p'
-        write(*,*)
-      endif
+        write (*, *)
+        write (*, '(a6)', advance='no') 'Iter'
+        if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
+        if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
+        if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
+        if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
+        write (*, *)
+      end if
       first_time = .false.
-    endif
+    end if
 
     if (par_env%proc_id == par_env%root) then
-      fmt = '(i6,'//str(nvar)//'(1x,e12.4))'
-      write(*,fmt) itr, residuals(1:nvar)
-    endif
+      fmt = '(i6,' // str(nvar) // '(1x,e12.4))'
+      write (*, fmt) itr, residuals(1:nvar)
+    end if
 
     if (maxval(residuals(:)) < res_target) converged = .true.
-    
+
   end subroutine check_convergence
 
   !v Applies implicit underrelaxation to an equation

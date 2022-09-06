@@ -16,7 +16,7 @@ module partitioning
   public :: read_topology
   public :: compute_connectivity
 
-  interface 
+  interface
 
     !v Partition the mesh
     module subroutine partition_kway(par_env, topo)
@@ -40,7 +40,7 @@ module partitioning
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(topology), target, intent(inout) :: topo                           !< The topology for which to compute the parition
     end subroutine compute_connectivity
- 
-    end interface
+
+  end interface
 
 end module partitioning

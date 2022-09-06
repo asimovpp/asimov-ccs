@@ -67,7 +67,7 @@ program ldc
   call read_command_line_arguments(par_env, cps, case_name=case_name)
 
   if (irank == par_env%root) print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name//ccsconfig
+  ccs_config_file = case_name // ccsconfig
 
   call timer(start_time)
 
@@ -138,7 +138,7 @@ program ldc
   call update(mf%values)
 
   ! Initialise velocity field
-  if( irank == par_env%root) print *, "Initialise velocity field"
+  if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_velocity(mesh, u, v, mf)
   call update(u%values)
   call update(v%values)
@@ -188,8 +188,8 @@ program ldc
 
   call timer(end_time)
 
-  if(irank == par_env%root) then
-     print*, "Elapsed time: ", end_time - start_time
+  if (irank == par_env%root) then
+    print *, "Elapsed time: ", end_time - start_time
   end if
 
   ! Finalise MPI
@@ -201,8 +201,8 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                            get_convection_scheme, get_relaxation_factor, &
-                            get_target_residual
+                           get_convection_scheme, get_relaxation_factor, &
+                           get_target_residual
 
     character(len=*), intent(in) :: config_filename
 
@@ -224,10 +224,10 @@ contains
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
-    call get_target_residual(config_file_pointer, res_target )
-    if(res_target == huge(0.0)) then
+    call get_target_residual(config_file_pointer, res_target)
+    if (res_target == huge(0.0)) then
       call error_abort("No value assigned to target residual.")
-    endif
+    end if
 
   end subroutine
 
@@ -244,8 +244,8 @@ contains
     print *, "Size is ", cps
     print *, "++++"
     print *, "RELAXATION FACTORS"
-    write(*,'(1x,a,e10.3)') "velocity: ", velocity_relax 
-    write(*,'(1x,a,e10.3)') "pressure: ", pressure_relax 
+    write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
+    write (*, '(1x,a,e10.3)') "pressure: ", pressure_relax
 
   end subroutine
 
