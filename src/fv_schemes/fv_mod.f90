@@ -26,8 +26,8 @@ module fv
   end interface calc_advection_coeff
 
   interface calc_mass_flux
-    module procedure calc_mass_flux_uv
-    module procedure calc_mass_flux_no_uv
+    module procedure calc_mass_flux_uvw
+    module procedure calc_mass_flux_no_uvw
   end interface calc_mass_flux
 
   interface
