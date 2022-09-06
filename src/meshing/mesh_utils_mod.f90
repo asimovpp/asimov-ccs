@@ -67,8 +67,8 @@ contains
     ! integer(ccs_long), dimension(2) :: sel2_start
     ! integer(ccs_long), dimension(2) :: sel2_count
 
-    geo_file = case_name//geoext
-    adios2_file = case_name//adiosconfig
+    geo_file = case_name // geoext
+    adios2_file = case_name // adiosconfig
 
     call initialise_io(par_env, adios2_file, io_env)
     call configure_io(io_env, "geo_reader", geo_reader)
@@ -117,7 +117,7 @@ contains
     ! Read attribute "nvrt" - the total number of vertices
     call read_scalar(geo_reader, "nvrt", mesh % topo % global_num_vertices)
 
-    if(mesh % topo % max_faces == 6) then ! if cell are hexes
+    if (mesh % topo % max_faces == 6) then ! if cell are hexes
       vert_per_cell = 8 ! 8 vertices per cell
     else
       call error_abort("Currently only supporting hex cells.")
@@ -191,7 +191,7 @@ contains
     real(ccs_real), dimension(:, :), allocatable :: temp_v_c ! Temp array for vertex coordinates
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
-    if(mesh % topo % max_faces == 6) then ! if cell are hexes
+    if (mesh % topo % max_faces == 6) then ! if cell are hexes
       vert_per_cell = 8 ! 8 vertices per cell
     else
       call error_abort("Currently only supporting hex cells.")
