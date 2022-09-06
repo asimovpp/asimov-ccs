@@ -37,8 +37,8 @@ program test_mesh_point_distribution
       n_expected = n**2
 
       if (nlocal > n_expected) then
-        write (message,*) "FAIL: Local number of cells ", nlocal, &
-             " exceeds requested total!", n
+        write (message, *) "FAIL: Local number of cells ", nlocal, &
+             " exceeds requested total.", n
         call stop_test(message)
       end if
 
@@ -46,13 +46,13 @@ program test_mesh_point_distribution
       type is(parallel_environment_mpi)
         call MPI_Allreduce(nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
       class default
-        write (message,*) "ERROR: Unknown parallel environment!"
+        write (message, *) "ERROR: Unknown parallel environment."
         call stop_test(message)
       end select
     end associate
     
     if (n_global /= n_expected) then
-      write (message,*) "FAIL: expected ", n_expected, " got ", n_global, &
+      write (message, *) "FAIL: expected ", n_expected, " got ", n_global, &
            " (test_mesh:test_mesh_point_distribution/1)"
       call stop_test(message)
     end if

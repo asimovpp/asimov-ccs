@@ -3,3 +3,4 @@
 
 main: test_ghost_cells
 base: mpi_petsc
+extra: parhip

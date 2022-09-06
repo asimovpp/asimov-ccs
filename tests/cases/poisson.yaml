@@ -3,3 +3,4 @@
 
 main: poisson
 base: mpi_petsc
+extra: parhip

@@ -3,8 +3,8 @@ program test_compute_bc_values
 
   use testing_lib
   use kinds, only: ccs_real, ccs_int
-  use types, only : field, central_field, face_locator, cell_locator, neighbour_locator, vector_spec
-  use utils, only : debug_print, exit_print, str, update, set_size, initialise
+  use types, only: field, central_field, face_locator, cell_locator, neighbour_locator, vector_spec
+  use utils, only: debug_print, exit_print, str, update, set_size, initialise
   use fv, only: compute_boundary_values
   use constants, only: ndim, cell
   use bc_constants
@@ -38,11 +38,11 @@ program test_compute_bc_values
       call get_boundary_status(loc_nb, is_boundary)
       call set_face_location(mesh, k, j, loc_f)
       call get_face_normal(loc_f, face_normal)
-      if (is_boundary .and. all(face_normal .eq. (/ 0, -1, 0 /))) then
+      if (is_boundary .and. all(face_normal .eq. (/0, -1, 0/))) then
         index_p = k
         exit
       end if
-    end do 
+    end do
   end do
 
   call check_dirichlet_bc(loc_p, loc_f)
@@ -55,7 +55,7 @@ program test_compute_bc_values
 
   call fin()
 
-  contains
+contains
 
   ! Checks whether the dirichlet bcs are being computed correctly
   subroutine check_dirichlet_bc(loc_p, loc_f)
@@ -70,11 +70,11 @@ program test_compute_bc_values
     real(ccs_real), dimension(ndim) :: face_norm
 
     call get_face_normal(loc_f, face_norm)
-    allocate(central_field :: dirichlet_field)
+    allocate (central_field :: dirichlet_field)
     call allocate_bc_arrays(n_boundaries, dirichlet_field%bcs)
     dirichlet_field%bcs%bc_types = bc_type_dirichlet
     dirichlet_field%bcs%values = expected_bc_value
-    dirichlet_field%bcs%ids = (/ (j, j = 1, n_boundaries) /)
+    dirichlet_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
 
     call compute_boundary_values(dirichlet_field, component, loc_p, loc_f, face_norm, bc_val)
     call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
@@ -102,7 +102,7 @@ program test_compute_bc_values
       call initialise(vec_properties)
       call set_vector_location(cell, vec_properties)
       call set_size(par_env, mesh, vec_properties)
-      allocate(central_field :: extrapolated_field)
+      allocate (central_field :: extrapolated_field)
       call create_vector(vec_properties, extrapolated_field%values)
       call create_vector(vec_properties, extrapolated_field%x_gradients)
       call create_vector(vec_properties, extrapolated_field%y_gradients)
@@ -113,7 +113,7 @@ program test_compute_bc_values
       call update(extrapolated_field%z_gradients)
       call allocate_bc_arrays(n_boundaries, extrapolated_field%bcs)
       extrapolated_field%bcs%bc_types = bc_type_extrapolate
-      extrapolated_field%bcs%ids = (/ (j, j = 1, n_boundaries) /)
+      extrapolated_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
 
       call get_face_normal(loc_f, face_norm)
 
@@ -129,10 +129,10 @@ program test_compute_bc_values
       end do
       expected_bc_value = extrapolated_field_data(index_p) - 0.5_ccs_real / cps * y_gradient_data(index_p)
       call restore_vector_data(extrapolated_field%values, extrapolated_field_data)
-  
+
       call compute_boundary_values(extrapolated_field, component, loc_p, loc_f, face_norm, bc_val, &
                                    x_gradient_data, y_gradient_data, z_gradient_data)
-  
+
       call restore_vector_data(extrapolated_field%x_gradients, x_gradient_data)
       call restore_vector_data(extrapolated_field%y_gradients, y_gradient_data)
       call restore_vector_data(extrapolated_field%z_gradients, z_gradient_data)
@@ -158,28 +158,28 @@ program test_compute_bc_values
 
     call get_face_normal(loc_f, face_norm)
 
-    associate(mesh => loc_f%mesh)
+    associate (mesh => loc_f%mesh)
       call initialise(vec_properties)
       call set_vector_location(cell, vec_properties)
       call set_size(par_env, mesh, vec_properties)
-      allocate(central_field :: sym_field)
+      allocate (central_field :: sym_field)
       call create_vector(vec_properties, sym_field%values)
       call update(sym_field%values)
       call allocate_bc_arrays(n_boundaries, sym_field%bcs)
       sym_field%bcs%bc_types = bc_type_sym
-      sym_field%bcs%ids = (/ (j, j = 1, n_boundaries) /)
+      sym_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
 
       call get_vector_data(sym_field%values, sym_field_data)
       do j = 1, mesh%nlocal
         sym_field_data(j) = j / cps + 1
       end do
       call restore_vector_data(sym_field%values, sym_field_data)
-  
+
       do j = 1, ndim
         component = j
         if (j == 2) then
           expected_bc_value = 0
-        else 
+        else
           expected_bc_value = 1
         end if
         call compute_boundary_values(sym_field, component, loc_p, loc_f, face_norm, bc_val)
