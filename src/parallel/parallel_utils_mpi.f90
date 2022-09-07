@@ -51,44 +51,58 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
 
-      do nargs = 1, command_argument_count()
-        call get_command_argument(nargs, arg)
+      if (command_argument_count() == 0) then
 
-        if (arg(1:6) == '--ccs_') then
-          select case (arg)
-          case ('--ccs_m') ! problems size
-            call get_command_argument(nargs + 1, arg)
-            read (arg, '(I5)') cps
-          case ('--ccs_case') ! case name
-            call get_command_argument(nargs + 1, length=arg_len, value=arg)
-            if (present(case_name)) then
-              allocate (character(len=arg_len) :: case_name)
-              case_name = trim(arg)
-            end if
-          case ('--ccs_help')
-            if (par_env%proc_id == par_env%root) then
-              print *, "========================================="
-              print *, "ASiMoV-CCS command line options:         "
-              print *, "========================================="
-              print *, "--ccs_help:               This help menu."
-              print *, "--ccs_m <value>:          Problem size."
-              print *, "--ccs_case <string>:      Test case name."
-            end if
-            call cleanup_parallel_environment(par_env)
-            stop 0
-          case default
-            if (par_env%proc_id == par_env%root) then
-              print *, "Argument ", trim(arg), " not supported by ASiMoV-CCS."
-            end if
-            call cleanup_parallel_environment(par_env)
-            stop 1
-          end select
+        if (par_env%proc_id == par_env%root) then
+          print *, "============================================================================="
+          print *, "ASiMoV-CCS needs command line options - please display them using --ccs_help."          
+          print *, "============================================================================="
+          stop 0
         end if
-      end do
+
+      else
+
+        do nargs = 1, command_argument_count()
+          call get_command_argument(nargs, arg)
+
+          if (arg(1:6) == '--ccs_') then
+            select case (arg)
+            case ('--ccs_m') ! problems size
+              call get_command_argument(nargs + 1, arg)
+              read (arg, '(I5)') cps
+            case ('--ccs_case') ! case name
+              call get_command_argument(nargs + 1, length=arg_len, value=arg)
+              if (present(case_name)) then
+                allocate (character(len=arg_len) :: case_name)
+                case_name = trim(arg)
+              end if
+            case ('--ccs_help')
+              if (par_env%proc_id == par_env%root) then
+                print *, "========================================="
+                print *, "ASiMoV-CCS command line options:         "
+                print *, "========================================="
+                print *, "--ccs_help:               This help menu."
+                print *, "--ccs_m <value>:          Problem size."
+                print *, "--ccs_case <string>:      Test case name."
+              end if
+              call cleanup_parallel_environment(par_env)
+              stop 0
+            case default
+              if (par_env%proc_id == par_env%root) then
+                print *, "Argument ", trim(arg), " not supported by ASiMoV-CCS."
+              end if
+              call cleanup_parallel_environment(par_env)
+              stop 1
+            end select
+          end if
+        end do
+
+      end if 
 
     class default
       call error_abort("Unsupported parallel environment")
     end select
+
 
   end subroutine read_command_line_arguments
 
