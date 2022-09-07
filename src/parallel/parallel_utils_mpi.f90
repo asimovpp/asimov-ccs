@@ -54,14 +54,8 @@ contains
       if (command_argument_count() == 0) then
 
         if (par_env%proc_id == par_env%root) then
-          print *, "========================================="
-          print *, "ASiMoV-CCS needs command line options:"
-          print *, "--ccs_help:               The help menu."
-          print *, "--ccs_m <value>:          Problem size."
-          print *, "--ccs_case <string>:      Test case name."
-          print *, "========================================="
+          call print_help()
           call cleanup_parallel_environment(par_env)
-
           stop 0
         end if
 
@@ -83,12 +77,7 @@ contains
               end if
             case ('--ccs_help')
               if (par_env%proc_id == par_env%root) then
-                print *, "========================================="
-                print *, "ASiMoV-CCS command line options:         "
-                print *, "========================================="
-                print *, "--ccs_help:               This help menu."
-                print *, "--ccs_m <value>:          Problem size."
-                print *, "--ccs_case <string>:      Test case name."
+                call print_help()
               end if
               call cleanup_parallel_environment(par_env)
               stop 0
@@ -117,6 +106,17 @@ contains
     double precision, intent(out) :: tick !< variable that is assigned the current time
 
     tick = mpi_wtime()
+
+  end subroutine
+
+  subroutine print_help ()                
+
+    print *, "========================================="
+    print *, "ASiMoV-CCS command line options:         "
+    print *, "========================================="
+    print *, "--ccs_help:               This help menu"
+    print *, "--ccs_m <value>:          Problem size"
+    print *, "--ccs_case <string>:      Test case name"
 
   end subroutine
 
