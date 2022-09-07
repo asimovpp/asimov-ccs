@@ -62,8 +62,6 @@ contains
       bcs%bc_types(boundary_index) = bc_type_neumann
     case ("extrapolate")
       bcs%bc_types(boundary_index) = bc_type_extrapolate
-    case ("const_grad")
-      bcs%bc_types(boundary_index) = bc_type_const_grad
     case ("wall")
       bcs%bc_types(boundary_index) = bc_type_wall
     case default
