@@ -57,6 +57,8 @@ contains
           print *, "============================================================================="
           print *, "ASiMoV-CCS needs command line options - please display them using --ccs_help."          
           print *, "============================================================================="
+          call cleanup_parallel_environment(par_env)
+
           stop 0
         end if
 
