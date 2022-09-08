@@ -54,9 +54,7 @@ contains
       if (command_argument_count() == 0) then
 
         if (par_env%proc_id == par_env%root) then
-          print *, " "
-          print *, "Usage: ./ccs_app [OPTIONS]"
-          print *, " "
+          print *, new_line('a') // "Usage: ./ccs_app [OPTIONS]" // new_line('a')
           call print_help()
           call cleanup_parallel_environment(par_env)
           stop 0
@@ -119,8 +117,7 @@ contains
     print *, "========================================="
     print *, "--ccs_help:               This help menu"
     print *, "--ccs_m <value>:          Problem size"
-    print *, "--ccs_case <string>:      Test case name"
-    print *, " "
+    print *, "--ccs_case <string>:      Test case name" // new_line('a')
 
   end subroutine
 
