@@ -7,6 +7,7 @@ steps: 10
 relaxation_factor:
   u: 0.9
   v: 0.9
+  w: 0.9
   p: 0.1
 
 target_residual: 1.0e-10
