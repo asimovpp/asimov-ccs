@@ -658,7 +658,7 @@ contains
         mesh%geo%face_normals(:, :, :) = 0.0_ccs_real
         mesh%geo%x_p(:, :) = 0.0_ccs_real
         mesh%geo%x_f(:, :, :) = 0.0_ccs_real
-        mesh%geo%face_areas(:, :) = mesh%geo%h 
+        mesh%geo%face_areas(:, :) = mesh%geo%h**2 
 
         associate (h => mesh%geo%h)
           do i = 1_ccs_int, mesh%topo%total_num_cells
