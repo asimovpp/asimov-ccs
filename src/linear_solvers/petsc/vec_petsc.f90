@@ -303,7 +303,7 @@ contains
 
     use petscvec, only: VecAYPX
 
-    real(ccs_real), intent(in) :: beta     !< a scalar value
+    real(ccs_real), intent(in) :: beta      !< a scalar value
     class(ccs_vector), intent(in) :: x      !< a PETSc input vector
     class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
 

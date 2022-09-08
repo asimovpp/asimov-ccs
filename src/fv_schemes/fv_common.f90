@@ -107,14 +107,13 @@ contains
         call set_face_location(mesh, index_p, j, loc_f)
         call get_face_normal(loc_f, face_normal)
 
+        call get_local_index(loc_nb, index_nb)
+
+        call get_face_area(loc_f, face_area)
+        call get_local_index(loc_f, index_f)
+
         if (.not. is_boundary) then
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
-
-          call get_global_index(loc_nb, global_index_nb)
-          call get_local_index(loc_nb, index_nb)
-
-          call get_face_area(loc_f, face_area)
-          call get_local_index(loc_f, index_f)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -135,18 +134,16 @@ contains
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
-
+          
+          call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
           call set_entry(adv_coeff + diff_coeff, mat_coeffs)
+
           adv_coeff_total = adv_coeff_total + adv_coeff
           diff_coeff_total = diff_coeff_total + diff_coeff
-
         else
-          call get_local_index(loc_nb, index_nb)
-          call get_face_area(loc_f, face_area)
-          call get_local_index(loc_f, index_f)
-
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+
           select type (phi)
           type is (central_field)
             call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
@@ -252,7 +249,7 @@ contains
       call get_vector_data(phi%values, phi_values)
 
       call get_distance(loc_p, loc_f, dx)
-      dxmag = sqrt(dx(1)**2 + dx(2)**2 + dx(3)**2)
+      dxmag = sqrt(sum(dx**2))
 
       bc_value = 0.5_ccs_real * (2.0_ccs_real * phi_values(index_p) + dxmag * phi%bcs%values(index_bc))
       
@@ -335,9 +332,11 @@ contains
         call get_vector_data(u_field%values, u_data)
         call get_vector_data(v_field%values, v_data)
         call get_vector_data(w_field%values, w_data)
+        
         flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(x_direction) &
                                 + (v_data(index_p) + v_data(index_nb)) * face_normal(y_direction) &
                                 + (w_data(index_p) + w_data(index_nb)) * face_normal(z_direction))
+
         call restore_vector_data(u_field%values, u_data)
         call restore_vector_data(v_field%values, v_data)
         call restore_vector_data(w_field%values, w_data)
