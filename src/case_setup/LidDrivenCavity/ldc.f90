@@ -50,7 +50,7 @@ program ldc
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
-  logical :: w_sol = .false.
+  logical :: w_sol = .true.
   logical :: p_sol = .true.
 
 #ifndef EXCLUDE_MISSING_INTERFACE
