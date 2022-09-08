@@ -54,6 +54,9 @@ contains
       if (command_argument_count() == 0) then
 
         if (par_env%proc_id == par_env%root) then
+          print *, " "
+          print *, "Usage: ./ccs_app [OPTIONS]"
+          print *, " "
           call print_help()
           call cleanup_parallel_environment(par_env)
           stop 0
@@ -82,7 +85,7 @@ contains
               call cleanup_parallel_environment(par_env)
               stop 0
             case default
-              if (par_env % proc_id == par_env % root) then
+              if (par_env%proc_id == par_env%root) then
                 print *, "Argument ", trim(arg), " not supported by ASiMoV-CCS."
               end if
               call cleanup_parallel_environment(par_env)
@@ -112,11 +115,12 @@ contains
   subroutine print_help ()                
 
     print *, "========================================="
-    print *, "ASiMoV-CCS command line options:         "
+    print *, "ASiMoV-CCS command line OPTIONS          "
     print *, "========================================="
     print *, "--ccs_help:               This help menu"
     print *, "--ccs_m <value>:          Problem size"
     print *, "--ccs_case <string>:      Test case name"
+    print *, " "
 
   end subroutine
 
