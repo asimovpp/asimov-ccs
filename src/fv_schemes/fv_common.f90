@@ -251,7 +251,9 @@ contains
     case (bc_type_neumann)
       call get_vector_data(phi%values, phi_values)
 
+      call get_distance(loc_p, loc_f, dx)
       dxmag = sqrt(dx(1)**2 + dx(2)**2 + dx(3)**2)
+
       bc_value = 0.5_ccs_real * (2.0_ccs_real * phi_values(index_p) + dxmag * phi%bcs%values(index_bc))
       
       call restore_vector_data(phi%values, phi_values)
