@@ -203,6 +203,7 @@ contains
     real(ccs_real) :: phi_face_parallel_component_portion
     real(ccs_real) :: normal_norm
     real(ccs_real), dimension(:), pointer :: phi_values
+    real(ccs_real) :: dxmag
 
     call get_local_index(loc_p, index_p)
     call set_neighbour_location(loc_p, loc_f%cell_face_ctr, loc_nb)
@@ -246,6 +247,13 @@ contains
       ! Get value of phi at boundary cell
       call get_vector_data(phi%values, phi_values)
       bc_value = phi_face_parallel_component_portion * phi_values(index_p)
+      call restore_vector_data(phi%values, phi_values)
+    case (bc_type_neumann)
+      call get_vector_data(phi%values, phi_values)
+
+      dxmag = sqrt(dx(1)**2 + dx(2)**2 + dx(3)**2)
+      bc_value = 0.5_ccs_real * (2.0_ccs_real * phi_values(index_p) + dxmag * phi%bcs%values(index_bc))
+      
       call restore_vector_data(phi%values, phi_values)
     case default
       bc_value = 0.0_ccs_real

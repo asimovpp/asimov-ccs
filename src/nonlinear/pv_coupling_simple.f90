@@ -257,7 +257,15 @@ contains
     call zero(res)
 
     ! Calculate fluxes and populate coefficient matrix
-    call dprint("GV: compute u flux")
+    if (component == 1) then
+       call dprint("GV: compute u flux")
+    else if (component == 2) then
+       call dprint("GV: compute v flux")
+    else if (component == 3) then
+       call dprint("GV: compute w flux")
+    else
+       call error_abort("Unsupported vector component: " // str(component))
+    end if
     call compute_fluxes(u, mf, mesh, component, M, vec)
 
     call apply_timestep(mesh, u, invAu, M, vec)
@@ -270,8 +278,6 @@ contains
       call calculate_momentum_pressure_source(mesh, p%y_gradients, vec)
     else if (component == 3) then
       call calculate_momentum_pressure_source(mesh, p%z_gradients, vec)
-    else
-      call error_abort("Unsupported vector component: " // str(component))
     end if
 
     ! Underrelax the equations

@@ -680,6 +680,7 @@ contains
               face_counter = left
               x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
               x_f(2, face_counter) = x_p(2)
+              x_f(3, face_counter) = x_p(3)
               normal(1, face_counter) = -1.0_ccs_real
               normal(2, face_counter) = 0.0_ccs_real
               normal(3, face_counter) = 0.0_ccs_real
@@ -687,6 +688,7 @@ contains
               face_counter = right
               x_f(1, face_counter) = x_p(1) + 0.5_ccs_real * h
               x_f(2, face_counter) = x_p(2)
+              x_f(3, face_counter) = x_p(3)
               normal(1, face_counter) = 1.0_ccs_real
               normal(2, face_counter) = 0.0_ccs_real
               normal(3, face_counter) = 0.0_ccs_real
@@ -694,6 +696,7 @@ contains
               face_counter = bottom
               x_f(1, face_counter) = x_p(1)
               x_f(2, face_counter) = x_p(2) - 0.5_ccs_real * h
+              x_f(3, face_counter) = x_p(3)
               normal(1, face_counter) = 0.0_ccs_real
               normal(2, face_counter) = -1.0_ccs_real
               normal(3, face_counter) = 0.0_ccs_real
@@ -701,20 +704,23 @@ contains
               face_counter = top
               x_f(1, face_counter) = x_p(1)
               x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
+              x_f(3, face_counter) = x_p(3)
               normal(1, face_counter) = 0.0_ccs_real
               normal(2, face_counter) = 1.0_ccs_real
               normal(3, face_counter) = 0.0_ccs_real
 
               face_counter = back
               x_f(1, face_counter) = x_p(1)
-              x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
+              x_f(2, face_counter) = x_p(2)
+              x_f(3, face_counter) = x_p(3) - 0.5_ccs_real * h
               normal(1, face_counter) = 0.0_ccs_real
               normal(2, face_counter) = 0.0_ccs_real
               normal(3, face_counter) = -1.0_ccs_real
 
               face_counter = front
               x_f(1, face_counter) = x_p(1)
-              x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
+              x_f(2, face_counter) = x_p(2)
+              x_f(3, face_counter) = x_p(3) + 0.5_ccs_real * h
               normal(1, face_counter) = 0.0_ccs_real
               normal(2, face_counter) = 0.0_ccs_real
               normal(3, face_counter) = 1.0_ccs_real

@@ -105,7 +105,13 @@ boundaries:
     name: back
     type: neumann
     value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
   boundary_6:
     name: front
     type: neumann
     value: 0
+    variable_w:
+      type: dirichlet
+      value: 0

@@ -151,7 +151,6 @@ program ldc
   call update(mf%values)
 
   ! Solve using SIMPLE algorithm
-  print *, "Start SIMPLE"
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                        u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
@@ -316,6 +315,7 @@ contains
 
       call set_values(u_vals, u%values)
       call set_values(v_vals, v%values)
+      call set_values(w_vals, w%values)
 
       deallocate (u_vals%global_indices)
       deallocate (v_vals%global_indices)
