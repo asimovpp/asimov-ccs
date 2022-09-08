@@ -24,6 +24,8 @@ program test_mesh_volume
 
   integer(ccs_int) :: nneg_vol
   integer(ccs_int) :: nneg_vol_global
+
+  real(ccs_real) :: CV
   
   call init()
   
@@ -35,6 +37,8 @@ program test_mesh_volume
   mesh = build_mesh(par_env, nx, ny, nz, l)
   expected_vol = l**3 ! XXX: Currently the mesh is a hard-coded 3D cube...
 
+  CV = (l / nx) * (l / ny) * (l / nz)
+  
   vol = 0.0_ccs_real
   nneg_vol = 0
   do i = 1, mesh%topo%local_num_cells
@@ -43,7 +47,13 @@ program test_mesh_volume
     if (V <= 0) then
       nneg_vol = nneg_vol + 1
     end if
-    vol = vol + mesh%geo%volumes(i)
+
+    if (abs(V - CV) > 1.0e-8) then
+       write (message, *) "FAIL: expected cell volume ", CV, " got ", V
+       call stop_test(message)
+    end if
+   
+    vol = vol + V
   end do
   
   select type(par_env)

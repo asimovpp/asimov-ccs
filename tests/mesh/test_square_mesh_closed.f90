@@ -25,12 +25,16 @@ program test_square_mesh_closed
 
   integer(ccs_int) :: i, j
 
+  real(ccs_real) :: A_expected
+  
   call init()
   
   do n = 1, 100 ! XXX: Should use some named constant, not just "100"
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
 
+    A_expected = l / n
+    
     ! Loop over cells
     do i = 1, mesh%topo%local_num_cells
       S(:) = 0.0_ccs_real
@@ -42,6 +46,11 @@ program test_square_mesh_closed
         call get_face_area(loc_f, A)
         call get_face_normal(loc_f, norm)
         S(:) = S(:) + norm(:) * A
+
+        if (abs(A - A_expected) > 1.0e-8) then
+           write(message, *) "FAIL: expected face area ", A_expected, " got ", A
+           call stop_test(message)
+        end if
       end do
 
       ! Loop over axes
