@@ -618,23 +618,23 @@ contains
 
             ! Construct back (5) face/neighbour
             face_counter = back
-            if ((ii / (nx * ny)) == nz - 1) then
+            if ((ii / (nx * ny)) == 0_ccs_int) then
               index_nb = -back
               global_index_nb = -back
             else
-              index_nb = index_counter + nx * ny
-              global_index_nb = i + nx * ny
+              index_nb = index_counter - nx * ny
+              global_index_nb = i - nx * ny
             end if
             call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct front (6) face/neighbour
             face_counter = front
-            if ((ii / (nx * ny)) == 0_ccs_int) then
+            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
               index_nb = -front
               global_index_nb = -front
             else
-              index_nb = index_counter - nx * ny
-              global_index_nb = i - nx * ny
+              index_nb = index_counter + nx * ny
+              global_index_nb = i + nx * ny
             end if
             call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
