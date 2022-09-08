@@ -221,7 +221,7 @@ contains
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(par_env, varv, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
+      call calculate_velocity_component(par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
     end if
 
   end subroutine calculate_velocity
