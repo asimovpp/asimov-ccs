@@ -24,8 +24,8 @@ contains
 
   !> Computes fluxes and assign to matrix and RHS
   module subroutine compute_fluxes(phi, mf, mesh, component, M, vec)
-    class(field), intent(in) :: phi
-    class(field), intent(in) :: mf
+    class(field), intent(inout) :: phi
+    class(field), intent(inout) :: mf
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), intent(inout) :: M
@@ -60,7 +60,7 @@ contains
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
   subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, M, b)
-    class(field), intent(in) :: phi                !< scalar field structure
+    class(field), intent(inout) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
     integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
@@ -191,7 +191,7 @@ contains
   !> Computes the value of the scalar field on the boundary
   module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                             x_gradients, y_gradients, z_gradients)
-    class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
+    class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
     type(face_locator), intent(in) :: loc_f                 !< location of face
@@ -296,8 +296,8 @@ contains
 
   !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   module function calc_mass_flux_uv(u_field, v_field, p, dpdx, dpdy, invAu, invAv, loc_f) result(flux)
-    class(field), intent(in) :: u_field
-    class(field), intent(in) :: v_field
+    class(field), intent(inout) :: u_field
+    class(field), intent(inout) :: v_field
     real(ccs_real), dimension(:), intent(in) :: p            !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy   !< arrays containing pressure gradient in x and y
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv !< arrays containing inverse momentum diagonal in x and y
@@ -488,7 +488,7 @@ contains
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
-    class(field), intent(in) :: phi !< the field whose gradient we want to compute
+    class(field), intent(inout) :: phi !< the field whose gradient we want to compute
     real(ccs_real), dimension(:), intent(in) :: x_gradients_old
     real(ccs_real), dimension(:), intent(in) :: y_gradients_old
     real(ccs_real), dimension(:), intent(in) :: z_gradients_old
@@ -520,8 +520,6 @@ contains
     call create_vector_values(1_ccs_int, grad_values)
     call set_mode(insert_mode, grad_values)
 
-    call get_vector_data(phi%values, phi_data)
-
     do index_p = 1, mesh%topo%local_num_cells
       call clear_entries(grad_values)
 
@@ -538,7 +536,9 @@ contains
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
+          call get_vector_data(phi%values, phi_data)
           phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
+          call restore_vector_data(phi%values, phi_data)
         else
           call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif, &
                                        x_gradients_old, y_gradients_old, z_gradients_old)
@@ -555,8 +555,6 @@ contains
       call set_entry(grad, grad_values)
       call set_values(grad_values, gradients)
     end do
-
-    call restore_vector_data(phi%values, phi_data)
 
     deallocate (grad_values%global_indices)
     deallocate (grad_values%values)

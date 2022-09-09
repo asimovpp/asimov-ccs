@@ -20,7 +20,7 @@ contains
     use utils, only: update, finalise
 
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(in) :: phi
+    class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b

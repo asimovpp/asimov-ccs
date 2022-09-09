@@ -38,7 +38,7 @@ program test_ghost_cells
   ! Create the vector
   call create_vector(vec_properties, v)
 
-  ! Retried initial vector values
+  ! Retrieve initial vector values
   call get_vector_data(v, values)
 
   ! Set vector values to global mesh indices
@@ -46,6 +46,9 @@ program test_ghost_cells
     values(i) = mesh%topo%global_indices(i)
   end do
 
+  ! Restore vector data
+  call restore_vector_data(v, values)
+  
   ! Now update the vector (including ghost cells)
   call update(v)
 
