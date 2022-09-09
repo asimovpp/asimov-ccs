@@ -111,7 +111,7 @@ contains
     call update(neumann_field%values)
     call allocate_bc_arrays(n_boundaries, neumann_field%bcs)
     neumann_field%bcs%bc_types = bc_type_neumann
-    neumann_field%bcs%values = expected_bc_value
+    neumann_field%bcs%values = 0.0_ccs_real
     neumann_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
 
     call get_vector_data(neumann_field%values, neumann_field_data)
