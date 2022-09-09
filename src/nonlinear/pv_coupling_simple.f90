@@ -165,8 +165,8 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     type(ccs_mesh), intent(in) :: mesh                   !< the mesh
-    class(field), intent(in) :: mf                       !< the face velocity flux
-    class(field), intent(in) :: p                        !< the pressure field
+    class(field), intent(inout) :: mf                    !< the face velocity flux
+    class(field), intent(inout) :: p                     !< the pressure field
     logical, intent(in) :: u_sol                         !< solve x-velocity field
     logical, intent(in) :: v_sol                         !< solve y-velocity field
     logical, intent(in) :: w_sol                         !< solve w-velocity field
@@ -235,8 +235,8 @@ contains
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in) :: ivar
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(in) :: mf
-    class(field), intent(in) :: p
+    class(field), intent(inout) :: mf
+    class(field), intent(inout) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: vec
@@ -322,9 +322,9 @@ contains
   subroutine calculate_momentum_pressure_source(mesh, p_gradients, vec)
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh          !< the mesh
-    class(ccs_vector), intent(in) :: p_gradients !< the pressure gradient
-    class(ccs_vector), intent(inout) :: vec      !< the momentum equation RHS vector
+    class(ccs_mesh), intent(in) :: mesh             !< the mesh
+    class(ccs_vector), intent(inout) :: p_gradients !< the pressure gradient
+    class(ccs_vector), intent(inout) :: vec         !< the momentum equation RHS vector
 
     ! Local variables
     type(vector_values) :: vec_values
@@ -371,7 +371,7 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     class(ccs_mesh), intent(in) :: mesh                             !< the mesh
-    class(ccs_vector), intent(in) :: invAu, invAv, invAw            !< inverse diagonal momentum coefficients
+    class(ccs_vector), intent(inout) :: invAu, invAv, invAw            !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
     type(equation_system), intent(inout) :: lin_sys                 !< linear system object
@@ -561,9 +561,9 @@ contains
   subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, u, v, w, p, mf, b, residuals)
 
     type(ccs_mesh), intent(in) :: mesh      !< The mesh object
-    class(ccs_vector), intent(in) :: invAu  !< The inverse x momentum equation diagonal coefficient
-    class(ccs_vector), intent(in) :: invAv  !< The inverse y momentum equation diagonal coefficient
-    class(ccs_vector), intent(in) :: invAw  !< The inverse z momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAu  !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAv  !< The inverse y momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAw  !< The inverse z momentum equation diagonal coefficient
     integer(ccs_int), intent(inout) :: ivar !< Counter for flow variables
     class(field), intent(inout) :: u        !< The x velocity component
     class(field), intent(inout) :: v        !< The y velocity component
@@ -754,9 +754,9 @@ contains
   subroutine update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf)
 
     type(ccs_mesh), intent(in) :: mesh                               !< The mesh
-    class(ccs_vector), intent(in) :: invAu                           !< The inverse x momentum equation diagonal coefficient
-    class(ccs_vector), intent(in) :: invAv                           !< The inverse y momentum equation diagonal coefficient
-    class(ccs_vector), intent(in) :: invAw                           !< The inverse z momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAu                           !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAv                           !< The inverse y momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAw                           !< The inverse z momentum equation diagonal coefficient
     class(field), intent(inout) :: p_prime                           !< The pressure correction
     class(field), intent(inout) :: mf                                !< The face velocity being corrected
 
@@ -880,7 +880,7 @@ contains
 
     type(ccs_mesh), intent(in) :: mesh
     real(ccs_real), intent(in) :: alpha
-    class(field), intent(in) :: phi
+    class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b

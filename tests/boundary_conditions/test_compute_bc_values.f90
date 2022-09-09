@@ -118,7 +118,7 @@ contains
     do j = 1, mesh%topo%local_num_cells
        neumann_field_data(j) = expected_bc_value
     end do
-    call get_vector_data(neumann_field%values, neumann_field_data)
+    call restore_vector_data(neumann_field%values, neumann_field_data)
     call update(neumann_field%values)
     call dprint("set neumann field")
 

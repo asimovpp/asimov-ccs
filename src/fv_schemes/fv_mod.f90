@@ -59,8 +59,8 @@ module fv
 
     !> Computes fluxes and assign to matrix and RHS
     module subroutine compute_fluxes(phi, mf, mesh, component, M, vec)
-      class(field), intent(in) :: phi             !< scalar field structure
-      class(field), intent(in) :: mf              !< mass flux field structure (defined at faces)
+      class(field), intent(inout) :: phi             !< scalar field structure
+      class(field), intent(inout) :: mf              !< mass flux field structure (defined at faces)
       type(ccs_mesh), intent(in) :: mesh          !< the mesh being used
       integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
       class(ccs_matrix), intent(inout) :: M       !< Data structure containing matrix to be filled
@@ -69,9 +69,9 @@ module fv
 
     !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
     module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
-      class(field), intent(in) :: u_field               !< x velocities field
-      class(field), intent(in) :: v_field               !< y velocities field
-      class(field), intent(in) :: w_field               !< z velocities field
+      class(field), intent(inout) :: u_field               !< x velocities field
+      class(field), intent(inout) :: v_field               !< y velocities field
+      class(field), intent(inout) :: w_field               !< z velocities field
       real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
       real(ccs_real), dimension(:), intent(in) :: dpdx  !< pressure gradients in x
       real(ccs_real), dimension(:), intent(in) :: dpdy  !< pressure gradients in y
@@ -115,7 +115,7 @@ module fv
     !> Computes the value of the scalar field on the boundary
     module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                               x_gradients, y_gradients, z_gradients)
-      class(field), intent(in) :: phi                         !< the field for which boundary values are being computed
+      class(field), intent(inout) :: phi                         !< the field for which boundary values are being computed
       integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
       type(cell_locator), intent(in) :: loc_p                 !< location of cell
       type(face_locator), intent(in) :: loc_f                 !< location of face

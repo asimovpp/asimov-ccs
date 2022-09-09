@@ -21,7 +21,7 @@ module timestepping
     !> Apply one timestep correction
     module subroutine apply_timestep(mesh, phi, diag, M, b)
       type(ccs_mesh), intent(in) :: mesh !< mesh object
-      class(field), intent(in) :: phi !< flow variable
+      class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
       class(ccs_matrix), intent(inout) :: M !< equation system
       class(ccs_vector), intent(inout) :: b !< rhs vector
