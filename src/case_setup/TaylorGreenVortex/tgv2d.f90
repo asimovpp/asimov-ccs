@@ -268,7 +268,7 @@ contains
   subroutine initialise_velocity(mesh, u, v, w, mf)
 
     use constants, only: add_mode
-    use types, only: vector_values, cell_locator
+    use types, only: vector_values, cell_locator, face_locator
     use meshing, only: set_cell_location, get_global_index
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
@@ -279,12 +279,13 @@ contains
     class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
-    integer(ccs_int) :: row, col
-    integer(ccs_int) :: index_p, global_index_p
+    integer(ccs_int) :: row, col, i
+    integer(ccs_int) :: index_p, global_index_p, index_f
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals, w_vals
     real(ccs_real), dimension(:), pointer :: mf_data
+
 
     ! Set alias
     associate (n_local => mesh%topo%local_num_cells)
@@ -301,8 +302,8 @@ contains
         call get_global_index(loc_p, global_index_p)
         ! call calc_cell_coords(global_index_p, cps, row, col)
 
-        u_val = sin(mesh%geo%x_p(1,n_local)) * cos(mesh%geo%x_p(2,n_local))
-        v_val = -cos(mesh%geo%x_p(1,n_local)) * sin(mesh%geo%x_p(2,n_local))
+        u_val = sin(mesh%geo%x_p(1,index_p)) * cos(mesh%geo%x_p(2,index_p))
+        v_val = -cos(mesh%geo%x_p(1,index_p)) * sin(mesh%geo%x_p(2,index_p))
         w_val = 0.0_ccs_real
 
         call set_row(global_index_p, u_vals)
@@ -328,6 +329,7 @@ contains
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 0.0_ccs_real
     call restore_vector_data(mf%values, mf_data)
+
 
   end subroutine initialise_velocity
 
