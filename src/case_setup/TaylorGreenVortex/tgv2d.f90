@@ -18,7 +18,7 @@ program tgv2d
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_mesh
+  use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
@@ -299,10 +299,10 @@ contains
       do index_p = 1, n_local
         call set_cell_location(mesh, index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
-        call calc_cell_coords(global_index_p, cps, row, col)
+        ! call calc_cell_coords(global_index_p, cps, row, col)
 
-        u_val = 0.0_ccs_real 
-        v_val = 0.0_ccs_real
+        u_val = sin(mesh%geo%x_p(1,n_local)) * cos(mesh%geo%x_p(2,n_local))
+        v_val = -cos(mesh%geo%x_p(1,n_local)) * sin(mesh%geo%x_p(2,n_local))
         w_val = 0.0_ccs_real
 
         call set_row(global_index_p, u_vals)
