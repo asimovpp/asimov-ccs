@@ -18,7 +18,7 @@ program ldc
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_square_mesh
+  use mesh_utils, only: build_mesh
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
@@ -36,7 +36,7 @@ program ldc
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
-  class(field), allocatable :: u, v, p, p_prime, mf
+  class(field), allocatable :: u, v, w, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
@@ -50,7 +50,7 @@ program ldc
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
-  logical :: w_sol = .false.
+  logical :: w_sol = .true.
   logical :: p_sol = .true.
 
 #ifndef EXCLUDE_MISSING_INTERFACE
@@ -84,12 +84,14 @@ program ldc
 
   ! Create a square mesh
   if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)
+  !mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
   allocate (upwind_field :: u)
   allocate (upwind_field :: v)
+  allocate (upwind_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
@@ -99,10 +101,12 @@ program ldc
   call get_bc_variables(ccs_config_file, variable_names)
   call allocate_bc_arrays(n_boundaries, u%bcs)
   call allocate_bc_arrays(n_boundaries, v%bcs)
+  call allocate_bc_arrays(n_boundaries, w%bcs)
   call allocate_bc_arrays(n_boundaries, p%bcs)
   call allocate_bc_arrays(n_boundaries, p_prime%bcs)
   call read_bc_config(ccs_config_file, "u", u)
   call read_bc_config(ccs_config_file, "v", v)
+  call read_bc_config(ccs_config_file, "w", w)
   call read_bc_config(ccs_config_file, "p", p)
   call read_bc_config(ccs_config_file, "p", p_prime)
 
@@ -113,6 +117,7 @@ program ldc
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, u%values)
   call create_vector(vec_properties, v%values)
+  call create_vector(vec_properties, w%values)
   call create_vector(vec_properties, p%values)
   call create_vector(vec_properties, p%x_gradients)
   call create_vector(vec_properties, p%y_gradients)
@@ -123,6 +128,7 @@ program ldc
   call create_vector(vec_properties, p_prime%z_gradients)
   call update(u%values)
   call update(v%values)
+  call update(w%values)
   call update(p%values)
   call update(p%x_gradients)
   call update(p%y_gradients)
@@ -139,15 +145,16 @@ program ldc
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(mesh, u, v, mf)
+  call initialise_velocity(mesh, u, v, w, mf)
   call update(u%values)
   call update(v%values)
+  call update(w%values)
   call update(mf%values)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                       u_sol, v_sol, w_sol, p_sol, u, v, p, p_prime, mf)
+                       u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
@@ -162,6 +169,15 @@ program ldc
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v", FILE_MODE_WRITE, viewer, ierr)
 
   associate (vec => v%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "w", FILE_MODE_WRITE, viewer, ierr)
+
+  associate (vec => w%values)
     select type (vec)
     type is (vector_petsc)
       call VecView(vec%v, viewer, ierr)
@@ -186,6 +202,7 @@ program ldc
   ! Clean-up
   deallocate (u)
   deallocate (v)
+  deallocate (w)
   deallocate (p)
   deallocate (p_prime)
 
@@ -252,7 +269,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(mesh, u, v, mf)
+  subroutine initialise_velocity(mesh, u, v, w, mf)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -263,22 +280,24 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, mf
+    class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
     integer(ccs_int) :: row, col
     integer(ccs_int) :: index_p, global_index_p
-    real(ccs_real) :: u_val, v_val
+    real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
-    type(vector_values) :: u_vals, v_vals
+    type(vector_values) :: u_vals, v_vals, w_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
     ! Set alias
     associate (n_local => mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
+      call create_vector_values(n_local, w_vals)
       call set_mode(add_mode, u_vals)
       call set_mode(add_mode, v_vals)
+      call set_mode(add_mode, w_vals)
 
       ! Set initial values for velocity fields
       do index_p = 1, n_local
@@ -288,20 +307,26 @@ contains
 
         u_val = 0.0_ccs_real
         v_val = 0.0_ccs_real
+        w_val = 0.0_ccs_real
 
         call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
         call set_row(global_index_p, v_vals)
         call set_entry(v_val, v_vals)
+        call set_row(global_index_p, w_vals)
+        call set_entry(w_val, w_vals)
       end do
 
       call set_values(u_vals, u%values)
       call set_values(v_vals, v%values)
+      call set_values(w_vals, w%values)
 
       deallocate (u_vals%global_indices)
       deallocate (v_vals%global_indices)
+      deallocate (w_vals%global_indices)
       deallocate (u_vals%values)
       deallocate (v_vals%values)
+      deallocate (w_vals%values)
     end associate
 
     call get_vector_data(mf%values, mf_data)

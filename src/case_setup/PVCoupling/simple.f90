@@ -28,7 +28,7 @@ program simple
   type(ccs_mesh) :: square_mesh
   type(vector_spec) :: vec_sizes
 
-  class(field), allocatable :: u, v, p, pp, mf
+  class(field), allocatable :: u, v, w, p, pp, mf
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
@@ -68,6 +68,7 @@ program simple
   print *, "Initialise fields"
   allocate (upwind_field :: u)
   allocate (upwind_field :: v)
+  allocate (upwind_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: pp)
   allocate (face_field :: mf)
@@ -80,6 +81,7 @@ program simple
   call set_size(par_env, square_mesh, vec_sizes)
   call create_vector(vec_sizes, u%values)
   call create_vector(vec_sizes, v%values)
+  call create_vector(vec_sizes, w%values)
   call create_vector(vec_sizes, p%values)
   call create_vector(vec_sizes, p%x_gradients)
   call create_vector(vec_sizes, p%y_gradients)
@@ -106,7 +108,7 @@ program simple
 
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(square_mesh, u, v, mf)
+  call initialise_velocity(square_mesh, u, v, w, mf)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
@@ -114,7 +116,7 @@ program simple
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, it_start, it_end, res_target, &
-                       u_sol, v_sol, w_sol, p_sol, u, v, p, pp, mf)
+                       u_sol, v_sol, w_sol, p_sol, u, v, w, p, pp, mf)
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
@@ -129,6 +131,15 @@ program simple
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v", FILE_MODE_WRITE, viewer, ierr)
 
   associate (vec => v%values)
+    select type (vec)
+    type is (vector_petsc)
+      call VecView(vec%v, viewer, ierr)
+    end select
+  end associate
+
+  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "w", FILE_MODE_WRITE, viewer, ierr)
+
+  associate (vec => w%values)
     select type (vec)
     type is (vector_petsc)
       call VecView(vec%v, viewer, ierr)
@@ -150,6 +161,7 @@ program simple
   ! Clean-up
   deallocate (u)
   deallocate (v)
+  deallocate (w)
   deallocate (p)
   deallocate (pp)
 
@@ -163,7 +175,7 @@ program simple
 
 contains
 
-  subroutine initialise_velocity(cell_mesh, u, v, mf)
+  subroutine initialise_velocity(cell_mesh, u, v, w, mf)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -174,23 +186,25 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: cell_mesh
-    class(field), intent(inout) :: u, v, mf
+    class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
     integer(ccs_int) :: row, col
     integer(ccs_int) :: local_idx, self_idx
-    real(ccs_real) :: u_val, v_val
+    real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: self_loc
-    type(vector_values) :: u_vals, v_vals
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, mf_data
+    type(vector_values) :: u_vals, v_vals, w_vals
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, mf_data
 
     ! Set alias
     associate (n_local => cell_mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
+      call create_vector_values(n_local, w_vals)
 
       call set_mode(add_mode, u_vals)
       call set_mode(add_mode, v_vals)
+      call set_mode(add_mode, w_vals)
 
       ! Set initial values for velocity fields
       do local_idx = 1, n_local
@@ -200,34 +214,44 @@ contains
 
         u_val = real(col, ccs_real) / real(cps, ccs_real)
         v_val = -real(row, ccs_real) / real(cps, ccs_real)
-
+        w_val = 0.0_ccs_real
+        
         call set_row(self_idx, u_vals)
         call set_entry(u_val, u_vals)
 
         call set_row(self_idx, v_vals)
         call set_entry(v_val, v_vals)
+
+        call set_row(self_idx, w_vals)
+        call set_entry(w_val, w_vals)
       end do
     end associate
 
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
+    call set_values(w_vals, w%values)
 
     ! XXX: make a finaliser for vector values
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
+    deallocate (w_vals%global_indices)
     deallocate (u_vals%values)
     deallocate (v_vals%values)
+    deallocate (w_vals%values)
 
     call get_vector_data(u%values, u_data)
     call get_vector_data(v%values, v_data)
+    call get_vector_data(w%values, w_data)
     call get_vector_data(mf%values, mf_data)
 
     u_data(:) = 0.0_ccs_real
     v_data(:) = 0.0_ccs_real
+    w_data(:) = 0.0_ccs_real
     mf_data(:) = 0.0_ccs_real
 
     call restore_vector_data(u%values, u_data)
     call restore_vector_data(v%values, v_data)
+    call restore_vector_data(w%values, w_data)
     call restore_vector_data(mf%values, mf_data)
 
   end subroutine initialise_velocity

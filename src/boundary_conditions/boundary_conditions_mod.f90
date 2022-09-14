@@ -62,8 +62,6 @@ contains
       bcs%bc_types(boundary_index) = bc_type_neumann
     case ("extrapolate")
       bcs%bc_types(boundary_index) = bc_type_extrapolate
-    case ("const_grad")
-      bcs%bc_types(boundary_index) = bc_type_const_grad
     case ("wall")
       bcs%bc_types(boundary_index) = bc_type_wall
     case default
@@ -84,10 +82,14 @@ contains
       bcs%ids(boundary_index) = 1
     case ("right")
       bcs%ids(boundary_index) = 2
-    case ("top")
-      bcs%ids(boundary_index) = 4
     case ("bottom")
       bcs%ids(boundary_index) = 3
+    case ("top")
+      bcs%ids(boundary_index) = 4
+    case ("back")
+      bcs%ids(boundary_index) = 5
+    case ("front")
+      bcs%ids(boundary_index) = 6
     case default
       call error_abort("unexpected bc name " // name)
     end select
@@ -129,7 +131,7 @@ contains
 
     index_tmp = findloc(phi%bcs%ids, -index_nb)
     if (index_tmp(1) == 0) then
-      call error_abort("bc index not found. searching for " // str(-index_nb))
+      call error_abort("bc index not found. searching for " // str(-index_nb, "(I0)"))
     end if
     index_bc = index_tmp(1)
   end subroutine get_bc_index

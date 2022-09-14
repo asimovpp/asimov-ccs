@@ -6,14 +6,14 @@ program test_mesh_neighbours
   use testing_lib
 
   use meshing, only : set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
-  use mesh_utils, only : build_square_mesh
+  use mesh_utils, only : build_mesh
 
   implicit none
   
   type(ccs_mesh), target :: mesh
   type(cell_locator) :: loc_p
 
-  integer(ccs_int) :: n
+  integer(ccs_int) :: n, nx, ny, nz
   real(ccs_real) :: l
 
   integer(ccs_int) :: i
@@ -29,9 +29,15 @@ program test_mesh_neighbours
 
   call init()
   
-  do n = 1, 100 ! XXX: Need a test-wide variable nmax
+  ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
+  do n = 2, 20
+
+    nx = n
+    ny = n
+    nz = n
+
     l = parallel_random(par_env)
-    mesh = build_square_mesh(par_env, n, l)
+    mesh = build_mesh(par_env, nx, ny, nz, l)
 
     boundary_ctr = 0
     do i = 1, mesh%topo%local_num_cells
@@ -45,9 +51,9 @@ program test_mesh_neighbours
         ! Even in the limit of single 1D cell should have 2 boundary neighbours.
         write(message, *) "FAIL: cell should have 2 or more neighbours, got ", nnb
         call stop_test(message)
-      else if (nnb > 4) then
+      else if (nnb > 6) then
         ! XXX: specific to 2D Cartesian mesh
-        write(message, *) "FAIL: cell should have at most ", 4, " neighbours, got ", nnb
+        write(message, *) "FAIL: cell should have at most ", 6, " neighbours, got ", nnb
         call stop_test(message)
       end if
 
@@ -74,13 +80,13 @@ program test_mesh_neighbours
       call stop_test(message)
     end select
 
-    expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh (square mesh has 2^d sides
-                                  !      of length n)
+    expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh
     if (global_boundary_ctr /= expected_boundary_ctr) then
       write(message, *) "FAIL: mesh boundary count is incorrect, expected ", &
-           expected_boundary_ctr, " got ", global_boundary_ctr
+            expected_boundary_ctr, " got ", global_boundary_ctr
       call stop_test(message)
     end if
+
   end do
 
   call fin()

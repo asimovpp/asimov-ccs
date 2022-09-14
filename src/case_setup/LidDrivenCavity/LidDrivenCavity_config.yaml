@@ -7,6 +7,7 @@ steps: 10
 relaxation_factor:
   u: 0.9
   v: 0.9
+  w: 0.9
   p: 0.1
 
 target_residual: 1.0e-10
@@ -55,29 +56,21 @@ variables:
     name: v
     type: upwind
   variable_3:
+    name: w
+    type: upwind
+  variable_4:
     name: p
     type: central
-  variable_4:
+  variable_5:
     name: p_prime
     type: central
 
 boundaries:
-  n_boundaries: 4
+  n_boundaries: 6
   boundary_1: 
     name: left
     type: dirichlet
     value: 0
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: extrapolate
-  boundary_3:
-    name: top
-    type: dirichlet
-    value: 0
-    variable_u:
-      type: dirichlet
-      value: 1
     variable_p:
       type: extrapolate
     variable_p_prime:
@@ -90,7 +83,7 @@ boundaries:
       type: extrapolate
     variable_p_prime:
       type: extrapolate
-  boundary_4:
+  boundary_3:
     name: bottom
     type: dirichlet
     value: 0
@@ -98,3 +91,28 @@ boundaries:
       type: extrapolate
     variable_p_prime:
       type: extrapolate
+  boundary_4:
+    name: top
+    type: dirichlet
+    value: 0
+    variable_u:
+      type: dirichlet
+      value: 1
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
+  boundary_5:
+    name: back
+    type: neumann
+    value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+  boundary_6:
+    name: front
+    type: neumann
+    value: 0
+    variable_w:
+      type: dirichlet
+      value: 0

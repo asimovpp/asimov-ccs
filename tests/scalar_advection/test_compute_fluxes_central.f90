@@ -87,8 +87,8 @@ program test_compute_fluxes
 
   !> Compares the matrix computed for a given velocity field and discretisation to the known solution
   subroutine run_compute_fluxes_test(scalar, mf, mf_value, mesh, cps)
-    class(field), intent(in) :: scalar      !< The scalar field structure
-    class(field), intent(in) :: mf          !< The mass flux field
+    class(field), intent(inout) :: scalar   !< The scalar field structure
+    class(field), intent(inout) :: mf       !< The mass flux field
     real(ccs_real), intent(in) :: mf_value  !< The constant value of the mass flux
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
     integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh 

@@ -146,13 +146,13 @@ module vec
 
     !> Gets the data in a given vector
     module subroutine get_vector_data(vec, array)
-      class(ccs_vector), intent(in) :: vec                        !< the vector to get data from
+      class(ccs_vector), intent(inout) :: vec                        !< the vector to get data from
       real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     end subroutine get_vector_data
 
     !> Resets the vector data if required for further processing
     module subroutine restore_vector_data(vec, array)
-      class(ccs_vector), intent(in) :: vec                       !< the vector to reset
+      class(ccs_vector), intent(inout) :: vec                       !< the vector to reset
       real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
     end subroutine restore_vector_data
 

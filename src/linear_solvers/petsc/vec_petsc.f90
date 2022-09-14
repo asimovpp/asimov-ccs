@@ -38,7 +38,8 @@ contains
     type is (vector_petsc)
 
       v%modeset = .false.
-
+      v%checked_out = .false.
+      
       select type (par_env => vec_properties%par_env)
       type is (parallel_environment_mpi)
 
@@ -303,7 +304,7 @@ contains
 
     use petscvec, only: VecAYPX
 
-    real(ccs_real), intent(in) :: beta     !< a scalar value
+    real(ccs_real), intent(in) :: beta      !< a scalar value
     class(ccs_vector), intent(in) :: x      !< a PETSc input vector
     class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
 
@@ -394,12 +395,16 @@ contains
   !> Gets the data in a given vector
   module subroutine get_vector_data(vec, array)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
-    class(ccs_vector), intent(in) :: vec !< the vector to get data from
+    class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
 
     select type (vec)
     type is (vector_petsc)
+      if (vec%checked_out) then
+         call error_abort("ERROR: trying to access already checked-out vector")
+      end if
+      
       if (vec%modeset) then
         call error_abort("WARNING: trying to access vector without updating")
       end if
@@ -410,6 +415,8 @@ contains
       else
         call VecGetArrayF90(vec%v, array, ierr)
       end if
+
+      vec%checked_out = .true.
     class default
       call error_abort('Invalid vector type.')
     end select
@@ -419,19 +426,26 @@ contains
   module subroutine restore_vector_data(vec, array)
     use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
 
-    class(ccs_vector), intent(in) :: vec !< the vector to reset
+    class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
 
     integer :: ierr
 
     select type (vec)
     type is (vector_petsc)
+      if (.not. vec%checked_out) then
+         call error_abort("ERROR: trying to double-restore vector")
+      end if
+      
       if (vec%ghosted) then
         call VecRestoreArrayF90(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
         call VecRestoreArrayF90(vec%v, array, ierr)
       end if
+
+      vec%checked_out = .false.
+      
     class default
       call error_abort('Invalid vector type.')
     end select
