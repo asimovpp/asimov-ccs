@@ -53,7 +53,7 @@ variables:
     type: central
   variable_2:
     name: v
-    type: upwind
+    type: central
   variable_3:
     name: p
     type: central
