@@ -279,7 +279,7 @@ contains
     class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
-    integer(ccs_int) :: row, col, i, j, n, count
+    integer(ccs_int) :: row, col, n, count
     integer(ccs_int) :: index_p, global_index_p, index_f
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
@@ -332,17 +332,17 @@ contains
     n = 0
 
     ! Loop over local cells and faces
-    do j = 1, mesh%topo%local_num_cells
-      do i = 1, mesh%topo%max_faces
+    do index_p = 1, mesh%topo%local_num_cells
+      do index_f = 1, mesh%topo%max_faces
         
         ! if current face index is greater than previous face index
-        if(mesh%topo%face_indices(i,j) > n) then
+        if(mesh%topo%face_indices(index_f,index_p) > n) then
           ! get new face index
-          n = mesh%topo%face_indices(i,j)
+          n = mesh%topo%face_indices(index_f,index_p)
           ! increment counter
           count = count + 1
           ! compute initial value based on current face coordinates
-          mf_data(count) = sin(mesh%geo%x_f(1, i, j)) * cos(mesh%geo%x_f(2, i, j))
+          mf_data(count) = sin(mesh%geo%x_f(1, index_f, index_p)) * cos(mesh%geo%x_f(2, index_f, index_p))
         end if
 
       end do
