@@ -1,0 +1,164 @@
+\documentclass[11pt]{article}
+
+\usepackage{../style_guide/epcc}
+\usepackage{color}
+\usepackage{marginnote}
+\usepackage[pdftex]{graphicx}
+\usepackage{subcaption}
+\usepackage{newfloat}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[svgnames]{xcolor}
+  \definecolor{diffstart}{named}{Grey}
+  \definecolor{diffincl}{named}{Green}
+  \definecolor{diffrem}{named}{Red}
+\usepackage{listings}
+  \lstdefinelanguage{diff}{
+    basicstyle=\ttfamily\small,
+    morecomment=[f][\color{diffstart}]{@@},
+    morecomment=[f][\color{diffincl}]{+\ },
+    morecomment=[f][\color{diffrem}]{-\ },
+  }
+
+\hypersetup{colorlinks}
+\usepackage{float}
+
+\hyphenpenalty=500
+
+% This is for ``figures'' which are to have a caption
+% labelled ``Benchmark''.
+\DeclareFloatingEnvironment[
+  name=Benchmark,
+  placement=tbhp,
+  within=section,
+]{benchmark}
+
+
+\definecolor{terminalcolour}{gray}{0.96}
+
+% Code fragments are gray...
+\lstdefinestyle{codefragment}{
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{terminalcolour},
+  xleftmargin=0pt
+}
+
+% Benchmark tables
+\lstdefinestyle{terminalverbatim}{
+  basicstyle=\small\ttfamily,
+  xleftmargin=0pt
+}
+
+\lstset{showstringspaces=false}
+
+\renewcommand{\refname}{Notes and References}
+
+\newcommand{\warning}[1]{\color{red}#1\color{black}}
+
+\begin{document}
+\lstset{style=codefragment}
+
+
+\title{ASiMoV CCS\\\small{Release: v0.1.1}}
+
+\date{\today}
+\author{EPCC}
+
+\makeEPCCtitle
+
+\centerline{\sc Design Document}
+
+\tableofcontents
+\pagebreak
+
+\bigskip
+
+%\hrule
+
+\bigskip
+
+\section{Design considerations}
+ASiMoV-CCS is a CFD and combustion code designed to scale to large numbers of cores for the purposes of simulating jet engines. It follows a ``separation of concerns'' design that separates interfaces from implementations, and physics from parallelisation. There is a distinction between ``user'' and ``back-end'' code - i.e. case specific code (such as the setup of a particular test) is the ``user'' code, while the core functionality provided by ASiMoV-CCS is the ``back-end'' code. This is implemented in a modular fashion by separating the interface declarations contained in modules from their implementation in submodules. As a result it is possible to implement multiple physics models and parallelisation strategies by writing separate submodules, each providing a distinct solution. 
+
+\section{Code structure}
+\label{code_structure}
+\begin{itemize}
+  \item The organisation of these declarations and definitions is as follows:
+  \begin{itemize}
+    \item Code pertaining to a particular functionality should be contained in its own directory (e.g. everything to do with the solver belongs in \texttt{src/linear\_solvers}
+    \item Interface declarations are in \texttt{\_mod.f90} files (e.g. declarations pertaining to matrices are found in \texttt{mat\_mod.f90})
+    \item Function definitions that are commonly used among different implementations may be defined in \texttt{\_common.f90} files (e.g. \texttt{mat\_common.f90})
+    \item Function definitions that pertain to a particular implementation should be in submodules, stored in an appropriately named directory (e.g. the PETSc solver implementation is in \texttt{petsc} and the corresponding matrix manipulation functions are defined in \texttt{mat\_petsc.f90})
+    \item Only one implementation of a procedure by a submodule is allowed, with the implementation to be used being specified in the configuration file. 
+  \end{itemize}
+  \item Individual main program files are contained in \texttt{src/case\_setup}
+  \item Here we'll examine the Poisson solver
+\end{itemize}
+
+\subsection{Design of interfaces}
+
+A basic design principle of ASiMoV-CCS is that the code should follow a data-in/data-out design,
+functionally everything looks the same with an object containing input data and an output object
+from the result of the operation.
+Consequently, type-bound procedures are to be avoided as they would break this principle, rather a
+generic interface should be used.
+As an example to perform a parallel update of a data structure, whether that be a matrix or a
+vector, rather than write
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:tbp} ]
+call M%update()
+call v%update()
+\end{lstlisting}
+a generic interface (resolving to a type-specific procedure at compile-time should be used)
+\begin{lstlisting}[ language=fortran, basicstyle=\fontsize{9}{10}\ttfamily\label{lst:gen-interface} ]
+call update(M)
+call update(v)
+
+!! In a "utilities module"
+interface update
+  module procedure update_mat
+  module procedure update_vec
+end interface
+
+!! In "Matrix module"
+subroutine update_mat(M)
+  type(matrix) :: M
+  ...
+end subroutine
+\end{lstlisting}
+
+\subsection{Structure of Poisson solver}
+The goal is to solve the equation ${\boldsymbol{\nabla}}^2 u = b$ with discrete representation $M u = b$ given by a cell-centred Finite Volume Method (FVM) discretisation. As specified in Section \ref{code_structure}, multiple different solvers and parallelisation methods may be implemented by using different submodules in ASiMoV-CCS, however at present the parallelisation implementation uses MPI and the solver takes advantage of a Krylov method provided by PETSc. The implementation is as follows:
+\begin{itemize}
+  \item Start by initialising the relevant parallel environment with \texttt{initialise\_parallel\_environment} (e.g. the MPI implementation is found in \texttt{src/parallel/parallel\_env\_mpi.f90}, which will set the communicator, get the number of ranks, etc, whereas the interface declaration is found in \texttt{src/parallel/parallel\_mod.f90}). 
+  \item The general approach to solving this matrix equation numerically (and in parallel) is to setup the matrix and vector structures split over the number of ranks provided, create the solver structure, and solve it with, for example, a Krylov solver.
+  \item The vectors, $u$ and $b$, matrix $M$, and corresponding linear system are initialised with the \texttt{initialise} interface. This sets their global and local sizes to default values and the parallel environment to \texttt{null}.
+  \item The stiffness matrix, $M$, is created, first by setting the sizes (\texttt{set\_global\_size}), followed by the number of non-zero entries (\texttt{set\_nnz}), creating a PETSc matrix with \texttt{create\_matrix}.
+  \item The matrix values are computed with \texttt{discretise\_poisson}, updated to have Dirichlet BCs with \texttt{apply\_dirichlet\_bcs}, and communicated between the ranks with a combination of \texttt{begin\_update}, and \texttt{end\_update}.
+  \item The $u$ and $b$ vectors are set in a similar fashion, with the values of \texttt{b} being set with \texttt{eval\_rhs}.
+  \item A linear system object is setup with the \texttt{M}, \texttt{u} and \texttt{b} with \texttt{set\_linear\_system}, for which a PETSc solver object is created (\texttt{create\_solver}), which is solved using the \texttt{solve} interface (in this case this calls \texttt{KSPSolve}). 
+  \item The solution stored in \texttt{u} is compared against the exact solution \texttt{ustar}
+\end{itemize}
+While only the PETSc solver is currently implemented, care has been taken to separate code which is specific to this implementation (i.e. ``user'' code) into its own submodule in the \texttt{src/linear\_solvers/petsc} subdirectory. As a result a user adding a new solver implementation need only write implementations for the functions found in the \texttt{petsc}, rather than having to rewrite the implementations for all the functions declared in \texttt{mat\_mod.f90, vec\_mod.f90,} and \texttt{solver\_mod.f90}. 
+
+%\subsection{Notes}
+%\begin{itemize}
+%  \item Is there some way to consolidate different cases into one main program file and have individual configuration/parameter files for each case?
+%  \item Check how different submodules are chosen at when configuring.
+%\end{itemize}
+
+\section{Configuring the code}
+\begin{itemize}
+  \item The code configuration options are specified in \texttt{src/config.json}, with the list of all possible configurations in \texttt{src/build\_tools/config\_mapping.json}
+  \item At compile time these files as well as compilation dependencies generated by \texttt{makedepf90} are processed by \texttt{src/build\_tools/generate\_link\_deps.py} and appropriate files are chosen for compiling and linking
+  \item If the appropriate interfaces with the function declarations exist, after writing the relevant function definitions in a separate directory, the \texttt{config\_mapping.json} file needs to be updated with the names of the new implementation files to take into account the new possible configurations.
+  \item It is important to note that only one module specifying a given procedure may be linked during compilation. Therefore if one needs two implementations of a given algorithm at runtime, they cannot be implemented in separate submodules for a single procedure. 
+\end{itemize}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

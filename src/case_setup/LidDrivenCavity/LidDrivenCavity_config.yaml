@@ -9,6 +9,8 @@ relaxation_factor:
   v: 0.9
   p: 0.1
 
+target_residual: 1.0e-10
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:
@@ -23,8 +25,6 @@ relaxation_factor:
 
 #init: 
 #  type: user
-
-#target_residual: 1.0e-10
 
 #monitor_cell: 1990
 
@@ -46,7 +46,55 @@ relaxation_factor:
 #  type: center
 #  variables: [u, v, w, p]
 
-# Note: for boundary "top": u = 1.0
-#boundary:
-#  region: [left, right, top, bottom, live]
-#  type: [wall, wall, wall, wall, sym]
+variables:
+  n_variables: 4
+  variable_1:
+    name: u
+    type: central
+  variable_2:
+    name: v
+    type: upwind
+  variable_3:
+    name: p
+    type: central
+  variable_4:
+    name: p_prime
+    type: central
+
+boundaries:
+  n_boundaries: 4
+  boundary_1: 
+    name: left
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
+  boundary_3:
+    name: top
+    type: dirichlet
+    value: 0
+    variable_u:
+      type: dirichlet
+      value: 1
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
+  boundary_2:
+    name: right
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate
+  boundary_4:
+    name: bottom
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: extrapolate

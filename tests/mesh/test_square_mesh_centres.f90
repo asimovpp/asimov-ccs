@@ -31,7 +31,7 @@ program test_square_mesh_centres
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
 
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call get_centre(loc_p, cc)
       associate(x => cc(1), y => cc(2))
@@ -42,7 +42,7 @@ program test_square_mesh_centres
         end if
       end associate
 
-      associate(nnb => mesh%nnb(i))
+      associate(nnb => mesh%topo%num_nb(i))
         do j = 1, nnb
           call set_face_location(mesh, i, j, loc_f)
           call get_centre(loc_f, fc)

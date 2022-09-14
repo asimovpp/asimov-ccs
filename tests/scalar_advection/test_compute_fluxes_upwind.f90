@@ -32,11 +32,11 @@ program test_compute_fluxes
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  bcs%region(1) = bc_region_left
-  bcs%region(2) = bc_region_right
-  bcs%region(3) = bc_region_top
-  bcs%region(4) = bc_region_bottom
-  bcs%bc_type(:) = bc_type_dirichlet
+  bcs%region(1) = -1
+  bcs%region(2) = -2
+  bcs%region(3) = -4
+  bcs%region(4) = -3
+  bcs%bc_types(:) = bc_type_dirichlet
   bcs%endpoints(:,:) = 1.0_ccs_real
     
   do direction = x_dir, y_dir
@@ -84,7 +84,7 @@ program test_compute_fluxes
     u_vals%setter_mode = insert_mode
     v_vals%setter_mode = insert_mode
     
-    associate(n_local => mesh%nlocal)
+    associate(n_local => mesh%topo%local_num_cells)
       allocate(u_vals%global_indices(n_local))
       allocate(v_vals%global_indices(n_local))
       allocate(u_vals%values(n_local))
@@ -239,8 +239,8 @@ program test_compute_fluxes
     call zero_vector(b)
     
     ! Advection first
-    allocate(vec_coeffs%global_indices(2*mesh%nglobal/cps))
-    allocate(vec_coeffs%global_indices(2*mesh%nglobal/cps))
+    allocate(vec_coeffs%global_indices(2*mesh%topo%global_num_cells/cps))
+    allocate(vec_coeffs%global_indices(2*mesh%topo%global_num_cells/cps))
 
     vec_counter = 1
     adv_coeff = 0.0_ccs_real
@@ -248,7 +248,7 @@ program test_compute_fluxes
     if (par_env%proc_id == 0) then
       if (flow == x_dir) then
         do i = 1, cps
-          ii = mesh%global_indices(i)
+          ii = mesh%topo%global_indices(i)
           call pack_entries(vec_counter, (i-1)*cps + 1, adv_coeff, vec_coeffs) 
           vec_counter = vec_counter + 1
           call pack_entries(vec_counter, i*cps, adv_coeff, vec_coeffs) 
@@ -258,7 +258,7 @@ program test_compute_fluxes
         do i = 1, cps
           call pack_entries(vec_counter, i, adv_coeff, vec_coeffs) 
           vec_counter = vec_counter + 1
-          call pack_entries(vec_counter, mesh%nlocal - i + 1, adv_coeff, vec_coeffs) 
+          call pack_entries(vec_counter, mesh%topo%local_num_cells - i + 1, adv_coeff, vec_coeffs) 
           vec_counter = vec_counter + 1
         end do
       end if
@@ -278,7 +278,7 @@ program test_compute_fluxes
     ! vec_counter = 1
     ! diff_coeff = 0.0_ccs_real !0.01_ccs_real
     ! if (par_env%proc_id == 0) then
-    !   do i = 1, mesh%nglobal
+    !   do i = 1, mesh%topo%global_num_cells
     !     call calc_cell_coords(i, cps, row, col)
     !     if (row == 1 .or. row == cps) then
     !       call pack_entries(vec_counter, i, diff_coeff, vec_coeffs) 
@@ -328,10 +328,10 @@ program test_compute_fluxes
     
     diff_coeff = -0.01_ccs_real
     ! Diffusion coefficients
-    do i = 1, mesh%nlocal
+    do i = 1, mesh%topo%local_num_cells
       mat_counter = 1
 
-      ii = mesh%global_indices(i)
+      ii = mesh%topo%global_indices(i)
       call pack_entries(1, mat_counter, ii, ii, -4*diff_coeff, mat_coeffs)
       mat_counter = mat_counter + 1
 
@@ -344,11 +344,11 @@ program test_compute_fluxes
         mat_counter = mat_counter + 1
       end if
 
-      if (ii + 1 .le. mesh%nglobal .and. mod(ii, cps) .ne. 0) then
+      if (ii + 1 .le. mesh%topo%global_num_cells .and. mod(ii, cps) .ne. 0) then
         call pack_entries(1, mat_counter, ii, ii+1, diff_coeff, mat_coeffs)
         mat_counter = mat_counter + 1
       end if
-      if (ii + cps .le. mesh%nglobal) then
+      if (ii + cps .le. mesh%topo%global_num_cells) then
         call pack_entries(1, mat_counter, ii, ii+cps, diff_coeff, mat_coeffs)
         mat_counter = mat_counter + 1
       end if
@@ -396,9 +396,9 @@ program test_compute_fluxes
     
     if (flow == x_dir) then
       ! UDS and flow along +x direction
-      do i = 1, mesh%nlocal
+      do i = 1, mesh%topo%local_num_cells
         mat_counter = 1
-        ii = mesh%global_indices(i)
+        ii = mesh%topo%global_indices(i)
         if (mod(ii, cps) .ne. 1) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
@@ -409,9 +409,9 @@ program test_compute_fluxes
       end do
     else if (flow == y_dir) then
       ! UDS and flow along +y direction
-      do i = 1, mesh%nlocal
+      do i = 1, mesh%topo%local_num_cells
         mat_counter = 1
-        ii = mesh%global_indices(i)
+        ii = mesh%topo%global_indices(i)
         if (ii > cps) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1

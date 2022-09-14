@@ -79,8 +79,8 @@ INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAML}/build 
 LIB += -Wl,-rpath,${FYAML}/build:${FYAML}/build/yaml-cpp -L${FYAML}/build -lfortran-yaml-cpp -L${FYAML}/build/yaml-cpp -lyaml-cpp 
-INC += -I${PARHIP_INC}
-LIB += -L${PARHIP_LIB} -lparhip_interface
+INC += -I${PARHIP}/include
+LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
 
 
 ifeq ($(NEED_CMP),yes)
@@ -94,6 +94,11 @@ ifeq ($(CCS_PROPRIETARY),yes)
   include $(CCS_PROPRIETARY_MAKEFILE)
 endif
 
+ifeq ($(BUILD),debug)
+  FFLAGS += -DEXCLUDE_MISSING_INTERFACE
+endif
+
+all: obj app
 
 app: $(EXE)
 
@@ -103,6 +108,8 @@ all: obj app
 
 $(EXE): $(EXE_DEPS)
 	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) 
+	@echo -n "===> Built ccs_app with "
+	@grep main $(CCS_DIR)/config.yaml
 
 COMPILE_FORTRAN = $(call printdo, $(FC) $(FFLAGS) -o $@ -c $< $(INC))
 COMPILE_C =       $(call printdo, $(CC) $(CFLAGS) -o $@ -c $< $(INC))

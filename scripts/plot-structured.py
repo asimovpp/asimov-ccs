@@ -1,9 +1,11 @@
+import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import os
 
-sys.path.append("/usr/local/install/petsc-gnu/lib/petsc/bin/")
+sys.path.append(os.environ["PETSC_DIR"] + "/lib/petsc/bin")
 import PetscBinaryIO 
 
 def plot_field(field, fig, axs, index, nlevels, name):
@@ -27,9 +29,16 @@ mp  = int(np.floor((cps + 1) / 2))
 io = PetscBinaryIO.PetscBinaryIO()
 
 # Load data
-p = io.readBinaryFile("p")
-u = io.readBinaryFile("u")
-v = io.readBinaryFile("v")
+if len(sys.argv) > 4:
+    p = io.readBinaryFile(sys.argv[1])
+    u = io.readBinaryFile(sys.argv[2])
+    v = io.readBinaryFile(sys.argv[3])
+    outstub = sys.argv[4]
+else:
+    p = io.readBinaryFile("p")
+    u = io.readBinaryFile("u")
+    v = io.readBinaryFile("v")
+    outstub = ""
 
 # Reshape data
 P = np.reshape(p, (cps, cps))
@@ -45,7 +54,7 @@ plot_field(P, fig, axs, 0, nlevels, "Pressure")
 plot_field(U, fig, axs, 1, nlevels, "u")
 plot_field(V, fig, axs, 2, nlevels, "v")
 
-filename = f"contours_{cps:04d}.png"
+filename = outstub + f"contours_{cps:04d}.png"
 fig.savefig(filename, dpi = 200)
 plt.close(fig)
 
@@ -69,4 +78,4 @@ ax_v.set_title("v")
 
 ax_u.legend()
 fig.tight_layout(pad=2.5, w_pad=2.5, h_pad=2.5)
-fig.savefig(f"slices_{cps:04d}.png", dpi = 200)
+fig.savefig(outstub + f"slices_{cps:04d}.png", dpi = 200)
