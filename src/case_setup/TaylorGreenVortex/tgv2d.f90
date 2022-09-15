@@ -267,9 +267,10 @@ contains
 
   subroutine initialise_velocity(mesh, u, v, w, mf)
 
-    use constants, only: add_mode
-    use types, only: vector_values, cell_locator, face_locator
-    use meshing, only: set_cell_location, get_global_index
+    use constants, only: insert_mode, ndim
+    use types, only: vector_values, cell_locator, face_locator, neighbour_locator
+    use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
+         get_local_index, set_face_location, get_local_index, get_face_normal, get_centre
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -280,30 +281,38 @@ contains
 
     ! Local variables
     integer(ccs_int) :: row, col, n, count
-    integer(ccs_int) :: index_p, global_index_p, index_f
+    integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
+    type(face_locator) :: loc_f
+    type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, w_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
+    real(ccs_real), dimension(ndim) :: x_p, x_f
+    real(ccs_real), dimension(ndim) :: face_normal
 
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: j
+    
     ! Set alias
     associate (n_local => mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
       call create_vector_values(n_local, w_vals)
-      call set_mode(add_mode, u_vals)
-      call set_mode(add_mode, v_vals)
-      call set_mode(add_mode, w_vals)
+      call set_mode(insert_mode, u_vals)
+      call set_mode(insert_mode, v_vals)
+      call set_mode(insert_mode, w_vals)
 
       ! Set initial values for velocity fields
       do index_p = 1, n_local
         call set_cell_location(mesh, index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
-        ! call calc_cell_coords(global_index_p, cps, row, col)
 
-        u_val = sin(mesh%geo%x_p(1,index_p)) * cos(mesh%geo%x_p(2,index_p))
-        v_val = -cos(mesh%geo%x_p(1,index_p)) * sin(mesh%geo%x_p(2,index_p))
+        call get_centre(loc_p, x_p)
+
+        u_val = sin(x_p(1)) * cos(x_p(2))
+        v_val = -cos(x_p(1)) * sin(x_p(2))
         w_val = 0.0_ccs_real
 
         call set_row(global_index_p, u_vals)
@@ -333,16 +342,25 @@ contains
 
     ! Loop over local cells and faces
     do index_p = 1, mesh%topo%local_num_cells
-      do index_f = 1, mesh%topo%max_faces
+
+      call set_cell_location(mesh, index_p, loc_p)
+      call count_neighbours(loc_p, nnb)
+      do j = 1, nnb
+
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_local_index(loc_nb, index_nb)
         
-        ! if current face index is greater than previous face index
-        if(mesh%topo%face_indices(index_f,index_p) > n) then
-          ! get new face index
-          n = mesh%topo%face_indices(index_f,index_p)
-          ! increment counter
-          count = count + 1
+        ! if neighbour index is greater than previous face index
+        if(index_nb > index_p) then ! XXX: abstract this test
+
+          call set_face_location(mesh, index_p, j, loc_f)
+          call get_local_index(loc_f, index_f)
+          call get_face_normal(loc_f, face_normal)
+          call get_centre(loc_f, x_f)
+
           ! compute initial value based on current face coordinates
-          mf_data(count) = sin(mesh%geo%x_f(1, index_f, index_p)) * cos(mesh%geo%x_f(2, index_f, index_p))
+          mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * face_normal(1) &
+               - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
         end if
 
       end do
