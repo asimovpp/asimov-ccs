@@ -4,9 +4,10 @@
 module io
 
   use iso_fortran_env, only: int32, int64, real32, real64
-  use types, only: io_environment, io_process, ccs_mesh
+  use types, only: io_environment, io_process, ccs_mesh, field
   use parallel_types, only: parallel_environment
   use constants, only: ndim, adiosconfig
+  use kinds, only: ccs_int
 
   implicit none
 
@@ -21,7 +22,7 @@ module io
   public :: read_array
   public :: write_scalar
   public :: write_array
-  !public :: write_solution
+  public :: write_solution
 
   interface read_scalar
     module procedure read_scalar_int32
@@ -334,7 +335,7 @@ module io
     integer(int64), dimension(1), intent(in) :: global_shape
     integer(int64), dimension(1), intent(in) :: global_start
     integer(int64), dimension(1), intent(in) :: count
-    real(real64), dimension(:), intent(in) :: var
+    real(real64), dimension(:), intent(inout) :: var
   end subroutine
 
   !>  Write a 2D 32-bit real array to file
@@ -371,11 +372,15 @@ module io
     real(real64), dimension(:,:), intent(in) :: var
   end subroutine
 
-  !module subroutine write_solution(par_env, case_name, mesh)
-  !  class(parallel_environment), allocatable, target, intent(in) :: par_env
-  !  character(len=:), allocatable, intent(in) :: case_name
-  !  type(ccs_mesh), intent(in) :: mesh
-  !end subroutine
+  module subroutine write_solution(par_env, case_name, mesh, cps, u, v, p)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env
+    character(len=:), allocatable, intent(in) :: case_name
+    type(ccs_mesh), intent(in) :: mesh
+    integer(ccs_int), intent(in) :: cps
+    class(field), intent(inout) :: u
+    class(field), intent(inout) :: v
+    class(field), intent(inout) :: p
+  end subroutine
 
   end interface
 

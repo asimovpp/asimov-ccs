@@ -8,6 +8,7 @@ module mesh_utils
                    io_environment, io_process, &
                    face_locator, cell_locator, neighbour_locator
   use io, only: read_scalar, read_array, &
+                write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
   use parallel, only: read_command_line_arguments
@@ -49,6 +50,7 @@ module mesh_utils
   public :: local_count
   public :: count_mesh_faces
   public :: read_mesh
+  public :: write_mesh
 
 contains
 
@@ -303,6 +305,109 @@ contains
 
   end subroutine read_geometry
 
+  !v Write mesh to file
+  subroutine write_mesh(par_env, case_name, mesh)
+      
+    ! Arguments
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name
+    type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
+
+    ! Local variables
+    character(len=:), allocatable :: geo_file    ! Geo file name
+    character(len=:), allocatable :: adios2_file ! ADIOS2 config file name
+
+    class(io_environment), allocatable :: io_env
+    class(io_process), allocatable :: geo_writer
+
+    logical :: exists = .false.
+
+    adios2_file = case_name // adiosconfig
+
+    ! Check whether geo file already exists; abort if it does
+    geo_file = case_name // geoext
+    inquire(file=geo_file, exist=exists)
+    if (exists) then
+      ! Geo file already exists, don't overwrite
+      if (par_env%proc_id == par_env%root) then
+        write(*,*) 'Geo file already exists'
+      endif
+      return
+    endif
+
+    ! Open geo file for writing
+    call initialise_io(par_env, adios2_file, io_env)
+    call configure_io(io_env, "geo_writer", geo_writer)
+    call open_file(geo_file, "write", geo_writer)
+
+    ! Write mesh
+    call write_topology(par_env, geo_writer, mesh)
+    !call write_geometry(par_env, geo_writer, mesh)
+
+    ! Close the file and ADIOS2 engine
+    call close_file(geo_writer)
+
+    ! Finalise the ADIOS2 environment
+    call cleanup_io(iO_env) 
+    
+  end subroutine write_mesh
+
+  !v Write the topology data to file
+  subroutine write_topology(par_env, geo_writer, mesh)
+
+    ! Arguments
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(io_process), allocatable, target, intent(in) :: geo_writer
+    type(ccs_mesh), intent(in) :: mesh
+
+    ! Local variables
+    integer(ccs_long), dimension(1) :: sel_shape
+    integer(ccs_long), dimension(1) :: sel_start
+    integer(ccs_long), dimension(1) :: sel_count
+
+    integer(ccs_long), dimension(2) :: sel2_shape
+    integer(ccs_long), dimension(2) :: sel2_start
+    integer(ccs_long), dimension(2) :: sel2_count
+
+    integer(ccs_int) :: vert_per_cell
+
+    if (mesh % topo % max_faces == 6) then ! if cell are hexes
+      vert_per_cell = 8 ! 8 vertices per cell
+    else
+      call error_abort("Currently only supporting hex cells.")
+    end if
+
+
+    ! Write attribute "ncel" - the total number of cells
+    !call write_scalar(geo_writer, "ncel", mesh%topo%global_num_cells)
+    ! Write attribute "nfac" - the total number of faces
+    !call write_scalar(geo_writer, "nfac", mesh%topo%global_num_faces)
+    ! Write attribute "maxfaces" - the maximum number of faces per cell
+    !call write_scalar(geo_writer, "nfac", mesh%topo%max_faces)
+    ! Write attribute "nvrt" - the total number of vertices
+    !call write_scalar(geo_writer, "nvrt", mesh%topo%global_num_vertices)
+
+    sel_shape(1) = mesh%topo%global_num_faces
+    sel_start(1) = mesh%topo%global_indices(1) - 1
+    sel_count(1) = mesh%topo%local_num_cells
+
+    ! Write arrays /face/cell1 and /face/cell2
+    !call write_array(geo_writer, "/face/cell1", sel_shape, sel_start, sel_count, mesh%topo%face_cell1)
+    !call write_array(geo_writer, "/face/cell2", sel_shape, sel_start, sel_count, mesh%topo%face_cell2)
+
+    ! Write cell vertices
+    sel2_shape(1) = vert_per_cell
+    sel2_shape(2) = mesh%topo%global_num_cells
+    sel2_start(1) = 0
+    sel2_start(2) = mesh%topo%global_indices(1) - 1
+    sel2_count(1) = vert_per_cell
+    sel2_count(2) = mesh%topo%local_num_cells
+
+    call write_array(geo_writer, "/cell/vertices", sel_shape, sel_start, sel_count, )
+
+
+  end subroutine write_topology
+
   !v Utility constructor to build a square mesh.
   !
   !  Builds a Cartesian grid of NxN cells on the domain LxL.
@@ -538,12 +643,16 @@ contains
 
           ! Set max number of faces (constant, 6)
           mesh%topo%max_faces = 6_ccs_int
+
+          ! Set number of vertices per cell (constant, 8)
+          vert_per_cell = 8
           
           ! Allocate mesh arrays
           allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
           allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
           allocate (mesh%topo%nb_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
           allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+          allocate (mesh%topo%global_vertex_indices(vert_per_cell, mesh%topo%local_num_cells))
 
           ! Initialise mesh arrays
           mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
@@ -833,6 +942,38 @@ contains
     deallocate (tmp)
 
   end subroutine append_to_arr
+
+  !v Count the number of vertices in the mesh
+  function count_mesh_vertices(mesh) return(nverts)
+
+    ! Arguments
+    type(ccs_mesh), intent(in) :: mesh !< the mesh
+
+    !  Result
+    integer(ccs_int) :: nverts !< number of vertices
+
+    ! Local variables
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: global_index_p, index_p
+    integer(ccs_int) :: j
+
+    logical :: is_boundary
+    logical :: is_local
+
+    ! Loop over cells
+    do index_p = 1, mesh%topo%local_num_cells
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call count_neighbours(loc_p, nnb)
+
+      do j = 1, nnb
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+
+        if (.not. is_boundary) then
+          call get_local_status(loc_nb, is_local)
+
 
   !v Count the number of faces in the mesh
   function count_mesh_faces(mesh) result(nfaces)
