@@ -90,12 +90,15 @@ contains
 
     real(ccs_real), dimension(:), pointer :: values_data, old_values_data
 
-    !u%old_values(1) = x%values
-    call get_vector_data(x%values, values_data)
-    call get_vector_data(x%old_values(1)%vec, old_values_data)
-    old_values_data = values_data
-    call restore_vector_data(x%old_values(1)%vec, old_values_data)
-    call restore_vector_data(x%values, values_data)
+    if (timestepping_is_active) then
+       !u%old_values(1) = x%values
+       call get_vector_data(x%values, values_data)
+       call get_vector_data(x%old_values(1)%vec, old_values_data)
+       old_values_data = values_data
+       call restore_vector_data(x%old_values(1)%vec, old_values_data)
+       call restore_vector_data(x%values, values_data)
+    end if
+    
   end subroutine
 
   module subroutine activate_timestepping()
