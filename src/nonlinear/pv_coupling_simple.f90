@@ -63,11 +63,16 @@ contains
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
 
-    logical :: converged = .false.
+    logical :: converged
 
-    integer(ccs_int) :: nvar = 0   ! Number of flow variables to solve
-    integer(ccs_int) :: ivar = 0   ! Counter for flow variables
+    integer(ccs_int) :: nvar ! Number of flow variables to solve
+    integer(ccs_int) :: ivar ! Counter for flow variables
 
+    ! Initialising SIMPLE solver
+    nvar = 0
+    ivar = 0
+    converged = .false.
+    
     ! Initialise linear system
     call dprint("NONLINEAR: init")
     call initialise(vec_properties)
