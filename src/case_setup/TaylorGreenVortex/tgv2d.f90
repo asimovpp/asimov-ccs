@@ -25,7 +25,8 @@ program tgv2d
   use utils, only: set_size, initialise, update, exit_print
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-
+  use timestepping, only : set_timestep, activate_timestepping, initialise_old_values
+  
   implicit none
 
   class(parallel_environment), allocatable :: par_env
@@ -140,6 +141,9 @@ program tgv2d
   call update(p_prime%x_gradients)
   call update(p_prime%y_gradients)
   call update(p_prime%z_gradients)
+  call initialise_old_values(vec_properties, u)
+  call initialise_old_values(vec_properties, v)
+  call initialise_old_values(vec_properties, w)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -153,12 +157,16 @@ program tgv2d
   call update(v%values)
   call update(w%values)
   call update(mf%values)
+  call calc_tgv2d_error(mesh, 0, u, v, w, p)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
 
   dt = 0.1_ccs_real
   nsteps = 5
+
+  call activate_timestepping()
+  call set_timestep(dt)
   do t = 1, nsteps
      call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
           u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
@@ -414,6 +422,8 @@ contains
 
     character(len=ccs_string_len) :: fmt
     real(ccs_real) :: time
+
+    integer :: io_unit
     
     mu = 0.1_ccs_real  ! XXX: currently hardcoded somewhere
     rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
@@ -461,9 +471,16 @@ contains
     if (par_env%proc_id == par_env%root) then
        if (first_time) then
           first_time = .false.
+
+          call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
+          open(newunit=io_unit, file="tgv2d-err.log", status="new", form="formatted")
+
+       else
+          open(newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
        end if
        fmt = '(I0,' // str(size(err_rms)) // '(1x,e12.4))'
-       write(*, fmt) t, err_rms
+       write(io_unit, fmt) t, err_rms
+       close(io_unit)
     end if
     
   end subroutine calc_tgv2d_error
