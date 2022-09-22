@@ -852,13 +852,12 @@ contains
 
     ! Local variables
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
-    logical, save :: first_time = .true.  ! True on first call to this subroutine
     character(len=20) :: fmt              ! Format string for writing out residuals
 
     nvar = size(residuals)
 
     ! Print residuals
-    if (first_time) then
+    if (itr == 1) then
       if (par_env%proc_id == par_env%root) then
         write (*, *)
         write (*, '(a6)', advance='no') 'Iter'
@@ -868,7 +867,6 @@ contains
         if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
         write (*, *)
       end if
-      first_time = .false.
     end if
 
     if (par_env%proc_id == par_env%root) then
