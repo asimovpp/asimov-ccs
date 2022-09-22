@@ -25,7 +25,8 @@ submodule(pv_coupling) pv_coupling_simple
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume
-
+  use timestepping, only : update_old_values
+  
   implicit none
 
 contains
@@ -72,6 +73,10 @@ contains
     nvar = 0
     ivar = 0
     converged = .false.
+
+    call update_old_values(u)
+    call update_old_values(v)
+    call update_old_values(w)
     
     ! Initialise linear system
     call dprint("NONLINEAR: init")
