@@ -1,7 +1,7 @@
-!> @brief Test the cell/face centres of a square mesh.
+!v Test the cell/face centres of a square mesh.
 !
-!> @description The cell/face centres of a mesh should all fall within the meshed domain, for a
-!!              square mesh \f$x\in[0,1]^d\f$.
+!  The cell/face centres of a mesh should all fall within the meshed domain, for a
+!  square mesh \f$x\in[0,1]^d\f$.
 program test_square_mesh_centres
 
   use testing_lib

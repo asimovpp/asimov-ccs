@@ -1,7 +1,7 @@
 program bc_test
 #include "ccs_macros.inc"
 
-  !! ASiMoV-CCS uses
+  ! ASiMoV-CCS uses
   use testing_lib
   use kinds, only: ccs_real, ccs_int
   use types, only: field, central_field

@@ -1,7 +1,7 @@
-!> @brief Test the cell/face centres of a square mesh.
+!v Test the cell/face centres of a square mesh.
 !
-!> @description The cell/face centres of a mesh should all fall within the meshed domain, for a
-!!              square mesh \f$x\in[0,1]^d\f$.
+!  The cell/face centres of a mesh should all fall within the meshed domain, for a
+!  square mesh \f$x\in[0,1]^d\f$.
 program test_vec_set_entries
 
   use testing_lib
@@ -61,8 +61,8 @@ contains
 
     integer(ccs_int), intent(in) :: mode
 
-    integer(ccs_int) :: nblocks !> How many blocks should I split my elements into?
-    integer(ccs_int) :: nrows   !> How many rows to set simultaneously?
+    integer(ccs_int) :: nblocks !< How many blocks should I split my elements into?
+    integer(ccs_int) :: nrows   !< How many rows to set simultaneously?
 
     type(vector_values) :: val_dat
     type(cell_locator) :: loc_p

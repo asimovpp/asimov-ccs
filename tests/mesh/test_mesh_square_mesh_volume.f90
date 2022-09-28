@@ -1,7 +1,7 @@
-!> @brief Test the square mesh generator creates a correctly-sized mesh.
+!v Test the square mesh generator creates a correctly-sized mesh.
 !
-!> @description A "square" domain of side L should result in a mesh of volume L^d, this can be
-!> verified by summing the volumes of all cells.
+!  A "square" domain of side L should result in a mesh of volume L^d, this can be
+!  verified by summing the volumes of all cells.
 program test_mesh_square_mesh_volume
 
   use testing_lib

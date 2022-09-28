@@ -1,7 +1,7 @@
-!> @brief Test the square mesh generator creates a closed mesh.
+!v Test the square mesh generator creates a closed mesh.
 !
-!> @description A valid mesh should be "closed" that is the surface integral should be zero. The
-!!              same is true of mesh cells.
+!  A valid mesh should be "closed" that is the surface integral should be zero. The
+!  same is true of mesh cells.
 program test_mesh_square_mesh_closed
 
   use testing_lib

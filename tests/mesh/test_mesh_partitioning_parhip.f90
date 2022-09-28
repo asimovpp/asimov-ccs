@@ -1,12 +1,12 @@
-!> Test that partitions a very simple graph using ParHIP
+!v Test that partitions a very simple graph using ParHIP
 !
-! Sample graph - adapted from ParMETIS manual to use 1-indexing
-!
-! 1 -- 2 -- 3 -- 4 -- 5
-! |    |    |    |    |
-! 6 -- 7 -- 8 -- 9 --10
-! |    |    |    |    |
-! 11 --12 --13 --14 --15
+!  Sample graph - adapted from ParMETIS manual to use 1-indexing
+! 
+!  1 -- 2 -- 3 -- 4 -- 5
+!  |    |    |    |    |
+!  6 -- 7 -- 8 -- 9 --10
+!  |    |    |    |    |
+!  11 --12 --13 --14 --15
 
 program test_mesh_partitioning_parhip
 

@@ -9,8 +9,8 @@ program test_hdf5_reader
 
   implicit none
 
-  character(len=:), allocatable :: test_file    !> Testfile name
-  character(len=:), allocatable :: adios2_file !> ADIOS2 config file name
+  character(len=:), allocatable :: test_file   !< Testfile name
+  character(len=:), allocatable :: adios2_file !< ADIOS2 config file name
 
   class(io_environment), allocatable :: io_env
   class(io_process), allocatable :: test_reader
@@ -21,8 +21,8 @@ program test_hdf5_reader
   integer(kind=8), dimension(1) :: sel_count
   integer, dimension(:), allocatable :: dist
 
-  integer(ccs_int) :: irank !> MPI rank ID
-  integer(ccs_int) :: isize !> Size of MPI world
+  integer(ccs_int) :: irank !< MPI rank ID
+  integer(ccs_int) :: isize !< Size of MPI world
   integer(ccs_int) :: i, j, k, ierror
   integer(ccs_int) :: local_start
   integer(ccs_int) :: local_end

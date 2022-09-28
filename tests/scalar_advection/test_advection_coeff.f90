@@ -1,8 +1,8 @@
-!> @brief Test that advection coefficients are calculated correctly
+!v Test that advection coefficients are calculated correctly
 !
-!> @description Computes the advection coefficients for two flow directions
-!> (in +x, +y directions) for central and upwind differencing and compares to
-!> known values
+!  Computes the advection coefficients for two flow directions
+!  (in +x, +y directions) for central and upwind differencing and compares to
+!  known values
 program test_advection_coeff
 
   use testing_lib
@@ -81,22 +81,15 @@ program test_advection_coeff
 
 contains
 
-  !> @brief For a given cell and neighbour computes the local cell and neighbour indices, corresponding face
-  !> area, and normal
-  !
-  !> @param[in] index           - The cell's local index
-  !> @param[in] nb                 - The neighbour we're interested in (range 1-4)
-  !> @param[out] index_p           - The cell's local index
-  !> @param[out] index_nb            - The neighbour's local index
-  !> @param[out] face_area  - The surface area of the face between the cell and its neighbour
-  !> @param[out] normal             - The face normal between the cell and its neighbour
+  !v For a given cell and neighbour computes the local cell and neighbour indices, corresponding face
+  !  area, and normal
   subroutine get_cell_parameters(index, nb, index_p, index_nb, face_area, normal)
-    integer(ccs_int), intent(in) :: index
-    integer(ccs_int), intent(in) :: nb
-    integer(ccs_int), intent(out) :: index_p
-    integer(ccs_int), intent(out) :: index_nb
-    real(ccs_real), intent(out) :: face_area
-    real(ccs_real), intent(out), dimension(ndim) :: normal
+    integer(ccs_int), intent(in) :: index                  !< The cell's local index
+    integer(ccs_int), intent(in) :: nb                     !< The neighbour we're interested in (range 1-4)
+    integer(ccs_int), intent(out) :: index_p               !< The cell's local index
+    integer(ccs_int), intent(out) :: index_nb              !< The neighbour's local index
+    real(ccs_real), intent(out) :: face_area               !< The surface area of the face between the cell and its neighbour
+    real(ccs_real), intent(out), dimension(ndim) :: normal !< The face normal between the cell and its neighbour
 
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
@@ -114,19 +107,15 @@ contains
     call get_face_normal(loc_f, normal)
   end subroutine get_cell_parameters
 
-  !> @brief Sets the velocity field in the desired direction and discretisation
-  !
-  !> @param[in] mesh - The mesh structure
-  !> @param[in] direction - Integer indicating the direction of the velocity field
-  !> @param[out] u, v     - The velocity fields in x and y directions
+  !v Sets the velocity field in the desired direction and discretisation
   subroutine set_velocity_fields(mesh, direction, u, v)
 
     use vec, only: create_vector_values
     use utils, only: set_mode
 
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: direction
-    class(field), intent(inout), allocatable :: u, v
+    class(ccs_mesh), intent(in) :: mesh              !< The mesh structure
+    integer(ccs_int), intent(in) :: direction        !< Integer indicating the direction of the velocity field
+    class(field), intent(inout), allocatable :: u, v !< The velocity fields in x and y directions
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
     integer(ccs_int) :: index_p, global_index_p
@@ -172,40 +161,30 @@ contains
 
   end subroutine set_velocity_fields
 
-  !> @brief Deallocates the velocity fields
-  !
-  !> @param[in] scalar - The scalar field structure
-  !> @param[in] u, v   - The velocity fields to deallocate
+  !v Deallocates the velocity fields
   subroutine tidy_velocity_fields(scalar, u, v)
-    class(field), allocatable :: scalar
-    class(field), allocatable :: u, v
+    class(field), allocatable :: scalar !< The scalar field structure
+    class(field), allocatable :: u, v   !< The velocity fields to deallocate
 
     deallocate (scalar)
     deallocate (u)
     deallocate (v)
   end subroutine tidy_velocity_fields
 
-  !> @brief Checks whether advection coefficient is correct for given velocity fields, cell and neighbour
-  !
-  !> @param[in] scalar      - The scalar field structure
-  !> @param[in] u, v        - Arrays containing the velocity fields
-  !> @param[in] index_p    - The given cell's local index
-  !> @param[in] index_nb     - The neighbour's local index
-  !> @param[in] face_area   - The surface area of the face between the cell and neighbour
-  !> @param[in] face_normal - The normal to the face between the cell and neighbour
+  !v Checks whether advection coefficient is correct for given velocity fields, cell and neighbour
   subroutine run_advection_coeff_test(phi, u, v, index_p, index_nb, face_area, face_normal)
-    class(field), intent(in) :: phi
-    real(ccs_real), dimension(:), intent(in) :: u, v
-    integer(ccs_int), intent(in) :: index_p
-    integer(ccs_int), intent(in) :: index_nb
-    real(ccs_real), intent(in) :: face_area
-    real(ccs_real), dimension(ndim), intent(in) :: face_normal
+    class(field), intent(in) :: phi                            !< The scalar field structure
+    real(ccs_real), dimension(:), intent(in) :: u, v           !< Arrays containing the velocity fields
+    integer(ccs_int), intent(in) :: index_p                    !< The given cell's local index
+    integer(ccs_int), intent(in) :: index_nb                   !< The neighbour's local index
+    real(ccs_real), intent(in) :: face_area                    !< The surface area of the face between the cell and neighbour
+    real(ccs_real), dimension(ndim), intent(in) :: face_normal !< The normal to the face between the cell and neighbour
 
     real(ccs_real) :: coeff
     real(ccs_real) :: mf
     real(ccs_real) :: expected_coeff
 
-    !! Compute mass flux
+    ! Compute mass flux
     mf = 0.5_ccs_real * (u(index_p) + u(index_nb)) * face_normal(1) &
          + 0.5_ccs_real * (v(index_p) + v(index_nb)) * face_normal(2)
 

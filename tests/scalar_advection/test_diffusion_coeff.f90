@@ -1,6 +1,6 @@
-!> @brief Test that the diffusion coefficient is being calculated correctly
+!v Test that the diffusion coefficient is being calculated correctly
 !
-!> @description Currently hard-coded result, waiting for better treatment of diffusion
+!  Currently hard-coded result, waiting for better treatment of diffusion
 program test_diffusion_coeff
 
   use testing_lib

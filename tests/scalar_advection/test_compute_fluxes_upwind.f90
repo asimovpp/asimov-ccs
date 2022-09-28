@@ -1,7 +1,7 @@
-!> @brief Test that the flux matrix has been computed correctly
+!v Test that the flux matrix has been computed correctly
 !
-!> @description Compares the matrix calculated for flows in the +x and +y directions with
-!> central and upwind differencing to the known matrix
+!  Compares the matrix calculated for flows in the +x and +y directions with
+!  central and upwind differencing to the known matrix
 program test_compute_fluxes
 
   use testing_lib
@@ -66,16 +66,12 @@ program test_compute_fluxes
 
 contains
 
-  !> @brief Sets the velocity field in the desired direction and discretisation
-  !
-  !> @param[in] mesh - The mesh structure
-  !> @param[in] direction - Integer indicating the direction of the velocity field
-  !> @param[out] u, v     - The velocity fields in x and y directions
+  !v Sets the velocity field in the desired direction and discretisation
   subroutine set_velocity_fields(mesh, direction, u, v)
     use meshing, only: set_cell_location, get_global_index
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: direction
-    class(field), intent(inout) :: u, v
+    class(ccs_mesh), intent(in) :: mesh       !< The mesh structure
+    integer(ccs_int), intent(in) :: direction !< Integer indicating the direction of the velocity field
+    class(field), intent(inout) :: u, v       !< The velocity fields in x and y directions
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals
     integer(ccs_int) :: index_p, global_index_p
@@ -123,36 +119,25 @@ contains
 
   end subroutine set_velocity_fields
 
-  !> @brief Deallocates the velocity fields
-  !
-  !> @param[in] scalar - The scalar field structure
-  !> @param[in] u, v   - The velocity fields to deallocate
+  !v Deallocates the velocity fields
   subroutine tidy_velocity_fields(scalar, u, v)
-    class(field), allocatable :: scalar
-    class(field), allocatable :: u, v
+    class(field), allocatable :: scalar !< The scalar field structure
+    class(field), allocatable :: u, v   !< The velocity fields to deallocate
 
     deallocate (scalar)
     deallocate (u)
     deallocate (v)
   end subroutine tidy_velocity_fields
 
-  !> @brief Compares the matrix computed for a given velocity field and discretisation to the known solution
-  !
-  !> @param[in] scalar         - The scalar field structure
-  !> @param[in] u, v           - The velocity field structures
-  !> @param[in] bcs            - The BC structure
-  !> @param[in] mesh      - The mesh structure
-  !> @param[in] cps            - The number of cells per side in the (square) mesh
-  !> @param[in] flow_direction - Integer indicating the direction of the flow
-  !> @param[in] discretisation - Integer indicating the discretisation scheme being tested
+  !v Compares the matrix computed for a given velocity field and discretisation to the known solution
   subroutine run_compute_fluxes_test(scalar, u, v, bcs, mesh, cps, flow_direction, discretisation)
-    class(field), intent(in) :: scalar
-    class(field), intent(in) :: u, v
-    class(bc_config), intent(in) :: bcs
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    integer(ccs_int), intent(in) :: flow_direction
-    integer(ccs_int), intent(in) :: discretisation
+    class(field), intent(in) :: scalar             !< The scalar field structure
+    class(field), intent(in) :: u, v               !< The velocity field structures
+    class(bc_config), intent(in) :: bcs            !< The BC structure
+    type(ccs_mesh), intent(in) :: mesh             !< The mesh structure
+    integer(ccs_int), intent(in) :: cps            !< The number of cells per side in the (square) mesh
+    integer(ccs_int), intent(in) :: flow_direction !< Integer indicating the direction of the flow
+    integer(ccs_int), intent(in) :: discretisation !< Integer indicating the discretisation scheme being tested
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
@@ -202,24 +187,17 @@ contains
     deallocate (b_exact)
   end subroutine run_compute_fluxes_test
 
-  !> @brief Computes the known flux matrix for the given flow and discretisation
-  !
-  !> @param[in] mesh      - The (square) mesh
-  !> @param[in] flow           - Integer indicating flow direction
-  !> @param[in] discretisation - Integer indicating the discretisation scheme being used
-  !> @param[in] cps            - Number of cells per side in mesh
-  !> @param[out] M             - The resulting matrix
-  !> @param[out] b             - The resulting RHS vector
+  !v Computes the known flux matrix for the given flow and discretisation
   subroutine compute_exact_matrix(mesh, flow, discretisation, cps, M, b)
 
     use vec, only: zero_vector
 
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: flow
-    integer(ccs_int), intent(in) :: discretisation
-    integer(ccs_int), intent(in) :: cps
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
+    class(ccs_mesh), intent(in) :: mesh            !< The (square) mesh
+    integer(ccs_int), intent(in) :: flow           !< Integer indicating flow direction
+    integer(ccs_int), intent(in) :: discretisation !< Integer indicating the discretisation scheme being used
+    integer(ccs_int), intent(in) :: cps            !< Number of cells per side in mesh
+    class(ccs_matrix), intent(inout) :: M          !< The resulting matrix
+    class(ccs_vector), intent(inout) :: b          !< The resulting RHS vector
 
     ! type(vector_spec) :: vec_properties
     type(vector_values) :: vec_coeffs
@@ -300,16 +278,12 @@ contains
 
   end subroutine compute_exact_matrix
 
-  !> @brief Computes the known diffusion flux matrix for the given flow and discretisation
-  !
-  !> @param[in] mesh      - The (square) mesh
-  !> @param[in] cps            - Number of cells per side in mesh
-  !> @param[out] M             - The resulting matrix
+  !v Computes the known diffusion flux matrix for the given flow and discretisation
   subroutine compute_exact_diffusion_matrix(mesh, cps, M)
 
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_mesh), intent(in) :: mesh   !< The (square) mesh
+    integer(ccs_int), intent(in) :: cps   !< Number of cells per side in mesh
+    class(ccs_matrix), intent(inout) :: M !< The resulting matrix
 
     type(matrix_values) :: mat_coeffs
 
@@ -369,18 +343,14 @@ contains
 
   end subroutine compute_exact_diffusion_matrix
 
-  !> @brief Computes the known advection flux matrix for the given flow and discretisation
-  !
-  !> @param[in] mesh      - The (square) mesh
-  !> @param[in] cps            - Number of cells per side in mesh
-  !> @param[out] M             - The resulting matrix
+  !v Computes the known advection flux matrix for the given flow and discretisation
   subroutine compute_exact_advection_matrix(mesh, cps, flow, discretisation, M)
 
-    class(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
+    class(ccs_mesh), intent(in) :: mesh !< The (square) mesh
+    integer(ccs_int), intent(in) :: cps !< Number of cells per side in mesh
     integer(ccs_int), intent(in) :: flow
     integer(ccs_int), intent(in) :: discretisation
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M !< The resulting matrix
 
     type(matrix_values) :: mat_coeffs
 

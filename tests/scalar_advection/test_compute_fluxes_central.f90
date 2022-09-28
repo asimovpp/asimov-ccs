@@ -1,6 +1,6 @@
-!> Test that the flux matrix has been computed correctly
+!v Test that the flux matrix has been computed correctly
 !
-!> Compares the matrix and RHS calculated for a specified mass flux using the central differencing scheme to the expected solution
+!  Compares the matrix and RHS calculated for a specified mass flux using the central differencing scheme to the expected solution
 program test_compute_fluxes
 #include "ccs_macros.inc"
 

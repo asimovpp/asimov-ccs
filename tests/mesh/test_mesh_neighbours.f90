@@ -1,6 +1,6 @@
-!> @brief Test that cells have correct numbers of neighbours
+!v Test that cells have correct numbers of neighbours
 !
-!> @description for any mesh with >1 cell, every cell must have at least 1 neighbour.
+!  for any mesh with >1 cell, every cell must have at least 1 neighbour.
 program test_mesh_neighbours
 
   use testing_lib

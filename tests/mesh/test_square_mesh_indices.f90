@@ -1,4 +1,4 @@
-!> @brief Test the indexing of cells
+!v Test the indexing of cells
 program test_square_mesh_indices
 
   use testing_lib
