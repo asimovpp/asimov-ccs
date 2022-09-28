@@ -25,11 +25,11 @@ program test_mesh_partitioning_parhip
   call initialise_test()
 
   ! Partition
-  allocate(mesh%topo%global_partition(mesh%topo%global_num_cells))
+  allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
   call partition_kway(par_env, mesh)
-  
+
   if (par_env%proc_id == 0) then
-     print *, mesh%topo%global_partition
+    print *, mesh%topo%global_partition
   end if
 
   ! Check mesh after partitioning
@@ -43,46 +43,46 @@ contains
   subroutine initialise_test()
 
     mesh%topo%global_num_cells = 15
-  
-    select type(par_env)
+
+    select type (par_env)
     type is (parallel_environment_mpi)
-  
+
       if (par_env%num_procs == 3) then
-  
-        allocate(mesh%topo%local_partition(5))
-        allocate(mesh%topo%xadj(6))
-        allocate(mesh%topo%vwgt(5))
-        allocate(mesh%topo%vtxdist(4))
-  
+
+        allocate (mesh%topo%local_partition(5))
+        allocate (mesh%topo%xadj(6))
+        allocate (mesh%topo%vwgt(5))
+        allocate (mesh%topo%vtxdist(4))
+
         if (par_env%proc_id == 0) then
-          allocate(mesh%topo%adjncy(13))
-          allocate(mesh%topo%adjwgt(13))
-          mesh%topo%xadj = (/ 1, 3, 6, 9, 12, 14 /)
-          mesh%topo%adjncy = (/ 2, 6, 1, 3, 7, 2, 4, 8, 3, 5, 9, 4, 10 /)
+          allocate (mesh%topo%adjncy(13))
+          allocate (mesh%topo%adjwgt(13))
+          mesh%topo%xadj = (/1, 3, 6, 9, 12, 14/)
+          mesh%topo%adjncy = (/2, 6, 1, 3, 7, 2, 4, 8, 3, 5, 9, 4, 10/)
         else if (par_env%proc_id == 1) then
-          allocate(mesh%topo%adjncy(18))
-          allocate(mesh%topo%adjwgt(18))
-          mesh%topo%xadj = (/ 1, 4, 8, 12, 16, 19 /)
-          mesh%topo%adjncy = (/ 1, 7, 11, 2, 6, 8, 12, 3, 7, 9, 13, 4, 8, 10, 14, 5, 9, 15 /)
+          allocate (mesh%topo%adjncy(18))
+          allocate (mesh%topo%adjwgt(18))
+          mesh%topo%xadj = (/1, 4, 8, 12, 16, 19/)
+          mesh%topo%adjncy = (/1, 7, 11, 2, 6, 8, 12, 3, 7, 9, 13, 4, 8, 10, 14, 5, 9, 15/)
         else
-          allocate(mesh%topo%adjncy(13))
-          allocate(mesh%topo%adjwgt(13))
-          mesh%topo%xadj = (/ 1, 3, 6, 9, 12, 14 /)
-          mesh%topo%adjncy = (/ 6, 12, 7, 11, 13, 8, 12, 14, 9, 13, 15, 10, 14 /)
+          allocate (mesh%topo%adjncy(13))
+          allocate (mesh%topo%adjwgt(13))
+          mesh%topo%xadj = (/1, 3, 6, 9, 12, 14/)
+          mesh%topo%adjncy = (/6, 12, 7, 11, 13, 8, 12, 14, 9, 13, 15, 10, 14/)
         end if
-  
-        mesh%topo%vtxdist = (/ 1, 6, 11, 16 /)
+
+        mesh%topo%vtxdist = (/1, 6, 11, 16/)
         mesh%topo%adjwgt = 1
         mesh%topo%vwgt = 1
-  
+
       else
-        write(message, *) "Test must be run on 3 MPI ranks"
+        write (message, *) "Test must be run on 3 MPI ranks"
         call stop_test(message)
       end if
-   
-      class default
-        write(message, *) "ERROR: Unknown parallel environment!"
-        call stop_test(message)
+
+    class default
+      write (message, *) "ERROR: Unknown parallel environment!"
+      call stop_test(message)
     end select
 
   end subroutine
@@ -95,14 +95,14 @@ contains
 
     nnew = 0
     do i = 1, mesh%topo%global_num_cells
-       if (mesh%topo%global_partition(i) == par_env%proc_id) then
-          nnew = nnew + 1
-       end if
+      if (mesh%topo%global_partition(i) == par_env%proc_id) then
+        nnew = nnew + 1
+      end if
     end do
     call MPI_Allreduce(nnew, ntotal, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
     if (ntotal /= mesh%topo%global_num_cells) then
-       write(message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", mesh%topo%global_num_cells
-       call stop_test(message)
+      write (message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", mesh%topo%global_num_cells
+      call stop_test(message)
     end if
 
   end subroutine
@@ -110,23 +110,23 @@ contains
   subroutine clean_up
 
     if (allocated(mesh%topo%xadj)) then
-      deallocate(mesh%topo%xadj)
+      deallocate (mesh%topo%xadj)
     end if
-  
+
     if (allocated(mesh%topo%adjncy)) then
-      deallocate(mesh%topo%adjncy)
+      deallocate (mesh%topo%adjncy)
     end if
-  
+
     if (allocated(mesh%topo%adjwgt)) then
-      deallocate(mesh%topo%adjwgt)
+      deallocate (mesh%topo%adjwgt)
     end if
-  
+
     if (allocated(mesh%topo%vwgt)) then
-      deallocate(mesh%topo%vwgt)
+      deallocate (mesh%topo%vwgt)
     end if
-  
+
     if (allocated(mesh%topo%vtxdist)) then
-      deallocate(mesh%topo%vtxdist)
+      deallocate (mesh%topo%vtxdist)
     end if
 
   end subroutine

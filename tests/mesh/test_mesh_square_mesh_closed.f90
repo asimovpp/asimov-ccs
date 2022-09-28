@@ -8,11 +8,11 @@ program test_mesh_square_mesh_closed
 
   use constants
 
-  use meshing, only : set_face_location, get_face_normal, get_face_area
-  use mesh_utils, only : build_square_mesh
+  use meshing, only: set_face_location, get_face_normal, get_face_area
+  use mesh_utils, only: build_square_mesh
 
   implicit none
-  
+
   type(ccs_mesh), target :: mesh
   type(face_locator) :: loc_f
 
@@ -26,7 +26,7 @@ program test_mesh_square_mesh_closed
   integer(ccs_int) :: i, j
 
   call init()
-  
+
   do n = 1, 100 ! XXX: Should use some named constant, not just "100"
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
@@ -48,7 +48,7 @@ program test_mesh_square_mesh_closed
       do j = 1, ndim
         print *, S(j), j
         if (abs(S(j) - 0.0_ccs_real) > eps) then
-          write(message, *) "FAIL: expected", 0.0_ccs_real, " got ", S(j)
+          write (message, *) "FAIL: expected", 0.0_ccs_real, " got ", S(j)
           call stop_test(message)
         end if
       end do
@@ -56,5 +56,5 @@ program test_mesh_square_mesh_closed
   end do
 
   call fin()
-  
+
 end program test_mesh_square_mesh_closed

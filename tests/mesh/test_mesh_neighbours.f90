@@ -5,11 +5,11 @@ program test_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only : set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
-  use mesh_utils, only : build_square_mesh
+  use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
+  use mesh_utils, only: build_square_mesh
 
   implicit none
-  
+
   type(ccs_mesh), target :: mesh
   type(cell_locator) :: loc_p
 
@@ -28,7 +28,7 @@ program test_mesh_neighbours
   integer(ccs_int) :: expected_boundary_ctr
 
   call init()
-  
+
   do n = 1, 100 ! XXX: Need a test-wide variable nmax
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
@@ -43,11 +43,11 @@ program test_mesh_neighbours
         ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
         ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
         ! Even in the limit of single 1D cell should have 2 boundary neighbours.
-        write(message, *) "FAIL: cell should have 2 or more neighbours, got ", nnb
+        write (message, *) "FAIL: cell should have 2 or more neighbours, got ", nnb
         call stop_test(message)
       else if (nnb > 4) then
         ! XXX: specific to 2D Cartesian mesh
-        write(message, *) "FAIL: cell should have at most ", 4, " neighbours, got ", nnb
+        write (message, *) "FAIL: cell should have at most ", 4, " neighbours, got ", nnb
         call stop_test(message)
       end if
 
@@ -66,19 +66,19 @@ program test_mesh_neighbours
     end do
 
     ! Check total boundary neighbours
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(boundary_ctr, global_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
     class default
-      write(message, *) "ERROR: Unknown parallel environment!"
+      write (message, *) "ERROR: Unknown parallel environment!"
       call stop_test(message)
     end select
 
     expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh (square mesh has 2^d sides
-                                  !      of length n)
+    !      of length n)
     if (global_boundary_ctr /= expected_boundary_ctr) then
-      write(message, *) "FAIL: mesh boundary count is incorrect, expected ", &
-           expected_boundary_ctr, " got ", global_boundary_ctr
+      write (message, *) "FAIL: mesh boundary count is incorrect, expected ", &
+        expected_boundary_ctr, " got ", global_boundary_ctr
       call stop_test(message)
     end if
   end do
@@ -89,8 +89,8 @@ contains
 
   subroutine test_mesh_internal_neighbours(loc_nb)
 
-    use meshing, only : count_neighbours, get_local_index, get_boundary_status, get_local_status
-    
+    use meshing, only: count_neighbours, get_local_index, get_boundary_status, get_local_status
+
     type(neighbour_locator), intent(in) :: loc_nb
 
     integer(ccs_int) :: index_nb
@@ -101,14 +101,14 @@ contains
     type(neighbour_locator) :: loc_nb_nb
     logical :: is_boundary
     logical :: is_local
-    
-    associate(mesh => loc_nb%mesh, &
-         parent_idx => loc_nb%index_p)
+
+    associate (mesh => loc_nb%mesh, &
+               parent_idx => loc_nb%index_p)
       call get_local_index(loc_nb, index_nb)
-            
+
       ! Neighbour index should not be its parents
       if (index_nb == parent_idx) then
-        write(message, *) "FAIL: Neighbour has same index ", index_nb, " as parent cell ", parent_idx
+        write (message, *) "FAIL: Neighbour has same index ", index_nb, " as parent cell ", parent_idx
         call stop_test(message)
       end if
 
@@ -130,13 +130,13 @@ contains
           end if
         end do
         if (.not. found_parent) then
-          write(message, *) "FAIL: Couldn't find cell in neighbour's neighbour list!"
+          write (message, *) "FAIL: Couldn't find cell in neighbour's neighbour list!"
           call stop_test(message)
         end if
       end if
-      
+
     end associate
-    
+
   end subroutine test_mesh_internal_neighbours
-  
+
 end program test_mesh_neighbours
