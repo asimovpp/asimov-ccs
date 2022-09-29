@@ -115,8 +115,8 @@ contains
     expectation = sqrt(real(mesh%topo%global_num_cells, ccs_real))
     test_value = norm(v, 2)
     if (test_value /= expectation) then
-      print *, "AAARGH, FAIL: ", test_value, expectation
-      stop
+      write (message, *) "FAIL: expected ", expectation, " got ", test_value
+      call stop_test(message)
     end if
 
   end subroutine test_vector
