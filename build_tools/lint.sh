@@ -35,7 +35,6 @@ elif [ $ACTION = "fprettify" ]; then
   else
     fprettify $TARGET
   fi
-  exit
 
   # remove spaces around '%'
   find $TARGET -name "*.f90" -exec sed -i 's/ % /%/g' {} \;
