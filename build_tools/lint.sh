@@ -30,7 +30,13 @@ elif [ $ACTION = "score_each_file" ]; then
   done
   exit $(echo $all_pass) 
 elif [ $ACTION = "fprettify" ]; then
-  fprettify -r $TARGET
+  if [ -d $TARGET ]; then
+    fprettify -r $TARGET
+  else
+    fprettify $TARGET
+  fi
+  exit
+
   # remove spaces around '%'
   find $TARGET -name "*.f90" -exec sed -i 's/ % /%/g' {} \;
   # add spaces around '//'
