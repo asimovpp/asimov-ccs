@@ -424,6 +424,7 @@ contains
     real(ccs_real) :: time
 
     integer :: io_unit
+    logical :: exists
     
     mu = 0.1_ccs_real  ! XXX: currently hardcoded somewhere
     rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
@@ -472,7 +473,10 @@ contains
        if (first_time) then
           first_time = .false.
 
-          call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
+          inquire(file="tgv2d-err.log", exist=exists)
+          if (exists) then
+             call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
+          end if
           open(newunit=io_unit, file="tgv2d-err.log", status="new", form="formatted")
 
        else
