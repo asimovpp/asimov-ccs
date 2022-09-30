@@ -36,6 +36,7 @@ program tgv2d
 
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
+  real(ccs_real) :: L
 
   class(field), allocatable :: u, v, w, p, p_prime, mf
 
@@ -89,7 +90,8 @@ program tgv2d
 
   ! Create a square mesh
   if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  L = 4.0_ccs_real * atan(1.0_ccs_real) ! == PI
+  mesh = build_square_mesh(par_env, cps, L)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
