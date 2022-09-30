@@ -473,11 +473,11 @@ contains
        if (first_time) then
           first_time = .false.
 
-          inquire(file="tgv2d-err.log", exist=exists)
-          if (exists) then
-             call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
-          end if
-          open(newunit=io_unit, file="tgv2d-err.log", status="new", form="formatted")
+          !! inquire(file="tgv2d-err.log", exist=exists)
+          !! if (exists) then
+          !!    call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
+          !! end if
+          open(newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
 
        else
           open(newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
