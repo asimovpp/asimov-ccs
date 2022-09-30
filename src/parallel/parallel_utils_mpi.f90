@@ -71,9 +71,9 @@ contains
               call get_command_argument(nargs + 1, arg)
               read (arg, '(I5)') cps
             case ('--ccs_case') ! case name
-              call get_command_argument(nargs + 1, length = arg_len, value = arg)
+              call get_command_argument(nargs + 1, length=arg_len, value=arg)
               if (present(case_name)) then
-                allocate (character(len = arg_len) :: case_name)
+                allocate (character(len=arg_len) :: case_name)
                 case_name = trim(arg)
               end if
             case ('--ccs_help')
@@ -92,12 +92,11 @@ contains
           end if
         end do
 
-      end if 
+      end if
 
     class default
       call error_abort("Unsupported parallel environment")
     end select
-
 
   end subroutine read_command_line_arguments
 
@@ -110,7 +109,7 @@ contains
 
   end subroutine
 
-  subroutine print_help ()                
+  subroutine print_help()
 
     print *, "========================================="
     print *, "ASiMoV-CCS command line OPTIONS          "

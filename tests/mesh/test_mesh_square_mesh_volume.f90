@@ -1,15 +1,15 @@
-!> @brief Test the square mesh generator creates a correctly-sized mesh.
+!v Test the square mesh generator creates a correctly-sized mesh.
 !
-!> @description A "square" domain of side L should result in a mesh of volume L^d, this can be
-!> verified by summing the volumes of all cells.
+!  A "square" domain of side L should result in a mesh of volume L^d, this can be
+!  verified by summing the volumes of all cells.
 program test_mesh_square_mesh_volume
 
   use testing_lib
-  use meshing, only : set_cell_location, get_volume
-  use mesh_utils, only : build_square_mesh
+  use meshing, only: set_cell_location, get_volume
+  use mesh_utils, only: build_square_mesh
 
   implicit none
-  
+
   type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: n
@@ -24,9 +24,9 @@ program test_mesh_square_mesh_volume
 
   integer(ccs_int) :: nneg_vol
   integer(ccs_int) :: nneg_vol_global
-  
+
   call init()
-  
+
   do n = 1, 100
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
@@ -35,7 +35,7 @@ program test_mesh_square_mesh_volume
     vol = 0.0_ccs_real
     nneg_vol = 0
 
-    print*, "mesh%topo%local_num_cells = ", mesh%topo%local_num_cells
+    print *, "mesh%topo%local_num_cells = ", mesh%topo%local_num_cells
 
     do i = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, i, loc_p)
@@ -45,9 +45,9 @@ program test_mesh_square_mesh_volume
       end if
       vol = vol + mesh%geo%volumes(i)
     end do
-    
-    select type(par_env)
-    type is(parallel_environment_mpi)
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
       call MPI_Allreduce(vol, vol_global, 1, real_type, MPI_SUM, par_env%comm, ierr)
       call MPI_Allreduce(nneg_vol, nneg_vol_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
     class default
@@ -57,7 +57,7 @@ program test_mesh_square_mesh_volume
 
     ! XXX: This would be a good candidate for a testing library
     if (abs(expected_vol - vol_global) > 1.0e-8) then
-      print *, mesh%geo%h, l/n ! TODO: not sure if this should be put inside message
+      print *, mesh%geo%h, l / n ! TODO: not sure if this should be put inside message
       write (message, *) "FAIL: expected ", expected_vol, " got ", vol_global
       call stop_test(message)
     end if
@@ -67,7 +67,7 @@ program test_mesh_square_mesh_volume
       call stop_test(message)
     end if
   end do
-  
+
   call fin()
 
 end program test_mesh_square_mesh_volume

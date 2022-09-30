@@ -232,13 +232,13 @@ contains
   end subroutine
 
   !> Clear working set of values to begin new working set.
-  module procedure clear_matrix_values_entries
+  module subroutine clear_matrix_values_entries(val_dat)
+    type(matrix_values), intent(inout) :: val_dat !< Working set object
 
-  val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-  val_dat%global_col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-  val_dat%values(:) = 0.0_ccs_real
-
-  end procedure clear_matrix_values_entries
+    val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%global_col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%values(:) = 0.0_ccs_real
+  end subroutine clear_matrix_values_entries
 
   !> Set working row.
   module subroutine set_matrix_values_row(row, val_dat)

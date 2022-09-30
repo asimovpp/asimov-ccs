@@ -39,13 +39,13 @@ program tgv
 
   call read_command_line_arguments(par_env, case_name=case_name)
 
-  ccs_config_file = case_name//ccsconfig
+  ccs_config_file = case_name // ccsconfig
 
   ! Read case name from configuration file
   call read_configuration()
 
-  geo_file = case_name//geoext
-  adios2_file = case_name//adiosconfig
+  geo_file = case_name // geoext
+  adios2_file = case_name // adiosconfig
 
   call timer(start_time)
 
@@ -55,7 +55,7 @@ program tgv
 
   call timer(end_time)
 
-  if (par_env % proc_id == 0) then
+  if (par_env%proc_id == 0) then
     print *, "Elapsed time: ", end_time - start_time
   end if
 

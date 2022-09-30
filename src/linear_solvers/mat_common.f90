@@ -77,9 +77,12 @@ contains
   end subroutine create_matrix_values
 
   !> Set the storage mode.
-  module procedure set_matrix_values_mode
-  val_dat%setter_mode = mode
-  end procedure set_matrix_values_mode
+  module subroutine set_matrix_values_mode(mode, val_dat)
+    integer(ccs_int), intent(in) :: mode          !< The storage mode
+    type(matrix_values), intent(inout) :: val_dat !< The object storing the working set
+
+    val_dat%setter_mode = mode
+  end subroutine set_matrix_values_mode
 
   !v Store a coefficient in the current working set at the current row,col coordinate, using the
   !  current storage mode.

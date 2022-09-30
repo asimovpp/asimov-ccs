@@ -79,7 +79,7 @@ module types
     integer(ccs_int) :: local_num_cells                               !< Local number of cells
     integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
     integer(ccs_int) :: global_num_vertices                           ! Global number of vertices
-    integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells        
+    integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells
     integer(ccs_int) :: global_num_faces                              !< Global number of faces
     integer(ccs_int) :: num_faces                                     !< Local number of faces
     integer(ccs_int) :: max_faces                                     !< Maximum number of faces per cell
@@ -108,7 +108,7 @@ module types
   !> Geometry type
   type, public :: geometry
     real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
-    real(ccs_real) :: scalefactor                                       !< Scalefactor 
+    real(ccs_real) :: scalefactor                                       !< Scalefactor
     real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas (face, cell)
     real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
     real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
