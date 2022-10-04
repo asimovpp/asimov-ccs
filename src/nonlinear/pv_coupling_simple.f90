@@ -29,6 +29,8 @@ submodule(pv_coupling) pv_coupling_simple
   
   implicit none
 
+  integer(ccs_int), save :: varp = 0
+  
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
@@ -107,7 +109,7 @@ contains
     if (u_sol) nvar = nvar + 1
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1
-    if (p_sol) nvar = nvar + 1
+    if (p_sol) nvar = nvar + 2 ! (Pressure residual & mass imbalance)
     allocate (residuals(nvar))
     residuals(:) = 0.0_ccs_real
 
@@ -132,7 +134,7 @@ contains
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
-      call update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf)
+      call update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf, res, residuals)
       call dprint("NONLINEAR: correct velocity")
       call update_velocity(mesh, invAu, invAv, invAw, p_prime, u, v, w)
 
@@ -599,7 +601,7 @@ contains
     real(ccs_real), dimension(:), pointer :: p_data       ! Data array for pressure
     real(ccs_real), dimension(:), pointer :: dpdx_data    ! Data array for pressure x gradient
     real(ccs_real), dimension(:), pointer :: dpdy_data    ! Data array for pressure y gradient
-    real(ccs_real), dimension(:), pointer :: dpdz_data  ! Data array for pressure z gradient
+    real(ccs_real), dimension(:), pointer :: dpdz_data    ! Data array for pressure z gradient
     real(ccs_real), dimension(:), pointer :: invAu_data   ! Data array for inverse x momentum
     ! diagonal coefficient
     real(ccs_real), dimension(:), pointer :: invAv_data   ! Data array for inverse y momentum
@@ -614,11 +616,11 @@ contains
     real(ccs_real) :: mib ! Cell mass imbalance
 
     logical, save :: first_time = .true.
-    integer(ccs_int), save :: varp = 0
 
     ! Set variable index for pressure
     if (first_time) then
-      varp = ivar + 1
+      ivar = ivar + 1
+      varp = ivar
       first_time = .false.
     end if
 
@@ -761,14 +763,16 @@ contains
   end subroutine update_velocity
 
   !> Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf)
+  subroutine update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf, b, residuals)
 
     type(ccs_mesh), intent(in) :: mesh                               !< The mesh
-    class(ccs_vector), intent(inout) :: invAu                           !< The inverse x momentum equation diagonal coefficient
-    class(ccs_vector), intent(inout) :: invAv                           !< The inverse y momentum equation diagonal coefficient
-    class(ccs_vector), intent(inout) :: invAw                           !< The inverse z momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAu                        !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAv                        !< The inverse y momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAw                        !< The inverse z momentum equation diagonal coefficient
     class(field), intent(inout) :: p_prime                           !< The pressure correction
     class(field), intent(inout) :: mf                                !< The face velocity being corrected
+    class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
+    real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
     integer(ccs_int) :: i
 
@@ -790,6 +794,15 @@ contains
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: index_nb
 
+    integer(ccs_int) :: global_index_p  ! Central cell global index
+    real(ccs_real) :: face_area         ! Face area
+    real(ccs_real) :: mib
+    type(vector_values) :: vec_values
+
+    call create_vector_values(1_ccs_int, vec_values)
+    call set_mode(insert_mode, vec_values)
+    call zero(b)
+    
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
     call get_vector_data(p_prime%values, pp_data)
@@ -803,10 +816,16 @@ contains
 
     ! XXX: This should really be a face loop
     do i = 1, mesh%topo%local_num_cells
+      call clear_entries(vec_values)
+      mib = 0.0_ccs_real
+
       call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call set_face_location(mesh, i, j, loc_f)
+        call get_local_index(loc_f, index_f)
+        call get_face_area(loc_f, face_area)
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
@@ -815,12 +834,20 @@ contains
              mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
                   invAu_data, invAv_data, invAw_data, loc_f)
 
-            call get_local_index(loc_f, index_f)
-            mf_data(index_f) = mf_data(index_f) + mf_prime
+             mf_data(index_f) = mf_data(index_f) + mf_prime
+          else
+             face_area = -face_area
           end if
         end if
-      end do
-    end do
+
+        mib = mib + mf_data(index_f) * face_area
+     end do
+
+     call set_row(global_index_p, vec_values)
+     call set_entry(mib, vec_values)
+     call set_values(vec_values, b)
+   end do
+
 
     deallocate (zero_arr)
 
@@ -834,6 +861,10 @@ contains
     ! Update vector on exit (just in case)
     call update(p_prime%values)
 
+    !! Get corrected mass-imbalance
+    call update(b)
+    mib = norm(b, 2)
+    residuals(varp + 1) = mib
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
@@ -865,6 +896,7 @@ contains
         if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
         if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
         if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
+        if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
         write (*, *)
       end if
     end if
