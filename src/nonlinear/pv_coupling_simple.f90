@@ -509,15 +509,15 @@ contains
 
       end do
 
-      ! XXX: Need to fix pressure somewhere
-      !      Row is the global index - should be unique
-      !      Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
-      rcrit = (cps / 2) * (1 + cps)
-      if (row == rcrit) then
-        coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-        call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
-      end if
+      !!! ! XXX: Need to fix pressure somewhere
+      !!! !      Row is the global index - should be unique
+      !!! !      Locate approximate centre of mesh (assuming a square)
+      !!! cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
+      !!! rcrit = (cps / 2) * (1 + cps)
+      !!! if (row == rcrit) then
+      !!!   coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
+      !!!   call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
+      !!! end if
 
       ! Add the diagonal entry
       col = row
