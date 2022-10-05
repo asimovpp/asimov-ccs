@@ -120,7 +120,7 @@ program test_compute_fluxes
     call finalise(M)
 
     call compute_exact_matrix(mesh, mf_value, cps, M_exact)
-    call compute_exact_vector(mesh, mf_value, cps, scalar%bcs, b_exact)
+    call compute_exact_vector(mesh, mf_value, cps, scalar, b_exact)
 
     call update(M_exact)
     call update(b_exact)
@@ -169,6 +169,8 @@ program test_compute_fluxes
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
     logical :: is_boundary
 
+    real(ccs_real) :: aP, aF
+
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_values)
@@ -195,13 +197,21 @@ program test_compute_fluxes
           else
             sgn = 1
           endif
-          adv_coeff = 0.5_ccs_real*mf_value*sgn*face_area
-
+          adv_coeff = mf_value * sgn * face_area
+          if (adv_coeff > 0.0_ccs_real) then
+             aP = adv_coeff
+             aF = 0.0_ccs_real
+          else
+             aP = 0.0_ccs_real
+             aF = adv_coeff
+          end if
+          
           call set_row(global_index_p, mat_values)
           call set_col(global_index_nb, mat_values)
-          call set_entry(adv_coeff + diff_coeff, mat_values)
+          call set_entry(aF + diff_coeff, mat_values)
           call set_values(mat_values, M)
-          adv_coeff_total = adv_coeff_total + adv_coeff
+
+          adv_coeff_total = adv_coeff_total - aP
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
           dx = 1.0_ccs_real/cps
@@ -226,17 +236,17 @@ program test_compute_fluxes
   end subroutine compute_exact_matrix
   
   !> Computes the expected RHS for a mass flux of 1
-  subroutine compute_exact_vector(mesh, mf_value, cps, bcs, b)
+  subroutine compute_exact_vector(mesh, mf_value, cps, phi, b)
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
     real(ccs_real), intent(in) :: mf_value  !< The value of the mass flux field
     integer(ccs_int), intent(in) :: cps     !< The number of cells per side
-    type(bc_config), intent(in) :: bcs      !< The bc structure
+    class(field), intent(inout) :: phi      !< The transported scalar
     class(ccs_vector), intent(inout) :: b   !< The RHS vector
 
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     type(neighbour_locator) loc_nb
-    integer(ccs_int) :: index_p, j, nnb
+    integer(ccs_int) :: index_p, index_nb, j, nnb
     integer(ccs_int) :: global_index_p
     real(ccs_real) :: face_area
     real(ccs_real) :: dx
@@ -245,32 +255,63 @@ program test_compute_fluxes
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
     logical :: is_boundary
 
+    real(ccs_real), dimension(:), pointer :: phi_data
+    real(ccs_real) :: aP, aF, def_corr
+    real(ccs_real) :: sgn
+    
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
 
-    face_area = 1.0_ccs_real/cps
-    do index_p = 1, mesh%topo%local_num_cells
-      call clear_entries(vec_values)
-      
-      adv_coeff_total = 0.0_ccs_real
-      diff_coeff_total = 0.0_ccs_real
-      call set_cell_location(mesh, index_p, loc_p)
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
-      do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-        if (is_boundary) then
-          dx = 1.0_ccs_real/cps
-          diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
-          adv_coeff = mf_value*face_area
-          bc_value = bcs%values(j)
+    associate(bcs => phi%bcs)
+      face_area = 1.0_ccs_real/cps
+      do index_p = 1, mesh%topo%local_num_cells
+         call clear_entries(vec_values)
 
-          call set_row(global_index_p, vec_values)
-          call set_entry(-(adv_coeff + diff_coeff) * bc_value, vec_values)
-          call set_values(vec_values, b)
-        endif 
+         adv_coeff_total = 0.0_ccs_real
+         diff_coeff_total = 0.0_ccs_real
+         call set_cell_location(mesh, index_p, loc_p)
+         call get_global_index(loc_p, global_index_p)
+         call count_neighbours(loc_p, nnb)
+         do j = 1, nnb
+            call set_neighbour_location(loc_p, j, loc_nb)
+            call get_boundary_status(loc_nb, is_boundary)
+            if (.not. is_boundary) then
+               ! Deferred correction advection
+               call get_local_index(loc_nb, index_nb)
+               if (index_p < index_nb) then
+                  sgn = 1.0_ccs_real
+               else
+                  sgn = -1.0_ccs_real
+               end if
+               adv_coeff = mf_value * face_area * sgn
+               if (adv_coeff > 0.0_ccs_real) then
+                  aP = adv_coeff
+                  aF = 0.0_ccs_real
+               else
+                  aP = 0.0_ccs_real
+                  aF = adv_coeff
+               end if
+
+               call get_vector_data(phi%values, phi_data)
+               def_corr = -((0.5_ccs_real - aP) * phi_data(index_p) &
+                    + (0.5_ccs_real - aF) * phi_data(index_nb)) * adv_coeff
+               call restore_vector_data(phi%values, phi_data)
+
+               call set_row(global_index_p, vec_values)
+               call set_entry(def_corr, vec_values)
+               call set_values(vec_values, b)
+            else
+               dx = 1.0_ccs_real/cps
+               diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
+               adv_coeff = mf_value * face_area
+               bc_value = bcs%values(j)
+
+               call set_row(global_index_p, vec_values)
+               call set_entry(-(adv_coeff + diff_coeff) * bc_value, vec_values)
+               call set_values(vec_values, b)
+            endif
+         end do
       end do
-    end do
+    end associate
   end subroutine compute_exact_vector
 end program test_compute_fluxes
