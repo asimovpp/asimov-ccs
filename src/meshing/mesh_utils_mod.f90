@@ -447,16 +447,23 @@ contains
         vert_coords_tmp(1,i) = modulo(i-1,verts_per_side) * mesh%geo%h
         vert_coords_tmp(2,i) = ((i-1)/verts_per_side) * mesh%geo%h
       end do
+    endif
 
-      sel2_shape(1) = ndim
-      sel2_shape(2) = mesh%topo%global_num_vertices
-      sel2_start(1) = 0
-      sel2_start(2) = 0
+    sel2_shape(1) = ndim
+    sel2_shape(2) = mesh%topo%global_num_vertices
+    sel2_start(1) = 0
+    sel2_start(2) = 0
+    if (par_env%proc_id == par_env%root) then
       sel2_count(1) = ndim
       sel2_count(2) = mesh%topo%global_num_vertices
+    else
+      sel2_count(1) = 0
+      sel2_count(2) = 0
+    endif
 
-      call write_array(geo_writer, "/vert", sel2_shape, sel2_start, sel2_count, vert_coords_tmp)
+    call write_array(geo_writer, "/vert", sel2_shape, sel2_start, sel2_count, vert_coords_tmp)
 
+    if (par_env%proc_id == par_env%root) then
       deallocate(vert_coords_tmp)
     endif
 
