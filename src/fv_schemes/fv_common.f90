@@ -78,7 +78,9 @@ contains
     integer(ccs_int) :: index_f
 
     real(ccs_real) :: sgn ! Sign indicating face orientation
-
+    real(ccs_real) :: aP, aF, bP
+    real(ccs_real), dimension(:), pointer :: phi_data
+    
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
@@ -97,6 +99,7 @@ contains
       call count_neighbours(loc_p, nnb)
 
       call set_row(global_index_p, mat_coeffs)
+      call set_row(global_index_p, b_coeffs)
 
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
@@ -132,15 +135,33 @@ contains
             call error_abort("Invalid velocity field discretisation.")
           end select
 
+          call get_vector_data(phi%values, phi_data)
+          
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
-          adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
+          ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
+          aF = adv_coeff
+          aP = 1.0_ccs_real - aF
+          aP = (sgn * mf(index_f) * face_area) * aP
+          aF = (sgn * mf(index_f) * face_area) * aF
+          call set_entry(-(aP * phi_data(index_p) + aF * phi_data(index_nb)), b_coeffs)
+          if ((sgn * mf(index_f)) > 0.0_ccs_real) then
+             aP = sgn * mf(index_f) * face_area
+             aF = 0.0_ccs_real
+             call set_entry(aP * phi_data(index_p), b_coeffs)
+          else
+             aP = 0.0_ccs_real
+             aF = sgn * mf(index_f) * face_area
+             call set_entry(aF * phi_data(index_nb), b_coeffs)
+          end if
           
           call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
-          call set_entry(adv_coeff + diff_coeff, mat_coeffs)
+          call set_entry(aF + diff_coeff, mat_coeffs)
 
-          adv_coeff_total = adv_coeff_total + adv_coeff
+          adv_coeff_total = adv_coeff_total - aP
           diff_coeff_total = diff_coeff_total + diff_coeff
+
+          call restore_vector_data(phi%values, phi_data)
         else
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
 
@@ -156,7 +177,6 @@ contains
 
           call compute_boundary_values(phi, component, loc_p, loc_f, face_normal, bc_value)
 
-          call set_row(global_index_p, b_coeffs)
           call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
 
           call set_row(global_index_p, mat_coeffs)
