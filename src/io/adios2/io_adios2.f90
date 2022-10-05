@@ -854,6 +854,7 @@ contains
   
       ! Local variables
       character(len=:), allocatable :: sol_file
+      character(len=:), allocatable :: geo_file
       character(len=:), allocatable :: adios2_file
       character(len=:), allocatable :: xdmf_file
   
@@ -872,9 +873,10 @@ contains
   
       integer(ccs_int), parameter :: ioxdmf = 999
   
-      sol_file = case_name//'.solution.h5'
+      geo_file = case_name//'.geo'
+      sol_file = case_name//'.sol.h5'
       adios2_file = case_name//adiosconfig
-      xdmf_file = case_name//'.solution.xmf'
+      xdmf_file = case_name//'.sol.xmf'
   
       call initialise_io(par_env, adios2_file, io_env)
       call configure_io(io_env, "sol_writer", sol_writer)
@@ -921,35 +923,39 @@ contains
         open(ioxdmf, file=xdmf_file, status='unknown')
   
         ! Write file contents
-        write(ioxdmf, '(a)') '<?xml version="1.0"?>'
-        write(ioxdmf, '(a)') '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
-        write(ioxdmf, '(a)') '<Xdmf Version="2.0">'
-        write(ioxdmf, '(a)') '  <Domain>'
-        write(ioxdmf, '(a)') '    <Grid Name="Mesh">'
-        write(ioxdmf, '(a,i0,1x,i0,a)') '      <Topology Type="2DSMesh" NumberOfElements="',cps,cps,'"/>'
-        write(ioxdmf, '(a)') '      <Geometry Type="XYZ">'
-        write(ioxdmf, '(a,i0,1x,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,ndim,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/xp'
-        write(ioxdmf, '(a)') '        </DataItem>'
-        write(ioxdmf, '(a)') '      </Geometry>'
-        write(ioxdmf, '(a)') '      <Attribute Name="VelocityX" AttributeType="Scalar" Center="Node">'
+        write(ioxdmf, '(a)')            '<?xml version="1.0"?>'
+        write(ioxdmf, '(a)')            '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
+        write(ioxdmf, '(a)')            '<Xdmf Version="2.0">'
+        write(ioxdmf, '(a)')            '  <Domain>'
+        write(ioxdmf, '(a)')            '    <Grid Name="Mesh">'
+        write(ioxdmf, '(a,i0,a)')       '      <Topology Type="Quadrilateral" NumberOfElements="',mesh%topo%global_num_cells,'" BaseOffset="1">'
+        write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',mesh%topo%global_num_cells,mesh%topo%vert_per_cell,'" Format="HDF">'
+        write(ioxdmf, '(a,a,a)')        '          ',trim(geo_file),':/Step0/cell/vertices'
+        write(ioxdmf, '(a)')            '        </DataItem>'
+        write(ioxdmf, '(a)')            '      </Topology>'
+        write(ioxdmf, '(a)')            '      <Geometry Type="XYZ">'
+        write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',mesh%topo%global_num_vertices,ndim,'" Format="HDF">'
+        write(ioxdmf, '(a,a,a)')        '          ',trim(geo_file),':/Step0/vert'
+        write(ioxdmf, '(a)')            '        </DataItem>'
+        write(ioxdmf, '(a)')            '      </Geometry>'
+        write(ioxdmf, '(a)')            '      <Attribute Name="VelocityX" AttributeType="Scalar" Center="Cell">'
         write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/u'
-        write(ioxdmf, '(a)') '        </DataItem>'
-        write(ioxdmf, '(a)') '      </Attribute>'
-        write(ioxdmf, '(a)') '      <Attribute Name="VelocityY" AttributeType="Scalar" Center="Node">'
+        write(ioxdmf, '(a,a,a)')        '          ',trim(sol_file),':/Step0/u'
+        write(ioxdmf, '(a)')            '        </DataItem>'
+        write(ioxdmf, '(a)')            '      </Attribute>'
+        write(ioxdmf, '(a)')            '      <Attribute Name="VelocityY" AttributeType="Scalar" Center="Cell">'
         write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/v'
-        write(ioxdmf, '(a)') '        </DataItem>'
-        write(ioxdmf, '(a)') '      </Attribute>'
-        write(ioxdmf, '(a)') '      <Attribute Name="Pressure" AttributeType="Scalar" Center="Node">'
+        write(ioxdmf, '(a,a,a)')        '          ',trim(sol_file),':/Step0/v'
+        write(ioxdmf, '(a)')            '        </DataItem>'
+        write(ioxdmf, '(a)')            '      </Attribute>'
+        write(ioxdmf, '(a)')            '      <Attribute Name="Pressure" AttributeType="Scalar" Center="Cell">'
         write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/p'
-        write(ioxdmf, '(a)') '        </DataItem>'
-        write(ioxdmf, '(a)') '      </Attribute>'
-        write(ioxdmf, '(a)') '    </Grid>'
-        write(ioxdmf, '(a)') '  </Domain>'
-        write(ioxdmf, '(a)') '</Xdmf>'
+        write(ioxdmf, '(a,a,a)')        '          ',trim(sol_file),':/Step0/p'
+        write(ioxdmf, '(a)')            '        </DataItem>'
+        write(ioxdmf, '(a)')            '      </Attribute>'
+        write(ioxdmf, '(a)')            '    </Grid>'
+        write(ioxdmf, '(a)')            '  </Domain>'
+        write(ioxdmf, '(a)')            '</Xdmf>'
   
         ! Close file
         close(ioxdmf)

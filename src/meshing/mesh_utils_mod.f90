@@ -42,6 +42,14 @@ module mesh_utils
   integer, parameter :: back = 5_ccs_int
   integer, parameter :: front = 6_ccs_int
 
+  integer, parameter :: front_bottom_left  = 1_ccs_int
+  integer, parameter :: front_bottom_right = 2_ccs_int
+  integer, parameter :: front_top_right    = 3_ccs_int
+  integer, parameter :: front_top_left     = 4_ccs_int
+  integer, parameter :: rear_bottom_left   = 5_ccs_int
+  integer, parameter :: rear_bottom_right  = 6_ccs_int
+  integer, parameter :: rear_top_right     = 7_ccs_int
+  integer, parameter :: rear_top_left      = 8_ccs_int
 
   private
   public :: build_square_mesh
@@ -311,7 +319,7 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name
-    type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
+    type(ccs_mesh), intent(inout) :: mesh                                      !< The mesh
 
     ! Local variables
     character(len=:), allocatable :: geo_file    ! Geo file name
@@ -342,17 +350,17 @@ contains
 
     ! Write mesh
     call write_topology(par_env, geo_writer, mesh)
-    !call write_geometry(par_env, geo_writer, mesh)
+    call write_geometry(par_env, geo_writer, mesh)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_writer)
 
     ! Finalise the ADIOS2 environment
-    call cleanup_io(iO_env) 
+    call cleanup_io(io_env) 
     
   end subroutine write_mesh
 
-  !v Write the topology data to file
+  !v Write the mesh topology data to file
   subroutine write_topology(par_env, geo_writer, mesh)
 
     ! Arguments
@@ -369,14 +377,7 @@ contains
     integer(ccs_long), dimension(2) :: sel2_start
     integer(ccs_long), dimension(2) :: sel2_count
 
-    integer(ccs_int) :: vert_per_cell
-
-    if (mesh % topo % max_faces == 6) then ! if cell are hexes
-      vert_per_cell = 8 ! 8 vertices per cell
-    else
-      call error_abort("Currently only supporting hex cells.")
-    end if
-
+    !integer(ccs_int) :: vert_per_cell
 
     ! Write attribute "ncel" - the total number of cells
     !call write_scalar(geo_writer, "ncel", mesh%topo%global_num_cells)
@@ -387,26 +388,79 @@ contains
     ! Write attribute "nvrt" - the total number of vertices
     !call write_scalar(geo_writer, "nvrt", mesh%topo%global_num_vertices)
 
-    sel_shape(1) = mesh%topo%global_num_faces
-    sel_start(1) = mesh%topo%global_indices(1) - 1
-    sel_count(1) = mesh%topo%local_num_cells
+    !sel_shape(1) = mesh%topo%global_num_faces
+    !sel_start(1) = mesh%topo%global_indices(1) - 1
+    !sel_count(1) = mesh%topo%local_num_cells
 
     ! Write arrays /face/cell1 and /face/cell2
     !call write_array(geo_writer, "/face/cell1", sel_shape, sel_start, sel_count, mesh%topo%face_cell1)
     !call write_array(geo_writer, "/face/cell2", sel_shape, sel_start, sel_count, mesh%topo%face_cell2)
 
     ! Write cell vertices
-    sel2_shape(1) = vert_per_cell
+    sel2_shape(1) = mesh%topo%vert_per_cell
     sel2_shape(2) = mesh%topo%global_num_cells
     sel2_start(1) = 0
     sel2_start(2) = mesh%topo%global_indices(1) - 1
-    sel2_count(1) = vert_per_cell
+    sel2_count(1) = mesh%topo%vert_per_cell
     sel2_count(2) = mesh%topo%local_num_cells
 
-    call write_array(geo_writer, "/cell/vertices", sel_shape, sel_start, sel_count, )
-
+    call write_array(geo_writer, "/cell/vertices", sel2_shape, sel2_start, sel2_count, mesh%topo%global_vertex_indices)
 
   end subroutine write_topology
+
+  !v Write the mesh geometry data to file
+  subroutine write_geometry(par_env, geo_writer, mesh)
+
+    ! Arguments
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(io_process), allocatable, target, intent(in) :: geo_writer
+    type(ccs_mesh), intent(inout) :: mesh
+
+    ! Local variables
+    integer(ccs_long), dimension(1) :: sel_shape
+    integer(ccs_long), dimension(1) :: sel_start
+    integer(ccs_long), dimension(1) :: sel_count
+
+    integer(ccs_long), dimension(2) :: sel2_shape
+    integer(ccs_long), dimension(2) :: sel2_start
+    integer(ccs_long), dimension(2) :: sel2_count
+
+    integer(ccs_int), dimension(2) :: loc
+    integer(ccs_int) :: i
+    integer(ccs_int) :: verts_per_side
+
+    real(ccs_real), dimension(:,:), allocatable :: vert_coords_tmp
+
+    ! Root process calculates all (global) vertex coords and stores temporarily
+    if (par_env%proc_id == par_env%root) then
+      allocate(vert_coords_tmp(ndim,mesh%topo%global_num_vertices))
+
+      vert_coords_tmp = 0.0_ccs_real
+   
+      if (mesh%topo%vert_per_cell == 4) then
+        verts_per_side = nint(mesh%topo%global_num_vertices**(1./2))
+      else
+        verts_per_side = nint(mesh%topo%global_num_vertices**(1./3))
+      endif
+
+      do i = 1, mesh%topo%global_num_vertices
+        vert_coords_tmp(1,i) = modulo(i-1,verts_per_side) * mesh%geo%h
+        vert_coords_tmp(2,i) = ((i-1)/verts_per_side) * mesh%geo%h
+      end do
+
+      sel2_shape(1) = ndim
+      sel2_shape(2) = mesh%topo%global_num_vertices
+      sel2_start(1) = 0
+      sel2_start(2) = 0
+      sel2_count(1) = ndim
+      sel2_count(2) = mesh%topo%global_num_vertices
+
+      call write_array(geo_writer, "/vert", sel2_shape, sel2_start, sel2_count, vert_coords_tmp)
+
+      deallocate(vert_coords_tmp)
+    endif
+
+  end subroutine write_geometry
 
   !v Utility constructor to build a square mesh.
   !
@@ -425,6 +479,7 @@ contains
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
+    integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
     integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
     integer(ccs_int) :: comm_size       ! The size of the parallel environment
 
@@ -436,6 +491,7 @@ contains
 
       ! Set the global mesh parameters
       mesh % topo % global_num_cells = cps**2
+      mesh % topo % global_num_vertices = (cps+1)**2
       mesh % geo % h = side_length / real(cps, ccs_real)
 
       ! Associate aliases to make code easier to read
@@ -451,12 +507,16 @@ contains
 
         ! Set max faces per cell (constant, 4)
         mesh%topo%max_faces = 4_ccs_int
+
+        ! Set number of vertices per cell
+        mesh%topo%vert_per_cell = 4_ccs_int
         
         ! Allocate mesh arrays
         allocate (mesh % topo % global_indices(mesh % topo % local_num_cells))
         allocate (mesh % topo % num_nb(mesh % topo % local_num_cells))
         allocate (mesh % topo % nb_indices(mesh % topo % max_faces, mesh % topo % local_num_cells))
         allocate (mesh % topo % face_indices(mesh % topo % max_faces, mesh % topo % local_num_cells))
+        allocate (mesh % topo % global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
 
         ! Initialise mesh arrays
         mesh % topo % num_nb(:) = mesh % topo % max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
@@ -530,17 +590,31 @@ contains
       mesh % topo % total_num_cells = size(mesh % topo % global_indices)
       mesh % topo % halo_num_cells = mesh % topo % total_num_cells - mesh % topo % local_num_cells
 
+      ! Global vertex numbering
+      do i = 1, mesh%topo%local_num_cells
+        associate (global_vert_index => mesh%topo%global_vertex_indices(:,i))
+          ii = mesh%topo%global_indices(i)
+
+          global_vert_index(front_bottom_left)  = ii + (ii-1)/cps
+          global_vert_index(front_bottom_right) = ii + (ii-1)/cps + 1
+          global_vert_index(front_top_left)     = ii + cps + (ii+cps-1)/cps
+          global_vert_index(front_top_right)    = ii + cps + (ii+cps-1)/cps + 1
+        end associate
+      end do
+
       allocate (mesh % geo % x_p(ndim, mesh % topo % total_num_cells))
       allocate (mesh % geo % x_f(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
       allocate (mesh % geo % volumes(mesh % topo % total_num_cells))
       allocate (mesh % geo % face_areas(mesh % topo % max_faces, mesh % topo % local_num_cells))
       allocate (mesh % geo % face_normals(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells)) ! Currently hardcoded as a 2D mesh.
+      allocate (mesh % geo % vert_coords(ndim, mesh % topo % vert_per_cell, mesh % topo % local_num_cells))
 
       mesh % geo % volumes(:) = mesh % geo % h**2 !< @note Mesh is square and 2D @endnote
       mesh % geo % face_normals(:, :, :) = 0.0_ccs_real
       mesh % geo % x_p(:, :) = 0.0_ccs_real
       mesh % geo % x_f(:, :, :) = 0.0_ccs_real
       mesh % geo % face_areas(:, :) = mesh % geo % h  ! Mesh is square and 2D
+      mesh % geo % vert_coords(:, :, :) = 0.0_ccs_real
 
       associate (h => mesh % geo % h)
         do i = 1_ccs_int, mesh % topo % total_num_cells
@@ -581,6 +655,27 @@ contains
             x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
             normal(1, face_counter) = 0.0_ccs_real
             normal(2, face_counter) = 1.0_ccs_real
+          end associate
+        end do
+
+        do i = 1_ccs_int, mesh % topo % local_num_cells
+          associate (x_p => mesh % geo % x_p(:, i), &
+                     x_v => mesh % geo % vert_coords(:, :, i))
+            vertex_counter = front_bottom_left
+            x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
+            x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+
+            vertex_counter = front_bottom_right
+            x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
+            x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+
+            vertex_counter = front_top_left
+            x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
+            x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
+
+            vertex_counter = front_top_right
+            x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
+            x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
           end associate
         end do
       end associate
@@ -645,14 +740,14 @@ contains
           mesh%topo%max_faces = 6_ccs_int
 
           ! Set number of vertices per cell (constant, 8)
-          vert_per_cell = 8
+          mesh%topo%vert_per_cell = 8
           
           ! Allocate mesh arrays
           allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
           allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
           allocate (mesh%topo%nb_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
           allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
-          allocate (mesh%topo%global_vertex_indices(vert_per_cell, mesh%topo%local_num_cells))
+          allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
 
           ! Initialise mesh arrays
           mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
@@ -942,38 +1037,6 @@ contains
     deallocate (tmp)
 
   end subroutine append_to_arr
-
-  !v Count the number of vertices in the mesh
-  function count_mesh_vertices(mesh) return(nverts)
-
-    ! Arguments
-    type(ccs_mesh), intent(in) :: mesh !< the mesh
-
-    !  Result
-    integer(ccs_int) :: nverts !< number of vertices
-
-    ! Local variables
-    type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    integer(ccs_int) :: global_index_p, index_p
-    integer(ccs_int) :: j
-
-    logical :: is_boundary
-    logical :: is_local
-
-    ! Loop over cells
-    do index_p = 1, mesh%topo%local_num_cells
-      call set_cell_location(mesh, index_p, loc_p)
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
-
-      do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-
-        if (.not. is_boundary) then
-          call get_local_status(loc_nb, is_local)
-
 
   !v Count the number of faces in the mesh
   function count_mesh_faces(mesh) result(nfaces)
