@@ -24,7 +24,7 @@ submodule(pv_coupling) pv_coupling_simple
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
-                     set_cell_location, get_volume
+                     set_cell_location, get_volume, get_distance
   use timestepping, only : update_old_values
   
   implicit none
@@ -428,6 +428,12 @@ contains
 
     type(matrix_values_spec) :: mat_val_spec
 
+    real(ccs_real) :: uSwitch, vSwitch, wSwitch
+    real(ccs_real) :: problem_dim
+
+    real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real) :: dxmag
+    
     ! First zero matrix
     call zero(M)
 
@@ -483,9 +489,11 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-          coeff_f = (1.0 / mesh%geo%h) * face_area
 
           call get_volume(loc_p, Vp)
+          call get_distance(loc_p, loc_nb, dx) 
+          dxmag = sqrt(sum(dx**2))
+          coeff_f = (1.0 / dxmag) * face_area
           call get_volume(loc_nb, V_nb)
           Vf = 0.5_ccs_real * (Vp + V_nb)
 
