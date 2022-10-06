@@ -403,6 +403,9 @@ contains
     real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
 
+    real(ccs_real) :: uSwitch, vSwitch, wSwitch
+    real(ccs_real) :: problem_dim
+    
     call get_boundary_status(loc_f, is_boundary)
 
     associate (mesh => loc_f%mesh, &
@@ -430,10 +433,14 @@ contains
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
         Vf = 0.5_ccs_real * (Vp + V_nb)
-
+        
         ! This is probably not quite right ...
-        invAp = (invAu(index_p) + invAv(index_p) + invAw(index_p)) / 3.0_ccs_real
-        invA_nb = (invAu(index_nb) + invAv(index_nb) + invAw(index_nb)) / 3.0_ccs_real
+        uSwitch = 1.0_ccs_real
+        vSwitch = 1.0_ccs_real
+        wSwitch = 0.0_ccs_real
+        problem_dim = uSwitch + vSwitch + wSwitch
+        invAp = (uSwitch * invAu(index_p) + vSwitch * invAv(index_p) + wSwitch * invAw(index_p)) / problem_dim
+        invA_nb = (uSwitch * invAu(index_nb) + vSwitch * invAv(index_nb) + wSwitch * invAw(index_nb)) / problem_dim
         invAf = 0.5_ccs_real * (invAp + invA_nb)
 
         flux_corr = (Vf * invAf) * flux_corr

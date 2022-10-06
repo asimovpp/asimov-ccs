@@ -452,6 +452,11 @@ contains
     call get_vector_data(invAv, invAv_data)
     call get_vector_data(invAw, invAw_data)
 
+    uSwitch = 1.0_ccs_real
+    vSwitch = 1.0_ccs_real
+    wSwitch = 0.0_ccs_real
+    problem_dim = uSwitch + vSwitch + wSwitch
+
     ! Loop over cells
     call dprint("P': cell loop")
     do index_p = 1, mesh%topo%local_num_cells
@@ -476,6 +481,9 @@ contains
       coeff_p = 0.0_ccs_real
       r = 0.0_ccs_real
 
+      call get_volume(loc_p, Vp)
+      invA_p = (uSwitch * invAu_data(index_p) + vSwitch * invAv_data(index_p) + wSwitch * invAw_data(index_p)) / problem_dim
+
       ! Loop over faces
       do j = 1, nnb
         call set_face_location(mesh, index_p, j, loc_f)
@@ -490,27 +498,35 @@ contains
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call get_volume(loc_p, Vp)
           call get_distance(loc_p, loc_nb, dx) 
           dxmag = sqrt(sum(dx**2))
           coeff_f = (1.0 / dxmag) * face_area
+          
           call get_volume(loc_nb, V_nb)
           Vf = 0.5_ccs_real * (Vp + V_nb)
 
-          invA_p = 0.5_ccs_real * (invAu_data(index_p) + invAv_data(index_p) + invAw_data(index_p))
-          invA_nb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb) + invAw_data(index_nb))
+          invA_nb = (uSwitch * invAu_data(index_nb) + vSwitch * invAv_data(index_nb) + wSwitch * invAw_data(index_nb)) / problem_dim
           invA_f = 0.5_ccs_real * (invA_p + invA_nb)
 
           coeff_f = -(Vf * invA_f) * coeff_f
 
-          coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
           col = global_index_nb
         else
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
           coeff_nb = 0.0_ccs_real
+          coeff_f = 0.0_ccs_real
+          
+          ! coeff_f = -(Vp * invA_p) * coeff_f
+          
+          ! ! Zero gradient
+          ! !
+          ! ! (p_F - p_P) / dx = 0
+          ! coeff_nb = coeff_f
+          ! coeff_p = coeff_p + coeff_nb
         end if
+        coeff_p = coeff_p - coeff_f
 
         call set_row(row, mat_coeffs)
         call set_col(col, mat_coeffs)
