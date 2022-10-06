@@ -7,6 +7,7 @@ steps: 100
 relaxation_factor:
   u: 0.9
   v: 0.9
+  w: 0.9
   p: 0.1
 
 target_residual: 1.0e-10
@@ -47,7 +48,7 @@ target_residual: 1.0e-10
 #  variables: [u, v, w, p]
 
 variables:
-  n_variables: 4
+  n_variables: 5
   variable_1:
     name: u
     type: central
@@ -55,14 +56,17 @@ variables:
     name: v
     type: central
   variable_3:
-    name: p
+    name: w
     type: central
   variable_4:
+    name: p
+    type: central
+  variable_5:
     name: p_prime
     type: central
 
 boundaries:
-  n_boundaries: 4
+  n_boundaries: 6
   boundary_1: 
     name: left
     type: neumann
@@ -97,5 +101,23 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_v:
+      type: dirichlet
+      value: 0
+  boundary_5:
+    name: back
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_w:
+      type: dirichlet
+      value: 0
+  boundary_6:
+    name: front
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_w:
       type: dirichlet
       value: 0

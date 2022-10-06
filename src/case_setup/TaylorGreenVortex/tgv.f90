@@ -22,7 +22,7 @@ program tgv
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh
+  use mesh_utils, only: read_mesh, build_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
 
@@ -56,7 +56,7 @@ program tgv
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
-  logical :: w_sol = .false.
+  logical :: w_sol = .true.
   logical :: p_sol = .true.
 
   real(ccs_real) :: dt       ! The timestep
@@ -93,9 +93,10 @@ program tgv
 
   ! Read mesh from *.geo file
   if (irank == par_env%root) print *, "Reading mesh"
-  call read_mesh(par_env, case_name, mesh)
-  call partition_kway(par_env, mesh)
-  call compute_connectivity(par_env, mesh)
+  mesh = build_mesh(par_env, 16, 16, 16, 4.0_ccs_real * atan(1.0_ccs_real))
+  ! call read_mesh(par_env, case_name, mesh)
+  ! call partition_kway(par_env, mesh)
+  ! call compute_connectivity(par_env, mesh)
 
   if (irank == par_env%root) then
     call print_configuration()
@@ -346,8 +347,8 @@ contains
 
         call get_centre(loc_p, x_p)
 
-        u_val = sin(x_p(1)) * cos(x_p(2))
-        v_val = -cos(x_p(1)) * sin(x_p(2))
+        u_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
+        v_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
         w_val = 0.0_ccs_real
 
         call set_row(global_index_p, u_vals)
@@ -394,8 +395,8 @@ contains
           call get_centre(loc_f, x_f)
 
           ! compute initial value based on current face coordinates
-          mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * face_normal(1) &
-                             - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
+          mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * cos(x_f(3)) * face_normal(1) &
+                             - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
         end if
 
       end do
