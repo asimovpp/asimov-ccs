@@ -1,21 +1,21 @@
-!> @brief Test the parallel distribution of a mesh's points.
+!v Test the parallel distribution of a mesh's points.
 !
-!> @description A mesh of size N should have its points distributed in parallel such that
-!!              \f$\sum_p n_p = N\f$.
+!  A mesh of size N should have its points distributed in parallel such that
+!  \f$\sum_p n_p = N\f$.
 program test_mesh_point_distribution
 
   use testing_lib
   use mesh_utils, only : build_mesh
 
   implicit none
-  
+
   type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: nx, ny, nz
 
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
-  
+
   call init()
   
   nx = 4
@@ -61,7 +61,6 @@ program test_mesh_point_distribution
 
   call assert_equal(n_expected, mesh%topo%global_num_cells, &
        '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
-
 
   call fin()
 

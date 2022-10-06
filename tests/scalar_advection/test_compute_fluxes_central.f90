@@ -1,19 +1,19 @@
-!> Test that the flux matrix has been computed correctly
+!v Test that the flux matrix has been computed correctly
 !
-!> Compares the matrix and RHS calculated for a specified mass flux using the central differencing scheme to the expected solution
+!  Compares the matrix and RHS calculated for a specified mass flux using the central differencing scheme to the expected solution
 program test_compute_fluxes
 #include "ccs_macros.inc"
 
   use testing_lib
   use types, only: field, central_field, face_field, matrix_values_spec
-  use mesh_utils, only : build_square_mesh
+  use mesh_utils, only: build_square_mesh
   use fv, only: compute_fluxes
-  use utils, only : update, initialise, finalise, &
-       set_size, set_values, zero, &
-       set_mode, set_entry, set_col, set_row, clear_entries
-  use vec, only : create_vector, get_vector_data, restore_vector_data, set_vector_location, create_vector_values
-  use mat, only : create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
-  use solver, only : axpy, norm
+  use utils, only: update, initialise, finalise, &
+                   set_size, set_values, zero, &
+                   set_mode, set_entry, set_col, set_row, clear_entries
+  use vec, only: create_vector, get_vector_data, restore_vector_data, set_vector_location, create_vector_values
+  use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
+  use solver, only: axpy, norm
   use constants, only: add_mode, face
   use bc_constants
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
@@ -36,8 +36,8 @@ program test_compute_fluxes
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  allocate(central_field :: scalar)
-  allocate(face_field :: mf)
+  allocate (central_field :: scalar)
+  allocate (face_field :: mf)
 
   call allocate_bc_arrays(n_boundaries, scalar%bcs)
   call allocate_bc_arrays(n_boundaries, scalar%bcs)
@@ -49,7 +49,7 @@ program test_compute_fluxes
   scalar%bcs%bc_types = bc_type_dirichlet
   scalar%bcs%values = 0.0_ccs_real
   scalar%bcs%values(4) = 1.0_ccs_real
-    
+
   call initialise(vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, scalar%values)
@@ -59,23 +59,23 @@ program test_compute_fluxes
   call create_vector(vec_properties, mf%values)
   call update(mf%values)
 
-  mf_values = (/ -1.0_ccs_real, 0.0_ccs_real, 1.0_ccs_real /)
+  mf_values = (/-1.0_ccs_real, 0.0_ccs_real, 1.0_ccs_real/)
 
   do i = 1, size(mf_values)
     call set_mass_flux(mf, mf_values(i))
     call run_compute_fluxes_test(scalar, mf, mf_values(i), mesh, cps)
-  enddo
+  end do
 
-  deallocate(scalar)
-  deallocate(mf)
+  deallocate (scalar)
+  deallocate (mf)
 
   call fin()
 
-  contains
+contains
 
   !> Sets the mass flux array
   subroutine set_mass_flux(mf, mf_value)
-    class(field), intent(inout) :: mf     !< The mass flux  
+    class(field), intent(inout) :: mf     !< The mass flux
     real(ccs_real) :: mf_value            !< The value to set the mass flux field to
     real(ccs_real), dimension(:), pointer :: mf_data
 
@@ -91,7 +91,7 @@ program test_compute_fluxes
     class(field), intent(inout) :: mf       !< The mass flux field
     real(ccs_real), intent(in) :: mf_value  !< The constant value of the mass flux
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
-    integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh 
+    integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh
 
     class(ccs_matrix), allocatable :: M, M_exact
     class(ccs_vector), allocatable :: b, b_exact
@@ -99,7 +99,6 @@ program test_compute_fluxes
     type(matrix_spec) :: mat_properties
     real(ccs_real) :: error
 
-    
     call initialise(mat_properties)
     call initialise(vec_properties)
     call set_size(par_env, mesh, mat_properties)
@@ -131,22 +130,22 @@ program test_compute_fluxes
     error = norm(M, 1)
 
     if (error .ge. eps) then
-      write(message, *) 'FAIL: matrix difference norm too large ', error
+      write (message, *) 'FAIL: matrix difference norm too large ', error
       call stop_test(message)
     end if
-    
+
     call axpy(-1.0_ccs_real, b_exact, b)
     error = norm(b, 2)
 
     if (error .ge. eps) then
-      write(message, *) 'FAIL: vector difference norm too large ', error
+      write (message, *) 'FAIL: vector difference norm too large ', error
       call stop_test(message)
     end if
 
-    deallocate(M)
-    deallocate(b)
-    deallocate(M_exact)
-    deallocate(b_exact)
+    deallocate (M)
+    deallocate (b)
+    deallocate (M_exact)
+    deallocate (b_exact)
   end subroutine run_compute_fluxes_test
 
   !> Computes the expected matrix for a mass flux of 1
@@ -175,8 +174,8 @@ program test_compute_fluxes
     call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_values)
     call set_mode(add_mode, mat_values)
-    
-    face_area = 1.0_ccs_real/cps
+
+    face_area = 1.0_ccs_real / cps
 
     do index_p = 1, mesh%topo%local_num_cells
       adv_coeff_total = 0.0_ccs_real
@@ -188,7 +187,7 @@ program test_compute_fluxes
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (.not. is_boundary) then
-          dx = 1.0_ccs_real/cps
+          dx = 1.0_ccs_real / cps
           diff_coeff = -face_area * diffusion_factor / dx
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
@@ -214,16 +213,16 @@ program test_compute_fluxes
           adv_coeff_total = adv_coeff_total - aP
           diff_coeff_total = diff_coeff_total + diff_coeff
         else
-          dx = 1.0_ccs_real/cps
+          dx = 1.0_ccs_real / cps
           diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
-          adv_coeff = mf_value*face_area
+          adv_coeff = mf_value * face_area
 
           call set_row(global_index_p, mat_values)
           call set_col(global_index_p, mat_values)
           call set_entry(-(adv_coeff + diff_coeff), mat_values)
           call set_values(mat_values, M)
-        endif
-        
+        end if
+
         call clear_entries(mat_values)
       end do
 
@@ -234,7 +233,7 @@ program test_compute_fluxes
       call clear_entries(mat_values)
     end do
   end subroutine compute_exact_matrix
-  
+
   !> Computes the expected RHS for a mass flux of 1
   subroutine compute_exact_vector(mesh, mf_value, cps, phi, b)
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure

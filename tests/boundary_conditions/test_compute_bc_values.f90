@@ -81,7 +81,7 @@ contains
     call allocate_bc_arrays(n_boundaries, dirichlet_field%bcs)
     dirichlet_field%bcs%bc_types = bc_type_dirichlet
     dirichlet_field%bcs%values = expected_bc_value
-    dirichlet_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
+    dirichlet_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
     call compute_boundary_values(dirichlet_field, component, loc_p, loc_f, face_norm, bc_val)
     call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
@@ -159,7 +159,7 @@ contains
       call update(extrapolated_field%z_gradients)
       call allocate_bc_arrays(n_boundaries, extrapolated_field%bcs)
       extrapolated_field%bcs%bc_types = bc_type_extrapolate
-      extrapolated_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
+      extrapolated_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
       call get_face_normal(loc_f, face_norm)
 
@@ -213,7 +213,7 @@ contains
       call update(sym_field%values)
       call allocate_bc_arrays(n_boundaries, sym_field%bcs)
       sym_field%bcs%bc_types = bc_type_sym
-      sym_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
+      sym_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
       call get_vector_data(sym_field%values, sym_field_data)
       do j = 1, mesh%topo%local_num_cells
