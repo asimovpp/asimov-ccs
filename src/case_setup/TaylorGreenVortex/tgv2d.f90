@@ -22,7 +22,7 @@ program tgv2d
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print
+  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
@@ -157,6 +157,7 @@ program tgv2d
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(mesh, u, v, w, p, mf)
   call calc_tgv2d_error(mesh, 0, u, v, w, p)
+  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -171,6 +172,7 @@ program tgv2d
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
+    call calc_kinetic_energy(par_env, mesh, t, u, v, w)
     print *, t
   end do
 
@@ -482,8 +484,7 @@ contains
     type is (parallel_environment_mpi)
       call MPI_AllReduce(err_local, err_rms, size(err_rms), MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
     class default
-      print *, "ERROR: Unknown type"
-      stop 1
+      call error_abort("ERROR: Unknown type")
     end select
     err_rms(:) = sqrt(err_rms(:) / mesh%topo%global_num_cells)
 
