@@ -2,7 +2,7 @@ CC = mpicc
 CFLAGS = -O3
 
 FC = mpif90
-FFLAGS = -cpp -std=f2018 -ffree-line-length-none
+FFLAGS = -cpp -std=f2018 -ffree-line-length-none -fimplicit-none
 CAFFLAGS = -fcoarray=single
 ifeq ($(VERBOSE),yes)
   FFLAGS += -DVERBOSE
