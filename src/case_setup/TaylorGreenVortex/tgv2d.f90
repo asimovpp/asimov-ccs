@@ -18,7 +18,7 @@ program tgv2d
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_square_mesh
+  use mesh_utils, only: build_square_mesh, write_mesh
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
@@ -26,6 +26,7 @@ program tgv2d
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
+  use io, only: write_solution
 
   implicit none
 
@@ -163,7 +164,10 @@ program tgv2d
 
   CFL = 0.1_ccs_real
   dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 5
+  nsteps = 100
+
+  ! Write out mesh to file
+  call write_mesh(par_env, case_name, mesh)
 
   call activate_timestepping()
   call set_timestep(dt)
@@ -172,6 +176,7 @@ program tgv2d
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
     print *, t
+    call write_solution(par_env, case_name, t, nsteps, dt, mesh, cps, u, v, w, p)
   end do
 
 #ifndef EXCLUDE_MISSING_INTERFACE

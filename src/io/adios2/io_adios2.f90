@@ -8,7 +8,7 @@ submodule(io) io_adios2
 
   use utils, only: exit_print
   use adios2
-  use adios2_types, only: adios2_io_process
+  use adios2_types, only: adios2_env, adios2_io_process
   use kinds, only: ccs_int, ccs_real, ccs_long
 
   implicit none
@@ -759,9 +759,13 @@ contains
       select type(io_proc)
         type is(adios2_io_process)
 
-          call adios2_define_variable(adios2_var, io_proc%io_task, var_name, adios2_type_dp, &
+          call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
+
+          if (.not. adios2_var%valid) then
+            call adios2_define_variable(adios2_var, io_proc%io_task, var_name, adios2_type_dp, &
                                       1, global_shape, global_start, count, &
                                       adios2_constant_dims, ierr)
+          endif
           call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
           
         class default
@@ -838,19 +842,53 @@ contains
       print*,"===> Downcasting from 64-bit to 32-bit, possible loss of precision."
     end subroutine
 
-    module subroutine write_solution(par_env, case_name, mesh, cps, u, v, p)
+    subroutine begin_step(io_proc)
+      class(io_process), intent(inout) :: io_proc
+
+      integer(ccs_int) :: ierr
+
+      select type (io_proc)
+      type is (adios2_io_process)
+
+        call adios2_begin_step(io_proc%engine, ierr)
+
+      class default
+        call error_abort("Unknown IO process handler type")
+
+      end select
+    end subroutine
+
+    subroutine end_step(io_proc)
+      class(io_process), intent(inout) :: io_proc
+
+      integer(ccs_int) :: ierr
+
+      select type (io_proc)
+      type is (adios2_io_process)
+
+        call adios2_end_step(io_proc%engine, ierr)
+
+      class default
+        call error_abort("Unknown IO process handler type")
+
+      end select
+    end subroutine
+
+    module subroutine write_solution(par_env, case_name, step, maxstep, dt, mesh, cps, u, v, w, p)
 
       use kinds, only: ccs_long
       use constants, only: ndim, adiosconfig
-      use types, only: io_environment, io_process
-      use vec, only : get_vector_data
+      use vec, only : get_vector_data, restore_vector_data
   
       ! Arguments
       class(parallel_environment), allocatable, target, intent(in) :: par_env
       character(len=:), allocatable, intent(in) :: case_name
+      integer(ccs_int), intent(in) :: step
+      integer(ccs_int), intent(in) :: maxstep
+      real(ccs_real), intent(in) :: dt
       type(ccs_mesh), intent(in) :: mesh
       integer(ccs_int), intent(in) :: cps
-      class(field), intent(inout) :: u, v, p
+      class(field), intent(inout) :: u, v, w, p
   
       ! Local variables
       character(len=:), allocatable :: sol_file
@@ -858,8 +896,8 @@ contains
       character(len=:), allocatable :: adios2_file
       character(len=:), allocatable :: xdmf_file
   
-      class(io_environment), allocatable :: io_env
-      class(io_process), allocatable :: sol_writer
+      class(io_environment), allocatable, save :: io_env
+      class(io_process), allocatable, save :: sol_writer
   
       integer(ccs_long), dimension(1) :: sel_shape
       integer(ccs_long), dimension(1) :: sel_start
@@ -872,16 +910,19 @@ contains
       real(ccs_real), dimension(:), pointer :: data
   
       integer(ccs_int), parameter :: ioxdmf = 999
+
+      integer(ccs_int) :: ierr
   
       geo_file = case_name//'.geo'
       sol_file = case_name//'.sol.h5'
       adios2_file = case_name//adiosconfig
       xdmf_file = case_name//'.sol.xmf'
   
-      call initialise_io(par_env, adios2_file, io_env)
-      call configure_io(io_env, "sol_writer", sol_writer)
-  
-      call open_file(sol_file, "write", sol_writer)
+      if (step == 1) then
+        call initialise_io(par_env, adios2_file, io_env)
+        call configure_io(io_env, "sol_writer", sol_writer)
+        call open_file(sol_file, "write", sol_writer)
+      endif
   
       ! 1D data
       sel_shape(1) = mesh%topo%global_num_cells
@@ -896,74 +937,101 @@ contains
       sel2_count(1) = ndim
       sel2_count(2) = mesh%topo%local_num_cells
   
-      ! Write mesh cell centre coords
-      call write_array_real64_2d(sol_writer, "/xp", sel2_shape, sel2_start, sel2_count, mesh%geo%x_p)
+      ! Begin step
+      call begin_step(sol_writer)
   
       ! Write u-velocity
       call get_vector_data(u%values, data)
       call write_array_real64_1d(sol_writer, "/u", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(u%values, data)
   
       ! Write v-velocity
       call get_vector_data(v%values, data)
       call write_array_real64_1d(sol_writer, "/v", sel_shape, sel_start, sel_count, data)
-  
+      call restore_vector_data(v%values, data)
+
+      ! Write w-velocity
+      call get_vector_data(w%values, data)
+      call write_array_real64_1d(sol_writer, "/w", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(w%values, data)
+
       ! Write pressure
       call get_vector_data(p%values, data)
       call write_array_real64_1d(sol_writer, "/p", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(p%values, data)
+
+      ! End step
+      call end_step(sol_writer)
+
+      if (step == maxstep) then
+        ! Close the file and ADIOS2 engine
+        call close_file(sol_writer)
   
-      ! Close the file and ADIOS2 engine
-      call close_file(sol_writer)
-  
-      ! Finalise the ADIOS2 IO environment
-      call cleanup_io(io_env)
+        ! Finalise the ADIOS2 IO environment
+        call cleanup_io(io_env)
+      endif
   
       ! Write XML file
-      if (par_env%proc_id == par_env%root) then
-        ! Open file
-        open(ioxdmf, file=xdmf_file, status='unknown')
+      if (step == 1) then
+        if (par_env%proc_id == par_env%root) then
+          ! Open file
+          open(ioxdmf, file=xdmf_file, status='unknown')
   
-        ! Write file contents
-        write(ioxdmf, '(a)')            '<?xml version="1.0"?>'
-        write(ioxdmf, '(a)')            '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
-        write(ioxdmf, '(a)')            '<Xdmf Version="2.0">'
-        write(ioxdmf, '(a)')            '  <Domain>'
-        write(ioxdmf, '(a)')            '    <Grid Name="Mesh">'
-        if (mesh%topo%vert_per_cell == 4) then
-          write(ioxdmf, '(a,i0,a)')     '      <Topology Type="Quadrilateral" NumberOfElements="',mesh%topo%global_num_cells,'" BaseOffset="1">'
-        else
-          write(ioxdmf, '(a,i0,a)')     '      <Topology Type="Hexahedron" NumberOfElements="',mesh%topo%global_num_cells,'" BaseOffset="1">'
+          ! Write file contents
+          write(ioxdmf, '(a)')        '<?xml version="1.0"?>'
+          write(ioxdmf, '(a)')        '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
+          write(ioxdmf, '(a)')        '<Xdmf Version="2.0">'
+          write(ioxdmf, '(a)')        '  <Domain>'
+          write(ioxdmf, '(a)')        '    <Grid Name="Unsteady" GridType="Collection" CollectionType="Temporal">'
         endif
-        write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',mesh%topo%global_num_cells,mesh%topo%vert_per_cell,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)')        '          ',trim(geo_file),':/Step0/cell/vertices'
-        write(ioxdmf, '(a)')            '        </DataItem>'
-        write(ioxdmf, '(a)')            '      </Topology>'
-        write(ioxdmf, '(a)')            '      <Geometry Type="XYZ">'
-        write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',mesh%topo%global_num_vertices,ndim,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)')        '          ',trim(geo_file),':/Step0/vert'
-        write(ioxdmf, '(a)')            '        </DataItem>'
-        write(ioxdmf, '(a)')            '      </Geometry>'
-        write(ioxdmf, '(a)')            '      <Attribute Name="VelocityX" AttributeType="Scalar" Center="Cell">'
-        write(ioxdmf, '(a,i0,a)')       '        <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)')        '          ',trim(sol_file),':/Step0/u'
-        write(ioxdmf, '(a)')            '        </DataItem>'
-        write(ioxdmf, '(a)')            '      </Attribute>'
-        write(ioxdmf, '(a)')            '      <Attribute Name="VelocityY" AttributeType="Scalar" Center="Cell">'
-        write(ioxdmf, '(a,i0,a)')       '        <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)')        '          ',trim(sol_file),':/Step0/v'
-        write(ioxdmf, '(a)')            '        </DataItem>'
-        write(ioxdmf, '(a)')            '      </Attribute>'
-        write(ioxdmf, '(a)')            '      <Attribute Name="Pressure" AttributeType="Scalar" Center="Cell">'
-        write(ioxdmf, '(a,i0,a)')       '        <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-        write(ioxdmf, '(a,a,a)')        '          ',trim(sol_file),':/Step0/p'
-        write(ioxdmf, '(a)')            '        </DataItem>'
-        write(ioxdmf, '(a)')            '      </Attribute>'
-        write(ioxdmf, '(a)')            '    </Grid>'
-        write(ioxdmf, '(a)')            '  </Domain>'
-        write(ioxdmf, '(a)')            '</Xdmf>'
+      endif
+
+      write(ioxdmf, '(a)')            '      <Grid Name="Mesh">'
+      write(ioxdmf, '(a,f10.7,a)')    '        <Time Value = "',step*dt,'" />'
+      if (mesh%topo%vert_per_cell == 4) then
+          write(ioxdmf, '(a,i0,a)')   '        <Topology Type="Quadrilateral" NumberOfElements="',mesh%topo%global_num_cells,'" BaseOffset="1">'
+        else
+          write(ioxdmf, '(a,i0,a)')   '        <Topology Type="Hexahedron" NumberOfElements="',mesh%topo%global_num_cells,'" BaseOffset="1">'
+      endif
+      write(ioxdmf, '(a,i0,1x,i0,a)') '          <DataItem Dimensions="',mesh%topo%global_num_cells,mesh%topo%vert_per_cell,'" Format="HDF">'
+      write(ioxdmf, '(a,a,a)')        '            ',trim(geo_file),':/Step0/cell/vertices'
+      write(ioxdmf, '(a)')            '          </DataItem>'
+      write(ioxdmf, '(a)')            '        </Topology>'
+      write(ioxdmf, '(a)')            '        <Geometry Type="XYZ">'
+      write(ioxdmf, '(a,i0,1x,i0,a)') '          <DataItem Dimensions="',mesh%topo%global_num_vertices,ndim,'" Format="HDF">'
+      write(ioxdmf, '(a,a,a)')        '            ',trim(geo_file),':/Step0/vert'
+      write(ioxdmf, '(a)')            '          </DataItem>'
+      write(ioxdmf, '(a)')            '        </Geometry>'
+      write(ioxdmf, '(a)')            '        <Attribute Name="VelocityX" AttributeType="Scalar" Center="Cell">'
+      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/u'
+      write(ioxdmf, '(a)')            '          </DataItem>'
+      write(ioxdmf, '(a)')            '        </Attribute>'
+      write(ioxdmf, '(a)')            '        <Attribute Name="VelocityY" AttributeType="Scalar" Center="Cell">'
+      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/v'
+      write(ioxdmf, '(a)')            '          </DataItem>'
+      write(ioxdmf, '(a)')            '        </Attribute>'
+      write(ioxdmf, '(a)')            '        <Attribute Name="VelocityZ" AttributeType="Scalar" Center="Cell">'
+      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/w'
+      write(ioxdmf, '(a)')            '          </DataItem>'
+      write(ioxdmf, '(a)')            '        </Attribute>'
+      write(ioxdmf, '(a)')            '        <Attribute Name="Pressure" AttributeType="Scalar" Center="Cell">'
+      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/p'
+      write(ioxdmf, '(a)')            '          </DataItem>'
+      write(ioxdmf, '(a)')            '        </Attribute>'
+      write(ioxdmf, '(a)')            '      </Grid>'
+      
   
-        ! Close file
+      ! Close file
+      if (step == maxstep) then
+        write(ioxdmf, '(a)')          '    </Grid>'
+        write(ioxdmf, '(a)')          '  </Domain>'
+        write(ioxdmf, '(a)')          '</Xdmf>'
         close(ioxdmf)
-      endif ! par_env%root
+      endif
   
     end subroutine
 
