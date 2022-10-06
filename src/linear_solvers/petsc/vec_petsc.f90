@@ -39,7 +39,7 @@ contains
 
       v%modeset = .false.
       v%checked_out = .false.
-      
+
       select type (par_env => vec_properties%par_env)
       type is (parallel_environment_mpi)
 
@@ -358,39 +358,42 @@ contains
 
   end function
 
-  module procedure clear_vector_values_entries
+  module subroutine clear_vector_values_entries(val_dat)
+    type(vector_values), intent(inout) :: val_dat
 
-  val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
-  val_dat%values(:) = 0.0_ccs_real
+    val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
+    val_dat%values(:) = 0.0_ccs_real
 
-  end procedure clear_vector_values_entries
+  end subroutine clear_vector_values_entries
 
-  module procedure set_vector_values_row
+  module subroutine set_vector_values_row(row, val_dat)
+    integer(ccs_int), intent(in) :: row
+    type(vector_values), intent(inout) :: val_dat
 
-  integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
-  !< current working set. N.B. the dimension of this
-  !< array must match the rank of
-  !< vector_values%global_indices.
-  integer(ccs_int) :: i
-  integer(ccs_int) :: petsc_row
+    integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
+    !< current working set. N.B. the dimension of this
+    !< array must match the rank of
+    !< vector_values%global_indices.
+    integer(ccs_int) :: i
+    integer(ccs_int) :: petsc_row
 
-  petsc_row = row - 1 ! PETSc is zero-indexed
+    petsc_row = row - 1 ! PETSc is zero-indexed
 
-  idxs = findloc(val_dat%global_indices, petsc_row, kind=ccs_int)
-  i = idxs(1) ! We want the first entry
-  if (i == 0) then
-    ! New entry
-    idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
+    idxs = findloc(val_dat%global_indices, petsc_row, kind=ccs_int)
     i = idxs(1) ! We want the first entry
     if (i == 0) then
-      call error_abort("ERROR: Couldn't find a free entry in vector values.")
+      ! New entry
+      idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
+      i = idxs(1) ! We want the first entry
+      if (i == 0) then
+        call error_abort("ERROR: Couldn't find a free entry in vector values.")
+      end if
     end if
-  end if
 
-  val_dat%current_entry = i
-  val_dat%global_indices(i) = petsc_row
+    val_dat%current_entry = i
+    val_dat%global_indices(i) = petsc_row
 
-  end procedure set_vector_values_row
+  end subroutine set_vector_values_row
 
   !> Gets the data in a given vector
   module subroutine get_vector_data(vec, array)
@@ -402,9 +405,9 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (vec%checked_out) then
-         call error_abort("ERROR: trying to access already checked-out vector")
+        call error_abort("ERROR: trying to access already checked-out vector")
       end if
-      
+
       if (vec%modeset) then
         call error_abort("WARNING: trying to access vector without updating")
       end if
@@ -434,9 +437,9 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (.not. vec%checked_out) then
-         call error_abort("ERROR: trying to double-restore vector")
+        call error_abort("ERROR: trying to double-restore vector")
       end if
-      
+
       if (vec%ghosted) then
         call VecRestoreArrayF90(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
@@ -445,7 +448,7 @@ contains
       end if
 
       vec%checked_out = .false.
-      
+
     class default
       call error_abort('Invalid vector type.')
     end select

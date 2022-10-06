@@ -215,7 +215,7 @@ contains
         u_val = real(col, ccs_real) / real(cps, ccs_real)
         v_val = -real(row, ccs_real) / real(cps, ccs_real)
         w_val = 0.0_ccs_real
-        
+
         call set_row(self_idx, u_vals)
         call set_entry(u_val, u_vals)
 

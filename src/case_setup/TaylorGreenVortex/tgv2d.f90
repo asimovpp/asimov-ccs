@@ -1,51 +1,47 @@
-!> Program file for TaylorGreenVortex case
-program tgv
+!v Program file for 2D TaylorGreenVortex case
+!
+!  @build mpi+petsc
+
+program tgv2d
 #include "ccs_macros.inc"
 
   use petscvec
   use petscsys
 
   use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
-  use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
-  use kinds, only: ccs_real, ccs_int, ccs_long
+  use constants, only: cell, face, ccsconfig, ccs_string_len
+  use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, io_environment, io_process
+                   vector_spec, ccs_vector
   use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
+  use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count, get_case_name
+  use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh, build_mesh
-  use partitioning, only: compute_partitioner_input, &
-                          partition_kway, compute_connectivity
 
   implicit none
 
-  class(*), pointer :: config_file_pointer ! Pointer to CCS config file
-  character(len=error_length) :: error
-
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name  ! Case name
+  character(len=:), allocatable :: case_name       ! Case name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
-  character(len=:), allocatable :: geo_file
-  character(len=:), allocatable :: adios2_file
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
   type(ccs_mesh) :: mesh
-
   type(vector_spec) :: vec_properties
   real(ccs_real) :: L
 
   class(field), allocatable :: u, v, w, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
+  integer(ccs_int) :: cps = 50 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -56,7 +52,7 @@ program tgv
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
-  logical :: w_sol = .true.
+  logical :: w_sol = .false.
   logical :: p_sol = .true.
 
   real(ccs_real) :: dt       ! The timestep
@@ -75,8 +71,9 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name)
 
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name // ccsconfig
 
   call timer(start_time)
@@ -84,35 +81,29 @@ program tgv
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
-  ! Set start and end iteration numbers (eventually will be read from input file)
-  it_start = 1
-  it_end = num_steps
-
-  geo_file = case_name // geoext
-  adios2_file = case_name // adiosconfig
-
-  ! Read mesh from *.geo file
-  if (irank == par_env%root) print *, "Reading mesh"
-  mesh = build_mesh(par_env, 16, 16, 16, 4.0_ccs_real * atan(1.0_ccs_real))
-  ! call read_mesh(par_env, case_name, mesh)
-  ! call partition_kway(par_env, mesh)
-  ! call compute_connectivity(par_env, mesh)
-
   if (irank == par_env%root) then
     call print_configuration()
   end if
 
+  ! Set start and end iteration numbers (eventually will be read from input file)
+  it_start = 1
+  it_end = num_steps
+
+  ! Create a square mesh
+  if (irank == par_env%root) print *, "Building mesh"
+  L = 4.0_ccs_real * atan(1.0_ccs_real) ! == PI
+  mesh = build_square_mesh(par_env, cps, L)
+
   ! Initialise fields
-  if (irank == par_env%root) print *, "Allocate fields"
-  allocate (upwind_field :: u)
-  allocate (upwind_field :: v)
-  allocate (upwind_field :: w)
+  if (irank == par_env%root) print *, "Initialise fields"
+  allocate (central_field :: u)
+  allocate (central_field :: v)
+  allocate (central_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
 
   ! Read boundary conditions
-  if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
   call get_bc_variables(ccs_config_file, variable_names)
   call allocate_bc_arrays(n_boundaries, u%bcs)
@@ -127,7 +118,6 @@ program tgv
   call read_bc_config(ccs_config_file, "p", p_prime)
 
   ! Create and initialise field vectors
-  if (irank == par_env%root) print *, "Initialise field vectors"
   call initialise(vec_properties)
 
   call set_vector_location(cell, vec_properties)
@@ -158,28 +148,21 @@ program tgv
   call initialise_old_values(vec_properties, v)
   call initialise_old_values(vec_properties, w)
 
-  if (irank == par_env%root) print *, "Set vector location"
   call set_vector_location(face, vec_properties)
-  if (irank == par_env%root) print *, "Set vector size"
   call set_size(par_env, mesh, vec_properties)
-  if (irank == par_env%root) print *, "Set mass flux vector values"
   call create_vector(vec_properties, mf%values)
   call update(mf%values)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(mesh, u, v, w, mf)
-  call update(u%values)
-  call update(v%values)
-  call update(w%values)
-  call update(mf%values)
+  call initialise_flow(mesh, u, v, w, p, mf)
   call calc_tgv2d_error(mesh, 0, u, v, w, p)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
 
   CFL = 0.1_ccs_real
-  dt = 0.1_ccs_real !FL * (3.14_ccs_real / cps)
+  dt = CFL * (3.14_ccs_real / cps)
   nsteps = 5
 
   call activate_timestepping()
@@ -240,7 +223,7 @@ program tgv
 
   call timer(end_time)
 
-  if (par_env%proc_id == 0) then
+  if (irank == par_env%root) then
     print *, "Elapsed time: ", end_time - start_time
   end if
 
@@ -293,7 +276,7 @@ contains
     print *, "Running for ", num_steps, "iterations"
     print *, "++++"
     print *, "MESH"
-    print *, "Size is ", mesh%topo%total_num_cells
+    print *, "Size is ", cps
     print *, "++++"
     print *, "RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
@@ -301,7 +284,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(mesh, u, v, w, mf)
+  subroutine initialise_flow(mesh, u, v, w, p, mf)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -313,16 +296,16 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, mf
+    class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
     integer(ccs_int) :: row, col, n, count
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
-    real(ccs_real) :: u_val, v_val, w_val
+    real(ccs_real) :: u_val, v_val, w_val, p_val
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
-    type(vector_values) :: u_vals, v_vals, w_vals
+    type(vector_values) :: u_vals, v_vals, w_vals, p_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
@@ -336,9 +319,11 @@ contains
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
       call create_vector_values(n_local, w_vals)
+      call create_vector_values(n_local, p_vals)
       call set_mode(insert_mode, u_vals)
       call set_mode(insert_mode, v_vals)
       call set_mode(insert_mode, w_vals)
+      call set_mode(insert_mode, p_vals)
 
       ! Set initial values for velocity fields
       do index_p = 1, n_local
@@ -347,9 +332,10 @@ contains
 
         call get_centre(loc_p, x_p)
 
-        u_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
-        v_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
+        u_val = sin(x_p(1)) * cos(x_p(2))
+        v_val = -cos(x_p(1)) * sin(x_p(2))
         w_val = 0.0_ccs_real
+        p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
         call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
@@ -357,18 +343,23 @@ contains
         call set_entry(v_val, v_vals)
         call set_row(global_index_p, w_vals)
         call set_entry(w_val, w_vals)
+        call set_row(global_index_p, p_vals)
+        call set_entry(p_val, p_vals)
       end do
 
       call set_values(u_vals, u%values)
       call set_values(v_vals, v%values)
       call set_values(w_vals, w%values)
+      call set_values(p_vals, p%values)
 
       deallocate (u_vals%global_indices)
       deallocate (v_vals%global_indices)
       deallocate (w_vals%global_indices)
+      deallocate (p_vals%global_indices)
       deallocate (u_vals%values)
       deallocate (v_vals%values)
       deallocate (w_vals%values)
+      deallocate (p_vals%values)
     end associate
 
     call get_vector_data(mf%values, mf_data)
@@ -395,8 +386,8 @@ contains
           call get_centre(loc_f, x_f)
 
           ! compute initial value based on current face coordinates
-          mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * cos(x_f(3)) * face_normal(1) &
-                             - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
+          mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * face_normal(1) &
+                             - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
         end if
 
       end do
@@ -404,7 +395,13 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-  end subroutine initialise_velocity
+    call update(u%values)
+    call update(v%values)
+    call update(w%values)
+    call update(p%values)
+    call update(mf%values)
+
+  end subroutine initialise_flow
 
   subroutine calc_tgv2d_error(mesh, t, u, v, w, p)
 
@@ -443,7 +440,9 @@ contains
     integer :: io_unit
     logical :: exists
 
-    mu = 0.1_ccs_real  ! XXX: currently hardcoded somewhere
+    integer :: ierr
+
+    mu = 0.01_ccs_real ! XXX: currently hardcoded somewhere
     rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
     nu = mu / rho
 
@@ -461,8 +460,10 @@ contains
       ! Compute analytical solution
       time = t * dt
       ft = exp(-2 * nu * time)
-      u_an = cos(x_p(1)) * sin(x_p(2)) * ft
-      v_an = -sin(x_p(1)) * sin(x_p(2)) * ft
+      ! u_an = cos(x_p(1)) * sin(x_p(2)) * ft
+      ! v_an = -sin(x_p(1)) * cos(x_p(2)) * ft
+      u_an = sin(x_p(1)) * cos(x_p(2)) * ft
+      v_an = -cos(x_p(1)) * sin(x_p(2)) * ft
       w_an = 0.0_ccs_real
       p_an = -(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
 
@@ -506,4 +507,4 @@ contains
 
   end subroutine calc_tgv2d_error
 
-end program tgv
+end program tgv2d

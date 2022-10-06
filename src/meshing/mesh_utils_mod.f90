@@ -23,16 +23,16 @@ module mesh_utils
 
   !^ @note Named constants for faces of hexahedral cells follow the convention that the lower
   !        boundary on a given axis is numbered first, i.e.
-  !                                
+  !
   !         +----------+
-  !        /|    4    /| 
+  !        /|    4    /|
   !       +----------+ |
   !       | |        | |
   !     1 | |        | | 2
   !       | +--------|-+
   !       |/    3    |/
   !       +----------+
-  !             
+  !
   !
   !  @endnote
   integer, parameter :: left = 1_ccs_int
@@ -124,56 +124,56 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     ! Read attribute "ncel" - the total number of cells
-    call read_scalar(geo_reader, "ncel", mesh % topo % global_num_cells)
+    call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
     ! Read attribute "nfac" - the total number of faces
-    call read_scalar(geo_reader, "nfac", mesh % topo % global_num_faces)
+    call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
     ! Read attribute "maxfaces" - the maximum number of faces per cell
-    call read_scalar(geo_reader, "maxfaces", mesh % topo % max_faces)
+    call read_scalar(geo_reader, "maxfaces", mesh%topo%max_faces)
     ! Read attribute "nvrt" - the total number of vertices
-    call read_scalar(geo_reader, "nvrt", mesh % topo % global_num_vertices)
+    call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
 
-    if (mesh % topo % max_faces == 6) then ! if cell are hexes
+    if (mesh%topo%max_faces == 6) then ! if cell are hexes
       vert_per_cell = 8 ! 8 vertices per cell
     else
       call error_abort("Currently only supporting hex cells.")
     end if
 
-    allocate (mesh % topo % face_cell1(mesh % topo % global_num_faces))
-    allocate (mesh % topo % face_cell2(mesh % topo % global_num_faces))
-    allocate (mesh % topo % global_face_indices(mesh % topo % max_faces, mesh % topo % global_num_cells))
-    allocate (mesh % topo % global_vertex_indices(vert_per_cell, mesh % topo % global_num_cells))
+    allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
+    allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
+    allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
+    allocate (mesh%topo%global_vertex_indices(vert_per_cell, mesh%topo%global_num_cells))
 
     sel_start(1) = 0 ! Global index to start reading from
-    sel_count(1) = mesh % topo % global_num_faces ! How many elements to read in total
+    sel_count(1) = mesh%topo%global_num_faces ! How many elements to read in total
 
     ! Read arrays face/cell1 and face/cell2
-    call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh % topo % face_cell1)
-    call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh % topo % face_cell2)
+    call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
+    call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
 
     sel2_start = 0
-    sel2_count(1) = mesh % topo % max_faces! topo%global_num_cells
-    sel2_count(2) = mesh % topo % global_num_cells
+    sel2_count(1) = mesh%topo%max_faces! topo%global_num_cells
+    sel2_count(2) = mesh%topo%global_num_cells
 
-    call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh % topo % global_face_indices)
+    call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
 
     sel2_count(1) = vert_per_cell
 
-    call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh % topo % global_vertex_indices)
+    call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
 
     ! Create and populate the vtxdist array based on the total number of cells
     ! and the total number of ranks in the parallel environment
-    allocate (mesh % topo % vtxdist(par_env % num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+    allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
 
-    mesh % topo % vtxdist(1) = 1                                                  ! First element is 1
-    mesh % topo % vtxdist(par_env % num_procs + 1) = mesh % topo % global_num_cells + 1 ! Last element is total number of cells + 1
+    mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
+    mesh%topo%vtxdist(par_env%num_procs + 1) = mesh%topo%global_num_cells + 1 ! Last element is total number of cells + 1
 
     ! Divide the total number of cells by the world size to
     ! compute the chunk sizes
-    k = int(real(mesh % topo % global_num_cells) / par_env % num_procs)
+    k = int(real(mesh%topo%global_num_cells) / par_env%num_procs)
     j = 1
 
-    do i = 1, par_env % num_procs
-      mesh % topo % vtxdist(i) = j
+    do i = 1, par_env%num_procs
+      mesh%topo%vtxdist(i) = j
       j = j + k
     end do
 
@@ -206,97 +206,97 @@ contains
     real(ccs_real), dimension(:, :), allocatable :: temp_v_c ! Temp array for vertex coordinates
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
-    if (mesh % topo % max_faces == 6) then ! if cell are hexes
+    if (mesh%topo%max_faces == 6) then ! if cell are hexes
       vert_per_cell = 8 ! 8 vertices per cell
     else
       call error_abort("Currently only supporting hex cells.")
     end if
 
     ! Read attribute "scalefactor"
-    call read_scalar(geo_reader, "scalefactor", mesh % geo % scalefactor)
+    call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
 
     ! Starting point for reading chunk of data
-    vol_p_start = (/int(mesh % topo % vtxdist(par_env % proc_id + 1)) - 1/)
+    vol_p_start = (/int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
     ! How many data points will be read?
-    vol_p_count = (/int(mesh % topo % vtxdist(par_env % proc_id + 2) - mesh % topo % vtxdist(par_env % proc_id + 1))/)
+    vol_p_count = (/int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
 
     ! Allocate memory for cell volumes array on each MPI rank
-    allocate (mesh % geo % volumes(vol_p_count(1)))
+    allocate (mesh%geo%volumes(vol_p_count(1)))
 
     ! Read variable "/cell/vol"
-    call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, mesh % geo % volumes)
+    call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, mesh%geo%volumes)
 
     ! Starting point for reading chunk of data
-    x_p_start = (/0, int(mesh % topo % vtxdist(par_env % proc_id + 1)) - 1/)
+    x_p_start = (/0, int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
     ! How many data points will be read?
-    x_p_count = (/ndim, int(mesh % topo % vtxdist(par_env % proc_id + 2) - mesh % topo % vtxdist(par_env % proc_id + 1))/)
+    x_p_count = (/ndim, int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
 
     ! Allocate memory for cell centre coordinates array on each MPI rank
-    allocate (mesh % geo % x_p(x_p_count(1), x_p_count(2)))
+    allocate (mesh%geo%x_p(x_p_count(1), x_p_count(2)))
 
     ! Read variable "/cell/x"
-    call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, mesh % geo % x_p)
+    call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, mesh%geo%x_p)
 
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
-    allocate (temp_x_f(ndim, mesh % topo % global_num_faces))
-    allocate (temp_n_f(ndim, mesh % topo % global_num_faces))
-    allocate (temp_v_c(vert_per_cell, mesh % topo % global_num_cells))
-    allocate (temp_a_f(mesh % topo % global_num_faces))
+    allocate (temp_x_f(ndim, mesh%topo%global_num_faces))
+    allocate (temp_n_f(ndim, mesh%topo%global_num_faces))
+    allocate (temp_v_c(vert_per_cell, mesh%topo%global_num_cells))
+    allocate (temp_a_f(mesh%topo%global_num_faces))
 
     f_xn_start = 0
     f_xn_count(1) = ndim
-    f_xn_count(2) = mesh % topo % global_num_faces
+    f_xn_count(2) = mesh%topo%global_num_faces
 
     ! Read variable "/face/x"
     call read_array(geo_reader, "/face/x", f_xn_start, f_xn_count, temp_x_f)
     ! Read variable "/face/n"
     call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
 
-    f_xn_count(2) = mesh % topo % global_num_cells
+    f_xn_count(2) = mesh%topo%global_num_cells
 
     ! Read variable "/vert"
     call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_v_c)
 
     f_a_start = 0
-    f_a_count(1) = mesh % topo % global_num_faces
+    f_a_count(1) = mesh%topo%global_num_faces
 
     ! Read variable "/face/area"
     call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
 
     ! Compute start and end points for local cells in global context
-    start = int(mesh % topo % vtxdist(par_env % proc_id + 1))
-    end = int(mesh % topo % vtxdist(par_env % proc_id + 2) - 1)
+    start = int(mesh%topo%vtxdist(par_env%proc_id + 1))
+    end = int(mesh%topo%vtxdist(par_env%proc_id + 2) - 1)
 
     ! Allocate arrays for face centres, face normals, face areas arrand vertex coordinates
-    allocate (mesh % geo % x_f(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells))
-    allocate (mesh % geo % face_normals(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells))
-    allocate (mesh % geo % face_areas(mesh % topo % max_faces, mesh % topo % local_num_cells))
-    allocate (mesh % geo % vert_coords(ndim, vert_per_cell, mesh % topo % local_num_cells))
+    allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
+    allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
+    allocate (mesh%geo%face_areas(mesh%topo%max_faces, mesh%topo%local_num_cells))
+    allocate (mesh%geo%vert_coords(ndim, vert_per_cell, mesh%topo%local_num_cells))
 
     cell_count = 1
 
     do k = start, end ! loop over cells owned by current process
 
-      do j = 1, mesh % topo % max_faces ! loop over all faces for each cell
-        n = mesh % topo % global_face_indices(j, k)
+      do j = 1, mesh%topo%max_faces ! loop over all faces for each cell
+        n = mesh%topo%global_face_indices(j, k)
 
         do i = 1, ndim ! loop over dimensions
           ! Map from temp array to mesh for face centres and face normals
-          mesh % geo % x_f(i, j, cell_count) = temp_x_f(i, n)
-          mesh % geo % face_normals(i, j, cell_count) = temp_n_f(i, n)
+          mesh%geo%x_f(i, j, cell_count) = temp_x_f(i, n)
+          mesh%geo%face_normals(i, j, cell_count) = temp_n_f(i, n)
         end do
 
         ! Map from temp array to mesh for face areas
-        mesh % geo % face_areas(j, cell_count) = temp_a_f(n)
+        mesh%geo%face_areas(j, cell_count) = temp_a_f(n)
 
       end do
 
       do j = 1, vert_per_cell ! loop over all vertices for each cell
-        n = mesh % topo % global_vertex_indices(j, k)
+        n = mesh%topo%global_vertex_indices(j, k)
 
         do i = 1, ndim ! loop over dimensions
           ! Map from temp array to mesh to vertex coordinates
-          mesh % geo % vert_coords(i, j, cell_count) = temp_v_c(i, n)
+          mesh%geo%vert_coords(i, j, cell_count) = temp_v_c(i, n)
         end do
 
       end do
@@ -498,20 +498,20 @@ contains
     type is (parallel_environment_mpi)
 
       ! Set the global mesh parameters
-      mesh % topo % global_num_cells = cps**2
-      mesh % topo % global_num_vertices = (cps+1)**2
-      mesh % geo % h = side_length / real(cps, ccs_real)
+      mesh%topo%global_num_cells = cps**2
+      mesh%topo%global_num_vertices = (cps+1)**2
+      mesh%geo%h = side_length / real(cps, ccs_real)
 
       ! Associate aliases to make code easier to read
-      associate (nglobal => mesh % topo % global_num_cells, &
-                 h => mesh % geo % h)
+      associate (nglobal => mesh%topo%global_num_cells, &
+                 h => mesh%geo%h)
 
         ! Determine ownership range
-        comm_rank = par_env % proc_id
-        comm_size = par_env % num_procs
-        start_global = global_start(nglobal, par_env % proc_id, par_env % num_procs)
-        mesh % topo % local_num_cells = local_count(nglobal, par_env % proc_id, par_env % num_procs)
-        end_global = start_global + (mesh % topo % local_num_cells - 1)
+        comm_rank = par_env%proc_id
+        comm_size = par_env%num_procs
+        start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
+        mesh%topo%local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
+        end_global = start_global + (mesh%topo%local_num_cells - 1)
 
         ! Set max faces per cell (constant, 4)
         mesh%topo%max_faces = 4_ccs_int
@@ -520,19 +520,19 @@ contains
         mesh%topo%vert_per_cell = 4_ccs_int
         
         ! Allocate mesh arrays
-        allocate (mesh % topo % global_indices(mesh % topo % local_num_cells))
-        allocate (mesh % topo % num_nb(mesh % topo % local_num_cells))
-        allocate (mesh % topo % nb_indices(mesh % topo % max_faces, mesh % topo % local_num_cells))
-        allocate (mesh % topo % face_indices(mesh % topo % max_faces, mesh % topo % local_num_cells))
-        allocate (mesh % topo % global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
+        allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
+        allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
+        allocate (mesh%topo%nb_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+        allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+        allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
 
         ! Initialise mesh arrays
-        mesh % topo % num_nb(:) = mesh % topo % max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
+        mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
 
         ! First set the global index of local cells
         index_counter = 1_ccs_int
         do i = start_global, end_global
-          mesh % topo % global_indices(index_counter) = i
+          mesh%topo%global_indices(index_counter) = i
           index_counter = index_counter + 1
         end do
 
@@ -595,8 +595,8 @@ contains
         end do
       end associate
 
-      mesh % topo % total_num_cells = size(mesh % topo % global_indices)
-      mesh % topo % halo_num_cells = mesh % topo % total_num_cells - mesh % topo % local_num_cells
+      mesh%topo%total_num_cells = size(mesh%topo%global_indices)
+      mesh%topo%halo_num_cells = mesh%topo%total_num_cells - mesh%topo%local_num_cells
 
       ! Global vertex numbering
       do i = 1, mesh%topo%local_num_cells
@@ -610,35 +610,35 @@ contains
         end associate
       end do
 
-      allocate (mesh % geo % x_p(ndim, mesh % topo % total_num_cells))
-      allocate (mesh % geo % x_f(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
-      allocate (mesh % geo % volumes(mesh % topo % total_num_cells))
-      allocate (mesh % geo % face_areas(mesh % topo % max_faces, mesh % topo % local_num_cells))
-      allocate (mesh % geo % face_normals(ndim, mesh % topo % max_faces, mesh % topo % local_num_cells)) ! Currently hardcoded as a 2D mesh.
-      allocate (mesh % geo % vert_coords(ndim, mesh % topo % vert_per_cell, mesh % topo % local_num_cells))
+      allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
+      allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
+      allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
+      allocate (mesh%geo%face_areas(mesh%topo%max_faces, mesh%topo%local_num_cells))
+      allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells)) ! Currently hardcoded as a 2D mesh.
+      allocate (mesh%geo%vert_coords(ndim, mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
 
-      mesh % geo % volumes(:) = mesh % geo % h**2 !< @note Mesh is square and 2D @endnote
-      mesh % geo % face_normals(:, :, :) = 0.0_ccs_real
-      mesh % geo % x_p(:, :) = 0.0_ccs_real
-      mesh % geo % x_f(:, :, :) = 0.0_ccs_real
-      mesh % geo % face_areas(:, :) = mesh % geo % h  ! Mesh is square and 2D
-      mesh % geo % vert_coords(:, :, :) = 0.0_ccs_real
+      mesh%geo%volumes(:) = mesh%geo% h**2 !< @note Mesh is square and 2D @endnote
+      mesh%geo%face_normals(:, :, :) = 0.0_ccs_real
+      mesh%geo%x_p(:, :) = 0.0_ccs_real
+      mesh%geo%x_f(:, :, :) = 0.0_ccs_real
+      mesh%geo%face_areas(:, :) = mesh%geo%h  ! Mesh is square and 2D
+      mesh%geo%vert_coords(:, :, :) = 0.0_ccs_real
 
-      associate (h => mesh % geo % h)
-        do i = 1_ccs_int, mesh % topo % total_num_cells
-          ii = mesh % topo % global_indices(i)
+      associate (h => mesh%geo%h)
+        do i = 1_ccs_int, mesh%topo%total_num_cells
+          ii = mesh%topo%global_indices(i)
 
-          associate (x_p => mesh % geo % x_p(:, i))
+          associate (x_p => mesh%geo%x_p(:, i))
             ! Set cell centre
             x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
             x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
           end associate
         end do
 
-        do i = 1_ccs_int, mesh % topo % local_num_cells
-          associate (x_p => mesh % geo % x_p(:, i), &
-                     x_f => mesh % geo % x_f(:, :, i), &
-                     normal => mesh % geo % face_normals(:, :, i))
+        do i = 1_ccs_int, mesh%topo%local_num_cells
+          associate (x_p => mesh%geo%x_p(:, i), &
+                     x_f => mesh%geo%x_f(:, :, i), &
+                     normal => mesh%geo%face_normals(:, :, i))
 
             face_counter = left
             x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
@@ -688,7 +688,7 @@ contains
         end do
       end associate
 
-      mesh % topo % num_faces = count_mesh_faces(mesh)
+      mesh%topo%num_faces = count_mesh_faces(mesh)
 
       call set_cell_face_indices(mesh)
 
@@ -697,7 +697,6 @@ contains
 
     end select
   end function build_square_mesh
-
 
   !v Utility constructor to build a 3D mesh with hex cells.
   !
@@ -726,7 +725,7 @@ contains
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: a,b,c,d,e       ! Temporary variables
 
-    if(nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
+    if (nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
 
       select type (par_env)
       type is (parallel_environment_mpi)
@@ -738,7 +737,7 @@ contains
 
         ! Associate aliases to make code easier to read
         associate (nglobal => mesh%topo%global_num_cells, &
-                  h => mesh%geo%h)
+                   h => mesh%geo%h)
 
           ! Determine ownership range
           comm_rank = par_env%proc_id
@@ -764,7 +763,7 @@ contains
           mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
 
           ! Initalise neighbour indices
-          mesh%topo%nb_indices(:,:) = 0_ccs_int
+          mesh%topo%nb_indices(:, :) = 0_ccs_int
 
           ! First set the global index of local cells
           index_counter = 1_ccs_int
@@ -811,7 +810,7 @@ contains
 
             ! Construct bottom (3) face/neighbour
             face_counter = bottom
-            if (modulo(ii/nx, ny) == 0_ccs_int) then
+            if (modulo(ii / nx, ny) == 0_ccs_int) then
               index_nb = -bottom
               global_index_nb = -bottom
             else
@@ -822,7 +821,7 @@ contains
 
             ! Construct top (4) face/neighbour
             face_counter = top
-            if (modulo(ii/nx, ny) == (ny - 1_ccs_int)) then
+            if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
               index_nb = -top
               global_index_nb = -top
             else
@@ -1022,7 +1021,7 @@ contains
       end select
 
     else
-      print*,"Only supporting cubes for now - nx, ny and nz must be the same!"
+      print *, "Only supporting cubes for now - nx, ny and nz must be the same!"
     end if
 
   end function build_mesh
@@ -1051,25 +1050,25 @@ contains
     logical :: found        ! Indicates whether a halo cell was already present
     integer(ccs_int) :: i   ! Cell iteration counter
 
-    if ((index_nb >= 1_ccs_int) .and. (index_nb <= mesh % topo % local_num_cells)) then
+    if ((index_nb >= 1_ccs_int) .and. (index_nb <= mesh%topo%local_num_cells)) then
       ! Neighbour is local
-      mesh % topo % nb_indices(index_p_nb, index_p) = index_nb
+      mesh%topo%nb_indices(index_p_nb, index_p) = index_nb
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
       if (.not. (index_nb < 0_ccs_int)) then
         call error_abort("ERROR: boundary neighbours should have -ve indices.")
       end if
-      mesh % topo % nb_indices(index_p_nb, index_p) = index_nb
+      mesh%topo%nb_indices(index_p_nb, index_p) = index_nb
     else
       ! Neighbour is in a halo
 
       ! First check if neighbour is already present in halo
-      ng = size(mesh % topo % global_indices)
+      ng = size(mesh%topo%global_indices)
       found = .false.
-      do i = mesh % topo % local_num_cells + 1, ng
-        if (mesh % topo % global_indices(i) == global_index_nb) then
+      do i = mesh%topo%local_num_cells + 1, ng
+        if (mesh%topo%global_indices(i) == global_index_nb) then
           found = .true.
-          mesh % topo % nb_indices(index_p_nb, index_p) = i
+          mesh%topo%nb_indices(index_p_nb, index_p) = i
           exit
         end if
       end do
@@ -1079,13 +1078,13 @@ contains
       ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
       !      the (extended) original array.
       if (.not. found) then
-        if ((ng + 1) > mesh % topo % global_num_cells) then
+        if ((ng + 1) > mesh%topo%global_num_cells) then
           call error_abort("ERROR: Trying to create halo that exceeds global mesh size.")
         end if
 
-        call append_to_arr(global_index_nb, mesh % topo % global_indices)
-        ng = size(mesh % topo % global_indices)
-        mesh % topo % nb_indices(index_p_nb, index_p) = ng
+        call append_to_arr(global_index_nb, mesh%topo%global_indices)
+        ng = size(mesh%topo%global_indices)
+        mesh%topo%nb_indices(index_p_nb, index_p) = ng
       end if
     end if
 
@@ -1096,8 +1095,8 @@ contains
 
     integer(ccs_int), intent(in) :: i
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
-                                                                      ! dragons. If this were intent(out) it
-                                                                      ! would be deallocated on entry!
+    ! dragons. If this were intent(out) it
+    ! would be deallocated on entry!
     integer(ccs_int) :: n
     integer(ccs_int), dimension(:), allocatable :: tmp
 
@@ -1144,7 +1143,7 @@ contains
     nfaces_interface = 0
 
     ! Loop over cells
-    do index_p = 1, mesh % topo % local_num_cells
+    do index_p = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
@@ -1194,7 +1193,7 @@ contains
     face_counter = 0
 
     ! Loop over cells
-    do index_p = 1, mesh % topo % local_num_cells
+    do index_p = 1, mesh%topo%local_num_cells
       call set_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
 

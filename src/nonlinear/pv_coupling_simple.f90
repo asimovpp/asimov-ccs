@@ -24,9 +24,12 @@ submodule(pv_coupling) pv_coupling_simple
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
-                     set_cell_location, get_volume
+                     set_cell_location, get_volume, get_distance
+  use timestepping, only: update_old_values
 
   implicit none
+
+  integer(ccs_int), save :: varp = 0
 
 contains
 
@@ -63,10 +66,19 @@ contains
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
 
-    logical :: converged = .false.
+    logical :: converged
 
-    integer(ccs_int) :: nvar = 0   ! Number of flow variables to solve
-    integer(ccs_int) :: ivar = 0   ! Counter for flow variables
+    integer(ccs_int) :: nvar ! Number of flow variables to solve
+    integer(ccs_int) :: ivar ! Counter for flow variables
+
+    ! Initialising SIMPLE solver
+    nvar = 0
+    ivar = 0
+    converged = .false.
+
+    call update_old_values(u)
+    call update_old_values(v)
+    call update_old_values(w)
 
     ! Initialise linear system
     call dprint("NONLINEAR: init")
@@ -97,7 +109,7 @@ contains
     if (u_sol) nvar = nvar + 1
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1
-    if (p_sol) nvar = nvar + 1
+    if (p_sol) nvar = nvar + 2 ! (Pressure residual & mass imbalance)
     allocate (residuals(nvar))
     residuals(:) = 0.0_ccs_real
 
@@ -122,7 +134,7 @@ contains
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
-      call update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf)
+      call update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf, res, residuals)
       call dprint("NONLINEAR: correct velocity")
       call update_velocity(mesh, invAu, invAv, invAw, p_prime, u, v, w)
 
@@ -258,13 +270,13 @@ contains
 
     ! Calculate fluxes and populate coefficient matrix
     if (component == 1) then
-       call dprint("GV: compute u flux")
+      call dprint("GV: compute u flux")
     else if (component == 2) then
-       call dprint("GV: compute v flux")
+      call dprint("GV: compute v flux")
     else if (component == 3) then
-       call dprint("GV: compute w flux")
+      call dprint("GV: compute w flux")
     else
-       call error_abort("Unsupported vector component: " // str(component))
+      call error_abort("Unsupported vector component: " // str(component))
     end if
     call compute_fluxes(u, mf, mesh, component, M, vec)
 
@@ -416,6 +428,12 @@ contains
 
     type(matrix_values_spec) :: mat_val_spec
 
+    real(ccs_real) :: uSwitch, vSwitch, wSwitch
+    real(ccs_real) :: problem_dim
+
+    real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real) :: dxmag
+
     ! First zero matrix
     call zero(M)
 
@@ -433,6 +451,11 @@ contains
     call get_vector_data(invAu, invAu_data)
     call get_vector_data(invAv, invAv_data)
     call get_vector_data(invAw, invAw_data)
+
+    uSwitch = 1.0_ccs_real
+    vSwitch = 1.0_ccs_real
+    wSwitch = 1.0_ccs_real
+    problem_dim = uSwitch + vSwitch + wSwitch
 
     ! Loop over cells
     call dprint("P': cell loop")
@@ -458,6 +481,9 @@ contains
       coeff_p = 0.0_ccs_real
       r = 0.0_ccs_real
 
+      call get_volume(loc_p, Vp)
+      invA_p = (uSwitch * invAu_data(index_p) + vSwitch * invAv_data(index_p) + wSwitch * invAw_data(index_p)) / problem_dim
+
       ! Loop over faces
       do j = 1, nnb
         call set_face_location(mesh, index_p, j, loc_f)
@@ -471,31 +497,41 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-          coeff_f = (1.0 / mesh%geo%h) * face_area
 
-          call get_volume(loc_p, Vp)
+          call get_distance(loc_p, loc_nb, dx)
+          dxmag = sqrt(sum(dx**2))
+          coeff_f = (1.0 / dxmag) * face_area
+
           call get_volume(loc_nb, V_nb)
           Vf = 0.5_ccs_real * (Vp + V_nb)
 
-          invA_p = 0.5_ccs_real * (invAu_data(index_p) + invAv_data(index_p) + invAw_data(index_p))
-          invA_nb = 0.5_ccs_real * (invAu_data(index_nb) + invAv_data(index_nb) + invAw_data(index_nb))
+          invA_nb = (uSwitch * invAu_data(index_nb) + vSwitch * invAv_data(index_nb) + wSwitch * invAw_data(index_nb)) / problem_dim
           invA_f = 0.5_ccs_real * (invA_p + invA_nb)
 
           coeff_f = -(Vf * invA_f) * coeff_f
 
-          coeff_p = coeff_p - coeff_f
           coeff_nb = coeff_f
           col = global_index_nb
         else
           ! XXX: Fixed velocity BC - no pressure correction
           col = -1
           coeff_nb = 0.0_ccs_real
+          coeff_f = 0.0_ccs_real
+
+          ! coeff_f = -(Vp * invA_p) * coeff_f
+
+          ! ! Zero gradient
+          ! !
+          ! ! (p_F - p_P) / dx = 0
+          ! coeff_nb = coeff_f
+          ! coeff_p = coeff_p + coeff_nb
         end if
+        coeff_p = coeff_p - coeff_f
 
         call set_row(row, mat_coeffs)
         call set_col(col, mat_coeffs)
         call set_entry(coeff_nb, mat_coeffs)
-        call clear_entries(mat_coeffs)
+        ! call clear_entries(mat_coeffs)
 
       end do
 
@@ -589,7 +625,7 @@ contains
     real(ccs_real), dimension(:), pointer :: p_data       ! Data array for pressure
     real(ccs_real), dimension(:), pointer :: dpdx_data    ! Data array for pressure x gradient
     real(ccs_real), dimension(:), pointer :: dpdy_data    ! Data array for pressure y gradient
-    real(ccs_real), dimension(:), pointer :: dpdz_data  ! Data array for pressure z gradient
+    real(ccs_real), dimension(:), pointer :: dpdz_data    ! Data array for pressure z gradient
     real(ccs_real), dimension(:), pointer :: invAu_data   ! Data array for inverse x momentum
     ! diagonal coefficient
     real(ccs_real), dimension(:), pointer :: invAv_data   ! Data array for inverse y momentum
@@ -604,11 +640,11 @@ contains
     real(ccs_real) :: mib ! Cell mass imbalance
 
     logical, save :: first_time = .true.
-    integer(ccs_int), save :: varp = 0
 
     ! Set variable index for pressure
     if (first_time) then
-      varp = ivar + 1
+      ivar = ivar + 1
+      varp = ivar
       first_time = .false.
     end if
 
@@ -751,14 +787,16 @@ contains
   end subroutine update_velocity
 
   !> Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf)
+  subroutine update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf, b, residuals)
 
     type(ccs_mesh), intent(in) :: mesh                               !< The mesh
-    class(ccs_vector), intent(inout) :: invAu                           !< The inverse x momentum equation diagonal coefficient
-    class(ccs_vector), intent(inout) :: invAv                           !< The inverse y momentum equation diagonal coefficient
-    class(ccs_vector), intent(inout) :: invAw                           !< The inverse z momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAu                        !< The inverse x momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAv                        !< The inverse y momentum equation diagonal coefficient
+    class(ccs_vector), intent(inout) :: invAw                        !< The inverse z momentum equation diagonal coefficient
     class(field), intent(inout) :: p_prime                           !< The pressure correction
     class(field), intent(inout) :: mf                                !< The face velocity being corrected
+    class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
+    real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
     integer(ccs_int) :: i
 
@@ -780,6 +818,15 @@ contains
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: index_nb
 
+    integer(ccs_int) :: global_index_p  ! Central cell global index
+    real(ccs_real) :: face_area         ! Face area
+    real(ccs_real) :: mib
+    type(vector_values) :: vec_values
+
+    call create_vector_values(1_ccs_int, vec_values)
+    call set_mode(insert_mode, vec_values)
+    call zero(b)
+
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
     call get_vector_data(p_prime%values, pp_data)
@@ -793,23 +840,36 @@ contains
 
     ! XXX: This should really be a face loop
     do i = 1, mesh%topo%local_num_cells
+      call clear_entries(vec_values)
+      mib = 0.0_ccs_real
+
       call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call set_face_location(mesh, i, j, loc_f)
+        call get_local_index(loc_f, index_f)
+        call get_face_area(loc_f, face_area)
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-             mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
-                  invAu_data, invAv_data, invAw_data, loc_f)
+            mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
+                                      invAu_data, invAv_data, invAw_data, loc_f)
 
-            call get_local_index(loc_f, index_f)
             mf_data(index_f) = mf_data(index_f) + mf_prime
+          else
+            face_area = -face_area
           end if
         end if
+
+        mib = mib + mf_data(index_f) * face_area
       end do
+
+      call set_row(global_index_p, vec_values)
+      call set_entry(mib, vec_values)
+      call set_values(vec_values, b)
     end do
 
     deallocate (zero_arr)
@@ -824,6 +884,10 @@ contains
     ! Update vector on exit (just in case)
     call update(p_prime%values)
 
+    !! Get corrected mass-imbalance
+    call update(b)
+    mib = norm(b, 2)
+    residuals(varp + 1) = mib
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
@@ -842,13 +906,12 @@ contains
 
     ! Local variables
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
-    logical, save :: first_time = .true.  ! True on first call to this subroutine
     character(len=20) :: fmt              ! Format string for writing out residuals
 
     nvar = size(residuals)
 
     ! Print residuals
-    if (first_time) then
+    if (itr == 1) then
       if (par_env%proc_id == par_env%root) then
         write (*, *)
         write (*, '(a6)', advance='no') 'Iter'
@@ -856,9 +919,9 @@ contains
         if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
         if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
         if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
+        if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
         write (*, *)
       end if
-      first_time = .false.
     end if
 
     if (par_env%proc_id == par_env%root) then

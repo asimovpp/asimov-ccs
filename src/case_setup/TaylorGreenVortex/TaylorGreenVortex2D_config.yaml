@@ -2,12 +2,11 @@
 title: LidDrivenCavity
 
 # "steps" - currently the number of iterations
-steps: 10
+steps: 100
 
 relaxation_factor:
   u: 0.9
   v: 0.9
-  w: 0.9
   p: 0.1
 
 target_residual: 1.0e-10
@@ -54,69 +53,49 @@ variables:
     type: central
   variable_2:
     name: v
-    type: upwind
+    type: central
   variable_3:
-    name: w
-    type: upwind
-  variable_4:
     name: p
     type: central
-  variable_5:
+  variable_4:
     name: p_prime
     type: central
 
 boundaries:
-  n_boundaries: 6
+  n_boundaries: 4
   boundary_1: 
     name: left
-    type: dirichlet
+    type: neumann
     value: 0
     variable_p:
       type: extrapolate
-    variable_p_prime:
-      type: neumann
+    variable_u:
+      type: dirichlet
       value: 0
   boundary_2:
     name: right
-    type: dirichlet
+    type: neumann
     value: 0
     variable_p:
       type: extrapolate
-    variable_p_prime:
-      type: neumann
+    variable_u:
+      type: dirichlet
       value: 0
   boundary_3:
     name: bottom
-    type: dirichlet
+    type: neumann
     value: 0
     variable_p:
       type: extrapolate
-    variable_p_prime:
-      type: neumann
+    variable_v:
+      type: dirichlet
       value: 0
   boundary_4:
     name: top
-    type: dirichlet
+    type: neumann
     value: 0
-    variable_u:
-      type: dirichlet
-      value: 1
     variable_p:
       type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
-  boundary_5:
-    name: back
-    type: neumann
-    value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
-  boundary_6:
-    name: front
-    type: neumann
-    value: 0
-    variable_w:
+    variable_v:
       type: dirichlet
       value: 0

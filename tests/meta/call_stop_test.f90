@@ -1,4 +1,4 @@
-!> @brief A simple test to see if the basic functionality of stop_test is in place.
+!v A simple test to see if the basic functionality of stop_test is in place.
 program call_stop_test
   use testing_lib
   implicit none

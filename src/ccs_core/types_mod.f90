@@ -109,7 +109,7 @@ module types
   !> Geometry type
   type, public :: geometry
     real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
-    real(ccs_real) :: scalefactor                                       !< Scalefactor 
+    real(ccs_real) :: scalefactor                                       !< Scalefactor
     real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas (face, cell)
     real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
     real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
