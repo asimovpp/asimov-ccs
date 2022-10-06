@@ -437,7 +437,7 @@ contains
         ! This is probably not quite right ...
         uSwitch = 1.0_ccs_real
         vSwitch = 1.0_ccs_real
-        wSwitch = 0.0_ccs_real
+        wSwitch = 1.0_ccs_real
         problem_dim = uSwitch + vSwitch + wSwitch
         invAp = (uSwitch * invAu(index_p) + vSwitch * invAv(index_p) + wSwitch * invAw(index_p)) / problem_dim
         invA_nb = (uSwitch * invAu(index_nb) + vSwitch * invAv(index_nb) + wSwitch * invAw(index_nb)) / problem_dim

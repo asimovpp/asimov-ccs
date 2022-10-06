@@ -454,7 +454,7 @@ contains
 
     uSwitch = 1.0_ccs_real
     vSwitch = 1.0_ccs_real
-    wSwitch = 0.0_ccs_real
+    wSwitch = 1.0_ccs_real
     problem_dim = uSwitch + vSwitch + wSwitch
 
     ! Loop over cells
