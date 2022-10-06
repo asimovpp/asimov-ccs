@@ -51,7 +51,7 @@ program ldc
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
-  logical :: w_sol = .false.
+  logical :: w_sol = .true.
   logical :: p_sol = .true.
 
 #ifndef EXCLUDE_MISSING_INTERFACE
@@ -85,8 +85,8 @@ program ldc
 
   ! Create a square mesh
   if (irank == par_env%root) print *, "Building mesh"
-  !mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)
+  !mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"

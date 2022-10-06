@@ -46,10 +46,10 @@ module mesh_utils
   integer, parameter :: front_bottom_right = 2_ccs_int
   integer, parameter :: front_top_right    = 3_ccs_int
   integer, parameter :: front_top_left     = 4_ccs_int
-  integer, parameter :: rear_bottom_left   = 5_ccs_int
-  integer, parameter :: rear_bottom_right  = 6_ccs_int
-  integer, parameter :: rear_top_right     = 7_ccs_int
-  integer, parameter :: rear_top_left      = 8_ccs_int
+  integer, parameter :: back_bottom_left   = 5_ccs_int
+  integer, parameter :: back_bottom_right  = 6_ccs_int
+  integer, parameter :: back_top_right     = 7_ccs_int
+  integer, parameter :: back_top_left      = 8_ccs_int
 
   private
   public :: build_square_mesh
@@ -445,7 +445,8 @@ contains
 
       do i = 1, mesh%topo%global_num_vertices
         vert_coords_tmp(1,i) = modulo(i-1,verts_per_side) * mesh%geo%h
-        vert_coords_tmp(2,i) = ((i-1)/verts_per_side) * mesh%geo%h
+        vert_coords_tmp(2,i) = modulo((i-1)/verts_per_side,verts_per_side) * mesh%geo%h
+        vert_coords_tmp(3,i) = ((i-1)/(verts_per_side*verts_per_side)) * mesh%geo%h
       end do
     endif
 
@@ -717,11 +718,13 @@ contains
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
+    integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
     integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
     integer(ccs_int) :: comm_size       ! The size of the parallel environment
 
     integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
+    integer(ccs_int) :: a,b,c,d,e       ! Temporary variables
 
     if(nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
 
@@ -729,7 +732,8 @@ contains
       type is (parallel_environment_mpi)
 
         ! Set the global mesh parameters
-        mesh%topo%global_num_cells = nx * ny * nz 
+        mesh%topo%global_num_cells = nx * ny * nz
+        mesh%topo%global_num_vertices = (nx+1) * (ny+1) * (nz+1)
         mesh%geo%h = side_length / real(nx, ccs_real) !< @note Assumes cube @endnote
 
         ! Associate aliases to make code easier to read
@@ -859,17 +863,40 @@ contains
         mesh%topo%total_num_cells = size(mesh%topo%global_indices)
         mesh%topo%halo_num_cells = mesh%topo%total_num_cells - mesh%topo%local_num_cells
 
+        ! Global vertex numbering
+        do i = 1, mesh%topo%local_num_cells
+          associate (global_vert_index => mesh%topo%global_vertex_indices(:,i))
+            ii = mesh%topo%global_indices(i)
+            a = modulo(ii-1,nx*ny) + 1
+            b = (a-1)/nx
+            c = ((ii-1)/(nx*ny)) * (nx+1)*(ny+1)
+            d = (a+nx-1)/nx
+            e = (nx+1)*(ny+1)
+  
+            global_vert_index(front_bottom_left)  = a + b + c
+            global_vert_index(front_bottom_right) = a + b + c + 1
+            global_vert_index(front_top_left)     = a + c + d + nx
+            global_vert_index(front_top_right)    = a + c + d + nx + 1
+            global_vert_index(back_bottom_left)   = a + b + c + e
+            global_vert_index(back_bottom_right)  = a + b + c + e + 1
+            global_vert_index(back_top_left)      = a + c + d + e + nx
+            global_vert_index(back_top_right)     = a + c + d + e + nx + 1
+          end associate
+        end do
+
         allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
         allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
         allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
         allocate (mesh%geo%face_areas(mesh%topo%max_faces, mesh%topo%local_num_cells))
         allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
+        allocate (mesh%geo%vert_coords(ndim, mesh%topo%vert_per_cell,mesh%topo%local_num_cells))
 
         mesh%geo%volumes(:) = mesh%geo%h**3 !< @note Mesh is cube @endnote
         mesh%geo%face_normals(:, :, :) = 0.0_ccs_real
         mesh%geo%x_p(:, :) = 0.0_ccs_real
         mesh%geo%x_f(:, :, :) = 0.0_ccs_real
-        mesh%geo%face_areas(:, :) = mesh%geo%h**2 
+        mesh%geo%face_areas(:, :) = mesh%geo%h**2
+        mesh%geo%vert_coords(:, :, :) = 0.0_ccs_real
 
         associate (h => mesh%geo%h)
           do i = 1_ccs_int, mesh%topo%total_num_cells
@@ -936,6 +963,51 @@ contains
               normal(2, face_counter) = 0.0_ccs_real
               normal(3, face_counter) = 1.0_ccs_real
 
+            end associate
+          end do
+
+          do i = 1_ccs_int, mesh%topo%local_num_cells
+            associate (x_p => mesh%geo%x_p(:, i), &
+                       x_v => mesh%geo%vert_coords(:, :, i))
+              vertex_counter = front_bottom_left
+              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+
+              vertex_counter = front_bottom_right
+              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+
+              vertex_counter = front_top_left
+              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+
+              vertex_counter = front_top_right
+              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+
+              vertex_counter = back_bottom_left
+              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
+
+              vertex_counter = back_bottom_right
+              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
+
+              vertex_counter = back_top_left
+              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
+
+              vertex_counter = back_top_right
+              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
+              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
+              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
             end associate
           end do
         end associate
