@@ -74,7 +74,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_2:
     name: right
     type: dirichlet
@@ -82,7 +83,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_3:
     name: bottom
     type: dirichlet
@@ -90,7 +92,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_4:
     name: top
     type: dirichlet
@@ -101,7 +104,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_5:
     name: back
     type: neumann
