@@ -157,6 +157,7 @@ program tgv2d
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(mesh, u, v, w, p, mf)
   call calc_tgv2d_error(mesh, 0, u, v, w, p)
+  call calc_kinetic_energy(mesh, 0, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -171,6 +172,7 @@ program tgv2d
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
+    call calc_kinetic_energy(mesh, t, u, v, w)
     print *, t
   end do
 
@@ -506,5 +508,86 @@ contains
     end if
 
   end subroutine calc_tgv2d_error
+  
+
+  subroutine calc_kinetic_energy(mesh, t, u, v, w)
+
+    use constants, only : ndim
+    use utils, only : str
+
+    use vec, only : get_vector_data, restore_vector_data
+    
+    use parallel, only : allreduce
+    use parallel_types_mpi, only : parallel_environment_mpi
+    
+    implicit none
+    
+    type(ccs_mesh), intent(in) :: mesh
+    integer(ccs_int), intent(in) :: t
+    class(field), intent(inout) :: u, v, w
+
+    real(ccs_real) :: ek_local, ek_global, volume_local, volume_global 
+    
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data
+    
+    real(ccs_real) :: rho
+
+    integer(ccs_int) :: index_p
+
+    character(len=ccs_string_len) :: fmt
+
+    logical, save :: first_time = .true.
+    integer :: io_unit
+    logical :: exists
+    
+    
+    rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
+
+    ek_local = 0.0_ccs_real
+    ek_global = 0.0_ccs_real
+    volume_local = 0.0_ccs_real
+    volume_global = 0.0_ccs_real
+
+    call get_vector_data(u%values, u_data)
+    call get_vector_data(v%values, v_data)
+    call get_vector_data(w%values, w_data)
+
+    do index_p = 1, mesh%topo%local_num_cells
+
+       ek_local = ek_local + 0.5 * rho * mesh%geo%volumes(index_p) * &
+                  (u_data(index_p)**2 + v_data(index_p)**2 + w_data(index_p)**2) 
+
+       volume_local = volume_local + mesh%geo%volumes(index_p)
+
+    end do
+
+    call restore_vector_data(u%values, u_data)
+    call restore_vector_data(v%values, v_data)
+    call restore_vector_data(w%values, w_data)
+
+    select type(par_env)
+    type is (parallel_environment_mpi)
+       call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+       call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+    class default
+       print *, "ERROR: Unknown type"
+       stop 1
+    end select
+
+    ek_global = ek_global / volume_global
+
+    if (par_env%proc_id == par_env%root) then
+       if (first_time) then
+          first_time = .false.
+          open(newunit=io_unit, file="tgv2d-ek.log", status="replace", form="formatted")
+       else
+          open(newunit=io_unit, file="tgv2d-ek.log", status="old", form="formatted", position="append")
+       end if
+       fmt = '(I0,1(1x,e12.4))'
+       write(io_unit, fmt) t, ek_global 
+       close(io_unit)
+    end if
+    
+  end subroutine calc_kinetic_energy
 
 end program tgv2d
