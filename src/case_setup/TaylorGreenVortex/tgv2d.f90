@@ -96,9 +96,9 @@ program tgv2d
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (upwind_field :: u)
-  allocate (upwind_field :: v)
-  allocate (upwind_field :: w)
+  allocate (central_field :: u)
+  allocate (central_field :: v)
+  allocate (central_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
@@ -155,11 +155,7 @@ program tgv2d
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(mesh, u, v, w, mf)
-  call update(u%values)
-  call update(v%values)
-  call update(w%values)
-  call update(mf%values)
+  call initialise_flow(mesh, u, v, w, p, mf)
   call calc_tgv2d_error(mesh, 0, u, v, w, p)
 
   ! Solve using SIMPLE algorithm
@@ -288,7 +284,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(mesh, u, v, w, mf)
+  subroutine initialise_flow(mesh, u, v, w, p, mf)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -300,16 +296,16 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, mf
+    class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
     integer(ccs_int) :: row, col, n, count
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
-    real(ccs_real) :: u_val, v_val, w_val
+    real(ccs_real) :: u_val, v_val, w_val, p_val
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
-    type(vector_values) :: u_vals, v_vals, w_vals
+    type(vector_values) :: u_vals, v_vals, w_vals, p_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
@@ -323,9 +319,11 @@ contains
       call create_vector_values(n_local, u_vals)
       call create_vector_values(n_local, v_vals)
       call create_vector_values(n_local, w_vals)
+      call create_vector_values(n_local, p_vals)
       call set_mode(insert_mode, u_vals)
       call set_mode(insert_mode, v_vals)
       call set_mode(insert_mode, w_vals)
+      call set_mode(insert_mode, p_vals)
 
       ! Set initial values for velocity fields
       do index_p = 1, n_local
@@ -337,6 +335,7 @@ contains
         u_val = sin(x_p(1)) * cos(x_p(2))
         v_val = -cos(x_p(1)) * sin(x_p(2))
         w_val = 0.0_ccs_real
+        p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
         call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
@@ -344,18 +343,23 @@ contains
         call set_entry(v_val, v_vals)
         call set_row(global_index_p, w_vals)
         call set_entry(w_val, w_vals)
+        call set_row(global_index_p, p_vals)
+        call set_entry(p_val, p_vals)
       end do
 
       call set_values(u_vals, u%values)
       call set_values(v_vals, v%values)
       call set_values(w_vals, w%values)
+      call set_values(p_vals, p%values)
 
       deallocate (u_vals%global_indices)
       deallocate (v_vals%global_indices)
       deallocate (w_vals%global_indices)
+      deallocate (p_vals%global_indices)
       deallocate (u_vals%values)
       deallocate (v_vals%values)
       deallocate (w_vals%values)
+      deallocate (p_vals%values)
     end associate
 
     call get_vector_data(mf%values, mf_data)
@@ -391,7 +395,13 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-  end subroutine initialise_velocity
+    call update(u%values)
+    call update(v%values)
+    call update(w%values)
+    call update(p%values)
+    call update(mf%values)
+
+  end subroutine initialise_flow
 
   subroutine calc_tgv2d_error(mesh, t, u, v, w, p)
 
@@ -430,7 +440,7 @@ contains
     integer :: io_unit
     logical :: exists
     
-    mu = 0.1_ccs_real  ! XXX: currently hardcoded somewhere
+    mu = 0.01_ccs_real ! XXX: currently hardcoded somewhere
     rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
     nu = mu / rho
 
