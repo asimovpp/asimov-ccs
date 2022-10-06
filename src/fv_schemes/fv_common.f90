@@ -80,7 +80,7 @@ contains
     real(ccs_real) :: sgn ! Sign indicating face orientation
     real(ccs_real) :: aP, aF, bP
     real(ccs_real), dimension(:), pointer :: phi_data
-    
+
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
@@ -136,7 +136,7 @@ contains
           end select
 
           call get_vector_data(phi%values, phi_data)
-          
+
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
           aF = adv_coeff
@@ -145,15 +145,15 @@ contains
           aF = (sgn * mf(index_f) * face_area) * aF
           call set_entry(-(aP * phi_data(index_p) + aF * phi_data(index_nb)), b_coeffs)
           if ((sgn * mf(index_f)) > 0.0_ccs_real) then
-             aP = sgn * mf(index_f) * face_area
-             aF = 0.0_ccs_real
-             call set_entry(aP * phi_data(index_p), b_coeffs)
+            aP = sgn * mf(index_f) * face_area
+            aF = 0.0_ccs_real
+            call set_entry(aP * phi_data(index_p), b_coeffs)
           else
-             aP = 0.0_ccs_real
-             aF = sgn * mf(index_f) * face_area
-             call set_entry(aF * phi_data(index_nb), b_coeffs)
+            aP = 0.0_ccs_real
+            aF = sgn * mf(index_f) * face_area
+            call set_entry(aF * phi_data(index_nb), b_coeffs)
           end if
-          
+
           call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
           call set_entry(aF + diff_coeff, mat_coeffs)
@@ -352,10 +352,10 @@ contains
         call get_vector_data(u_field%values, u_data)
         call get_vector_data(v_field%values, v_data)
         call get_vector_data(w_field%values, w_data)
-        
+
         flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(x_direction) &
-                                + (v_data(index_p) + v_data(index_nb)) * face_normal(y_direction) &
-                                + (w_data(index_p) + w_data(index_nb)) * face_normal(z_direction))
+                               + (v_data(index_p) + v_data(index_nb)) * face_normal(y_direction) &
+                               + (w_data(index_p) + w_data(index_nb)) * face_normal(z_direction))
 
         call restore_vector_data(u_field%values, u_data)
         call restore_vector_data(v_field%values, v_data)
@@ -405,7 +405,7 @@ contains
 
     real(ccs_real) :: uSwitch, vSwitch, wSwitch
     real(ccs_real) :: problem_dim
-    
+
     call get_boundary_status(loc_f, is_boundary)
 
     associate (mesh => loc_f%mesh, &
@@ -433,7 +433,7 @@ contains
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
         Vf = 0.5_ccs_real * (Vp + V_nb)
-        
+
         ! This is probably not quite right ...
         uSwitch = 1.0_ccs_real
         vSwitch = 1.0_ccs_real

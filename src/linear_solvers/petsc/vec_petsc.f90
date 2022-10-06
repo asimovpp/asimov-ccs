@@ -39,7 +39,7 @@ contains
 
       v%modeset = .false.
       v%checked_out = .false.
-      
+
       select type (par_env => vec_properties%par_env)
       type is (parallel_environment_mpi)
 
@@ -402,9 +402,9 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (vec%checked_out) then
-         call error_abort("ERROR: trying to access already checked-out vector")
+        call error_abort("ERROR: trying to access already checked-out vector")
       end if
-      
+
       if (vec%modeset) then
         call error_abort("WARNING: trying to access vector without updating")
       end if
@@ -434,9 +434,9 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (.not. vec%checked_out) then
-         call error_abort("ERROR: trying to double-restore vector")
+        call error_abort("ERROR: trying to double-restore vector")
       end if
-      
+
       if (vec%ghosted) then
         call VecRestoreArrayF90(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
@@ -445,7 +445,7 @@ contains
       end if
 
       vec%checked_out = .false.
-      
+
     class default
       call error_abort('Invalid vector type.')
     end select

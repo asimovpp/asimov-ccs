@@ -25,12 +25,12 @@ submodule(pv_coupling) pv_coupling_simple
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance
-  use timestepping, only : update_old_values
-  
+  use timestepping, only: update_old_values
+
   implicit none
 
   integer(ccs_int), save :: varp = 0
-  
+
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
@@ -79,7 +79,7 @@ contains
     call update_old_values(u)
     call update_old_values(v)
     call update_old_values(w)
-    
+
     ! Initialise linear system
     call dprint("NONLINEAR: init")
     call initialise(vec_properties)
@@ -270,13 +270,13 @@ contains
 
     ! Calculate fluxes and populate coefficient matrix
     if (component == 1) then
-       call dprint("GV: compute u flux")
+      call dprint("GV: compute u flux")
     else if (component == 2) then
-       call dprint("GV: compute v flux")
+      call dprint("GV: compute v flux")
     else if (component == 3) then
-       call dprint("GV: compute w flux")
+      call dprint("GV: compute w flux")
     else
-       call error_abort("Unsupported vector component: " // str(component))
+      call error_abort("Unsupported vector component: " // str(component))
     end if
     call compute_fluxes(u, mf, mesh, component, M, vec)
 
@@ -433,7 +433,7 @@ contains
 
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
-    
+
     ! First zero matrix
     call zero(M)
 
@@ -498,10 +498,10 @@ contains
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
 
-          call get_distance(loc_p, loc_nb, dx) 
+          call get_distance(loc_p, loc_nb, dx)
           dxmag = sqrt(sum(dx**2))
           coeff_f = (1.0 / dxmag) * face_area
-          
+
           call get_volume(loc_nb, V_nb)
           Vf = 0.5_ccs_real * (Vp + V_nb)
 
@@ -517,9 +517,9 @@ contains
           col = -1
           coeff_nb = 0.0_ccs_real
           coeff_f = 0.0_ccs_real
-          
+
           ! coeff_f = -(Vp * invA_p) * coeff_f
-          
+
           ! ! Zero gradient
           ! !
           ! ! (p_F - p_P) / dx = 0
@@ -826,7 +826,7 @@ contains
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
     call zero(b)
-    
+
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
     call get_vector_data(p_prime%values, pp_data)
@@ -855,23 +855,22 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-             mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
-                  invAu_data, invAv_data, invAw_data, loc_f)
+            mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
+                                      invAu_data, invAv_data, invAw_data, loc_f)
 
-             mf_data(index_f) = mf_data(index_f) + mf_prime
+            mf_data(index_f) = mf_data(index_f) + mf_prime
           else
-             face_area = -face_area
+            face_area = -face_area
           end if
         end if
 
         mib = mib + mf_data(index_f) * face_area
-     end do
+      end do
 
-     call set_row(global_index_p, vec_values)
-     call set_entry(mib, vec_values)
-     call set_values(vec_values, b)
-   end do
-
+      call set_row(global_index_p, vec_values)
+      call set_entry(mib, vec_values)
+      call set_values(vec_values, b)
+    end do
 
     deallocate (zero_arr)
 

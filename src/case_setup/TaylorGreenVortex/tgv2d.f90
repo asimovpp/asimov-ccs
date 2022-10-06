@@ -25,8 +25,8 @@ program tgv2d
   use utils, only: set_size, initialise, update, exit_print
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use timestepping, only : set_timestep, activate_timestepping, initialise_old_values
-  
+  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
+
   implicit none
 
   class(parallel_environment), allocatable :: par_env
@@ -59,7 +59,7 @@ program tgv2d
   integer(ccs_int) :: t      ! Timestep counter
   integer(ccs_int) :: nsteps ! Number of timesteps to perform
   real(ccs_real) :: CFL      ! The CFL target
-  
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
@@ -168,12 +168,12 @@ program tgv2d
   call activate_timestepping()
   call set_timestep(dt)
   do t = 1, nsteps
-     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
-     call calc_tgv2d_error(mesh, t, u, v, w, p)
-     print *, t
+    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+    call calc_tgv2d_error(mesh, t, u, v, w, p)
+    print *, t
   end do
-  
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
 
@@ -289,7 +289,7 @@ contains
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
     use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-         get_local_index, set_face_location, get_local_index, get_face_normal, get_centre
+                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -313,7 +313,7 @@ contains
 
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
-    
+
     ! Set alias
     associate (n_local => mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
@@ -376,9 +376,9 @@ contains
 
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
-        
+
         ! if neighbour index is greater than previous face index
-        if(index_nb > index_p) then ! XXX: abstract this test
+        if (index_nb > index_p) then ! XXX: abstract this test
 
           call set_face_location(mesh, index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
@@ -387,7 +387,7 @@ contains
 
           ! compute initial value based on current face coordinates
           mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * face_normal(1) &
-               - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
+                             - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
         end if
 
       end do
@@ -405,27 +405,27 @@ contains
 
   subroutine calc_tgv2d_error(mesh, t, u, v, w, p)
 
-    use constants, only : ndim
-    use types, only : cell_locator
-    use utils, only : str
+    use constants, only: ndim
+    use types, only: cell_locator
+    use utils, only: str
 
-    use vec, only : get_vector_data, restore_vector_data
-    
-    use meshing, only : get_centre, set_cell_location
-    
-    use parallel, only : allreduce
-    use parallel_types_mpi, only : parallel_environment_mpi
-    
+    use vec, only: get_vector_data, restore_vector_data
+
+    use meshing, only: get_centre, set_cell_location
+
+    use parallel, only: allreduce
+    use parallel_types_mpi, only: parallel_environment_mpi
+
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: t
     class(field), intent(inout) :: u, v, w, p
 
     real(ccs_real), dimension(4) :: err_local, err_rms
-    
+
     real(ccs_real) :: ft
     real(ccs_real) :: u_an, v_an, w_an, p_an
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
-    
+
     real(ccs_real) :: mu, rho, nu
 
     logical, save :: first_time = .true.
@@ -439,7 +439,9 @@ contains
 
     integer :: io_unit
     logical :: exists
-    
+
+    integer :: ierr
+
     mu = 0.01_ccs_real ! XXX: currently hardcoded somewhere
     rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
     nu = mu / rho
@@ -452,21 +454,23 @@ contains
     call get_vector_data(p%values, p_data)
     do index_p = 1, mesh%topo%local_num_cells
 
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_centre(loc_p, x_p)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_centre(loc_p, x_p)
 
-       ! Compute analytical solution
-       time = t * dt
-       ft = exp(-2 * nu * time)
-       u_an = cos(x_p(1)) * sin(x_p(2)) * ft
-       v_an = -sin(x_p(1)) * sin(x_p(2)) * ft
-       w_an = 0.0_ccs_real
-       p_an = -(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
+      ! Compute analytical solution
+      time = t * dt
+      ft = exp(-2 * nu * time)
+      ! u_an = cos(x_p(1)) * sin(x_p(2)) * ft
+      ! v_an = -sin(x_p(1)) * cos(x_p(2)) * ft
+      u_an = sin(x_p(1)) * cos(x_p(2)) * ft
+      v_an = -cos(x_p(1)) * sin(x_p(2)) * ft
+      w_an = 0.0_ccs_real
+      p_an = -(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
 
-       err_local(1) = err_local(1) + (u_an - u_data(index_p))**2
-       err_local(2) = err_local(2) + (v_an - v_data(index_p))**2
-       err_local(3) = err_local(3) + (w_an - w_data(index_p))**2
-       err_local(4) = err_local(4) + (p_an - p_data(index_p))**2
+      err_local(1) = err_local(1) + (u_an - u_data(index_p))**2
+      err_local(2) = err_local(2) + (v_an - v_data(index_p))**2
+      err_local(3) = err_local(3) + (w_an - w_data(index_p))**2
+      err_local(4) = err_local(4) + (p_an - p_data(index_p))**2
 
     end do
     call restore_vector_data(u%values, u_data)
@@ -474,33 +478,33 @@ contains
     call restore_vector_data(w%values, w_data)
     call restore_vector_data(p%values, p_data)
 
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
-       call MPI_AllReduce(err_local, err_rms, size(err_rms), MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(err_local, err_rms, size(err_rms), MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
     class default
-       print *, "ERROR: Unknown type"
-       stop 1
+      print *, "ERROR: Unknown type"
+      stop 1
     end select
     err_rms(:) = sqrt(err_rms(:) / mesh%topo%global_num_cells)
 
     if (par_env%proc_id == par_env%root) then
-       if (first_time) then
-          first_time = .false.
+      if (first_time) then
+        first_time = .false.
 
           !! inquire(file="tgv2d-err.log", exist=exists)
           !! if (exists) then
           !!    call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
           !! end if
-          open(newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
+        open (newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
 
-       else
-          open(newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
-       end if
-       fmt = '(I0,' // str(size(err_rms)) // '(1x,e12.4))'
-       write(io_unit, fmt) t, err_rms
-       close(io_unit)
+      else
+        open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
+      end if
+      fmt = '(I0,' // str(size(err_rms)) // '(1x,e12.4))'
+      write (io_unit, fmt) t, err_rms
+      close (io_unit)
     end if
-    
+
   end subroutine calc_tgv2d_error
-  
+
 end program tgv2d

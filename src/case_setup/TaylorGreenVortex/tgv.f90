@@ -9,7 +9,7 @@ program tgv
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                  vector_spec, ccs_vector, io_environment, io_process
+                   vector_spec, ccs_vector, io_environment, io_process
   use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -21,7 +21,7 @@ program tgv
   use utils, only: set_size, initialise, update, exit_print
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
-  use timestepping, only : set_timestep, activate_timestepping, initialise_old_values  
+  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
@@ -37,7 +37,6 @@ program tgv
   character(len=:), allocatable :: geo_file
   character(len=:), allocatable :: adios2_file
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
-
 
   type(ccs_mesh) :: mesh
 
@@ -78,7 +77,7 @@ program tgv
 
   call read_command_line_arguments(par_env, case_name=case_name)
 
-  ccs_config_file = case_name//ccsconfig
+  ccs_config_file = case_name // ccsconfig
 
   call timer(start_time)
 
@@ -89,8 +88,8 @@ program tgv
   it_start = 1
   it_end = num_steps
 
-  geo_file = case_name//geoext
-  adios2_file = case_name//adiosconfig
+  geo_file = case_name // geoext
+  adios2_file = case_name // adiosconfig
 
   ! Read mesh from *.geo file
   if (irank == par_env%root) print *, "Reading mesh"
@@ -185,12 +184,12 @@ program tgv
   call activate_timestepping()
   call set_timestep(dt)
   do t = 1, nsteps
-     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
-     call calc_tgv2d_error(mesh, t, u, v, w, p)
-     print *, t
+    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+    call calc_tgv2d_error(mesh, t, u, v, w, p)
+    print *, t
   end do
-  
+
 #ifndef EXCLUDE_MISSING_INTERFACE
   call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
 
@@ -240,7 +239,7 @@ program tgv
 
   call timer(end_time)
 
-  if (par_env % proc_id == 0) then
+  if (par_env%proc_id == 0) then
     print *, "Elapsed time: ", end_time - start_time
   end if
 
@@ -253,8 +252,8 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                          get_convection_scheme, get_relaxation_factor, &
-                          get_target_residual
+                           get_convection_scheme, get_relaxation_factor, &
+                           get_target_residual
 
     character(len=*), intent(in) :: config_filename
 
@@ -306,7 +305,7 @@ contains
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
     use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-        get_local_index, set_face_location, get_local_index, get_face_normal, get_centre
+                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -330,7 +329,7 @@ contains
 
     integer(ccs_int) :: nnb
     integer(ccs_int) :: j
-    
+
     ! Set alias
     associate (n_local => mesh%topo%local_num_cells)
       call create_vector_values(n_local, u_vals)
@@ -385,9 +384,9 @@ contains
 
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
-        
+
         ! if neighbour index is greater than previous face index
-        if(index_nb > index_p) then ! XXX: abstract this test
+        if (index_nb > index_p) then ! XXX: abstract this test
 
           call set_face_location(mesh, index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
@@ -396,7 +395,7 @@ contains
 
           ! compute initial value based on current face coordinates
           mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * face_normal(1) &
-              - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
+                             - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
         end if
 
       end do
@@ -408,27 +407,27 @@ contains
 
   subroutine calc_tgv2d_error(mesh, t, u, v, w, p)
 
-    use constants, only : ndim
-    use types, only : cell_locator
-    use utils, only : str
+    use constants, only: ndim
+    use types, only: cell_locator
+    use utils, only: str
 
-    use vec, only : get_vector_data, restore_vector_data
-    
-    use meshing, only : get_centre, set_cell_location
-    
-    use parallel, only : allreduce
-    use parallel_types_mpi, only : parallel_environment_mpi
-    
+    use vec, only: get_vector_data, restore_vector_data
+
+    use meshing, only: get_centre, set_cell_location
+
+    use parallel, only: allreduce
+    use parallel_types_mpi, only: parallel_environment_mpi
+
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: t
     class(field), intent(inout) :: u, v, w, p
 
     real(ccs_real), dimension(4) :: err_local, err_rms
-    
+
     real(ccs_real) :: ft
     real(ccs_real) :: u_an, v_an, w_an, p_an
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
-    
+
     real(ccs_real) :: mu, rho, nu
 
     logical, save :: first_time = .true.
@@ -442,7 +441,7 @@ contains
 
     integer :: io_unit
     logical :: exists
-    
+
     mu = 0.1_ccs_real  ! XXX: currently hardcoded somewhere
     rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
     nu = mu / rho
@@ -477,7 +476,7 @@ contains
     call restore_vector_data(w%values, w_data)
     call restore_vector_data(p%values, p_data)
 
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_AllReduce(err_local, err_rms, size(err_rms), MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
     class default
@@ -488,22 +487,22 @@ contains
 
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
-          first_time = .false.
+        first_time = .false.
 
           !! inquire(file="tgv2d-err.log", exist=exists)
           !! if (exists) then
           !!    call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
           !! end if
-          open(newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
+        open (newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
 
       else
-          open(newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
+        open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,' // str(size(err_rms)) // '(1x,e12.4))'
-      write(io_unit, fmt) t, err_rms
-      close(io_unit)
+      write (io_unit, fmt) t, err_rms
+      close (io_unit)
     end if
-    
+
   end subroutine calc_tgv2d_error
 
 end program tgv
