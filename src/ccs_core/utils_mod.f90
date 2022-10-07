@@ -218,18 +218,17 @@ contains
     stop 1
   end subroutine exit_print
 
+  !TODO: move this subroutine to more appropriate module
   !> Calculate kinetic energy over density
   subroutine calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce
+    use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use mpi
-
-    implicit none
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
@@ -275,7 +274,9 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
       call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
     end select
@@ -296,18 +297,17 @@ contains
 
   end subroutine calc_kinetic_energy
 
+  !TODO: move this subroutine to more appropriate module
   !> Calculate enstrophy
   subroutine calc_enstrophy(par_env, mesh, t, u, v, w)
 
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce
+    use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use mpi
-
-    implicit none
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
@@ -354,6 +354,7 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
     end select
