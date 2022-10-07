@@ -247,7 +247,6 @@ contains
 
     logical, save :: first_time = .true.
     integer :: io_unit
-    logical :: exists
 
     rho = 1.0_ccs_real
 
@@ -325,7 +324,6 @@ contains
 
     logical, save :: first_time = .true.
     integer :: io_unit
-    logical :: exists
 
     ens_local = 0.0_ccs_real
     ens_global = 0.0_ccs_real
