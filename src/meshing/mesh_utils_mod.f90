@@ -334,14 +334,14 @@ contains
 
     ! Check whether geo file already exists; abort if it does
     geo_file = case_name // geoext
-    inquire(file=geo_file, exist=exists)
-    if (exists) then
+    !inquire(file=geo_file, exist=exists)
+    !if (exists) then
       ! Geo file already exists, don't overwrite
-      if (par_env%proc_id == par_env%root) then
-        write(*,*) 'Geo file already exists'
-      endif
-      return
-    endif
+    !  if (par_env%proc_id == par_env%root) then
+    !    write(*,*) 'Geo file already exists'
+    !  endif
+    !  return
+    !endif
 
     ! Open geo file for writing
     call initialise_io(par_env, adios2_file, io_env)

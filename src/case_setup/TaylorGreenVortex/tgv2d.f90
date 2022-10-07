@@ -60,6 +60,7 @@ program tgv2d
   integer(ccs_int) :: t      ! Timestep counter
   integer(ccs_int) :: nsteps ! Number of timesteps to perform
   real(ccs_real) :: CFL      ! The CFL target
+  integer(ccs_int) :: save_freq ! Frequency of saving solution
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
@@ -165,6 +166,7 @@ program tgv2d
   CFL = 0.1_ccs_real
   dt = CFL * (3.14_ccs_real / cps)
   nsteps = 100
+  save_freq = 10
 
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
@@ -176,7 +178,9 @@ program tgv2d
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
     print *, t
-    call write_solution(par_env, case_name, t, nsteps, dt, mesh, cps, u, v, w, p)
+    if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
+      call write_solution(par_env, case_name, t, nsteps, dt, mesh, cps, u, v, w, p)
+    endif
   end do
 
 #ifndef EXCLUDE_MISSING_INTERFACE

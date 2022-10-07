@@ -912,6 +912,7 @@ contains
       integer(ccs_int), parameter :: ioxdmf = 999
 
       integer(ccs_int) :: ierr
+      integer(ccs_int), save :: step_counter = 0
   
       geo_file = case_name//'.geo'
       sol_file = case_name//'.sol.h5'
@@ -1004,22 +1005,22 @@ contains
       write(ioxdmf, '(a)')            '        </Geometry>'
       write(ioxdmf, '(a)')            '        <Attribute Name="VelocityX" AttributeType="Scalar" Center="Cell">'
       write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/u'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/u'
       write(ioxdmf, '(a)')            '          </DataItem>'
       write(ioxdmf, '(a)')            '        </Attribute>'
       write(ioxdmf, '(a)')            '        <Attribute Name="VelocityY" AttributeType="Scalar" Center="Cell">'
       write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/v'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/v'
       write(ioxdmf, '(a)')            '          </DataItem>'
       write(ioxdmf, '(a)')            '        </Attribute>'
       write(ioxdmf, '(a)')            '        <Attribute Name="VelocityZ" AttributeType="Scalar" Center="Cell">'
       write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/w'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/w'
       write(ioxdmf, '(a)')            '          </DataItem>'
       write(ioxdmf, '(a)')            '        </Attribute>'
       write(ioxdmf, '(a)')            '        <Attribute Name="Pressure" AttributeType="Scalar" Center="Cell">'
       write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step-1,'/p'
+      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/p'
       write(ioxdmf, '(a)')            '          </DataItem>'
       write(ioxdmf, '(a)')            '        </Attribute>'
       write(ioxdmf, '(a)')            '      </Grid>'
@@ -1032,6 +1033,8 @@ contains
         write(ioxdmf, '(a)')          '</Xdmf>'
         close(ioxdmf)
       endif
+
+      step_counter = step_counter + 1
   
     end subroutine
 
