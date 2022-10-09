@@ -17,6 +17,7 @@ module parallel
   public :: read_command_line_arguments
   public :: timer
   public :: allreduce
+  public :: error_handling !TODO: consider if this should be public (used with "raw" MPI calls in some places)
 
   interface
 

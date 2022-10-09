@@ -42,6 +42,7 @@ module utils
   public :: debug_print
   public :: exit_print
   public :: calc_kinetic_energy
+  public :: calc_enstrophy
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -217,18 +218,17 @@ contains
     stop 1
   end subroutine exit_print
 
+  !TODO: move this subroutine to more appropriate module
   !> Calculate kinetic energy over density
   subroutine calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce
+    use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use mpi
-
-    implicit none
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
@@ -246,7 +246,6 @@ contains
 
     logical, save :: first_time = .true.
     integer :: io_unit
-    logical :: exists
 
     rho = 1.0_ccs_real
 
@@ -275,7 +274,9 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
       call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
     end select
@@ -295,5 +296,81 @@ contains
     end if
 
   end subroutine calc_kinetic_energy
+
+  !TODO: move this subroutine to more appropriate module
+  !> Calculate enstrophy
+  subroutine calc_enstrophy(par_env, mesh, t, u, v, w)
+
+    use constants, only: ndim, ccs_string_len
+    use types, only: field, ccs_mesh
+    use vec, only: get_vector_data, restore_vector_data
+    use parallel, only: allreduce, error_handling
+    use parallel_types_mpi, only: parallel_environment_mpi
+    use parallel_types, only: parallel_environment
+    use mpi
+
+    class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
+    type(ccs_mesh), intent(in) :: mesh !< the mesh
+    integer(ccs_int), intent(in) :: t !< timestep
+    class(field), intent(inout) :: u !< solve x velocity field
+    class(field), intent(inout) :: v !< solve y velocity field
+    class(field), intent(inout) :: w !< solve z velocity field
+
+    real(ccs_real) :: ens_local, ens_global
+    real(ccs_real), dimension(:), pointer :: dudy, dudz, dvdx, dvdz, dwdx, dwdy
+    integer(ccs_int) :: index_p
+    character(len=ccs_string_len) :: fmt
+    integer(ccs_int) :: ierr
+
+    logical, save :: first_time = .true.
+    integer :: io_unit
+
+    ens_local = 0.0_ccs_real
+    ens_global = 0.0_ccs_real
+
+    call get_vector_data(u%y_gradients, dudy)
+    call get_vector_data(u%z_gradients, dudz)
+    call get_vector_data(v%x_gradients, dvdx)
+    call get_vector_data(v%z_gradients, dvdz)
+    call get_vector_data(w%x_gradients, dwdx)
+    call get_vector_data(w%y_gradients, dwdy)
+
+    do index_p = 1, mesh%topo%local_num_cells
+
+      ens_local = ens_local + (dwdy(index_p) - dvdz(index_p))**2 + &
+                  (dudz(index_p) - dwdx(index_p))**2 + &
+                  (dvdx(index_p) - dudy(index_p))**2
+
+    end do
+    ens_local = 0.5 * ens_local
+
+    call restore_vector_data(u%y_gradients, dudy)
+    call restore_vector_data(u%z_gradients, dudz)
+    call restore_vector_data(v%x_gradients, dvdx)
+    call restore_vector_data(v%z_gradients, dvdz)
+    call restore_vector_data(w%x_gradients, dwdx)
+    call restore_vector_data(w%y_gradients, dwdy)
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
+    class default
+      call error_abort("ERROR: Unknown type")
+    end select
+
+    if (par_env%proc_id == par_env%root) then
+      if (first_time) then
+        first_time = .false.
+        open (newunit=io_unit, file="tgv2d-ens.log", status="replace", form="formatted")
+      else
+        open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
+      end if
+      fmt = '(I0,1(1x,e12.4))'
+      write (io_unit, fmt) t, ens_global
+      close (io_unit)
+    end if
+
+  end subroutine calc_enstrophy
 
 end module utils
