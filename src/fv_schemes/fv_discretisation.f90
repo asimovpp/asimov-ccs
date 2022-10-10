@@ -28,7 +28,7 @@ contains
     if (bc == 0) then
       interpolation_factor = 0.5_ccs_real
     else
-      interpolation_factor = 1.0_ccs_real
+      interpolation_factor = 0.5_ccs_real !1.0_ccs_real
     end if
     coeff = interpolation_factor
   end subroutine calc_advection_coeff_cds

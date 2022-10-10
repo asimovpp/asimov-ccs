@@ -22,11 +22,12 @@ program tgv2d
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print
+  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use io, only: write_solution
+  use fv, only: update_gradient
 
   implicit none
 
@@ -150,6 +151,32 @@ program tgv2d
   call initialise_old_values(vec_properties, v)
   call initialise_old_values(vec_properties, w)
 
+  ! START set up vecs for enstrophy
+  call create_vector(vec_properties, u%x_gradients)
+  call create_vector(vec_properties, u%y_gradients)
+  call create_vector(vec_properties, u%z_gradients)
+  call create_vector(vec_properties, v%x_gradients)
+  call create_vector(vec_properties, v%y_gradients)
+  call create_vector(vec_properties, v%z_gradients)
+  call create_vector(vec_properties, w%x_gradients)
+  call create_vector(vec_properties, w%y_gradients)
+  call create_vector(vec_properties, w%z_gradients)
+
+  call update(u%x_gradients)
+  call update(u%y_gradients)
+  call update(u%z_gradients)
+  call update(v%x_gradients)
+  call update(v%y_gradients)
+  call update(v%z_gradients)
+  call update(w%x_gradients)
+  call update(w%y_gradients)
+  call update(w%z_gradients)
+
+  call update_gradient(mesh, u)
+  call update_gradient(mesh, v)
+  call update_gradient(mesh, w)
+  !  END  set up vecs for enstrophy
+
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, mf%values)
@@ -159,13 +186,15 @@ program tgv2d
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(mesh, u, v, w, p, mf)
   call calc_tgv2d_error(mesh, 0, u, v, w, p)
+  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
+  call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
 
   CFL = 0.1_ccs_real
   dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 100
+  nsteps = 1000
   save_freq = 10
 
   ! Write out mesh to file
@@ -177,6 +206,12 @@ program tgv2d
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
+    call calc_kinetic_energy(par_env, mesh, t, u, v, w)
+
+    call update_gradient(mesh, u)
+    call update_gradient(mesh, v)
+    call update_gradient(mesh, w)
+    call calc_enstrophy(par_env, mesh, t, u, v, w)
     print *, t
     if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
       call write_solution(par_env, case_name, t, nsteps, dt, mesh, cps, u, v, w, p)
@@ -491,8 +526,7 @@ contains
     type is (parallel_environment_mpi)
       call MPI_AllReduce(err_local, err_rms, size(err_rms), MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
     class default
-      print *, "ERROR: Unknown type"
-      stop 1
+      call error_abort("ERROR: Unknown type")
     end select
     err_rms(:) = sqrt(err_rms(:) / mesh%topo%global_num_cells)
 

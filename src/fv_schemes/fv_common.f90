@@ -78,7 +78,7 @@ contains
     integer(ccs_int) :: index_f
 
     real(ccs_real) :: sgn ! Sign indicating face orientation
-    real(ccs_real) :: aP, aF, bP
+    real(ccs_real) :: aP, aF, bP, aPb
     real(ccs_real), dimension(:), pointer :: phi_data
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
@@ -143,26 +143,29 @@ contains
           aP = 1.0_ccs_real - aF
           aP = (sgn * mf(index_f) * face_area) * aP
           aF = (sgn * mf(index_f) * face_area) * aF
+          aP = aP - sgn * mf(index_f) * face_area
           call set_entry(-(aP * phi_data(index_p) + aF * phi_data(index_nb)), b_coeffs)
           if ((sgn * mf(index_f)) > 0.0_ccs_real) then
             aP = sgn * mf(index_f) * face_area
             aF = 0.0_ccs_real
-            call set_entry(aP * phi_data(index_p), b_coeffs)
           else
             aP = 0.0_ccs_real
             aF = sgn * mf(index_f) * face_area
-            call set_entry(aF * phi_data(index_nb), b_coeffs)
           end if
+          aP = aP - sgn * mf(index_f) * face_area
+          call set_entry(aP * phi_data(index_p) + aF * phi_data(index_nb), b_coeffs)
 
           call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
           call set_entry(aF + diff_coeff, mat_coeffs)
 
-          adv_coeff_total = adv_coeff_total - aP
-          diff_coeff_total = diff_coeff_total + diff_coeff
+          adv_coeff_total = adv_coeff_total + aP
+          diff_coeff_total = diff_coeff_total - diff_coeff
 
           call restore_vector_data(phi%values, phi_data)
         else
+          call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
+
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
 
           select type (phi)
@@ -173,21 +176,37 @@ contains
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
-          adv_coeff = adv_coeff * (mf(index_f) * face_area)
+          aF = adv_coeff
+          aP = 1.0_ccs_real - aF
+          aP = aP * (mf(index_f) * face_area)
+          aF = aF * (mf(index_f) * face_area)
+          aP = aP - mf(index_f) * face_area
+          call get_vector_data(phi%values, phi_data)
+          call set_entry(-(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP)), b_coeffs)
+          if (mf(index_f) > 0.0_ccs_real) then
+            aP = mf(index_f) * face_area
+            aF = 0.0_ccs_real
+          else
+            aP = 0.0_ccs_real 
+            aF = mf(index_f) * face_area
+          end if
+          aP = aP - mf(index_f) * face_area
+          call set_entry(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP), b_coeffs)
+          call restore_vector_data(phi%values, phi_data)
 
-          call compute_boundary_values(phi, component, loc_p, loc_f, face_normal, bc_value)
+          call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
 
-          call set_entry(-(adv_coeff + diff_coeff) * bc_value, b_coeffs)
-
-          call set_row(global_index_p, mat_coeffs)
-          call set_col(global_index_p, mat_coeffs)
-          call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
+          !call set_row(global_index_p, mat_coeffs)
+          !call set_col(global_index_p, mat_coeffs)
+          !call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
+          adv_coeff_total = adv_coeff_total + aP + aPb * aF
+          diff_coeff_total = diff_coeff_total - diff_coeff + aPb * diff_coeff
         end if
       end do
 
       call set_values(b_coeffs, b)
       call set_col(global_index_p, mat_coeffs)
-      call set_entry(-(adv_coeff_total + diff_coeff_total), mat_coeffs)
+      call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
       call set_values(mat_coeffs, M)
     end do
 
@@ -199,13 +218,44 @@ contains
   !> Computes the value of the scalar field on the boundary
   module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                             x_gradients, y_gradients, z_gradients)
+    
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
     type(face_locator), intent(in) :: loc_f                 !< location of face
     real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
-    real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
+    real(ccs_real), intent(out) :: bc_value                 !< the boundary value
     real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
+
+    real(ccs_real) :: a !< The diagonal coeff (implicit component)
+    real(ccs_real) :: b !< The RHS value (explicit component)
+    integer(ccs_int) :: index_p
+    real(ccs_real), dimension(:), pointer :: phi_data
+    
+    call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
+                                 a, b, &
+                                 x_gradients, y_gradients, z_gradients)
+
+    call get_local_index(loc_p, index_p)
+    call get_vector_data(phi%values, phi_data)
+    bc_value = 0.5_ccs_real * (phi_data(index_p) + (b + a * phi_data(index_p)))
+    call restore_vector_data(phi%values, phi_data)
+
+  end subroutine compute_boundary_values
+
+  subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
+                                     a, b, &
+                                     x_gradients, y_gradients, z_gradients)
+    
+    class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
+    integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
+    type(cell_locator), intent(in) :: loc_p                 !< location of cell
+    type(face_locator), intent(in) :: loc_f                 !< location of face
+    real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
+    real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
+    real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
+    real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
+
 
     ! local variables
     integer(ccs_int) :: index_bc
@@ -219,7 +269,6 @@ contains
     real(ccs_real) :: phi_face_parallel_component_norm
     real(ccs_real) :: phi_face_parallel_component_portion
     real(ccs_real) :: normal_norm
-    real(ccs_real), dimension(:), pointer :: phi_values
     real(ccs_real) :: dxmag
 
     call get_local_index(loc_p, index_p)
@@ -229,14 +278,13 @@ contains
 
     select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
-      bc_value = phi%bcs%values(index_bc)
+      a = -1.0_ccs_real
+      b = 2.0_ccs_real * phi%bcs%values(index_bc)
     case (bc_type_extrapolate)
-      call get_vector_data(phi%values, phi_values)
       call get_distance(loc_p, loc_f, dx)
 
-      bc_value = phi_values(index_p) + (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
-
-      call restore_vector_data(phi%values, phi_values)
+      a = 1.0_ccs_real
+      b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
     case (bc_type_sym)
       select case (component)
       case (0)
@@ -262,23 +310,22 @@ contains
       phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm / normal_norm)
 
       ! Get value of phi at boundary cell
-      call get_vector_data(phi%values, phi_values)
-      bc_value = phi_face_parallel_component_portion * phi_values(index_p)
-      call restore_vector_data(phi%values, phi_values)
+      a = phi_face_parallel_component_portion
+      b = 0.0_ccs_real
     case (bc_type_neumann)
-      call get_vector_data(phi%values, phi_values)
-
       call get_distance(loc_p, loc_f, dx)
       dxmag = sqrt(sum(dx**2))
 
-      bc_value = 0.5_ccs_real * (2.0_ccs_real * phi_values(index_p) + dxmag * phi%bcs%values(index_bc))
-      
-      call restore_vector_data(phi%values, phi_values)
+      a = 1.0_ccs_real
+      b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
     case default
-      bc_value = 0.0_ccs_real
+      a = 0.0_ccs_real
+      b = 0.0_ccs_real
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
     end select
-  end subroutine compute_boundary_values
+
+
+  end subroutine
 
   !> Sets the diffusion coefficient
   module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
