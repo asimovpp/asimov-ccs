@@ -909,7 +909,7 @@ contains
   
       real(ccs_real), dimension(:), pointer :: data
   
-      integer(ccs_int), parameter :: ioxdmf = 999
+      integer(ccs_int), save :: ioxdmf
 
       integer(ccs_int) :: ierr
       integer(ccs_int), save :: step_counter = 0
@@ -961,6 +961,55 @@ contains
       call write_array_real64_1d(sol_writer, "/p", sel_shape, sel_start, sel_count, data)
       call restore_vector_data(p%values, data)
 
+      ! Write gradients
+      call get_vector_data(u%x_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dudx", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(u%x_gradients, data)
+
+      call get_vector_data(u%y_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dudy", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(u%y_gradients, data)
+
+      call get_vector_data(u%z_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dudz", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(u%z_gradients, data)
+
+      call get_vector_data(v%x_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dvdx", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(v%x_gradients, data)
+
+      call get_vector_data(v%y_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dvdy", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(v%y_gradients, data)
+
+      call get_vector_data(v%z_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dvdz", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(v%z_gradients, data)
+
+      call get_vector_data(w%x_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dwdx", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(w%x_gradients, data)
+
+      call get_vector_data(w%y_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dwdy", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(w%y_gradients, data)
+
+      call get_vector_data(w%z_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dwdz", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(w%z_gradients, data)
+
+      call get_vector_data(p%x_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dpdx", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(p%x_gradients, data)
+
+      call get_vector_data(p%y_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dpdy", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(p%y_gradients, data)
+
+      call get_vector_data(p%z_gradients, data)
+      call write_array_real64_1d(sol_writer, "/dpdz", sel_shape, sel_start, sel_count, data)
+      call restore_vector_data(p%z_gradients, data)
+
       ! End step
       call end_step(sol_writer)
 
@@ -976,7 +1025,7 @@ contains
       if (step == 1) then
         if (par_env%proc_id == par_env%root) then
           ! Open file
-          open(ioxdmf, file=xdmf_file, status='unknown')
+          open(newunit=ioxdmf, file=xdmf_file, status='unknown')
   
           ! Write file contents
           write(ioxdmf, '(a)')        '<?xml version="1.0"?>'
@@ -987,44 +1036,67 @@ contains
         endif
       endif
 
-      write(ioxdmf, '(a)')            '      <Grid Name="Mesh">'
-      write(ioxdmf, '(a,f10.7,a)')    '        <Time Value = "',step*dt,'" />'
-      if (mesh%topo%vert_per_cell == 4) then
-          write(ioxdmf, '(a,i0,a)')   '        <Topology Type="Quadrilateral" NumberOfElements="',mesh%topo%global_num_cells,'" BaseOffset="1">'
+      associate (ncel => mesh%topo%global_num_cells, &
+                 nvrt => mesh%topo%global_num_vertices)
+
+        write(ioxdmf, '(a)')            '      <Grid Name="Mesh">'
+        write(ioxdmf, '(a,f10.7,a)')    '        <Time Value = "',step*dt,'" />'
+
+        ! Topology
+        if (mesh%topo%vert_per_cell == 4) then
+          write(ioxdmf, '(a,i0,a)')   '        <Topology Type="Quadrilateral" NumberOfElements="',ncel,'" BaseOffset="1">'
         else
-          write(ioxdmf, '(a,i0,a)')   '        <Topology Type="Hexahedron" NumberOfElements="',mesh%topo%global_num_cells,'" BaseOffset="1">'
-      endif
-      write(ioxdmf, '(a,i0,1x,i0,a)') '          <DataItem Dimensions="',mesh%topo%global_num_cells,mesh%topo%vert_per_cell,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a)')        '            ',trim(geo_file),':/Step0/cell/vertices'
-      write(ioxdmf, '(a)')            '          </DataItem>'
-      write(ioxdmf, '(a)')            '        </Topology>'
-      write(ioxdmf, '(a)')            '        <Geometry Type="XYZ">'
-      write(ioxdmf, '(a,i0,1x,i0,a)') '          <DataItem Dimensions="',mesh%topo%global_num_vertices,ndim,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a)')        '            ',trim(geo_file),':/Step0/vert'
-      write(ioxdmf, '(a)')            '          </DataItem>'
-      write(ioxdmf, '(a)')            '        </Geometry>'
-      write(ioxdmf, '(a)')            '        <Attribute Name="VelocityX" AttributeType="Scalar" Center="Cell">'
-      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/u'
-      write(ioxdmf, '(a)')            '          </DataItem>'
-      write(ioxdmf, '(a)')            '        </Attribute>'
-      write(ioxdmf, '(a)')            '        <Attribute Name="VelocityY" AttributeType="Scalar" Center="Cell">'
-      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/v'
-      write(ioxdmf, '(a)')            '          </DataItem>'
-      write(ioxdmf, '(a)')            '        </Attribute>'
-      write(ioxdmf, '(a)')            '        <Attribute Name="VelocityZ" AttributeType="Scalar" Center="Cell">'
-      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/w'
-      write(ioxdmf, '(a)')            '          </DataItem>'
-      write(ioxdmf, '(a)')            '        </Attribute>'
-      write(ioxdmf, '(a)')            '        <Attribute Name="Pressure" AttributeType="Scalar" Center="Cell">'
-      write(ioxdmf, '(a,i0,a)')       '          <DataItem Dimensions="',mesh%topo%global_num_cells,'" Format="HDF">'
-      write(ioxdmf, '(a,a,a,i0,a)')   '            ',trim(sol_file),':/Step',step_counter,'/p'
-      write(ioxdmf, '(a)')            '          </DataItem>'
-      write(ioxdmf, '(a)')            '        </Attribute>'
-      write(ioxdmf, '(a)')            '      </Grid>'
+          write(ioxdmf, '(a,i0,a)')   '        <Topology Type="Hexahedron" NumberOfElements="',ncel,'" BaseOffset="1">'
+        endif
+        write(ioxdmf, '(a,i0,1x,i0,3(a))') '          <DataItem Dimensions="',ncel,mesh%topo%vert_per_cell,'" Format="HDF">',trim(geo_file),':/Step0/cell/vertices</DataItem>'          
+        write(ioxdmf, '(a)')            '        </Topology>'
+
+        ! Geometry
+        write(ioxdmf, '(a)')            '        <Geometry Type="XYZ">'
+        write(ioxdmf, '(a,i0,1x,i0,3(a))') '          <DataItem Dimensions="',nvrt,ndim,'" Format="HDF">',trim(geo_file),':/Step0/vert</DataItem>'        
+        write(ioxdmf, '(a)')            '        </Geometry>'
+
+        ! Velocity vector
+        write(ioxdmf, '(a)')            '        <Attribute Name="velocity" AttributeType="Vector" Center="Cell">'
+        write(ioxdmf, '(a,i0,1x,i0,a,a)') '          <DataItem Dimensions="',ncel,ndim,'" ItemType="Function"', &
+                                                     ' Function="JOIN($0, $1, $2)">'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/u</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/v</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/w</DataItem>'
+        write(ioxdmf, '(a)')            '          </DataItem>'
+        write(ioxdmf, '(a)')            '        </Attribute>'
+
+        ! Pressure
+        write(ioxdmf, '(a)')            '        <Attribute Name="pressure" AttributeType="Scalar" Center="Cell">'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '          <DataItem Dimensions="',ncel,'" Format="HDF">',trim(sol_file),':/Step',step_counter,'/p</DataItem>'          
+        write(ioxdmf, '(a)')            '        </Attribute>'
+
+        ! Kinetic Energy
+        write(ioxdmf, '(a)')            '        <Attribute Name="kinetic energy" AttributeType="Scalar" Center="Cell">'
+        write(ioxdmf, '(a,i0,a,a)')     '          <DataItem Dimensions="',ncel,'" ItemType="Function"', &
+                                                   ' Function="0.5 * ($0*$0 + $1*$1 + $2*$2)">'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/u</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/v</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/w</DataItem>'
+        write(ioxdmf, '(a)')            '          </DataItem>'
+        write(ioxdmf, '(a)')            '        </Attribute>'
+
+        ! Enstrophy
+        write(ioxdmf, '(a)')            '        <Attribute Name="enstrophy" AttributeType="Scalar" Center="Cell">'
+        write(ioxdmf, '(a,i0,a,a)')     '          <DataItem Dimensions="',ncel,'" ItemType="Function"', &
+                                                   ' Function="0.5 * (($5-$3)*($5-$3) + ($1-$4)*($1-$4) + ($2-$0)*($2-$0))">'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/dudy</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/dudz</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/dvdx</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/dvdz</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/dwdx</DataItem>'
+        write(ioxdmf, '(a,i0,3(a),i0,a)') '            <DataItem Format="HDF" Dimensions="',ncel,'">',trim(sol_file),':/Step',step_counter,'/dwdy</DataItem>'
+        write(ioxdmf, '(a)')            '          </DataItem>'
+        write(ioxdmf, '(a)')            '        </Attribute>'
+
+        write(ioxdmf, '(a)')            '      </Grid>'
       
+      end associate
   
       ! Close file
       if (step == maxstep) then
