@@ -18,13 +18,14 @@ program tgv
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print
+  use utils, only: set_size, initialise, update, exit_print, calc_enstrophy, calc_kinetic_energy
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, build_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
+  use fv, only: update_gradient
 
   implicit none
 
@@ -157,6 +158,32 @@ program tgv
   call initialise_old_values(vec_properties, u)
   call initialise_old_values(vec_properties, v)
   call initialise_old_values(vec_properties, w)
+  
+  ! START set up vecs for enstrophy
+  call create_vector(vec_properties, u%x_gradients)
+  call create_vector(vec_properties, u%y_gradients)
+  call create_vector(vec_properties, u%z_gradients)
+  call create_vector(vec_properties, v%x_gradients)
+  call create_vector(vec_properties, v%y_gradients)
+  call create_vector(vec_properties, v%z_gradients)
+  call create_vector(vec_properties, w%x_gradients)
+  call create_vector(vec_properties, w%y_gradients)
+  call create_vector(vec_properties, w%z_gradients)
+
+  call update(u%x_gradients)
+  call update(u%y_gradients)
+  call update(u%z_gradients)
+  call update(v%x_gradients)
+  call update(v%y_gradients)
+  call update(v%z_gradients)
+  call update(w%x_gradients)
+  call update(w%y_gradients)
+  call update(w%z_gradients)
+
+  call update_gradient(mesh, u)
+  call update_gradient(mesh, v)
+  call update_gradient(mesh, w)
+  !  END  set up vecs for enstrophy
 
   if (irank == par_env%root) print *, "Set vector location"
   call set_vector_location(face, vec_properties)
@@ -174,6 +201,8 @@ program tgv
   call update(w%values)
   call update(mf%values)
   call calc_tgv2d_error(mesh, 0, u, v, w, p)
+  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
+  call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -188,6 +217,11 @@ program tgv
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
+    call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
+    call update_gradient(mesh, u)
+    call update_gradient(mesh, v)
+    call update_gradient(mesh, w)
+    call calc_enstrophy(par_env, mesh, t, u, v, w)
     print *, t
   end do
 

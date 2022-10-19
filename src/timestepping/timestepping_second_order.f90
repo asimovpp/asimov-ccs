@@ -42,7 +42,7 @@ contains
       call finalise(M)
       call get_matrix_diagonal(M, diag)
 
-      call get_vector_data(phi%old_values(1)%vec, phi_data)
+      call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
       call get_vector_data(diag, diag_data)
       call update(b)
       call get_vector_data(b, b_data)
@@ -52,36 +52,36 @@ contains
         diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
 
         ! b = b + V/dt * phi_old
-        b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * phi_data(i)
+        b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * phi_old1_data(i)
       end do
-      call restore_vector_data(phi%old_values(1)%vec, phi_data)
+      call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
       call restore_vector_data(diag, diag_data)
       call restore_vector_data(b, b_data)
       call set_matrix_diagonal(diag, M)
       first_update = .false.
+    else
+      ! V = mesh%volumes
+      call finalise(M)
+      call get_matrix_diagonal(M, diag)
+
+      call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
+      call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
+      call get_vector_data(diag, diag_data)
+      call update(b)
+      call get_vector_data(b, b_data)
+
+      do i = 1, mesh%topo%local_num_cells
+        diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
+
+        b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * 2 / 3 * &
+                    (4 * phi_old1_data(i) - phi_old2_data(1))
+      end do
+      call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
+      call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
+      call restore_vector_data(diag, diag_data)
+      call restore_vector_data(b, b_data)
+      call set_matrix_diagonal(diag, M)
     end if
-
-    ! V = mesh%volumes
-    call finalise(M)
-    call get_matrix_diagonal(M, diag)
-
-    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call get_vector_data(diag, diag_data)
-    call update(b)
-    call get_vector_data(b, b_data)
-
-    do i = 1, mesh%topo%local_num_cells
-      diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
-
-      b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * 2 / 3 * &
-                  (4 * phi_old1_data(i) - phi_old2_data(1))
-    end do
-    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call restore_vector_data(diag, diag_data)
-    call restore_vector_data(b, b_data)
-    call set_matrix_diagonal(diag, M)
 
   end subroutine apply_timestep
 
