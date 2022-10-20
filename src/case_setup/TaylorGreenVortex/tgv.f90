@@ -18,13 +18,14 @@ program tgv
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print
+  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, build_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
+  use fv, only: update_gradient
 
   implicit none
 
@@ -67,6 +68,7 @@ program tgv
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
   type(tPetscViewer) :: viewer
+  character(len=128) :: filename
 #endif
 
   ! Launch MPI
@@ -93,7 +95,7 @@ program tgv
 
   ! Read mesh from *.geo file
   if (irank == par_env%root) print *, "Reading mesh"
-  mesh = build_mesh(par_env, 16, 16, 16, 4.0_ccs_real * atan(1.0_ccs_real))
+  mesh = build_mesh(par_env, 64, 64, 64, 4.0_ccs_real * atan(1.0_ccs_real))
   ! call read_mesh(par_env, case_name, mesh)
   ! call partition_kway(par_env, mesh)
   ! call compute_connectivity(par_env, mesh)
@@ -124,7 +126,7 @@ program tgv
   call read_bc_config(ccs_config_file, "v", v)
   call read_bc_config(ccs_config_file, "w", w)
   call read_bc_config(ccs_config_file, "p", p)
-  call read_bc_config(ccs_config_file, "p", p_prime)
+  call read_bc_config(ccs_config_file, "p_prime", p_prime)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -158,6 +160,32 @@ program tgv
   call initialise_old_values(vec_properties, v)
   call initialise_old_values(vec_properties, w)
 
+  ! START set up vecs for enstrophy
+  call create_vector(vec_properties, u%x_gradients)
+  call create_vector(vec_properties, u%y_gradients)
+  call create_vector(vec_properties, u%z_gradients)
+  call create_vector(vec_properties, v%x_gradients)
+  call create_vector(vec_properties, v%y_gradients)
+  call create_vector(vec_properties, v%z_gradients)
+  call create_vector(vec_properties, w%x_gradients)
+  call create_vector(vec_properties, w%y_gradients)
+  call create_vector(vec_properties, w%z_gradients)
+
+  call update(u%x_gradients)
+  call update(u%y_gradients)
+  call update(u%z_gradients)
+  call update(v%x_gradients)
+  call update(v%y_gradients)
+  call update(v%z_gradients)
+  call update(w%x_gradients)
+  call update(w%y_gradients)
+  call update(w%z_gradients)
+
+  call update_gradient(mesh, u)
+  call update_gradient(mesh, v)
+  call update_gradient(mesh, w)
+  !  END  set up vecs for enstrophy
+
   if (irank == par_env%root) print *, "Set vector location"
   call set_vector_location(face, vec_properties)
   if (irank == par_env%root) print *, "Set vector size"
@@ -177,10 +205,15 @@ program tgv
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
+  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
+  call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
   CFL = 0.1_ccs_real
-  dt = 0.1_ccs_real !FL * (3.14_ccs_real / cps)
-  nsteps = 5
+  dt = CFL * (3.14_ccs_real / 128)
+  nsteps = int(20.0_ccs_real / dt)
+  if (par_env%proc_id == par_env%root) then
+    print *, "Running dt = ", dt, " for ", nsteps, " steps"
+  end if
 
   call activate_timestepping()
   call set_timestep(dt)
@@ -188,48 +221,63 @@ program tgv
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
-    print *, t
-  end do
+    call calc_kinetic_energy(par_env, mesh, t, u, v, w)
+
+    call update_gradient(mesh, u)
+    call update_gradient(mesh, v)
+    call update_gradient(mesh, w)
+    call calc_enstrophy(par_env, mesh, t, u, v, w)
+    if (par_env%proc_id == par_env%root) then
+      print *, t
+    end if
 
 #ifndef EXCLUDE_MISSING_INTERFACE
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
+    if (mod(t, (nsteps / 100)) == 0) then
+      write(filename, "(A, I0)") "u", t
+      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
 
-  associate (vec => u%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+      associate (vec => u%values)
+        select type (vec)
+        type is (vector_petsc)
+          call VecView(vec%v, viewer, ierr)
+        end select
+      end associate
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v", FILE_MODE_WRITE, viewer, ierr)
+      write(filename, "(A, I0)") "v", t
+      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
 
-  associate (vec => v%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+      associate (vec => v%values)
+        select type (vec)
+        type is (vector_petsc)
+          call VecView(vec%v, viewer, ierr)
+        end select
+      end associate
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "w", FILE_MODE_WRITE, viewer, ierr)
+      write(filename, "(A, I0)") "w", t
+      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
 
-  associate (vec => w%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+      associate (vec => w%values)
+        select type (vec)
+        type is (vector_petsc)
+          call VecView(vec%v, viewer, ierr)
+        end select
+      end associate
 
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "p", FILE_MODE_WRITE, viewer, ierr)
+      write(filename, "(A, I0)") "p", t
+      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
 
-  associate (vec => p%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
+      associate (vec => p%values)
+        select type (vec)
+        type is (vector_petsc)
+          call VecView(vec%v, viewer, ierr)
+        end select
+      end associate
 
-  call PetscViewerDestroy(viewer, ierr)
+      call PetscViewerDestroy(viewer, ierr)
+    end if
 #endif
+
+  end do
 
   ! Clean-up
   deallocate (u)
