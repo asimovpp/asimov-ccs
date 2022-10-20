@@ -194,7 +194,7 @@ program tgv2d
 
   CFL = 0.1_ccs_real
   dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 1000
+  nsteps = 4000
   save_freq = 10
 
   ! Write out mesh to file
