@@ -18,7 +18,7 @@ program tgv
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print
+  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
@@ -93,7 +93,7 @@ program tgv
 
   ! Read mesh from *.geo file
   if (irank == par_env%root) print *, "Reading mesh"
-  mesh = build_mesh(par_env, 16, 16, 16, 4.0_ccs_real * atan(1.0_ccs_real))
+  mesh = build_mesh(par_env, 32, 32, 32, 4.0_ccs_real * atan(1.0_ccs_real))
   ! call read_mesh(par_env, case_name, mesh)
   ! call partition_kway(par_env, mesh)
   ! call compute_connectivity(par_env, mesh)
@@ -104,9 +104,9 @@ program tgv
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Allocate fields"
-  allocate (upwind_field :: u)
-  allocate (upwind_field :: v)
-  allocate (upwind_field :: w)
+  allocate (central_field :: u)
+  allocate (central_field :: v)
+  allocate (central_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
@@ -173,21 +173,21 @@ program tgv
   call update(v%values)
   call update(w%values)
   call update(mf%values)
-  call calc_tgv2d_error(mesh, 0, u, v, w, p)
+  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
 
   CFL = 0.1_ccs_real
   dt = 0.1_ccs_real !FL * (3.14_ccs_real / cps)
-  nsteps = 5
-
+  nsteps = 100
+  
   call activate_timestepping()
   call set_timestep(dt)
   do t = 1, nsteps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
-    call calc_tgv2d_error(mesh, t, u, v, w, p)
+    call calc_kinetic_energy(par_env, mesh, t, u, v, w)
     print *, t
   end do
 
@@ -405,105 +405,5 @@ contains
     call restore_vector_data(mf%values, mf_data)
 
   end subroutine initialise_velocity
-
-  subroutine calc_tgv2d_error(mesh, t, u, v, w, p)
-
-    use constants, only: ndim
-    use types, only: cell_locator
-    use utils, only: str
-
-    use vec, only: get_vector_data, restore_vector_data
-
-    use meshing, only: get_centre, set_cell_location
-
-    use parallel, only: allreduce
-    use parallel_types_mpi, only: parallel_environment_mpi
-
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: t
-    class(field), intent(inout) :: u, v, w, p
-
-    real(ccs_real), dimension(4) :: err_local, err_rms
-
-    real(ccs_real) :: ft
-    real(ccs_real) :: u_an, v_an, w_an, p_an
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
-
-    real(ccs_real) :: mu, rho, nu
-
-    logical, save :: first_time = .true.
-
-    type(cell_locator) :: loc_p
-    real(ccs_real), dimension(ndim) :: x_p
-    integer(ccs_int) :: index_p
-
-    character(len=ccs_string_len) :: fmt
-    real(ccs_real) :: time
-
-    integer :: io_unit
-    logical :: exists
-
-    mu = 0.1_ccs_real  ! XXX: currently hardcoded somewhere
-    rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
-    nu = mu / rho
-
-    err_local(:) = 0.0_ccs_real
-
-    call get_vector_data(u%values, u_data)
-    call get_vector_data(v%values, v_data)
-    call get_vector_data(w%values, w_data)
-    call get_vector_data(p%values, p_data)
-    do index_p = 1, mesh%topo%local_num_cells
-
-      call set_cell_location(mesh, index_p, loc_p)
-      call get_centre(loc_p, x_p)
-
-      ! Compute analytical solution
-      time = t * dt
-      ft = exp(-2 * nu * time)
-      u_an = cos(x_p(1)) * sin(x_p(2)) * ft
-      v_an = -sin(x_p(1)) * sin(x_p(2)) * ft
-      w_an = 0.0_ccs_real
-      p_an = -(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
-
-      err_local(1) = err_local(1) + (u_an - u_data(index_p))**2
-      err_local(2) = err_local(2) + (v_an - v_data(index_p))**2
-      err_local(3) = err_local(3) + (w_an - w_data(index_p))**2
-      err_local(4) = err_local(4) + (p_an - p_data(index_p))**2
-
-    end do
-    call restore_vector_data(u%values, u_data)
-    call restore_vector_data(v%values, v_data)
-    call restore_vector_data(w%values, w_data)
-    call restore_vector_data(p%values, p_data)
-
-    select type (par_env)
-    type is (parallel_environment_mpi)
-      call MPI_AllReduce(err_local, err_rms, size(err_rms), MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
-    class default
-      print *, "ERROR: Unknown type"
-      stop 1
-    end select
-    err_rms(:) = sqrt(err_rms(:) / mesh%topo%global_num_cells)
-
-    if (par_env%proc_id == par_env%root) then
-      if (first_time) then
-        first_time = .false.
-
-          !! inquire(file="tgv2d-err.log", exist=exists)
-          !! if (exists) then
-          !!    call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
-          !! end if
-        open (newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
-
-      else
-        open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
-      end if
-      fmt = '(I0,' // str(size(err_rms)) // '(1x,e12.4))'
-      write (io_unit, fmt) t, err_rms
-      close (io_unit)
-    end if
-
-  end subroutine calc_tgv2d_error
 
 end program tgv
