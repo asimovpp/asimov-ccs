@@ -18,11 +18,7 @@ program tgv
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-<<<<<<< HEAD
   use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy
-=======
-  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy
->>>>>>> b0d95f0cc4a10c440f30a9ad4a5bb3ad19866f57
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
