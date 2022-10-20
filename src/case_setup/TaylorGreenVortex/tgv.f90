@@ -99,11 +99,7 @@ program tgv
 
   ! Read mesh from *.geo file
   if (irank == par_env%root) print *, "Reading mesh"
-<<<<<<< HEAD
   mesh = build_mesh(par_env, 64, 64, 64, 4.0_ccs_real * atan(1.0_ccs_real))
-=======
-  mesh = build_mesh(par_env, 32, 32, 32, 4.0_ccs_real * atan(1.0_ccs_real))
->>>>>>> b0d95f0cc4a10c440f30a9ad4a5bb3ad19866f57
   ! call read_mesh(par_env, case_name, mesh)
   ! call partition_kway(par_env, mesh)
   ! call compute_connectivity(par_env, mesh)
@@ -209,7 +205,6 @@ program tgv
   call update(v%values)
   call update(w%values)
   call update(mf%values)
-  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
