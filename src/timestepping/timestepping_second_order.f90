@@ -30,7 +30,10 @@ contains
     real(ccs_real), dimension(:), pointer :: b_data
     real(ccs_real), dimension(:), pointer :: phi_old1_data
     real(ccs_real), dimension(:), pointer :: phi_old2_data
+    real(ccs_real) :: rho
     integer(ccs_int) :: i
+
+    rho = 1.0
 
     if (.not. timestepping_is_active) then
       return
@@ -71,10 +74,11 @@ contains
       call get_vector_data(b, b_data)
 
       do i = 1, mesh%topo%local_num_cells
-        diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
+        ! A = A + 1.5*rho*V/dt
+        diag_data(i) = diag_data(i) + 1.5 * rho * mesh%geo%volumes(i) / get_timestep()
 
-        b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * 2 / 3 * &
-                    (4 * phi_old1_data(i) - phi_old2_data(1))
+        ! b = b + rho*V/dt * (2*phi_old(n-1) - 0.5*phi_old(n-2))
+        b_data(i) = b_data(i) + rho * mesh%geo%volumes(i) / get_timestep() * (2 * phi_old1_data(i) - 0.5 * phi_old2_data(i))
       end do
       call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
       call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
