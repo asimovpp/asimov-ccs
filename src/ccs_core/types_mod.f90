@@ -160,6 +160,12 @@ module types
   type, public, extends(field) :: face_field
   end type
 
+  !> Type for constructing linked list of fields to output
+  type, public :: output_list
+    class(field), pointer :: ptr => null()
+    character(len=:), allocatable :: name
+  end type output_list
+
   !v Cell locator
   !
   ! Lightweight type to provide easy cell location based on a cell's cell connectivity.

@@ -4,7 +4,7 @@
 module io
 
   use iso_fortran_env, only: int32, int64, real32, real64
-  use types, only: io_environment, io_process, ccs_mesh, field
+  use types, only: io_environment, io_process, ccs_mesh, field, output_list
   use parallel_types, only: parallel_environment
   use constants, only: ndim, adiosconfig
   use kinds, only: ccs_int, ccs_real
@@ -22,7 +22,6 @@ module io
   public :: read_array
   public :: write_scalar
   public :: write_array
-  public :: write_solution
 
   interface read_scalar
     module procedure read_scalar_int32
@@ -370,20 +369,6 @@ module io
     integer(int64), dimension(2), intent(in) :: global_start
     integer(int64), dimension(2), intent(in) :: count
     real(real64), dimension(:,:), intent(in) :: var
-  end subroutine
-
-  module subroutine write_solution(par_env, case_name, step, maxstep, dt, mesh, cps, u, v, w, p)
-    class(parallel_environment), allocatable, target, intent(in) :: par_env
-    character(len=:), allocatable, intent(in) :: case_name
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    real(ccs_real), intent(in) :: dt
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: cps
-    class(field), intent(inout) :: u
-    class(field), intent(inout) :: v
-    class(field), intent(inout) :: w
-    class(field), intent(inout) :: p
   end subroutine
 
   end interface

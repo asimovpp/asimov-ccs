@@ -5,11 +5,13 @@ program tgv
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
+  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
+                         write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, io_environment, io_process
+                   vector_spec, ccs_vector, io_environment, io_process, &
+                   output_list
   use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -19,14 +21,15 @@ program tgv
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, &
-                   calc_kinetic_energy, calc_enstrophy
+                   calc_kinetic_energy, calc_enstrophy, &
+                   add_field_to_outputlist
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
-  use io, only: write_solution
+  use io_visualisation, only: write_solution
   use fv, only: update_gradient
 
   implicit none
@@ -46,7 +49,9 @@ program tgv
   type(vector_spec) :: vec_properties
   real(ccs_real) :: L
 
-  class(field), allocatable :: u, v, w, p, p_prime, mf
+  class(field), allocatable, target :: u, v, w, p, p_prime, mf
+
+  type(output_list), allocatable :: output_field_list(:)
 
   integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 64
@@ -54,6 +59,7 @@ program tgv
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
   integer(ccs_int) :: isize ! Size of MPI world
+  integer(ccs_int) :: i
 
   double precision :: start_time
   double precision :: end_time
@@ -119,6 +125,16 @@ program tgv
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
+
+  ! Add fields to output list
+  allocate(output_field_list(4))
+  call add_field_to_outputlist(u, "u", output_field_list)
+  call add_field_to_outputlist(v, "v", output_field_list)
+  call add_field_to_outputlist(w, "w", output_field_list)
+  call add_field_to_outputlist(p, "p", output_field_list)
+
+  ! Write gradients to solution file
+  write_gradients = .true.
 
   ! Read boundary conditions
   if (irank == par_env%root) print *, "Read and allocate BCs"
@@ -234,7 +250,7 @@ program tgv
     call calc_enstrophy(par_env, mesh, t, u, v, w)
     print *, t
     if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
-      call write_solution(par_env, case_name, t, nsteps, dt, mesh, cps, u, v, w, p)
+      call write_solution(par_env, case_name, t, nsteps, dt, mesh, output_field_list)
     endif
   end do
 
