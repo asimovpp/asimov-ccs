@@ -1,3 +1,7 @@
+!v Submodule file io_visualisation_common.smod
+!
+!  An implementation of the visualisation-related IO routines
+
 submodule(io_visualisation) io_visualisation_common
 #include "ccs_macros.inc"
 
@@ -7,47 +11,52 @@ submodule(io_visualisation) io_visualisation_common
 
 contains
 
+  !> Write the flow solution for the current time-step to file
   module subroutine write_solution(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env
-    character(len=:), allocatable, intent(in) :: case_name
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    real(ccs_real), intent(in) :: dt
-    type(ccs_mesh), intent(in) :: mesh
-    type(output_list), dimension(:), intent(inout) :: output_field_list
+    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    integer(ccs_int), intent(in) :: step                                     !< The current time-step count
+    integer(ccs_int), intent(in) :: maxstep                                  !< The maximum time-step count
+    real(ccs_real), intent(in) :: dt                                         !< The time-step size
+    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
+    type(output_list), dimension(:), intent(inout) :: output_field_list      !< List of fields to output
 
+    ! Write the required fields ('heavy' data)
     call write_fields(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
 
+    ! Write the XML descriptor ('light' data)
     call write_xdmf(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
 
   end subroutine
 
+  !> Write the XML descriptor file, which describes the grid and flow data in the 'heavy' data files
   module subroutine write_xdmf(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
 
     use case_config, only: write_gradients
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env
-    character(len=:), allocatable, intent(in) :: case_name
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    real(ccs_real), intent(in) :: dt
-    type(ccs_mesh), intent(in) :: mesh
-    type(output_list), dimension(:), intent(inout) :: output_field_list
+    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    integer(ccs_int), intent(in) :: step                                     !< The current time-step count
+    integer(ccs_int), intent(in) :: maxstep                                  !< The maximum time-step count
+    real(ccs_real), intent(in) :: dt                                         !< The time-step size
+    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
+    type(output_list), dimension(:), intent(inout) :: output_field_list      !< List of fields to output
 
     ! Local variables
-    character(len=:), allocatable :: xdmf_file
-    character(len=:), allocatable :: sol_file
-    character(len=:), allocatable :: geo_file
-    integer(ccs_int), save :: ioxdmf
-    integer(ccs_int), save :: step_counter = 0
+    character(len=:), allocatable :: xdmf_file   ! Name of the XDMF (XML) file
+    character(len=:), allocatable :: sol_file    ! Name of the solution file
+    character(len=:), allocatable :: geo_file    ! Name of the mesh file
+    integer(ccs_int), save :: ioxdmf             ! IO unit of the XDMF file
+    integer(ccs_int), save :: step_counter = 0   ! ADIOS2 step counter
 
     xdmf_file = case_name//'.sol.xmf'
     sol_file = case_name//'.sol.h5'
     geo_file = case_name//'.geo'
 
+    ! On first call, write the header of the XML file
     if (step == 1) then
       if (par_env%proc_id == par_env%root) then
         ! Open file
@@ -126,7 +135,7 @@ contains
 
     end associate
 
-    ! Close file
+    ! On final call, write the closing tags and close the XML file
     if (step == maxstep) then
       write(ioxdmf, '(a)')          '    </Grid>'
       write(ioxdmf, '(a)')          '  </Domain>'
@@ -134,6 +143,7 @@ contains
       close(ioxdmf)
     endif
 
+    ! Increment ADIOS2 step counter
     step_counter = step_counter + 1
 
   end subroutine write_xdmf

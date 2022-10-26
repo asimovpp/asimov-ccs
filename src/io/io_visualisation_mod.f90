@@ -17,34 +17,37 @@ module io_visualisation
 
   interface
 
+  !> Write the flow solution for the current time-step to file
   module subroutine write_solution(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
-    class(parallel_environment), allocatable, target, intent(in) :: par_env
-    character(len=:), allocatable, intent(in) :: case_name
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    real(ccs_real), intent(in) :: dt
-    type(ccs_mesh), intent(in) :: mesh
-    type(output_list), dimension(:), intent(inout) :: output_field_list
+    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    integer(ccs_int), intent(in) :: step                                     !< The current time-step count
+    integer(ccs_int), intent(in) :: maxstep                                  !< The maximum time-step count
+    real(ccs_real), intent(in) :: dt                                         !< The time-step size
+    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
+    type(output_list), dimension(:), intent(inout) :: output_field_list      !< List of fields to output
   end subroutine
 
+  !> Write the field data to file
   module subroutine write_fields(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
-    class(parallel_environment), allocatable, target, intent(in) :: par_env
-    character(len=:), allocatable, intent(in) :: case_name
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    real(ccs_real), intent(in) :: dt
-    type(ccs_mesh), intent(in) :: mesh
-    type(output_list), dimension(:), intent(inout) :: output_field_list
+    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    integer(ccs_int), intent(in) :: step                                     !< The current time-step count
+    integer(ccs_int), intent(in) :: maxstep                                  !< The maximum time-step count
+    real(ccs_real), intent(in) :: dt                                         !< The time-step size
+    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
+    type(output_list), dimension(:), intent(inout) :: output_field_list      !< List of fields to output
   end subroutine
 
+  !> Write the XML descriptor of the field data and grid
   module subroutine write_xdmf(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
-    class(parallel_environment), allocatable, target, intent(in) :: par_env
-    character(len=:), allocatable, intent(in) :: case_name
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    real(ccs_real), intent(in) :: dt
-    type(ccs_mesh), intent(in) :: mesh
-    type(output_list), dimension(:), intent(inout) :: output_field_list
+    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    integer(ccs_int), intent(in) :: step                                     !< The current time-step count
+    integer(ccs_int), intent(in) :: maxstep                                  !< The maximum time-step count
+    real(ccs_real), intent(in) :: dt                                         !< The time-step size
+    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
+    type(output_list), dimension(:), intent(inout) :: output_field_list      !< List of fields to output
   end subroutine
 
   end interface
