@@ -69,11 +69,11 @@ program tgv
   logical :: w_sol = .true.
   logical :: p_sol = .true.
 
-  real(ccs_real) :: dt       ! The timestep
-  integer(ccs_int) :: t      ! Timestep counter
-  integer(ccs_int) :: nsteps ! Number of timesteps to perform
-  real(ccs_real) :: CFL      ! The CFL target
-  integer(ccs_int) :: save_freq
+  real(ccs_real) :: dt           ! The timestep
+  integer(ccs_int) :: t          ! Timestep counter
+  integer(ccs_int) :: nsteps     ! Number of timesteps to perform
+  real(ccs_real) :: CFL          ! The CFL target
+  integer(ccs_int) :: save_freq  ! Frequency of saving solution data to file
 
 #ifndef EXCLUDE_MISSING_INTERFACE
   integer(ccs_int) :: ierr
@@ -230,7 +230,7 @@ program tgv
   CFL = 0.1_ccs_real
   !dt = 0.1_ccs_real !FL * (3.14_ccs_real / cps)
   dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 2
+  nsteps = 4000
   save_freq = 20
 
   ! Write out mesh to file
