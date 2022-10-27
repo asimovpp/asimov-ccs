@@ -1,3 +1,6 @@
+!v Submodule file io_visualisation_adios2.smod
+!
+!  Implementation (using MPI and ADIOS2) of parallel IO visualisation-realted routines
 submodule(io_visualisation) io_visualisation_adios2
 #include "ccs_macros.inc"
 
@@ -11,7 +14,8 @@ submodule(io_visualisation) io_visualisation_adios2
 
   contains
 
-module subroutine write_fields(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
+  !> Write the field data to file
+  module subroutine write_fields(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
@@ -20,18 +24,18 @@ module subroutine write_fields(par_env, case_name, step, maxstep, dt, mesh, outp
     use case_config, only: write_gradients
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env
-    character(len=:), allocatable, intent(in) :: case_name
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    real(ccs_real), intent(in) :: dt
-    type(ccs_mesh), intent(in) :: mesh
-    type(output_list), dimension(:), intent(inout) :: output_field_list
+    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    integer(ccs_int), intent(in) :: step                                     !< The current time-step count
+    integer(ccs_int), intent(in) :: maxstep                                  !< The maximum time-step count
+    real(ccs_real), intent(in) :: dt                                         !< The time-step size
+    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
+    type(output_list), dimension(:), intent(inout) :: output_field_list      !< List of fields to output
 
     ! Local variables
-    character(len=:), allocatable :: sol_file
-    character(len=:), allocatable :: adios2_file
-    character(len=:), allocatable :: data_name
+    character(len=:), allocatable :: sol_file     ! Solution file name
+    character(len=:), allocatable :: adios2_file  ! ADIOS2 config file name
+    character(len=:), allocatable :: data_name    ! String for storing data path in file
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_writer
@@ -119,6 +123,7 @@ module subroutine write_fields(par_env, case_name, step, maxstep, dt, mesh, outp
 
   end subroutine
 
+  !< Begin a new step in the data file
   subroutine begin_step(io_proc)
     class(io_process), intent(inout) :: io_proc
 
@@ -135,6 +140,7 @@ module subroutine write_fields(par_env, case_name, step, maxstep, dt, mesh, outp
     end select
   end subroutine
 
+  !< End current step in the data file and flush IO
   subroutine end_step(io_proc)
     class(io_process), intent(inout) :: io_proc
 
