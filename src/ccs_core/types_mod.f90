@@ -160,11 +160,11 @@ module types
   type, public, extends(field) :: face_field
   end type
 
-  !> Type for storing pointer to a field to output
-  type, public :: output_list
+  !> Type for storing pointer to a field
+  type, public :: field_ptr
     class(field), pointer :: ptr => null()   !< Pointer to the field data
     character(len=:), allocatable :: name    !< Name of the field
-  end type output_list
+  end type field_ptr
 
   !v Cell locator
   !

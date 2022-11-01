@@ -8,11 +8,12 @@ program tgv2d
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
+  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
+                         write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector
+                   vector_spec, ccs_vector, field_ptr
   use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -22,11 +23,12 @@ program tgv2d
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy
+  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
+                   add_field_to_outputlist
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use io, only: write_solution
+  use io_visualisation, only: write_solution
   use fv, only: update_gradient
 
   implicit none
@@ -40,7 +42,9 @@ program tgv2d
   type(vector_spec) :: vec_properties
   real(ccs_real) :: L
 
-  class(field), allocatable :: u, v, w, p, p_prime, mf
+  class(field), allocatable, target :: u, v, w, p, p_prime, mf
+
+  type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
@@ -57,10 +61,10 @@ program tgv2d
   logical :: w_sol = .false.
   logical :: p_sol = .true.
 
-  real(ccs_real) :: dt       ! The timestep
-  integer(ccs_int) :: t      ! Timestep counter
-  integer(ccs_int) :: nsteps ! Number of timesteps to perform
-  real(ccs_real) :: CFL      ! The CFL target
+  real(ccs_real) :: dt          ! The timestep
+  integer(ccs_int) :: t         ! Timestep counter
+  integer(ccs_int) :: nsteps    ! Number of timesteps to perform
+  real(ccs_real) :: CFL         ! The CFL target
   integer(ccs_int) :: save_freq ! Frequency of saving solution
 
 #ifndef EXCLUDE_MISSING_INTERFACE
@@ -105,6 +109,16 @@ program tgv2d
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
+
+  ! Add fields to output list
+  allocate(output_list(4))
+  call add_field_to_outputlist(u, "u", output_list)
+  call add_field_to_outputlist(v, "v", output_list)
+  call add_field_to_outputlist(w, "w", output_list)
+  call add_field_to_outputlist(p, "p", output_list)
+
+  ! Write gradients to solution file
+  write_gradients = .true.
 
   ! Read boundary conditions
   call get_boundary_count(ccs_config_file, n_boundaries)
@@ -195,7 +209,7 @@ program tgv2d
   CFL = 0.1_ccs_real
   dt = CFL * (3.14_ccs_real / cps)
   nsteps = 4000
-  save_freq = 10
+  save_freq = 20
 
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
@@ -204,7 +218,7 @@ program tgv2d
   call set_timestep(dt)
   do t = 1, nsteps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf, t)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
@@ -212,9 +226,9 @@ program tgv2d
     call update_gradient(mesh, v)
     call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, t, u, v, w)
-    print *, t
+
     if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
-      call write_solution(par_env, case_name, t, nsteps, dt, mesh, cps, u, v, w, p)
+      call write_solution(par_env, case_name, mesh, output_list, t, nsteps, dt)
     endif
   end do
 
@@ -264,6 +278,7 @@ program tgv2d
   deallocate (w)
   deallocate (p)
   deallocate (p_prime)
+  deallocate (output_list)
 
   call timer(end_time)
 

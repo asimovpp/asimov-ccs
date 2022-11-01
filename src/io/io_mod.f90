@@ -4,7 +4,7 @@
 module io
 
   use iso_fortran_env, only: int32, int64, real32, real64
-  use types, only: io_environment, io_process, ccs_mesh, field, output_list
+  use types, only: io_environment, io_process
   use parallel_types, only: parallel_environment
   use constants, only: ndim, adiosconfig
   use kinds, only: ccs_int, ccs_real

@@ -376,12 +376,12 @@ contains
 
   subroutine add_field_to_outputlist(var, name, list)
 
-    use types, only: field, output_list
+    use types, only: field, field_ptr
 
     ! Arguments
     class(field), pointer, intent(in) :: var
     character(len=*), intent(in) :: name
-    type(output_list), dimension(:), intent(inout) :: list
+    type(field_ptr), dimension(:), intent(inout) :: list
 
     ! Local variables
     integer(ccs_int), save :: count = 0

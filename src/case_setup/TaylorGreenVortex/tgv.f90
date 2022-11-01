@@ -11,7 +11,7 @@ program tgv
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   output_list
+                   field_ptr
   use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -51,7 +51,7 @@ program tgv
 
   class(field), allocatable, target :: u, v, w, p, p_prime, mf
 
-  type(output_list), allocatable :: output_field_list(:)
+  type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 64
@@ -127,11 +127,11 @@ program tgv
   allocate (face_field :: mf)
 
   ! Add fields to output list
-  allocate(output_field_list(4))
-  call add_field_to_outputlist(u, "u", output_field_list)
-  call add_field_to_outputlist(v, "v", output_field_list)
-  call add_field_to_outputlist(w, "w", output_field_list)
-  call add_field_to_outputlist(p, "p", output_field_list)
+  allocate(output_list(4))
+  call add_field_to_outputlist(u, "u", output_list)
+  call add_field_to_outputlist(v, "v", output_list)
+  call add_field_to_outputlist(w, "w", output_list)
+  call add_field_to_outputlist(p, "p", output_list)
 
   ! Write gradients to solution file
   write_gradients = .true.
@@ -228,7 +228,6 @@ program tgv
   if (irank == par_env%root) print *, "Start SIMPLE"
 
   CFL = 0.1_ccs_real
-  !dt = 0.1_ccs_real !FL * (3.14_ccs_real / cps)
   dt = CFL * (3.14_ccs_real / cps)
   nsteps = 4000
   save_freq = 20
@@ -240,7 +239,7 @@ program tgv
   call set_timestep(dt)
   do t = 1, nsteps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf, t)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
@@ -248,9 +247,9 @@ program tgv
     call update_gradient(mesh, v)
     call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, t, u, v, w)
-    print *, t
+
     if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
-      call write_solution(par_env, case_name, t, nsteps, dt, mesh, output_field_list)
+      call write_solution(par_env, case_name, mesh, output_list, t, nsteps, dt)
     endif
   end do
 
@@ -300,6 +299,7 @@ program tgv
   deallocate (w)
   deallocate (p)
   deallocate (p_prime)
+  deallocate (output_list)
 
   call timer(end_time)
 

@@ -8,11 +8,12 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
+  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
+                         write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector
+                   vector_spec, ccs_vector, field_ptr
   use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -22,10 +23,10 @@ program ldc
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print
+  use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use io, only: write_solution
+  use io_visualisation, only: write_solution
 
   implicit none
 
@@ -37,7 +38,9 @@ program ldc
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
-  class(field), allocatable :: u, v, w, p, p_prime, mf
+  class(field), allocatable, target :: u, v, w, p, p_prime, mf
+
+  type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
@@ -96,6 +99,16 @@ program ldc
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
+
+  ! Add fields to output list
+  allocate(output_list(4))
+  call add_field_to_outputlist(u, "u", output_list)
+  call add_field_to_outputlist(v, "v", output_list)
+  call add_field_to_outputlist(w, "w", output_list)
+  call add_field_to_outputlist(p, "p", output_list)
+
+  ! Write gradients to solution file
+  !write_gradients = .true.
 
   ! Read boundary conditions
   call get_boundary_count(ccs_config_file, n_boundaries)
@@ -199,7 +212,7 @@ program ldc
 
   ! Write out mesh and solution
   call write_mesh(par_env, case_name, mesh)
-  call write_solution(par_env, case_name, mesh, cps, u, v, p)
+  call write_solution(par_env, case_name, mesh, output_list)
 
   ! Clean-up
   deallocate (u)
@@ -207,6 +220,7 @@ program ldc
   deallocate (w)
   deallocate (p)
   deallocate (p_prime)
+  deallocate (output_list)
 
   call timer(end_time)
 

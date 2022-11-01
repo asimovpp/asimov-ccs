@@ -15,22 +15,22 @@ submodule(io_visualisation) io_visualisation_adios2
   contains
 
   !> Write the field data to file
-  module subroutine write_fields(par_env, case_name, step, maxstep, dt, mesh, output_field_list)
+  module subroutine write_fields(par_env, case_name, mesh, output_list, step, maxstep, dt)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
     use vec, only : get_vector_data, restore_vector_data
-    use types, only: output_list
+    use types, only: field_ptr
     use case_config, only: write_gradients
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
-    integer(ccs_int), intent(in) :: step                                     !< The current time-step count
-    integer(ccs_int), intent(in) :: maxstep                                  !< The maximum time-step count
-    real(ccs_real), intent(in) :: dt                                         !< The time-step size
     type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
-    type(output_list), dimension(:), intent(inout) :: output_field_list      !< List of fields to output
+    type(field_ptr), dimension(:), intent(inout) :: output_list              !< List of fields to output
+    integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
+    integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
+    real(ccs_real), optional, intent(in) :: dt                               !< The time-step size
 
     ! Local variables
     character(len=:), allocatable :: sol_file     ! Solution file name
@@ -57,7 +57,15 @@ submodule(io_visualisation) io_visualisation_adios2
     sol_file = case_name//'.sol.h5'
     adios2_file = case_name//adiosconfig
 
-    if (step == 1) then
+    if (present(step)) then
+      ! Unsteady case
+      if (step == 1) then
+        call initialise_io(par_env, adios2_file, io_env)
+        call configure_io(io_env, "sol_writer", sol_writer)
+        call open_file(sol_file, "write", sol_writer)
+      endif
+    else
+      ! Steady case
       call initialise_io(par_env, adios2_file, io_env)
       call configure_io(io_env, "sol_writer", sol_writer)
       call open_file(sol_file, "write", sol_writer)
@@ -80,44 +88,49 @@ submodule(io_visualisation) io_visualisation_adios2
     call begin_step(sol_writer)
 
     ! Loop over output list and write out
-    do i = 1, size(output_field_list)
-      call get_vector_data(output_field_list(i)%ptr%values, data)
-      data_name = "/" // trim(output_field_list(i)%name)
+    do i = 1, size(output_list)
+      call get_vector_data(output_list(i)%ptr%values, data)
+      data_name = "/" // trim(output_list(i)%name)
       call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-      call restore_vector_data(output_field_list(i)%ptr%values, data)
+      call restore_vector_data(output_list(i)%ptr%values, data)
     end do
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
     if (write_gradients) then
-      do i = 1, size(output_field_list)
+      do i = 1, size(output_list)
         ! x-gradient
-        call get_vector_data(output_field_list(i)%ptr%x_gradients, data)
-        data_name = "/d" // trim(output_field_list(i)%name) // "dx"
+        call get_vector_data(output_list(i)%ptr%x_gradients, data)
+        data_name = "/d" // trim(output_list(i)%name) // "dx"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_field_list(i)%ptr%x_gradients, data)
+        call restore_vector_data(output_list(i)%ptr%x_gradients, data)
 
         ! y-gradient
-        call get_vector_data(output_field_list(i)%ptr%y_gradients, data)
-        data_name = "/d" // trim(output_field_list(i)%name) // "dy"
+        call get_vector_data(output_list(i)%ptr%y_gradients, data)
+        data_name = "/d" // trim(output_list(i)%name) // "dy"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_field_list(i)%ptr%y_gradients, data)
+        call restore_vector_data(output_list(i)%ptr%y_gradients, data)
 
         ! z-gradient
-        call get_vector_data(output_field_list(i)%ptr%z_gradients, data)
-        data_name = "/d" // trim(output_field_list(i)%name) // "dz"
+        call get_vector_data(output_list(i)%ptr%z_gradients, data)
+        data_name = "/d" // trim(output_list(i)%name) // "dz"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_field_list(i)%ptr%z_gradients, data)
+        call restore_vector_data(output_list(i)%ptr%z_gradients, data)
       end do
     endif
 
     ! End step
     call end_step(sol_writer)
 
-    if (step == maxstep) then
-      ! Close the file and ADIOS2 engine
+    ! Close the file and finalise ADIOS2 IO environment
+    if (present(step)) then
+      ! Unsteady case
+      if (step == maxstep) then
+        call close_file(sol_writer)
+        call cleanup_io(io_env)
+      endif
+    else
+      ! Steady case
       call close_file(sol_writer)
-
-      ! Finalise the ADIOS2 IO environment
       call cleanup_io(io_env)
     endif
 
