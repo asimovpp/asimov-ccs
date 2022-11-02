@@ -7,12 +7,12 @@ submodule(read_config) read_config_utils
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, debug_print, str
-  use yaml_types, only: type_dictionary, &
-                        type_error, &
-                        type_list, &
-                        type_list_item, &
-                        type_scalar
-  use yaml, only: parse, error_length
+  use fortran_yaml_c_interface, only: parse
+  use fortran_yaml_c_types, only: type_dictionary, &
+                                  type_error, &
+                                  type_list, &
+                                  type_list_item, &
+                                  type_scalar
   use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type, allocate_bc_arrays
 
   implicit none
@@ -31,19 +31,19 @@ contains
     character(len=*), intent(in) :: keyword   !< The key
     integer, intent(out) :: int_val           !< The corresponding value
 
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (dict)
     type is (type_dictionary)
 
       int_val = dict%get_integer(keyword, error=io_err)
-      call error_handler(io_err)
+      ! call error_handler(io_err)
 
     class default
       call error_abort("Unknown type")
     end select
 
-    if (associated(io_err) .eqv. .true.) then
+    if (allocated(io_err) .eqv. .true.) then
       call error_abort("Error reading " // keyword)
     end if
 
@@ -59,14 +59,14 @@ contains
     logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
     logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
 
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (dict)
     type is (type_dictionary)
 
       real_val = dict%get_real(keyword, error=io_err)
       if (present(value_present)) then
-        if (associated(io_err)) then
+        if (allocated(io_err)) then
           value_present = .false.
         else
           value_present = .true.
@@ -74,7 +74,7 @@ contains
       end if
       if (present(required)) then
         if (required .eqv. .true.) then
-          call error_handler(io_err)
+          ! call error_handler(io_err)
         end if
       end if
 
@@ -82,7 +82,7 @@ contains
       call error_abort("Unknown type")
     end select
 
-    if ((associated(io_err) .eqv. .true.) .and. present(required)) then
+    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
         call error_abort("Error reading " // keyword)
       end if
@@ -98,14 +98,14 @@ contains
     logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
     logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (dict)
     type is (type_dictionary)
 
       string_val = trim(dict%get_string(keyword, error=io_err))
       if (present(value_present)) then
-        if (associated(io_err)) then
+        if (allocated(io_err)) then
           value_present = .false.
         else
           value_present = .true.
@@ -113,7 +113,7 @@ contains
       end if
       if (present(required)) then
         if (required .eqv. .true.) then
-          call error_handler(io_err)
+          !call error_handler(io_err)
         end if
       end if
 
@@ -121,7 +121,7 @@ contains
       call error_abort("Unknown type")
     end select
 
-    if ((associated(io_err) .eqv. .true.) .and. present(required)) then
+    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
         call error_abort("Error reading " // keyword)
       end if
@@ -172,7 +172,7 @@ contains
     integer, optional, intent(inout) :: ed_init          !< initial value for ed
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -223,7 +223,7 @@ contains
     integer, optional, intent(inout) :: pref_at_cell    !< cell at which the reference pressure is set
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -292,7 +292,7 @@ contains
     character(len=:), allocatable, optional, intent(inout) :: p_sol   !< solve p on/off
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -341,7 +341,7 @@ contains
     integer, optional, intent(inout) :: ed_solver !< solver to be used for ed
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -395,7 +395,7 @@ contains
     integer, intent(inout) :: max_sub_steps                        !< maximum number of sub-iterations at each time step
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -457,7 +457,7 @@ contains
     integer, optional, intent(inout) :: ed_conv  !< convection scheme for ed
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -502,7 +502,7 @@ contains
     real(ccs_real), optional, intent(inout) :: ed_blend !< blending factor for ed
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -547,7 +547,7 @@ contains
     real(ccs_real), optional, intent(inout) :: ed_relax !< relaxation factor for ed
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -589,7 +589,7 @@ contains
     integer, intent(inout) :: output_iter        !< output files are written every output_iter/steps
 
     class(*), pointer :: dict
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
 
     select type (config_file)
     type is (type_dictionary)
@@ -623,7 +623,7 @@ contains
     class(*), pointer :: dict
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
     integer :: idx
 
     select type (config_file)
@@ -637,7 +637,7 @@ contains
       type is (type_dictionary)
 
         list => dict%get_list('variables', required=.false., error=io_err)
-        call error_handler(io_err)
+        ! call error_handler(io_err)
 
         item => list%first
         idx = 1
@@ -667,18 +667,18 @@ contains
 
     class(*), pointer :: config_file
     class(*), pointer :: dict
-    character(len=error_length) :: error
-    type(type_error), pointer :: io_err
+    character(:), allocatable :: error
+    type(type_error), allocatable :: io_err
 
-    config_file => parse(filename, error=error)
-    if (error /= '') then
+    config_file => parse(filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      call error_handler(io_err)
+      !call error_handler(io_err)
 
       call get_value(dict, "n_boundaries", n_boundaries)
     class default
@@ -693,22 +693,22 @@ contains
     class(*), pointer :: config_file
     class(*), pointer :: dict
     class(*), pointer :: dict_var
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
     integer(ccs_int) :: i
     integer(ccs_int) :: n_var
     character(len=25) :: key
     character(len=:), allocatable :: variable
-    character(len=error_length) :: error
+    character(:), allocatable :: error
 
-    config_file => parse(filename, error=error)
-    if (error /= '') then
+    config_file => parse(filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      call error_handler(io_err)
+      ! call error_handler(io_err)
 
       call get_value(dict, "n_variables", n_var)
       allocate (variables(n_var))
@@ -718,7 +718,7 @@ contains
         select type (dict)
         type is (type_dictionary)
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
-          call error_handler(io_err)
+          ! call error_handler(io_err)
           call get_value(dict_var, "name", variable)
           write (variables(i), '(A)') trim(variable)
         class default
@@ -741,7 +741,7 @@ contains
     class(*), pointer :: dict2
     integer(ccs_int) :: i
     integer(ccs_int) :: n_boundaries
-    type(type_error), pointer :: io_err
+    type(type_error), allocatable :: io_err
     character(len=:), allocatable :: bc_field_string
     character(len=25) :: boundary_index
 
@@ -755,7 +755,7 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      call error_handler(io_err)
+      ! call error_handler(io_err)
 
       i = 1
       n_boundaries = size(phi%bcs%ids)
@@ -764,7 +764,7 @@ contains
         select type (dict)
         type is (type_dictionary)
           dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
-          call error_handler(io_err)
+          ! call error_handler(io_err)
 
           select case (bc_field)
           case ("name")
@@ -785,7 +785,7 @@ contains
             type is (type_dictionary)
               write (variable, '(A, A)') "variable_", bc_field
               variable_dict => dict2%get_dictionary(variable, required=.false., error=io_err)
-              call error_handler(io_err)
+              ! call error_handler(io_err)
 
               if (associated(variable_dict)) then
                 call get_value(variable_dict, "type", bc_type, field_exists)
