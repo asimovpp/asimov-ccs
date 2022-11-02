@@ -3,3 +3,4 @@
 
 main: test_square_mesh_indices
 base: mpi
+extra: parhip

@@ -23,6 +23,7 @@ module vec
   public :: begin_update_vector
   public :: end_update_vector
   public :: vec_axpy
+  public :: vec_aypx
   public :: vec_norm
   public :: initialise_vector
   public :: set_vector_size
@@ -39,10 +40,10 @@ module vec
     !> Interface to create a new vector object.
     module subroutine create_vector(vec_properties, v)
       type(vector_spec), intent(in) :: vec_properties  !< Data structure containing the global and local sizes
-                                                       !< of the vector, -1 is interpreted as unset. If both
-                                                       !< are set the local size is used.
+      !< of the vector, -1 is interpreted as unset. If both
+      !< are set the local size is used.
       class(ccs_vector), allocatable, intent(out) :: v !< The vector returned allocated,
-                                                       !< but (potentially) uninitialised.
+      !< but (potentially) uninitialised.
     end subroutine
 
     !> Interface to set values in a vector.
@@ -111,11 +112,22 @@ module vec
       class(ccs_vector), intent(inout) :: y !< vector serving as input, overwritten with result
     end subroutine
 
+    !v Interface to perform the AYPX vector operation.
+    !
+    !  Performs the AYPX operation
+    !
+    !        y[i] = x[i] + beta * y[i]
+    module subroutine vec_aypx(x, beta, y)
+      class(ccs_vector), intent(in) :: x    !< an input vector
+      real(ccs_real), intent(in) :: beta    !< a scalar value
+      class(ccs_vector), intent(inout) :: y !< vector serving as input, overwritten with result
+    end subroutine
+
     !> Interface to compute the norm of a vector
     module function vec_norm(v, norm_type) result(n)
       class(ccs_vector), intent(in) :: v !< the vector
       integer(ccs_int), intent(in) :: norm_type !< which norm to compute?
-                                                !< Currently supported is the 2 norm: norm_type=2.
+      !< Currently supported is the 2 norm: norm_type=2.
       real(ccs_real) :: n !< the computed norm returned as the result of the function call.
     end function
 
@@ -127,20 +139,20 @@ module vec
     !> Setter for vector size
     module subroutine set_vector_size(par_env, mesh, vec_properties)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< the parallel environment
-                                                                              !< where the vector resides
+      !< where the vector resides
       class(ccs_mesh), target, intent(in) :: mesh !< the mesh - contains the information to set the vector size
       type(vector_spec), intent(inout) :: vec_properties !< the vector data object
     end subroutine set_vector_size
 
     !> Gets the data in a given vector
     module subroutine get_vector_data(vec, array)
-      class(ccs_vector), intent(in) :: vec                        !< the vector to get data from
+      class(ccs_vector), intent(inout) :: vec                        !< the vector to get data from
       real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     end subroutine get_vector_data
 
     !> Resets the vector data if required for further processing
     module subroutine restore_vector_data(vec, array)
-      class(ccs_vector), intent(in) :: vec                       !< the vector to reset
+      class(ccs_vector), intent(inout) :: vec                       !< the vector to reset
       real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
     end subroutine restore_vector_data
 

@@ -39,7 +39,8 @@ contains
         call MatCreate(par_env%comm, M%M, ierr)
 
         associate (mesh => mat_properties%mesh)
-          call MatSetSizes(M%M, mesh%nlocal, mesh%nlocal, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+          call MatSetSizes(M%M, mesh%topo%local_num_cells, mesh%topo%local_num_cells, &
+                           PETSC_DETERMINE, PETSC_DETERMINE, ierr)
         end associate
 
         if (ierr == 0) then
@@ -231,13 +232,13 @@ contains
   end subroutine
 
   !> Clear working set of values to begin new working set.
-  module procedure clear_matrix_values_entries
+  module subroutine clear_matrix_values_entries(val_dat)
+    type(matrix_values), intent(inout) :: val_dat !< Working set object
 
     val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
     val_dat%global_col_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
     val_dat%values(:) = 0.0_ccs_real
-
-  end procedure clear_matrix_values_entries
+  end subroutine clear_matrix_values_entries
 
   !> Set working row.
   module subroutine set_matrix_values_row(row, val_dat)
@@ -248,9 +249,9 @@ contains
 
     ! Local
     integer(ccs_int), dimension(1) :: rglobs ! Temporary array mapping rows to indices in the
-                                             ! current working set. N.B. the dimension of this
-                                             ! array must match the rank of
-                                             ! matrix_values%global_row_indices!
+    ! current working set. N.B. the dimension of this
+    ! array must match the rank of
+    ! matrix_values%global_row_indices!
     integer(ccs_int) :: i         ! The mapped index in the current working set
     logical :: new_entry          ! Flag to indicate if we are revisiting a row
     integer(ccs_int) :: petsc_row ! The (zero-indexed) row as used by PETSc
@@ -286,9 +287,9 @@ contains
 
     ! Local
     integer(ccs_int), dimension(1) :: cglobs ! Temporary array mapping columns to indices in the
-                                             ! current working set. N.B. the dimension of this
-                                             ! array must match the rank of
-                                             ! matrix_values%global_col_indices!
+    ! current working set. N.B. the dimension of this
+    ! array must match the rank of
+    ! matrix_values%global_col_indices!
     integer(ccs_int) :: i         ! The mapped index in the current working set
     logical :: new_entry          ! Flag to indicate if we are revisiting a column
     integer(ccs_int) :: petsc_col ! The (zero-indexed) column as used by PETSc
@@ -452,5 +453,43 @@ contains
     end select
 
   end subroutine zero_matrix
+
+  !> Compute matrix-vector product
+  module subroutine mat_vec_product(M, x, y)
+
+    use petscmat, only: MatMult
+
+    ! Arguments
+    class(ccs_matrix), intent(in) :: M
+    class(ccs_vector), intent(in) :: x
+    class(ccs_vector), intent(inout) :: y
+
+    ! Local variables
+    integer(ccs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+
+      select type (x)
+      type is (vector_petsc)
+
+        select type (y)
+        type is (vector_petsc)
+
+          call MatMult(M%M, x%v, y%v, ierr)
+
+        class default
+          call error_abort("Unknown vector type.")
+        end select
+
+      class default
+        call error_abort("Unknown vector type.")
+      end select
+
+    class default
+      call error_abort("Unknown matrix type.")
+    end select
+
+  end subroutine mat_vec_product
 
 end submodule mat_petsc

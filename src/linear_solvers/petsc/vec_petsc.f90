@@ -38,6 +38,7 @@ contains
     type is (vector_petsc)
 
       v%modeset = .false.
+      v%checked_out = .false.
 
       select type (par_env => vec_properties%par_env)
       type is (parallel_environment_mpi)
@@ -46,9 +47,9 @@ contains
 
           select case (vec_properties%storage_location)
           case (cell)
-            associate (nhalo => mesh%nhalo, &
-                       nlocal => mesh%nlocal, &
-                       idx_global => mesh%global_indices)
+            associate (nhalo => mesh%topo%halo_num_cells, &
+                       nlocal => mesh%topo%local_num_cells, &
+                       idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo
                 global_halo_indices(i) = idx_global(i + nlocal) - 1_ccs_int
@@ -63,7 +64,7 @@ contains
             v%ghosted = .true.
           case (face)
             call VecCreate(par_env%comm, v%v, ierr)
-            call VecSetSizes(v%v, mesh%nfaces_local, PETSC_DECIDE, ierr)
+            call VecSetSizes(v%v, mesh%topo%num_faces, PETSC_DECIDE, ierr)
 
             ! Vector doesn't have ghost points, store this information
             v%ghosted = .false.
@@ -296,6 +297,39 @@ contains
 
   end subroutine
 
+  !v Perform the AYPX vector operation using PETSc
+  !
+  !          y[i] = x[i] + beta * y[i]
+  module subroutine vec_aypx(x, beta, y)
+
+    use petscvec, only: VecAYPX
+
+    real(ccs_real), intent(in) :: beta      !< a scalar value
+    class(ccs_vector), intent(in) :: x      !< a PETSc input vector
+    class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
+
+    integer(ccs_err) :: ierr ! Error code
+
+    select type (x)
+    type is (vector_petsc)
+
+      select type (y)
+      type is (vector_petsc)
+
+        call VecAYPX(y%v, beta, x%v, ierr)
+
+      class default
+        call error_abort("Unknown vector type.")
+
+      end select
+
+    class default
+      call error_abort("Unknown vector type.")
+
+    end select
+
+  end subroutine
+
   !> Compute the norm of a PETSc vector
   module function vec_norm(v, norm_type) result(n)
 
@@ -324,19 +358,22 @@ contains
 
   end function
 
-  module procedure clear_vector_values_entries
+  module subroutine clear_vector_values_entries(val_dat)
+    type(vector_values), intent(inout) :: val_dat
 
     val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
     val_dat%values(:) = 0.0_ccs_real
 
-  end procedure clear_vector_values_entries
+  end subroutine clear_vector_values_entries
 
-  module procedure set_vector_values_row
+  module subroutine set_vector_values_row(row, val_dat)
+    integer(ccs_int), intent(in) :: row
+    type(vector_values), intent(inout) :: val_dat
 
     integer(ccs_int), dimension(1) :: idxs !< Temporary array mapping rows to indices in the
-                                           !< current working set. N.B. the dimension of this
-                                           !< array must match the rank of
-                                           !< vector_values%global_indices.
+    !< current working set. N.B. the dimension of this
+    !< array must match the rank of
+    !< vector_values%global_indices.
     integer(ccs_int) :: i
     integer(ccs_int) :: petsc_row
 
@@ -356,17 +393,21 @@ contains
     val_dat%current_entry = i
     val_dat%global_indices(i) = petsc_row
 
-  end procedure set_vector_values_row
+  end subroutine set_vector_values_row
 
   !> Gets the data in a given vector
   module subroutine get_vector_data(vec, array)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
-    class(ccs_vector), intent(in) :: vec !< the vector to get data from
+    class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
 
     select type (vec)
     type is (vector_petsc)
+      if (vec%checked_out) then
+        call error_abort("ERROR: trying to access already checked-out vector")
+      end if
+
       if (vec%modeset) then
         call error_abort("WARNING: trying to access vector without updating")
       end if
@@ -377,6 +418,8 @@ contains
       else
         call VecGetArrayF90(vec%v, array, ierr)
       end if
+
+      vec%checked_out = .true.
     class default
       call error_abort('Invalid vector type.')
     end select
@@ -386,19 +429,26 @@ contains
   module subroutine restore_vector_data(vec, array)
     use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
 
-    class(ccs_vector), intent(in) :: vec !< the vector to reset
+    class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
 
     integer :: ierr
 
     select type (vec)
     type is (vector_petsc)
+      if (.not. vec%checked_out) then
+        call error_abort("ERROR: trying to double-restore vector")
+      end if
+
       if (vec%ghosted) then
         call VecRestoreArrayF90(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
         call VecRestoreArrayF90(vec%v, array, ierr)
       end if
+
+      vec%checked_out = .false.
+
     class default
       call error_abort('Invalid vector type.')
     end select

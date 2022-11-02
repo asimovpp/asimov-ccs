@@ -33,21 +33,29 @@ contains
     vec_properties%storage_location = loc
   end subroutine set_vector_location
 
-  module procedure create_vector_values
+  module subroutine create_vector_values(nrows, val_dat)
+    integer(ccs_int), intent(in) :: nrows
+    type(vector_values), intent(out) :: val_dat
     allocate (val_dat%global_indices(nrows))
     allocate (val_dat%values(nrows))
 
     val_dat%global_indices(:) = -1_ccs_int
     val_dat%values(:) = 0.0_ccs_real
-  end procedure create_vector_values
+  end subroutine create_vector_values
 
-  module procedure set_vector_values_mode
+  module subroutine set_vector_values_mode(mode, val_dat)
+    integer(ccs_int), intent(in) :: mode
+    type(vector_values), intent(inout) :: val_dat
+
     val_dat%setter_mode = mode
-  end procedure set_vector_values_mode
+  end subroutine set_vector_values_mode
 
-  module procedure set_vector_values_entry
+  module subroutine set_vector_values_entry(val, val_dat)
 
     use constants, only: add_mode, insert_mode
+
+    real(ccs_real), intent(in) :: val
+    type(vector_values), intent(inout) :: val_dat
 
     associate (x => val_dat%values(val_dat%current_entry), &
                mode => val_dat%setter_mode)
@@ -60,6 +68,6 @@ contains
       end if
     end associate
 
-  end procedure set_vector_values_entry
+  end subroutine set_vector_values_entry
 
 end submodule

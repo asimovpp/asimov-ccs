@@ -1,65 +1,123 @@
 ---
-title: TaylorGreenVortex
+title: LidDrivenCavity
 
-reference_numbers:
-    pressure: 101325.0
-    temperature: 289.0
-    density: 1.0
-    viscosity: 1.0e-05
-    pref_at_cell: 4096
+# "steps" - currently the number of iterations
+steps: 100
 
-steps: 1000
-
-solve:
-  w: off
-
-solver:
-  u: 12
-  v: 12
-
-init: 
-  type: user
-
-transient:
-  type: quad
-  dt: 0.0001
-  gamma: 1.0
-  max_sub_steps: 10
-
-target_residual: 1.0e-12
-
-monitor_cell: 8094
-
-convection_scheme:
-  u: 1
-  v: 1
-  w: 1
-
-blending_factor:
-  u: 1.0
-  v: 1.0
-  w: 1.0
-  
 relaxation_factor:
-  u: 0.8
-  v: 0.8
-  p: 0.5
+  u: 0.9
+  v: 0.9
+  w: 0.9
+  p: 0.1
 
-output:
-  every: 1000
+target_residual: 1.0e-10
 
-plot_format: vtk
+### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
-post:
-  type: center
-  variables: [u, v, w, p]
+#reference_numbers:
+#    pressure: 101325.0
+#    temperature: 289.0
+#    density: 1.0
+#    viscosity: 1.0e-03
+#    pref_at_cell: 4096
 
-boundary:
-  region: [left, right, top, bottom, live]
-  type: [periodic, periodic, periodic, periodic, sym]
-  vector: 
-  - [ 6.283195, 0, 0 ]
-  - [ 6.283195, 0, 0 ]
-  - [ 0, 6.283195, 0 ]
-  - [ 0, 6.283195, 0 ]
-  -
+#solve:
+#  w: off
+
+#init: 
+#  type: user
+
+#monitor_cell: 1990
+
+# 1 = central
+#convection_scheme:
+#  u: 1 
+#  v: 1
+#  w: 1
+
+#blending_factor:
+#  u: 1.0
+#  v: 1.0
+#  w: 1.0
+  
+#output:
+#  every: 1000
+
+#post:
+#  type: center
+#  variables: [u, v, w, p]
+
+variables:
+  n_variables: 5
+  variable_1:
+    name: u
+    type: central
+  variable_2:
+    name: v
+    type: central
+  variable_3:
+    name: w
+    type: central
+  variable_4:
+    name: p
+    type: central
+  variable_5:
+    name: p_prime
+    type: central
+
+boundaries:
+  n_boundaries: 6
+  boundary_1: 
+    name: left
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
+  boundary_2:
+    name: right
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
+  boundary_3:
+    name: bottom
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_4:
+    name: top
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_5:
+    name: back
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_w:
+      type: dirichlet
+      value: 0
+  boundary_6:
+    name: front
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_w:
+      type: dirichlet
+      value: 0
