@@ -8,11 +8,11 @@ submodule(read_config) read_config_utils
 
   use utils, only: exit_print, debug_print, str
   use fortran_yaml_c_interface, only: parse
-  use fortran_yaml_c_types, only: type_dictionary, &
-                                  type_error, &
-                                  type_list, &
-                                  type_list_item, &
-                                  type_scalar
+  use fortran_yaml_c, only: type_dictionary, &
+                            type_error, &
+                            type_list, &
+                            type_list_item, &
+                            type_scalar
   use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type, allocate_bc_arrays
 
   implicit none
