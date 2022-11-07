@@ -238,6 +238,7 @@ contains
 
     call get_local_index(loc_p, index_p)
     call get_vector_data(phi%values, phi_data)
+    call dprint("phi_data a b " // str(phi_data(index_p)) // " " // str(a) // " " // str(b))
     bc_value = 0.5_ccs_real * (phi_data(index_p) + (b + a * phi_data(index_p)))
     call restore_vector_data(phi%values, phi_data)
 
@@ -285,7 +286,7 @@ contains
 
       a = 1.0_ccs_real
       b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
-    case (bc_type_sym)
+    case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
         parallel_component_map = (/1, 1, 1/)
