@@ -69,6 +69,7 @@ contains
     type(cell_locator), intent(in) :: loc_p   !< cell location to check bc at
     type(face_locator), intent(in) :: loc_f   !< the face location at the boundary
 
+    type(vector_spec) :: vec_properties
     integer(ccs_int) :: component = 1
     real(ccs_real) :: expected_bc_value = 7.5
     real(ccs_real) :: bc_val
@@ -77,7 +78,12 @@ contains
     real(ccs_real), dimension(ndim) :: face_norm
 
     call get_face_normal(loc_f, face_norm)
+    call initialise(vec_properties)
+    call set_vector_location(cell, vec_properties)
+    call set_size(par_env, mesh, vec_properties)
     allocate (central_field :: dirichlet_field)
+    call create_vector(vec_properties, dirichlet_field%values)
+    call update(dirichlet_field%values)
     call allocate_bc_arrays(n_boundaries, dirichlet_field%bcs)
     dirichlet_field%bcs%bc_types = bc_type_dirichlet
     dirichlet_field%bcs%values = expected_bc_value
