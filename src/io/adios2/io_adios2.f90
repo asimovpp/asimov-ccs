@@ -592,9 +592,9 @@ contains
     end subroutine
   
 
-    !>  Write a 1D 32-bit integer array to file
+    !v Write a 1D 32-bit integer array to file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_int32_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of integer array to write
@@ -622,9 +622,9 @@ contains
 
     end subroutine
 
-    !>  Write a 1D 64-bit integer array from file
+    !v Write a 1D 64-bit integer array from file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_int64_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of integer array to write
@@ -652,9 +652,9 @@ contains
 
     end subroutine
 
-    !>  Write a 2D 32-bit integer array from file
+    !v Write a 2D 32-bit integer array from file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_int32_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of integer array to write
@@ -682,9 +682,9 @@ contains
 
     end subroutine
 
-    !>  Write a 2D 64-bit integer array from file
+    !v Write a 2D 64-bit integer array from file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_int64_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of integer array to write
@@ -712,9 +712,9 @@ contains
 
     end subroutine
 
-    !>  Write a 1D 32-bit real array from file
+    !v Write a 1D 32-bit real array from file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_real32_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of real array to write
@@ -742,9 +742,9 @@ contains
 
     end subroutine
 
-    !>  Write a 1D 64-bit real array from file
+    !v Write a 1D 64-bit real array from file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_real64_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of real array to write
@@ -776,9 +776,9 @@ contains
 
     end subroutine
 
-    !>  Write a 2D 32-bit real array from file
+    !v Write a 2D 32-bit real array from file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_real32_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of real array to write
@@ -806,9 +806,9 @@ contains
 
     end subroutine
 
-    !>  Write a 2D 64-bit real array from file
+    !v Write a 2D 64-bit real array from file
     !
-    !> @todo Check if the "mode" can be read from the configuration file
+    !  @todo Check if the "mode" can be read from the configuration file
     module subroutine write_array_real64_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                  !< ADIOS2 IO process used for writing
       character (len=*), intent(in) :: var_name                 !< Name of real array to write
