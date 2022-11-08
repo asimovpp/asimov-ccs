@@ -86,10 +86,10 @@ program ldc
   it_start = 1
   it_end = num_steps
 
-  ! Create a square mesh
+  ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)
-  !mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
+  !mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)      ! 2-D mesh
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -350,126 +350,5 @@ contains
     call restore_vector_data(mf%values, mf_data)
 
   end subroutine initialise_velocity
-
-!  subroutine write_solution(par_env, case_name, mesh, cps, u, v, p)
-!
-!    use io, only: initialise_io, cleanup_io, configure_io, &
-!                  open_file, close_file, write_array
-!    use kinds, only: ccs_long
-!    use constants, only: ndim, adiosconfig
-!    use types, only: io_environment, io_process
-!    use vec, only : get_vector_data
-
-    ! Arguments
-!    class(parallel_environment), allocatable, target, intent(in) :: par_env
-!    character(len=:), allocatable, intent(in) :: case_name
-!    type(ccs_mesh), intent(in) :: mesh
-!    integer(ccs_int), intent(in) :: cps
-!    class(field), intent(in) :: u, v, p
-
-    ! Local variables
-!    character(len=:), allocatable :: sol_file
-!    character(len=:), allocatable :: adios2_file
-!    character(len=:), allocatable :: xdmf_file
-
-!    class(io_environment), allocatable :: io_env
-!    class(io_process), allocatable :: sol_writer
-
-!    integer(ccs_long), dimension(1) :: sel_shape
-!    integer(ccs_long), dimension(1) :: sel_start
-!    integer(ccs_long), dimension(1) :: sel_count
-
-!    integer(ccs_long), dimension(2) :: sel2_shape
-!    integer(ccs_long), dimension(2) :: sel2_start
-!    integer(ccs_long), dimension(2) :: sel2_count
-
-!    real(ccs_real), dimension(:), pointer :: data
-
-!    integer(ccs_int), parameter :: ioxdmf = 999
-
-!    sol_file = case_name//'.solution.h5'
-!    adios2_file = case_name//adiosconfig
-!    xdmf_file = case_name//'.solution.xmf'
-
-!    call initialise_io(par_env, adios2_file, io_env)
-!    call configure_io(io_env, "sol_writer", sol_writer)
-
-!    call open_file(sol_file, "write", sol_writer)
-
-    ! 1D data
-!    sel_shape(1) = mesh%nglobal
-!    sel_start(1) = mesh%global_indices(1) - 1
-!    sel_count(1) = mesh%nlocal
-
-    ! 2D data
-!    sel2_shape(1) = ndim
-!    sel2_shape(2) = mesh%nglobal
-!    sel2_start(1) = 0
-!    sel2_start(2) = mesh%global_indices(1) - 1
-!    sel2_count(1) = ndim
-!    sel2_count(2) = mesh%nlocal
-
-    ! Write mesh cell centre coords
-!    call write_array(sol_writer, "/xp", sel2_shape, sel2_start, sel2_count, mesh%x_p)
-
-    ! Write u-velocity
-!    call get_vector_data(u%values, data)
-!    call write_array(sol_writer, "/u", sel_shape, sel_start, sel_count, data)
-
-    ! Write v-velocity
-!    call get_vector_data(v%values, data)
-!    call write_array(sol_writer, "/v", sel_shape, sel_start, sel_count, data)
-
-    ! Write v-velocity
-!    call get_vector_data(p%values, data)
-!    call write_array(sol_writer, "/p", sel_shape, sel_start, sel_count, data)
-
-    ! Close the file and ADIOS2 engine
-!    call close_file(sol_writer)
-
-    ! Finalise the ADIOS2 IO environment
-!    call cleanup_io(io_env)
-
-    ! Write XML file
-!    if (par_env%proc_id == par_env%root) then
-      ! Open file
-!      open(ioxdmf, file=xdmf_file, status='unknown')
-
-      ! Write file contents
-!      write(ioxdmf, '(a)') '<?xml version="1.0"?>'
-!      write(ioxdmf, '(a)') '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
-!      write(ioxdmf, '(a)') '<Xdmf Version="2.0">'
-!      write(ioxdmf, '(a)') '  <Domain>'
-!      write(ioxdmf, '(a)') '    <Grid Name="Mesh">'
-!      write(ioxdmf, '(a,i0,1x,i0,a)') '      <Topology Type="2DSMesh" NumberOfElements="',cps,cps,'"/>'
-!      write(ioxdmf, '(a)') '      <Geometry Type="XYZ">'
-!      write(ioxdmf, '(a,i0,1x,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,ndim,'" Format="HDF">'
-!      write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/xp'
-!      write(ioxdmf, '(a)') '        </DataItem>'
-!      write(ioxdmf, '(a)') '      </Geometry>'
-!      write(ioxdmf, '(a)') '      <Attribute Name="VelocityX" AttributeType="Scalar" Center="Node">'
-!      write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,'" Format="HDF">'
-!      write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/u'
-!      write(ioxdmf, '(a)') '        </DataItem>'
-!      write(ioxdmf, '(a)') '      </Attribute>'
-!      write(ioxdmf, '(a)') '      <Attribute Name="VelocityY" AttributeType="Scalar" Center="Node">'
-!      write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,'" Format="HDF">'
-!      write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/v'
-!      write(ioxdmf, '(a)') '        </DataItem>'
-!      write(ioxdmf, '(a)') '      </Attribute>'
-!      write(ioxdmf, '(a)') '      <Attribute Name="Pressure" AttributeType="Scalar" Center="Node">'
-!      write(ioxdmf, '(a,i0,1x,i0,a)') '        <DataItem Dimensions="',cps,cps,'" Format="HDF">'
-!      write(ioxdmf, '(a,a,a)') '          ',trim(sol_file),':/Step0/p'
-!      write(ioxdmf, '(a)') '        </DataItem>'
-!      write(ioxdmf, '(a)') '      </Attribute>'
-!      write(ioxdmf, '(a)') '    </Grid>'
-!      write(ioxdmf, '(a)') '  </Domain>'
-!      write(ioxdmf, '(a)') '</Xdmf>'
-
-      ! Close file
-!      close(ioxdmf)
-!    endif ! par_env%root
-
-!  end subroutine
 
 end program ldc
