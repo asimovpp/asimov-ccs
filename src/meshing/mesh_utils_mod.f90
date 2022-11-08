@@ -365,8 +365,8 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(io_process), allocatable, target, intent(in) :: geo_writer
-    type(ccs_mesh), intent(in) :: mesh
+    class(io_process), allocatable, target, intent(in) :: geo_writer        !< The IO process for writing the mesh ("geo") file
+    type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
 
     ! Local variables
     integer(ccs_long), dimension(1) :: sel_shape
@@ -413,8 +413,8 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(io_process), allocatable, target, intent(in) :: geo_writer
-    type(ccs_mesh), intent(inout) :: mesh
+    class(io_process), allocatable, target, intent(in) :: geo_writer        !< The IO process for writing the mesh ("geo") file
+    type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
     ! Local variables
     integer(ccs_long), dimension(1) :: sel_shape
