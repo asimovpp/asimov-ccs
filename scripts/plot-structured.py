@@ -19,13 +19,6 @@ def plot_field(field, fig, axs, index, nlevels, name):
     plt.colorbar(cf, cax=ax_cb)
     ax_cb.yaxis.tick_right()
 
-# Set mesh size
-cps = 50 # Cells per side (assumed square mesh)
-L   = 1.0 # Length of side (assumed square mesh)
-dx  = L / cps
-x   = np.linspace(0.5 * dx, L - 0.5 * dx, num=cps)
-mp  = int(np.floor((cps + 1) / 2))
-
 io = PetscBinaryIO.PetscBinaryIO()
 
 # Load data
@@ -39,6 +32,13 @@ else:
     u = io.readBinaryFile("u")
     v = io.readBinaryFile("v")
     outstub = ""
+
+# Set mesh size
+cps = int(len(p[0])**(1/2)) # Cells per side (assumed square mesh)
+L   = 1.0 # Length of side (assumed square mesh)
+dx  = L / cps
+x   = np.linspace(0.5 * dx, L - 0.5 * dx, num=cps)
+mp  = int(np.floor((cps + 1) / 2))
 
 # Reshape data
 P = np.reshape(p, (cps, cps))
