@@ -368,25 +368,6 @@ contains
     integer(ccs_long), dimension(2) :: sel2_start
     integer(ccs_long), dimension(2) :: sel2_count
 
-    !integer(ccs_int) :: vert_per_cell
-
-    ! Write attribute "ncel" - the total number of cells
-    !call write_scalar(geo_writer, "ncel", mesh%topo%global_num_cells)
-    ! Write attribute "nfac" - the total number of faces
-    !call write_scalar(geo_writer, "nfac", mesh%topo%global_num_faces)
-    ! Write attribute "maxfaces" - the maximum number of faces per cell
-    !call write_scalar(geo_writer, "nfac", mesh%topo%max_faces)
-    ! Write attribute "nvrt" - the total number of vertices
-    !call write_scalar(geo_writer, "nvrt", mesh%topo%global_num_vertices)
-
-    !sel_shape(1) = mesh%topo%global_num_faces
-    !sel_start(1) = mesh%topo%global_indices(1) - 1
-    !sel_count(1) = mesh%topo%local_num_cells
-
-    ! Write arrays /face/cell1 and /face/cell2
-    !call write_array(geo_writer, "/face/cell1", sel_shape, sel_start, sel_count, mesh%topo%face_cell1)
-    !call write_array(geo_writer, "/face/cell2", sel_shape, sel_start, sel_count, mesh%topo%face_cell2)
-
     ! Write cell vertices
     sel2_shape(1) = mesh%topo%vert_per_cell
     sel2_shape(2) = mesh%topo%global_num_cells
