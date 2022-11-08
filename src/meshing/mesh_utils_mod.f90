@@ -360,10 +360,6 @@ contains
     type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
 
     ! Local variables
-    integer(ccs_long), dimension(1) :: sel_shape
-    integer(ccs_long), dimension(1) :: sel_start
-    integer(ccs_long), dimension(1) :: sel_count
-
     integer(ccs_long), dimension(2) :: sel2_shape
     integer(ccs_long), dimension(2) :: sel2_start
     integer(ccs_long), dimension(2) :: sel2_count
