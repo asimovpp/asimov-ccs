@@ -318,8 +318,8 @@ contains
       
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name
-    type(ccs_mesh), intent(inout) :: mesh                                      !< The mesh
+    character(len=:), allocatable, intent(in) :: case_name                  !< The case name
+    type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
     ! Local variables
     character(len=:), allocatable :: geo_file    ! Geo file name
