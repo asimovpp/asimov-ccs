@@ -65,6 +65,13 @@ contains
     integer(ccs_int), save :: ioxdmf             ! IO unit of the XDMF file
     integer(ccs_int), save :: step_counter = 0   ! ADIOS2 step counter
 
+    character(len=2), parameter  :: l1 = '  '           ! Indentation level 1
+    character(len=4), parameter  :: l2 = '    '         ! Indentation level 2
+    character(len=6), parameter  :: l3 = '      '       ! Indentation level 3
+    character(len=8), parameter  :: l4 = '        '     ! Indentation level 4
+    character(len=10), parameter :: l5 = '          '   ! Indentation level 5
+    character(len=12), parameter :: l6 = '            ' ! Indentation level 6
+
     xdmf_file = case_name // '.sol.xmf'
     sol_file = case_name // '.sol.h5'
     geo_file = case_name // '.geo'
@@ -75,119 +82,119 @@ contains
         ! Unsteady case
         if (step == 1) then
           ! Open file
-          open (newunit=ioxdmf, file=xdmf_file, status='unknown')
+          open (newunit = ioxdmf, file = xdmf_file, status = 'unknown')
 
           ! Write file contents
-          write (ioxdmf, '(a)') '<?xml version="1.0"?>'
+          write (ioxdmf, '(a)') '<?xml version = "1.0"?>'
           write (ioxdmf, '(a)') '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
-          write (ioxdmf, '(a)') '<Xdmf Version="2.0">'
-          write (ioxdmf, '(a)') '  <Domain>'
-          write (ioxdmf, '(a)') '    <Grid Name="Unsteady" GridType="Collection" CollectionType="Temporal">'
+          write (ioxdmf, '(a)') '<Xdmf Version = "2.0">'
+          write (ioxdmf, '(a,a)') l1, '<Domain>'
+          write (ioxdmf, '(a,a)') l2, '<Grid Name = "Unsteady" GridType = "Collection" CollectionType = "Temporal">'
         end if
       else
         ! Steady case
         ! Open file
-        open (newunit=ioxdmf, file=xdmf_file, status='unknown')
+        open (newunit = ioxdmf, file = xdmf_file, status = 'unknown')
 
         ! Write file contents
-        write (ioxdmf, '(a)') '<?xml version="1.0"?>'
+        write (ioxdmf, '(a)') '<?xml version = "1.0"?>'
         write (ioxdmf, '(a)') '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
-        write (ioxdmf, '(a)') '<Xdmf Version="2.0">'
-        write (ioxdmf, '(a)') '  <Domain>'
+        write (ioxdmf, '(a)') '<Xdmf Version = "2.0">'
+        write (ioxdmf, '(a,a)') l1, '<Domain>'
       end if
 
       associate (ncel => mesh%topo%global_num_cells, &
                  nvrt => mesh%topo%global_num_vertices)
 
-        write (ioxdmf, '(a)') '      <Grid Name="Mesh">'
+        write (ioxdmf, '(a,a)') l3, '<Grid Name = "Mesh">'
 
         if (present(step)) then
-          write (ioxdmf, '(a,f10.7,a)') '        <Time Value = "', step * dt, '" />'
+          write (ioxdmf, '(a,a,f10.7,a)') l4, '<Time Value = "', step * dt, '" />'
         end if
 
         ! Topology
         if (mesh%topo%vert_per_cell == 4) then
-          write (ioxdmf, '(a,i0,a)') '        <Topology Type="Quadrilateral" NumberOfElements="', ncel, '" BaseOffset="1">'
+          write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Quadrilateral" NumberOfElements = "', ncel, '" BaseOffset = "1">'
         else
-          write (ioxdmf, '(a,i0,a)') '        <Topology Type="Hexahedron" NumberOfElements="', ncel, '" BaseOffset="1">'
+          write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Hexahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
         end if
 
-        fmt = '(a,i0,1x,i0,3(a))'
-        write (ioxdmf, fmt) '          <DataItem Dimensions="', ncel, mesh%topo%vert_per_cell, '" Format="HDF">', &
+        fmt = '(a,a,i0,1x,i0,3(a))'
+        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, mesh%topo%vert_per_cell, '" Format = "HDF">', &
           trim(geo_file), ':/Step0/cell/vertices</DataItem>'
-        write (ioxdmf, '(a)') '        </Topology>'
+        write (ioxdmf, '(a,a)') l4, '</Topology>'
 
         ! Geometry
-        write (ioxdmf, '(a)') '        <Geometry Type="XYZ">'
-        write (ioxdmf, fmt) '          <DataItem Dimensions="', nvrt, ndim, '" Format="HDF">', trim(geo_file), &
+        write (ioxdmf, '(a,a)') l4, '<Geometry Type = "XYZ">'
+        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', nvrt, ndim, '" Format = "HDF">', trim(geo_file), &
           ':/Step0/vert</DataItem>'
-        write (ioxdmf, '(a)') '        </Geometry>'
+        write (ioxdmf, '(a,a)') l4, '</Geometry>'
 
         ! Velocity vector
-        write (ioxdmf, '(a)') '        <Attribute Name="velocity" AttributeType="Vector" Center="Cell">'
+        write (ioxdmf, '(a,a)') l4, '<Attribute Name = "velocity" AttributeType = "Vector" Center = "Cell">'
 
-        fmt = '(a,i0,1x,i0,a)'
-        write (ioxdmf, fmt) '          <DataItem Dimensions="', ncel, ndim, '" ItemType="Function" Function="JOIN($0, $1, $2)">'
+        fmt = '(a,a,i0,1x,i0,a)'
+        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, ndim, '" ItemType = "Function" Function = "JOIN($0, $1, $2)">'
 
-        fmt = '(a,i0,3(a),i0,a)'
-        write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+        fmt = '(a,a,i0,3(a),i0,a)'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
           step_counter, '/u</DataItem>'
-        write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
           step_counter, '/v</DataItem>'
-        write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
           step_counter, '/w</DataItem>'
-        write (ioxdmf, '(a)') '          </DataItem>'
-        write (ioxdmf, '(a)') '        </Attribute>'
+        write (ioxdmf, '(a,a)') l5, '</DataItem>'
+        write (ioxdmf, '(a,a)') l4, '</Attribute>'
 
         ! Pressure
-        write (ioxdmf, '(a)') '        <Attribute Name="pressure" AttributeType="Scalar" Center="Cell">'
-        write (ioxdmf, fmt) '          <DataItem Dimensions="', ncel, '" Format="HDF">', trim(sol_file), ':/Step', &
+        write (ioxdmf, '(a,a)') l4, '<Attribute Name = "pressure" AttributeType = "Scalar" Center = "Cell">'
+        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
           step_counter, '/p</DataItem>'
-        write (ioxdmf, '(a)') '        </Attribute>'
+        write (ioxdmf, '(a,a)') l4, '</Attribute>'
 
         ! Kinetic Energy
-        write (ioxdmf, '(a)') '        <Attribute Name="kinetic energy" AttributeType="Scalar" Center="Cell">'
+        write (ioxdmf, '(a,a)') l4, '<Attribute Name = "kinetic energy" AttributeType = "Scalar" Center = "Cell">'
 
-        fmt = '(a,i0,a,a)'
-        write (ioxdmf, fmt) '          <DataItem Dimensions="', ncel, '" ItemType="Function"', &
-          ' Function="0.5 * ($0*$0 + $1*$1 + $2*$2)">'
+        fmt = '(a,a,i0,a,a)'
+        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
+          ' Function = "0.5 * ($0*$0 + $1*$1 + $2*$2)">'
 
-        fmt = '(a,i0,3(a),i0,a)'
-        write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+        fmt = '(a,a,i0,3(a),i0,a)'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
           step_counter, '/u</DataItem>'
-        write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
           step_counter, '/v</DataItem>'
-        write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
           step_counter, '/w</DataItem>'
-        write (ioxdmf, '(a)') '          </DataItem>'
-        write (ioxdmf, '(a)') '        </Attribute>'
+        write (ioxdmf, '(a,a)') l5, '</DataItem>'
+        write (ioxdmf, '(a,a)') l4, '</Attribute>'
 
         ! Enstrophy
         if (write_gradients) then
-          write (ioxdmf, '(a)') '        <Attribute Name="enstrophy" AttributeType="Scalar" Center="Cell">'
+          write (ioxdmf, '(a,a)') l4, '<Attribute Name = "enstrophy" AttributeType = "Scalar" Center = "Cell">'
 
-          fmt = '(a,i0,a,a)'
-          write (ioxdmf, fmt) '          <DataItem Dimensions="', ncel, '" ItemType="Function"', &
-            ' Function="0.5 * (($5-$3)*($5-$3) + ($1-$4)*($1-$4) + ($2-$0)*($2-$0))">'
+          fmt = '(a,a,i0,a,a)'
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
+            ' Function = "0.5 * (($5-$3)*($5-$3) + ($1-$4)*($1-$4) + ($2-$0)*($2-$0))">'
 
-          fmt = '(a,i0,3(a),i0,a)'
-          write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+          fmt = '(a,a,i0,3(a),i0,a)'
+          write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
             step_counter, '/dudy</DataItem>'
-          write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+          write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
             step_counter, '/dudz</DataItem>'
-          write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+          write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
             step_counter, '/dvdx</DataItem>'
-          write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+          write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
             step_counter, '/dvdz</DataItem>'
-          write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+          write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
             step_counter, '/dwdx</DataItem>'
-          write (ioxdmf, fmt) '            <DataItem Format="HDF" Dimensions="', ncel, '">', trim(sol_file), ':/Step', &
+          write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
             step_counter, '/dwdy</DataItem>'
-          write (ioxdmf, '(a)') '          </DataItem>'
-          write (ioxdmf, '(a)') '        </Attribute>'
+          write (ioxdmf, '(a,a)') l5, '</DataItem>'
+          write (ioxdmf, '(a,a)') l4, '</Attribute>'
         end if
 
-        write (ioxdmf, '(a)') '      </Grid>'
+        write (ioxdmf, '(a,a)') l3, '</Grid>'
 
       end associate
 
@@ -197,14 +204,14 @@ contains
       if (present(step)) then
         ! Unsteady case
         if (step == maxstep) then
-          write (ioxdmf, '(a)') '    </Grid>'
-          write (ioxdmf, '(a)') '  </Domain>'
+          write (ioxdmf, '(a,a)') l2, '</Grid>'
+          write (ioxdmf, '(a,a)') l1, '</Domain>'
           write (ioxdmf, '(a)') '</Xdmf>'
           close (ioxdmf)
         end if
       else
         ! Steady case
-        write (ioxdmf, '(a)') '  </Domain>'
+        write (ioxdmf, '(a,a)') l1, '</Domain>'
         write (ioxdmf, '(a)') '</Xdmf>'
         close (ioxdmf)
       end if
