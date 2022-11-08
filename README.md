@@ -54,8 +54,32 @@ mpirun -n 4 ./ccs_app
 `ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
 If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well.
 
+### Running the Taylor Green Vortex case
+Change into the directory where the Taylor Green Vortex configuration file (`TaylorGreenVortex2D_config.yaml`) resides, i.e.
+```
+cd case_setup/TaylorGreenVortex
+```
+You can change the values in the configuration file to customise your setup. 
+
+The command line option `--ccs_m` allows you to set the size of the mesh (the default is `50x50`). You can run the case as follows:
+```
+mpirun -n 4 ../../ccs_app --ccs_m 100 --ccs_case TaylorGreenVortex2D
+```
+
+To run the 3D TGV case, you need to change `config.yaml` to state `main: tgv` instead of `main:tgv2d`, rebuild and use the run line:
+```
+mpirun -n 4 ../../ccs_app --ccs_case TaylorGreenVortex3D
+```
+
+### Plotting results
+You can plot the resulting u, v, p from the 2D TGV case by running `python scripts/plot-structured.py`. 
+
+
 ### Running the Lid Driven Cavity case
-Change into the directory when the Lid Driven Cavity configuration file (`LidDrivenCavity_config.yaml`) resides, i.e.
+
+To run the LDC case, you need to change `config.yaml` to state `main: ldc` and rebuild.
+
+Change into the directory where the Lid Driven Cavity configuration file (`LidDrivenCavity_config.yaml`) resides, i.e.
 ```
 cd case_setup/LidDrivenCavity
 ```
