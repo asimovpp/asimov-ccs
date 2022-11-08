@@ -68,8 +68,9 @@ mpirun -n 4 ../../ccs_app --ccs_m 100 --ccs_case TaylorGreenVortex2D
 
 To run the 3D TGV case, you need to change `config.yaml` to state `main: tgv` instead of `main:tgv2d`, rebuild and use the run line:
 ```
-mpirun -n 4 ../../ccs_app --ccs_case TaylorGreenVortex3D
+mpirun -n 4 ../../ccs_app --ccs_case TaylorGreenVortex3D --ccs_m 32
 ```
+The default 3D problem size is 16x16x16.
 
 ### Plotting results
 You can plot the resulting u, v, p from the 2D TGV case by running `python scripts/plot-structured.py`. 

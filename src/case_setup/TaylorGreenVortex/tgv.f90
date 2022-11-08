@@ -47,6 +47,7 @@ program tgv
   class(field), allocatable :: u, v, w, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
+  integer(ccs_int) :: cps = 16 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -77,7 +78,7 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name)
 
   ccs_config_file = case_name // ccsconfig
 
@@ -95,7 +96,7 @@ program tgv
 
   ! Read mesh from *.geo file
   if (irank == par_env%root) print *, "Reading mesh"
-  mesh = build_mesh(par_env, 64, 64, 64, 4.0_ccs_real * atan(1.0_ccs_real))
+  mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
   ! call read_mesh(par_env, case_name, mesh)
   ! call partition_kway(par_env, mesh)
   ! call compute_connectivity(par_env, mesh)
