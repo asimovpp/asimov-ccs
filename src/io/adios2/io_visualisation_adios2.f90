@@ -134,11 +134,11 @@ submodule(io_visualisation) io_visualisation_adios2
       call cleanup_io(io_env)
     endif
 
-  end subroutine
+  end subroutine write_fields
 
-  !< Begin a new step in the data file
+  !> Begin a new step in the data file
   subroutine begin_step(io_proc)
-    class(io_process), intent(inout) :: io_proc
+    class(io_process), intent(inout) :: io_proc !< The IO process
 
     integer(ccs_int) :: ierr
 
@@ -151,11 +151,11 @@ submodule(io_visualisation) io_visualisation_adios2
       call error_abort("Unknown IO process handler type")
 
     end select
-  end subroutine
+  end subroutine begin_step
 
-  !< End current step in the data file and flush IO
+  !> End current step in the data file and flush IO
   subroutine end_step(io_proc)
-    class(io_process), intent(inout) :: io_proc
+    class(io_process), intent(inout) :: io_proc !< The IO process
 
     integer(ccs_int) :: ierr
 
@@ -168,6 +168,6 @@ submodule(io_visualisation) io_visualisation_adios2
       call error_abort("Unknown IO process handler type")
 
     end select
-  end subroutine
+  end subroutine end_step
 
 end submodule
