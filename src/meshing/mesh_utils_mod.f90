@@ -328,21 +328,12 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_writer
 
-    logical :: exists = .false.
-
+    ! Set ADIOS2 config file name
     adios2_file = case_name // adiosconfig
 
-    ! Check whether geo file already exists; abort if it does
+    ! Set geo file name
     geo_file = case_name // geoext
-    !inquire(file=geo_file, exist=exists)
-    !if (exists) then
-      ! Geo file already exists, don't overwrite
-    !  if (par_env%proc_id == par_env%root) then
-    !    write(*,*) 'Geo file already exists'
-    !  endif
-    !  return
-    !endif
-
+    
     ! Open geo file for writing
     call initialise_io(par_env, adios2_file, io_env)
     call configure_io(io_env, "geo_writer", geo_writer)
