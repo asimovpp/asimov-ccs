@@ -12,14 +12,14 @@ submodule(io_visualisation) io_visualisation_adios2
 
   implicit none
 
-  contains
+contains
 
   !> Write the field data to file
   module subroutine write_fields(par_env, case_name, mesh, output_list, step, maxstep, dt)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
-    use vec, only : get_vector_data, restore_vector_data
+    use vec, only: get_vector_data, restore_vector_data
     use types, only: field_ptr
     use case_config, only: write_gradients
 
@@ -54,8 +54,8 @@ submodule(io_visualisation) io_visualisation_adios2
     integer(ccs_int) :: i
     integer(ccs_int), save :: step_counter = 0
 
-    sol_file = case_name//'.sol.h5'
-    adios2_file = case_name//adiosconfig
+    sol_file = case_name // '.sol.h5'
+    adios2_file = case_name // adiosconfig
 
     if (present(step)) then
       ! Unsteady case
@@ -63,13 +63,13 @@ submodule(io_visualisation) io_visualisation_adios2
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_writer", sol_writer)
         call open_file(sol_file, "write", sol_writer)
-      endif
+      end if
     else
       ! Steady case
       call initialise_io(par_env, adios2_file, io_env)
       call configure_io(io_env, "sol_writer", sol_writer)
       call open_file(sol_file, "write", sol_writer)
-    endif
+    end if
 
     ! 1D data
     sel_shape(1) = mesh%topo%global_num_cells
@@ -116,7 +116,7 @@ submodule(io_visualisation) io_visualisation_adios2
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
         call restore_vector_data(output_list(i)%ptr%z_gradients, data)
       end do
-    endif
+    end if
 
     ! End step
     call end_step(sol_writer)
@@ -127,12 +127,12 @@ submodule(io_visualisation) io_visualisation_adios2
       if (step == maxstep) then
         call close_file(sol_writer)
         call cleanup_io(io_env)
-      endif
+      end if
     else
       ! Steady case
       call close_file(sol_writer)
       call cleanup_io(io_env)
-    endif
+    end if
 
   end subroutine write_fields
 

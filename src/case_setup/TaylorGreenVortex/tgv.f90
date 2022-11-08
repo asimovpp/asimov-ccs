@@ -104,8 +104,8 @@ program tgv
   it_start = 1
   it_end = num_steps
 
-  !geo_file = case_name // geoext
-  !adios2_file = case_name // adiosconfig
+  !geo_file = case_name      //      geoext
+  !adios2_file = case_name      //      adiosconfig
 
   ! Read mesh from *.geo file
   !if (irank == par_env%root) print *, "Reading mesh"
@@ -127,7 +127,7 @@ program tgv
   allocate (face_field :: mf)
 
   ! Add fields to output list
-  allocate(output_list(4))
+  allocate (output_list(4))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(w, "w", output_list)
@@ -250,7 +250,7 @@ program tgv
 
     if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
       call write_solution(par_env, case_name, mesh, output_list, t, nsteps, dt)
-    endif
+    end if
   end do
 
 #ifndef EXCLUDE_MISSING_INTERFACE

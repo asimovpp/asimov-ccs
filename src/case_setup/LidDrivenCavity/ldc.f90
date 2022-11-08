@@ -101,7 +101,7 @@ program ldc
   allocate (face_field :: mf)
 
   ! Add fields to output list
-  allocate(output_list(4))
+  allocate (output_list(4))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(w, "w", output_list)

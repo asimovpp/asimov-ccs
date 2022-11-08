@@ -79,7 +79,7 @@ contains
       t = step
     else
       t = -1 ! Dummy value
-    endif
+    end if
 
     ! Initialising SIMPLE solver
     nvar = 0
@@ -931,7 +931,7 @@ contains
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
         else
           write (*, '(a6)', advance='no') 'Iter'
-        endif
+        end if
         if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
         if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
         if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
@@ -940,7 +940,7 @@ contains
         write (*, *)
         first_time = .false.
       end if
-    
+
       ! Write step, iteration and residuals
       if (step > 0) then
         fmt = '(i6,1x,i6,' // str(nvar) // '(1x,e12.4))'
@@ -948,7 +948,7 @@ contains
       else
         fmt = '(i6,' // str(nvar) // '(1x,e12.4))'
         write (*, fmt) itr, residuals(1:nvar)
-      endif
+      end if
     end if
 
     if (maxval(residuals(:)) < res_target) converged = .true.

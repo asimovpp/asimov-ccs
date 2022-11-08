@@ -187,7 +187,7 @@ contains
             aP = mf(index_f) * face_area
             aF = 0.0_ccs_real
           else
-            aP = 0.0_ccs_real 
+            aP = 0.0_ccs_real
             aF = mf(index_f) * face_area
           end if
           aP = aP - mf(index_f) * face_area
@@ -218,7 +218,7 @@ contains
   !> Computes the value of the scalar field on the boundary
   module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                             x_gradients, y_gradients, z_gradients)
-    
+
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
@@ -231,7 +231,7 @@ contains
     real(ccs_real) :: b !< The RHS value (explicit component)
     integer(ccs_int) :: index_p
     real(ccs_real), dimension(:), pointer :: phi_data
-    
+
     call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
                                  a, b, &
                                  x_gradients, y_gradients, z_gradients)
@@ -247,7 +247,7 @@ contains
   subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
                                      a, b, &
                                      x_gradients, y_gradients, z_gradients)
-    
+
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
@@ -256,7 +256,6 @@ contains
     real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
     real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
     real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
-
 
     ! local variables
     integer(ccs_int) :: index_bc
@@ -324,7 +323,6 @@ contains
       b = 0.0_ccs_real
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
     end select
-
 
   end subroutine
 
