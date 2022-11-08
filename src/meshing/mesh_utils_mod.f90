@@ -340,7 +340,7 @@ contains
     call open_file(geo_file, "write", geo_writer)
 
     ! Write mesh
-    call write_topology(par_env, geo_writer, mesh)
+    call write_topology(geo_writer, mesh)
     call write_geometry(par_env, geo_writer, mesh)
 
     ! Close the file and ADIOS2 engine
@@ -352,10 +352,9 @@ contains
   end subroutine write_mesh
 
   !v Write the mesh topology data to file
-  subroutine write_topology(par_env, geo_writer, mesh)
+  subroutine write_topology(geo_writer, mesh)
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(io_process), allocatable, target, intent(in) :: geo_writer        !< The IO process for writing the mesh ("geo") file
     type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
 
