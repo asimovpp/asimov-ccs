@@ -340,7 +340,7 @@ contains
     print *, "Running for ", num_steps, "iterations"
     print *, "++++"
     print *, "MESH"
-    print *, "Size is ", mesh%topo%total_num_cells
+    print *, "Global number of cells is ", mesh%topo%global_num_cells
     print *, "++++"
     print *, "RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
