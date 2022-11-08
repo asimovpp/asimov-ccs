@@ -57,23 +57,23 @@ If built with PETSc, the normal PETSc command line arguments can be passed to `c
 ### Running the Taylor Green Vortex case
 Change into the directory where the Taylor Green Vortex configuration file (`TaylorGreenVortex2D_config.yaml`) resides, i.e.
 ```
-cd case_setup/TaylorGreenVortex
+cd src/case_setup/TaylorGreenVortex
 ```
 You can change the values in the configuration file to customise your setup. 
 
 The command line option `--ccs_m` allows you to set the size of the mesh (the default is `50x50`). You can run the case as follows:
 ```
-mpirun -n 4 ../../ccs_app --ccs_m 100 --ccs_case TaylorGreenVortex2D
+mpirun -n 4 ../../../ccs_app --ccs_m 100 --ccs_case TaylorGreenVortex2D
 ```
 
 To run the 3D TGV case, you need to change `config.yaml` to state `main: tgv` instead of `main:tgv2d`, rebuild and use the run line:
 ```
-mpirun -n 4 ../../ccs_app --ccs_case TaylorGreenVortex3D --ccs_m 32
+mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex3D
 ```
-The default 3D problem size is 16x16x16.
+The default 3D problem size is `16x16x16`.
 
-### Plotting results
-You can plot the resulting u, v, p from the 2D TGV case by running `python scripts/plot-structured.py`. 
+#### Plotting results
+You can plot the resulting u, v, p from the 2D TGV case by running `python ../../../scripts/plot-structured.py`. 
 
 
 ### Running the Lid Driven Cavity case
@@ -82,11 +82,11 @@ To run the LDC case, you need to change `config.yaml` to state `main: ldc` and r
 
 Change into the directory where the Lid Driven Cavity configuration file (`LidDrivenCavity_config.yaml`) resides, i.e.
 ```
-cd case_setup/LidDrivenCavity
+cd src/case_setup/LidDrivenCavity
 ```
 You can change the values in the configuration file to customise your setup. For example, by default the number of iterations is set to `10`, but you might want to change this to something like `1000`. 
 
 The command line option `--ccs_m` allows you to set the size of the mesh (the default is `50x50`). You can run the case as follows:
 ```
-mpirun -n 4 ../../ccs_app --ccs_m 129 --ccs_case LidDrivenCavity
+mpirun -n 4 ../../../ccs_app --ccs_m 129 --ccs_case LidDrivenCavity
 ```
