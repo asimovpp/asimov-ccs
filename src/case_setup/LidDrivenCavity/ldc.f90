@@ -108,7 +108,7 @@ program ldc
   call add_field_to_outputlist(p, "p", output_list)
 
   ! Write gradients to solution file
-  !write_gradients = .true.
+  write_gradients = .false.
 
   ! Read boundary conditions
   call get_boundary_count(ccs_config_file, n_boundaries)
