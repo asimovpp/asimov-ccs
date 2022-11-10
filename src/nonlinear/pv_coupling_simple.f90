@@ -4,9 +4,8 @@
 
 submodule(pv_coupling) pv_coupling_simple
 #include "ccs_macros.inc"
-  use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
-                   linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
+                   linear_solver, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
@@ -20,7 +19,6 @@ submodule(pv_coupling) pv_coupling_simple
 
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &

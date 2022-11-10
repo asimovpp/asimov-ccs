@@ -34,20 +34,14 @@ program tgv
 
   implicit none
 
-  class(*), pointer :: config_file_pointer ! Pointer to CCS config file
-  character(len=error_length) :: error
-
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: case_name  ! Case name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
-  character(len=:), allocatable :: geo_file
-  character(len=:), allocatable :: adios2_file
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
   type(ccs_mesh) :: mesh
 
   type(vector_spec) :: vec_properties
-  real(ccs_real) :: L
 
   class(field), allocatable, target :: u, v, w, p, p_prime, mf
 
@@ -59,7 +53,6 @@ program tgv
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
   integer(ccs_int) :: isize ! Size of MPI world
-  integer(ccs_int) :: i
 
   double precision :: start_time
   double precision :: end_time
@@ -379,7 +372,7 @@ contains
     class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
-    integer(ccs_int) :: row, col, n, count
+    integer(ccs_int) :: n, count
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val, p_val
     type(cell_locator) :: loc_p
@@ -518,8 +511,6 @@ contains
     real(ccs_real) :: time
 
     integer :: io_unit
-    logical :: exists
-
     integer :: ierr
 
     mu = 0.01_ccs_real ! XXX: currently hardcoded somewhere

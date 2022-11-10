@@ -15,7 +15,7 @@ submodule(io_visualisation) io_visualisation_adios2
 contains
 
   !> Write the field data to file
-  module subroutine write_fields(par_env, case_name, mesh, output_list, step, maxstep, dt)
+  module subroutine write_fields(par_env, case_name, mesh, output_list, step, maxstep)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
@@ -30,7 +30,6 @@ contains
     type(field_ptr), dimension(:), intent(inout) :: output_list              !< List of fields to output
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
-    real(ccs_real), optional, intent(in) :: dt                               !< The time-step size
 
     ! Local variables
     character(len=:), allocatable :: sol_file     ! Solution file name
@@ -50,9 +49,7 @@ contains
 
     real(ccs_real), dimension(:), pointer :: data
 
-    integer(ccs_int) :: ierr
     integer(ccs_int) :: i
-    integer(ccs_int), save :: step_counter = 0
 
     sol_file = case_name // '.sol.h5'
     adios2_file = case_name // adiosconfig

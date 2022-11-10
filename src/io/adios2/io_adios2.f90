@@ -9,7 +9,7 @@ submodule(io) io_adios2
   use utils, only: exit_print
   use adios2
   use adios2_types, only: adios2_env, adios2_io_process
-  use kinds, only: ccs_int, ccs_real, ccs_long
+  use kinds, only: ccs_long
 
   implicit none
 
