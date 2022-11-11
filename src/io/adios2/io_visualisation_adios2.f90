@@ -86,6 +86,9 @@ contains
 
     ! Loop over output list and write out
     do i = 1, size(output_list)
+      ! Check whether pointer is associated with a field
+      if (.not. associated(output_list(i)%ptr)) exit
+
       call get_vector_data(output_list(i)%ptr%values, data)
       data_name = "/" // trim(output_list(i)%name)
       call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
@@ -95,6 +98,9 @@ contains
     ! Write out gradients, if required (e.g. for calculating enstrophy)
     if (write_gradients) then
       do i = 1, size(output_list)
+        ! Check whether pointer is associated with a field
+        if (.not. associated(output_list(i)%ptr)) exit
+        
         ! x-gradient
         call get_vector_data(output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dx"
