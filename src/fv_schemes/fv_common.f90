@@ -80,6 +80,8 @@ contains
     real(ccs_real) :: sgn ! Sign indicating face orientation
     real(ccs_real) :: aP, aF, bP, aPb
     real(ccs_real), dimension(:), pointer :: phi_data
+    real(ccs_real) :: hoe ! High-order explicit flux
+    real(ccs_real) :: loe ! Low-order explicit flux
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
@@ -139,12 +141,17 @@ contains
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
+
+          ! High-order, explicit
           aF = adv_coeff
           aP = 1.0_ccs_real - aF
           aP = (sgn * mf(index_f) * face_area) * aP
           aF = (sgn * mf(index_f) * face_area) * aF
           aP = aP - sgn * mf(index_f) * face_area
-          call set_entry(-(aP * phi_data(index_p) + aF * phi_data(index_nb)), b_coeffs)
+          hoe = aP * phi_data(index_p) + aF * phi_data(index_nb)
+          call set_entry(-hoe, b_coeffs)
+
+          ! Low-order
           if ((sgn * mf(index_f)) > 0.0_ccs_real) then
             aP = sgn * mf(index_f) * face_area
             aF = 0.0_ccs_real
@@ -153,7 +160,9 @@ contains
             aF = sgn * mf(index_f) * face_area
           end if
           aP = aP - sgn * mf(index_f) * face_area
-          call set_entry(aP * phi_data(index_p) + aF * phi_data(index_nb), b_coeffs)
+
+          loe = aP * phi_data(index_p) + aF * phi_data(index_nb)
+          call set_entry(loe, b_coeffs) ! Explicit low-order term
 
           call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
@@ -191,6 +200,7 @@ contains
             aF = mf(index_f) * face_area
           end if
           aP = aP - mf(index_f) * face_area
+
           call set_entry(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP), b_coeffs)
           call restore_vector_data(phi%values, phi_data)
 
