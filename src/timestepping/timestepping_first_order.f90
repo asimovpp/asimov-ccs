@@ -13,6 +13,10 @@ submodule(timestepping) timestepping_first_order
 
 contains
 
+  module subroutine finalise_timestep()
+    !!! NOTHING TO SEE HERE!
+  end subroutine finalise_timestep
+
   module subroutine apply_timestep(mesh, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal

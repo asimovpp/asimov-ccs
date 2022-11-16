@@ -25,7 +25,7 @@ submodule(pv_coupling) pv_coupling_simple
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance
-  use timestepping, only: update_old_values
+  use timestepping, only: update_old_values, finalise_timestep
 
   implicit none
 
@@ -160,6 +160,8 @@ contains
       end if
 
     end do outerloop
+
+    call finalise_timestep()
 
     ! Free up memory
     deallocate (residuals)
