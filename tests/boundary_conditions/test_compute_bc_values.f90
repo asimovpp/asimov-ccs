@@ -55,7 +55,7 @@ program test_compute_bc_values
      call check_dirichlet_bc(loc_p, loc_f)
      call check_neumann_bc(loc_p, loc_f)
      call check_extrapolated_bc(loc_p, loc_f, cps)
-     !!call check_symmetric_bc(loc_p, loc_f, cps)
+     !call check_symmetric_bc(loc_p, loc_f, cps)  ! XXX: fix symmetric BC implementation and test accordingly
      
      call dprint("done")
   end if
@@ -82,6 +82,8 @@ contains
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     allocate (central_field :: dirichlet_field)
+    call create_vector(vec_properties, dirichlet_field%values)
+    call update(dirichlet_field%values)
     call allocate_bc_arrays(n_boundaries, dirichlet_field%bcs)
     call create_vector(vec_properties, dirichlet_field%values)
     dirichlet_field%bcs%bc_types = bc_type_dirichlet

@@ -10,7 +10,6 @@ submodule(io) io_setup_adios2
   use adios2
   use adios2_types, only: adios2_env, adios2_io_process
   use parallel_types_mpi, only: parallel_environment_mpi
-  use kinds, only: ccs_int, ccs_real
 
   implicit none
 

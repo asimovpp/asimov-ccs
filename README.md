@@ -6,7 +6,7 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 
 ## Prerequisites
 
-- `MPI`
+- `MPI` - version 3.17 or newer required
 - `PETSc`
 - `makedepf90` - version 2.9.0 required, source can be obtained at https://salsa.debian.org/science-team/makedepf90
 - `adios2` - with `hdf5` support, https://adios2.readthedocs.io/
@@ -23,6 +23,7 @@ Set the following environment variables:
 - `PETSC_DIR` to point to the PETSc install directory 
 - `FYAML` to point to the root of your fortran-yaml-cpp build directory
 - `ADIOS2` to point to the ADIOS2 install directory
+- `PARHIP` to point to the root of the ParHIP install directory
 
 
 With the prerequisites in place, ASiMoV-CCS can be built from the root directory with

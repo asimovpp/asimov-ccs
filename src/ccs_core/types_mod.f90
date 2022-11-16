@@ -78,7 +78,8 @@ module types
     integer(ccs_int) :: global_num_cells                              !< Global number of cells
     integer(ccs_int) :: local_num_cells                               !< Local number of cells
     integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
-    integer(ccs_int) :: global_num_vertices                           ! Global number of vertices
+    integer(ccs_int) :: global_num_vertices                           !< Global number of vertices
+    integer(ccs_int) :: vert_per_cell                                 !< Number of vertices per cell
     integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells
     integer(ccs_int) :: global_num_faces                              !< Global number of faces
     integer(ccs_int) :: num_faces                                     !< Local number of faces
@@ -158,6 +159,12 @@ module types
   end type
   type, public, extends(field) :: face_field
   end type
+
+  !> Type for storing pointer to a field
+  type, public :: field_ptr
+    class(field), pointer :: ptr => null()   !< Pointer to the field data
+    character(len=:), allocatable :: name    !< Name of the field
+  end type field_ptr
 
   !v Cell locator
   !

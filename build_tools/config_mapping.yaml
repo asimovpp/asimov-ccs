@@ -15,6 +15,8 @@ bases:
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
+      io_visualisation: io_visualisation_adios2
+      io_visualisation_common: io_visualisation_common
       meshing: meshing_accessors
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
@@ -39,6 +41,8 @@ bases:
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
+      io_visualisation: io_visualisation_adios2
+      io_visualisation_common: io_visualisation_common
       meshing: meshing_accessors
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple

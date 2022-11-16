@@ -4,9 +4,8 @@
 
 submodule(pv_coupling) pv_coupling_simple
 #include "ccs_macros.inc"
-  use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
-                   linear_solver, ccs_mesh, field, bc_config, vector_values, cell_locator, &
+                   linear_solver, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
@@ -20,7 +19,6 @@ submodule(pv_coupling) pv_coupling_simple
 
   use utils, only: debug_print
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use parallel_types, only: parallel_environment
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
@@ -35,7 +33,8 @@ contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
   module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+                                    u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, &
+                                    mf, step)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
@@ -53,6 +52,7 @@ contains
     class(field), intent(inout) :: p       !< field containing pressure values
     class(field), intent(inout) :: p_prime !< field containing pressure-correction values
     class(field), intent(inout) :: mf      !< field containing the face-centred velocity flux
+    integer(ccs_int), optional, intent(in) :: step !< The current time-step
 
     ! Local variables
     integer(ccs_int) :: i
@@ -61,6 +61,7 @@ contains
     class(ccs_vector), allocatable :: invAu, invAv, invAw
     class(ccs_vector), allocatable :: res
     real(ccs_real), dimension(:), allocatable :: residuals
+    integer(ccs_int) :: t  ! Current time-step (dummy variable)
 
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
@@ -70,6 +71,13 @@ contains
 
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: ivar ! Counter for flow variables
+
+    ! Check whether 'step' has been passed into this subroutine (i.e. unsteady run)
+    if (present(step)) then
+      t = step
+    else
+      t = -1 ! Dummy value
+    end if
 
     ! Initialising SIMPLE solver
     nvar = 0
@@ -148,7 +156,7 @@ contains
       !call calculate_scalars()
 
       call check_convergence(par_env, i, residuals, res_target, &
-                             u_sol, v_sol, w_sol, p_sol, converged)
+                             u_sol, v_sol, w_sol, p_sol, t, converged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
@@ -893,7 +901,7 @@ contains
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
-                               u_sol, v_sol, w_sol, p_sol, converged)
+                               u_sol, v_sol, w_sol, p_sol, step, converged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
@@ -904,31 +912,43 @@ contains
     logical, intent(in) :: v_sol                                    !< Is y-velocity being solved (true/false)
     logical, intent(in) :: w_sol                                    !< Is z-velocity being solved (true/false)
     logical, intent(in) :: p_sol                                    !< Is pressure field being solved (true/false)
+    integer(ccs_int), intent(in) :: step                            !< The current time-step
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
     ! Local variables
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
-    character(len=20) :: fmt              ! Format string for writing out residuals
+    character(len=30) :: fmt              ! Format string for writing out residuals
+    logical, save :: first_time = .true.  ! Whether first time this subroutine is called
 
     nvar = size(residuals)
 
     ! Print residuals
-    if (itr == 1) then
-      if (par_env%proc_id == par_env%root) then
+    if (par_env%proc_id == par_env%root) then
+      if (first_time) then
+        ! Write header
         write (*, *)
-        write (*, '(a6)', advance='no') 'Iter'
+        if (step > 0) then
+          write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
+        else
+          write (*, '(a6)', advance='no') 'Iter'
+        end if
         if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
         if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
         if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
         if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
         if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
         write (*, *)
+        first_time = .false.
       end if
-    end if
 
-    if (par_env%proc_id == par_env%root) then
-      fmt = '(i6,' // str(nvar) // '(1x,e12.4))'
-      write (*, fmt) itr, residuals(1:nvar)
+      ! Write step, iteration and residuals
+      if (step > 0) then
+        fmt = '(i6,1x,i6,' // str(nvar) // '(1x,e12.4))'
+        write (*, fmt) step, itr, residuals(1:nvar)
+      else
+        fmt = '(i6,' // str(nvar) // '(1x,e12.4))'
+        write (*, fmt) itr, residuals(1:nvar)
+      end if
     end if
 
     if (maxval(residuals(:)) < res_target) converged = .true.

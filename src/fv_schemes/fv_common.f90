@@ -4,9 +4,8 @@
 
 submodule(fv) fv_common
 #include "ccs_macros.inc"
-  use constants, only: add_mode, insert_mode, ndim
-  use types, only: vector_values, matrix_values_spec, matrix_values, cell_locator, face_locator, &
-                   neighbour_locator
+  use constants, only: add_mode, insert_mode
+  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
@@ -197,7 +196,7 @@ contains
             aP = mf(index_f) * face_area
             aF = 0.0_ccs_real
           else
-            aP = 0.0_ccs_real 
+            aP = 0.0_ccs_real
             aF = mf(index_f) * face_area
           end if
           aP = aP - mf(index_f) * face_area
@@ -229,7 +228,7 @@ contains
   !> Computes the value of the scalar field on the boundary
   module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
                                             x_gradients, y_gradients, z_gradients)
-    
+
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
@@ -242,13 +241,14 @@ contains
     real(ccs_real) :: b !< The RHS value (explicit component)
     integer(ccs_int) :: index_p
     real(ccs_real), dimension(:), pointer :: phi_data
-    
+
     call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
                                  a, b, &
                                  x_gradients, y_gradients, z_gradients)
 
     call get_local_index(loc_p, index_p)
     call get_vector_data(phi%values, phi_data)
+    call dprint("phi_data a b " // str(phi_data(index_p)) // " " // str(a) // " " // str(b))
     bc_value = 0.5_ccs_real * (phi_data(index_p) + (b + a * phi_data(index_p)))
     call restore_vector_data(phi%values, phi_data)
 
@@ -257,7 +257,7 @@ contains
   subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
                                      a, b, &
                                      x_gradients, y_gradients, z_gradients)
-    
+
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
     type(cell_locator), intent(in) :: loc_p                 !< location of cell
@@ -266,7 +266,6 @@ contains
     real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
     real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
     real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
-
 
     ! local variables
     integer(ccs_int) :: index_bc
@@ -296,7 +295,7 @@ contains
 
       a = 1.0_ccs_real
       b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
-    case (bc_type_sym)
+    case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
         parallel_component_map = (/1, 1, 1/)
@@ -334,7 +333,6 @@ contains
       b = 0.0_ccs_real
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
     end select
-
 
   end subroutine
 
