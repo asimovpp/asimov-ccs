@@ -228,7 +228,6 @@ program tgv
   call update(v%values)
   call update(w%values)
   call update(mf%values)
-  call calc_tgv2d_error(mesh, 0, u, v, w, p)
   call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
   call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
@@ -249,7 +248,6 @@ program tgv
   do t = 1, nsteps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
-    call calc_tgv2d_error(mesh, t, u, v, w, p)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
     call update_gradient(mesh, u)
     call update_gradient(mesh, v)
