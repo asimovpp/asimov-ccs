@@ -7,13 +7,19 @@ submodule(timestepping) timestepping_second_order
   implicit none
 
   real(ccs_real) :: dt !< timestep size
-  logical :: timestep_is_set = .false. !< flag to signify whether dt has already been set
-  logical :: timestepping_is_active = .false. !< flag to signify whether timestepping should occur
+  logical, save :: timestep_is_set = .false. !< flag to signify whether dt has already been set
+  logical, save :: timestepping_is_active = .false. !< flag to signify whether timestepping should occur
   integer(ccs_int), parameter :: num_old_vals = 2 !< the number of old field values the scheme uses
-  logical :: first_update = .true.
+  logical, save :: first_update = .true.
 
 contains
 
+  module subroutine finalise_timestep()
+
+    first_update = .false.
+    
+  end subroutine finalise_timestep
+  
   module subroutine apply_timestep(mesh, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
@@ -55,13 +61,12 @@ contains
         diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
 
         ! b = b + V/dt * phi_old
-        b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * phi_old1_data(i)
+        b_data(i) = b_data(i) + (mesh%geo%volumes(i) / get_timestep()) * phi_old1_data(i)
       end do
       call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
       call restore_vector_data(diag, diag_data)
       call restore_vector_data(b, b_data)
       call set_matrix_diagonal(diag, M)
-      first_update = .false.
     else
       ! V = mesh%volumes
       call finalise(M)
