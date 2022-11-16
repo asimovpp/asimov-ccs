@@ -334,7 +334,7 @@ contains
     class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
-    integer(ccs_int) :: row, col, n, count
+    integer(ccs_int) :: n, count
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val, p_val
     type(cell_locator) :: loc_p
@@ -473,7 +473,6 @@ contains
     real(ccs_real) :: time
 
     integer :: io_unit
-    logical :: exists
 
     integer :: ierr
 
@@ -524,13 +523,7 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
         first_time = .false.
-
-          !! inquire(file="tgv2d-err.log", exist=exists)
-          !! if (exists) then
-          !!    call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
-          !! end if
         open (newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
-
       else
         open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
       end if

@@ -29,9 +29,6 @@ program tgv
 
   implicit none
 
-  class(*), pointer :: config_file_pointer ! Pointer to CCS config file
-  character(len=error_length) :: error
-
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: case_name  ! Case name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
@@ -42,7 +39,6 @@ program tgv
   type(ccs_mesh) :: mesh
 
   type(vector_spec) :: vec_properties
-  real(ccs_real) :: L
 
   class(field), allocatable :: u, v, w, p, p_prime, mf
 
@@ -390,7 +386,7 @@ contains
     class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
-    integer(ccs_int) :: row, col, n, count
+    integer(ccs_int) :: n, count
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p

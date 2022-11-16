@@ -71,7 +71,6 @@ contains
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
     real(ccs_real) :: adv_coeff, adv_coeff_total
-    real(ccs_real) :: bc_value
     real(ccs_real), dimension(ndim) :: face_normal
     logical :: is_boundary
 
