@@ -40,7 +40,7 @@ make CMP=<compiler> tests
 
 ## Configuring
 
-The executable `ccs_app` that is built/linked is configured by `config.yaml`. The Fortran program is specified by `main:` where the available options currently reside in `case_setup` and are `poisson`, `scalar_advection` and `ldc`.
+The executable `ccs_app` that is built/linked is configured by `config.yaml`. The Fortran program is specified by `main:` where the available options currently reside in `case_setup` and are `poisson`, `scalar_advection`, `ldc`, `tgv` and `tgv2d` (for 3-D and 2-D Taylor-Green Vortex, respectively).
 
 The build system automatically links the required modules, but submodules need to be specified in the configuration file. `base:` specifies a collection of basic submodules that work together; available options are `mpi` and `mpi_petsc`. Further customisation is available via the `options:` settings for cases where multiple implementations of the same functionality exist (none at the time of writing). 
 All possible configuration settings can be found in `build_tools/config_mapping.yaml`. 
@@ -53,7 +53,11 @@ mpirun -n 4 ./ccs_app
 ```
 
 `ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
-If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well.
+If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well, in particular if you observe stagnating residuals being printed to `stdout` you might want to try tighter tolerances for the linear solvers by passing `-ksp_atol` and `-ksp_rtol` at runtime, e.g.
+```
+mpirun -n ${NP} /path/to/ccs_app <ccs_options> -ksp_atol 1.0e-16 -ksp_rtol 1.0e-50
+```
+should give behaviour similar to a direct solver.
 
 ### Running the Taylor Green Vortex case
 Change into the directory where the Taylor Green Vortex configuration file (`TaylorGreenVortex2D_config.yaml`) resides, i.e.
@@ -73,9 +77,14 @@ mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex3D
 ```
 The default 3D problem size is `16x16x16`.
 
-#### Plotting results
-You can plot the resulting u, v, p from the 2D TGV case by running `python ../../../scripts/plot-structured.py`. 
+In both cases time evolution of the kinetic energy and enstrophy are written to files `tgv-ke.log` and `tgv-ens.log` (`tgv2d-*.log` in the 2-D case).
+In the 2-D case there also exists an analytical solution which is used to compute the RMS error in the velocity solution, note that this requires setting the viscosity `mu` in `tgv.f90` to match the value of `diffusion_factor` in `fv_common.f90`.
+Using this error log the convergence rate of the central and upwind schemes can be confirmed by systematic refinement of the grid, noting that for the central scheme the Peclet number must be less than 2
+```
+Pe = rho U dx / mu < 2
+```
 
+To change the simulated time of either case, edit the appropriate program file and either set the timestep directly or the `CFL` number.
 
 ### Running the Lid Driven Cavity case
 
