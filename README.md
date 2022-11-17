@@ -83,6 +83,7 @@ Using this error log the convergence rate of the central and upwind schemes can 
 ```
 Pe = rho U dx / mu < 2
 ```
+noting that here `rho` and `U` are both 1, the grid spacing `dx` is equal to the domain length (PI) divided by the number of cells in each direction (default 50).
 
 To change the simulated time of either case, edit the appropriate program file and either set the timestep directly or the `CFL` number.
 
