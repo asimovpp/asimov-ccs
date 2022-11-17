@@ -26,7 +26,7 @@ program test_mesh_square_mesh_closed
   integer(ccs_int) :: i, j
 
   real(ccs_real) :: A_expected
-  
+
   call init()
 
   do n = 1, 100 ! XXX: Should use some named constant, not just "100"
@@ -34,7 +34,7 @@ program test_mesh_square_mesh_closed
     mesh = build_square_mesh(par_env, n, l)
 
     A_expected = l / n
-    
+
     ! Loop over cells
     do i = 1, mesh%topo%local_num_cells
       S(:) = 0.0_ccs_real
@@ -48,8 +48,8 @@ program test_mesh_square_mesh_closed
         S(:) = S(:) + norm(:) * A
 
         if (abs(A - A_expected) > 1.0e-8) then
-           write(message, *) "FAIL: expected face area ", A_expected, " got ", A
-           call stop_test(message)
+          write (message, *) "FAIL: expected face area ", A_expected, " got ", A
+          call stop_test(message)
         end if
       end do
 

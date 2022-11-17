@@ -26,7 +26,7 @@ program test_mesh_square_mesh_volume
   integer(ccs_int) :: nneg_vol_global
 
   real(ccs_real) :: CV
-  
+
   call init()
 
   do n = 1, 100
@@ -35,7 +35,7 @@ program test_mesh_square_mesh_volume
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
     CV = (l / n)**2 ! Expected cell volume
-    
+
     vol = 0.0_ccs_real
     nneg_vol = 0
 
@@ -49,10 +49,10 @@ program test_mesh_square_mesh_volume
       end if
 
       if (abs(CV - V) > 1.0e-8) then
-         write(message, *) "FAIL: expected cell volume ", CV, " got ", V
-         call stop_test(message)
+        write (message, *) "FAIL: expected cell volume ", CV, " got ", V
+        call stop_test(message)
       end if
-      
+
       vol = vol + V
     end do
 

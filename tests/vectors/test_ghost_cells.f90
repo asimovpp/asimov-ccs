@@ -48,7 +48,7 @@ program test_ghost_cells
 
   ! Restore vector data
   call restore_vector_data(v, values)
-  
+
   ! Now update the vector (including ghost cells)
   call update(v)
 

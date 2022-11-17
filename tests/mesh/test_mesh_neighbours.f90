@@ -5,8 +5,8 @@ program test_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only : set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
-  use mesh_utils, only : build_mesh
+  use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
+  use mesh_utils, only: build_mesh
 
   implicit none
 
@@ -28,7 +28,7 @@ program test_mesh_neighbours
   integer(ccs_int) :: expected_boundary_ctr
 
   call init()
-  
+
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
   do n = 2, 20
 
@@ -53,7 +53,7 @@ program test_mesh_neighbours
         call stop_test(message)
       else if (nnb > 6) then
         ! XXX: specific to 2D Cartesian mesh
-        write(message, *) "FAIL: cell should have at most ", 6, " neighbours, got ", nnb
+        write (message, *) "FAIL: cell should have at most ", 6, " neighbours, got ", nnb
         call stop_test(message)
       end if
 
@@ -82,8 +82,8 @@ program test_mesh_neighbours
 
     expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh
     if (global_boundary_ctr /= expected_boundary_ctr) then
-      write(message, *) "FAIL: mesh boundary count is incorrect, expected ", &
-            expected_boundary_ctr, " got ", global_boundary_ctr
+      write (message, *) "FAIL: mesh boundary count is incorrect, expected ", &
+        expected_boundary_ctr, " got ", global_boundary_ctr
       call stop_test(message)
     end if
 

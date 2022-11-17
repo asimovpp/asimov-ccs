@@ -86,12 +86,12 @@ program ldc
 
   ! Initialise fields
   print *, "Initialise fields"
-  allocate(upwind_field :: u)
-  allocate(upwind_field :: v)
-  allocate(upwind_field :: w)
-  allocate(central_field :: p)
-  allocate(central_field :: p_prime)
-  allocate(face_field :: mf)
+  allocate (upwind_field :: u)
+  allocate (upwind_field :: v)
+  allocate (upwind_field :: w)
+  allocate (central_field :: p)
+  allocate (central_field :: p_prime)
+  allocate (face_field :: mf)
 
   ! Read boundary conditions
   call get_boundary_count(ccs_config_file, n_boundaries)
@@ -155,7 +155,7 @@ program ldc
   call update_old_values(u)
   call update_old_values(v)
   call update_old_values(w)
-  
+
   ! initialise time loop variables
   call activate_timestepping()
   call set_timestep(0.9 / 1.0 * mesh%geo%h)
@@ -173,7 +173,7 @@ program ldc
     call update_old_values(u)
     call update_old_values(v)
     call update_old_values(w)
-  
+
     t = t + get_timestep()
     t_count = t_count + 1
   end do
@@ -283,9 +283,9 @@ contains
         call get_global_index(loc_p, global_index_p)
         call calc_cell_coords(global_index_p, cps, row, col)
 
-        u_val = 0.0_ccs_real 
-        v_val = 0.0_ccs_real 
-        w_val = 0.0_ccs_real 
+        u_val = 0.0_ccs_real
+        v_val = 0.0_ccs_real
+        w_val = 0.0_ccs_real
 
         call set_row(global_index_p, u_vals)
         call set_entry(u_val, u_vals)
@@ -299,12 +299,12 @@ contains
       call set_values(v_vals, v%values)
       call set_values(w_vals, w%values)
 
-      deallocate(u_vals%global_indices)
-      deallocate(v_vals%global_indices)
-      deallocate(w_vals%global_indices)
-      deallocate(u_vals%values)
-      deallocate(v_vals%values)
-      deallocate(w_vals%values)
+      deallocate (u_vals%global_indices)
+      deallocate (v_vals%global_indices)
+      deallocate (w_vals%global_indices)
+      deallocate (u_vals%values)
+      deallocate (v_vals%values)
+      deallocate (w_vals%values)
     end associate
 
     call get_vector_data(mf%values, mf_data)
