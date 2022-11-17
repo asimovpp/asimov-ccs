@@ -78,7 +78,7 @@ mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex3D
 The default 3D problem size is `16x16x16`.
 
 In both cases time evolution of the kinetic energy and enstrophy are written to files `tgv-ke.log` and `tgv-ens.log` (`tgv2d-*.log` in the 2-D case).
-In the 2-D case there also exists an analytical solution which is used to compute the RMS error in the velocity solution, note that this requires setting the viscosity `mu` in `tgv.f90` to match the value of `diffusion_factor` in `fv_common.f90`.
+In the 2-D case there also exists an analytical solution which is used to compute the RMS error in the velocity solution, note that this requires setting the viscosity `mu` in `tgv2d.f90` to match the value of `diffusion_factor` in `fv_common.f90`.
 Using this error log the convergence rate of the central and upwind schemes can be confirmed by systematic refinement of the grid, noting that for the central scheme the Peclet number must be less than 2
 ```
 Pe = rho U dx / mu < 2
