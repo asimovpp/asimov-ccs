@@ -56,11 +56,6 @@ program ldc
   logical :: w_sol = .false.
   logical :: p_sol = .true.
 
-#ifndef EXCLUDE_MISSING_INTERFACE
-  integer(ccs_int) :: ierr
-  type(tPetscViewer) :: viewer
-#endif
-
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
@@ -182,46 +177,6 @@ program ldc
     t = t + get_timestep()
     t_count = t_count + 1
   end do
-
-#ifndef EXCLUDE_MISSING_INTERFACE
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u" // str(t_count), FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => u%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v" // str(t_count), FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => v%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "w" // str(t_count),FILE_MODE_WRITE,viewer, ierr)
-
-  associate (vec => w%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "p" // str(t_count), FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => p%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerDestroy(viewer, ierr)
-#endif
 
   ! Clean-up
   deallocate (u)

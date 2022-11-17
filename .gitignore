@@ -25,3 +25,7 @@ __pycache__
 ccs_app
 
 *.swp
+
+*.h5
+*.xmf
+*.geo

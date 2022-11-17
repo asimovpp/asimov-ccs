@@ -57,11 +57,6 @@ program ldc
   logical :: w_sol = .true.
   logical :: p_sol = .true.
 
-#ifndef EXCLUDE_MISSING_INTERFACE
-  integer(ccs_int) :: ierr
-  type(tPetscViewer) :: viewer
-#endif
-
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
@@ -169,46 +164,6 @@ program ldc
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                        u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
-
-#ifndef EXCLUDE_MISSING_INTERFACE
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => u%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => v%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "w", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => w%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "p", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => p%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerDestroy(viewer, ierr)
-#endif
 
   ! Write out mesh and solution
   call write_mesh(par_env, case_name, mesh)

@@ -68,12 +68,6 @@ program tgv
   real(ccs_real) :: CFL          ! The CFL target
   integer(ccs_int) :: save_freq  ! Frequency of saving solution data to file
 
-#ifndef EXCLUDE_MISSING_INTERFACE
-  integer(ccs_int) :: ierr
-  type(tPetscViewer) :: viewer
-  character(len=128) :: filename
-#endif
-
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
@@ -276,11 +270,11 @@ program tgv
 
   CFL = 0.1_ccs_real
   dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 4000
+  nsteps = 4 !000
   if (par_env%proc_id == par_env%root) then
     print *, "Running dt = ", dt, " for ", nsteps, " steps"
   end if
-  save_freq = 20
+  save_freq = 2
 
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
@@ -302,53 +296,6 @@ program tgv
     if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
       call write_solution(par_env, case_name, mesh, output_list, t, nsteps, dt)
     end if
-
-#ifndef EXCLUDE_MISSING_INTERFACE
-    if (mod(t, (nsteps / 100)) == 0) then
-      write(filename, "(A, I0)") "u", t
-      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
-
-      associate (vec => u%values)
-        select type (vec)
-        type is (vector_petsc)
-          call VecView(vec%v, viewer, ierr)
-        end select
-      end associate
-
-      write(filename, "(A, I0)") "v", t
-      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
-
-      associate (vec => v%values)
-        select type (vec)
-        type is (vector_petsc)
-          call VecView(vec%v, viewer, ierr)
-        end select
-      end associate
-
-      write(filename, "(A, I0)") "w", t
-      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
-
-      associate (vec => w%values)
-        select type (vec)
-        type is (vector_petsc)
-          call VecView(vec%v, viewer, ierr)
-        end select
-      end associate
-
-      write(filename, "(A, I0)") "p", t
-      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(filename), FILE_MODE_WRITE, viewer, ierr)
-
-      associate (vec => p%values)
-        select type (vec)
-        type is (vector_petsc)
-          call VecView(vec%v, viewer, ierr)
-        end select
-      end associate
-
-      call PetscViewerDestroy(viewer, ierr)
-    end if
-#endif
-
   end do
 
   ! Clean-up

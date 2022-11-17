@@ -44,11 +44,6 @@ program simple
   logical :: w_sol = .false. ! Don't solve w
   logical :: p_sol = .true.  ! Solve p
 
-#ifndef EXCLUDE_MISSING_INTERFACE
-  integer(ccs_int) :: ierr
-  type(tPetscViewer) :: viewer
-#endif
-
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
   it_end = 1000
@@ -117,46 +112,6 @@ program simple
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, it_start, it_end, res_target, &
                        u_sol, v_sol, w_sol, p_sol, u, v, w, p, pp, mf)
-
-#ifndef EXCLUDE_MISSING_INTERFACE
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => u%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => v%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "w", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => w%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "p", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => p%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerDestroy(viewer, ierr)
-#endif
 
   ! Clean-up
   deallocate (u)
