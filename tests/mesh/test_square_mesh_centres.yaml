@@ -3,3 +3,4 @@
 
 main: test_square_mesh_centres
 base: mpi
+extra: parhip

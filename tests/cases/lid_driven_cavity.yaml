@@ -3,3 +3,4 @@
 
 main: ldc
 base: mpi_petsc
+extra: parhip

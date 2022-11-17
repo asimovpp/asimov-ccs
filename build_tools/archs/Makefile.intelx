@@ -1,0 +1,20 @@
+CC = mpiicc -cc=icx
+CFLAGS = -O3
+
+FC = mpiifort -fc=ifx
+FFLAGS = -cpp -fPIC -stand f18
+ifeq ($(VERBOSE),yes)
+  FFLAGS += -DVERBOSE
+endif
+ifeq ($(BUILD),debug)
+  # Add debugging (i.e. expensive) flags
+  FFLAGS += -g
+  FFLAGS += -warn all,noexternals
+else
+  FFLAGS += -O3
+endif
+FFLAGS += -xHOST
+FFLAGS += -module $(OBJ_DIR)
+FFLAGS += -no-wrap-margin
+CAFFLAGS = -coarray
+MPIRUN = mpirun

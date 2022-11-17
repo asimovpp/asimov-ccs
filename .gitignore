@@ -15,11 +15,17 @@ auto
 
 .dir-locals.el
 
-src/doc/
-src/html/
-src/latex/
-src/obj/
+doc/
+html/
+latex/
+obj/
 src/TAGS
 __pycache__
 
 ccs_app
+
+*.swp
+
+*.h5
+*.xmf
+*.geo

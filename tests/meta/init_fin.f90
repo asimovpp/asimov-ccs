@@ -1,4 +1,4 @@
-!> @brief A simple test to see if the basic functionality of init and fin is in place.
+!v A simple test to see if the basic functionality of init and fin is in place.
 program init_fin
   use testing_lib
   implicit none

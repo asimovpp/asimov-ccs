@@ -4,3 +4,4 @@
 
 main: test_compute_fluxes_central
 base: mpi_petsc
+extra: parhip
