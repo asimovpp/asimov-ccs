@@ -434,7 +434,7 @@ contains
     integer(ccs_int), intent(in) :: t
     class(field), intent(inout) :: u, v, w, p
 
-    real(ccs_real), dimension(4) :: err_local, err_rms
+    real(ccs_real), dimension(3) :: err_local, err_rms
 
     real(ccs_real) :: ft
     real(ccs_real) :: u_an, v_an, w_an, p_an
@@ -483,7 +483,7 @@ contains
       err_local(1) = err_local(1) + (u_an - u_data(index_p))**2
       err_local(2) = err_local(2) + (v_an - v_data(index_p))**2
       err_local(3) = err_local(3) + (w_an - w_data(index_p))**2
-      err_local(4) = err_local(4) + (p_an - p_data(index_p))**2
+      !err_local(4) = err_local(4) + (p_an - p_data(index_p))**2
 
     end do
     call restore_vector_data(u%values, u_data)
