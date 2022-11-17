@@ -206,9 +206,6 @@ contains
 
           call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
 
-          !call set_row(global_index_p, mat_coeffs)
-          !call set_col(global_index_p, mat_coeffs)
-          !call set_entry(-(adv_coeff + diff_coeff), mat_coeffs)
           adv_coeff_total = adv_coeff_total + aP + aPb * aF
           diff_coeff_total = diff_coeff_total - diff_coeff + aPb * diff_coeff
         end if
