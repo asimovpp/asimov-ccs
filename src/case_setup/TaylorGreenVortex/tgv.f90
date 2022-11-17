@@ -107,9 +107,9 @@ program tgv
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (central_field :: u)
-  allocate (central_field :: v)
-  allocate (central_field :: w)
+  allocate (upwind_field :: u)
+  allocate (upwind_field :: v)
+  allocate (upwind_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
