@@ -100,7 +100,7 @@ contains
       do i = 1, size(output_list)
         ! Check whether pointer is associated with a field
         if (.not. associated(output_list(i)%ptr)) exit
-        
+
         ! x-gradient
         call get_vector_data(output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dx"

@@ -17,7 +17,7 @@ module timestepping
   public :: activate_timestepping
   public :: initialise_old_values
   public :: finalise_timestep
-  
+
   interface
     !> Apply one timestep correction
     module subroutine apply_timestep(mesh, phi, diag, M, b)
@@ -31,7 +31,7 @@ module timestepping
     !> Indicate a timestep has finished
     module subroutine finalise_timestep()
     end subroutine finalise_timestep
-    
+
     !> Set timestep size
     module subroutine set_timestep(timestep)
       real(ccs_real), intent(in) :: timestep
