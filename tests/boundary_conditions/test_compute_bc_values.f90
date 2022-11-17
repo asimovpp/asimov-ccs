@@ -1,6 +1,6 @@
 program test_compute_bc_values
 #include "ccs_macros.inc"
-  
+
   use testing_lib
   use kinds, only: ccs_real, ccs_int
   use types, only: field, central_field, face_locator, cell_locator, neighbour_locator, vector_spec
@@ -14,7 +14,7 @@ program test_compute_bc_values
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
 
   implicit none
-  
+
   integer(ccs_int) :: nnb
   integer(ccs_int), parameter :: cps = 10, n_boundaries = 4
   integer(ccs_int) :: j, k
@@ -26,7 +26,7 @@ program test_compute_bc_values
   logical :: is_boundary
 
   integer(ccs_int) :: index_p
-  
+
   call init()
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
@@ -34,32 +34,32 @@ program test_compute_bc_values
   ! set locations
   index_p = 0
   do k = 1, mesh%topo%local_num_cells
-     call set_cell_location(mesh, k, loc_p)
-     call count_neighbours(loc_p, nnb)
-     do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-        call set_face_location(mesh, k, j, loc_f)
-        call get_face_normal(loc_f, face_normal)
-        if (is_boundary .and. all(face_normal .eq. (/0, -1, 0/))) then
-           index_p = k
-           exit
-        end if
-     end do
-     if (index_p /= 0) then
+    call set_cell_location(mesh, k, loc_p)
+    call count_neighbours(loc_p, nnb)
+    do j = 1, nnb
+      call set_neighbour_location(loc_p, j, loc_nb)
+      call get_boundary_status(loc_nb, is_boundary)
+      call set_face_location(mesh, k, j, loc_f)
+      call get_face_normal(loc_f, face_normal)
+      if (is_boundary .and. all(face_normal .eq. (/0, -1, 0/))) then
+        index_p = k
         exit
-     end if
+      end if
+    end do
+    if (index_p /= 0) then
+      exit
+    end if
   end do
 
   if (index_p /= 0) then
-     call check_dirichlet_bc(loc_p, loc_f)
-     call check_neumann_bc(loc_p, loc_f)
-     call check_extrapolated_bc(loc_p, loc_f, cps)
-     !call check_symmetric_bc(loc_p, loc_f, cps)  ! XXX: fix symmetric BC implementation and test accordingly
-     
-     call dprint("done")
+    call check_dirichlet_bc(loc_p, loc_f)
+    call check_neumann_bc(loc_p, loc_f)
+    call check_extrapolated_bc(loc_p, loc_f, cps)
+    !call check_symmetric_bc(loc_p, loc_f, cps)  ! XXX: fix symmetric BC implementation and test accordingly
+
+    call dprint("done")
   end if
-  
+
   call fin()
 
 contains
@@ -109,7 +109,7 @@ contains
     integer(ccs_int), parameter :: n_boundaries = 4
     real(ccs_real), dimension(ndim) :: face_norm
     integer(ccs_int) :: j
-    
+
     call initialise(vec_properties)
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
@@ -119,11 +119,11 @@ contains
     call allocate_bc_arrays(n_boundaries, neumann_field%bcs)
     neumann_field%bcs%bc_types = bc_type_neumann
     neumann_field%bcs%values = 0.0_ccs_real
-    neumann_field%bcs%ids = (/(j, j = 1, n_boundaries)/)
+    neumann_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
     call get_vector_data(neumann_field%values, neumann_field_data)
     do j = 1, mesh%topo%local_num_cells
-       neumann_field_data(j) = expected_bc_value
+      neumann_field_data(j) = expected_bc_value
     end do
     call restore_vector_data(neumann_field%values, neumann_field_data)
     call update(neumann_field%values)

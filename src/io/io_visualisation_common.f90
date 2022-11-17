@@ -64,13 +64,13 @@ contains
     character(len=50) :: fmt                     ! Format string
     integer(ccs_int), save :: ioxdmf             ! IO unit of the XDMF file
     integer(ccs_int), save :: step_counter = 0   ! ADIOS2 step counter
-    integer(ccs_int)  :: num_vel_cmp             ! Number of velocity components in output field list
-    integer(ccs_int)  :: i                       ! Loop counter
+    integer(ccs_int) :: num_vel_cmp             ! Number of velocity components in output field list
+    integer(ccs_int) :: i                       ! Loop counter
 
-    character(len=2), parameter  :: l1 = '  '           ! Indentation level 1
-    character(len=4), parameter  :: l2 = '    '         ! Indentation level 2
-    character(len=6), parameter  :: l3 = '      '       ! Indentation level 3
-    character(len=8), parameter  :: l4 = '        '     ! Indentation level 4
+    character(len=2), parameter :: l1 = '  '           ! Indentation level 1
+    character(len=4), parameter :: l2 = '    '         ! Indentation level 2
+    character(len=6), parameter :: l3 = '      '       ! Indentation level 3
+    character(len=8), parameter :: l4 = '        '     ! Indentation level 4
     character(len=10), parameter :: l5 = '          '   ! Indentation level 5
     character(len=12), parameter :: l6 = '            ' ! Indentation level 6
 
@@ -84,7 +84,7 @@ contains
         ! Unsteady case
         if (step == 1) then
           ! Open file
-          open (newunit = ioxdmf, file = xdmf_file, status = 'unknown')
+          open (newunit=ioxdmf, file=xdmf_file, status='unknown')
 
           ! Write file contents
           write (ioxdmf, '(a)') '<?xml version = "1.0"?>'
@@ -96,7 +96,7 @@ contains
       else
         ! Steady case
         ! Open file
-        open (newunit = ioxdmf, file = xdmf_file, status = 'unknown')
+        open (newunit=ioxdmf, file=xdmf_file, status='unknown')
 
         ! Write file contents
         write (ioxdmf, '(a)') '<?xml version = "1.0"?>'
@@ -155,7 +155,7 @@ contains
             write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, 2, '" ItemType = "Function" Function = "JOIN($0, $1)">'
           else if (num_vel_cmp == 3) then
             write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, 3, '" ItemType = "Function" Function = "JOIN($0, $1, $2)">'
-          endif
+          end if
 
           fmt = '(a,a,i0,3(a),i0,a)'
 
@@ -180,7 +180,7 @@ contains
           if (trim(output_list(i)%name) == 'p') then
             write (ioxdmf, '(a,a)') l4, '<Attribute Name = "pressure" AttributeType = "Scalar" Center = "Cell">'
             write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
-              step_counter, '/p</DataItem>'    
+              step_counter, '/p</DataItem>'
             write (ioxdmf, '(a,a)') l4, '</Attribute>'
           end if
         end do
@@ -198,7 +198,7 @@ contains
             write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
               ' Function = "0.5 * ($0*$0 + $1*$1)">'
           else if (num_vel_cmp == 3) then
-              write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
+            write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
               ' Function = "0.5 * ($0*$0 + $1*$1 + $2*$2)">'
           end if
 
@@ -214,7 +214,7 @@ contains
             else if (trim(output_list(i)%name) == 'w') then
               write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
                 step_counter, '/w</DataItem>'
-            endif
+            end if
           end do
           write (ioxdmf, '(a,a)') l5, '</DataItem>'
           write (ioxdmf, '(a,a)') l4, '</Attribute>'

@@ -1,7 +1,7 @@
 !v Test that partitions a very simple graph using ParHIP
 !
 !  Sample graph - adapted from ParMETIS manual to use 1-indexing
-! 
+!
 !  1 -- 2 -- 3 -- 4 -- 5
 !  |    |    |    |    |
 !  6 -- 7 -- 8 -- 9 --10

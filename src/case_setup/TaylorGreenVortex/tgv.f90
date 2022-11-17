@@ -92,8 +92,8 @@ program tgv
   it_start = 1
   it_end = num_steps
 
-  !geo_file = case_name      //      geoext
-  !adios2_file = case_name      //      adiosconfig
+  !geo_file = case_name       //       geoext
+  !adios2_file = case_name       //       adiosconfig
 
   ! Read mesh from *.geo file
   !if (irank == par_env%root) print *, "Reading mesh"
@@ -170,7 +170,7 @@ program tgv
   call initialise_old_values(vec_properties, u)
   call initialise_old_values(vec_properties, v)
   call initialise_old_values(vec_properties, w)
-  
+
   ! START set up vecs for enstrophy
   call create_vector(vec_properties, u%x_gradients)
   call create_vector(vec_properties, u%y_gradients)

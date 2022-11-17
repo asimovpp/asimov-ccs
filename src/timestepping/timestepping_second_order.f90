@@ -17,9 +17,9 @@ contains
   module subroutine finalise_timestep()
 
     first_update = .false.
-    
+
   end subroutine finalise_timestep
-  
+
   module subroutine apply_timestep(mesh, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
@@ -44,7 +44,7 @@ contains
     if (.not. timestepping_is_active) then
       return
     end if
-    
+
     ! Do a first order update the first time because there no two past time steps yet.
     if (first_update) then
       ! V = mesh%volumes
@@ -133,7 +133,7 @@ contains
       old_values_data = values_data
       call restore_vector_data(x%old_values(2)%vec, old_values_data)
       call restore_vector_data(x%old_values(1)%vec, values_data)
-      
+
       call get_vector_data(x%values, values_data)
       call get_vector_data(x%old_values(1)%vec, old_values_data)
       old_values_data = values_data
@@ -161,7 +161,7 @@ contains
 
     call create_vector(vec_properties, x%old_values(1)%vec)
     call update(x%old_values(1)%vec)
-    
+
     call create_vector(vec_properties, x%old_values(2)%vec)
     call update(x%old_values(2)%vec)
 

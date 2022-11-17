@@ -175,8 +175,8 @@ contains
 
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
           ! Correct boundary face distance to distance to immaginary boundary "node"
-          diff_coeff = diff_coeff / 2.0_ccs_real 
-          
+          diff_coeff = diff_coeff / 2.0_ccs_real
+
           select type (phi)
           type is (central_field)
             call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)

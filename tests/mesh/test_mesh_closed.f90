@@ -8,11 +8,11 @@ program test_mesh_closed
 
   use constants
 
-  use meshing, only : set_face_location, get_face_normal, get_face_area
-  use mesh_utils, only : build_mesh
+  use meshing, only: set_face_location, get_face_normal, get_face_area
+  use mesh_utils, only: build_mesh
 
   implicit none
-  
+
   type(ccs_mesh), target :: mesh
   type(face_locator) :: loc_f
 
@@ -26,7 +26,7 @@ program test_mesh_closed
   integer(ccs_int) :: i, j
 
   real(ccs_real) :: A_expected
-  
+
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
@@ -40,7 +40,7 @@ program test_mesh_closed
     mesh = build_mesh(par_env, nx, nz, ny, l)
 
     A_expected = (l / n)**2
-    
+
     ! Loop over cells
     do i = 1, mesh%topo%local_num_cells
       S(:) = 0.0_ccs_real
@@ -54,8 +54,8 @@ program test_mesh_closed
         S(:) = S(:) + norm(:) * A
 
         if (abs(A - A_expected) > 1.0e-8) then
-           write(message, *) "FAIL: expected face area ", A_expected, " got ", A
-           call stop_test(message)
+          write (message, *) "FAIL: expected face area ", A_expected, " got ", A
+          call stop_test(message)
         end if
       end do
 
@@ -63,7 +63,7 @@ program test_mesh_closed
       do j = 1, ndim
         print *, S(j), j
         if (abs(S(j) - 0.0_ccs_real) > eps) then
-          write(message, *) "FAIL: expected", 0.0_ccs_real, " got ", S(j)
+          write (message, *) "FAIL: expected", 0.0_ccs_real, " got ", S(j)
           call stop_test(message)
         end if
       end do
@@ -71,5 +71,5 @@ program test_mesh_closed
   end do
 
   call fin()
-  
+
 end program test_mesh_closed

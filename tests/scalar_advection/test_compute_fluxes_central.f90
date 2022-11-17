@@ -195,16 +195,16 @@ contains
             sgn = -1
           else
             sgn = 1
-          endif
+          end if
           adv_coeff = mf_value * sgn * face_area
           if (adv_coeff > 0.0_ccs_real) then
-             aP = adv_coeff
-             aF = 0.0_ccs_real
+            aP = adv_coeff
+            aF = 0.0_ccs_real
           else
-             aP = 0.0_ccs_real
-             aF = adv_coeff
+            aP = 0.0_ccs_real
+            aF = adv_coeff
           end if
-          
+
           call set_row(global_index_p, mat_values)
           call set_col(global_index_nb, mat_values)
           call set_entry(aF + diff_coeff, mat_values)
@@ -257,59 +257,59 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: aP, aF, def_corr
     real(ccs_real) :: sgn
-    
+
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
 
-    associate(bcs => phi%bcs)
-      face_area = 1.0_ccs_real/cps
+    associate (bcs => phi%bcs)
+      face_area = 1.0_ccs_real / cps
       do index_p = 1, mesh%topo%local_num_cells
-         call clear_entries(vec_values)
+        call clear_entries(vec_values)
 
-         adv_coeff_total = 0.0_ccs_real
-         diff_coeff_total = 0.0_ccs_real
-         call set_cell_location(mesh, index_p, loc_p)
-         call get_global_index(loc_p, global_index_p)
-         call count_neighbours(loc_p, nnb)
-         do j = 1, nnb
-            call set_neighbour_location(loc_p, j, loc_nb)
-            call get_boundary_status(loc_nb, is_boundary)
-            if (.not. is_boundary) then
-               ! Deferred correction advection
-               call get_local_index(loc_nb, index_nb)
-               if (index_p < index_nb) then
-                  sgn = 1.0_ccs_real
-               else
-                  sgn = -1.0_ccs_real
-               end if
-               adv_coeff = mf_value * face_area * sgn
-               if (adv_coeff > 0.0_ccs_real) then
-                  aP = adv_coeff
-                  aF = 0.0_ccs_real
-               else
-                  aP = 0.0_ccs_real
-                  aF = adv_coeff
-               end if
-
-               call get_vector_data(phi%values, phi_data)
-               def_corr = -((0.5_ccs_real - aP) * phi_data(index_p) &
-                    + (0.5_ccs_real - aF) * phi_data(index_nb)) * adv_coeff
-               call restore_vector_data(phi%values, phi_data)
-
-               call set_row(global_index_p, vec_values)
-               call set_entry(def_corr, vec_values)
-               call set_values(vec_values, b)
+        adv_coeff_total = 0.0_ccs_real
+        diff_coeff_total = 0.0_ccs_real
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
+        call count_neighbours(loc_p, nnb)
+        do j = 1, nnb
+          call set_neighbour_location(loc_p, j, loc_nb)
+          call get_boundary_status(loc_nb, is_boundary)
+          if (.not. is_boundary) then
+            ! Deferred correction advection
+            call get_local_index(loc_nb, index_nb)
+            if (index_p < index_nb) then
+              sgn = 1.0_ccs_real
             else
-               dx = 1.0_ccs_real/cps
-               diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
-               adv_coeff = mf_value * face_area
-               bc_value = bcs%values(j)
+              sgn = -1.0_ccs_real
+            end if
+            adv_coeff = mf_value * face_area * sgn
+            if (adv_coeff > 0.0_ccs_real) then
+              aP = adv_coeff
+              aF = 0.0_ccs_real
+            else
+              aP = 0.0_ccs_real
+              aF = adv_coeff
+            end if
 
-               call set_row(global_index_p, vec_values)
-               call set_entry(-(adv_coeff + diff_coeff) * bc_value, vec_values)
-               call set_values(vec_values, b)
-            endif
-         end do
+            call get_vector_data(phi%values, phi_data)
+            def_corr = -((0.5_ccs_real - aP) * phi_data(index_p) &
+                         + (0.5_ccs_real - aF) * phi_data(index_nb)) * adv_coeff
+            call restore_vector_data(phi%values, phi_data)
+
+            call set_row(global_index_p, vec_values)
+            call set_entry(def_corr, vec_values)
+            call set_values(vec_values, b)
+          else
+            dx = 1.0_ccs_real / cps
+            diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
+            adv_coeff = mf_value * face_area
+            bc_value = bcs%values(j)
+
+            call set_row(global_index_p, vec_values)
+            call set_entry(-(adv_coeff + diff_coeff) * bc_value, vec_values)
+            call set_values(vec_values, b)
+          end if
+        end do
       end do
     end associate
   end subroutine compute_exact_vector
