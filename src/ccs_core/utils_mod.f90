@@ -43,6 +43,7 @@ module utils
   public :: exit_print
   public :: calc_kinetic_energy
   public :: calc_enstrophy
+  public :: add_field_to_outputlist
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -372,5 +373,24 @@ contains
     end if
 
   end subroutine calc_enstrophy
+
+  subroutine add_field_to_outputlist(var, name, list)
+
+    use types, only: field, field_ptr
+
+    ! Arguments
+    class(field), pointer, intent(in) :: var
+    character(len=*), intent(in) :: name
+    type(field_ptr), dimension(:), intent(inout) :: list
+
+    ! Local variables
+    integer(ccs_int), save :: count = 0
+
+    count = count + 1
+
+    list(count)%ptr => var
+    list(count)%name = name
+
+  end subroutine add_field_to_outputlist
 
 end module utils

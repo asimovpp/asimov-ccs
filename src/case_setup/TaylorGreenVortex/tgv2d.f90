@@ -8,24 +8,27 @@ program tgv2d
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
+  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
+                         write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector
+                   vector_spec, ccs_vector, field_ptr
   use yaml, only: parse, error_length
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_square_mesh
+  use mesh_utils, only: build_square_mesh, write_mesh
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy
+  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
+                   add_field_to_outputlist
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
+  use io_visualisation, only: write_solution
   use fv, only: update_gradient
 
   implicit none
@@ -39,7 +42,9 @@ program tgv2d
   type(vector_spec) :: vec_properties
   real(ccs_real) :: L
 
-  class(field), allocatable :: u, v, w, p, p_prime, mf
+  class(field), allocatable, target :: u, v, w, p, p_prime, mf
+
+  type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
@@ -56,15 +61,11 @@ program tgv2d
   logical :: w_sol = .false.
   logical :: p_sol = .true.
 
-  real(ccs_real) :: dt       ! The timestep
-  integer(ccs_int) :: t      ! Timestep counter
-  integer(ccs_int) :: nsteps ! Number of timesteps to perform
-  real(ccs_real) :: CFL      ! The CFL target
-
-#ifndef EXCLUDE_MISSING_INTERFACE
-  integer(ccs_int) :: ierr
-  type(tPetscViewer) :: viewer
-#endif
+  real(ccs_real) :: dt          ! The timestep
+  integer(ccs_int) :: t         ! Timestep counter
+  integer(ccs_int) :: nsteps    ! Number of timesteps to perform
+  real(ccs_real) :: CFL         ! The CFL target
+  integer(ccs_int) :: save_freq ! Frequency of saving solution
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -103,6 +104,16 @@ program tgv2d
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
+
+  ! Add fields to output list
+  allocate (output_list(4))
+  call add_field_to_outputlist(u, "u", output_list)
+  call add_field_to_outputlist(v, "v", output_list)
+  call add_field_to_outputlist(w, "w", output_list)
+  call add_field_to_outputlist(p, "p", output_list)
+
+  ! Write gradients to solution file
+  write_gradients = .true.
 
   ! Read boundary conditions
   call get_boundary_count(ccs_config_file, n_boundaries)
@@ -192,13 +203,17 @@ program tgv2d
 
   CFL = 0.1_ccs_real
   dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 5
+  nsteps = 4000
+  save_freq = 20
+
+  ! Write out mesh to file
+  call write_mesh(par_env, case_name, mesh)
 
   call activate_timestepping()
   call set_timestep(dt)
   do t = 1, nsteps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf, t)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
@@ -206,48 +221,11 @@ program tgv2d
     call update_gradient(mesh, v)
     call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, t, u, v, w)
-    print *, t
+
+    if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
+      call write_solution(par_env, case_name, mesh, output_list, t, nsteps, dt)
+    end if
   end do
-
-#ifndef EXCLUDE_MISSING_INTERFACE
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "u", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => u%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "v", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => v%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "w", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => w%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "p", FILE_MODE_WRITE, viewer, ierr)
-
-  associate (vec => p%values)
-    select type (vec)
-    type is (vector_petsc)
-      call VecView(vec%v, viewer, ierr)
-    end select
-  end associate
-
-  call PetscViewerDestroy(viewer, ierr)
-#endif
 
   ! Clean-up
   deallocate (u)
@@ -255,6 +233,7 @@ program tgv2d
   deallocate (w)
   deallocate (p)
   deallocate (p_prime)
+  deallocate (output_list)
 
   call timer(end_time)
 
@@ -334,7 +313,7 @@ contains
     class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
-    integer(ccs_int) :: row, col, n, count
+    integer(ccs_int) :: n, count
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val, p_val
     type(cell_locator) :: loc_p
@@ -455,7 +434,7 @@ contains
     integer(ccs_int), intent(in) :: t
     class(field), intent(inout) :: u, v, w, p
 
-    real(ccs_real), dimension(4) :: err_local, err_rms
+    real(ccs_real), dimension(3) :: err_local, err_rms
 
     real(ccs_real) :: ft
     real(ccs_real) :: u_an, v_an, w_an, p_an
@@ -473,7 +452,6 @@ contains
     real(ccs_real) :: time
 
     integer :: io_unit
-    logical :: exists
 
     integer :: ierr
 
@@ -505,7 +483,7 @@ contains
       err_local(1) = err_local(1) + (u_an - u_data(index_p))**2
       err_local(2) = err_local(2) + (v_an - v_data(index_p))**2
       err_local(3) = err_local(3) + (w_an - w_data(index_p))**2
-      err_local(4) = err_local(4) + (p_an - p_data(index_p))**2
+      !err_local(4) = err_local(4) + (p_an - p_data(index_p))**2
 
     end do
     call restore_vector_data(u%values, u_data)
@@ -524,13 +502,7 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
         first_time = .false.
-
-          !! inquire(file="tgv2d-err.log", exist=exists)
-          !! if (exists) then
-          !!    call execute_command_line("rm -f tgv2d-err.log", wait=.true.) ! Ensure output file doesn't exist
-          !! end if
         open (newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
-
       else
         open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
       end if
