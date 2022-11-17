@@ -283,11 +283,6 @@ contains
     call get_local_index(loc_nb, index_nb)
     call get_bc_index(phi, index_nb, index_bc)
 
-    ! Initialise coefficients so solution *should* diverge if not properly set
-    ! by select case statement
-    a = 0.0_ccs_real
-    b = huge(1.0_ccs_real)
-
     select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
       a = -1.0_ccs_real
@@ -331,6 +326,11 @@ contains
       a = 1.0_ccs_real
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
     case default
+      ! Set coefficients to cause divergence
+      ! Prevents "unused variable" compiler errors
+      a = 0.0_ccs_real
+      b = huge(1.0_ccs_real)
+
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
     end select
 
