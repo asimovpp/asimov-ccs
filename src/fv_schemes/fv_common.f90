@@ -245,7 +245,6 @@ contains
 
     call get_local_index(loc_p, index_p)
     call get_vector_data(phi%values, phi_data)
-    call dprint("phi_data a b " // str(phi_data(index_p)) // " " // str(a) // " " // str(b))
     bc_value = 0.5_ccs_real * (phi_data(index_p) + (b + a * phi_data(index_p)))
     call restore_vector_data(phi%values, phi_data)
 
