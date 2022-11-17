@@ -98,9 +98,9 @@ program tgv2d
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (central_field :: u)
-  allocate (central_field :: v)
-  allocate (central_field :: w)
+  allocate (upwind_field :: u)
+  allocate (upwind_field :: v)
+  allocate (upwind_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
@@ -202,9 +202,9 @@ program tgv2d
   if (irank == par_env%root) print *, "Start SIMPLE"
 
   CFL = 0.1_ccs_real
-  dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 4000
-  save_freq = 20
+  dt = CFL * (3.14_ccs_real / 512)
+  nsteps = 100
+  save_freq = 200
 
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
