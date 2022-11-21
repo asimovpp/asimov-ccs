@@ -6,8 +6,8 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 
 ## Prerequisites
 
-- `MPI` - version 3.17 or newer required
-- `PETSc`
+- `MPI`
+- `PETSc` - version 3.17 or newer required
 - `makedepf90` - version 2.9.0 required, source can be obtained at https://salsa.debian.org/science-team/makedepf90
 - `adios2` - with `hdf5` support, https://adios2.readthedocs.io/
 - `fortran-yaml-cpp` - https://github.com/Nicholaswogan/fortran-yaml-cpp
