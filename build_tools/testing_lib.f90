@@ -31,6 +31,28 @@ module testing_lib
   interface print_failed
     procedure print_failed_integer
     procedure print_failed_real
+    procedure print_failed_bool
+  end interface
+
+  interface assert_lt
+    procedure assert_lt_integer
+    procedure assert_lt_real
+  end interface
+
+  interface assert_gt
+    procedure assert_gt_integer
+    procedure assert_gt_real
+  end interface
+
+  interface assert_bool
+    procedure assert_bool_rank0
+    procedure assert_bool_rank1
+  end interface
+
+  interface assert_neq
+    procedure assert_neq_integer
+    procedure assert_neq_real
+    procedure assert_neq_string
   end interface
   
   class(parallel_environment), allocatable, target :: par_env
@@ -237,6 +259,20 @@ contains
       end if
     end do
   end function print_failed_real
+  
+  function print_failed_bool(received) result(msg)
+    logical, dimension(:), intent(in) :: received
+    character(len=:), allocatable :: msg
+
+    integer :: i
+
+    msg = new_line('a') // "Index Received" // new_line('a')
+    do i = 1, size(received)
+      if (.not. received(i)) then
+        msg = msg // str(i) // achar(9) // "FALSE" // new_line('a')
+      end if
+    end do
+  end function print_failed_bool
 !==========================
 
   
@@ -260,45 +296,96 @@ contains
 
 
 !==========================Others
-  subroutine assert_lt(received, upper_limit, message)
-    integer(ccs_int), intent(in) :: received       !< Test value
-    integer(ccs_int), intent(in) :: upper_limit  !< reference value
-    character(*), intent(in) :: message              !< Error message 
+  subroutine assert_lt_integer(received, upper_limit, message)
+    integer(ccs_int), intent(in) :: received    !< Test value
+    integer(ccs_int), intent(in) :: upper_limit !< Reference value
+    character(*), intent(in) :: message         !< Error message 
 
     if (.not. received < upper_limit) then
       call stop_test(message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received))
     end if
-  end subroutine assert_lt
+  end subroutine assert_lt_integer
   
+  subroutine assert_lt_real(received, upper_limit, message)
+    real(ccs_real), intent(in) :: received    !< Test value
+    real(ccs_real), intent(in) :: upper_limit !< Reference value
+    character(*), intent(in) :: message          !< Error message 
 
-  subroutine assert_gt(received, lower_limit, message)
-    integer(ccs_int), intent(in) :: received       !< Test value
-    integer(ccs_int), intent(in) :: lower_limit  !< reference value
-    character(*), intent(in) :: message              !< Error message 
+    if (.not. received < upper_limit) then
+      call stop_test(message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received))
+    end if
+  end subroutine assert_lt_real
+
+
+  subroutine assert_gt_integer(received, lower_limit, message)
+    integer(ccs_int), intent(in) :: received    !< Test value
+    integer(ccs_int), intent(in) :: lower_limit !< Reference value
+    character(*), intent(in) :: message         !< Error message 
 
     if (.not. received > lower_limit) then
       call stop_test(message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received))
     end if
-  end subroutine assert_gt
+  end subroutine assert_gt_integer
   
-  subroutine assert_bool(received, message)
-    logical, intent(in) :: received       !< Test value
-    character(*), intent(in) :: message              !< Error message 
+  subroutine assert_gt_real(received, lower_limit, message)
+    real(ccs_real), intent(in) :: received    !< Test value
+    real(ccs_real), intent(in) :: lower_limit !< Reference value
+    character(*), intent(in) :: message          !< Error message 
+
+    if (.not. received > lower_limit) then
+      call stop_test(message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received))
+    end if
+  end subroutine assert_gt_real
+
+
+  subroutine assert_bool_rank0(received, message)
+    logical, intent(in) :: received     !< Test value
+    character(*), intent(in) :: message !< Error message 
 
     if (.not. received) then
       call stop_test(message // "Expected: TRUE Received: FALSE")
     end if
-  end subroutine assert_bool
+  end subroutine assert_bool_rank0
+  
+  subroutine assert_bool_rank1(received, message)
+    logical, dimension(:), intent(in) :: received !< Test values
+    character(*), intent(in) :: message           !< Error message 
 
-  subroutine assert_neq(received, notexpected, message)
-    integer(ccs_int), intent(in) :: received       !< Test value
-    integer(ccs_int), intent(in) :: notexpected  !< reference value
-    character(*), intent(in) :: message              !< Error message 
+    if (.not. all(received)) then
+      call stop_test(message // print_failed(received))
+    end if
+  end subroutine assert_bool_rank1
+
+
+  subroutine assert_neq_integer(received, notexpected, message)
+    integer(ccs_int), intent(in) :: received    !< Test value
+    integer(ccs_int), intent(in) :: notexpected !< Reference value
+    character(*), intent(in) :: message         !< Error message 
 
     if (a_eq(received, notexpected)) then
       call stop_test(message // "Not Expected: " // str(notexpected) // " Received: " // str(received))
     end if
-  end subroutine assert_neq
+  end subroutine assert_neq_integer
+  
+  subroutine assert_neq_real(received, notexpected, message)
+    real(ccs_real), intent(in) :: received    !< Test value
+    real(ccs_real), intent(in) :: notexpected !< Reference value
+    character(*), intent(in) :: message          !< Error message 
+
+    if (a_eq(received, notexpected)) then
+      call stop_test(message // "Not Expected: " // str(notexpected) // " Received: " // str(received))
+    end if
+  end subroutine assert_neq_real
+  
+  subroutine assert_neq_string(received, notexpected, message)
+    character(*), intent(in) :: received    !< Test value
+    character(*), intent(in) :: notexpected !< Reference value
+    character(*), intent(in) :: message     !< Error message 
+
+    if (received == notexpected) then
+      call stop_test(message // "Not Expected: " // notexpected // " Received: " // received)
+    end if
+  end subroutine assert_neq_string
 !==========================
 
 
