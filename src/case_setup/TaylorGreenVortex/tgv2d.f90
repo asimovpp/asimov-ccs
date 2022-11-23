@@ -98,12 +98,25 @@ program tgv2d
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (upwind_field :: u)
-  allocate (upwind_field :: v)
-  allocate (upwind_field :: w)
-  allocate (central_field :: p)
-  allocate (central_field :: p_prime)
   allocate (face_field :: mf)
+
+  ! Create and initialise field vectors
+  call initialise(vec_properties)
+  call get_boundary_count(ccs_config_file, n_boundaries)
+  call get_bc_variables(ccs_config_file, variable_names)
+
+  call set_vector_location(cell, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_field(vec_properties, 1, "u", u)
+  call create_field(vec_properties, 1, "v", v)
+  call create_field(vec_properties, 1, "w", w)
+  call create_field(vec_properties, 2, "p", p)
+  call create_field(vec_properties, 2, "p_prime", p_prime)
+
+  call set_vector_location(face, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call create_vector(vec_properties, mf%values)
+  call update(mf%values)
 
   ! Add fields to output list
   allocate (output_list(4))
@@ -114,37 +127,6 @@ program tgv2d
 
   ! Write gradients to solution file
   write_gradients = .true.
-
-  ! Read boundary conditions
-  call get_boundary_count(ccs_config_file, n_boundaries)
-  call get_bc_variables(ccs_config_file, variable_names)
-  call allocate_bc_arrays(n_boundaries, u%bcs)
-  call allocate_bc_arrays(n_boundaries, v%bcs)
-  call allocate_bc_arrays(n_boundaries, w%bcs)
-  call allocate_bc_arrays(n_boundaries, p%bcs)
-  call allocate_bc_arrays(n_boundaries, p_prime%bcs)
-  call read_bc_config(ccs_config_file, "u", u)
-  call read_bc_config(ccs_config_file, "v", v)
-  call read_bc_config(ccs_config_file, "w", w)
-  call read_bc_config(ccs_config_file, "p", p)
-  call read_bc_config(ccs_config_file, "p", p_prime)
-
-  ! Create and initialise field vectors
-  call initialise(vec_properties)
-
-  call set_vector_location(cell, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-  call create_field(vec_properties, u)
-  call create_field(vec_properties, v)
-  call create_field(vec_properties, w)
-  call create_field(vec_properties, p)
-  call create_field(vec_properties, p_prime)
-  !  END  set up vecs for enstrophy
-
-  call set_vector_location(face, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, mf%values)
-  call update(mf%values)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
@@ -469,21 +451,47 @@ contains
   end subroutine calc_tgv2d_error
 
   !v Build a field variable with data and gradient vectors + transient data.
-  subroutine create_field(vec_properties, phi)
+  subroutine create_field(vec_properties, field_type, field_name, phi)
 
+    use utils, only : debug_print
+    
+    implicit none
+    
     !! Logically vec_properties should be a field_properties variable, but this doesn't yet exist.
     type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
-    class(field), intent(out) :: phi                !< The field being constructed
+    integer, intent(in) :: field_type               !< Identifier for what kind of field: 0 == face, 1 == upwind, 2 == central
+    character(len=*), intent(in) :: field_name      !< Field name -- should match against boundary conditions, etc.
+    class(field), allocatable, intent(out) :: phi   !< The field being constructed
 
     !! --- Allocate field values and gradients ---
     ! XXX: Potential abstraction?
+
+    ! XXX: This should be using named constants and buried in field_properties type eventually
+    if (field_type == 0) then
+       call dprint("Create face field")
+       allocate (face_field :: phi)
+    else if (field_type == 1) then
+       call dprint("Create upwind field")
+       allocate (upwind_field :: phi)
+    else if (field_type == 2) then
+       call dprint("Create central field")
+       allocate (central_field :: phi)
+    end if
+
+    call dprint("Create field values vector")
     call create_vector(vec_properties, phi%values)
 
+    call dprint("Create field gradients vector")
     call create_vector(vec_properties, phi%x_gradients)
     call create_vector(vec_properties, phi%y_gradients)
     call create_vector(vec_properties, phi%z_gradients)
 
+    call dprint("Create field old values")
     call initialise_old_values(vec_properties, phi)
+
+    ! XXX: n_boundaries and ccs_config_file are host-associated from program scope.
+    call allocate_bc_arrays(n_boundaries, phi%bcs)
+    call read_bc_config(ccs_config_file, field_name, phi)
     !! --- End allocation ---
 
     !! --- Ensure data is updated/parallel-constructed ---
