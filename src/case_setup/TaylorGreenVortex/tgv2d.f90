@@ -134,56 +134,11 @@ program tgv2d
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, u%values)
-  call create_vector(vec_properties, v%values)
-  call create_vector(vec_properties, w%values)
-  call create_vector(vec_properties, p%values)
-  call create_vector(vec_properties, p%x_gradients)
-  call create_vector(vec_properties, p%y_gradients)
-  call create_vector(vec_properties, p%z_gradients)
-  call create_vector(vec_properties, p_prime%values)
-  call create_vector(vec_properties, p_prime%x_gradients)
-  call create_vector(vec_properties, p_prime%y_gradients)
-  call create_vector(vec_properties, p_prime%z_gradients)
-  call update(u%values)
-  call update(v%values)
-  call update(w%values)
-  call update(p%values)
-  call update(p%x_gradients)
-  call update(p%y_gradients)
-  call update(p%z_gradients)
-  call update(p_prime%values)
-  call update(p_prime%x_gradients)
-  call update(p_prime%y_gradients)
-  call update(p_prime%z_gradients)
-  call initialise_old_values(vec_properties, u)
-  call initialise_old_values(vec_properties, v)
-  call initialise_old_values(vec_properties, w)
-
-  ! START set up vecs for enstrophy
-  call create_vector(vec_properties, u%x_gradients)
-  call create_vector(vec_properties, u%y_gradients)
-  call create_vector(vec_properties, u%z_gradients)
-  call create_vector(vec_properties, v%x_gradients)
-  call create_vector(vec_properties, v%y_gradients)
-  call create_vector(vec_properties, v%z_gradients)
-  call create_vector(vec_properties, w%x_gradients)
-  call create_vector(vec_properties, w%y_gradients)
-  call create_vector(vec_properties, w%z_gradients)
-
-  call update(u%x_gradients)
-  call update(u%y_gradients)
-  call update(u%z_gradients)
-  call update(v%x_gradients)
-  call update(v%y_gradients)
-  call update(v%z_gradients)
-  call update(w%x_gradients)
-  call update(w%y_gradients)
-  call update(w%z_gradients)
-
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, w)
+  call create_field(vec_properties, u)
+  call create_field(vec_properties, v)
+  call create_field(vec_properties, w)
+  call create_field(vec_properties, p)
+  call create_field(vec_properties, p_prime)
   !  END  set up vecs for enstrophy
 
   call set_vector_location(face, vec_properties)
@@ -512,5 +467,35 @@ contains
     end if
 
   end subroutine calc_tgv2d_error
+
+  !v Build a field variable with data and gradient vectors + transient data.
+  subroutine create_field(vec_properties, phi)
+
+    !! Logically vec_properties should be a field_properties variable, but this doesn't yet exist.
+    type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
+    class(field), intent(out) :: phi                !< The field being constructed
+
+    !! --- Allocate field values and gradients ---
+    ! XXX: Potential abstraction?
+    call create_vector(vec_properties, phi%values)
+
+    call create_vector(vec_properties, phi%x_gradients)
+    call create_vector(vec_properties, phi%y_gradients)
+    call create_vector(vec_properties, phi%z_gradients)
+
+    call initialise_old_values(vec_properties, phi)
+    !! --- End allocation ---
+
+    !! --- Ensure data is updated/parallel-constructed ---
+    ! XXX: Potential abstraction --- see update(vec), etc.
+    call update(phi%values)
+    call update(phi%x_gradients)
+    call update(phi%y_gradients)
+    call update(phi%z_gradients)
+
+    call update_gradient(vec_properties%mesh, phi)
+    !! --- End update ---
+    
+  end subroutine create_field
 
 end program tgv2d
