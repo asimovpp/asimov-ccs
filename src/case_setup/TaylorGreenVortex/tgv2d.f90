@@ -450,7 +450,7 @@ contains
 
   end subroutine calc_tgv2d_error
 
-  !v Build a field variable with data and gradient vectors + transient data.
+  !v Build a field variable with data and gradient vectors + transient data and boundary arrays.
   subroutine create_field(vec_properties, field_type, field_name, phi)
 
     use utils, only : debug_print
@@ -463,10 +463,35 @@ contains
     character(len=*), intent(in) :: field_name      !< Field name -- should match against boundary conditions, etc.
     class(field), allocatable, intent(out) :: phi   !< The field being constructed
 
-    !! --- Allocate field values and gradients ---
-    ! XXX: Potential abstraction?
+    call allocate_field(vec_properties, field_type, phi)
 
-    ! XXX: This should be using named constants and buried in field_properties type eventually
+    ! XXX: ccs_config_file is host-associated from program scope.
+    call read_bc_config(ccs_config_file, field_name, phi)
+
+    !! --- Ensure data is updated/parallel-constructed ---
+    ! XXX: Potential abstraction --- see update(vec), etc.
+    call update(phi%values)
+    call update(phi%x_gradients)
+    call update(phi%y_gradients)
+    call update(phi%z_gradients)
+
+    call update_gradient(vec_properties%mesh, phi)
+    !! --- End update ---
+    
+  end subroutine create_field
+
+  !v Allocate a field variable
+  subroutine allocate_field(vec_properties, field_type, phi)
+
+    use utils, only : debug_print
+    
+    implicit none
+    
+    !! Logically vec_properties should be a field_properties variable, but this doesn't yet exist.
+    type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
+    integer, intent(in) :: field_type               !< Identifier for what kind of field: 0 == face, 1 == upwind, 2 == central
+    class(field), allocatable, intent(out) :: phi   !< The field being constructed
+
     if (field_type == 0) then
        call dprint("Create face field")
        allocate (face_field :: phi)
@@ -489,21 +514,9 @@ contains
     call dprint("Create field old values")
     call initialise_old_values(vec_properties, phi)
 
-    ! XXX: n_boundaries and ccs_config_file are host-associated from program scope.
+    ! XXX: n_boundaries is host-associated from program scope.
     call allocate_bc_arrays(n_boundaries, phi%bcs)
-    call read_bc_config(ccs_config_file, field_name, phi)
-    !! --- End allocation ---
 
-    !! --- Ensure data is updated/parallel-constructed ---
-    ! XXX: Potential abstraction --- see update(vec), etc.
-    call update(phi%values)
-    call update(phi%x_gradients)
-    call update(phi%y_gradients)
-    call update(phi%z_gradients)
-
-    call update_gradient(vec_properties%mesh, phi)
-    !! --- End update ---
-    
-  end subroutine create_field
-
+  end subroutine allocate_field
+  
 end program tgv2d
