@@ -115,8 +115,7 @@ program tgv2d
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, mf%values)
-  call update(mf%values)
+  call create_field(vec_properties, 2, "mf", mf)
 
   ! Add fields to output list
   allocate (output_list(4))
