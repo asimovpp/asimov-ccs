@@ -67,6 +67,11 @@ program tgv2d
   real(ccs_real) :: CFL         ! The CFL target
   integer(ccs_int) :: save_freq ! Frequency of saving solution
 
+  !XXX: Temporary parameters
+  integer, parameter :: face_centred = 0         ! Indicates face centred variable
+  integer, parameter :: cell_centred_upwind = 1  ! Indicates cell centred variable (upwind scheme)
+  integer, parameter :: cell_centred_central = 2 ! Indicates cell centred variable (central scheme)
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
@@ -107,11 +112,11 @@ program tgv2d
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_field(vec_properties, 1, "u", u)
-  call create_field(vec_properties, 1, "v", v)
-  call create_field(vec_properties, 1, "w", w)
-  call create_field(vec_properties, 2, "p", p)
-  call create_field(vec_properties, 2, "p_prime", p_prime)
+  call create_field(vec_properties, cell_centred_upwind, "u", u)
+  call create_field(vec_properties, cell_centred_upwind, "v", v)
+  call create_field(vec_properties, cell_centred_upwind, "w", w)
+  call create_field(vec_properties, cell_centred_central, "p", p)
+  call create_field(vec_properties, cell_centred_central, "p_prime", p_prime)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -489,16 +494,16 @@ contains
     
     !! Logically vec_properties should be a field_properties variable, but this doesn't yet exist.
     type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
-    integer, intent(in) :: field_type               !< Identifier for what kind of field: 0 == face, 1 == upwind, 2 == central
+    integer, intent(in) :: field_type               !< Identifier for what kind of field
     class(field), allocatable, intent(out) :: phi   !< The field being constructed
 
-    if (field_type == 0) then
+    if (field_type == face_centred) then
        call dprint("Create face field")
        allocate (face_field :: phi)
-    else if (field_type == 1) then
+    else if (field_type == cell_centred_upwind) then
        call dprint("Create upwind field")
        allocate (upwind_field :: phi)
-    else if (field_type == 2) then
+    else if (field_type == cell_centred_central) then
        call dprint("Create central field")
        allocate (central_field :: phi)
     end if
