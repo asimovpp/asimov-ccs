@@ -464,7 +464,7 @@ contains
     
     !! Logically vec_properties should be a field_properties variable, but this doesn't yet exist.
     type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
-    integer, intent(in) :: field_type               !< Identifier for what kind of field: 0 == face, 1 == upwind, 2 == central
+    integer, intent(in) :: field_type               !< Identifier for what kind of field
     character(len=*), intent(in) :: field_name      !< Field name -- should match against boundary conditions, etc.
     class(field), allocatable, intent(out) :: phi   !< The field being constructed
 
