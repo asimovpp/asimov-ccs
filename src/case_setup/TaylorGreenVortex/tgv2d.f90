@@ -519,10 +519,11 @@ contains
        call create_vector(vec_properties, phi%x_gradients)
        call create_vector(vec_properties, phi%y_gradients)
        call create_vector(vec_properties, phi%z_gradients)
+
+       ! Currently no need for old face values
+       call dprint("Create field old values")
+       call initialise_old_values(vec_properties, phi)
     end if
-    
-    call dprint("Create field old values")
-    call initialise_old_values(vec_properties, phi)
 
     ! XXX: n_boundaries is host-associated from program scope.
     call allocate_bc_arrays(n_boundaries, phi%bcs)
