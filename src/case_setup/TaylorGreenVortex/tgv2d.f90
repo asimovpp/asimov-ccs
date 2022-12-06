@@ -475,11 +475,14 @@ contains
     !! --- Ensure data is updated/parallel-constructed ---
     ! XXX: Potential abstraction --- see update(vec), etc.
     call update(phi%values)
-    call update(phi%x_gradients)
-    call update(phi%y_gradients)
-    call update(phi%z_gradients)
+    if (field_type /= face_centred) then
+       ! Current design only computes/stores gradients at cell centres
+       call update(phi%x_gradients)
+       call update(phi%y_gradients)
+       call update(phi%z_gradients)
 
-    call update_gradient(vec_properties%mesh, phi)
+       call update_gradient(vec_properties%mesh, phi)
+    end if
     !! --- End update ---
     
   end subroutine create_field
@@ -510,11 +513,14 @@ contains
     call dprint("Create field values vector")
     call create_vector(vec_properties, phi%values)
 
-    call dprint("Create field gradients vector")
-    call create_vector(vec_properties, phi%x_gradients)
-    call create_vector(vec_properties, phi%y_gradients)
-    call create_vector(vec_properties, phi%z_gradients)
-
+    if (field_type /= face_centred) then
+       ! Current design only computes/stores gradients at cell centres
+       call dprint("Create field gradients vector")
+       call create_vector(vec_properties, phi%x_gradients)
+       call create_vector(vec_properties, phi%y_gradients)
+       call create_vector(vec_properties, phi%z_gradients)
+    end if
+    
     call dprint("Create field old values")
     call initialise_old_values(vec_properties, phi)
 
