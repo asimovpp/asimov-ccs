@@ -47,6 +47,8 @@ contains
       return
     end if
 
+    call get_local_num_cells(mesh, local_num_cells)
+
     ! Do a first order update the first time because there no two past time steps yet.
     if (first_update) then
       ! V = mesh%volumes
@@ -58,7 +60,6 @@ contains
       call update(b)
       call get_vector_data(b, b_data)
 
-      call get_local_num_cells(mesh, local_num_cells)
       do i = 1, local_num_cells
         ! A = A + V/dt
         diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
