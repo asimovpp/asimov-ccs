@@ -16,9 +16,9 @@ title: LidDrivenCavity
 steps: 1
 
 relaxation_factor:
-  u: 1.0
-  v: 1.0
-  w: 1.0
+  u: 0.9
+  v: 0.9
+  w: 0.9
   p: 0.1
 
 target_residual: 1.0e-10
