@@ -57,7 +57,7 @@ contains
     use types, only: cell_locator
     use utils, only: set_mode, set_row, set_entry, set_values, clear_entries, update
     use vec, only: create_vector_values
-    use meshing, only: set_cell_location, get_global_index
+    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
 
     integer(ccs_int), intent(in) :: mode
 
@@ -67,24 +67,25 @@ contains
     type(vector_values) :: val_dat
     type(cell_locator) :: loc_p
 
+    integer(ccs_int) :: nlocal
     integer(ccs_int) :: i
     integer(ccs_int) :: j
 
     integer(ccs_int) :: index_p
     integer(ccs_int) :: global_index_p
 
-    associate (nlocal => mesh%topo%local_num_cells)
+    call get_local_num_cells(mesh, nlocal)
+    
+    nrows = 1_ccs_int
+    nblocks = nlocal / nrows
 
-      nrows = 1_ccs_int
-      nblocks = nlocal / nrows
+    call create_vector_values(nrows, val_dat)
+    call set_mode(mode, val_dat)
 
-      call create_vector_values(nrows, val_dat)
-      call set_mode(mode, val_dat)
+    do i = 1_ccs_int, nblocks
+       call clear_entries(val_dat)
 
-      do i = 1_ccs_int, nblocks
-        call clear_entries(val_dat)
-
-        do j = 1_ccs_int, nrows
+       do j = 1_ccs_int, nrows
           ! Compute local and global indices
           index_p = j + (i - 1) * nrows
 
@@ -93,13 +94,11 @@ contains
 
           call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...
           call set_entry(elt_val, val_dat)
-        end do
+       end do
 
-        call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
-      end do
-      ! TODO: remainder loop (required for blocksize > 1)...
-
-    end associate
+       call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
+    end do
+    ! TODO: remainder loop (required for blocksize > 1)...
 
     call update(v)
 

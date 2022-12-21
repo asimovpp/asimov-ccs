@@ -17,7 +17,7 @@ program test_compute_fluxes
   use constants, only: add_mode, face
   use bc_constants
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
-                     set_cell_location, set_neighbour_location, count_neighbours
+                     set_cell_location, set_neighbour_location, count_neighbours, get_local_num_cells
   use boundary_conditions, only: allocate_bc_arrays
 
   implicit none
@@ -170,6 +170,8 @@ contains
 
     real(ccs_real) :: aP, aF
 
+    integer(ccs_int) :: local_num_cells
+    
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_values)
@@ -177,7 +179,8 @@ contains
 
     face_area = 1.0_ccs_real / cps
 
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       call set_cell_location(mesh, index_p, loc_p)
@@ -254,6 +257,8 @@ contains
     real(ccs_real) :: adv_coeff_total, diff_coeff_total
     logical :: is_boundary
 
+    integer(ccs_int) :: local_num_cells
+    
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: aP, aF, def_corr
     real(ccs_real) :: sgn
@@ -263,7 +268,8 @@ contains
 
     associate (bcs => phi%bcs)
       face_area = 1.0_ccs_real / cps
-      do index_p = 1, mesh%topo%local_num_cells
+      call get_local_num_cells(mesh, local_num_cells)
+      do index_p = 1, local_num_cells
         call clear_entries(vec_values)
 
         adv_coeff_total = 0.0_ccs_real

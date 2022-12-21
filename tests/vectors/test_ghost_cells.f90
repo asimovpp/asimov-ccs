@@ -8,7 +8,7 @@ program test_ghost_cells
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, update_vector, get_vector_data, restore_vector_data
   use meshing, only: set_neighbour_location, &
-                     get_global_index, get_local_index, get_face_area, get_face_normal
+                     get_global_index, get_local_index, get_face_area, get_face_normal, get_local_num_cells
   use utils, only: update, initialise, &
                    set_size, set_values
   use petsctypes, only: vector_petsc
@@ -20,6 +20,7 @@ program test_ghost_cells
   class(ccs_vector), allocatable :: v
   real(ccs_real), dimension(:), pointer :: values
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i
   integer(ccs_int) :: proc_id
   integer(ccs_int) :: num_procs
@@ -30,7 +31,8 @@ program test_ghost_cells
   num_procs = par_env%num_procs
 
   mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
-
+  call get_local_num_cells(mesh, local_num_cells)
+  
   ! Specify vector size based on the mesh
   call initialise(vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -42,7 +44,7 @@ program test_ghost_cells
   call get_vector_data(v, values)
 
   ! Set vector values to global mesh indices
-  do i = 1, mesh%topo%local_num_cells
+  do i = 1, local_num_cells
     values(i) = mesh%topo%global_indices(i)
   end do
 

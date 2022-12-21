@@ -303,7 +303,8 @@ contains
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
     use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre
+                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre, &
+                       get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -313,6 +314,7 @@ contains
     class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
+    integer(ccs_int) :: n_local
     integer(ccs_int) :: n, count
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val, p_val
@@ -329,52 +331,52 @@ contains
     integer(ccs_int) :: j
 
     ! Set alias
-    associate (n_local => mesh%topo%local_num_cells)
-      call create_vector_values(n_local, u_vals)
-      call create_vector_values(n_local, v_vals)
-      call create_vector_values(n_local, w_vals)
-      call create_vector_values(n_local, p_vals)
-      call set_mode(insert_mode, u_vals)
-      call set_mode(insert_mode, v_vals)
-      call set_mode(insert_mode, w_vals)
-      call set_mode(insert_mode, p_vals)
+    call get_local_num_cells(mesh, n_local)
 
-      ! Set initial values for velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
+    call create_vector_values(n_local, u_vals)
+    call create_vector_values(n_local, v_vals)
+    call create_vector_values(n_local, w_vals)
+    call create_vector_values(n_local, p_vals)
+    call set_mode(insert_mode, u_vals)
+    call set_mode(insert_mode, v_vals)
+    call set_mode(insert_mode, w_vals)
+    call set_mode(insert_mode, p_vals)
 
-        call get_centre(loc_p, x_p)
+    ! Set initial values for velocity fields
+    do index_p = 1, n_local
+       call set_cell_location(mesh, index_p, loc_p)
+       call get_global_index(loc_p, global_index_p)
 
-        u_val = sin(x_p(1)) * cos(x_p(2))
-        v_val = -cos(x_p(1)) * sin(x_p(2))
-        w_val = 0.0_ccs_real
-        p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+       call get_centre(loc_p, x_p)
 
-        call set_row(global_index_p, u_vals)
-        call set_entry(u_val, u_vals)
-        call set_row(global_index_p, v_vals)
-        call set_entry(v_val, v_vals)
-        call set_row(global_index_p, w_vals)
-        call set_entry(w_val, w_vals)
-        call set_row(global_index_p, p_vals)
-        call set_entry(p_val, p_vals)
-      end do
+       u_val = sin(x_p(1)) * cos(x_p(2))
+       v_val = -cos(x_p(1)) * sin(x_p(2))
+       w_val = 0.0_ccs_real
+       p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
-      call set_values(u_vals, u%values)
-      call set_values(v_vals, v%values)
-      call set_values(w_vals, w%values)
-      call set_values(p_vals, p%values)
+       call set_row(global_index_p, u_vals)
+       call set_entry(u_val, u_vals)
+       call set_row(global_index_p, v_vals)
+       call set_entry(v_val, v_vals)
+       call set_row(global_index_p, w_vals)
+       call set_entry(w_val, w_vals)
+       call set_row(global_index_p, p_vals)
+       call set_entry(p_val, p_vals)
+    end do
 
-      deallocate (u_vals%global_indices)
-      deallocate (v_vals%global_indices)
-      deallocate (w_vals%global_indices)
-      deallocate (p_vals%global_indices)
-      deallocate (u_vals%values)
-      deallocate (v_vals%values)
-      deallocate (w_vals%values)
-      deallocate (p_vals%values)
-    end associate
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
+    call set_values(w_vals, w%values)
+    call set_values(p_vals, p%values)
+
+    deallocate (u_vals%global_indices)
+    deallocate (v_vals%global_indices)
+    deallocate (w_vals%global_indices)
+    deallocate (p_vals%global_indices)
+    deallocate (u_vals%values)
+    deallocate (v_vals%values)
+    deallocate (w_vals%values)
+    deallocate (p_vals%values)
 
     call get_vector_data(mf%values, mf_data)
 
@@ -382,7 +384,7 @@ contains
     n = 0
 
     ! Loop over local cells and faces
-    do index_p = 1, mesh%topo%local_num_cells
+    do index_p = 1, n_local
 
       call set_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
@@ -425,7 +427,7 @@ contains
 
     use vec, only: get_vector_data, restore_vector_data
 
-    use meshing, only: get_centre, set_cell_location
+    use meshing, only: get_centre, set_cell_location, get_local_num_cells
 
     use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
@@ -446,7 +448,7 @@ contains
 
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: x_p
-    integer(ccs_int) :: index_p
+    integer(ccs_int) :: index_p, local_num_cells
 
     character(len=ccs_string_len) :: fmt
     real(ccs_real) :: time
@@ -465,7 +467,9 @@ contains
     call get_vector_data(v%values, v_data)
     call get_vector_data(w%values, w_data)
     call get_vector_data(p%values, p_data)
-    do index_p = 1, mesh%topo%local_num_cells
+
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
 
       call set_cell_location(mesh, index_p, loc_p)
       call get_centre(loc_p, x_p)

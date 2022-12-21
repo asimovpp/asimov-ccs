@@ -21,9 +21,13 @@ contains
     use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
 
+    use meshing, only: get_local_num_cells
+    
     type(matrix_spec), intent(in) :: mat_properties   !< contains information about how the matrix should be allocated
     class(ccs_matrix), allocatable, intent(out) :: M  !< the matrix object
 
+    integer(ccs_int) :: local_num_cells
+    
     integer(ccs_err) :: ierr  ! Error code
 
     allocate (matrix_petsc :: M)
@@ -39,7 +43,8 @@ contains
         call MatCreate(par_env%comm, M%M, ierr)
 
         associate (mesh => mat_properties%mesh)
-          call MatSetSizes(M%M, mesh%topo%local_num_cells, mesh%topo%local_num_cells, &
+          call get_local_num_cells(mesh, local_num_cells)
+          call MatSetSizes(M%M, local_num_cells, local_num_cells, &
                            PETSC_DETERMINE, PETSC_DETERMINE, ierr)
         end associate
 

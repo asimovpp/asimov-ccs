@@ -25,6 +25,7 @@ contains
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
     use vec, only: get_vector_data, restore_vector_data
     use utils, only: update, finalise
+    use meshing, only: get_local_num_cells
 
     type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
@@ -38,6 +39,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_old2_data
     real(ccs_real) :: rho
     integer(ccs_int) :: i
+    integer(ccs_int) :: local_num_cells
 
     rho = 1.0
 
@@ -56,7 +58,8 @@ contains
       call update(b)
       call get_vector_data(b, b_data)
 
-      do i = 1, mesh%topo%local_num_cells
+      call get_local_num_cells(mesh, local_num_cells)
+      do i = 1, local_num_cells
         ! A = A + V/dt
         diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
 
@@ -78,7 +81,7 @@ contains
       call update(b)
       call get_vector_data(b, b_data)
 
-      do i = 1, mesh%topo%local_num_cells
+      do i = 1, local_num_cells
         ! A = A + 1.5*rho*V/dt
         diag_data(i) = diag_data(i) + 1.5 * rho * mesh%geo%volumes(i) / get_timestep()
 

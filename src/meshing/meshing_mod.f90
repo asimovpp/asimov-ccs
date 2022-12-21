@@ -5,7 +5,7 @@
 module meshing
 
   use constants, only: ndim
-  use kinds, only: ccs_int, ccs_real
+  use kinds, only: ccs_int, ccs_real, ccs_long
   use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
 
   implicit none
@@ -25,6 +25,7 @@ module meshing
   public :: get_local_status
   public :: count_neighbours
   public :: get_distance
+  public :: get_local_num_cells, set_local_num_cells
 
   interface get_centre
     module procedure get_cell_centre
@@ -62,6 +63,11 @@ module meshing
     module procedure get_face_distance
   end interface get_distance
 
+  interface get_local_num_cells
+    module procedure get_local_num_cells_int
+    module procedure get_local_num_cells_long
+  end interface get_local_num_cells
+  
   interface
 
     !v Constructs a cell locator object.
@@ -220,6 +226,25 @@ module meshing
       type(face_locator), intent(in) :: loc_f            !< The face distance is measured to.
       real(ccs_real), dimension(ndim), intent(out) :: dx !< ndim-array of the distance
     end subroutine get_face_distance
+
+    !> Sets the mesh local cell count.
+    module subroutine set_local_num_cells(local_num_cells, mesh)
+      integer(ccs_int), intent(in) :: local_num_cells !< The local cell count
+      type(ccs_mesh), intent(inout) :: mesh           !< The mesh
+    end subroutine set_local_num_cells
+
+    !> Gets the mesh local cell count.
+    module subroutine get_local_num_cells_int(mesh, local_num_cells)
+      type(ccs_mesh), intent(in) :: mesh               !< The mesh
+      integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
+    end subroutine get_local_num_cells_int
+    !> Gets the mesh local cell count.
+    !
+    !  Handles case when using a long integer to access the internal mesh data.
+    module subroutine get_local_num_cells_long(mesh, local_num_cells)
+      type(ccs_mesh), intent(in) :: mesh                !< The mesh
+      integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
+    end subroutine get_local_num_cells_long
   end interface
 
 end module meshing
