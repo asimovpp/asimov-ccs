@@ -226,12 +226,12 @@ contains
     use mpi
 
     use constants, only: ndim, ccs_string_len
-    use types, only: field, ccs_mesh
+    use types, only: field, ccs_mesh, cell_locator
     use vec, only: get_vector_data, restore_vector_data
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use meshing, only: get_local_num_cells
+    use meshing, only: get_local_num_cells, set_cell_location, get_volume
     
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
@@ -251,6 +251,9 @@ contains
     logical, save :: first_time = .true.
     integer :: io_unit
 
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: volume
+    
     rho = 1.0_ccs_real
 
     ek_local = 0.0_ccs_real
@@ -264,12 +267,13 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-
-      ek_local = ek_local + 0.5 * rho * mesh%geo%volumes(index_p) * &
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_volume(loc_p, volume)
+      
+      ek_local = ek_local + 0.5 * rho * volume * &
                  (u_data(index_p)**2 + v_data(index_p)**2 + w_data(index_p)**2)
 
-      volume_local = volume_local + mesh%geo%volumes(index_p)
-
+      volume_local = volume_local + volume
     end do
 
     call restore_vector_data(u%values, u_data)

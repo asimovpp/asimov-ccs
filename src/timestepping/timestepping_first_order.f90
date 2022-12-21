@@ -19,10 +19,11 @@ contains
 
   module subroutine apply_timestep(mesh, phi, diag, M, b)
     use kinds, only: ccs_int
+    use types, only: cell_locator
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
     use vec, only: get_vector_data, restore_vector_data
     use utils, only: update, finalise
-    use meshing, only: get_local_num_cells
+    use meshing, only: get_local_num_cells, get_volume, set_cell_location
 
     type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
@@ -36,6 +37,9 @@ contains
     integer(ccs_int) :: i
     integer(ccs_int) :: local_num_cells
 
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: V
+    
     if (.not. timestepping_is_active) then
       return
     end if
@@ -51,11 +55,14 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
+      call set_cell_location(mesh, i, loc_p)
+      call get_volume(loc_p, V)
+      
       ! A = A + V/dt
-      diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
+      diag_data(i) = diag_data(i) + V / get_timestep()
 
       ! b = b + V/dt * phi_old
-      b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * phi_data(i)
+      b_data(i) = b_data(i) + V / get_timestep() * phi_data(i)
     end do
     call restore_vector_data(phi%old_values(1)%vec, phi_data)
     call restore_vector_data(diag, diag_data)
