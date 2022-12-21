@@ -101,3 +101,9 @@ The command line option `--ccs_m` allows you to set the size of the mesh (the de
 ```
 mpirun -n 4 ../../../ccs_app --ccs_m 129 --ccs_case LidDrivenCavity
 ```
+
+The results can be plotted against Ghia's reference data by running the `plot-structured.py` scrip from the results directory
+```
+python ../../../scripts/plot-structured.py
+```
+this requires installation of `h5py`, which can be installed via `pip install h5py`.
