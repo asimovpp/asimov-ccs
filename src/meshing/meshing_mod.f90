@@ -123,9 +123,9 @@ module meshing
     !> Returns the centre of a cell
     module subroutine get_cell_centre(loc_p, x)
       type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
-      real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the cell centre.
+      real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
     end subroutine get_cell_centre
-
+    
     !> Returns the centre of a neighbour cell
     module subroutine get_neighbour_centre(loc_nb, x)
       type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.

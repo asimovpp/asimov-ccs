@@ -113,11 +113,15 @@ contains
   !> Returns the centre of a cell
   module subroutine get_cell_centre(loc_p, x)
     type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
-    real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the cell centre.
+    real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
 
+    integer :: dim
+    
     associate (mesh => loc_p%mesh, &
                cell => loc_p%index_p)
-      x(:) = mesh%geo%x_p(:, cell)
+      do dim = 1, min(size(x), ndim)
+         x(dim) = mesh%geo%x_p(dim, cell)
+      end do
     end associate
   end subroutine get_cell_centre
 

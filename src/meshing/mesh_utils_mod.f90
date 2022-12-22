@@ -17,7 +17,7 @@ module mesh_utils
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
                      set_cell_location, set_neighbour_location, set_face_location, &
                      set_face_index, get_boundary_status, get_local_status, &
-                     set_centre
+                     get_centre, set_centre
   use bc_constants
 
   implicit none
@@ -604,8 +604,10 @@ contains
         end do
 
         do i = 1_ccs_int, mesh%topo%local_num_cells
-          associate (x_p => mesh%geo%x_p(:, i), &
-                     x_f => mesh%geo%x_f(:, :, i), &
+          call set_cell_location(mesh, i, loc_p)
+          call get_centre(loc_p, x_p)
+          
+          associate (x_f => mesh%geo%x_f(:, :, i), &
                      normal => mesh%geo%face_normals(:, :, i))
 
             face_counter = left
@@ -635,8 +637,10 @@ contains
         end do
 
         do i = 1_ccs_int, mesh%topo%local_num_cells
-          associate (x_p => mesh%geo%x_p(:, i), &
-                     x_v => mesh%geo%vert_coords(:, :, i))
+          call set_cell_location(mesh, i, loc_p)
+          call get_centre(loc_p, x_p)
+
+          associate (x_v => mesh%geo%vert_coords(:, :, i))
             vertex_counter = front_bottom_left
             x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
             x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
@@ -882,8 +886,10 @@ contains
           end do
 
           do i = 1_ccs_int, mesh%topo%local_num_cells
-            associate (x_p => mesh%geo%x_p(:, i), &
-                       x_f => mesh%geo%x_f(:, :, i), &
+            call set_cell_location(mesh, i, loc_p)
+            call get_centre(loc_p, x_p)
+            
+            associate (x_f => mesh%geo%x_f(:, :, i), &
                        normal => mesh%geo%face_normals(:, :, i))
 
               face_counter = left
@@ -938,8 +944,10 @@ contains
           end do
 
           do i = 1_ccs_int, mesh%topo%local_num_cells
-            associate (x_p => mesh%geo%x_p(:, i), &
-                       x_v => mesh%geo%vert_coords(:, :, i))
+             call set_cell_location(mesh, i, loc_p)
+             call get_centre(loc_p, x_p)
+            
+             associate (x_v => mesh%geo%vert_coords(:, :, i))
               vertex_counter = front_bottom_left
               x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
               x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
