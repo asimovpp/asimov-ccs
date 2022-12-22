@@ -323,5 +323,21 @@ contains
       end do
     end associate
   end subroutine set_cell_centre
+
+  !> Set the face centre of specified face
+  module subroutine set_face_centre(loc_f, x_f)
+    type(face_locator), intent(in) :: loc_f         !< The face locator object.
+    real(ccs_real), dimension(:), intent(in) :: x_f !< The face centre array.
+
+    integer :: dim
+
+    associate(mesh => loc_f%mesh, &
+         i => loc_f%index_p, &
+         j => loc_f%cell_face_ctr)
+      do dim = 1, min(size(x_f), ndim)
+         mesh%geo%x_f(dim, j, i) = x_f(dim)
+      end do
+    end associate
+  end subroutine set_face_centre
   
 end submodule meshing_accessors
