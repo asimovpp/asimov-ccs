@@ -76,6 +76,21 @@ contains
     end associate
   end subroutine set_neighbour_location
 
+  !v Constructs a vertex locator object.
+  !
+  !  Creates the association between a vertex relative to a cell, i.e. to access the
+  !  nth vertex of cell i.
+  module subroutine set_vert_location(mesh, index_p, cell_vert_ctr, loc_v)
+    type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
+    integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose vertex is being accessed.
+    integer(ccs_int), intent(in) :: cell_vert_ctr !< the cell-local index of the vertex.
+    type(vert_locator), intent(out) :: loc_v      !< the vertex locator object linking a cell-relative index with the mesh.
+
+    loc_v%mesh => mesh
+    loc_v%index_p = index_p
+    loc_v%cell_vert_ctr = cell_vert_ctr
+  end subroutine set_vert_location
+
   !> Set face index
   module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
     integer(ccs_int), intent(in) :: index_p

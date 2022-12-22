@@ -6,7 +6,7 @@ module meshing
 
   use constants, only: ndim
   use kinds, only: ccs_int, ccs_real
-  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
+  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator, vert_locator
 
   implicit none
 
@@ -14,6 +14,7 @@ module meshing
   public :: set_face_location
   public :: set_cell_location
   public :: set_neighbour_location
+  public :: set_vert_location
   public :: set_face_index
   public :: get_face_normal
   public :: get_face_area
@@ -100,6 +101,17 @@ module meshing
       integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
       type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a cell-relative index with the mesh.
     end subroutine set_neighbour_location
+
+    !v Constructs a vertex locator object.
+    !
+    !  Creates the association between a vertex relative to a cell, i.e. to access the
+    !  nth vertex of cell i.
+    module subroutine set_vert_location(mesh, index_p, cell_vert_ctr, loc_v)
+      type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
+      integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose vertex is being accessed.
+      integer(ccs_int), intent(in) :: cell_vert_ctr !< the cell-local index of the vertex.
+      type(vert_locator), intent(out) :: loc_v      !< the vertex locator object linking a cell-relative index with the mesh.
+    end subroutine set_vert_location
 
     !> Set face index
     module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
