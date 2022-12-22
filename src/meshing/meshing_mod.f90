@@ -25,7 +25,8 @@ module meshing
   public :: get_local_status
   public :: count_neighbours
   public :: get_distance
-
+  public :: set_centre
+  
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
@@ -62,6 +63,10 @@ module meshing
     module procedure get_face_distance
   end interface get_distance
 
+  interface set_centre
+     module procedure set_cell_centre
+  end interface set_centre
+  
   interface
 
     !v Constructs a cell locator object.
@@ -220,6 +225,12 @@ module meshing
       type(face_locator), intent(in) :: loc_f            !< The face distance is measured to.
       real(ccs_real), dimension(ndim), intent(out) :: dx !< ndim-array of the distance
     end subroutine get_face_distance
+
+    !> Set the cell centre of specified cell
+    module subroutine set_cell_centre(loc_p, x_p)
+      type(cell_locator), intent(in) :: loc_p         !< The cell locator object.
+      real(ccs_real), dimension(:), intent(in) :: x_p !< The cell centre array.
+    end subroutine set_cell_centre
   end interface
 
 end module meshing

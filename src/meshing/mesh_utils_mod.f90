@@ -16,7 +16,8 @@ module mesh_utils
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
                      set_cell_location, set_neighbour_location, set_face_location, &
-                     set_face_index, get_boundary_status, get_local_status
+                     set_face_index, get_boundary_status, get_local_status, &
+                     set_centre
   use bc_constants
 
   implicit none
@@ -456,6 +457,9 @@ contains
     integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
+    real(ccs_real), dimension(2) :: x_p ! Cell centre array
+    type(cell_locator) :: loc_p         ! Cell locator object
+    
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -586,15 +590,17 @@ contains
       mesh%geo%face_areas(:, :) = mesh%geo%h  ! Mesh is square and 2D
       mesh%geo%vert_coords(:, :, :) = 0.0_ccs_real
 
+      ! Set cell centre
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, mesh%topo%total_num_cells
+          call set_cell_location(mesh, i, loc_p)
+           
           ii = mesh%topo%global_indices(i)
 
-          associate (x_p => mesh%geo%x_p(:, i))
-            ! Set cell centre
-            x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
-            x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
-          end associate
+          x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
+          x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
+
+          call set_centre(loc_p, x_p)
         end do
 
         do i = 1_ccs_int, mesh%topo%local_num_cells
@@ -687,6 +693,9 @@ contains
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
+    real(ccs_real), dimension(3) :: x_p ! Cell centre array
+    type(cell_locator) :: loc_p         ! Cell locator object
+    
     if (nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
 
       select type (par_env)
@@ -859,16 +868,17 @@ contains
         mesh%geo%face_areas(:, :) = mesh%geo%h**2
         mesh%geo%vert_coords(:, :, :) = 0.0_ccs_real
 
+        ! Set cell centre
         associate (h => mesh%geo%h)
           do i = 1_ccs_int, mesh%topo%total_num_cells
+            call set_cell_location(mesh, i, loc_p)
+             
             ii = mesh%topo%global_indices(i)
+            x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
+            x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
+            x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
 
-            associate (x_p => mesh%geo%x_p(:, i))
-              ! Set cell centre
-              x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
-              x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
-              x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
-            end associate
+            call set_centre(loc_p, x_p)
           end do
 
           do i = 1_ccs_int, mesh%topo%local_num_cells

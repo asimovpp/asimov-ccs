@@ -305,4 +305,19 @@ contains
     call set_cell_location(loc_nb%mesh, index_nb, loc_p)
   end subroutine get_neighbour_cell_locator
 
+  !> Set the cell centre of specified cell
+  module subroutine set_cell_centre(loc_p, x_p)
+    type(cell_locator), intent(in) :: loc_p         !< The cell locator object.
+    real(ccs_real), dimension(:), intent(in) :: x_p !< The cell centre array.
+
+    integer :: dim
+
+    associate(mesh => loc_p%mesh, &
+         i => loc_p%index_p)
+      do dim = 1, min(size(x_p), ndim)
+         mesh%geo%x_p(dim, i) = x_p(dim)
+      end do
+    end associate
+  end subroutine set_cell_centre
+  
 end submodule meshing_accessors
