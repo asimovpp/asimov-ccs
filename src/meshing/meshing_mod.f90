@@ -67,6 +67,7 @@ module meshing
   interface set_centre
      module procedure set_cell_centre
      module procedure set_face_centre
+     module procedure set_vert_centre
   end interface set_centre
   
   interface
@@ -250,6 +251,12 @@ module meshing
       type(face_locator), intent(in) :: loc_f         !< The face locator object.
       real(ccs_real), dimension(:), intent(in) :: x_f !< The face centre array.
     end subroutine set_face_centre
+
+    !> Set the centre of specified vertex
+    module subroutine set_vert_centre(loc_v, x_v)
+      type(vert_locator), intent(in) :: loc_v         !< The vertex locator object.
+      real(ccs_real), dimension(:), intent(in) :: x_v !< The vertex centre array.
+    end subroutine set_vert_centre
   end interface
 
 end module meshing

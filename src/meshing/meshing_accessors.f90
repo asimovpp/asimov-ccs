@@ -354,5 +354,21 @@ contains
       end do
     end associate
   end subroutine set_face_centre
+
+  !> Set the centre of specified vertex
+  module subroutine set_vert_centre(loc_v, x_v)
+    type(vert_locator), intent(in) :: loc_v         !< The vertex locator object.
+    real(ccs_real), dimension(:), intent(in) :: x_v !< The vertex centre array.
+
+    integer :: dim
+
+    associate(mesh => loc_v%mesh, &
+         i => loc_v%index_p, &
+         j => loc_v%cell_vert_ctr)
+      do dim = 1, min(size(x_v), ndim)
+         mesh%geo%vert_coords(dim, j, i) = x_v(dim)
+      end do
+    end associate
+  end subroutine set_vert_centre
   
 end submodule meshing_accessors

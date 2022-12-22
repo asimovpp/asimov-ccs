@@ -6,7 +6,7 @@ module mesh_utils
   use kinds, only: ccs_int, ccs_long, ccs_real
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
-                   face_locator, cell_locator, neighbour_locator
+                   face_locator, cell_locator, neighbour_locator, vert_locator
   use io, only: read_scalar, read_array, &
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
@@ -15,7 +15,7 @@ module mesh_utils
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
-                     set_cell_location, set_neighbour_location, set_face_location, &
+                     set_cell_location, set_neighbour_location, set_face_location, set_vert_location, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_centre, set_centre
   use bc_constants
@@ -465,6 +465,9 @@ contains
 
     real(ccs_real), dimension(2) :: x_f ! Face centre array
     type(face_locator) :: loc_f         ! Face locator object
+
+    real(ccs_real), dimension(2) :: x_v ! Vertex centre array
+    type(vert_locator) :: loc_v         ! Vertex locator object
     
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -653,23 +656,29 @@ contains
           call set_cell_location(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
-          associate (x_v => mesh%geo%vert_coords(:, :, i))
-            vertex_counter = front_bottom_left
-            x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+          vertex_counter = front_bottom_left
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) - 0.5_ccs_real * h
+          x_v(2) = x_p(2) - 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
+          
+          vertex_counter = front_bottom_right
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) + 0.5_ccs_real * h
+          x_v(2) = x_p(2) - 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
 
-            vertex_counter = front_bottom_right
-            x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+          vertex_counter = front_top_left
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) - 0.5_ccs_real * h
+          x_v(2) = x_p(2) + 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
 
-            vertex_counter = front_top_left
-            x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-
-            vertex_counter = front_top_right
-            x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-          end associate
+          vertex_counter = front_top_right
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) + 0.5_ccs_real * h
+          x_v(2) = x_p(2) + 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
         end do
       end associate
 
@@ -715,6 +724,9 @@ contains
 
     real(ccs_real), dimension(3) :: x_f ! Face centre array
     type(face_locator) :: loc_f         ! Face locator object
+
+    real(ccs_real), dimension(3) :: x_v ! Vertex centre array
+    type(vert_locator) :: loc_v         ! Vertex locator object
     
     if (nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
 
@@ -974,47 +986,61 @@ contains
              call set_cell_location(mesh, i, loc_p)
              call get_centre(loc_p, x_p)
             
-             associate (x_v => mesh%geo%vert_coords(:, :, i))
-              vertex_counter = front_bottom_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             vertex_counter = front_bottom_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
+             
+             vertex_counter = front_bottom_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = front_bottom_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             vertex_counter = front_top_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = front_top_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             vertex_counter = front_top_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
+             
+             vertex_counter = back_bottom_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = front_top_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             vertex_counter = back_bottom_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = back_bottom_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
+             vertex_counter = back_top_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = back_bottom_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
-
-              vertex_counter = back_top_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
-
-              vertex_counter = back_top_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
-            end associate
+             vertex_counter = back_top_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
           end do
         end associate
 
