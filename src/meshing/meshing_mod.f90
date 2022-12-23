@@ -32,6 +32,7 @@ module meshing
     module procedure get_cell_centre
     module procedure get_neighbour_centre
     module procedure get_face_centre
+    module procedure get_vert_centre
   end interface get_centre
 
   interface get_global_index
@@ -150,6 +151,12 @@ module meshing
       type(face_locator), intent(in) :: loc_f           !< the face locator object.
       real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the face centre.
     end subroutine get_face_centre
+
+    !> Returns the centre of a vertex
+    module subroutine get_vert_centre(loc_v, x)
+      type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
+      real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
+    end subroutine get_vert_centre
 
     !> Returns the volume of a cell
     module subroutine get_cell_volume(loc_p, V)

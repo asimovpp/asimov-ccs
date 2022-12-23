@@ -163,6 +163,22 @@ contains
     end associate
   end subroutine get_face_centre
 
+  !> Returns the centre of a vertex
+  module subroutine get_vert_centre(loc_v, x)
+    type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
+    real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
+
+    integer :: dim
+
+    associate(mesh => loc_v%mesh, &
+      cell => loc_v%index_p, &
+      vert => loc_v%cell_vert_ctr)
+      do dim = 1, min(size(x), ndim)
+         x(dim) = mesh%geo%vert_coords(dim, vert, cell)
+      end do
+    end associate
+  end subroutine get_vert_centre
+
   !> Returns the volume of a cell
   module subroutine get_cell_volume(loc_p, V)
     type(cell_locator), intent(in) :: loc_p !< the cell locator object.
