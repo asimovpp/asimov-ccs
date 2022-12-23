@@ -398,5 +398,25 @@ contains
       end do
     end associate
   end subroutine set_vert_centre
+
+  !v Set the normal of specified face
+  !
+  !  Normalises the stored normal.
+  module subroutine set_normal(loc_f, normal)
+    type(face_locator), intent(in) :: loc_f            !< The face locator object
+    real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
+
+    integer :: dim
+    real(ccs_real) :: invmag
+
+    invmag = 1.0_ccs_real / sqrt(sum(normal**2))
+    associate(mesh => loc_f%mesh, &
+         cell => loc_f%index_p, &
+         face => loc_f%cell_face_ctr)
+      do dim = 1, min(size(normal), ndim)
+         mesh%geo%face_normals(dim, face, cell) = normal(dim) * invmag
+      end do
+    end associate
+  end subroutine set_normal
   
 end submodule meshing_accessors

@@ -28,6 +28,7 @@ module meshing
   public :: get_distance
   public :: set_centre
   public :: set_area
+  public :: set_normal
   
   interface get_centre
     module procedure get_cell_centre
@@ -271,7 +272,14 @@ module meshing
       real(ccs_real), intent(in) :: area      !< The face area
       type(face_locator), intent(in) :: loc_f !< The face locator object
     end subroutine set_area
-    
+
+    !v Set the normal of specified face
+    !
+    !  Normalises the stored normal.
+    module subroutine set_normal(loc_f, normal)
+      type(face_locator), intent(in) :: loc_f            !< The face locator object
+      real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
+    end subroutine set_normal
   end interface
 
 end module meshing
