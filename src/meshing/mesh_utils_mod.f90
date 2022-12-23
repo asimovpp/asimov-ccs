@@ -208,6 +208,7 @@ contains
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
     type(face_locator) :: loc_f ! Face locator object
+    type(vert_locator) :: loc_v ! Vertex locator object
     
     if (mesh%topo%max_faces == 6) then ! if cell are hexes
       vert_per_cell = 8 ! 8 vertices per cell
@@ -296,13 +297,10 @@ contains
       end do
 
       do j = 1, vert_per_cell ! loop over all vertices for each cell
+        call set_vert_location(mesh, k, j, loc_v)
+         
         n = mesh%topo%global_vertex_indices(j, k)
-
-        do i = 1, ndim ! loop over dimensions
-          ! Map from temp array to mesh to vertex coordinates
-          mesh%geo%vert_coords(i, j, cell_count) = temp_v_c(i, n)
-        end do
-
+        call set_centre(loc_v, temp_v_c(:, n))
       end do
 
       cell_count = cell_count + 1 ! increment cell counter
