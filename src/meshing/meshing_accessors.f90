@@ -131,7 +131,7 @@ contains
     type(face_locator), intent(in) :: loc_f !< The face locator object
 
     associate(mesh => loc_f%mesh, &
-         cell > loc_f%index_p, &
+         cell => loc_f%index_p, &
          face => loc_f%cell_face_ctr)
       mesh%geo%face_areas(face, cell) = area
     end associate
