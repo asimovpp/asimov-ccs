@@ -17,7 +17,8 @@ module mesh_utils
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
                      set_cell_location, set_neighbour_location, set_face_location, set_vert_location, &
                      set_face_index, get_boundary_status, get_local_status, &
-                     get_centre, set_centre
+                     get_centre, set_centre, &
+                     set_area
   use bc_constants
 
   implicit none
@@ -291,9 +292,8 @@ contains
           mesh%geo%face_normals(i, j, cell_count) = temp_n_f(i, n)
        end do
 
-        ! Map from temp array to mesh for face areas
-        mesh%geo%face_areas(j, cell_count) = temp_a_f(n)
-
+       ! Map from temp array to mesh for face areas
+       call set_area(temp_a_f(n), loc_f)
       end do
 
       do j = 1, vert_per_cell ! loop over all vertices for each cell

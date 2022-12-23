@@ -27,6 +27,7 @@ module meshing
   public :: count_neighbours
   public :: get_distance
   public :: set_centre
+  public :: set_area
   
   interface get_centre
     module procedure get_cell_centre
@@ -257,6 +258,13 @@ module meshing
       type(vert_locator), intent(in) :: loc_v         !< The vertex locator object.
       real(ccs_real), dimension(:), intent(in) :: x_v !< The vertex centre array.
     end subroutine set_vert_centre
+
+    !> Set the area of specified face
+    module subroutine set_area(area, loc_f)
+      real(ccs_real), intent(in) :: area      !< The face area
+      type(face_locator), intent(in) :: loc_f !< The face locator object
+    end subroutine set_area
+    
   end interface
 
 end module meshing

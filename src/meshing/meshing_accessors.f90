@@ -125,6 +125,18 @@ contains
     end associate
   end subroutine get_face_area
 
+  !> Set the area of specified face
+  module subroutine set_area(area, loc_f)
+    real(ccs_real), intent(in) :: area      !< The face area
+    type(face_locator), intent(in) :: loc_f !< The face locator object
+
+    associate(mesh => loc_f%mesh, &
+         cell > loc_f%index_p, &
+         face => loc_f%cell_face_ctr)
+      mesh%geo%face_areas(face, cell) = area
+    end associate
+  end subroutine set_area
+
   !> Returns the centre of a cell
   module subroutine get_cell_centre(loc_p, x)
     type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
