@@ -21,7 +21,7 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 Set the following environment variables:
 
 - `PETSC_DIR` to point to the PETSc install directory 
-- `FYAML` to point to the root of your fortran-yaml-c build directory
+- `FYAMLC` to point to the root of your fortran-yaml-c build directory
 - `ADIOS2` to point to the ADIOS2 install directory
 - `PARHIP` to point to the root of the ParHIP install directory
 
