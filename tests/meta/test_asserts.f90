@@ -1,8 +1,5 @@
-!> @brief Test the parallel distribution of a mesh's points.
-!
-!> @description A mesh of size N should have its points distributed in parallel such that
-!!              \f$\sum_p n_p = N\f$.
-program test_mesh_point_distribution
+!> @brief Test the asserts from the testing lib. 
+program test_asserts
 
   use testing_lib
 
@@ -95,4 +92,4 @@ program test_mesh_point_distribution
 
   call fin()
 
-end program test_mesh_point_distribution
+end program test_asserts
