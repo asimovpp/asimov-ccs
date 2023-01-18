@@ -28,11 +28,14 @@ module meshing
   public :: get_distance
   public :: get_local_num_cells, set_local_num_cells
   public :: set_centre
+  public :: set_area
+  public :: set_normal
   
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
     module procedure get_face_centre
+    module procedure get_vert_centre
   end interface get_centre
 
   interface get_global_index
@@ -158,6 +161,12 @@ module meshing
       real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the face centre.
     end subroutine get_face_centre
 
+    !> Returns the centre of a vertex
+    module subroutine get_vert_centre(loc_v, x)
+      type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
+      real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
+    end subroutine get_vert_centre
+
     !> Returns the volume of a cell
     module subroutine get_cell_volume(loc_p, V)
       type(cell_locator), intent(in) :: loc_p !< the cell locator object.
@@ -282,6 +291,20 @@ module meshing
       type(vert_locator), intent(in) :: loc_v         !< The vertex locator object.
       real(ccs_real), dimension(:), intent(in) :: x_v !< The vertex centre array.
     end subroutine set_vert_centre
+
+    !> Set the area of specified face
+    module subroutine set_area(area, loc_f)
+      real(ccs_real), intent(in) :: area      !< The face area
+      type(face_locator), intent(in) :: loc_f !< The face locator object
+    end subroutine set_area
+
+    !v Set the normal of specified face
+    !
+    !  Normalises the stored normal.
+    module subroutine set_normal(loc_f, normal)
+      type(face_locator), intent(in) :: loc_f            !< The face locator object
+      real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
+    end subroutine set_normal
   end interface
 
 end module meshing

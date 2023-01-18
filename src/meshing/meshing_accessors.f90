@@ -160,6 +160,18 @@ contains
     end associate
   end subroutine get_face_area
 
+  !> Set the area of specified face
+  module subroutine set_area(area, loc_f)
+    real(ccs_real), intent(in) :: area      !< The face area
+    type(face_locator), intent(in) :: loc_f !< The face locator object
+
+    associate(mesh => loc_f%mesh, &
+         cell => loc_f%index_p, &
+         face => loc_f%cell_face_ctr)
+      mesh%geo%face_areas(face, cell) = area
+    end associate
+  end subroutine set_area
+
   !> Returns the centre of a cell
   module subroutine get_cell_centre(loc_p, x)
     type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
@@ -197,6 +209,22 @@ contains
       x(:) = mesh%geo%x_f(:, face, cell)
     end associate
   end subroutine get_face_centre
+
+  !> Returns the centre of a vertex
+  module subroutine get_vert_centre(loc_v, x)
+    type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
+    real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
+
+    integer :: dim
+
+    associate(mesh => loc_v%mesh, &
+      cell => loc_v%index_p, &
+      vert => loc_v%cell_vert_ctr)
+      do dim = 1, min(size(x), ndim)
+         x(dim) = mesh%geo%vert_coords(dim, vert, cell)
+      end do
+    end associate
+  end subroutine get_vert_centre
 
   !> Returns the volume of a cell
   module subroutine get_cell_volume(loc_p, V)
@@ -410,5 +438,25 @@ contains
       end do
     end associate
   end subroutine set_vert_centre
+
+  !v Set the normal of specified face
+  !
+  !  Normalises the stored normal.
+  module subroutine set_normal(loc_f, normal)
+    type(face_locator), intent(in) :: loc_f            !< The face locator object
+    real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
+
+    integer :: dim
+    real(ccs_real) :: invmag
+
+    invmag = 1.0_ccs_real / sqrt(sum(normal**2))
+    associate(mesh => loc_f%mesh, &
+         cell => loc_f%index_p, &
+         face => loc_f%cell_face_ctr)
+      do dim = 1, min(size(normal), ndim)
+         mesh%geo%face_normals(dim, face, cell) = normal(dim) * invmag
+      end do
+    end associate
+  end subroutine set_normal
   
 end submodule meshing_accessors
