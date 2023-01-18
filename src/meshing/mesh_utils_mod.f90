@@ -19,7 +19,12 @@ module mesh_utils
                      set_face_index, get_boundary_status, get_local_status, &
                      get_local_num_cells, set_local_num_cells, &
                      get_centre, set_centre, &
+<<<<<<< HEAD
                      set_area, set_normal
+=======
+                     set_area, set_normal, &
+                     get_local_num_cells, set_local_num_cells
+>>>>>>> 121--add-get_set_local_num_cells
   use bc_constants
 
   implicit none
@@ -210,7 +215,10 @@ contains
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
     integer(ccs_int) :: local_num_cells
+<<<<<<< HEAD
 
+=======
+>>>>>>> 121--add-get_set_local_num_cells
     type(face_locator) :: loc_f ! Face locator object
     type(vert_locator) :: loc_v ! Vertex locator object
     
@@ -927,7 +935,11 @@ contains
             call set_centre(loc_p, x_p)
           end do
 
+<<<<<<< HEAD
           do i = 1_ccs_int, mesh%topo%local_num_cells
+=======
+          do i = 1_ccs_int, local_num_cells
+>>>>>>> 121--add-get_set_local_num_cells
             call set_cell_location(mesh, i, loc_p)
             call get_centre(loc_p, x_p)
             
