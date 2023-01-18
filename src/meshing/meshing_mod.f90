@@ -6,7 +6,7 @@ module meshing
 
   use constants, only: ndim
   use kinds, only: ccs_int, ccs_real, ccs_long
-  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator
+  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator, vert_locator
 
   implicit none
 
@@ -14,6 +14,7 @@ module meshing
   public :: set_face_location
   public :: set_cell_location
   public :: set_neighbour_location
+  public :: set_vert_location
   public :: set_face_index
   public :: get_face_normal
   public :: get_face_area
@@ -26,11 +27,15 @@ module meshing
   public :: count_neighbours
   public :: get_distance
   public :: get_local_num_cells, set_local_num_cells
-
+  public :: set_centre
+  public :: set_area
+  public :: set_normal
+  
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
     module procedure get_face_centre
+    module procedure get_vert_centre
   end interface get_centre
 
   interface get_global_index
@@ -67,6 +72,12 @@ module meshing
     module procedure get_local_num_cells_int
     module procedure get_local_num_cells_long
   end interface get_local_num_cells
+
+  interface set_centre
+     module procedure set_cell_centre
+     module procedure set_face_centre
+     module procedure set_vert_centre
+  end interface set_centre
   
   interface
 
@@ -101,6 +112,17 @@ module meshing
       type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a cell-relative index with the mesh.
     end subroutine set_neighbour_location
 
+    !v Constructs a vertex locator object.
+    !
+    !  Creates the association between a vertex relative to a cell, i.e. to access the
+    !  nth vertex of cell i.
+    module subroutine set_vert_location(mesh, index_p, cell_vert_ctr, loc_v)
+      type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
+      integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose vertex is being accessed.
+      integer(ccs_int), intent(in) :: cell_vert_ctr !< the cell-local index of the vertex.
+      type(vert_locator), intent(out) :: loc_v      !< the vertex locator object linking a cell-relative index with the mesh.
+    end subroutine set_vert_location
+
     !> Set face index
     module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
       integer(ccs_int), intent(in) :: index_p
@@ -124,9 +146,9 @@ module meshing
     !> Returns the centre of a cell
     module subroutine get_cell_centre(loc_p, x)
       type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
-      real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the cell centre.
+      real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
     end subroutine get_cell_centre
-
+    
     !> Returns the centre of a neighbour cell
     module subroutine get_neighbour_centre(loc_nb, x)
       type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
@@ -138,6 +160,12 @@ module meshing
       type(face_locator), intent(in) :: loc_f           !< the face locator object.
       real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the face centre.
     end subroutine get_face_centre
+
+    !> Returns the centre of a vertex
+    module subroutine get_vert_centre(loc_v, x)
+      type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
+      real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
+    end subroutine get_vert_centre
 
     !> Returns the volume of a cell
     module subroutine get_cell_volume(loc_p, V)
@@ -245,6 +273,38 @@ module meshing
       type(ccs_mesh), intent(in) :: mesh                !< The mesh
       integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
     end subroutine get_local_num_cells_long
+
+    !> Set the cell centre of specified cell
+    module subroutine set_cell_centre(loc_p, x_p)
+      type(cell_locator), intent(in) :: loc_p         !< The cell locator object.
+      real(ccs_real), dimension(:), intent(in) :: x_p !< The cell centre array.
+    end subroutine set_cell_centre
+
+    !> Set the face centre of specified face
+    module subroutine set_face_centre(loc_f, x_f)
+      type(face_locator), intent(in) :: loc_f         !< The face locator object.
+      real(ccs_real), dimension(:), intent(in) :: x_f !< The face centre array.
+    end subroutine set_face_centre
+
+    !> Set the centre of specified vertex
+    module subroutine set_vert_centre(loc_v, x_v)
+      type(vert_locator), intent(in) :: loc_v         !< The vertex locator object.
+      real(ccs_real), dimension(:), intent(in) :: x_v !< The vertex centre array.
+    end subroutine set_vert_centre
+
+    !> Set the area of specified face
+    module subroutine set_area(area, loc_f)
+      real(ccs_real), intent(in) :: area      !< The face area
+      type(face_locator), intent(in) :: loc_f !< The face locator object
+    end subroutine set_area
+
+    !v Set the normal of specified face
+    !
+    !  Normalises the stored normal.
+    module subroutine set_normal(loc_f, normal)
+      type(face_locator), intent(in) :: loc_f            !< The face locator object
+      real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
+    end subroutine set_normal
   end interface
 
 end module meshing

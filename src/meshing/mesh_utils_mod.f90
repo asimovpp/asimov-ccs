@@ -6,7 +6,7 @@ module mesh_utils
   use kinds, only: ccs_int, ccs_long, ccs_real
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
-                   face_locator, cell_locator, neighbour_locator
+                   face_locator, cell_locator, neighbour_locator, vert_locator
   use io, only: read_scalar, read_array, &
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
@@ -15,8 +15,10 @@ module mesh_utils
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
-                     set_cell_location, set_neighbour_location, set_face_location, &
+                     set_cell_location, set_neighbour_location, set_face_location, set_vert_location, &
                      set_face_index, get_boundary_status, get_local_status, &
+                     get_centre, set_centre, &
+                     set_area, set_normal, &
                      get_local_num_cells, set_local_num_cells
   use bc_constants
 
@@ -208,6 +210,8 @@ contains
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
     integer(ccs_int) :: local_num_cells
+    type(face_locator) :: loc_f ! Face locator object
+    type(vert_locator) :: loc_v ! Vertex locator object
     
     if (mesh%topo%max_faces == 6) then ! if cell are hexes
       vert_per_cell = 8 ! 8 vertices per cell
@@ -282,27 +286,24 @@ contains
     do k = start, end ! loop over cells owned by current process
 
       do j = 1, mesh%topo%max_faces ! loop over all faces for each cell
-        n = mesh%topo%global_face_indices(j, k)
+        call set_face_location(mesh, k, j, loc_f)
 
+        n = mesh%topo%global_face_indices(j, k)
+        call set_centre(loc_f, temp_x_f(:, n))
         do i = 1, ndim ! loop over dimensions
           ! Map from temp array to mesh for face centres and face normals
-          mesh%geo%x_f(i, j, cell_count) = temp_x_f(i, n)
           mesh%geo%face_normals(i, j, cell_count) = temp_n_f(i, n)
-        end do
+       end do
 
-        ! Map from temp array to mesh for face areas
-        mesh%geo%face_areas(j, cell_count) = temp_a_f(n)
-
+       ! Map from temp array to mesh for face areas
+       call set_area(temp_a_f(n), loc_f)
       end do
 
       do j = 1, vert_per_cell ! loop over all vertices for each cell
+        call set_vert_location(mesh, k, j, loc_v)
+         
         n = mesh%topo%global_vertex_indices(j, k)
-
-        do i = 1, ndim ! loop over dimensions
-          ! Map from temp array to mesh to vertex coordinates
-          mesh%geo%vert_coords(i, j, cell_count) = temp_v_c(i, n)
-        end do
-
+        call set_centre(loc_v, temp_v_c(:, n))
       end do
 
       cell_count = cell_count + 1 ! increment cell counter
@@ -461,6 +462,16 @@ contains
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
     integer(ccs_int) :: local_num_cells ! The local number of cells
+
+    real(ccs_real), dimension(2) :: x_p ! Cell centre array
+    type(cell_locator) :: loc_p         ! Cell locator object
+
+    real(ccs_real), dimension(2) :: x_f    ! Face centre array
+    real(ccs_real), dimension(2) :: normal ! Face normal array
+    type(face_locator) :: loc_f            ! Face locator object
+
+    real(ccs_real), dimension(2) :: x_v ! Vertex centre array
+    type(vert_locator) :: loc_v         ! Vertex locator object
     
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -595,67 +606,87 @@ contains
       mesh%geo%face_areas(:, :) = mesh%geo%h  ! Mesh is square and 2D
       mesh%geo%vert_coords(:, :, :) = 0.0_ccs_real
 
+      ! Set cell centre
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, mesh%topo%total_num_cells
+          call set_cell_location(mesh, i, loc_p)
+           
           ii = mesh%topo%global_indices(i)
 
-          associate (x_p => mesh%geo%x_p(:, i))
-            ! Set cell centre
-            x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
-            x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
-          end associate
+          x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
+          x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
+
+          call set_centre(loc_p, x_p)
         end do
 
         do i = 1_ccs_int, local_num_cells
-          associate (x_p => mesh%geo%x_p(:, i), &
-                     x_f => mesh%geo%x_f(:, :, i), &
-                     normal => mesh%geo%face_normals(:, :, i))
+          call set_cell_location(mesh, i, loc_p)
+          call get_centre(loc_p, x_p)
+          
+          face_counter = left
+          call set_face_location(mesh, i, face_counter, loc_f)
+          x_f(1) = x_p(1) - 0.5_ccs_real * h
+          x_f(2) = x_p(2)
+          normal(1) = -1.0_ccs_real
+          normal(2) = 0.0_ccs_real
+          call set_centre(loc_f, x_f)
+          call set_normal(loc_f, normal)
+            
+          face_counter = right
+          call set_face_location(mesh, i, face_counter, loc_f)
+          x_f(1) = x_p(1) + 0.5_ccs_real * h
+          x_f(2) = x_p(2)
+          normal(1) = 1.0_ccs_real
+          normal(2) = 0.0_ccs_real
+          call set_centre(loc_f, x_f)
+          call set_normal(loc_f, normal)
 
-            face_counter = left
-            x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
-            x_f(2, face_counter) = x_p(2)
-            normal(1, face_counter) = -1.0_ccs_real
-            normal(2, face_counter) = 0.0_ccs_real
+          face_counter = bottom
+          call set_face_location(mesh, i, face_counter, loc_f)
+          x_f(1) = x_p(1)
+          x_f(2) = x_p(2) - 0.5_ccs_real * h
+          normal(1) = 0.0_ccs_real
+          normal(2) = -1.0_ccs_real
+          call set_centre(loc_f, x_f)
+          call set_normal(loc_f, normal)
 
-            face_counter = right
-            x_f(1, face_counter) = x_p(1) + 0.5_ccs_real * h
-            x_f(2, face_counter) = x_p(2)
-            normal(1, face_counter) = 1.0_ccs_real
-            normal(2, face_counter) = 0.0_ccs_real
-
-            face_counter = bottom
-            x_f(1, face_counter) = x_p(1)
-            x_f(2, face_counter) = x_p(2) - 0.5_ccs_real * h
-            normal(1, face_counter) = 0.0_ccs_real
-            normal(2, face_counter) = -1.0_ccs_real
-
-            face_counter = top
-            x_f(1, face_counter) = x_p(1)
-            x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
-            normal(1, face_counter) = 0.0_ccs_real
-            normal(2, face_counter) = 1.0_ccs_real
-          end associate
+          face_counter = top
+          call set_face_location(mesh, i, face_counter, loc_f)
+          x_f(1) = x_p(1)
+          x_f(2) = x_p(2) + 0.5_ccs_real * h
+          normal(1) = 0.0_ccs_real
+          normal(2) = 1.0_ccs_real
+          call set_centre(loc_f, x_f)
+          call set_normal(loc_f, normal)
         end do
 
         do i = 1_ccs_int, local_num_cells
-          associate (x_p => mesh%geo%x_p(:, i), &
-                     x_v => mesh%geo%vert_coords(:, :, i))
-            vertex_counter = front_bottom_left
-            x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+          call set_cell_location(mesh, i, loc_p)
+          call get_centre(loc_p, x_p)
 
-            vertex_counter = front_bottom_right
-            x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
+          vertex_counter = front_bottom_left
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) - 0.5_ccs_real * h
+          x_v(2) = x_p(2) - 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
+          
+          vertex_counter = front_bottom_right
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) + 0.5_ccs_real * h
+          x_v(2) = x_p(2) - 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
 
-            vertex_counter = front_top_left
-            x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
+          vertex_counter = front_top_left
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) - 0.5_ccs_real * h
+          x_v(2) = x_p(2) + 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
 
-            vertex_counter = front_top_right
-            x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-            x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-          end associate
+          vertex_counter = front_top_right
+          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          x_v(1) = x_p(1) + 0.5_ccs_real * h
+          x_v(2) = x_p(2) + 0.5_ccs_real * h
+          call set_centre(loc_v, x_v)
         end do
       end associate
 
@@ -697,6 +728,16 @@ contains
     integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     integer(ccs_int) :: local_num_cells ! The local cell count
+
+    real(ccs_real), dimension(3) :: x_p ! Cell centre array
+    type(cell_locator) :: loc_p         ! Cell locator object
+
+    real(ccs_real), dimension(3) :: x_f    ! Face centre array
+    real(ccs_real), dimension(3) :: normal ! Face normal array
+    type(face_locator) :: loc_f            ! Face locator object
+
+    real(ccs_real), dimension(3) :: x_v ! Vertex centre array
+    type(vert_locator) :: loc_v         ! Vertex locator object
     
     if (nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
 
@@ -872,117 +913,149 @@ contains
         mesh%geo%face_areas(:, :) = mesh%geo%h**2
         mesh%geo%vert_coords(:, :, :) = 0.0_ccs_real
 
+        ! Set cell centre
         associate (h => mesh%geo%h)
           do i = 1_ccs_int, mesh%topo%total_num_cells
+            call set_cell_location(mesh, i, loc_p)
+             
             ii = mesh%topo%global_indices(i)
+            x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
+            x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
+            x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
 
-            associate (x_p => mesh%geo%x_p(:, i))
-              ! Set cell centre
-              x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
-              x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
-              x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
-            end associate
+            call set_centre(loc_p, x_p)
           end do
 
           do i = 1_ccs_int, local_num_cells
-            associate (x_p => mesh%geo%x_p(:, i), &
-                       x_f => mesh%geo%x_f(:, :, i), &
-                       normal => mesh%geo%face_normals(:, :, i))
+            call set_cell_location(mesh, i, loc_p)
+            call get_centre(loc_p, x_p)
+            
+            face_counter = left
+            call set_face_location(mesh, i, face_counter, loc_f)
+            x_f(1) = x_p(1) - 0.5_ccs_real * h
+            x_f(2) = x_p(2)
+            x_f(3) = x_p(3)
+            normal(1) = -1.0_ccs_real
+            normal(2) = 0.0_ccs_real
+            normal(3) = 0.0_ccs_real
+            call set_centre(loc_f, x_f)
+            call set_normal(loc_f, normal)
 
-              face_counter = left
-              x_f(1, face_counter) = x_p(1) - 0.5_ccs_real * h
-              x_f(2, face_counter) = x_p(2)
-              x_f(3, face_counter) = x_p(3)
-              normal(1, face_counter) = -1.0_ccs_real
-              normal(2, face_counter) = 0.0_ccs_real
-              normal(3, face_counter) = 0.0_ccs_real
+            face_counter = right
+            call set_face_location(mesh, i, face_counter, loc_f)
+            x_f(1) = x_p(1) + 0.5_ccs_real * h
+            x_f(2) = x_p(2)
+            x_f(3) = x_p(3)
+            normal(1) = 1.0_ccs_real
+            normal(2) = 0.0_ccs_real
+            normal(3) = 0.0_ccs_real
+            call set_centre(loc_f, x_f)
+            call set_normal(loc_f, normal)
 
-              face_counter = right
-              x_f(1, face_counter) = x_p(1) + 0.5_ccs_real * h
-              x_f(2, face_counter) = x_p(2)
-              x_f(3, face_counter) = x_p(3)
-              normal(1, face_counter) = 1.0_ccs_real
-              normal(2, face_counter) = 0.0_ccs_real
-              normal(3, face_counter) = 0.0_ccs_real
+            face_counter = bottom
+            call set_face_location(mesh, i, face_counter, loc_f)
+            x_f(1) = x_p(1)
+            x_f(2) = x_p(2) - 0.5_ccs_real * h
+            x_f(3) = x_p(3)
+            normal(1) = 0.0_ccs_real
+            normal(2) = -1.0_ccs_real
+            normal(3) = 0.0_ccs_real
+            call set_centre(loc_f, x_f)
+            call set_normal(loc_f, normal)
 
-              face_counter = bottom
-              x_f(1, face_counter) = x_p(1)
-              x_f(2, face_counter) = x_p(2) - 0.5_ccs_real * h
-              x_f(3, face_counter) = x_p(3)
-              normal(1, face_counter) = 0.0_ccs_real
-              normal(2, face_counter) = -1.0_ccs_real
-              normal(3, face_counter) = 0.0_ccs_real
+            face_counter = top
+            call set_face_location(mesh, i, face_counter, loc_f)
+            x_f(1) = x_p(1)
+            x_f(2) = x_p(2) + 0.5_ccs_real * h
+            x_f(3) = x_p(3)
+            normal(1) = 0.0_ccs_real
+            normal(2) = 1.0_ccs_real
+            normal(3) = 0.0_ccs_real
+            call set_centre(loc_f, x_f)
+            call set_normal(loc_f, normal)
 
-              face_counter = top
-              x_f(1, face_counter) = x_p(1)
-              x_f(2, face_counter) = x_p(2) + 0.5_ccs_real * h
-              x_f(3, face_counter) = x_p(3)
-              normal(1, face_counter) = 0.0_ccs_real
-              normal(2, face_counter) = 1.0_ccs_real
-              normal(3, face_counter) = 0.0_ccs_real
+            face_counter = back
+            call set_face_location(mesh, i, face_counter, loc_f)
+            x_f(1) = x_p(1)
+            x_f(2) = x_p(2)
+            x_f(3) = x_p(3) - 0.5_ccs_real * h
+            normal(1) = 0.0_ccs_real
+            normal(2) = 0.0_ccs_real
+            normal(3) = -1.0_ccs_real
+            call set_centre(loc_f, x_f)
+            call set_normal(loc_f, normal)
 
-              face_counter = back
-              x_f(1, face_counter) = x_p(1)
-              x_f(2, face_counter) = x_p(2)
-              x_f(3, face_counter) = x_p(3) - 0.5_ccs_real * h
-              normal(1, face_counter) = 0.0_ccs_real
-              normal(2, face_counter) = 0.0_ccs_real
-              normal(3, face_counter) = -1.0_ccs_real
-
-              face_counter = front
-              x_f(1, face_counter) = x_p(1)
-              x_f(2, face_counter) = x_p(2)
-              x_f(3, face_counter) = x_p(3) + 0.5_ccs_real * h
-              normal(1, face_counter) = 0.0_ccs_real
-              normal(2, face_counter) = 0.0_ccs_real
-              normal(3, face_counter) = 1.0_ccs_real
-
-            end associate
+            face_counter = front
+            call set_face_location(mesh, i, face_counter, loc_f)
+            x_f(1) = x_p(1)
+            x_f(2) = x_p(2)
+            x_f(3) = x_p(3) + 0.5_ccs_real * h
+            normal(1) = 0.0_ccs_real
+            normal(2) = 0.0_ccs_real
+            normal(3) = 1.0_ccs_real
+            call set_centre(loc_f, x_f)
+            call set_normal(loc_f, normal)
           end do
 
           do i = 1_ccs_int, local_num_cells
-            associate (x_p => mesh%geo%x_p(:, i), &
-                       x_v => mesh%geo%vert_coords(:, :, i))
-              vertex_counter = front_bottom_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             call set_cell_location(mesh, i, loc_p)
+             call get_centre(loc_p, x_p)
+            
+             vertex_counter = front_bottom_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
+             
+             vertex_counter = front_bottom_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = front_bottom_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             vertex_counter = front_top_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = front_top_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             vertex_counter = front_top_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) + 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
+             
+             vertex_counter = back_bottom_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = front_top_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) + 0.5_ccs_real * h
+             vertex_counter = back_bottom_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) - 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = back_bottom_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
+             vertex_counter = back_top_left
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) - 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
 
-              vertex_counter = back_bottom_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) - 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
-
-              vertex_counter = back_top_left
-              x_v(1, vertex_counter) = x_p(1) - 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
-
-              vertex_counter = back_top_right
-              x_v(1, vertex_counter) = x_p(1) + 0.5_ccs_real * h
-              x_v(2, vertex_counter) = x_p(2) + 0.5_ccs_real * h
-              x_v(3, vertex_counter) = x_p(3) - 0.5_ccs_real * h
-            end associate
+             vertex_counter = back_top_right
+             call set_vert_location(mesh, i, vertex_counter, loc_v)
+             x_v(1) = x_p(1) + 0.5_ccs_real * h
+             x_v(2) = x_p(2) + 0.5_ccs_real * h
+             x_v(3) = x_p(3) - 0.5_ccs_real * h
+             call set_centre(loc_v, x_v)
           end do
         end associate
 
