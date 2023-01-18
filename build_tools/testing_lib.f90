@@ -176,8 +176,8 @@ contains
     character(*), intent(in) :: message              !< Error message 
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test 
 
-    call return_or_stop(a_eq(received, expected),\
-                        message // " Expected: " // str(expected) // " Received: " // str(received),\
+    call return_or_stop(a_eq(received, expected), &
+                        message // " Expected: " // str(expected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_eq_integer_rank0
@@ -412,8 +412,8 @@ contains
     character(*), intent(in) :: message          !< Error message 
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test 
 
-    call return_or_stop(.not. a_eq(received, notexpected),\
-                        message // " Not Expected: " // str(notexpected) // " Received: " // str(received),\
+    call return_or_stop(.not. a_eq(received, notexpected), &
+                        message // " Not Expected: " // str(notexpected) // " Received: " // str(received), &
                         outval)
   end subroutine assert_neq_real
   
@@ -423,8 +423,8 @@ contains
     character(*), intent(in) :: message     !< Error message 
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test 
 
-    call return_or_stop(.not. received == notexpected,\
-                        message // " Not Expected: " // notexpected // " Received: " // received,\
+    call return_or_stop(.not. received == notexpected, &
+                        message // " Not Expected: " // notexpected // " Received: " // received, &
                         outval)
   end subroutine assert_neq_string
 !==========================
