@@ -13,7 +13,7 @@ program ldc
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector
-  use yaml, only: parse, error_length
+  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -205,10 +205,10 @@ contains
     character(len=*), intent(in) :: config_filename
 
     class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
-    character(len=error_length) :: error
+    character(:), allocatable :: error
 
-    config_file_pointer => parse(config_filename, error=error)
-    if (error /= '') then
+    config_file_pointer => parse(config_filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 

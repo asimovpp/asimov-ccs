@@ -14,7 +14,7 @@ program ldc
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr
-  use yaml, only: parse, error_length
+  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -192,30 +192,30 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                           get_convection_scheme, get_relaxation_factor, &
-                           get_target_residual
+                          get_convection_scheme, get_relaxation_factor, &
+                          get_target_residual
 
     character(len=*), intent(in) :: config_filename
 
-    class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
-    character(len=error_length) :: error
+    class(*), pointer :: config_file  !< Pointer to CCS config file
+    character(:), allocatable :: error
 
-    config_file_pointer => parse(config_filename, error=error)
-    if (error /= '') then
+    config_file => parse(config_filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file_pointer, num_steps)
+    call get_steps(config_file, num_steps)
     if (num_steps == huge(0)) then
       call error_abort("No value assigned to num-steps.")
     end if
 
-    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
-    call get_target_residual(config_file_pointer, res_target)
+    call get_target_residual(config_file, res_target)
     if (res_target == huge(0.0)) then
       call error_abort("No value assigned to target residual.")
     end if
