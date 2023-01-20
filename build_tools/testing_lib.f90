@@ -314,7 +314,8 @@ contains
     real(ccs_real), intent(in) :: a 
     real(ccs_real), intent(in) :: b 
 
-    comparison = (abs(a - b) < epsilon(b) * abs(b))
+    ! TODO: double check we are happy with this evaluation
+    comparison = (abs(a - b) <= epsilon(b) * abs(b))
   end function a_eq_real
 !==========================
 
