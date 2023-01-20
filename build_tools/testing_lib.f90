@@ -54,7 +54,6 @@ module testing_lib
     procedure print_failed_real
     procedure print_failed_bool
   end interface
-
   
   class(parallel_environment), allocatable, target :: par_env
   integer(ccs_err) :: ierr
@@ -148,7 +147,6 @@ contains
 
     stop 1
   end subroutine stop_test
- 
 
 
   subroutine return_or_stop(res, message, outval)
@@ -430,6 +428,5 @@ contains
                         outval)
   end subroutine assert_neq_string
 !==========================
-
 
 end module testing_lib

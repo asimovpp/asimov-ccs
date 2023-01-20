@@ -10,7 +10,6 @@ submodule(io) io_setup_adios2
   use adios2
   use adios2_types, only: adios2_env, adios2_io_process
   use parallel_types_mpi, only: parallel_environment_mpi
-  use kinds, only: ccs_int, ccs_real
 
   implicit none
 
@@ -76,7 +75,7 @@ contains
   module subroutine configure_io(io_env, process_name, io_proc)
     class(io_environment), intent(in) :: io_env            !< ADIOS2 IO environment
     character(len=*), intent(in) :: process_name           !< name of the IO process to be configured - must match a name
-                                                           !< defined in the ADIOS2 configuration XML file
+    !< defined in the ADIOS2 configuration XML file
     class(io_process), allocatable, intent(out) :: io_proc !< the configured ADIOS2 IO process
 
     integer(ccs_int) :: ierr
@@ -107,8 +106,8 @@ contains
   !> Open file with ADIOS2
   module subroutine open_file(filename, mode, io_proc)
     character(len=*), intent(in) :: filename    !< name of file to open
-    character(len=*), intent(in) :: mode        !< choose whether to read/ write or append valid options are: 
-                                                !< "read", "write", "append"
+    character(len=*), intent(in) :: mode        !< choose whether to read/ write or append valid options are:
+    !< "read", "write", "append"
     class(io_process), intent(inout) :: io_proc !< object that includes ADIOS2 handler information
 
     integer(ccs_int) :: ierr

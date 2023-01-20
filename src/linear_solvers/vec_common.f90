@@ -1,57 +1,64 @@
-submodule (vec) vec_common
+submodule(vec) vec_common
 #include "ccs_macros.inc"
 
-  use utils, only : exit_print, str
+  use utils, only: exit_print, str
   use constants, only: cell
-  implicit none 
+  implicit none
 
 contains
 
-  !>  Constructor for default vector values
+  !> Constructor for default vector values
   module subroutine initialise_vector(vec_properties)
-    type(vector_spec), intent(inout) :: vec_properties    !< the initialised vector values
+    type(vector_spec), intent(inout) :: vec_properties !< the initialised vector values
     vec_properties%par_env => null()
     vec_properties%mesh => null()
-    vec_properties%storage_location = cell  ! Default to cell-centre values (so as not to break previous work)
+    vec_properties%storage_location = cell ! Default to cell-centre values (so as not to break previous work)
   end subroutine initialise_vector
 
-  !>  Setter for vector size
+  !> Setter for vector size
   module subroutine set_vector_size(par_env, mesh, vec_properties)
-    class(parallel_environment), allocatable, target, intent(in) :: par_env   !< the parallel environment where the vector resides
-    class(ccs_mesh), target, intent(in) :: mesh                               !< the mesh - contains the information to set the vector size
-    type(vector_spec), intent(inout) :: vec_properties                        !< the vector data object
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< the parallel environment where the vector resides
+    class(ccs_mesh), target, intent(in) :: mesh                             !< the mesh - contains the information to set the vector size
+    type(vector_spec), intent(inout) :: vec_properties                      !< the vector data object
 
     vec_properties%par_env => par_env
     vec_properties%mesh => mesh
   end subroutine set_vector_size
 
-  !>  Set vector values to be located at either cell-centre or face
-  !
+  !> Set vector values to be located at either cell-centre or face
   module subroutine set_vector_location(loc, vec_properties)
     integer(ccs_int), intent(in) :: loc
-    type(vector_spec), intent (inout) :: vec_properties
+    type(vector_spec), intent(inout) :: vec_properties
 
     vec_properties%storage_location = loc
   end subroutine set_vector_location
 
-  module procedure create_vector_values
-    allocate(val_dat%global_indices(nrows))
-    allocate(val_dat%values(nrows))
+  module subroutine create_vector_values(nrows, val_dat)
+    integer(ccs_int), intent(in) :: nrows
+    type(vector_values), intent(out) :: val_dat
+    allocate (val_dat%global_indices(nrows))
+    allocate (val_dat%values(nrows))
 
     val_dat%global_indices(:) = -1_ccs_int
     val_dat%values(:) = 0.0_ccs_real
-  end procedure create_vector_values
+  end subroutine create_vector_values
 
-  module procedure set_vector_values_mode
+  module subroutine set_vector_values_mode(mode, val_dat)
+    integer(ccs_int), intent(in) :: mode
+    type(vector_values), intent(inout) :: val_dat
+
     val_dat%setter_mode = mode
-  end procedure set_vector_values_mode
-  
-  module procedure set_vector_values_entry
+  end subroutine set_vector_values_mode
 
-    use constants, only : add_mode, insert_mode
-    
-    associate(x => val_dat%values(val_dat%current_entry), &
-         mode => val_dat%setter_mode)
+  module subroutine set_vector_values_entry(val, val_dat)
+
+    use constants, only: add_mode, insert_mode
+
+    real(ccs_real), intent(in) :: val
+    type(vector_values), intent(inout) :: val_dat
+
+    associate (x => val_dat%values(val_dat%current_entry), &
+               mode => val_dat%setter_mode)
       if (mode == insert_mode) then
         x = val
       else if (mode == add_mode) then
@@ -60,7 +67,7 @@ contains
         call error_abort("ERROR: Unrecognised entry mode " // str(mode))
       end if
     end associate
-    
-  end procedure set_vector_values_entry
-  
-end submodule 
+
+  end subroutine set_vector_values_entry
+
+end submodule

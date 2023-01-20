@@ -27,6 +27,7 @@ module petsctypes
     logical :: ghosted       !< Does this vector have ghost points?
     integer(ccs_int) :: mode !< Current mode for setting values
     logical :: modeset       !< Is the current mode still valid? i.e. does vector need updated before switching modes?
+    logical :: checked_out   !< Is the vector's data currently checked out?
   contains
     final :: free_vector_petsc
   end type vector_petsc

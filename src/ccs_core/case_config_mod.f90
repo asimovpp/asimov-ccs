@@ -16,4 +16,8 @@ module case_config
   real(ccs_real), public :: velocity_relax = huge(0.0)
   real(ccs_real), public :: pressure_relax = huge(0.0)
 
+  real(ccs_real), public :: res_target = huge(0.0)
+
+  logical, public :: write_gradients = .false.
+
 end module case_config

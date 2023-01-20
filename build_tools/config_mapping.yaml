@@ -15,9 +15,14 @@ bases:
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
+      io_visualisation: io_visualisation_adios2
+      io_visualisation_common: io_visualisation_common
       meshing: meshing_accessors
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
+      timestepping: timestepping_second_order
+      partitioning: partitioning_parhip
+      partitioning_common: partitioning_common
     #options:
       #component: [opt_1, opt_2, opt_3]
   mpi:
@@ -36,6 +41,11 @@ bases:
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
+      io_visualisation: io_visualisation_adios2
+      io_visualisation_common: io_visualisation_common
       meshing: meshing_accessors
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
+      timestepping: timestepping_second_order
+      partitioning: partitioning_parhip
+      partitioning_common: partitioning_common

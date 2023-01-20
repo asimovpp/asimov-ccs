@@ -3,3 +3,4 @@
 
 main: test_mat_set_entries
 base: mpi_petsc
+extra: parhip

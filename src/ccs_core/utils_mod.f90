@@ -4,18 +4,19 @@
 !  and call type-specific implementations of the interface in other modules.
 
 module utils
+#include "ccs_macros.inc"
 
   use iso_c_binding
 
-  use vec, only : set_vector_values, update_vector, begin_update_vector, end_update_vector, &
-                  initialise_vector, set_vector_size,         &
-                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
-                  clear_vector_values_entries, &
-                  mult_vec_vec, scale_vec, zero_vector
-  use mat, only : set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
-                  initialise_matrix, finalise_matrix, set_matrix_size, &
-                  set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, set_matrix_values_entry, &
-                  clear_matrix_values_entries, zero_matrix
+  use vec, only: set_vector_values, update_vector, begin_update_vector, end_update_vector, &
+                 initialise_vector, set_vector_size, &
+                 set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
+                 clear_vector_values_entries, &
+                 mult_vec_vec, scale_vec, zero_vector
+  use mat, only: set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
+                 initialise_matrix, finalise_matrix, set_matrix_size, &
+                 set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, set_matrix_values_entry, &
+                 clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
 
@@ -40,6 +41,9 @@ module utils
   public :: str
   public :: debug_print
   public :: exit_print
+  public :: calc_kinetic_energy
+  public :: calc_enstrophy
+  public :: add_field_to_outputlist
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -227,5 +231,179 @@ contains
     call debug_print(msg, filepath, line)
     stop 1
   end subroutine exit_print
+
+  !TODO: move this subroutine to more appropriate module
+  !> Calculate kinetic energy over density
+  subroutine calc_kinetic_energy(par_env, mesh, t, u, v, w)
+
+    use constants, only: ndim, ccs_string_len
+    use types, only: field, ccs_mesh
+    use vec, only: get_vector_data, restore_vector_data
+    use parallel, only: allreduce, error_handling
+    use parallel_types_mpi, only: parallel_environment_mpi
+    use parallel_types, only: parallel_environment
+    use mpi
+
+    class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
+    type(ccs_mesh), intent(in) :: mesh !< the mesh
+    integer(ccs_int), intent(in) :: t !< timestep
+    class(field), intent(inout) :: u !< solve x velocity field
+    class(field), intent(inout) :: v !< solve y velocity field
+    class(field), intent(inout) :: w !< solve z velocity field
+
+    real(ccs_real) :: ek_local, ek_global, volume_local, volume_global
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data
+    real(ccs_real) :: rho
+    integer(ccs_int) :: index_p
+    character(len=ccs_string_len) :: fmt
+    integer(ccs_int) :: ierr
+
+    logical, save :: first_time = .true.
+    integer :: io_unit
+
+    rho = 1.0_ccs_real
+
+    ek_local = 0.0_ccs_real
+    ek_global = 0.0_ccs_real
+    volume_local = 0.0_ccs_real
+    volume_global = 0.0_ccs_real
+
+    call get_vector_data(u%values, u_data)
+    call get_vector_data(v%values, v_data)
+    call get_vector_data(w%values, w_data)
+
+    do index_p = 1, mesh%topo%local_num_cells
+
+      ek_local = ek_local + 0.5 * rho * mesh%geo%volumes(index_p) * &
+                 (u_data(index_p)**2 + v_data(index_p)**2 + w_data(index_p)**2)
+
+      volume_local = volume_local + mesh%geo%volumes(index_p)
+
+    end do
+
+    call restore_vector_data(u%values, u_data)
+    call restore_vector_data(v%values, v_data)
+    call restore_vector_data(w%values, w_data)
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
+      call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
+    class default
+      call error_abort("ERROR: Unknown type")
+    end select
+
+    ek_global = ek_global / volume_global
+
+    if (par_env%proc_id == par_env%root) then
+      if (first_time) then
+        first_time = .false.
+        open (newunit=io_unit, file="tgv2d-ek.log", status="replace", form="formatted")
+      else
+        open (newunit=io_unit, file="tgv2d-ek.log", status="old", form="formatted", position="append")
+      end if
+      fmt = '(I0,1(1x,e12.4))'
+      write (io_unit, fmt) t, ek_global
+      close (io_unit)
+    end if
+
+  end subroutine calc_kinetic_energy
+
+  !TODO: move this subroutine to more appropriate module
+  !> Calculate enstrophy
+  subroutine calc_enstrophy(par_env, mesh, t, u, v, w)
+
+    use constants, only: ndim, ccs_string_len
+    use types, only: field, ccs_mesh
+    use vec, only: get_vector_data, restore_vector_data
+    use parallel, only: allreduce, error_handling
+    use parallel_types_mpi, only: parallel_environment_mpi
+    use parallel_types, only: parallel_environment
+    use mpi
+
+    class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
+    type(ccs_mesh), intent(in) :: mesh !< the mesh
+    integer(ccs_int), intent(in) :: t !< timestep
+    class(field), intent(inout) :: u !< solve x velocity field
+    class(field), intent(inout) :: v !< solve y velocity field
+    class(field), intent(inout) :: w !< solve z velocity field
+
+    real(ccs_real) :: ens_local, ens_global
+    real(ccs_real), dimension(:), pointer :: dudy, dudz, dvdx, dvdz, dwdx, dwdy
+    integer(ccs_int) :: index_p
+    character(len=ccs_string_len) :: fmt
+    integer(ccs_int) :: ierr
+
+    logical, save :: first_time = .true.
+    integer :: io_unit
+
+    ens_local = 0.0_ccs_real
+    ens_global = 0.0_ccs_real
+
+    call get_vector_data(u%y_gradients, dudy)
+    call get_vector_data(u%z_gradients, dudz)
+    call get_vector_data(v%x_gradients, dvdx)
+    call get_vector_data(v%z_gradients, dvdz)
+    call get_vector_data(w%x_gradients, dwdx)
+    call get_vector_data(w%y_gradients, dwdy)
+
+    do index_p = 1, mesh%topo%local_num_cells
+
+      ens_local = ens_local + (dwdy(index_p) - dvdz(index_p))**2 + &
+                  (dudz(index_p) - dwdx(index_p))**2 + &
+                  (dvdx(index_p) - dudy(index_p))**2
+
+    end do
+    ens_local = 0.5 * ens_local
+
+    call restore_vector_data(u%y_gradients, dudy)
+    call restore_vector_data(u%z_gradients, dudz)
+    call restore_vector_data(v%x_gradients, dvdx)
+    call restore_vector_data(v%z_gradients, dvdz)
+    call restore_vector_data(w%x_gradients, dwdx)
+    call restore_vector_data(w%y_gradients, dwdy)
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
+    class default
+      call error_abort("ERROR: Unknown type")
+    end select
+
+    if (par_env%proc_id == par_env%root) then
+      if (first_time) then
+        first_time = .false.
+        open (newunit=io_unit, file="tgv2d-ens.log", status="replace", form="formatted")
+      else
+        open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
+      end if
+      fmt = '(I0,1(1x,e12.4))'
+      write (io_unit, fmt) t, ens_global
+      close (io_unit)
+    end if
+
+  end subroutine calc_enstrophy
+
+  subroutine add_field_to_outputlist(var, name, list)
+
+    use types, only: field, field_ptr
+
+    ! Arguments
+    class(field), pointer, intent(in) :: var
+    character(len=*), intent(in) :: name
+    type(field_ptr), dimension(:), intent(inout) :: list
+
+    ! Local variables
+    integer(ccs_int), save :: count = 0
+
+    count = count + 1
+
+    list(count)%ptr => var
+    list(count)%name = name
+
+  end subroutine add_field_to_outputlist
 
 end module utils
