@@ -258,6 +258,7 @@ contains
 
     integer :: i
     logical, dimension(:), allocatable :: mask
+    allocate(mask(size(received)))
     mask = a_eq(received, expected)
 
     msg = new_line('a') // "Index Expected Received" // new_line('a')
@@ -275,6 +276,7 @@ contains
 
     integer :: i
     logical, dimension(:), allocatable :: mask
+    allocate(mask(size(received)))
     mask = a_eq(received, expected)
 
     msg = new_line('a') // "Index Expected Received" // new_line('a')
