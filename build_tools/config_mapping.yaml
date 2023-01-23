@@ -49,3 +49,5 @@ bases:
       timestepping: timestepping_second_order
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
+    options:
+      timestepping: [timestepping_first_order, timestepping_second_order]
