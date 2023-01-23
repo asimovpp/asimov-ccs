@@ -27,7 +27,7 @@ contains
 
   end subroutine get_local_num_cells_int
 
-  !> Gets the mesh local cell count.
+  !v Gets the mesh local cell count.
   !
   !  Handles case when using a long integer to access the internal mesh data.
   module subroutine get_local_num_cells_long(mesh, local_num_cells)
