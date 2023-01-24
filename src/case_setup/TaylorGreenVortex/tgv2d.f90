@@ -10,7 +10,8 @@ program tgv2d
 
   use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
                          write_gradients
-  use constants, only: cell, face, ccsconfig, ccs_string_len
+  use constants, only: cell, face, ccsconfig, ccs_string_len, &
+                       cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr
@@ -20,14 +21,14 @@ program tgv2d
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_square_mesh, write_mesh
-  use vec, only: create_vector, set_vector_location
+  use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
+  use timestepping, only: set_timestep, activate_timestepping
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
 
@@ -66,11 +67,6 @@ program tgv2d
   integer(ccs_int) :: nsteps    ! Number of timesteps to perform
   real(ccs_real) :: CFL         ! The CFL target
   integer(ccs_int) :: save_freq ! Frequency of saving solution
-
-  !XXX: Temporary parameters
-  integer, parameter :: face_centred = 0         ! Indicates face centred variable
-  integer, parameter :: cell_centred_upwind = 1  ! Indicates cell centred variable (upwind scheme)
-  integer, parameter :: cell_centred_central = 2 ! Indicates cell centred variable (central scheme)
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -120,7 +116,7 @@ program tgv2d
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_field(vec_properties, 2, "mf", mf)
+  call create_field(vec_properties, face_centred, "mf", mf)
 
   ! Add fields to output list
   allocate (output_list(4))
@@ -453,81 +449,5 @@ contains
     end if
 
   end subroutine calc_tgv2d_error
-
-  !v Build a field variable with data and gradient vectors + transient data and boundary arrays.
-  subroutine create_field(vec_properties, field_type, field_name, phi)
-
-    use utils, only : debug_print
-    
-    implicit none
-    
-    !! Logically vec_properties should be a field_properties variable, but this doesn't yet exist.
-    type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
-    integer, intent(in) :: field_type               !< Identifier for what kind of field
-    character(len=*), intent(in) :: field_name      !< Field name -- should match against boundary conditions, etc.
-    class(field), allocatable, intent(out) :: phi   !< The field being constructed
-
-    call allocate_field(vec_properties, field_type, phi)
-
-    ! XXX: ccs_config_file is host-associated from program scope.
-    call read_bc_config(ccs_config_file, field_name, phi)
-
-    !! --- Ensure data is updated/parallel-constructed ---
-    ! XXX: Potential abstraction --- see update(vec), etc.
-    call update(phi%values)
-    if (field_type /= face_centred) then
-       ! Current design only computes/stores gradients at cell centres
-       call update(phi%x_gradients)
-       call update(phi%y_gradients)
-       call update(phi%z_gradients)
-
-       call update_gradient(vec_properties%mesh, phi)
-    end if
-    !! --- End update ---
-    
-  end subroutine create_field
-
-  !v Allocate a field variable
-  subroutine allocate_field(vec_properties, field_type, phi)
-
-    use utils, only : debug_print
-    
-    implicit none
-    
-    !! Logically vec_properties should be a field_properties variable, but this doesn't yet exist.
-    type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
-    integer, intent(in) :: field_type               !< Identifier for what kind of field
-    class(field), allocatable, intent(out) :: phi   !< The field being constructed
-
-    if (field_type == face_centred) then
-       call dprint("Create face field")
-       allocate (face_field :: phi)
-    else if (field_type == cell_centred_upwind) then
-       call dprint("Create upwind field")
-       allocate (upwind_field :: phi)
-    else if (field_type == cell_centred_central) then
-       call dprint("Create central field")
-       allocate (central_field :: phi)
-    end if
-
-    call dprint("Create field values vector")
-    call create_vector(vec_properties, phi%values)
-
-    if (field_type /= face_centred) then
-       ! Current design only computes/stores gradients at cell centres
-       call dprint("Create field gradients vector")
-       call create_vector(vec_properties, phi%x_gradients)
-       call create_vector(vec_properties, phi%y_gradients)
-       call create_vector(vec_properties, phi%z_gradients)
-
-       ! Currently no need for old face values
-       call dprint("Create field old values")
-       call initialise_old_values(vec_properties, phi)
-    end if
-
-    ! XXX: n_boundaries is host-associated from program scope.
-    call allocate_bc_arrays(n_boundaries, phi%bcs)
-
-  end subroutine allocate_field
   
 end program tgv2d

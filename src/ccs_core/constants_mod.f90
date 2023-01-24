@@ -30,6 +30,11 @@ module constants
   integer(ccs_int), public, parameter :: cell = 1
   integer(ccs_int), public, parameter :: face = 2
 
-  integer(ccs_int), public, parameter :: ccs_string_len = 128
+  ! Field types
+  integer, public, parameter :: face_centred = 0         !< Indicates face centred variable
+  integer, public, parameter :: cell_centred_upwind = 1  !< Indicates cell centred variable (upwind scheme)
+  integer, public, parameter :: cell_centred_central = 2 !< Indicates cell centred variable (central scheme)
 
+  integer(ccs_int), public, parameter :: ccs_string_len = 128
+  
 end module constants
