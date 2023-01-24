@@ -59,6 +59,7 @@ module mesh_utils
   public :: global_start
   public :: local_count
   public :: count_mesh_faces
+  public :: set_cell_face_indices
   public :: read_mesh
   public :: write_mesh
 
@@ -84,7 +85,7 @@ contains
     ! integer(ccs_long), dimension(2) :: sel2_start
     ! integer(ccs_long), dimension(2) :: sel2_count
 
-    geo_file = case_name // geoext
+    geo_file = case_name // "_mesh"// geoext
     adios2_file = case_name // adiosconfig
 
     call initialise_io(par_env, adios2_file, io_env)
@@ -118,7 +119,6 @@ contains
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
 
     integer(ccs_int) :: i, j, k
-    integer(ccs_int) :: vert_per_cell
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
 
@@ -135,7 +135,7 @@ contains
     call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
 
     if (mesh%topo%max_faces == 6) then ! if cell are hexes
-      vert_per_cell = 8 ! 8 vertices per cell
+      mesh%topo%vert_per_cell = 8 ! 8 vertices per cell
     else
       call error_abort("Currently only supporting hex cells.")
     end if
@@ -143,7 +143,7 @@ contains
     allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
     allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
     allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
-    allocate (mesh%topo%global_vertex_indices(vert_per_cell, mesh%topo%global_num_cells))
+    allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
 
     sel_start(1) = 0 ! Global index to start reading from
     sel_count(1) = mesh%topo%global_num_faces ! How many elements to read in total
@@ -158,7 +158,7 @@ contains
 
     call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
 
-    sel2_count(1) = vert_per_cell
+    sel2_count(1) = mesh%topo%vert_per_cell
 
     call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
 

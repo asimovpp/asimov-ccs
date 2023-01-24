@@ -4,6 +4,7 @@ submodule(partitioning) partitioning_common
   use kinds, only: ccs_int
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
+  use mesh_utils, only: count_mesh_faces, set_cell_face_indices
 
   implicit none
 
@@ -115,6 +116,11 @@ contains
 
     allocate (mesh%topo%adjncy(num_connections))
 
+    if (allocated(mesh%topo%face_indices)) then
+      deallocate (mesh%topo%face_indices)
+    end if
+    allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+
     call flatten_connectivity(tmp_int2d, mesh)
 
     call dprint("Number of halo cells after partitioning: " // str(mesh%topo%halo_num_cells))
@@ -122,6 +128,8 @@ contains
     mesh%topo%total_num_cells = mesh%topo%local_num_cells + mesh%topo%halo_num_cells
 
     call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
+
+    mesh%topo%num_faces = count_mesh_faces(mesh)
 
   end subroutine compute_connectivity
 
@@ -214,7 +222,15 @@ contains
     ctr = 1
 
     allocate (tmp1(mesh%topo%local_num_cells))
+    if (allocated(mesh%topo%nb_indices)) then
+      deallocate (mesh%topo%nb_indices)
+    end if
+    allocate (mesh%topo%nb_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+
     tmp1(:) = -1
+
+    ! Initialise neighbour indices
+    mesh%topo%nb_indices(:, :) = 0_ccs_int
 
     do i = 1, mesh%topo%local_num_cells
       mesh%topo%xadj(i) = ctr
@@ -243,11 +259,14 @@ contains
               tmp1(mesh%topo%halo_num_cells) = nbidx
             end if
 
-            local_idx = findloc(tmp1, nbidx)
+            !local_idx = findloc(tmp1, nbidx)
             !topo%adjncy(ctr) = local_idx(1)
           end if
 
           mesh%topo%adjncy(ctr) = nbidx
+
+          local_idx = findloc(mesh%topo%global_indices, nbidx)
+          mesh%topo%nb_indices(j, i) = local_idx(1)
         end associate
 
         ctr = ctr + 1
@@ -256,6 +275,7 @@ contains
     end do
     mesh%topo%xadj(mesh%topo%local_num_cells + 1) = ctr
 
+    call set_cell_face_indices(mesh)
     allocate (tmp2(mesh%topo%local_num_cells + mesh%topo%halo_num_cells))
     do i = 1, mesh%topo%local_num_cells
       tmp2(i) = mesh%topo%global_indices(i)
@@ -268,6 +288,7 @@ contains
 
     deallocate (tmp1)
     deallocate (tmp2)
+
 
   end subroutine
 

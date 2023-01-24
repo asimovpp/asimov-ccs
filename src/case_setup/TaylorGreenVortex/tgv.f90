@@ -99,11 +99,13 @@ program tgv
   !if (irank == par_env%root) print *, "Reading mesh"
 
   ! Create a cubic mesh
-  if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
-  ! call read_mesh(par_env, case_name, mesh)
-  ! call partition_kway(par_env, mesh)
-  ! call compute_connectivity(par_env, mesh)
+  ! if (irank == par_env%root) print *, "Building mesh"
+  ! mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
+
+  if (irank == par_env%root) print *, "Reading mesh file"
+  call read_mesh(par_env, case_name, mesh)
+  call partition_kway(par_env, mesh)
+  call compute_connectivity(par_env, mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
