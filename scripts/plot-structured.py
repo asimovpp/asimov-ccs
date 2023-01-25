@@ -1,4 +1,6 @@
 import sys
+import argparse
+
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,10 +17,17 @@ def plot_field(field, fig, axs, index, nlevels, name):
     plt.colorbar(cf, cax=ax_cb)
     ax_cb.yaxis.tick_right()
 
+# Define argument parser
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--file", help="Input data file name",
+        type=str)
+parser.add_argument("-p", "--prefix", help="Output prefix",
+        type=str)
+
 # Load data
 if len(sys.argv) > 3:
-    fname = sys.argv[1]
-    outstub = sys.argv[4]
+    fname = parser.file
+    outstub = parser.prefix
 else:
     fname = "LidDrivenCavity.sol.h5"
     outstub = ""
