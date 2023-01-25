@@ -22,7 +22,8 @@ submodule(pv_coupling) pv_coupling_simple
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
-                     set_cell_location, get_volume, get_distance
+                     set_cell_location, get_volume, get_distance, &
+                     get_local_num_cells
   use timestepping, only: update_old_values, finalise_timestep
 
   implicit none
@@ -354,7 +355,7 @@ contains
     integer(ccs_int) :: global_index_p, index_p
     real(ccs_real) :: r
     real(ccs_real), dimension(:), pointer :: p_gradient_data
-
+    integer(ccs_int) :: local_num_cells
     real(ccs_real) :: V
 
     call create_vector_values(1_ccs_int, vec_values)
@@ -364,7 +365,8 @@ contains
     call get_vector_data(p_gradients, p_gradient_data)
 
     ! Loop over cells
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
       call clear_entries(vec_values)
 
       call set_cell_location(mesh, index_p, loc_p)
@@ -406,6 +408,7 @@ contains
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
     class(linear_solver), allocatable :: lin_solver
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_index_p, global_index_nb, index_p
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
@@ -469,7 +472,8 @@ contains
 
     ! Loop over cells
     call dprint("P': cell loop")
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
       call clear_entries(vec_values)
 
       call set_cell_location(mesh, index_p, loc_p)
@@ -620,6 +624,7 @@ contains
     real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
     type(vector_values) :: vec_values
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i   ! Cell counter
     integer(ccs_int) :: j   ! Cell-face counter
 
@@ -681,7 +686,8 @@ contains
     call get_vector_data(invAv, invAv_data)
     call get_vector_data(invAw, invAw_data)
 
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       call clear_entries(vec_values)
 
       call set_cell_location(mesh, i, loc_p)
@@ -808,6 +814,7 @@ contains
     class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
     real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i
 
     real(ccs_real) :: mf_prime
@@ -849,7 +856,8 @@ contains
     zero_arr(:) = 0.0_ccs_real
 
     ! XXX: This should really be a face loop
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       call clear_entries(vec_values)
       mib = 0.0_ccs_real
 
@@ -974,6 +982,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: b_data
 
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i
 
     call dprint("UR: get diagonal vec")
@@ -987,7 +996,8 @@ contains
     call get_vector_data(b, b_data)
 
     call dprint("UR: apply UR")
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       diag_data(i) = diag_data(i) / alpha
 
       b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi_data(i)

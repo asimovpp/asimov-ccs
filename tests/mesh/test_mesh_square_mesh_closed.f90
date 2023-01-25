@@ -8,7 +8,7 @@ program test_mesh_square_mesh_closed
 
   use constants
 
-  use meshing, only: set_face_location, get_face_normal, get_face_area
+  use meshing, only: set_face_location, get_face_normal, get_face_area, get_local_num_cells
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -23,6 +23,7 @@ program test_mesh_square_mesh_closed
   real(ccs_real), dimension(ndim) :: norm
   real(ccs_real) :: A
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i, j
 
   real(ccs_real) :: A_expected
@@ -36,7 +37,8 @@ program test_mesh_square_mesh_closed
     A_expected = l / n
 
     ! Loop over cells
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       S(:) = 0.0_ccs_real
 
       ! Loop over neighbours/faces
