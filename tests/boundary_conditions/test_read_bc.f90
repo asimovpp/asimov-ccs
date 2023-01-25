@@ -101,7 +101,6 @@ contains
       call assert_eq(bcs%ids(i), ids(i), "bc id does not match.")
       call assert_eq(bcs%bc_types(i), types(i), "bc type does not match.")
       if (present(values)) then
-        print *, "hi", bcs%values(i), values(i)
         call assert_eq(bcs%values(i), values(i), "bc value does not match.")
       end if
     end do
