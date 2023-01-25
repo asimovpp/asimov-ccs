@@ -1,10 +1,28 @@
 import sys
 import argparse
 
-import h5py
+ADIOS2=False
+HDF5=False
+try:
+    import adios2
+    ADIOS2=True
+    print("Loaded ADIOS2")
+except ImportError:
+    print("Failed to load ADIOS2 interface")
+    print("Attempting to continue with HDF5")
+    import h5py
+    HDF5=True
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+# Define argument parser
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--file", help="Input data file name",
+        type=str)
+parser.add_argument("-p", "--prefix", help="Output prefix",
+        type=str)
 
 def plot_field(field, fig, axs, index, nlevels, name):
     cf = axs[index].contourf(field, levels=nlevels)
@@ -17,38 +35,65 @@ def plot_field(field, fig, axs, index, nlevels, name):
     plt.colorbar(cf, cax=ax_cb)
     ax_cb.yaxis.tick_right()
 
-# Define argument parser
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--file", help="Input data file name",
-        type=str)
-parser.add_argument("-p", "--prefix", help="Output prefix",
-        type=str)
-
-# Load data
-if len(sys.argv) > 3:
-    fname = parser.file
-    outstub = parser.prefix
-else:
-    fname = "LidDrivenCavity.sol.h5"
-    outstub = ""
-
-with h5py.File(fname, "r") as data:
-
-    p = data["Step0"]["p"]
-    u = data["Step0"]["u"]
-    v = data["Step0"]["v"]
-
-    # Set mesh size
-    cps = int(len(p)**(1/2)) # Cells per side (assumed square mesh)
-    L   = 1.0 # Length of side (assumed square mesh)
-    dx  = L / cps
-    x   = np.linspace(0.5 * dx, L - 0.5 * dx, num=cps)
-    mp  = int(np.floor((cps + 1) / 2))
+def read_hdf5(fname):
+    with h5py.File(fname, "r") as data:
     
-    # Reshape data
-    P = np.reshape(p, (cps, cps))
-    U = np.reshape(u, (cps, cps))
-    V = np.reshape(v, (cps, cps))
+        p = data["Step0"]["p"][()]
+        u = data["Step0"]["u"][()]
+        v = data["Step0"]["v"][()]
+
+    return u, v, p
+
+def read_adios2(fname):
+    with adios2.open(fname, "r") as data:
+        for fstep in data: # Expecting only one step
+
+            # For some reason variable names are prefixed with "/"
+            p = fstep.read("/p")
+            u = fstep.read("/u")
+            v = fstep.read("/v")
+
+            break
+
+    return u, v, p
+
+def reshape_data(var, cps):
+   
+   # Reshape data
+   VAR = np.reshape(var, (cps, cps))
+
+   return VAR
+
+def get_grid(var):
+    
+   cps = int(len(var)**(1/2)) # Cells per side (assumed square mesh)
+   L   = 1.0 # Length of side (assumed square mesh)
+   dx  = L / cps
+   x   = np.linspace(0.5 * dx, L - 0.5 * dx, num=cps)
+
+   return x, cps
+
+def main():
+
+    # Load data
+    if len(sys.argv) > 3:
+        fname = parser.file
+        outstub = parser.prefix
+    else:
+        fname = "LidDrivenCavity.sol.h5"
+        outstub = ""
+
+    if (ADIOS2):
+        u, v, p = read_adios2(fname)
+    elif (HDF5):
+        u, v, p = read_hdf5(fname)
+
+    x, cps = get_grid(p)
+    P = reshape_data(p, cps)
+    U = reshape_data(u, cps)
+    V = reshape_data(v, cps)
+        
+    mp  = int(np.floor((cps + 1) / 2))
     
     # Plot
     nlevels = 100
@@ -84,3 +129,6 @@ with h5py.File(fname, "r") as data:
     ax_u.legend()
     fig.tight_layout(pad=2.5, w_pad=2.5, h_pad=2.5)
     fig.savefig(outstub + f"slices_{cps:04d}.png", dpi = 200)
+
+if __name__ == "__main__":
+    main()
