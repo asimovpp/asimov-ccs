@@ -13,7 +13,7 @@ program ldc
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector
-  use yaml, only: parse, error_length
+  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -205,10 +205,10 @@ contains
     character(len=*), intent(in) :: config_filename
 
     class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
-    character(len=error_length) :: error
+    character(:), allocatable :: error
 
-    config_file_pointer => parse(config_filename, error=error)
-    if (error /= '') then
+    config_file_pointer => parse(config_filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 
@@ -251,7 +251,7 @@ contains
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
-    use meshing, only: set_cell_location, get_global_index
+    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -262,50 +262,50 @@ contains
 
     ! Local variables
     integer(ccs_int) :: row, col
+    integer(ccs_int) :: n_local
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals, w_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
-    ! Set alias
-    associate (n_local => mesh%topo%local_num_cells)
-      call create_vector_values(n_local, u_vals)
-      call create_vector_values(n_local, v_vals)
-      call create_vector_values(n_local, w_vals)
-      call set_mode(add_mode, u_vals)
-      call set_mode(add_mode, v_vals)
-      call set_mode(add_mode, w_vals)
+    call get_local_num_cells(mesh, n_local)
 
-      ! Set initial values for velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
-        call calc_cell_coords(global_index_p, cps, row, col)
+    call create_vector_values(n_local, u_vals)
+    call create_vector_values(n_local, v_vals)
+    call create_vector_values(n_local, w_vals)
+    call set_mode(add_mode, u_vals)
+    call set_mode(add_mode, v_vals)
+    call set_mode(add_mode, w_vals)
 
-        u_val = 0.0_ccs_real
-        v_val = 0.0_ccs_real
-        w_val = 0.0_ccs_real
+    ! Set initial values for velocity fields
+    do index_p = 1, n_local
+       call set_cell_location(mesh, index_p, loc_p)
+       call get_global_index(loc_p, global_index_p)
+       call calc_cell_coords(global_index_p, cps, row, col)
 
-        call set_row(global_index_p, u_vals)
-        call set_entry(u_val, u_vals)
-        call set_row(global_index_p, v_vals)
-        call set_entry(v_val, v_vals)
-        call set_row(global_index_p, w_vals)
-        call set_entry(w_val, w_vals)
-      end do
+       u_val = 0.0_ccs_real
+       v_val = 0.0_ccs_real
+       w_val = 0.0_ccs_real
 
-      call set_values(u_vals, u%values)
-      call set_values(v_vals, v%values)
-      call set_values(w_vals, w%values)
+       call set_row(global_index_p, u_vals)
+       call set_entry(u_val, u_vals)
+       call set_row(global_index_p, v_vals)
+       call set_entry(v_val, v_vals)
+       call set_row(global_index_p, w_vals)
+       call set_entry(w_val, w_vals)
+    end do
 
-      deallocate (u_vals%global_indices)
-      deallocate (v_vals%global_indices)
-      deallocate (w_vals%global_indices)
-      deallocate (u_vals%values)
-      deallocate (v_vals%values)
-      deallocate (w_vals%values)
-    end associate
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
+    call set_values(w_vals, w%values)
+
+    deallocate (u_vals%global_indices)
+    deallocate (v_vals%global_indices)
+    deallocate (w_vals%global_indices)
+    deallocate (u_vals%values)
+    deallocate (v_vals%values)
+    deallocate (w_vals%values)
 
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 0.0_ccs_real

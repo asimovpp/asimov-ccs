@@ -16,7 +16,7 @@ program ldc
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr
   use fields, only: create_field
-  use yaml, only: parse, error_length
+  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -159,30 +159,30 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, &
-                           get_convection_scheme, get_relaxation_factor, &
-                           get_target_residual
+                          get_convection_scheme, get_relaxation_factor, &
+                          get_target_residual
 
     character(len=*), intent(in) :: config_filename
 
-    class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
-    character(len=error_length) :: error
+    class(*), pointer :: config_file  !< Pointer to CCS config file
+    character(:), allocatable :: error
 
-    config_file_pointer => parse(config_filename, error=error)
-    if (error /= '') then
+    config_file => parse(config_filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file_pointer, num_steps)
+    call get_steps(config_file, num_steps)
     if (num_steps == huge(0)) then
       call error_abort("No value assigned to num-steps.")
     end if
 
-    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
-    call get_target_residual(config_file_pointer, res_target)
+    call get_target_residual(config_file, res_target)
     if (res_target == huge(0.0)) then
       call error_abort("No value assigned to target residual.")
     end if
@@ -211,7 +211,7 @@ contains
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
-    use meshing, only: set_cell_location, get_global_index
+    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -222,50 +222,50 @@ contains
 
     ! Local variables
     integer(ccs_int) :: row, col
-    integer(ccs_int) :: index_p, global_index_p
+    integer(ccs_int) :: index_p, global_index_p, n_local
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals, w_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
     ! Set alias
-    associate (n_local => mesh%topo%local_num_cells)
-      call create_vector_values(n_local, u_vals)
-      call create_vector_values(n_local, v_vals)
-      call create_vector_values(n_local, w_vals)
-      call set_mode(add_mode, u_vals)
-      call set_mode(add_mode, v_vals)
-      call set_mode(add_mode, w_vals)
+    call get_local_num_cells(mesh, n_local)
 
-      ! Set initial values for velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
-        call calc_cell_coords(global_index_p, cps, row, col)
+    call create_vector_values(n_local, u_vals)
+    call create_vector_values(n_local, v_vals)
+    call create_vector_values(n_local, w_vals)
+    call set_mode(add_mode, u_vals)
+    call set_mode(add_mode, v_vals)
+    call set_mode(add_mode, w_vals)
 
-        u_val = 0.0_ccs_real
-        v_val = 0.0_ccs_real
-        w_val = 0.0_ccs_real
+    ! Set initial values for velocity fields
+    do index_p = 1, n_local
+       call set_cell_location(mesh, index_p, loc_p)
+       call get_global_index(loc_p, global_index_p)
+       call calc_cell_coords(global_index_p, cps, row, col)
 
-        call set_row(global_index_p, u_vals)
-        call set_entry(u_val, u_vals)
-        call set_row(global_index_p, v_vals)
-        call set_entry(v_val, v_vals)
-        call set_row(global_index_p, w_vals)
-        call set_entry(w_val, w_vals)
-      end do
+       u_val = 0.0_ccs_real
+       v_val = 0.0_ccs_real
+       w_val = 0.0_ccs_real
 
-      call set_values(u_vals, u%values)
-      call set_values(v_vals, v%values)
-      call set_values(w_vals, w%values)
+       call set_row(global_index_p, u_vals)
+       call set_entry(u_val, u_vals)
+       call set_row(global_index_p, v_vals)
+       call set_entry(v_val, v_vals)
+       call set_row(global_index_p, w_vals)
+       call set_entry(w_val, w_vals)
+    end do
 
-      deallocate (u_vals%global_indices)
-      deallocate (v_vals%global_indices)
-      deallocate (w_vals%global_indices)
-      deallocate (u_vals%values)
-      deallocate (v_vals%values)
-      deallocate (w_vals%values)
-    end associate
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
+    call set_values(w_vals, w%values)
+
+    deallocate (u_vals%global_indices)
+    deallocate (v_vals%global_indices)
+    deallocate (w_vals%global_indices)
+    deallocate (u_vals%values)
+    deallocate (v_vals%values)
+    deallocate (w_vals%values)
 
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 0.0_ccs_real

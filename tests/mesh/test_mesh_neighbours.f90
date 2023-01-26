@@ -5,7 +5,8 @@ program test_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, get_boundary_status
+  use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, &
+                     get_boundary_status, get_local_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -16,6 +17,7 @@ program test_mesh_neighbours
   integer(ccs_int) :: n, nx, ny, nz
   real(ccs_real) :: l
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i
 
   integer(ccs_int) :: nnb
@@ -40,7 +42,8 @@ program test_mesh_neighbours
     mesh = build_mesh(par_env, nx, ny, nz, l)
 
     boundary_ctr = 0
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
 
       call set_cell_location(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)

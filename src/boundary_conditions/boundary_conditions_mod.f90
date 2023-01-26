@@ -8,7 +8,7 @@ module boundary_conditions
   use utils, only: exit_print, debug_print, str
   use types, only: bc_config, field
   use kinds, only: ccs_int, ccs_real
-  use yaml, only: parse, error_length
+  use fortran_yaml_c_interface, only: parse
   use read_config, only: get_bc_field
   use bc_constants
 
@@ -31,10 +31,10 @@ contains
     class(field), intent(inout) :: phi       !< the bc struct of the corresponding field
 
     class(*), pointer :: config_file
-    character(len=error_length) :: error
+    character(:), allocatable :: error
 
-    config_file => parse(filename, error=error)
-    if (error /= '') then
+    config_file => parse(filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 

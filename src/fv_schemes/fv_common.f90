@@ -13,7 +13,8 @@ submodule(fv) fv_common
   use utils, only: debug_print, exit_print, str
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                      get_local_index, get_global_index, get_volume, get_distance, &
-                     set_face_location, get_face_area, get_face_normal, set_cell_location
+                     set_face_location, get_face_area, get_face_normal, set_cell_location, &
+                     get_local_num_cells
   use boundary_conditions, only: get_bc_index
   use bc_constants
 
@@ -64,6 +65,7 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
@@ -89,7 +91,8 @@ contains
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
       call clear_entries(mat_coeffs)
       call clear_entries(b_coeffs)
 
@@ -588,6 +591,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: grad
 
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: index_p
     integer(ccs_int) :: j
     type(cell_locator) :: loc_p
@@ -610,7 +614,8 @@ contains
     call create_vector_values(1_ccs_int, grad_values)
     call set_mode(insert_mode, grad_values)
 
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
       call clear_entries(grad_values)
 
       grad = 0.0_ccs_int

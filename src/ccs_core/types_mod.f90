@@ -192,7 +192,16 @@ module types
     integer(ccs_int) :: nb_counter
   end type neighbour_locator
 
-  !>  IO environment type
+  !v Vertex locator
+  !
+  !  Lightweight type to provide easy vertex location based on a cell's vertex connectivity.
+  type, public :: vert_locator
+    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh -- we DON'T want to copy this!
+    integer(ccs_int) :: index_p       !< Cell index
+    integer(ccs_int) :: cell_vert_ctr !< Cell-vertex ctr i.e. I want to access vertex "3" of the cell.
+  end type vert_locator
+
+ !>  IO environment type
   type, public :: io_environment
   end type io_environment
 

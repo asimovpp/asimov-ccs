@@ -7,6 +7,38 @@ submodule(meshing) meshing_accessors
 
 contains
 
+  !> Sets the mesh local cell count.
+  module subroutine set_local_num_cells(local_num_cells, mesh)
+
+    integer(ccs_int), intent(in) :: local_num_cells !< The local cell count
+    type(ccs_mesh), intent(inout) :: mesh           !< The mesh
+
+    mesh%topo%local_num_cells = local_num_cells
+
+  end subroutine set_local_num_cells
+
+  !> Gets the mesh local cell count.
+  module subroutine get_local_num_cells_int(mesh, local_num_cells)
+
+    type(ccs_mesh), intent(in) :: mesh               !< The mesh
+    integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
+
+    local_num_cells = mesh%topo%local_num_cells
+
+  end subroutine get_local_num_cells_int
+
+  !v Gets the mesh local cell count.
+  !
+  !  Handles case when using a long integer to access the internal mesh data.
+  module subroutine get_local_num_cells_long(mesh, local_num_cells)
+
+    type(ccs_mesh), intent(in) :: mesh                !< The mesh
+    integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
+
+    local_num_cells = int(mesh%topo%local_num_cells, ccs_long)
+
+  end subroutine get_local_num_cells_long
+  
   !v Constructs a face locator object.
   !
   !  Creates the association between a face relative to a cell, i.e. to access the
@@ -31,12 +63,15 @@ contains
     integer(ccs_int), intent(in) :: index_p    !< the cell index.
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
 
+    integer(ccs_int) :: local_num_cells
+    
     loc_p%mesh => mesh
     loc_p%index_p = index_p
 
     ! XXX: Potentially expensive...
     if (index_p > mesh%topo%total_num_cells) then
-      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // str(mesh%topo%local_num_cells))
+      call get_local_num_cells(mesh, local_num_cells)
+      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // str(local_num_cells))
     end if
   end subroutine set_cell_location
 
@@ -76,6 +111,21 @@ contains
     end associate
   end subroutine set_neighbour_location
 
+  !v Constructs a vertex locator object.
+  !
+  !  Creates the association between a vertex relative to a cell, i.e. to access the
+  !  nth vertex of cell i.
+  module subroutine set_vert_location(mesh, index_p, cell_vert_ctr, loc_v)
+    type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
+    integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose vertex is being accessed.
+    integer(ccs_int), intent(in) :: cell_vert_ctr !< the cell-local index of the vertex.
+    type(vert_locator), intent(out) :: loc_v      !< the vertex locator object linking a cell-relative index with the mesh.
+
+    loc_v%mesh => mesh
+    loc_v%index_p = index_p
+    loc_v%cell_vert_ctr = cell_vert_ctr
+  end subroutine set_vert_location
+
   !> Set face index
   module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
     integer(ccs_int), intent(in) :: index_p
@@ -110,14 +160,30 @@ contains
     end associate
   end subroutine get_face_area
 
+  !> Set the area of specified face
+  module subroutine set_area(area, loc_f)
+    real(ccs_real), intent(in) :: area      !< The face area
+    type(face_locator), intent(in) :: loc_f !< The face locator object
+
+    associate(mesh => loc_f%mesh, &
+         cell => loc_f%index_p, &
+         face => loc_f%cell_face_ctr)
+      mesh%geo%face_areas(face, cell) = area
+    end associate
+  end subroutine set_area
+
   !> Returns the centre of a cell
   module subroutine get_cell_centre(loc_p, x)
     type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
-    real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the cell centre.
+    real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
 
+    integer :: dim
+    
     associate (mesh => loc_p%mesh, &
                cell => loc_p%index_p)
-      x(:) = mesh%geo%x_p(:, cell)
+      do dim = 1, min(size(x), ndim)
+         x(dim) = mesh%geo%x_p(dim, cell)
+      end do
     end associate
   end subroutine get_cell_centre
 
@@ -143,6 +209,22 @@ contains
       x(:) = mesh%geo%x_f(:, face, cell)
     end associate
   end subroutine get_face_centre
+
+  !> Returns the centre of a vertex
+  module subroutine get_vert_centre(loc_v, x)
+    type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
+    real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
+
+    integer :: dim
+
+    associate(mesh => loc_v%mesh, &
+      cell => loc_v%index_p, &
+      vert => loc_v%cell_vert_ctr)
+      do dim = 1, min(size(x), ndim)
+         x(dim) = mesh%geo%vert_coords(dim, vert, cell)
+      end do
+    end associate
+  end subroutine get_vert_centre
 
   !> Returns the volume of a cell
   module subroutine get_cell_volume(loc_p, V)
@@ -171,8 +253,11 @@ contains
     type(cell_locator), intent(in) :: loc_p         !< the cell locator object.
     integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
 
+    integer(ccs_int) :: local_num_cells
+    
     associate (mesh => loc_p%mesh)
-      if (mesh%topo%local_num_cells > 0) then ! XXX: Potentially expensive...
+      call get_local_num_cells(mesh, local_num_cells)
+      if (local_num_cells > 0) then ! XXX: Potentially expensive...
         associate (cell => loc_p%index_p)
           global_index_p = mesh%topo%global_indices(cell)
         end associate
@@ -247,11 +332,13 @@ contains
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     logical, intent(out) :: is_local !< the local status of the neighbour.
 
-    integer :: index_nb
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: local_num_cells
 
     call get_neighbour_local_index(loc_nb, index_nb)
     associate (mesh => loc_nb%mesh)
-      if ((index_nb > 0) .and. (index_nb <= mesh%topo%local_num_cells)) then
+      call get_local_num_cells(mesh, local_num_cells)
+      if ((index_nb > 0) .and. (index_nb <= local_num_cells)) then
         is_local = .true.
       else
         is_local = .false.
@@ -305,4 +392,71 @@ contains
     call set_cell_location(loc_nb%mesh, index_nb, loc_p)
   end subroutine get_neighbour_cell_locator
 
+  !> Set the cell centre of specified cell
+  module subroutine set_cell_centre(loc_p, x_p)
+    type(cell_locator), intent(in) :: loc_p         !< The cell locator object.
+    real(ccs_real), dimension(:), intent(in) :: x_p !< The cell centre array.
+
+    integer :: dim
+
+    associate(mesh => loc_p%mesh, &
+         i => loc_p%index_p)
+      do dim = 1, min(size(x_p), ndim)
+         mesh%geo%x_p(dim, i) = x_p(dim)
+      end do
+    end associate
+  end subroutine set_cell_centre
+
+  !> Set the face centre of specified face
+  module subroutine set_face_centre(loc_f, x_f)
+    type(face_locator), intent(in) :: loc_f         !< The face locator object.
+    real(ccs_real), dimension(:), intent(in) :: x_f !< The face centre array.
+
+    integer :: dim
+
+    associate(mesh => loc_f%mesh, &
+         i => loc_f%index_p, &
+         j => loc_f%cell_face_ctr)
+      do dim = 1, min(size(x_f), ndim)
+         mesh%geo%x_f(dim, j, i) = x_f(dim)
+      end do
+    end associate
+  end subroutine set_face_centre
+
+  !> Set the centre of specified vertex
+  module subroutine set_vert_centre(loc_v, x_v)
+    type(vert_locator), intent(in) :: loc_v         !< The vertex locator object.
+    real(ccs_real), dimension(:), intent(in) :: x_v !< The vertex centre array.
+
+    integer :: dim
+
+    associate(mesh => loc_v%mesh, &
+         i => loc_v%index_p, &
+         j => loc_v%cell_vert_ctr)
+      do dim = 1, min(size(x_v), ndim)
+         mesh%geo%vert_coords(dim, j, i) = x_v(dim)
+      end do
+    end associate
+  end subroutine set_vert_centre
+
+  !v Set the normal of specified face
+  !
+  !  Normalises the stored normal.
+  module subroutine set_normal(loc_f, normal)
+    type(face_locator), intent(in) :: loc_f            !< The face locator object
+    real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
+
+    integer :: dim
+    real(ccs_real) :: invmag
+
+    invmag = 1.0_ccs_real / sqrt(sum(normal**2))
+    associate(mesh => loc_f%mesh, &
+         cell => loc_f%index_p, &
+         face => loc_f%cell_face_ctr)
+      do dim = 1, min(size(normal), ndim)
+         mesh%geo%face_normals(dim, face, cell) = normal(dim) * invmag
+      end do
+    end associate
+  end subroutine set_normal
+  
 end submodule meshing_accessors

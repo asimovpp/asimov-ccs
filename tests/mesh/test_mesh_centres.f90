@@ -7,7 +7,8 @@ program test_mesh_centres
   use testing_lib
 
   use constants, only: ndim
-  use meshing, only: set_cell_location, set_face_location, get_centre
+  use meshing, only: set_cell_location, set_face_location, set_vert_location, get_centre, &
+       get_local_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -17,6 +18,7 @@ program test_mesh_centres
   real(ccs_real) :: l
   integer(ccs_int) :: n, nx, ny, nz
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i
   integer(ccs_int) :: j
 
@@ -24,7 +26,11 @@ program test_mesh_centres
   real(ccs_real), dimension(ndim) :: cc
   type(face_locator) :: loc_f
   real(ccs_real), dimension(ndim) :: fc
+  type(vert_locator) :: loc_v
+  real(ccs_real), dimension(ndim) :: vc
 
+  integer :: dim
+  
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
@@ -37,7 +43,8 @@ program test_mesh_centres
     l = parallel_random(par_env)
     mesh = build_mesh(par_env, nx, ny, nz, l)
 
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call get_centre(loc_p, cc)
       associate (x => cc(1), y => cc(2))
@@ -61,6 +68,17 @@ program test_mesh_centres
           end associate
         end do
       end associate
+
+      do j = 1, mesh%topo%vert_per_cell
+         call set_vert_location(mesh, i, j, loc_v)
+         call get_centre(loc_v, vc)
+         do dim = 1, ndim
+            if ((vc(dim) > (l + eps)) .or. (vc(dim) < (0.0_ccs_real - eps))) then
+               write (message, *) "FAIL: expected vertex centre in range [0, ", l, "] got ", vc
+               call stop_test(message)
+            end if
+         end do
+      end do
     end do
   end do
 

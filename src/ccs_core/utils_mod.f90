@@ -223,14 +223,16 @@ contains
   !> Calculate kinetic energy over density
   subroutine calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
+    use mpi
+
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
     use vec, only: get_vector_data, restore_vector_data
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use mpi
-
+    use meshing, only: get_local_num_cells
+    
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: t !< timestep
@@ -238,6 +240,7 @@ contains
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
 
+    integer(ccs_int) :: local_num_cells
     real(ccs_real) :: ek_local, ek_global, volume_local, volume_global
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data
     real(ccs_real) :: rho
@@ -259,7 +262,8 @@ contains
     call get_vector_data(v%values, v_data)
     call get_vector_data(w%values, w_data)
 
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
 
       ek_local = ek_local + 0.5 * rho * mesh%geo%volumes(index_p) * &
                  (u_data(index_p)**2 + v_data(index_p)**2 + w_data(index_p)**2)
@@ -302,14 +306,16 @@ contains
   !> Calculate enstrophy
   subroutine calc_enstrophy(par_env, mesh, t, u, v, w)
 
+    use mpi
+
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
     use vec, only: get_vector_data, restore_vector_data
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use mpi
-
+    use meshing, only: get_local_num_cells
+    
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: t !< timestep
@@ -317,6 +323,7 @@ contains
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
 
+    integer(ccs_int) :: local_num_cells
     real(ccs_real) :: ens_local, ens_global
     real(ccs_real), dimension(:), pointer :: dudy, dudz, dvdx, dvdz, dwdx, dwdy
     integer(ccs_int) :: index_p
@@ -336,7 +343,8 @@ contains
     call get_vector_data(w%x_gradients, dwdx)
     call get_vector_data(w%y_gradients, dwdy)
 
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
 
       ens_local = ens_local + (dwdy(index_p) - dvdz(index_p))**2 + &
                   (dudz(index_p) - dwdx(index_p))**2 + &

@@ -20,7 +20,7 @@ program poisson
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
-  use meshing, only: set_cell_location, set_face_location, set_neighbour_location
+  use meshing, only: set_cell_location, set_face_location, set_neighbour_location, get_local_num_cells
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols
@@ -138,6 +138,7 @@ contains
 
     class(ccs_vector), intent(inout) :: b
 
+    integer(ccs_int) :: nloc
     integer(ccs_int) :: i
     real(ccs_real) :: r
 
@@ -153,8 +154,8 @@ contains
     call create_vector_values(nrows_working_set, val_dat)
     call set_mode(add_mode, val_dat)
 
-    associate (nloc => mesh%topo%local_num_cells, &
-               h => mesh%geo%h)
+    call get_local_num_cells(mesh, nloc)
+    associate (h => mesh%geo%h)
       ! this is currently setting 1 vector value at a time
       ! consider changing to doing all the updates in one go
       ! to do only 1 call to eval_cell_rhs and set_values
@@ -197,6 +198,7 @@ contains
 
     type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i, j
 
     integer(ccs_int) :: row, col
@@ -214,7 +216,8 @@ contains
     integer(ccs_int) :: global_index_nb
 
     ! Loop over cells
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       !^ @todo Doing this in a loop is awful code - malloc maximum coefficients per row once,
       !        filling from front, and pass the number of coefficients to be set, requires
       !        modifying the matrix_values type and the implementation of set_values applied to
@@ -279,6 +282,7 @@ contains
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b
 
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i, j
     real(ccs_real) :: boundary_coeff, boundary_val
 
@@ -310,7 +314,8 @@ contains
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(add_mode, vec_values)
 
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       if (minval(mesh%topo%nb_indices(:, i)) < 0) then
         call clear_entries(mat_coeffs)
         call clear_entries(vec_values)
@@ -367,7 +372,7 @@ contains
     class(ccs_vector), intent(inout) :: u_exact
 
     type(vector_values) :: vec_values
-    integer(ccs_int) :: i
+    integer(ccs_int) :: i, local_num_cells
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
@@ -377,7 +382,8 @@ contains
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(insert_mode, vec_values)
 
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       call clear_entries(vec_values)
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
