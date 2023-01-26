@@ -5,7 +5,7 @@
 program test_mesh_square_mesh_volume
 
   use testing_lib
-  use meshing, only: set_cell_location, get_volume
+  use meshing, only: set_cell_location, get_volume, get_local_num_cells
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -18,6 +18,7 @@ program test_mesh_square_mesh_volume
   real(ccs_real) :: vol_global
   real(ccs_real) :: expected_vol
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i
   type(cell_locator) :: loc_p
   real(ccs_real) :: V
@@ -39,9 +40,8 @@ program test_mesh_square_mesh_volume
     vol = 0.0_ccs_real
     nneg_vol = 0
 
-    print *, "mesh%topo%local_num_cells = ", mesh%topo%local_num_cells
-
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call get_volume(loc_p, V)
       if (V <= 0) then

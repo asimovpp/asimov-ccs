@@ -14,7 +14,7 @@ program test_partition_tri_mesh
   use kinds, only: ccs_int, ccs_long
   ! use types, only: topology
   use mesh_utils, only: build_square_mesh
-
+  use meshing, only: get_local_num_cells, set_local_num_cells
   use utils, only: debug_print
 
   implicit none
@@ -22,7 +22,7 @@ program test_partition_tri_mesh
   ! type(topology) :: topo
   type(ccs_mesh), target :: mesh
   integer :: i
-
+  
   integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
   integer(topo_idx_type) :: current, previous
 
@@ -69,7 +69,6 @@ contains
     !  print *, "TOPO local_num_cells: ", topo%local_num_cells
     !  print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
     !  print *, "TOPO partition: ", topo%global_partition
-    !  print *, "MESH nlocal: ", mesh%topo%local_num_cells
     !  print *, "MESH nb_indices: ", size(mesh%topo%nb_indices, 1), size(mesh%topo%nb_indices, 2)
     !  write(message, *) "ERROR: topology size is wrong!"
     !  call stop_test(message)
@@ -132,9 +131,11 @@ contains
 
     character(len=*), intent(in) :: stage
 
+    integer(ccs_int) :: local_num_cells
     integer :: i, j
 
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       do j = int(mesh%topo%xadj(i), ccs_int), int(mesh%topo%xadj(i + 1), ccs_int) - 1
         if (mesh%topo%adjncy(j) == mesh%topo%global_indices(i)) then
           print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
@@ -150,11 +151,13 @@ contains
 
     character(len=*), intent(in) :: stage
 
+    integer(ccs_int) :: local_num_cells
     integer :: i, j
     integer :: nadj
     integer, dimension(:), allocatable :: adjncy_global_expected
 
-    do i = 1, mesh%topo%local_num_cells ! Loop over local cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells ! Loop over local cells
 
       nadj = int(mesh%topo%xadj(i + 1) - mesh%topo%xadj(i), ccs_int)
       allocate (adjncy_global_expected(nadj))
@@ -246,7 +249,8 @@ contains
 
     integer :: ctr
     integer :: i, j
-
+    integer(ccs_int) :: local_num_cells
+    
     ! Create a tri mesh
     !
     ! Sample graph - adapted from ParMETIS manual to use 1-indexing with added triangular connections.
@@ -312,13 +316,15 @@ contains
     !  call stop_test(message)
     !end select
 
-    mesh%topo%local_num_cells = int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int)
-    allocate (mesh%topo%xadj(mesh%topo%local_num_cells + 1))
+    local_num_cells = int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int)
+    call set_local_num_cells(local_num_cells, mesh)
+    call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+    allocate (mesh%topo%xadj(local_num_cells + 1))
 
     ! <MISSING> allocate topo%global_boundaries
     ! <MISSING> allocate topo%adjncy
 
-    allocate (mesh%topo%local_partition(mesh%topo%local_num_cells))
+    allocate (mesh%topo%local_partition(local_num_cells))
     mesh%topo%halo_num_cells = 0
 
     select type (par_env)
@@ -376,7 +382,7 @@ contains
     mesh%topo%xadj(j + 1) = size(mesh%topo%adjncy) + 1
 
     allocate (mesh%topo%adjwgt(size(mesh%topo%adjncy)))
-    allocate (mesh%topo%vwgt(mesh%topo%local_num_cells))
+    allocate (mesh%topo%vwgt(local_num_cells))
 
     ! --- compute_partitioner_input() --- end
 
@@ -384,8 +390,8 @@ contains
     ! mesh%topo%total_num_cells = mesh%topo%total_num_cells
     ! mesh%topo%num_faces = mesh%topo%num_faces
 
-    allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
-    do i = 1, mesh%topo%local_num_cells
+    allocate (mesh%topo%global_indices(local_num_cells))
+    do i = 1, local_num_cells
       mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
 

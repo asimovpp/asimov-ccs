@@ -134,7 +134,7 @@ contains
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
-    use meshing, only: set_cell_location, get_global_index
+    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: set_values, set_mode, set_entry, set_row
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -144,6 +144,7 @@ contains
     class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
+    integer(ccs_int) :: n_local
     integer(ccs_int) :: row, col
     integer(ccs_int) :: local_idx, self_idx
     real(ccs_real) :: u_val, v_val, w_val
@@ -152,35 +153,35 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, mf_data
 
     ! Set alias
-    associate (n_local => cell_mesh%topo%local_num_cells)
-      call create_vector_values(n_local, u_vals)
-      call create_vector_values(n_local, v_vals)
-      call create_vector_values(n_local, w_vals)
+    call get_local_num_cells(cell_mesh, n_local)
 
-      call set_mode(add_mode, u_vals)
-      call set_mode(add_mode, v_vals)
-      call set_mode(add_mode, w_vals)
+    call create_vector_values(n_local, u_vals)
+    call create_vector_values(n_local, v_vals)
+    call create_vector_values(n_local, w_vals)
 
-      ! Set initial values for velocity fields
-      do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
-        call calc_cell_coords(self_idx, cps, row, col)
+    call set_mode(add_mode, u_vals)
+    call set_mode(add_mode, v_vals)
+    call set_mode(add_mode, w_vals)
 
-        u_val = real(col, ccs_real) / real(cps, ccs_real)
-        v_val = -real(row, ccs_real) / real(cps, ccs_real)
-        w_val = 0.0_ccs_real
+    ! Set initial values for velocity fields
+    do local_idx = 1, n_local
+       call set_cell_location(cell_mesh, local_idx, self_loc)
+       call get_global_index(self_loc, self_idx)
+       call calc_cell_coords(self_idx, cps, row, col)
 
-        call set_row(self_idx, u_vals)
-        call set_entry(u_val, u_vals)
+       u_val = real(col, ccs_real) / real(cps, ccs_real)
+       v_val = -real(row, ccs_real) / real(cps, ccs_real)
+       w_val = 0.0_ccs_real
 
-        call set_row(self_idx, v_vals)
-        call set_entry(v_val, v_vals)
+       call set_row(self_idx, u_vals)
+       call set_entry(u_val, u_vals)
 
-        call set_row(self_idx, w_vals)
-        call set_entry(w_val, w_vals)
-      end do
-    end associate
+       call set_row(self_idx, v_vals)
+       call set_entry(v_val, v_vals)
+
+       call set_row(self_idx, w_vals)
+       call set_entry(w_val, w_vals)
+    end do
 
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
