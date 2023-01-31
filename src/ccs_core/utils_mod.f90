@@ -130,7 +130,7 @@ module utils
     module procedure zero_matrix
   end interface zero
 
-  !> Generic interface to converting numbers to strings
+  !> Generic interface to converting numbers and bools to strings
   interface str
     module procedure int2str
     module procedure real2str
