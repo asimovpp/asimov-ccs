@@ -9,7 +9,7 @@ module testing_lib
   use parallel
   use parallel_types
   use parallel_types_mpi
-  use utils, only: str
+  use utils, only: str, exit_print
 
   implicit none
 
@@ -101,8 +101,7 @@ contains
     type is (parallel_environment_mpi)
       call MPI_Barrier(par_env%comm, ierr)
     class default
-      print *, "ERROR: Unknown parallel environment!"
-      stop 1
+      call error_abort("ERROR: Unknown parallel environment!")
     end select
 
   end subroutine init
@@ -132,8 +131,7 @@ contains
     type is (parallel_environment_mpi)
       call MPI_Bcast(parallel_random, 1, real_type, par_env%root, par_env%comm, ierr)
     class default
-      print *, "ERROR: Unknown parallel environment!"
-      stop 1
+      call error_abort("ERROR: Unknown parallel environment!")
     end select
 
   end function parallel_random
@@ -144,10 +142,8 @@ contains
   subroutine stop_test(message)
 
     character(*), intent(in) :: message !< Error message
-    character(len=32) :: id_str
 
-    write (id_str, "(I0)") par_env%proc_id
-    print *, "(" // trim(id_str) // ") ", trim(message)
+    print *, "(rank " // str(par_env%proc_id) // ") ", trim(message)
 
     ! other PEs might not have encountered a test failure
     ! fin()

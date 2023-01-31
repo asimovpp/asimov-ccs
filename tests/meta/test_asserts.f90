@@ -1,4 +1,4 @@
-!> @brief Test the asserts from the testing lib. 
+!> Test the asserts from the testing lib. 
 program test_asserts
 
   use testing_lib
