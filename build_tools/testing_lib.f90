@@ -9,7 +9,7 @@ module testing_lib
   use parallel
   use parallel_types
   use parallel_types_mpi
-  use utils, only : str
+  use utils, only: str
 
   implicit none
 
@@ -48,7 +48,7 @@ module testing_lib
     procedure assert_neq_real
     procedure assert_neq_string
   end interface
- 
+
   !> Core procedure for comparing numbers
   interface a_eq
     procedure a_eq_integer
@@ -61,7 +61,7 @@ module testing_lib
     procedure print_failed_real
     procedure print_failed_bool
   end interface
-  
+
   class(parallel_environment), allocatable, target :: par_env
   integer(ccs_err) :: ierr
   integer :: real_type
@@ -89,22 +89,22 @@ contains
 
     ! XXX: This would be a good candidate for a testing library
     call random_seed(size=n)
-    allocate(seed(n))
+    allocate (seed(n))
     call random_seed(get=seed)
     if (par_env%proc_id == par_env%root) then
       print *, "Using seed: ", seed
       print *, "----------------------------------"
     end if
-    deallocate(seed)
+    deallocate (seed)
 
-    select type(par_env)
-    type is(parallel_environment_mpi)
+    select type (par_env)
+    type is (parallel_environment_mpi)
       call MPI_Barrier(par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
       stop 1
     end select
-    
+
   end subroutine init
 
   !v Test finalisation
@@ -128,14 +128,14 @@ contains
 
     call random_number(parallel_random)
 
-    select type(par_env)
-    type is(parallel_environment_mpi)
+    select type (par_env)
+    type is (parallel_environment_mpi)
       call MPI_Bcast(parallel_random, 1, real_type, par_env%root, par_env%comm, ierr)
     class default
       print *, "ERROR: Unknown parallel environment!"
       stop 1
     end select
-    
+
   end function parallel_random
 
   !v Test failure stop
@@ -147,7 +147,7 @@ contains
     character(len=32) :: id_str
 
     write (id_str, "(I0)") par_env%proc_id
-    print *, "("//trim(id_str)//") ", trim(message)
+    print *, "(" // trim(id_str) // ") ", trim(message)
 
     ! other PEs might not have encountered a test failure
     ! fin()
@@ -163,37 +163,35 @@ contains
   subroutine return_or_stop(res, message, outval)
 
     logical, intent(in) :: res               !< Evaluation result
-    character(*), intent(in) :: message      !< Error message 
-    logical, optional, intent(out) :: outval !< Output value to replace stopping the test 
+    character(*), intent(in) :: message      !< Error message
+    logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     if (present(outval)) then
       outval = res
     else
-      if (.not. res) then 
+      if (.not. res) then
         call stop_test(message)
       end if
     end if
 
   end subroutine return_or_stop
 
-  
-
 !==========================Numeric comparison operators
   !> Compare two integer values for equality
   elemental logical function a_eq_integer(a, b) result(comparison)
 
-    integer(ccs_int), intent(in) :: a 
-    integer(ccs_int), intent(in) :: b 
+    integer(ccs_int), intent(in) :: a
+    integer(ccs_int), intent(in) :: b
 
     comparison = a == b
 
   end function a_eq_integer
-  
+
   !> Compare two real values for equality within a tolerance
   elemental logical function a_eq_real(a, b) result(comparison)
 
-    real(ccs_real), intent(in) :: a 
-    real(ccs_real), intent(in) :: b 
+    real(ccs_real), intent(in) :: a
+    real(ccs_real), intent(in) :: b
 
     ! TODO: double check we are happy with this evaluation
     comparison = (abs(a - b) <= epsilon(b) * abs(b))
@@ -201,15 +199,14 @@ contains
   end function a_eq_real
 !==========================
 
-
 !==========================Integer equality
   !> Single integer comparison
   subroutine assert_eq_integer_rank0(received, expected, message, outval)
 
     integer(ccs_int), intent(in) :: received !< Test value
     integer(ccs_int), intent(in) :: expected !< Reference value
-    character(*), intent(in) :: message      !< Error message 
-    logical, optional, intent(out) :: outval !< Output value to replace stopping the test 
+    character(*), intent(in) :: message      !< Error message
+    logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(a_eq(received, expected), &
                         message // " Expected: " // str(expected) // " Received: " // str(received), &
@@ -222,17 +219,15 @@ contains
 
     integer(ccs_int), dimension(:), intent(in) :: received !< Test values
     integer(ccs_int), dimension(:), intent(in) :: expected !< Reference values
-    character(*), intent(in) :: message                    !< Error message 
-    logical, optional, intent(out) :: outval               !< Output value to replace stopping the test 
-    
+    character(*), intent(in) :: message                    !< Error message
+    logical, optional, intent(out) :: outval               !< Output value to replace stopping the test
+
     call return_or_stop(all(a_eq(received, expected)), &
                         message // print_failed(received, expected), &
                         outval)
 
   end subroutine assert_eq_integer_rank1
 !==========================
- 
-
 
 !==========================Real equality
   !> Single real comparison
@@ -240,22 +235,22 @@ contains
 
     real(ccs_real), intent(in) :: received   !< Test value
     real(ccs_real), intent(in) :: expected   !< Reference value
-    character(*), intent(in) :: message      !< Error message 
-    logical, optional, intent(out) :: outval !< Output value to replace stopping the test 
-    
+    character(*), intent(in) :: message      !< Error message
+    logical, optional, intent(out) :: outval !< Output value to replace stopping the test
+
     call return_or_stop(a_eq(received, expected), &
                         message // " Expected: " // str(expected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_eq_real_rank0
 
-  !> Real array comparison 
+  !> Real array comparison
   subroutine assert_eq_real_rank1(received, expected, message, outval)
 
-    real(ccs_real), dimension(:), intent(in) :: received !< Test values 
+    real(ccs_real), dimension(:), intent(in) :: received !< Test values
     real(ccs_real), dimension(:), intent(in) :: expected !< Reference values
-    character(*), intent(in) :: message                  !< Error message 
-    logical, optional, intent(out) :: outval             !< Output value to replace stopping the test 
+    character(*), intent(in) :: message                  !< Error message
+    logical, optional, intent(out) :: outval             !< Output value to replace stopping the test
 
     call return_or_stop(all(a_eq(received, expected)), &
                         message // print_failed(received, expected), &
@@ -263,8 +258,6 @@ contains
 
   end subroutine assert_eq_real_rank1
 !==========================
- 
-
 
 !==========================String equality
   !> String comparison
@@ -272,8 +265,8 @@ contains
 
     character(*), intent(in) :: received     !< Test value
     character(*), intent(in) :: expected     !< Reference value
-    character(*), intent(in) :: message      !< Error message 
-    logical, optional, intent(out) :: outval !< Output value to replace stopping the test 
+    character(*), intent(in) :: message      !< Error message
+    logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(received == expected, &
                         message // " Expected: " // expected // " Received: " // received, &
@@ -281,8 +274,6 @@ contains
 
   end subroutine assert_eq_string
 !==========================
- 
-
 
 !==========================Inequality
   !> Integer comparison
@@ -290,36 +281,36 @@ contains
 
     integer(ccs_int), intent(in) :: received    !< Test value
     integer(ccs_int), intent(in) :: notexpected !< Reference value
-    character(*), intent(in) :: message         !< Error message 
-    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test 
+    character(*), intent(in) :: message         !< Error message
+    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(.not. a_eq(received, notexpected), &
                         message // " Not Expected: " // str(notexpected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_neq_integer
-  
+
   !> Real comparison
   subroutine assert_neq_real(received, notexpected, message, outval)
 
     real(ccs_real), intent(in) :: received    !< Test value
     real(ccs_real), intent(in) :: notexpected !< Reference value
-    character(*), intent(in) :: message       !< Error message 
-    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test 
+    character(*), intent(in) :: message       !< Error message
+    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(.not. a_eq(received, notexpected), &
                         message // " Not Expected: " // str(notexpected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_neq_real
-  
+
   !> String comparison
   subroutine assert_neq_string(received, notexpected, message, outval)
 
     character(*), intent(in) :: received     !< Test value
     character(*), intent(in) :: notexpected  !< Reference value
-    character(*), intent(in) :: message      !< Error message 
-    logical, optional, intent(out) :: outval !< Output value to replace stopping the test 
+    character(*), intent(in) :: message      !< Error message
+    logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(.not. received == notexpected, &
                         message // " Not Expected: " // notexpected // " Received: " // received, &
@@ -328,30 +319,28 @@ contains
   end subroutine assert_neq_string
 !==========================
 
-
-
 !==========================Less-than
   !> Integer comparison
   subroutine assert_lt_integer(received, upper_limit, message, outval)
 
     integer(ccs_int), intent(in) :: received    !< Test value
     integer(ccs_int), intent(in) :: upper_limit !< Reference value
-    character(*), intent(in) :: message         !< Error message 
-    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test 
+    character(*), intent(in) :: message         !< Error message
+    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received < upper_limit, &
                         message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_lt_integer
-  
+
   !> Real comparison
   subroutine assert_lt_real(received, upper_limit, message, outval)
 
     real(ccs_real), intent(in) :: received    !< Test value
     real(ccs_real), intent(in) :: upper_limit !< Reference value
-    character(*), intent(in) :: message       !< Error message 
-    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test 
+    character(*), intent(in) :: message       !< Error message
+    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received < upper_limit, &
                         message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
@@ -360,30 +349,28 @@ contains
   end subroutine assert_lt_real
 !==========================
 
-
-
 !==========================Greater-than
   !> Integer comparison
   subroutine assert_gt_integer(received, lower_limit, message, outval)
 
     integer(ccs_int), intent(in) :: received    !< Test value
     integer(ccs_int), intent(in) :: lower_limit !< Reference value
-    character(*), intent(in) :: message         !< Error message 
-    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test 
+    character(*), intent(in) :: message         !< Error message
+    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received > lower_limit, &
                         message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_gt_integer
-  
+
   !> Real comparison
   subroutine assert_gt_real(received, lower_limit, message, outval)
 
     real(ccs_real), intent(in) :: received    !< Test value
     real(ccs_real), intent(in) :: lower_limit !< Reference value
-    character(*), intent(in) :: message       !< Error message 
-    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test 
+    character(*), intent(in) :: message       !< Error message
+    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received > lower_limit, &
                         message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
@@ -391,29 +378,27 @@ contains
 
   end subroutine assert_gt_real
 !==========================
-  
-
 
 !==========================Bool tests
   !> Single bool test
   subroutine assert_bool_rank0(received, message, outval)
 
     logical, intent(in) :: received          !< Test value
-    character(*), intent(in) :: message      !< Error message 
-    logical, optional, intent(out) :: outval !< Output value to replace stopping the test 
+    character(*), intent(in) :: message      !< Error message
+    logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(received, &
                         message // " Expected: T (true) Received: " // str(received), &
                         outval)
 
   end subroutine assert_bool_rank0
-  
-  !> Bool array test 
+
+  !> Bool array test
   subroutine assert_bool_rank1(received, message, outval)
 
     logical, dimension(:), intent(in) :: received !< Test values
-    character(*), intent(in) :: message           !< Error message 
-    logical, optional, intent(out) :: outval      !< Output value to replace stopping the test 
+    character(*), intent(in) :: message           !< Error message
+    logical, optional, intent(out) :: outval      !< Output value to replace stopping the test
 
     call return_or_stop(all(received), &
                         message // print_failed(received), &
@@ -422,19 +407,17 @@ contains
   end subroutine assert_bool_rank1
 !==========================
 
-
-
 !==========================Printing functions
   !> Print integers
   function print_failed_integer(received, expected) result(msg)
 
     integer(ccs_int), dimension(:), intent(in) :: expected !< Test values
-    integer(ccs_int), dimension(:), intent(in) :: received !< Reference values 
+    integer(ccs_int), dimension(:), intent(in) :: received !< Reference values
     character(len=:), allocatable :: msg                   !< Constructed message
 
     integer :: i
     logical, dimension(:), allocatable :: mask
-    allocate(mask(size(received)))
+    allocate (mask(size(received)))
     mask = a_eq(received, expected)
 
     msg = new_line('a') // "Index Expected Received" // new_line('a')
@@ -445,17 +428,17 @@ contains
     end do
 
   end function print_failed_integer
-  
+
   !> Print reals
   function print_failed_real(received, expected) result(msg)
 
     real(ccs_real), dimension(:), intent(in) :: expected !< Test values
-    real(ccs_real), dimension(:), intent(in) :: received !< Reference values 
+    real(ccs_real), dimension(:), intent(in) :: received !< Reference values
     character(len=:), allocatable :: msg                 !< Constructed message
 
     integer :: i
     logical, dimension(:), allocatable :: mask
-    allocate(mask(size(received)))
+    allocate (mask(size(received)))
     mask = a_eq(received, expected)
 
     msg = new_line('a') // "Index Expected Received" // new_line('a')
@@ -466,7 +449,7 @@ contains
     end do
 
   end function print_failed_real
-  
+
   !> Print bools
   function print_failed_bool(received) result(msg)
 
