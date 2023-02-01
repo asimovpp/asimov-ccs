@@ -55,7 +55,7 @@ Note that the program file name (`mytest.f90` in this case) has to be specified 
 This can then be executed with, for example `# RUN: %mpirun -n 4 %t1` (note, '%mpirun' is a macro that gets resolved to the mpi invocation command set in the used Makefile arch file).
 If a compiled test case returns non-zero, the test case has failed.
 
-Test cases can `use testing_lib` to included the testing library which contains various utility functions for test initialisation, finalisation, stopping and assertions (not everything has been implemented yet). 
+Test cases can `use testing_lib` to included the testing library which contains various utility functions for test initialisation, finalisation, stopping and assertions. 
 
 ## Testing framework details
 The `lit.cfg` file configures the LIT testing framework. See therein or refer to the LIT user guide for details.

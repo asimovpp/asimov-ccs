@@ -130,10 +130,11 @@ module utils
     module procedure zero_matrix
   end interface zero
 
-  !> Generic interface to converting numbers to strings
+  !> Generic interface to converting numbers and bools to strings
   interface str
     module procedure int2str
     module procedure real2str
+    module procedure bool2str
   end interface str
 
   !> Generic interface to debug printer
@@ -206,6 +207,18 @@ contains
     else
       write (tmp_string, *) in_real
     end if
+    out_string = trim(adjustl(tmp_string))
+  end function
+  
+  !> Convert bool to string.
+  function bool2str(in_bool) result(out_string)
+    logical, intent(in) :: in_bool          !< bool to convert
+    character(:), allocatable :: out_string !< string from input bool
+
+    character(32) :: tmp_string
+
+    write (tmp_string, *) in_bool
+
     out_string = trim(adjustl(tmp_string))
   end function
 

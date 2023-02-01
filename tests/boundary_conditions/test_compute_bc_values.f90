@@ -94,7 +94,7 @@ contains
     dirichlet_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
     call compute_boundary_values(dirichlet_field, component, loc_p, loc_f, face_norm, bc_val)
-    call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+    call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
     call dprint("done dirichlet test")
   end subroutine check_dirichlet_bc
 
@@ -133,7 +133,7 @@ contains
     call dprint("set neumann field")
 
     call compute_boundary_values(neumann_field, component, loc_p, loc_f, face_norm, bc_val)
-    call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+    call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
     call dprint("done neumann test")
   end subroutine check_neumann_bc
 
@@ -193,7 +193,7 @@ contains
       call restore_vector_data(extrapolated_field%y_gradients, y_gradient_data)
       call restore_vector_data(extrapolated_field%z_gradients, z_gradient_data)
 
-      call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+      call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
       call dprint("done extrapolated test")
     end associate
   end subroutine check_extrapolated_bc
@@ -239,7 +239,7 @@ contains
   !!         expected_bc_value = 1
   !!       end if
   !!       call compute_boundary_values(sym_field, component, loc_p, loc_f, face_norm, bc_val)
-  !!       call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+  !!       call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
   !!     end do
   !!     call dprint("done symmetric test")
   !!   end associate
