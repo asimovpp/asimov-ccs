@@ -179,7 +179,7 @@ contains
     integer(ccs_int), intent(in) :: a
     integer(ccs_int), intent(in) :: b
 
-    comparison = a == b
+    comparison = (a == b)
 
   end function a_eq_integer
 
