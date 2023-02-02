@@ -1379,7 +1379,7 @@ contains
     integer(ccs_int), pointer :: row_indices(:)
 
     integer(ccs_int) :: start_global
-    integer(ccs_int) :: idxg
+    integer(ccs_int) :: idxg, idx_new
 
     real(ccs_real), dimension(:, :), allocatable :: x
     integer(ccs_int), dimension(:, :), allocatable :: idx_nb
@@ -1431,8 +1431,8 @@ contains
        start_global = mesh%topo%global_indices(1)
        do i = 1, local_num_cells
           idxg = mesh%topo%global_indices(i)
-          new_global_ordering(idxg) = (row_indices(i) + 1) & ! C->F
-               + (start_global - 1)                          ! Global offset
+          idx_new = row_indices(i) + 1 ! C->F
+          new_global_ordering(idxg) = idx_new + (start_global - 1)
        end do
     end if
 
@@ -1447,8 +1447,9 @@ contains
        call get_centre(loc_p, x(:, i))
     end do
     do i = 1, local_num_cells
-       call set_cell_location(mesh, i, loc_p)
-       call set_centre(loc_p, x(:, row_indices(i) + 1)) ! C->F
+       idx_new = row_indices(i) + 1 ! C->F
+       call set_cell_location(mesh, idx_new, loc_p)
+       call set_centre(loc_p, x(:, i))
     end do
     deallocate(x)
 
@@ -1458,21 +1459,28 @@ contains
     do i = 1, local_num_cells ! First update the neighbour copy
        do j = 1, 4
           idxg = idx_nb(j, i)
-          if ((idxg > 0) .and.               ! Not boundary
-             (idxg <= local_num_cells)) then ! Not Halo
-             idx_nb(j, i) = row_indices(idxg) + 1 ! C->F
+          if ((idxg > 0) .and. (idxg <= local_num_cells)) then
+             idx_new = row_indices(idxg) + 1 ! C->F
+             idx_nb(j, i) = idx_new
           end if
        end do
     end do
     do i = 1, local_num_cells ! Now set neighbours to new numbering
+       idx_new = row_indices(i) + 1 ! C->F
        do j = 1, 4
-          mesh%topo%nb_indices(j, i) = idx_nb(j, row_indices(i) + 1) ! C->F
+          mesh%topo%nb_indices(j, idx_new) = idx_nb(j, i) 
        end do
     end do
     deallocate(idx_nb)
 
     ! Set global indexing
-    do i = 1, mesh%topo%total_num_cells
+    idxg = mesh%topo%global_indices(1)
+    do i = 1, local_num_cells
+       idx_new = row_indices(i) + 1 ! C->F
+       mesh%topo%global_indices(idx_new) = new_global_ordering(idxg)
+       idxg = idxg + 1
+    end do
+    do i = local_num_cells + 1, mesh%topo%total_num_cells
        idxg = mesh%topo%global_indices(i)
        mesh%topo%global_indices(i) = new_global_ordering(idxg)
     end do
