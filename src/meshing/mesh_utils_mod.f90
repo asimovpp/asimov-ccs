@@ -619,8 +619,11 @@ contains
           call set_centre(loc_p, x_p)
         end do
 
+        call bandwidth(mesh)
         call reorder_cells(mesh)
-
+        call bandwidth(mesh)
+        stop
+        
         do i = 1_ccs_int, local_num_cells
           call set_cell_location(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
@@ -1492,4 +1495,44 @@ contains
     
   end subroutine reorder_cells
 
+  subroutine bandwidth(mesh)
+
+    type(ccs_mesh), intent(in) :: mesh
+
+    integer(ccs_int) :: bw, bw_max
+    real(ccs_real) :: bw_avg
+    integer(ccs_int) :: idx_p, idx_nb
+
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+
+    logical :: is_local
+
+    integer(ccs_int) :: i, j, nnb
+    integer(ccs_int) :: local_num_cells
+
+    bw_max = 0
+    bw_avg = 0.0
+    
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
+       call set_cell_location(mesh, i, loc_p)
+       call count_neighbours(loc_p, nnb)
+       call get_local_index(loc_p, idx_p)
+       do j = 1, nnb
+          call set_neighbour_location(loc_p, j, loc_nb)
+          call get_local_status(loc_nb, is_local)
+          if (is_local) then
+             call get_local_index(loc_nb, idx_nb)
+             bw = abs(idx_nb - idx_p)
+             bw_max = max(bw_max, bw)
+             bw_avg = bw_avg + bw / 2 ! Will be counted twice
+          end if
+       end do
+    end do
+    bw_avg = bw_avg / local_num_cells
+    print *, "Bandwidth: ", bw_max, bw_avg
+    
+  end subroutine bandwidth
+  
 end module mesh_utils
