@@ -3,7 +3,7 @@ module mesh_utils
 
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print
-  use kinds, only: ccs_int, ccs_long, ccs_real
+  use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
                    face_locator, cell_locator, neighbour_locator, vert_locator
@@ -618,6 +618,8 @@ contains
 
           call set_centre(loc_p, x_p)
         end do
+
+        call reorder_cells(mesh)
 
         do i = 1_ccs_int, local_num_cells
           call set_cell_location(mesh, i, loc_p)
@@ -1341,5 +1343,145 @@ contains
     end if
 
   end function local_count
+
+  !v Cell reordering.
+  !
+  ! Performs a reordering of local cells and reassigns their global indices based on this new
+  ! ordering - assumes a contiguous numbering of the processor's partition, i.e. proc N has global
+  ! indices g0 - gN. Following reordering an update is required to inform other processors about the
+  ! new global indices of their halo cells.
+  subroutine reorder_cells(mesh)
+#include "petsc/finclude/petscmat.h"
+
+    use mpi
+    use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER, INSERT_VALUES
+    use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSeqAIJSetPreallocation, tMat, &
+         MatSetValues, MatAssemblyBegin, MatAssemblyEnd, MAT_FINAL_ASSEMBLY, &
+         MatDestroy
+    use petscis, only: tIS, ISGetIndicesF90, ISRestoreIndicesF90, ISDestroy
+    
+    type(ccs_mesh), intent(inout) :: mesh
+
+    type(tMat) :: M
+    integer(ccs_err) :: ierr
+    type(tIS) :: rperm, cperm
+    
+    integer(ccs_int) :: local_num_cells
+
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: i, j, ctr, nnb
+    integer(ccs_int), dimension(7) :: idx
+    real(ccs_real), dimension(7) :: row
+    logical :: is_local
+
+    integer(ccs_int), dimension(:), allocatable :: new_global_ordering
+    integer(ccs_int), pointer :: row_indices(:)
+
+    integer(ccs_int) :: start_global
+    integer(ccs_int) :: idxg
+
+    real(ccs_real), dimension(:, :), allocatable :: x
+    integer(ccs_int), dimension(:, :), allocatable :: idx_nb
+    
+    ! First build adjacency matrix for local cells
+    call MatCreate(MPI_COMM_SELF, M, ierr)
+    call MatSetFromOptions(M, ierr)
+    call get_local_num_cells(mesh, local_num_cells)
+    call MatSetSizes(M, local_num_cells, local_num_cells, &
+         PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+    call MatSeqAIJSetPreallocation(M, 7, PETSC_NULL_INTEGER, ierr)
+    do i = 1, local_num_cells
+       row(:) = 0.0
+       idx(:) = 0
+       ctr = 1
+
+       row(ctr) = 1.0
+       idx(ctr) = i
+       ctr = ctr + 1
+
+       call set_cell_location(mesh, i, loc_p)
+       call count_neighbours(loc_p, nnb)
+       do j = 1, nnb
+          call set_neighbour_location(loc_p, j, loc_nb)
+          call get_local_status(loc_nb, is_local)
+          if (is_local) then
+             call get_local_index(loc_nb, idx(ctr))
+             row(ctr) = 1.0
+             ctr = ctr + 1
+          end if
+       end do      
+       idx = idx - 1 ! F->C
+       call MatSetValues(M, 1, i - 1, 7, idx, row, INSERT_VALUES, ierr)
+    end do
+    call MatAssemblyBegin(M, MAT_FINAL_ASSEMBLY, ierr)
+    call MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY, ierr)
+    
+    ! Get index sets for reordering
+    call MatGetOrdering(M, MATORDERINGRCM, rperm, cperm, ierr)
+    call MatDestroy(M, ierr)
+    call ISDestroy(cperm, ierr)
+    
+    ! Fill global renumbering
+    allocate(new_global_ordering(mesh%topo%global_num_cells))
+    new_global_ordering(:) = 0
+
+    call ISGetIndicesF90(rperm, row_indices, ierr)
+    if (local_num_cells >= 1) then
+       start_global = mesh%topo%global_indices(1)
+       do i = 1, local_num_cells
+          idxg = mesh%topo%global_indices(i)
+          new_global_ordering(idxg) = (row_indices(i) + 1) & ! C->F
+               + (start_global - 1)                          ! Global offset
+       end do
+    end if
+
+    call MPI_Allreduce(MPI_IN_PLACE, new_global_ordering, mesh%topo%global_num_cells, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+    !! Apply reordering
+
+    ! Reorder cell centres
+    allocate(x(3, local_num_cells))
+    do i = 1, local_num_cells
+       call set_cell_location(mesh, i, loc_p)
+       call get_centre(loc_p, x(:, i))
+    end do
+    do i = 1, local_num_cells
+       call set_cell_location(mesh, i, loc_p)
+       call set_centre(loc_p, x(:, row_indices(i) + 1)) ! C->F
+    end do
+    deallocate(x)
+
+    ! Reorder neighbours
+    allocate(idx_nb(4, local_num_cells))
+    idx_nb(:,:) = mesh%topo%nb_indices(:,:)
+    do i = 1, local_num_cells ! First update the neighbour copy
+       do j = 1, 4
+          idxg = idx_nb(j, i)
+          if ((idxg > 0) .and.               ! Not boundary
+             (idxg <= local_num_cells)) then ! Not Halo
+             idx_nb(j, i) = row_indices(idxg) + 1 ! C->F
+          end if
+       end do
+    end do
+    do i = 1, local_num_cells ! Now set neighbours to new numbering
+       do j = 1, 4
+          mesh%topo%nb_indices(j, i) = idx_nb(j, row_indices(i) + 1) ! C->F
+       end do
+    end do
+    deallocate(idx_nb)
+
+    ! Set global indexing
+    do i = 1, mesh%topo%total_num_cells
+       idxg = mesh%topo%global_indices(i)
+       mesh%topo%global_indices(i) = new_global_ordering(idxg)
+    end do
+
+    call ISRestoreIndicesF90(rperm, row_indices, ierr)
+    call ISDestroy(rperm, ierr)
+
+    deallocate(new_global_ordering)
+    
+  end subroutine reorder_cells
 
 end module mesh_utils
