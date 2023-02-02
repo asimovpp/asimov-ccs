@@ -888,7 +888,7 @@ contains
           end associate
         end do
 
-        mesh%topo%global_num_faces = 3*(nx+1)*(ny+1)*(nz+1)
+        mesh%topo%global_num_faces = (nx+1)*ny*nz + nx*(ny+1)*nz + nx*ny*(nz+1)
         allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
         allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
         allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
