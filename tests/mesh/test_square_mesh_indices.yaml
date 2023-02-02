@@ -2,5 +2,5 @@
 # RUN: %mpirun -n 4 %t1
 
 main: test_square_mesh_indices
-base: mpi
+base: mpi_petsc
 extra: parhip
