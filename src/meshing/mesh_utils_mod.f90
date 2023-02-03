@@ -1495,6 +1495,14 @@ contains
        idxg = mesh%topo%global_indices(i)
        mesh%topo%global_indices(i) = new_global_ordering(idxg)
     end do
+
+    ! Global indices of local indices should be contiguous
+    do i = 2, local_num_cells
+       if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
+          print *, "ERROR: failed global index check at local index ", i
+          stop
+       end if
+    end do
     
     open(unit=2032, FILE="csr_new.txt", FORM="FORMATTED")
     do i = 1, mesh%topo%local_num_cells
