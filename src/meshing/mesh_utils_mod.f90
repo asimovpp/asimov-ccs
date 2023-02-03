@@ -1376,7 +1376,7 @@ contains
     integer(ccs_int) :: i, j, ctr, nnb
     integer(ccs_int), dimension(7) :: idx
     real(ccs_real), dimension(7) :: row
-    logical :: is_local
+    logical :: cell_local
 
     integer(ccs_int), dimension(:), allocatable :: new_global_ordering
     integer(ccs_int), pointer :: row_indices(:)
@@ -1407,8 +1407,8 @@ contains
        call count_neighbours(loc_p, nnb)
        do j = 1, nnb
           call set_neighbour_location(loc_p, j, loc_nb)
-          call get_local_status(loc_nb, is_local)
-          if (is_local) then
+          call get_local_status(loc_nb, cell_local)
+          if (cell_local) then
              call get_local_index(loc_nb, idx(ctr))
              row(ctr) = 1.0
              ctr = ctr + 1
@@ -1451,8 +1451,8 @@ contains
     end do
     do i = 1, local_num_cells
        idx_new = row_indices(i) + 1 ! C->F
-       call set_cell_location(mesh, idx_new, loc_p)
-       call set_centre(loc_p, x(:, i))
+       call set_cell_location(mesh, i, loc_p)
+       call set_centre(loc_p, x(:, idx_new))
     end do
     deallocate(x)
 
@@ -1463,16 +1463,16 @@ contains
        do j = 1, 4
           idxg = idx_nb(j, i)
           if ((idxg > 0) .and. (idxg <= local_num_cells)) then
-             idx_new = row_indices(idxg) + 1 ! C->F
+             idxg = idxg - 1 ! F->C
+             new_nb = findloc(row_indices, idxg)
+             idx_new = new_nb(1)
              idx_nb(j, i) = idx_new
           end if
        end do
     end do
-    do i = 1, local_num_cells ! Now set neighbours to new numbering
+    do i = 1, local_num_cells
        idx_new = row_indices(i) + 1 ! C->F
-       do j = 1, 4
-          mesh%topo%nb_indices(j, idx_new) = idx_nb(j, i) 
-       end do
+       mesh%topo%nb_indices(:, i) = idx_nb(:, idx_new)
     end do
     deallocate(idx_nb)
 
