@@ -622,7 +622,6 @@ contains
         call bandwidth(mesh)
         call reorder_cells(mesh)
         call bandwidth(mesh)
-        stop
         
         do i = 1_ccs_int, local_num_cells
           call set_cell_location(mesh, i, loc_p)
@@ -1358,9 +1357,10 @@ contains
 
     use mpi
     use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER, INSERT_VALUES
-    use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSeqAIJSetPreallocation, tMat, &
-         MatSetValues, MatAssemblyBegin, MatAssemblyEnd, MAT_FINAL_ASSEMBLY, &
-         MatDestroy
+    ! use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSeqAIJSetPreallocation, tMat, &
+    !      MatSetValues, MatAssemblyBegin, MatAssemblyEnd, MAT_FINAL_ASSEMBLY, &
+    !      MatDestroy
+    use petscmat
     use petscis, only: tIS, ISGetIndicesF90, ISRestoreIndicesF90, ISDestroy
     
     type(ccs_mesh), intent(inout) :: mesh
@@ -1499,7 +1499,7 @@ contains
 
     type(ccs_mesh), intent(in) :: mesh
 
-    integer(ccs_int) :: bw, bw_max
+    integer(ccs_int) :: bw, bw_max, bw_rowmax
     real(ccs_real) :: bw_avg
     integer(ccs_int) :: idx_p, idx_nb
 
@@ -1519,6 +1519,7 @@ contains
        call set_cell_location(mesh, i, loc_p)
        call count_neighbours(loc_p, nnb)
        call get_local_index(loc_p, idx_p)
+       bw_rowmax = 0
        do j = 1, nnb
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_local_status(loc_nb, is_local)
@@ -1526,9 +1527,10 @@ contains
              call get_local_index(loc_nb, idx_nb)
              bw = abs(idx_nb - idx_p)
              bw_max = max(bw_max, bw)
-             bw_avg = bw_avg + bw / 2 ! Will be counted twice
+             bw_rowmax = max(bw_rowmax, bw)
           end if
        end do
+       bw_avg = bw_avg + bw_rowmax / 2 ! Will be counted twice
     end do
     bw_avg = bw_avg / local_num_cells
     print *, "Bandwidth: ", bw_max, bw_avg
