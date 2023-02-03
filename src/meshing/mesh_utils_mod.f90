@@ -1544,7 +1544,7 @@ contains
              bw_rowmax = max(bw_rowmax, bw)
           end if
        end do
-       bw_avg = bw_avg + bw_rowmax / 2 ! Will be counted twice
+       bw_avg = bw_avg + bw_rowmax
     end do
     bw_avg = bw_avg / local_num_cells
     print *, "Bandwidth: ", bw_max, bw_avg
