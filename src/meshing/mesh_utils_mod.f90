@@ -1386,6 +1386,14 @@ contains
 
     real(ccs_real), dimension(:, :), allocatable :: x
     integer(ccs_int), dimension(:, :), allocatable :: idx_nb
+
+    integer(ccs_int), dimension(1) :: new_nb
+    
+    open(unit=2031, FILE="csr_orig.txt", FORM="FORMATTED")
+    do i = 1, mesh%topo%local_num_cells
+       write(2031, *) mesh%topo%nb_indices(:, i)
+    end do
+    close(2031)
     
     ! First build adjacency matrix for local cells
     call MatCreate(MPI_COMM_SELF, M, ierr)
@@ -1487,6 +1495,12 @@ contains
        idxg = mesh%topo%global_indices(i)
        mesh%topo%global_indices(i) = new_global_ordering(idxg)
     end do
+    
+    open(unit=2032, FILE="csr_new.txt", FORM="FORMATTED")
+    do i = 1, mesh%topo%local_num_cells
+       write(2032, *) mesh%topo%nb_indices(:, i)
+    end do
+    close(2032)
 
     call ISRestoreIndicesF90(rperm, row_indices, ierr)
     call ISDestroy(rperm, ierr)
