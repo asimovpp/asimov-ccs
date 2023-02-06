@@ -90,9 +90,9 @@ module types
                                                                             !<   global_iface = global_face_indices(cell_iface, global_icell) (no special treatment for halo or boundary faces)
     integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices 
                                                                             !<   global_ivert = global_vertex_indices(ivert, global_icell) 
-    integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell) ! DDD: ??
+    integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell)
                                                                             !<   iface = global_face_indices(cell_iface, icell) (no special treatment for halo or boundary faces)
-    integer(ccs_int), dimension(:, :), allocatable :: nb_indices            !< Cell face index in local face vector (face, cell) ! DDD: 
+    integer(ccs_int), dimension(:, :), allocatable :: nb_indices            !< Cell face index in local face vector (face, cell) 
                                                                             !<   nb_icell = nb_indices(cell_iface, icell) -> returns <0 on boundaries
     integer(ccs_int), dimension(:), allocatable :: num_nb                   !< The local number of neighbours per cell 
                                                                             !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted 

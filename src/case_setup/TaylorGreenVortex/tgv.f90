@@ -31,6 +31,7 @@ program tgv
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
+  use utils, only: str
 
   implicit none
 
@@ -101,12 +102,16 @@ program tgv
   ! Create a cubic mesh
   ! if (irank == par_env%root) print *, "Building mesh"
   mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
+
   call compute_partitioner_input(par_env, mesh)
+  call print_topo()
 
   if (irank == par_env%root) print *, "Reading mesh file"
   !call read_mesh(par_env, case_name, mesh)
   call partition_kway(par_env, mesh)
   call compute_connectivity(par_env, mesh)
+
+  call print_topo()
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -491,4 +496,67 @@ contains
 
   end subroutine initialise_flow
 
+  ! Print mesh topology object
+  subroutine print_topo()
+
+  integer(ccs_int) :: i,j          ! loop counters
+  integer(ccs_int) :: nb_elem = 10
+
+    print *, "############################# Print Topology ########################################"
+
+    print *, "global_num_cells    : ", mesh%topo%global_num_cells
+    print *, "local_num_cells     : ", mesh%topo%local_num_cells
+    print *, "halo_num_cells      : ", mesh%topo%halo_num_cells
+    print *, "global_num_vertices : ", mesh%topo%global_num_vertices
+    print *, "vert_per_cell       : ", mesh%topo%vert_per_cell
+    print *, "total_num_cells     : ", mesh%topo%total_num_cells
+    print *, "global_num_faces    : ", mesh%topo%global_num_faces
+    print *, "num_faces           : ", mesh%topo%num_faces
+    print *, "max_faces           : ", mesh%topo%max_faces
+    print *, ""
+
+    if (allocated(mesh%topo%global_indices))    print *, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
+    if (allocated(mesh%topo%num_nb))            print *, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
+    if (allocated(mesh%topo%global_boundaries)) print *, "global_boundaries  : ", mesh%topo%global_boundaries(1:nb_elem)
+    if (allocated(mesh%topo%face_cell1))        print *, "face_cell1         : ", mesh%topo%face_cell1(1:nb_elem)
+    if (allocated(mesh%topo%face_cell2))        print *, "face_cell2         : ", mesh%topo%face_cell2(1:nb_elem)
+    if (allocated(mesh%topo%xadj))              print *, "xadj               : ", mesh%topo%xadj(1:nb_elem)
+    if (allocated(mesh%topo%adjncy))            print *, "adjncy             : ", mesh%topo%adjncy(1:nb_elem)
+    if (allocated(mesh%topo%vtxdist))           print *, "vtxdist            : ", mesh%topo%vtxdist(1:nb_elem)
+    if (allocated(mesh%topo%vwgt))              print *, "vwgt               : ", mesh%topo%vwgt(1:nb_elem)
+    if (allocated(mesh%topo%adjwgt))            print *, "adjwgt             : ", mesh%topo%adjwgt(1:nb_elem)
+    if (allocated(mesh%topo%local_partition))   print *, "local_partition    : ", mesh%topo%local_partition(1:nb_elem)
+    if (allocated(mesh%topo%global_partition))  print *, "global_partition   : ", mesh%topo%global_partition (1:nb_elem)
+
+    print *, ""
+    if (allocated(mesh%topo%global_face_indices))   then
+      do i=1, nb_elem
+        print *, "global_face_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%global_face_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%topo%global_vertex_indices))   then
+      do i=1, nb_elem
+        print *, "global_vertex_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%global_vertex_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%topo%face_indices))   then
+      do i=1, nb_elem
+        print *, "face_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%face_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%topo%nb_indices))   then
+      do i=1, nb_elem
+        print *, "nb_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%nb_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, "############################# End Print Topology ########################################"
+
+  end subroutine print_topo
 end program tgv
