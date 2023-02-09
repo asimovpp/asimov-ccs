@@ -87,21 +87,27 @@ module types
     integer(ccs_int), dimension(:), allocatable :: global_indices           !< The global index of cells (local + halo) 
                                                                             !<   global_icell = global_indices(local_icell)
     integer(ccs_int), dimension(:, :), allocatable :: global_face_indices   !< Global list of faces indices        
-                                                                            !<   global_iface = global_face_indices(cell_iface, global_icell) (no special treatment for halo or boundary faces)
+                                                                 !<   global_iface = global_face_indices(cell_iface, global_icell)
+                                                                            !<   (no special treatment for halo or boundary faces)
     integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices 
-                                                                            !<   global_ivert = global_vertex_indices(ivert, global_icell) 
+                                                                    !<   global_ivert = global_vertex_indices(ivert, global_icell) 
     integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell)
-                                                                            !<   iface = global_face_indices(cell_iface, icell) (no special treatment for halo or boundary faces)
+                                                                            !<   iface = global_face_indices(cell_iface, icell)
+                                                                            !<   (no special treatment for halo or boundary faces)
     integer(ccs_int), dimension(:, :), allocatable :: nb_indices            !< Cell face index in local face vector (face, cell) 
-                                                                            !<   nb_icell = nb_indices(cell_iface, icell) -> returns <0 on boundaries
+                                                          !<   nb_icell = nb_indices(cell_iface, icell) -> returns <0 on boundaries
     integer(ccs_int), dimension(:), allocatable :: num_nb                   !< The local number of neighbours per cell 
-                                                                            !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted 
-    integer(ccs_int), dimension(:), allocatable :: global_boundaries        !< Array of boundary faces. Counts the number of boundary faces for each cell
+                                          !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted 
+    integer(ccs_int), dimension(:), allocatable :: global_boundaries        !< Array of boundary faces. 
+                                                                            !<    Counts the number of boundary faces for each cell
                                                                             !<   num_boundary = global_boundary(global_icell)
     integer(ccs_int), dimension(:), allocatable :: face_cell1               !< Array of 1st face cells 
                                                                             !<   global_icell1 = face_cell1(global_iface). 
     integer(ccs_int), dimension(:), allocatable :: face_cell2               !< Array of 2nd face cells 
-                                                                            !<   global_icell2 = face_cell2(global_iface) -> returns 0 on boundaries
+                                                           !<   global_icell2 = face_cell2(global_iface) -> returns 0 on boundaries
+    integer(ccs_int), dimension(:), allocatable :: bnd_rid                  !< global face boundary index. 
+                                                                            !< 0 on internal faces
+                                                                            !< -X on a bondary face according to the boundary index
     integer(ccs_long), dimension(:), allocatable :: xadj                    !< Array that points to where in adjncy the list for each vertex
                                                                             !<   begins and ends  - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjncy                  !< Array storing adjacency lists for each vertex consecutively

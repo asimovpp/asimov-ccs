@@ -142,6 +142,7 @@ contains
 
     allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
     allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
+    allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
     allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
     allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
 
@@ -151,7 +152,11 @@ contains
     ! Read arrays face/cell1 and face/cell2
     call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
     call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
+    call read_array(geo_reader, "/bnd/rid", sel_start, sel_count, mesh%topo%bnd_rid)
 
+    ! make sure inside faces=0 and boundary faces are negative
+    mesh%topo%bnd_rid(:) = -1_ccs_int*(mesh%topo%bnd_rid(:) -1_ccs_int)
+    
     sel2_start = 0
     sel2_count(1) = mesh%topo%max_faces! topo%global_num_cells
     sel2_count(2) = mesh%topo%global_num_cells
@@ -892,9 +897,12 @@ contains
         allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
         allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
         allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
+        allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
+
         mesh%topo%face_cell1(:) = 0_ccs_int
         mesh%topo%face_cell2(:) = 0_ccs_int
         mesh%topo%global_face_indices(:,:) = 0_ccs_int
+        mesh%topo%bnd_rid(:) = 0_ccs_int
 
         ! Construct face_cell1 and face_cell2 following:
         !  - face_cell1 < face_cell2
@@ -912,6 +920,7 @@ contains
             mesh%topo%face_cell2(face_index_counter) = 0
 
             mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
             face_index_counter = face_index_counter + 1_ccs_int
           else
             !global_index_nb = i - 1_ccs_int
@@ -925,9 +934,10 @@ contains
           if (modulo(ii, nx) == (nx - 1_ccs_int)) then
             global_index_nb = -right
             mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
+            mesh%topo%face_cell2(face_index_counter) = 0 
 
             mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + 1_ccs_int
             mesh%topo%face_cell1(face_index_counter) = i
@@ -946,6 +956,7 @@ contains
             mesh%topo%face_cell2(face_index_counter) = 0
 
             mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
             face_index_counter = face_index_counter + 1_ccs_int
           else
             !global_index_nb = i - nx
@@ -961,6 +972,7 @@ contains
             mesh%topo%face_cell2(face_index_counter) = 0
 
             mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + nx
             mesh%topo%face_cell1(face_index_counter) = i
@@ -979,6 +991,7 @@ contains
             mesh%topo%face_cell2(face_index_counter) = 0
 
             mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
             face_index_counter = face_index_counter + 1_ccs_int
           else
             !global_index_nb = i - nx * ny
@@ -994,6 +1007,7 @@ contains
             mesh%topo%face_cell2(face_index_counter) = 0
 
             mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + nx * ny
             mesh%topo%face_cell1(face_index_counter) = i
