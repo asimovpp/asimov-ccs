@@ -1,3 +1,11 @@
+module rcm_mod
+
+  use kinds, only: ccs_int, ccs_real
+
+  public
+
+contains
+
 function adj_bandwidth ( node_num, adj_num, adj_row, adj )
 
 !*****************************************************************************80
@@ -29,32 +37,32 @@ function adj_bandwidth ( node_num, adj_num, adj_row, adj )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Output, integer ( kind = 4 ) ADJ_BANDWIDTH, the bandwidth of the adjacency
+!    Output, integer(ccs_int) ADJ_BANDWIDTH, the bandwidth of the adjacency
 !    matrix.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_bandwidth
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) band_hi
-  integer ( kind = 4 ) band_lo
-  integer ( kind = 4 ) col
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_bandwidth
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) band_hi
+  integer(ccs_int) band_lo
+  integer(ccs_int) col
+  integer(ccs_int) i
+  integer(ccs_int) j
 
   band_lo = 0
   band_hi = 0
@@ -93,16 +101,16 @@ function adj_contains_ij ( node_num, adj_num, adj_row, adj, i, j )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !
-!    Input, integer ( kind = 4 ) I, J, the two nodes, for which we want to know
+!    Input, integer(ccs_int) I, J, the two nodes, for which we want to know
 !    whether I is adjacent to J.
 !
 !    Output, logical ADJ_CONTAINS_IJ, is TRUE if I = J, or the adjacency
@@ -110,17 +118,17 @@ function adj_contains_ij ( node_num, adj_num, adj_row, adj, i, j )
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
+  integer(ccs_int) adj(adj_num)
   logical adj_contains_ij
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) k
-  integer ( kind = 4 ) khi
-  integer ( kind = 4 ) klo
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) j
+  integer(ccs_int) k
+  integer(ccs_int) khi
+  integer(ccs_int) klo
 !
 !  Symmetric entries are not stored.
 !
@@ -184,33 +192,33 @@ subroutine adj_insert_ij ( node_num, adj_max, adj_num, adj_row, adj, i, j )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_MAX, the maximum number of adjacency 
+!    Input, integer(ccs_int) ADJ_MAX, the maximum number of adjacency 
 !    entries.
 !
-!    Input/output, integer ( kind = 4 ) ADJ_NUM, the number of adjacency 
+!    Input/output, integer(ccs_int) ADJ_NUM, the number of adjacency 
 !    entries.
 !
-!    Input/output, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input/output, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input/output, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input/output, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !
-!    Input, integer ( kind = 4 ) I, J, the two nodes which are adjacent.
+!    Input, integer(ccs_int) I, J, the two nodes which are adjacent.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_max
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_max
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_max)
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) j_spot
-  integer ( kind = 4 ) k
+  integer(ccs_int) adj(adj_max)
+  integer(ccs_int) adj_num
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) j
+  integer(ccs_int) j_spot
+  integer(ccs_int) k
 !
 !  A new adjacency entry must be made.
 !  Check that we're not exceeding the storage allocation for ADJ.
@@ -283,37 +291,37 @@ function adj_perm_bandwidth ( node_num, adj_num, adj_row, adj, perm, perm_inv )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Input, integer ( kind = 4 ) PERM(NODE_NUM), PERM_INV(NODE_NUM), the 
+!    Input, integer(ccs_int) PERM(NODE_NUM), PERM_INV(NODE_NUM), the 
 !    permutation and inverse permutation.
 !
-!    Output, integer ( kind = 4 ) ADJ_PERM_BANDWIDTH, the bandwidth of the 
+!    Output, integer(ccs_int) ADJ_PERM_BANDWIDTH, the bandwidth of the 
 !    permuted adjacency matrix.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_perm_bandwidth
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) band_hi
-  integer ( kind = 4 ) band_lo
-  integer ( kind = 4 ) col
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) perm(node_num)
-  integer ( kind = 4 ) perm_inv(node_num)
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_perm_bandwidth
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) band_hi
+  integer(ccs_int) band_lo
+  integer(ccs_int) col
+  integer(ccs_int) i
+  integer(ccs_int) j
+  integer(ccs_int) perm(node_num)
+  integer(ccs_int) perm_inv(node_num)
 
   band_lo = 0
   band_hi = 0
@@ -367,37 +375,37 @@ subroutine adj_perm_show ( node_num, adj_num, adj_row, adj, perm, perm_inv )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Input, integer ( kind = 4 ) PERM(NODE_NUM), PERM_INV(NODE_NUM), the 
+!    Input, integer(ccs_int) PERM(NODE_NUM), PERM_INV(NODE_NUM), the 
 !    permutation and inverse permutation.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: n_max = 100
+  integer(ccs_int), parameter :: n_max = 100
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
   character band(n_max)
-  integer ( kind = 4 ) band_lo
-  integer ( kind = 4 ) col
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) k
-  integer ( kind = 4 ) nonzero_num
-  integer ( kind = 4 ) perm(node_num)
-  integer ( kind = 4 ) perm_inv(node_num)
+  integer(ccs_int) band_lo
+  integer(ccs_int) col
+  integer(ccs_int) i
+  integer(ccs_int) j
+  integer(ccs_int) k
+  integer(ccs_int) nonzero_num
+  integer(ccs_int) perm(node_num)
+  integer(ccs_int) perm_inv(node_num)
 
   band_lo = 0
   nonzero_num = 0
@@ -481,26 +489,26 @@ subroutine adj_print ( node_num, adj_num, adj_row, adj, title )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1), organizes the adjacency 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1), organizes the adjacency 
 !    entries into rows.  The entries for row I are in entries ADJ_ROW(I)
 !    through ADJ_ROW(I+1)-1.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure, which
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure, which
 !    contains, for each row, the column indices of the nonzero entries.
 !
 !    Input, character ( len = * ) TITLE, a title.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
   character ( len = * ) title
 
   call adj_print_some ( node_num, 1, node_num, adj_num, adj_row, adj, title )
@@ -539,36 +547,36 @@ subroutine adj_print_some ( node_num, node_lo, node_hi, adj_num, adj_row, &
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) NODE_LO, NODE_HI, the first and last nodes for
+!    Input, integer(ccs_int) NODE_LO, NODE_HI, the first and last nodes for
 !    which the adjacency information is to be printed.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1), organizes the adjacency 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1), organizes the adjacency 
 !    entries into rows.  The entries for row I are in entries ADJ_ROW(I)
 !    through ADJ_ROW(I+1)-1.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure, which 
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure, which 
 !    contains, for each row, the column indices of the nonzero entries.
 !
 !    Input, character ( len = * ) TITLE, a title.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) jhi
-  integer ( kind = 4 ) jlo
-  integer ( kind = 4 ) jmax
-  integer ( kind = 4 ) jmin
-  integer ( kind = 4 ) node_hi
-  integer ( kind = 4 ) node_lo
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) jhi
+  integer(ccs_int) jlo
+  integer(ccs_int) jmax
+  integer(ccs_int) jmin
+  integer(ccs_int) node_hi
+  integer(ccs_int) node_lo
   character ( len = * ) title
 
   write ( *, '(a)' ) ' '
@@ -652,32 +660,31 @@ subroutine adj_set ( node_num, adj_max, adj_num, adj_row, adj, irow, jcol )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_MAX, the maximum dimension of the 
+!    Input, integer(ccs_int) ADJ_MAX, the maximum dimension of the 
 !    adjacency array.
 !
-!    Input/output, integer ( kind = 4 ) ADJ_NUM, the number of adjaceny entries.
+!    Input/output, integer(ccs_int) ADJ_NUM, the number of adjaceny entries.
 !
-!    Input/output, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input/output, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input/output, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input/output, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !
-!    Input, integer ( kind = 4 ) IROW, JCOL, the row and column indices of a 
+!    Input, integer(ccs_int) IROW, JCOL, the row and column indices of a 
 !    nonzero entry of the matrix.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_max
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_max
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_max)
-  logical adj_contains_ij
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) irow
-  integer ( kind = 4 ) jcol
+  integer(ccs_int) adj(adj_max)
+  integer(ccs_int) adj_num
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) irow
+  integer(ccs_int) jcol
 !
 !  Negative IROW or JCOL indicates the data structure should be initialized.
 !
@@ -775,32 +782,32 @@ subroutine adj_show ( node_num, adj_num, adj_row, adj )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: n_max = 100
+  integer(ccs_int), parameter :: n_max = 100
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
   character band(n_max)
-  integer ( kind = 4 ) band_lo
-  integer ( kind = 4 ) col
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) k
-  integer ( kind = 4 ) nonzero_num
+  integer(ccs_int) band_lo
+  integer(ccs_int) col
+  integer(ccs_int) i
+  integer(ccs_int) j
+  integer(ccs_int) k
+  integer(ccs_int) nonzero_num
 
   band_lo = 0
   nonzero_num = 0
@@ -883,54 +890,54 @@ subroutine degree ( root, adj_num, adj_row, adj, mask, deg, iccsze, ls, &
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) ROOT, the node that defines the connected 
+!    Input, integer(ccs_int) ROOT, the node that defines the connected 
 !    component.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Input, integer ( kind = 4 ) MASK(NODE_NUM), is nonzero for those nodes 
+!    Input, integer(ccs_int) MASK(NODE_NUM), is nonzero for those nodes 
 !    which are to be considered.
 !
-!    Output, integer ( kind = 4 ) DEG(NODE_NUM), contains, for each  node in 
+!    Output, integer(ccs_int) DEG(NODE_NUM), contains, for each  node in 
 !    the connected component, its degree.
 !
-!    Output, integer ( kind = 4 ) ICCSIZE, the number of nodes in the 
+!    Output, integer(ccs_int) ICCSIZE, the number of nodes in the 
 !    connected component.
 !
-!    Output, integer ( kind = 4 ) LS(NODE_NUM), stores in entries 1 through 
+!    Output, integer(ccs_int) LS(NODE_NUM), stores in entries 1 through 
 !    ICCSIZE the nodes in the connected component, starting with ROOT, and 
 !    proceeding by levels.
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) deg(node_num)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) iccsze
-  integer ( kind = 4 ) ideg
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) jstop
-  integer ( kind = 4 ) jstrt
-  integer ( kind = 4 ) lbegin
-  integer ( kind = 4 ) ls(node_num)
-  integer ( kind = 4 ) lvlend
-  integer ( kind = 4 ) lvsize
-  integer ( kind = 4 ) mask(node_num)
-  integer ( kind = 4 ) nbr
-  integer ( kind = 4 ) node
-  integer ( kind = 4 ) root
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) deg(node_num)
+  integer(ccs_int) i
+  integer(ccs_int) iccsze
+  integer(ccs_int) ideg
+  integer(ccs_int) j
+  integer(ccs_int) jstop
+  integer(ccs_int) jstrt
+  integer(ccs_int) lbegin
+  integer(ccs_int) ls(node_num)
+  integer(ccs_int) lvlend
+  integer(ccs_int) lvsize
+  integer(ccs_int) mask(node_num)
+  integer(ccs_int) nbr
+  integer(ccs_int) node
+  integer(ccs_int) root
 !
 !  The sign of ADJ_ROW(I) is used to indicate if node I has been considered.
 !
@@ -1032,17 +1039,17 @@ subroutine genrcm ( node_num, adj_num, adj_row, adj, perm )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Output, integer ( kind = 4 ) PERM(NODE_NUM), the RCM ordering.
+!    Output, integer(ccs_int) PERM(NODE_NUM), the RCM ordering.
 !
 !  Local Parameters:
 !
@@ -1054,19 +1061,19 @@ subroutine genrcm ( node_num, adj_num, adj_row, adj, perm )
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) iccsze
-  integer ( kind = 4 ) mask(node_num)
-  integer ( kind = 4 ) level_num
-  integer ( kind = 4 ) level_row(node_num+1)
-  integer ( kind = 4 ) num
-  integer ( kind = 4 ) perm(node_num)
-  integer ( kind = 4 ) root
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) iccsze
+  integer(ccs_int) mask(node_num)
+  integer(ccs_int) level_num
+  integer(ccs_int) level_row(node_num+1)
+  integer(ccs_int) num
+  integer(ccs_int) perm(node_num)
+  integer(ccs_int) root
 
   mask(1:node_num) = 1
 
@@ -1131,21 +1138,21 @@ subroutine graph_01_adj ( node_num, adj_num, adj_row, adj )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacencies.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacencies.
 !
-!    Output, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1), node pointers into ADJ.
+!    Output, integer(ccs_int) ADJ_ROW(NODE_NUM+1), node pointers into ADJ.
 !
-!    Output, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency information.
+!    Output, integer(ccs_int) ADJ(ADJ_NUM), the adjacency information.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
 
   adj(1:adj_num) = (/ &
     4, 6, &
@@ -1189,15 +1196,15 @@ subroutine graph_01_size ( node_num, adj_num )
 !
 !  Parameters:
 !
-!    Output, integer ( kind = 4 ) NODE_NUM, the number of items that can 
+!    Output, integer(ccs_int) NODE_NUM, the number of items that can 
 !    be adjacent.
 !
-!    Output, integer ( kind = 4 ) ADJ_NUM, the number of adjacencies.
+!    Output, integer(ccs_int) ADJ_NUM, the number of adjacencies.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
   node_num = 10
   adj_num = 28
@@ -1224,14 +1231,14 @@ subroutine i4_swap ( i, j )
 !
 !  Parameters:
 !
-!    Input/output, integer ( kind = 4 ) I, J.  On output, the values of I and
+!    Input/output, integer(ccs_int) I, J.  On output, the values of I and
 !    J have been interchanged.
 !
   implicit none
 
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) k
+  integer(ccs_int) i
+  integer(ccs_int) j
+  integer(ccs_int) k
 
   k = i
   i = j
@@ -1247,7 +1254,7 @@ function i4_uniform_ab ( a, b, seed )
 !
 !  Discussion:
 !
-!    An I4 is an integer ( kind = 4 ) value.
+!    An I4 is an integer(ccs_int) value.
 !
 !    The pseudorandom number will be scaled to be uniformly distributed
 !    between A and B.
@@ -1295,23 +1302,23 @@ function i4_uniform_ab ( a, b, seed )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) A, B, the limits of the interval.
+!    Input, integer(ccs_int) A, B, the limits of the interval.
 !
-!    Input/output, integer ( kind = 4 ) SEED, the "seed" value, which
+!    Input/output, integer(ccs_int) SEED, the "seed" value, which
 !    should NOT be 0.  On output, SEED has been updated.
 !
-!    Output, integer ( kind = 4 ) I4_UNIFORM_AB, a number between A and B.
+!    Output, integer(ccs_int) I4_UNIFORM_AB, a number between A and B.
 !
   implicit none
 
-  integer ( kind = 4 ) a
-  integer ( kind = 4 ) b
-  integer ( kind = 4 ), parameter :: i4_huge = 2147483647
-  integer ( kind = 4 ) i4_uniform_ab
-  integer ( kind = 4 ) k
-  real ( kind = 4 ) r
-  integer ( kind = 4 ) seed
-  integer ( kind = 4 ) value
+  integer(ccs_int) a
+  integer(ccs_int) b
+  integer(ccs_int), parameter :: i4_huge = 2147483647
+  integer(ccs_int) i4_uniform_ab
+  integer(ccs_int) k
+  real(ccs_real) r
+  integer(ccs_int) seed
+  integer(ccs_int) value
 
   if ( seed == 0 ) then
     write ( *, '(a)' ) ' '
@@ -1381,29 +1388,29 @@ subroutine i4col_compare ( m, n, a, i, j, isgn )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, N, the number of rows and columns.
+!    Input, integer(ccs_int) M, N, the number of rows and columns.
 !
-!    Input, integer ( kind = 4 ) A(M,N), an array of N columns of vectors
+!    Input, integer(ccs_int) A(M,N), an array of N columns of vectors
 !    of length M.
 !
-!    Input, integer ( kind = 4 ) I, J, the columns to be compared.
+!    Input, integer(ccs_int) I, J, the columns to be compared.
 !    I and J must be between 1 and N.
 !
-!    Output, integer ( kind = 4 ) ISGN, the results of the comparison:
+!    Output, integer(ccs_int) ISGN, the results of the comparison:
 !    -1, column I < column J,
 !     0, column I = column J,
 !    +1, column J < column I.
 !
   implicit none
 
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int) m
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(m,n)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) isgn
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) k
+  integer(ccs_int) a(m,n)
+  integer(ccs_int) i
+  integer(ccs_int) isgn
+  integer(ccs_int) j
+  integer(ccs_int) k
 !
 !  Check.
 !
@@ -1477,26 +1484,26 @@ subroutine i4col_sort_a ( m, n, a )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, the number of rows of A, and the length of
+!    Input, integer(ccs_int) M, the number of rows of A, and the length of
 !    a vector of data.
 !
-!    Input, integer ( kind = 4 ) N, the number of columns of A.
+!    Input, integer(ccs_int) N, the number of columns of A.
 !
-!    Input/output, integer ( kind = 4 ) A(M,N).
+!    Input/output, integer(ccs_int) A(M,N).
 !    On input, the array of N columns of M-vectors.
 !    On output, the columns of A have been sorted in ascending
 !    lexicographic order.
 !
   implicit none
 
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int) m
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(m,n)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) indx
-  integer ( kind = 4 ) isgn
-  integer ( kind = 4 ) j
+  integer(ccs_int) a(m,n)
+  integer(ccs_int) i
+  integer(ccs_int) indx
+  integer(ccs_int) isgn
+  integer(ccs_int) j
 
   if ( m <= 0 ) then
     return
@@ -1579,23 +1586,23 @@ subroutine i4col_swap ( m, n, a, i, j )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, N, the number of rows and columns 
+!    Input, integer(ccs_int) M, N, the number of rows and columns 
 !    in the array.
 !
-!    Input/output, integer ( kind = 4 ) A(M,N), an array of N columns 
+!    Input/output, integer(ccs_int) A(M,N), an array of N columns 
 !    of length M.
 !
-!    Input, integer ( kind = 4 ) I, J, the columns to be swapped.
+!    Input, integer(ccs_int) I, J, the columns to be swapped.
 !
   implicit none
 
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int) m
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(m,n)
-  integer ( kind = 4 ) col(m)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
+  integer(ccs_int) a(m,n)
+  integer(ccs_int) col(m)
+  integer(ccs_int) i
+  integer(ccs_int) j
 
   if ( i < 1 .or. n < i .or. j < 1 .or. n < j ) then
 
@@ -1639,36 +1646,36 @@ subroutine i4mat_print_some ( m, n, a, ilo, jlo, ihi, jhi, title )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, N, the number of rows and columns.
+!    Input, integer(ccs_int) M, N, the number of rows and columns.
 !
-!    Input, integer ( kind = 4 ) A(M,N), an M by N matrix to be printed.
+!    Input, integer(ccs_int) A(M,N), an M by N matrix to be printed.
 !
-!    Input, integer ( kind = 4 ) ILO, JLO, the first row and column to print.
+!    Input, integer(ccs_int) ILO, JLO, the first row and column to print.
 !
-!    Input, integer ( kind = 4 ) IHI, JHI, the last row and column to print.
+!    Input, integer(ccs_int) IHI, JHI, the last row and column to print.
 !
 !    Input, character ( len = * ) TITLE, a title.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: incx = 10
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int), parameter :: incx = 10
+  integer(ccs_int) m
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(m,n)
+  integer(ccs_int) a(m,n)
   character ( len = 7 ) ctemp(incx)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) i2hi
-  integer ( kind = 4 ) i2lo
-  integer ( kind = 4 ) ihi
-  integer ( kind = 4 ) ilo
-  integer ( kind = 4 ) inc
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) j2
-  integer ( kind = 4 ) j2hi
-  integer ( kind = 4 ) j2lo
-  integer ( kind = 4 ) jhi
-  integer ( kind = 4 ) jlo
+  integer(ccs_int) i
+  integer(ccs_int) i2hi
+  integer(ccs_int) i2lo
+  integer(ccs_int) ihi
+  integer(ccs_int) ilo
+  integer(ccs_int) inc
+  integer(ccs_int) j
+  integer(ccs_int) j2
+  integer(ccs_int) j2hi
+  integer(ccs_int) j2lo
+  integer(ccs_int) jhi
+  integer(ccs_int) jlo
   character ( len = * ) title
 
   write ( *, '(a)' ) ' '
@@ -1734,18 +1741,18 @@ subroutine i4mat_transpose_print ( m, n, a, title )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, N, the number of rows and columns.
+!    Input, integer(ccs_int) M, N, the number of rows and columns.
 !
-!    Input, integer ( kind = 4 ) A(M,N), an M by N matrix to be printed.
+!    Input, integer(ccs_int) A(M,N), an M by N matrix to be printed.
 !
 !    Input, character ( len = * ) TITLE, a title.
 !
   implicit none
 
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int) m
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(m,n)
+  integer(ccs_int) a(m,n)
   character ( len = * ) title
 
   call i4mat_transpose_print_some ( m, n, a, 1, 1, m, n, title )
@@ -1772,36 +1779,36 @@ subroutine i4mat_transpose_print_some ( m, n, a, ilo, jlo, ihi, jhi, title )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, N, the number of rows and columns.
+!    Input, integer(ccs_int) M, N, the number of rows and columns.
 !
-!    Input, integer ( kind = 4 ) A(M,N), an M by N matrix to be printed.
+!    Input, integer(ccs_int) A(M,N), an M by N matrix to be printed.
 !
-!    Input, integer ( kind = 4 ) ILO, JLO, the first row and column to print.
+!    Input, integer(ccs_int) ILO, JLO, the first row and column to print.
 !
-!    Input, integer ( kind = 4 ) IHI, JHI, the last row and column to print.
+!    Input, integer(ccs_int) IHI, JHI, the last row and column to print.
 !
 !    Input, character ( len = * ) TITLE, a title.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: incx = 10
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int), parameter :: incx = 10
+  integer(ccs_int) m
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(m,n)
+  integer(ccs_int) a(m,n)
   character ( len = 7 ) ctemp(incx)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) i2
-  integer ( kind = 4 ) i2hi
-  integer ( kind = 4 ) i2lo
-  integer ( kind = 4 ) ihi
-  integer ( kind = 4 ) ilo
-  integer ( kind = 4 ) inc
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) j2hi
-  integer ( kind = 4 ) j2lo
-  integer ( kind = 4 ) jhi
-  integer ( kind = 4 ) jlo
+  integer(ccs_int) i
+  integer(ccs_int) i2
+  integer(ccs_int) i2hi
+  integer(ccs_int) i2lo
+  integer(ccs_int) ihi
+  integer(ccs_int) ilo
+  integer(ccs_int) inc
+  integer(ccs_int) j
+  integer(ccs_int) j2hi
+  integer(ccs_int) j2lo
+  integer(ccs_int) jhi
+  integer(ccs_int) jlo
   character ( len = * ) title
 
   write ( *, '(a)' ) ' '
@@ -1892,21 +1899,21 @@ subroutine i4vec_heap_d ( n, a )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the size of the input array.
+!    Input, integer(ccs_int) N, the size of the input array.
 !
-!    Input/output, integer ( kind = 4 ) A(N).
+!    Input/output, integer(ccs_int) A(N).
 !    On input, an unsorted array.
 !    On output, the array has been reordered into a heap.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(n)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) ifree
-  integer ( kind = 4 ) key
-  integer ( kind = 4 ) m
+  integer(ccs_int) a(n)
+  integer(ccs_int) i
+  integer(ccs_int) ifree
+  integer(ccs_int) key
+  integer(ccs_int) m
 !
 !  Only nodes N/2 down to 1 can be "parent" nodes.
 !
@@ -1985,16 +1992,16 @@ subroutine i4vec_indicator ( n, a )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of elements of A.
+!    Input, integer(ccs_int) N, the number of elements of A.
 !
-!    Output, integer ( kind = 4 ) A(N), the array to be initialized.
+!    Output, integer(ccs_int) A(N), the array to be initialized.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(n)
-  integer ( kind = 4 ) i
+  integer(ccs_int) a(n)
+  integer(ccs_int) i
 
   do i = 1, n
     a(i) = i
@@ -2022,20 +2029,20 @@ subroutine i4vec_print ( n, a, title )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of components of the vector.
+!    Input, integer(ccs_int) N, the number of components of the vector.
 !
-!    Input, integer ( kind = 4 ) A(N), the vector to be printed.
+!    Input, integer(ccs_int) A(N), the vector to be printed.
 !
 !    Input, character ( len = * ) TITLE, a title to be printed first.
 !    TITLE may be blank.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(n)
-  integer ( kind = 4 ) big
-  integer ( kind = 4 ) i
+  integer(ccs_int) a(n)
+  integer(ccs_int) big
+  integer(ccs_int) i
   character ( len = * ) title
 
   if ( 0 < len_trim ( title ) ) then
@@ -2093,16 +2100,16 @@ subroutine i4vec_reverse ( n, a )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of entries in the array.
+!    Input, integer(ccs_int) N, the number of entries in the array.
 !
-!    Input/output, integer ( kind = 4 ) A(N), the array to be reversed.
+!    Input/output, integer(ccs_int) A(N), the array to be reversed.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(n)
-  integer ( kind = 4 ) i
+  integer(ccs_int) a(n)
+  integer(ccs_int) i
 
   do i = 1, n/2
     call i4_swap ( a(i), a(n+1-i) )
@@ -2141,18 +2148,18 @@ subroutine i4vec_sort_heap_a ( n, a )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of entries in the array.
+!    Input, integer(ccs_int) N, the number of entries in the array.
 !
-!    Input/output, integer ( kind = 4 ) A(N).
+!    Input/output, integer(ccs_int) A(N).
 !    On input, the array to be sorted;
 !    On output, the array has been sorted.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) a(n)
-  integer ( kind = 4 ) n1
+  integer(ccs_int) a(n)
+  integer(ccs_int) n1
 
   if ( n <= 1 ) then
     return
@@ -2223,52 +2230,52 @@ subroutine level_set ( root, adj_num, adj_row, adj, mask, level_num, &
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) ROOT, the node at which the level structure
+!    Input, integer(ccs_int) ROOT, the node at which the level structure
 !    is to be rooted.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Input/output, integer ( kind = 4 ) MASK(NODE_NUM).  On input, only nodes 
+!    Input/output, integer(ccs_int) MASK(NODE_NUM).  On input, only nodes 
 !    with nonzero MASK are to be processed.  On output, those nodes which were 
 !    included in the level set have MASK set to 1.
 !
-!    Output, integer ( kind = 4 ) LEVEL_NUM, the number of levels in the level
+!    Output, integer(ccs_int) LEVEL_NUM, the number of levels in the level
 !    structure.  ROOT is in level 1.  The neighbors of ROOT
 !    are in level 2, and so on.
 !
-!    Output, integer ( kind = 4 ) LEVEL_ROW(NODE_NUM+1), LEVEL(NODE_NUM), 
+!    Output, integer(ccs_int) LEVEL_ROW(NODE_NUM+1), LEVEL(NODE_NUM), 
 !    the rooted level structure.
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) iccsze
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) jstop
-  integer ( kind = 4 ) jstrt
-  integer ( kind = 4 ) lbegin
-  integer ( kind = 4 ) level_num
-  integer ( kind = 4 ) level_row(node_num+1)
-  integer ( kind = 4 ) level(node_num)
-  integer ( kind = 4 ) lvlend
-  integer ( kind = 4 ) lvsize
-  integer ( kind = 4 ) mask(node_num)
-  integer ( kind = 4 ) nbr
-  integer ( kind = 4 ) node
-  integer ( kind = 4 ) root
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) iccsze
+  integer(ccs_int) j
+  integer(ccs_int) jstop
+  integer(ccs_int) jstrt
+  integer(ccs_int) lbegin
+  integer(ccs_int) level_num
+  integer(ccs_int) level_row(node_num+1)
+  integer(ccs_int) level(node_num)
+  integer(ccs_int) lvlend
+  integer(ccs_int) lvsize
+  integer(ccs_int) mask(node_num)
+  integer(ccs_int) nbr
+  integer(ccs_int) node
+  integer(ccs_int) root
 
   mask(root) = 0
   level(1) = root
@@ -2348,29 +2355,29 @@ subroutine level_set_print ( node_num, level_num, level_row, level )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) LEVEL_NUM, the number of levels.
+!    Input, integer(ccs_int) LEVEL_NUM, the number of levels.
 !
-!    Input, integer ( kind = 4 ) LEVEL_ROW(LEVEL_NUM+1), organizes the entries 
+!    Input, integer(ccs_int) LEVEL_ROW(LEVEL_NUM+1), organizes the entries 
 !    of LEVEL.  The entries for level I are in entries LEVEL_ROW(I)
 !    through LEVEL_ROW(I+1)-1.
 !
-!    Input, integer ( kind = 4 ) LEVEL(NODE_NUM), is simply a list of the 
+!    Input, integer(ccs_int) LEVEL(NODE_NUM), is simply a list of the 
 !    nodes in an order induced by the levels.
 !
   implicit none
 
-  integer ( kind = 4 ) level_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) level_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) level(node_num)
-  integer ( kind = 4 ) level_row(level_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) jhi
-  integer ( kind = 4 ) jlo
-  integer ( kind = 4 ) jmax
-  integer ( kind = 4 ) jmin
+  integer(ccs_int) level(node_num)
+  integer(ccs_int) level_row(level_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) jhi
+  integer(ccs_int) jlo
+  integer(ccs_int) jmax
+  integer(ccs_int) jmin
 
   write ( *, '(a)' ) ' '
   write ( *, '(a)' ) 'LEVEL_SET_PRINT'
@@ -2435,23 +2442,23 @@ subroutine perm_check ( n, p, ierror )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of entries.
+!    Input, integer(ccs_int) N, the number of entries.
 !
-!    Input, integer ( kind = 4 ) P(N), the array to check.
+!    Input, integer(ccs_int) P(N), the array to check.
 !
-!    Output, integer ( kind = 4 ) IERROR, error flag.
+!    Output, integer(ccs_int) IERROR, error flag.
 !    0, the array represents a permutation.
 !    nonzero, the array does not represent a permutation.  The smallest
 !    missing value is equal to IERROR.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) ierror
-  integer ( kind = 4 ) ifind
-  integer ( kind = 4 ) iseek
-  integer ( kind = 4 ) p(n)
+  integer(ccs_int) ierror
+  integer(ccs_int) ifind
+  integer(ccs_int) iseek
+  integer(ccs_int) p(n)
 
   ierror = 0
 
@@ -2494,19 +2501,19 @@ subroutine perm_inverse3 ( n, perm, perm_inv )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of items permuted.
+!    Input, integer(ccs_int) N, the number of items permuted.
 !
-!    Input, integer ( kind = 4 ) PERM(N), a permutation.
+!    Input, integer(ccs_int) PERM(N), a permutation.
 !
-!    Output, integer ( kind = 4 ) PERM_INV(N), the inverse permutation.
+!    Output, integer(ccs_int) PERM_INV(N), the inverse permutation.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) perm(n)
-  integer ( kind = 4 ) perm_inv(n)
+  integer(ccs_int) i
+  integer(ccs_int) perm(n)
+  integer(ccs_int) perm_inv(n)
 
   do i = 1, n
     perm_inv(perm(i)) = i
@@ -2546,23 +2553,22 @@ subroutine perm_uniform ( n, seed, p )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of objects to be permuted.
+!    Input, integer(ccs_int) N, the number of objects to be permuted.
 !
-!    Input/output, integer ( kind = 4 ) SEED, a seed for the random 
+!    Input/output, integer(ccs_int) SEED, a seed for the random 
 !    number generator.
 !
-!    Output, integer ( kind = 4 ) P(N), a permutation of ( 1, 2, ..., N ), 
+!    Output, integer(ccs_int) P(N), a permutation of ( 1, 2, ..., N ), 
 !    in standard index form.
 !
   implicit none
 
-  integer ( kind = 4 ) n
+  integer(ccs_int) n
 
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) i4_uniform_ab
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) p(n)
-  integer ( kind = 4 ) seed
+  integer(ccs_int) i
+  integer(ccs_int) j
+  integer(ccs_int) p(n)
+  integer(ccs_int) seed
 
   call i4vec_indicator ( n, p )
 
@@ -2616,11 +2622,11 @@ subroutine r82vec_permute ( n, a, p )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of objects.
+!    Input, integer(ccs_int) N, the number of objects.
 !
 !    Input/output, real ( kind = 8 ) A(2,N), the array to be permuted.
 !
-!    Input, integer ( kind = 4 ) P(N), the permutation.  P(I) = J means
+!    Input, integer(ccs_int) P(N), the permutation.  P(I) = J means
 !    that the I-th element of the output array should be the J-th
 !    element of the input array.  P must be a legal permutation
 !    of the integers from 1 to N, otherwise the algorithm will
@@ -2628,16 +2634,16 @@ subroutine r82vec_permute ( n, a, p )
 !
   implicit none
 
-  integer ( kind = 4 ) n
-  integer ( kind = 4 ), parameter :: ndim = 2
+  integer(ccs_int) n
+  integer(ccs_int), parameter :: ndim = 2
 
   real ( kind = 8 ) a(ndim,n)
   real ( kind = 8 ) a_temp(ndim)
-  integer ( kind = 4 ) ierror
-  integer ( kind = 4 ) iget
-  integer ( kind = 4 ) iput
-  integer ( kind = 4 ) istart
-  integer ( kind = 4 ) p(n)
+  integer(ccs_int) ierror
+  integer(ccs_int) iget
+  integer(ccs_int) iput
+  integer(ccs_int) istart
+  integer(ccs_int) p(n)
 
   call perm_check ( n, p, ierror )
 
@@ -2724,37 +2730,37 @@ subroutine r8mat_print_some ( m, n, a, ilo, jlo, ihi, jhi, title )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, N, the number of rows and columns.
+!    Input, integer(ccs_int) M, N, the number of rows and columns.
 !
 !    Input, real ( kind = 8 ) A(M,N), an M by N matrix to be printed.
 !
-!    Input, integer ( kind = 4 ) ILO, JLO, the first row and column to print.
+!    Input, integer(ccs_int) ILO, JLO, the first row and column to print.
 !
-!    Input, integer ( kind = 4 ) IHI, JHI, the last row and column to print.
+!    Input, integer(ccs_int) IHI, JHI, the last row and column to print.
 !
 !    Input, character ( len = * ) TITLE, an optional title.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: incx = 5
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int), parameter :: incx = 5
+  integer(ccs_int) m
+  integer(ccs_int) n
 
   real ( kind = 8 ) a(m,n)
   character ( len = 14 ) ctemp(incx)
   logical d_is_int
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) i2hi
-  integer ( kind = 4 ) i2lo
-  integer ( kind = 4 ) ihi
-  integer ( kind = 4 ) ilo
-  integer ( kind = 4 ) inc
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) j2
-  integer ( kind = 4 ) j2hi
-  integer ( kind = 4 ) j2lo
-  integer ( kind = 4 ) jhi
-  integer ( kind = 4 ) jlo
+  integer(ccs_int) i
+  integer(ccs_int) i2hi
+  integer(ccs_int) i2lo
+  integer(ccs_int) ihi
+  integer(ccs_int) ilo
+  integer(ccs_int) inc
+  integer(ccs_int) j
+  integer(ccs_int) j2
+  integer(ccs_int) j2hi
+  integer(ccs_int) j2lo
+  integer(ccs_int) jhi
+  integer(ccs_int) jlo
   character ( len = * ) title
 
   if ( 0 < len_trim ( title ) ) then
@@ -2822,36 +2828,36 @@ subroutine r8mat_transpose_print_some ( m, n, a, ilo, jlo, ihi, jhi, title )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) M, N, the number of rows and columns.
+!    Input, integer(ccs_int) M, N, the number of rows and columns.
 !
 !    Input, real ( kind = 8 ) A(M,N), an M by N matrix to be printed.
 !
-!    Input, integer ( kind = 4 ) ILO, JLO, the first row and column to print.
+!    Input, integer(ccs_int) ILO, JLO, the first row and column to print.
 !
-!    Input, integer ( kind = 4 ) IHI, JHI, the last row and column to print.
+!    Input, integer(ccs_int) IHI, JHI, the last row and column to print.
 !
 !    Input, character ( len = * ) TITLE, an optional title.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: incx = 5
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) n
+  integer(ccs_int), parameter :: incx = 5
+  integer(ccs_int) m
+  integer(ccs_int) n
 
   real ( kind = 8 ) a(m,n)
   character ( len = 14 ) ctemp(incx)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) i2
-  integer ( kind = 4 ) i2hi
-  integer ( kind = 4 ) i2lo
-  integer ( kind = 4 ) ihi
-  integer ( kind = 4 ) ilo
-  integer ( kind = 4 ) inc
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) j2hi
-  integer ( kind = 4 ) j2lo
-  integer ( kind = 4 ) jhi
-  integer ( kind = 4 ) jlo
+  integer(ccs_int) i
+  integer(ccs_int) i2
+  integer(ccs_int) i2hi
+  integer(ccs_int) i2lo
+  integer(ccs_int) ihi
+  integer(ccs_int) ilo
+  integer(ccs_int) inc
+  integer(ccs_int) j
+  integer(ccs_int) j2hi
+  integer(ccs_int) j2lo
+  integer(ccs_int) jhi
+  integer(ccs_int) jlo
   character ( len = * ) title
 
   if ( 0 < len_trim ( title ) ) then
@@ -2938,29 +2944,29 @@ subroutine rcm ( root, adj_num, adj_row, adj, mask, perm, iccsze, node_num )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) ROOT, the node that defines the connected
+!    Input, integer(ccs_int) ROOT, the node that defines the connected
 !    component.  It is used as the starting point for the RCM ordering.
 !    1 <= ROOT <= NODE_NUM.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Input/output, integer ( kind = 4 ) MASK(NODE_NUM), a mask for the nodes.  
+!    Input/output, integer(ccs_int) MASK(NODE_NUM), a mask for the nodes.  
 !    Only those nodes with nonzero input mask values are considered by the 
 !    routine.  The nodes numbered by RCM will have their mask values 
 !    set to zero.
 !
-!    Output, integer ( kind = 4 ) PERM(NODE_NUM), the RCM ordering.
+!    Output, integer(ccs_int) PERM(NODE_NUM), the RCM ordering.
 !
-!    Output, integer ( kind = 4 ) ICCSZE, the size of the connected component
+!    Output, integer(ccs_int) ICCSZE, the size of the connected component
 !    that has been numbered.
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !    1 <= NODE_NUM.
 !
 !  Local Parameters:
@@ -2970,29 +2976,29 @@ subroutine rcm ( root, adj_num, adj_row, adj, mask, perm, iccsze, node_num )
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) deg(node_num)
-  integer ( kind = 4 ) fnbr
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) iccsze
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) jstop
-  integer ( kind = 4 ) jstrt
-  integer ( kind = 4 ) k
-  integer ( kind = 4 ) l
-  integer ( kind = 4 ) lbegin
-  integer ( kind = 4 ) lnbr
-  integer ( kind = 4 ) lperm
-  integer ( kind = 4 ) lvlend
-  integer ( kind = 4 ) mask(node_num)
-  integer ( kind = 4 ) nbr
-  integer ( kind = 4 ) node
-  integer ( kind = 4 ) perm(node_num)
-  integer ( kind = 4 ) root
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) deg(node_num)
+  integer(ccs_int) fnbr
+  integer(ccs_int) i
+  integer(ccs_int) iccsze
+  integer(ccs_int) j
+  integer(ccs_int) jstop
+  integer(ccs_int) jstrt
+  integer(ccs_int) k
+  integer(ccs_int) l
+  integer(ccs_int) lbegin
+  integer(ccs_int) lnbr
+  integer(ccs_int) lperm
+  integer(ccs_int) lvlend
+  integer(ccs_int) mask(node_num)
+  integer(ccs_int) nbr
+  integer(ccs_int) node
+  integer(ccs_int) perm(node_num)
+  integer(ccs_int) root
 !
 !  Make sure NODE_NUM is legal.
 !
@@ -3183,52 +3189,52 @@ subroutine root_find ( root, adj_num, adj_row, adj, mask, level_num, &
 !
 !  Parameters:
 !
-!    Input/output, integer ( kind = 4 ) ROOT.  On input, ROOT is a node in the
+!    Input/output, integer(ccs_int) ROOT.  On input, ROOT is a node in the
 !    the component of the graph for which a pseudo-peripheral node is
 !    sought.  On output, ROOT is the pseudo-peripheral node obtained.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacency entries.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacency entries.
 !
-!    Input, integer ( kind = 4 ) ADJ_ROW(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_ROW(NODE_NUM+1).  Information about 
 !    row I is stored in entries ADJ_ROW(I) through ADJ_ROW(I+1)-1 of ADJ.
 !
-!    Input, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency structure.
+!    Input, integer(ccs_int) ADJ(ADJ_NUM), the adjacency structure.
 !    For each row, it contains the column indices of the nonzero entries.
 !
-!    Input, integer ( kind = 4 ) MASK(NODE_NUM), specifies a section subgraph.  
+!    Input, integer(ccs_int) MASK(NODE_NUM), specifies a section subgraph.  
 !    Nodes for which MASK is zero are ignored by FNROOT.
 !
-!    Output, integer ( kind = 4 ) LEVEL_NUM, is the number of levels in the 
+!    Output, integer(ccs_int) LEVEL_NUM, is the number of levels in the 
 !    level structure rooted at the node ROOT.
 !
-!    Output, integer ( kind = 4 ) LEVEL_ROW(NODE_NUM+1), LEVEL(NODE_NUM), the 
+!    Output, integer(ccs_int) LEVEL_ROW(NODE_NUM+1), LEVEL(NODE_NUM), the 
 !    level structure array pair containing the level structure found.
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_row(node_num+1)
-  integer ( kind = 4 ) iccsze
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) jstrt
-  integer ( kind = 4 ) k
-  integer ( kind = 4 ) kstop
-  integer ( kind = 4 ) kstrt
-  integer ( kind = 4 ) level(node_num)
-  integer ( kind = 4 ) level_num
-  integer ( kind = 4 ) level_num2
-  integer ( kind = 4 ) level_row(node_num+1)
-  integer ( kind = 4 ) mask(node_num)
-  integer ( kind = 4 ) mindeg
-  integer ( kind = 4 ) nabor
-  integer ( kind = 4 ) ndeg
-  integer ( kind = 4 ) node
-  integer ( kind = 4 ) root
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_row(node_num+1)
+  integer(ccs_int) iccsze
+  integer(ccs_int) j
+  integer(ccs_int) jstrt
+  integer(ccs_int) k
+  integer(ccs_int) kstop
+  integer(ccs_int) kstrt
+  integer(ccs_int) level(node_num)
+  integer(ccs_int) level_num
+  integer(ccs_int) level_num2
+  integer(ccs_int) level_row(node_num+1)
+  integer(ccs_int) mask(node_num)
+  integer(ccs_int) mindeg
+  integer(ccs_int) nabor
+  integer(ccs_int) ndeg
+  integer(ccs_int) node
+  integer(ccs_int) root
 !
 !  Determine the level structure rooted at ROOT.
 !
@@ -3350,9 +3356,9 @@ subroutine sort_heap_external ( n, indx, i, j, isgn )
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) N, the number of items to be sorted.
+!    Input, integer(ccs_int) N, the number of items to be sorted.
 !
-!    Input/output, integer ( kind = 4 ) INDX, the main communication signal.
+!    Input/output, integer(ccs_int) INDX, the main communication signal.
 !
 !    The user must set INDX to 0 before the first call.
 !    Thereafter, the user should not change the value of INDX until
@@ -3371,28 +3377,28 @@ subroutine sort_heap_external ( n, indx, i, j, isgn )
 !
 !      equal to 0, the sorting is done.
 !
-!    Output, integer ( kind = 4 ) I, J, the indices of two items.
+!    Output, integer(ccs_int) I, J, the indices of two items.
 !    On return with INDX positive, elements I and J should be interchanged.
 !    On return with INDX negative, elements I and J should be compared, and
 !    the result reported in ISGN on the next call.
 !
-!    Input, integer ( kind = 4 ) ISGN, results of comparison of elements 
+!    Input, integer(ccs_int) ISGN, results of comparison of elements 
 !    I and J.  (Used only when the previous call returned INDX less than 0).
 !    ISGN <= 0 means I is less than or equal to J;
 !    0 <= ISGN means I is greater than or equal to J.
 !
   implicit none
 
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ), save :: i_save = 0
-  integer ( kind = 4 ) indx
-  integer ( kind = 4 ) isgn
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ), save :: j_save = 0
-  integer ( kind = 4 ), save :: k = 0
-  integer ( kind = 4 ), save :: k1 = 0
-  integer ( kind = 4 ) n
-  integer ( kind = 4 ), save :: n1 = 0
+  integer(ccs_int) i
+  integer(ccs_int), save :: i_save = 0
+  integer(ccs_int) indx
+  integer(ccs_int) isgn
+  integer(ccs_int) j
+  integer(ccs_int), save :: j_save = 0
+  integer(ccs_int), save :: k = 0
+  integer(ccs_int), save :: k1 = 0
+  integer(ccs_int) n
+  integer(ccs_int), save :: n1 = 0
 !
 !  INDX = 0: This is the first call.
 !
@@ -3534,18 +3540,18 @@ subroutine timestamp ( )
   implicit none
 
   character ( len = 8 ) ampm
-  integer ( kind = 4 ) d
-  integer ( kind = 4 ) h
-  integer ( kind = 4 ) m
-  integer ( kind = 4 ) mm
+  integer(ccs_int) d
+  integer(ccs_int) h
+  integer(ccs_int) m
+  integer(ccs_int) mm
   character ( len = 9 ), parameter, dimension(12) :: month = (/ &
     'January  ', 'February ', 'March    ', 'April    ', &
     'May      ', 'June     ', 'July     ', 'August   ', &
     'September', 'October  ', 'November ', 'December ' /)
-  integer ( kind = 4 ) n
-  integer ( kind = 4 ) s
-  integer ( kind = 4 ) values(8)
-  integer ( kind = 4 ) y
+  integer(ccs_int) n
+  integer(ccs_int) s
+  integer(ccs_int) values(8)
+  integer(ccs_int) y
 
   call date_and_time ( values = values )
 
@@ -3678,14 +3684,14 @@ subroutine triangulation_neighbor_triangles ( triangle_order, triangle_num, &
 !
 !  Parameters:
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_ORDER, the order of the triangles.
+!    Input, integer(ccs_int) TRIANGLE_ORDER, the order of the triangles.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Input, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NODE(TRIANGLE_ORDER,TRIANGLE_NUM), 
+!    Input, integer(ccs_int) TRIANGLE_NODE(TRIANGLE_ORDER,TRIANGLE_NUM), 
 !    the nodes that make up each triangle.
 !
-!    Output, integer ( kind = 4 ) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), the three
+!    Output, integer(ccs_int) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), the three
 !    triangles that are direct neighbors of a given triangle.  
 !    TRIANGLE_NEIGHBOR(1,I) is the index of the triangle which touches side 1, 
 !    defined by nodes 2 and 3, and so on.  TRIANGLE_NEIGHBOR(1,I) is negative 
@@ -3694,21 +3700,21 @@ subroutine triangulation_neighbor_triangles ( triangle_order, triangle_num, &
 !
   implicit none
 
-  integer ( kind = 4 ) triangle_num
-  integer ( kind = 4 ) triangle_order
+  integer(ccs_int) triangle_num
+  integer(ccs_int) triangle_order
 
-  integer ( kind = 4 ) col(4,3*triangle_num)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) icol
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) k
-  integer ( kind = 4 ) side1
-  integer ( kind = 4 ) side2
-  integer ( kind = 4 ) triangle_neighbor(3,triangle_num)
-  integer ( kind = 4 ) tri
-  integer ( kind = 4 ) triangle_node(triangle_order,triangle_num)
-  integer ( kind = 4 ) tri1
-  integer ( kind = 4 ) tri2
+  integer(ccs_int) col(4,3*triangle_num)
+  integer(ccs_int) i
+  integer(ccs_int) icol
+  integer(ccs_int) j
+  integer(ccs_int) k
+  integer(ccs_int) side1
+  integer(ccs_int) side2
+  integer(ccs_int) triangle_neighbor(3,triangle_num)
+  integer(ccs_int) tri
+  integer(ccs_int) triangle_node(triangle_order,triangle_num)
+  integer(ccs_int) tri1
+  integer(ccs_int) tri2
 !
 !  Step 1.
 !  From the list of nodes for triangle T, of the form: (I,J,K)
@@ -3897,38 +3903,38 @@ subroutine triangulation_order3_adj_count ( node_num, triangle_num, &
 !
 !  Parameters
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Input, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NODE(3,TRIANGLE_NUM), lists the nodes 
+!    Input, integer(ccs_int) TRIANGLE_NODE(3,TRIANGLE_NUM), lists the nodes 
 !    that make up each triangle, in counterclockwise order. 
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each
+!    Input, integer(ccs_int) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each
 !    side of a triangle, lists the neighboring triangle, or -1 if there is
 !    no neighbor.
 !
-!    Output, integer ( kind = 4 ) ADJ_NUM, the number of adjacencies.
+!    Output, integer(ccs_int) ADJ_NUM, the number of adjacencies.
 !
-!    Output, integer ( kind = 4 ) ADJ_COL(NODE_NUM+1).  Information about 
+!    Output, integer(ccs_int) ADJ_COL(NODE_NUM+1).  Information about 
 !    column J is stored in entries ADJ_COL(J) through ADJ_COL(J+1)-1 of ADJ.
 !
   implicit none
 
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
-  integer ( kind = 4 ), parameter :: triangle_order = 3
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
+  integer(ccs_int), parameter :: triangle_order = 3
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) adj_col(node_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) n1
-  integer ( kind = 4 ) n2
-  integer ( kind = 4 ) n3
-  integer ( kind = 4 ) triangle
-  integer ( kind = 4 ) triangle2
-  integer ( kind = 4 ) triangle_neighbor(3,triangle_num)
-  integer ( kind = 4 ) triangle_node(triangle_order,triangle_num)
+  integer(ccs_int) adj_num
+  integer(ccs_int) adj_col(node_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) n1
+  integer(ccs_int) n2
+  integer(ccs_int) n3
+  integer(ccs_int) triangle
+  integer(ccs_int) triangle2
+  integer(ccs_int) triangle_neighbor(3,triangle_num)
+  integer(ccs_int) triangle_node(triangle_order,triangle_num)
 
   adj_num = 0
 !
@@ -4100,44 +4106,44 @@ subroutine triangulation_order3_adj_set ( node_num, triangle_num, &
 !
 !  Parameters
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Input, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NODE(3,TRIANGLE_NUM), lists the nodes 
+!    Input, integer(ccs_int) TRIANGLE_NODE(3,TRIANGLE_NUM), lists the nodes 
 !    that make up each triangle in counterclockwise order.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
+!    Input, integer(ccs_int) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
 !    side of a triangle, lists the neighboring triangle, or -1 if there is
 !    no neighbor.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacencies.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacencies.
 !
-!    Input, integer ( kind = 4 ) ADJ_COL(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_COL(NODE_NUM+1).  Information about 
 !    column J is stored in entries ADJ_COL(J) through ADJ_COL(J+1)-1 of ADJ.
 !
-!    Output, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency information.
+!    Output, integer(ccs_int) ADJ(ADJ_NUM), the adjacency information.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
-  integer ( kind = 4 ), parameter :: triangle_order = 3
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
+  integer(ccs_int), parameter :: triangle_order = 3
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_copy(node_num)
-  integer ( kind = 4 ) adj_col(node_num+1)
-  integer ( kind = 4 ) k1
-  integer ( kind = 4 ) k2
-  integer ( kind = 4 ) n1
-  integer ( kind = 4 ) n2
-  integer ( kind = 4 ) n3
-  integer ( kind = 4 ) node
-  integer ( kind = 4 ) triangle
-  integer ( kind = 4 ) triangle2
-  integer ( kind = 4 ) triangle_neighbor(3,triangle_num)
-  integer ( kind = 4 ) triangle_node(triangle_order,triangle_num)
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_copy(node_num)
+  integer(ccs_int) adj_col(node_num+1)
+  integer(ccs_int) k1
+  integer(ccs_int) k2
+  integer(ccs_int) n1
+  integer(ccs_int) n2
+  integer(ccs_int) n3
+  integer(ccs_int) node
+  integer(ccs_int) triangle
+  integer(ccs_int) triangle2
+  integer(ccs_int) triangle_neighbor(3,triangle_num)
+  integer(ccs_int) triangle_node(triangle_order,triangle_num)
 
   adj(1:adj_num) = -1
   adj_copy(1:node_num) = adj_col(1:node_num)
@@ -4249,30 +4255,30 @@ subroutine triangulation_order3_example2 ( node_num, triangle_num, node_xy, &
 !
 !  Parameters
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Input, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
 !    Output, real ( kind = 8 ) NODE_XY(2,NODE_NUM), the coordinates of the
 !    nodes.
 !
-!    Output, integer ( kind = 4 ) TRIANGLE_NODE(3,TRIANGLE_NUM), lists the 
+!    Output, integer(ccs_int) TRIANGLE_NODE(3,TRIANGLE_NUM), lists the 
 !    nodes that make up each triangle, in counterclockwise order.
 !
-!    Output, integer ( kind = 4 ) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
+!    Output, integer(ccs_int) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
 !    side of a triangle, lists the neighboring triangle, or -1 if there is
 !    no neighbor.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: dim_num = 2
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
-  integer ( kind = 4 ), parameter :: triangle_order = 3
+  integer(ccs_int), parameter :: dim_num = 2
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
+  integer(ccs_int), parameter :: triangle_order = 3
 
   real ( kind = 8 ) node_xy(dim_num,node_num)
-  integer ( kind = 4 ) triangle_neighbor(3,triangle_num)
-  integer ( kind = 4 ) triangle_node(triangle_order,triangle_num)
+  integer(ccs_int) triangle_neighbor(3,triangle_num)
+  integer(ccs_int) triangle_node(triangle_order,triangle_num)
 
   node_xy = reshape ( (/ &
     0.0D+00, 0.0D+00, &
@@ -4409,17 +4415,17 @@ subroutine triangulation_order3_example2_size ( node_num, triangle_num, &
 !
 !  Parameters
 !
-!    Output, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Output, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Output, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Output, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
-!    Output, integer ( kind = 4 ) HOLE_NUM, the number of holes.
+!    Output, integer(ccs_int) HOLE_NUM, the number of holes.
 !
   implicit none
 
-  integer ( kind = 4 ) hole_num
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
+  integer(ccs_int) hole_num
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
 
   node_num = 25
   triangle_num = 32
@@ -4562,44 +4568,44 @@ subroutine triangulation_order6_adj_count ( node_num, triangle_num, &
 !
 !  Parameters
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Input, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NODE(6,TRIANGLE_NUM), lists the nodes 
+!    Input, integer(ccs_int) TRIANGLE_NODE(6,TRIANGLE_NUM), lists the nodes 
 !    that make up each triangle.  The first three nodes are the vertices,
 !    in counterclockwise order.  The fourth value is the midside
 !    node between nodes 1 and 2; the fifth and sixth values are
 !    the other midside nodes in the logical order.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
+!    Input, integer(ccs_int) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
 !    side of a triangle, lists the neighboring triangle, or -1 if there is
 !    no neighbor.
 !
-!    Output, integer ( kind = 4 ) ADJ_NUM, the number of adjacencies.
+!    Output, integer(ccs_int) ADJ_NUM, the number of adjacencies.
 !
-!    Output, integer ( kind = 4 ) ADJ_COL(NODE_NUM+1).  Information about 
+!    Output, integer(ccs_int) ADJ_COL(NODE_NUM+1).  Information about 
 !    column J is stored in entries ADJ_COL(J) through ADJ_COL(J+1)-1 of ADJ.
 !
   implicit none
 
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
-  integer ( kind = 4 ), parameter :: triangle_order = 6
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
+  integer(ccs_int), parameter :: triangle_order = 6
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) adj_col(node_num+1)
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) n1
-  integer ( kind = 4 ) n2
-  integer ( kind = 4 ) n3
-  integer ( kind = 4 ) n4
-  integer ( kind = 4 ) n5
-  integer ( kind = 4 ) n6
-  integer ( kind = 4 ) triangle
-  integer ( kind = 4 ) triangle2
-  integer ( kind = 4 ) triangle_neighbor(3,triangle_num)
-  integer ( kind = 4 ) triangle_node(triangle_order,triangle_num)
+  integer(ccs_int) adj_num
+  integer(ccs_int) adj_col(node_num+1)
+  integer(ccs_int) i
+  integer(ccs_int) n1
+  integer(ccs_int) n2
+  integer(ccs_int) n3
+  integer(ccs_int) n4
+  integer(ccs_int) n5
+  integer(ccs_int) n6
+  integer(ccs_int) triangle
+  integer(ccs_int) triangle2
+  integer(ccs_int) triangle_neighbor(3,triangle_num)
+  integer(ccs_int) triangle_node(triangle_order,triangle_num)
 
   adj_num = 0
 !
@@ -4847,50 +4853,50 @@ subroutine triangulation_order6_adj_set ( node_num, triangle_num, &
 !
 !  Parameters
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Input, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NODE(6,TRIANGLE_NUM), lists the nodes 
+!    Input, integer(ccs_int) TRIANGLE_NODE(6,TRIANGLE_NUM), lists the nodes 
 !    that make up each triangle.  The first three nodes are the vertices,
 !    in counterclockwise order.  The fourth value is the midside
 !    node between nodes 1 and 2; the fifth and sixth values are
 !    the other midside nodes in the logical order.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
+!    Input, integer(ccs_int) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
 !    side of a triangle, lists the neighboring triangle, or -1 if there is
 !    no neighbor.
 !
-!    Input, integer ( kind = 4 ) ADJ_NUM, the number of adjacencies.
+!    Input, integer(ccs_int) ADJ_NUM, the number of adjacencies.
 !
-!    Input, integer ( kind = 4 ) ADJ_COL(NODE_NUM+1).  Information about 
+!    Input, integer(ccs_int) ADJ_COL(NODE_NUM+1).  Information about 
 !    column J is stored in entries ADJ_COL(J) through ADJ_COL(J+1)-1 of ADJ.
 !
-!    Output, integer ( kind = 4 ) ADJ(ADJ_NUM), the adjacency information.
+!    Output, integer(ccs_int) ADJ(ADJ_NUM), the adjacency information.
 !
   implicit none
 
-  integer ( kind = 4 ) adj_num
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
-  integer ( kind = 4 ), parameter :: triangle_order = 6
+  integer(ccs_int) adj_num
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
+  integer(ccs_int), parameter :: triangle_order = 6
 
-  integer ( kind = 4 ) adj(adj_num)
-  integer ( kind = 4 ) adj_copy(node_num)
-  integer ( kind = 4 ) adj_col(node_num+1)
-  integer ( kind = 4 ) k1
-  integer ( kind = 4 ) k2
-  integer ( kind = 4 ) n1
-  integer ( kind = 4 ) n2
-  integer ( kind = 4 ) n3
-  integer ( kind = 4 ) n4
-  integer ( kind = 4 ) n5
-  integer ( kind = 4 ) n6
-  integer ( kind = 4 ) node
-  integer ( kind = 4 ) triangle
-  integer ( kind = 4 ) triangle2
-  integer ( kind = 4 ) triangle_neighbor(3,triangle_num)
-  integer ( kind = 4 ) triangle_node(triangle_order,triangle_num)
+  integer(ccs_int) adj(adj_num)
+  integer(ccs_int) adj_copy(node_num)
+  integer(ccs_int) adj_col(node_num+1)
+  integer(ccs_int) k1
+  integer(ccs_int) k2
+  integer(ccs_int) n1
+  integer(ccs_int) n2
+  integer(ccs_int) n3
+  integer(ccs_int) n4
+  integer(ccs_int) n5
+  integer(ccs_int) n6
+  integer(ccs_int) node
+  integer(ccs_int) triangle
+  integer(ccs_int) triangle2
+  integer(ccs_int) triangle_neighbor(3,triangle_num)
+  integer(ccs_int) triangle_node(triangle_order,triangle_num)
 
   adj(1:adj_num) = -1
   adj_copy(1:node_num) = adj_col(1:node_num)
@@ -5078,33 +5084,33 @@ subroutine triangulation_order6_example2 ( node_num, triangle_num, node_xy, &
 !
 !  Parameters
 !
-!    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Input, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Input, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Input, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
 !    Output, real ( kind = 8 ) NODE_XY(2,NODE_NUM), the coordinates of 
 !    the nodes.
 !
-!    Output, integer ( kind = 4 ) TRIANGLE_NODE(6,TRIANGLE_NUM), lists the 
+!    Output, integer(ccs_int) TRIANGLE_NODE(6,TRIANGLE_NUM), lists the 
 !    nodes that make up each triangle.  The first three nodes are the vertices,
 !    in counterclockwise order.  The fourth value is the midside
 !    node between nodes 1 and 2; the fifth and sixth values are
 !    the other midside nodes in the logical order.
 !
-!    Output, integer ( kind = 4 ) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
+!    Output, integer(ccs_int) TRIANGLE_NEIGHBOR(3,TRIANGLE_NUM), for each 
 !    side of a triangle, lists the neighboring triangle, or -1 if there is
 !    no neighbor.
 !
   implicit none
 
-  integer ( kind = 4 ), parameter :: dim_num = 2
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
-  integer ( kind = 4 ), parameter :: triangle_order = 6
+  integer(ccs_int), parameter :: dim_num = 2
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
+  integer(ccs_int), parameter :: triangle_order = 6
 
   real ( kind = 8 ) node_xy(dim_num,node_num)
-  integer ( kind = 4 ) triangle_neighbor(3,triangle_num)
-  integer ( kind = 4 ) triangle_node(triangle_order,triangle_num)
+  integer(ccs_int) triangle_neighbor(3,triangle_num)
+  integer(ccs_int) triangle_node(triangle_order,triangle_num)
 
   node_xy = reshape ( (/ &
     0.0D+00, 0.0D+00, &
@@ -5193,17 +5199,17 @@ subroutine triangulation_order6_example2_size ( node_num, triangle_num, &
 !
 !  Parameters
 !
-!    Output, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+!    Output, integer(ccs_int) NODE_NUM, the number of nodes.
 !
-!    Output, integer ( kind = 4 ) TRIANGLE_NUM, the number of triangles.
+!    Output, integer(ccs_int) TRIANGLE_NUM, the number of triangles.
 !
-!    Output, integer ( kind = 4 ) HOLE_NUM, the number of holes.
+!    Output, integer(ccs_int) HOLE_NUM, the number of holes.
 !
   implicit none
 
-  integer ( kind = 4 ) hole_num
-  integer ( kind = 4 ) node_num
-  integer ( kind = 4 ) triangle_num
+  integer(ccs_int) hole_num
+  integer(ccs_int) node_num
+  integer(ccs_int) triangle_num
 
   node_num = 25
   triangle_num = 8
@@ -5211,3 +5217,5 @@ subroutine triangulation_order6_example2_size ( node_num, triangle_num, &
 
   return
 end
+
+end module
