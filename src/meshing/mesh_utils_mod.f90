@@ -2,7 +2,7 @@ module mesh_utils
 #include "ccs_macros.inc"
 
   use constants, only: ndim, geoext, adiosconfig
-  use utils, only: exit_print
+  use utils, only: exit_print, str
   use kinds, only: ccs_int, ccs_long, ccs_real
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
@@ -68,6 +68,8 @@ contains
   !v Read mesh from file
   subroutine read_mesh(par_env, case_name, mesh)
 
+  use partitioning, only: partition_kway, compute_connectivity
+
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
@@ -94,8 +96,19 @@ contains
     call open_file(geo_file, "read", geo_reader)
 
     call read_topology(par_env, geo_reader, mesh)
+
+    call print_topo(par_env, mesh)
+
+    call partition_kway(par_env, mesh)
+    ! for debug: Fake a 2 rank partitioning, even in serial
+    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
+    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
+    
+    call compute_connectivity(par_env, mesh)
+
     call read_geometry(par_env, geo_reader, mesh)
 
+    stop
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
 
@@ -119,6 +132,8 @@ contains
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
 
     integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: num_bnd !< global number of boundary faces
+    integer(ccs_int), dimension(:), allocatable :: bnd_rid, bnd_face
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
 
@@ -134,6 +149,9 @@ contains
     ! Read attribute "nvrt" - the total number of vertices
     call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
 
+    ! Read attribute "nbnd" - the total number of boundary faces
+    call read_scalar(geo_reader, "nbnd", num_bnd)
+
     if (mesh%topo%max_faces == 6) then ! if cell are hexes
       mesh%topo%vert_per_cell = 8 ! 8 vertices per cell
     else
@@ -143,6 +161,8 @@ contains
     allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
     allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
     allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
+    allocate (bnd_rid(num_bnd))
+    allocate (bnd_face(num_bnd))
     allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
     allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
 
@@ -152,10 +172,15 @@ contains
     ! Read arrays face/cell1 and face/cell2
     call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
     call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
-    call read_array(geo_reader, "/bnd/rid", sel_start, sel_count, mesh%topo%bnd_rid)
+
+    sel_start(1) = 0 ! Global index to start reading from
+    sel_count(1) = num_bnd ! How many elements to read in total
+    call read_array(geo_reader, "/bnd/rid", sel_start, sel_count, bnd_rid)
+    call read_array(geo_reader, "/bnd/face", sel_start, sel_count, bnd_face)
 
     ! make sure inside faces=0 and boundary faces are negative
-    mesh%topo%bnd_rid(:) = -1_ccs_int*(mesh%topo%bnd_rid(:) -1_ccs_int)
+    mesh%topo%bnd_rid(:) = 0_ccs_int
+    mesh%topo%bnd_rid(bnd_face(:)) = - (bnd_rid(:) + 1_ccs_int)
     
     sel2_start = 0
     sel2_count(1) = mesh%topo%max_faces! topo%global_num_cells
@@ -195,8 +220,8 @@ contains
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
-    integer(ccs_int) :: i, j, k, n, cell_count
-    integer(ccs_int) :: start, end
+    integer(ccs_int) :: i, j, n, global_icell, local_icell
+    integer(ccs_int) :: start, end, ier
     integer(ccs_int) :: vert_per_cell
 
     integer(ccs_long), dimension(1) :: vol_p_start
@@ -208,6 +233,8 @@ contains
     integer(ccs_long), dimension(1) :: f_a_start
     integer(ccs_long), dimension(1) :: f_a_count
 
+    real(ccs_real), dimension(:), allocatable :: temp_vol_c ! Temp array for cell volumes
+    real(ccs_real), dimension(:, :), allocatable :: temp_x_p ! Temp array for face centres
     real(ccs_real), dimension(:, :), allocatable :: temp_x_f ! Temp array for face centres
     real(ccs_real), dimension(:, :), allocatable :: temp_n_f ! Temp array for face normals
     real(ccs_real), dimension(:, :), allocatable :: temp_v_c ! Temp array for vertex coordinates
@@ -226,31 +253,35 @@ contains
     call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
 
     ! Starting point for reading chunk of data
-    vol_p_start = (/int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
+    vol_p_start = 0 
     ! How many data points will be read?
-    vol_p_count = (/int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
+    vol_p_count = mesh%topo%global_num_cells
 
     ! Allocate memory for cell volumes array on each MPI rank
-    allocate (mesh%geo%volumes(vol_p_count(1)))
+    allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
+    allocate (temp_vol_c(mesh%topo%global_num_cells))
 
     ! Read variable "/cell/vol"
-    call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, mesh%geo%volumes)
+    call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
+    mesh%geo%volumes(:) = temp_vol_c(mesh%topo%global_indices(:))
 
     ! Starting point for reading chunk of data
-    x_p_start = (/0, int(mesh%topo%vtxdist(par_env%proc_id + 1)) - 1/)
+    x_p_start = (/0, 0/)
     ! How many data points will be read?
-    x_p_count = (/ndim, int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1))/)
+    x_p_count = (/ndim, mesh%topo%global_num_cells/)
 
     ! Allocate memory for cell centre coordinates array on each MPI rank
-    allocate (mesh%geo%x_p(x_p_count(1), x_p_count(2)))
+    allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
+    allocate (temp_x_p(ndim, mesh%topo%global_num_cells))
 
     ! Read variable "/cell/x"
-    call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, mesh%geo%x_p)
+    call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
+    mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%global_indices(:)) 
 
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     allocate (temp_x_f(ndim, mesh%topo%global_num_faces))
     allocate (temp_n_f(ndim, mesh%topo%global_num_faces))
-    allocate (temp_v_c(vert_per_cell, mesh%topo%global_num_cells))
+    allocate (temp_v_c(vert_per_cell, mesh%topo%global_num_vertices))
     allocate (temp_a_f(mesh%topo%global_num_faces))
 
     f_xn_start = 0
@@ -262,7 +293,7 @@ contains
     ! Read variable "/face/n"
     call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
 
-    f_xn_count(2) = mesh%topo%global_num_cells
+    f_xn_count(2) = mesh%topo%global_num_vertices
 
     ! Read variable "/vert"
     call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_v_c)
@@ -273,28 +304,25 @@ contains
     ! Read variable "/face/area"
     call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
 
-    ! Compute start and end points for local cells in global context
-    start = int(mesh%topo%vtxdist(par_env%proc_id + 1))
-    end = int(mesh%topo%vtxdist(par_env%proc_id + 2) - 1)
-
     ! Allocate arrays for face centres, face normals, face areas arrand vertex coordinates
     allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
     allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
     allocate (mesh%geo%face_areas(mesh%topo%max_faces, mesh%topo%local_num_cells))
     allocate (mesh%geo%vert_coords(ndim, vert_per_cell, mesh%topo%local_num_cells))
 
-    cell_count = 1
 
-    do k = start, end ! loop over cells owned by current process
+    !    do k = start, end ! loop over cells owned by current process
+    do local_icell = 1, mesh%topo%local_num_cells ! loop over cells owned by current process
+      global_icell = mesh%topo%global_indices(local_icell)
 
       do j = 1, mesh%topo%max_faces ! loop over all faces for each cell
-        call set_face_location(mesh, k, j, loc_f)
+        call set_face_location(mesh, global_icell, j, loc_f)
 
-        n = mesh%topo%global_face_indices(j, k)
+        n = mesh%topo%global_face_indices(j, global_icell)
         call set_centre(loc_f, temp_x_f(:, n))
         do i = 1, ndim ! loop over dimensions
           ! Map from temp array to mesh for face centres and face normals
-          mesh%geo%face_normals(i, j, cell_count) = temp_n_f(i, n)
+          mesh%geo%face_normals(i, j, local_icell) = temp_n_f(i, n)
        end do
 
        ! Map from temp array to mesh for face areas
@@ -302,21 +330,27 @@ contains
       end do
 
       do j = 1, vert_per_cell ! loop over all vertices for each cell
-        call set_vert_location(mesh, k, j, loc_v)
+        call set_vert_location(mesh, local_icell, j, loc_v)
          
-        n = mesh%topo%global_vertex_indices(j, k)
+        n = mesh%topo%global_vertex_indices(j, global_icell)
         call set_centre(loc_v, temp_v_c(:, n))
       end do
-
-      cell_count = cell_count + 1 ! increment cell counter
 
     end do
 
     ! Delete temp arrays
-    deallocate (temp_x_f)
-    deallocate (temp_n_f)
-    deallocate (temp_a_f)
-    deallocate (temp_v_c)
+    deallocate (temp_vol_c, stat=ier)
+    print *, "temp_vol_c", ier
+    deallocate (temp_x_p, stat=ier)
+    print *, "temp_x_p", ier
+    deallocate (temp_x_f, stat=ier)
+    print *, "temp_x_f", ier
+    deallocate (temp_n_f, stat=ier)
+    print *, "temp_n_f", ier
+    deallocate (temp_a_f, stat=ier)
+    print *, "temp_a_f", ier
+    deallocate (temp_v_c, stat=ier)
+    print *, "temp_v_c", ier
 
   end subroutine read_geometry
 
@@ -1474,4 +1508,69 @@ contains
 
   end function local_count
 
+  ! Print mesh topology object
+  subroutine print_topo(par_env, mesh)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), intent(in) :: mesh       !< the mesh
+    integer(ccs_int) :: i,j          ! loop counters
+    integer(ccs_int) :: nb_elem = 10
+
+    print *, "############################# Print Topology ########################################"
+
+    print *, par_env%proc_id, "global_num_cells    : ", mesh%topo%global_num_cells
+    print *, par_env%proc_id, "local_num_cells     : ", mesh%topo%local_num_cells
+    print *, par_env%proc_id, "halo_num_cells      : ", mesh%topo%halo_num_cells
+    print *, par_env%proc_id, "global_num_vertices : ", mesh%topo%global_num_vertices
+    print *, par_env%proc_id, "vert_per_cell       : ", mesh%topo%vert_per_cell
+    print *, par_env%proc_id, "total_num_cells     : ", mesh%topo%total_num_cells
+    print *, par_env%proc_id, "global_num_faces    : ", mesh%topo%global_num_faces
+    print *, par_env%proc_id, "num_faces           : ", mesh%topo%num_faces
+    print *, par_env%proc_id, "max_faces           : ", mesh%topo%max_faces
+    print *, ""
+
+    if (allocated(mesh%topo%global_indices))    print *, par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
+    if (allocated(mesh%topo%num_nb))            print *, par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
+    if (allocated(mesh%topo%global_boundaries)) print *, par_env%proc_id, "global_boundaries  : ", mesh%topo%global_boundaries(1:nb_elem)
+    if (allocated(mesh%topo%face_cell1))        print *, par_env%proc_id, "face_cell1         : ", mesh%topo%face_cell1(1:nb_elem)
+    if (allocated(mesh%topo%face_cell2))        print *, par_env%proc_id, "face_cell2         : ", mesh%topo%face_cell2(1:nb_elem)
+    if (allocated(mesh%topo%bnd_rid))           print *, par_env%proc_id, "bnd_rid            : ", mesh%topo%bnd_rid(1:nb_elem)
+    if (allocated(mesh%topo%xadj))              print *, par_env%proc_id, "xadj               : ", mesh%topo%xadj(1:nb_elem)
+    if (allocated(mesh%topo%adjncy))            print *, par_env%proc_id, "adjncy             : ", mesh%topo%adjncy(1:nb_elem)
+    if (allocated(mesh%topo%vtxdist))           print *, par_env%proc_id, "vtxdist            : ", mesh%topo%vtxdist(1:nb_elem)
+    if (allocated(mesh%topo%vwgt))              print *, par_env%proc_id, "vwgt               : ", mesh%topo%vwgt(1:nb_elem)
+    if (allocated(mesh%topo%adjwgt))            print *, par_env%proc_id, "adjwgt             : ", mesh%topo%adjwgt(1:nb_elem)
+    if (allocated(mesh%topo%local_partition))   print *, par_env%proc_id, "local_partition    : ", mesh%topo%local_partition(1:nb_elem)
+    if (allocated(mesh%topo%global_partition))  print *, par_env%proc_id, "global_partition   : ", mesh%topo%global_partition (1:nb_elem)
+
+    print *, ""
+    if (allocated(mesh%topo%global_face_indices))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "global_face_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%global_face_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%topo%global_vertex_indices))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "global_vertex_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%global_vertex_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%topo%face_indices))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "face_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%face_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%topo%nb_indices))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "nb_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%nb_indices(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, "############################# End Print Topology ########################################"
+
+  end subroutine print_topo
 end module mesh_utils
