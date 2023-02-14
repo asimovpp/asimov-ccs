@@ -5,8 +5,10 @@ program tgv
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
-                         write_gradients, cps, domain_size
+  use case_config, only: num_steps, num_iters, dt, cps, domain_size &
+                         velocity_relax, pressure_relax, res_target, &
+                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
@@ -62,10 +64,7 @@ program tgv
   logical :: w_sol = .true.
   logical :: p_sol = .true.
 
-  real(ccs_real) :: dt           ! The timestep
   integer(ccs_int) :: t          ! Timestep counter
-  integer(ccs_int) :: nsteps     ! Number of timesteps to perform
-  real(ccs_real) :: CFL          ! The CFL target
   integer(ccs_int) :: save_freq  ! Frequency of saving solution data to file
 
   ! Launch MPI
@@ -81,12 +80,18 @@ program tgv
 
   call timer(start_time)
 
-  ! Read case name from configuration file
+  ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
 
-  ! Set start and end iteration numbers (eventually will be read from input file)
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
+
+  ! Set start and end iteration numbers (read from input file)
   it_start = 1
-  it_end = num_steps
+  it_end = num_iters
 
   ! If cps is no longer the default value, it has been set explicity and 
   ! the mesh generator is invoked...
@@ -267,12 +272,6 @@ program tgv
   call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
   call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
-  CFL = 0.1_ccs_real
-  dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 4 !000
-  if (par_env%proc_id == par_env%root) then
-    print *, "Running dt = ", dt, " for ", nsteps, " steps"
-  end if
   save_freq = 2
 
   if (irank == par_env%root) then
@@ -283,9 +282,15 @@ program tgv
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
 
+  ! Print the run configuration
+  if (irank == par_env%root) then
+    call print_configuration()
+  end if
+
   call activate_timestepping()
   call set_timestep(dt)
-  do t = 1, nsteps
+
+  do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf, t)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
@@ -297,8 +302,8 @@ program tgv
       print *, "TIME = ", t
     end if
 
-    if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
-      call write_solution(par_env, case_name, mesh, output_list, t, nsteps, dt)
+    if ((t == 1) .or. (t == num_steps) .or. (mod(t, save_freq) == 0)) then
+      call write_solution(par_env, case_name, mesh, output_list, t, num_steps, dt)
     end if
   end do
 
@@ -324,9 +329,9 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
+    use read_config, only: get_reference_number, get_steps, get_iters, &
                           get_convection_scheme, get_relaxation_factor, &
-                          get_target_residual, get_cps, get_domain_size
+                          get_target_residual, get_cps, get_domain_size, get_dt
 
     character(len=*), intent(in) :: config_filename
 
@@ -340,7 +345,17 @@ contains
 
     call get_steps(config_file, num_steps)
     if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+      call error_abort("No value assigned to num_steps.")
+    end if
+
+    call get_iters(config_file, num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
+    end if
+
+    call get_dt(config_file, dt)
+    if (dt == huge(0.0)) then
+      call error_abort("No value assigned to dt.")
     end if
 
     call get_cps(config_file, cps)
@@ -368,22 +383,28 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
-    print *, "Solving ", case_name, " case"
-
-    print *, "++++"
-    print *, "SIMULATION LENGTH"
-    print *, "Running for ", num_steps, "iterations"
-    print *, "++++"
-    print *, "MESH"
+    ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* Solving the ", case_name, " case"
+    print *, "******************************************************************************"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* SIMULATION LENGTH"
+    print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+    write (*, '(1x,a,e10.3)') "* Time step size: ", dt
+    print *, "******************************************************************************"
+    print *, "* MESH SIZE"
     if(cps /= huge(0)) then
       print *,"Cells per side: ", cps
       write (*, '(1x,a,e10.3)') "Domain size: ", domain_size
     end if
-    print *, "Global number of cells is ", mesh%topo%global_num_cells
-    print *, "++++"
-    print *, "RELAXATION FACTORS"
-    write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
-    write (*, '(1x,a,e10.3)') "pressure: ", pressure_relax
+    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "******************************************************************************"
+    print *, "* RELAXATION FACTORS"
+    write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
+    write (*, '(1x,a,e10.3)') "* pressure: ", pressure_relax
+    print *, "******************************************************************************"
 
   end subroutine
 

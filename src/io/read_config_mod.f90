@@ -14,6 +14,9 @@ module read_config
 
   public :: get_case_name
   public :: get_steps
+  public :: get_iters
+  public :: get_dt
+  public :: get_cfl
   public :: get_cps
   public :: get_domain_size
   public :: get_init
@@ -46,12 +49,39 @@ module read_config
 
     !v Get the number of steps
     !
-    !  Get the maximum number of iterations
+    !  Get the maximum number of timesteps
     !  to be preformed in the current run
     module subroutine get_steps(config_file, steps)
       class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      integer, intent(inout) :: steps               !< the maximum number of iterations
+      integer, intent(inout) :: steps               !< the maximum number of timesteps
     end subroutine
+
+    !v Get the number of iterations
+    !
+    !  Get the maximum number of iterations
+    !  to be preformed in the current run
+    module subroutine get_iters(config_file, iters)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+      integer, intent(inout) :: iters               !< the maximum number of iterations
+    end subroutine
+
+    !v Get time step
+    !
+    !  Get the user-defined time step 
+    module subroutine get_dt(config_file, dt)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+      real(ccs_real), intent(inout) :: dt          !< the time step
+    end subroutine
+
+    !v Get CFL
+    !
+    !  Get the CFL traget number, used to 
+    !  compute the timestep dt
+    module subroutine get_cfl(config_file, cfl)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+      real(ccs_real), intent(inout) :: cfl          !< the cfl target
+    end subroutine
+
 
     !v Get the number of cells per size
     !

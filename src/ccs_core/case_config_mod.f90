@@ -11,15 +11,27 @@ module case_config
 
   private
 
+  ! Number of timesteps and iterations
   integer(ccs_int), public :: num_steps = huge(0)
+  integer(ccs_int), public :: num_iters = huge(0)
+
   integer(ccs_int), public :: cps = huge(0)
 
-  real(ccs_real), public :: domain_size = huge(0.0)
 
   real(ccs_real), public :: velocity_relax = huge(0.0)
   real(ccs_real), public :: pressure_relax = huge(0.0)
 
+  real(ccs_real), public :: domain_size = huge(0.0)
+  real(ccs_real), public :: cfl = huge(0.0)
+  real(ccs_real), public :: dt = huge(0.0)
+
   real(ccs_real), public :: res_target = huge(0.0)
+
+  character(len=:), allocatable, save, public :: velocity_solver_method_name
+  character(len=:), allocatable, save, public :: velocity_solver_precon_name
+
+  character(len=:), allocatable, save, public :: pressure_solver_method_name
+  character(len=:), allocatable, save, public :: pressure_solver_precon_name
 
   logical, public :: write_gradients = .false.
 

@@ -4,6 +4,8 @@
 
 submodule(pv_coupling) pv_coupling_simple
 #include "ccs_macros.inc"
+  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
@@ -329,8 +331,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method("GMRES", lin_solver)
-    call set_solver_precon("BJACOBI", lin_solver)
+    call set_solver_method(velocity_solver_method_name, lin_solver)
+    call set_solver_precon(velocity_solver_precon_name, lin_solver)
 
     ! Solve the linear system
     call dprint("GV: solve u")
@@ -595,8 +597,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method("CG", lin_solver)
-    call set_solver_precon("GAMG", lin_solver)
+    call set_solver_method(pressure_solver_method_name, lin_solver)
+    call set_solver_precon(pressure_solver_precon_name, lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")

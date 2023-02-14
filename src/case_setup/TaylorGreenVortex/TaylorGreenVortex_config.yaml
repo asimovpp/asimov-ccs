@@ -1,8 +1,12 @@
 ---
-title: LidDrivenCavity
+title: TaylorGreenVortex
 
-# "steps" - currently the number of iterations
-steps: 10
+#  number of timesteps
+steps: 3
+#  number of iterations
+iterations: 7
+# time step size
+dt: 0.01
 
 # Square/cubic mesh generation parameters
 # cells per side

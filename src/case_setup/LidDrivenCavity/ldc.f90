@@ -8,8 +8,15 @@ program ldc
   use petscvec
   use petscsys
 
+<<<<<<< HEAD
   use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
                          write_gradients, cps, domain_size
+=======
+  use case_config, only: num_steps, num_iters, &
+                         velocity_relax, pressure_relax, res_target, &
+                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
+>>>>>>> develop
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
@@ -72,9 +79,19 @@ program ldc
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
+<<<<<<< HEAD
   ! Set start and end iteration numbers (eventually will be read from input file)
+=======
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
+
+  ! Set start and end iteration numbers (read from input file)
+>>>>>>> develop
   it_start = 1
-  it_end = num_steps
+  it_end = num_iters
 
   ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
@@ -190,7 +207,7 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
+    use read_config, only: get_reference_number, get_iters, &
                           get_convection_scheme, get_relaxation_factor, &
                           get_target_residual, get_cps, get_domain_size
 
@@ -204,9 +221,9 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file, num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+    call get_iters(config_file, num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
     end if
 
     call get_cps(config_file, cps)
@@ -234,6 +251,7 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
+<<<<<<< HEAD
     print *, "Solving ", case_name, " case"
 
     print *, "++++"
@@ -248,6 +266,25 @@ contains
     print *, "RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
     write (*, '(1x,a,e10.3)') "pressure: ", pressure_relax
+=======
+    ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* Solving the ", case_name, " case"
+    print *, "******************************************************************************"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* SIMULATION LENGTH"
+    print *, "* Running for ", num_iters, "iterations"
+    print *, "******************************************************************************"
+    print *, "* MESH SIZE"
+    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "******************************************************************************"
+    print *, "* RELAXATION FACTORS"
+    write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
+    write (*, '(1x,a,e10.3)') "* pressure: ", pressure_relax
+    print *, "******************************************************************************"
+>>>>>>> develop
 
   end subroutine
 
