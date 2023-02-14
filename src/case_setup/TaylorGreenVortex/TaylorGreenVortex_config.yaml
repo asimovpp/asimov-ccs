@@ -1,8 +1,12 @@
 ---
-title: LidDrivenCavity
+title: TaylorGreenVortex
 
-# "steps" - currently the number of iterations
-steps: 10
+#  number of timesteps
+steps: 5
+#  number of iterations
+iterations: 5
+# CFL target
+cfl: 0.1
 
 relaxation_factor:
   u: 0.9

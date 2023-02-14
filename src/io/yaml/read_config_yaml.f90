@@ -150,14 +150,38 @@ contains
 
   !v Get the number of steps
   !
-  !  Get the maximum number of iterations to be preformed in the current run
+  !  Get the maximum number of timesteps to be preformed in the current run
   module subroutine get_steps(config_file, steps)
     class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: steps              !< the maximum number of iterations
+    integer, intent(inout) :: steps              !< the maximum number of timesteps
 
     call get_value(config_file, 'steps', steps)
 
   end subroutine
+
+  !v Get the number of iterations
+  !
+  !  Get the maximum number of iterations to be preformed in the current run
+  module subroutine get_iters(config_file, iters)
+    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+    integer, intent(inout) :: iters              !< the maximum number of iterations
+
+    call get_value(config_file, 'iterations', iters)
+
+  end subroutine
+
+  !v Get CFL
+  !
+  !  Get the CFL traget number, used to 
+  !  compute the timestep dt
+  module subroutine get_cfl(config_file, cfl)
+    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+    real(ccs_real), intent(inout) :: cfl          !< the cfl target
+
+    call get_value(config_file, 'cfl', cfl)
+
+  end subroutine
+
 
   !v Get source of initial values
   !
