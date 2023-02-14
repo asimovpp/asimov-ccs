@@ -329,8 +329,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method("GMRES", lin_solver)
-    call set_solver_precon("BJACOBI", lin_solver)
+    call set_solver_method("gmres", lin_solver)
+    call set_solver_precon("bjacobi", lin_solver)
 
     ! Solve the linear system
     call dprint("GV: solve u")
@@ -595,8 +595,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method("CG", lin_solver)
-    call set_solver_precon("GAMG", lin_solver)
+    call set_solver_method("cg", lin_solver)
+    call set_solver_precon("gamg", lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")
