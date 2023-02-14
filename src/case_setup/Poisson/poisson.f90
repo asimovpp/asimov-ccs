@@ -17,6 +17,8 @@ program poisson
   ! ASiMoV-CCS uses
   use constants, only: ndim, add_mode, insert_mode
   use kinds, only: ccs_real, ccs_int
+  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
@@ -60,6 +62,12 @@ program poisson
 
   call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env, cps=cps)
+  
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
 
   call sync(par_env)
   call timer(start_time)
