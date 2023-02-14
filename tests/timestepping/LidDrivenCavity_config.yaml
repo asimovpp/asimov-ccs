@@ -3,7 +3,7 @@ title: LidDrivenCavity
 
 # ---- setup 1 - normal LDC
 # "steps" - currently the number of iterations
-#steps: 10
+#iterations: 10
 #
 #relaxation_factor:
 #  u: 0.9
@@ -13,7 +13,8 @@ title: LidDrivenCavity
 #target_residual: 1.0e-10
 
 # ---- setup 2 - pure timestepping
-steps: 1
+#  number of iterations
+iterations: 10
 
 relaxation_factor:
   u: 0.9

@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
+  use case_config, only: num_iters, velocity_relax, pressure_relax, res_target, &
                          velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len
@@ -86,7 +86,7 @@ program ldc
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
-  it_end = num_steps
+  it_end = num_iters
 
   ! Create a square mesh
   print *, "Building mesh"
@@ -206,7 +206,7 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
+    use read_config, only: get_reference_number, get_iters, &
                            get_convection_scheme, get_relaxation_factor, &
                            get_target_residual
 
@@ -220,9 +220,9 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file_pointer, num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+    call get_iters(config_file_pointer, num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
     end if
 
     call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
@@ -244,7 +244,7 @@ contains
 
     print *, "++++"
     print *, "SIMULATION LENGTH"
-    print *, "Running for ", num_steps, "iterations"
+    print *, "Running for ", num_iters, "iterations"
     print *, "++++"
     print *, "MESH"
     print *, "Size is ", cps
