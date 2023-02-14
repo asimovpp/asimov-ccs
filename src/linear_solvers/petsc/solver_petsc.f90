@@ -161,7 +161,6 @@ contains
 
         ! Set preconditionner type directly using precon_name
         call PCSetType(pc, precon_name, ierr)
-        end if
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")
