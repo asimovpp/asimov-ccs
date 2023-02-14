@@ -271,6 +271,7 @@ contains
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
+    character(len=1) :: name
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -325,7 +326,14 @@ contains
     residuals(ivar) = norm(res, 2)
 
     ! Create linear solver
-    call set_equation_system(par_env, vec, u%values, M, lin_sys)
+    if (component == 1) then
+      name = "u"
+    else if (component == 2) then
+      name = "v"
+    else if (component == 3) then
+      name = "w"
+    endif
+    call set_equation_system(par_env, vec, u%values, M, name, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -591,7 +599,7 @@ contains
 
     ! Create linear solver
     call dprint("P': create lin sys")
-    call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
+    call set_equation_system(par_env, vec, p_prime%values, M, "p", lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver

@@ -20,6 +20,7 @@ contains
 
     use petsc, only: PETSC_TRUE
     use petscksp, only: KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
+    
 
     type(equation_system), intent(in) :: linear_system        !< Data structure containing equation system to be solved.
     class(linear_solver), allocatable, intent(out) :: solver  !< The linear solver returned allocated.
@@ -140,7 +141,9 @@ contains
           call error_abort("ERROR: Unknown solver method " // method_name)
         end if
 
+        call KSPSetOptionsPrefix(ksp, solver%linear_system%name//':', ierr)
         call KSPSetFromOptions(ksp, ierr)
+        
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")
@@ -175,6 +178,10 @@ contains
         else
           call error_abort("ERROR: Unknown solver precon " // precon_name)
         end if
+
+        call PCSetOptionsPrefix(pc, solver%linear_system%name//':', ierr)
+        call PCSetFromOptions(pc, ierr)
+
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")
