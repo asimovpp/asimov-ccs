@@ -23,6 +23,12 @@ module case_config
 
   real(ccs_real), public :: res_target = huge(0.0)
 
+  character(len=:), allocatable, save, public :: velocity_solver_method_name
+  character(len=:), allocatable, save, public :: velocity_solver_precon_name
+
+  character(len=:), allocatable, save, public :: pressure_solver_method_name
+  character(len=:), allocatable, save, public :: pressure_solver_precon_name
+
   logical, public :: write_gradients = .false.
 
 end module case_config
