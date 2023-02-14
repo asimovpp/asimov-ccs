@@ -1,8 +1,12 @@
 ---
-title: LidDrivenCavity
+title: TaylorGreenVortex2D
 
-# "steps" - currently the number of iterations
-steps: 100
+#  number of timesteps
+steps: 5
+#  number of iterations
+iterations: 5
+# time step size
+dt: 0.01
 
 relaxation_factor:
   u: 0.9
