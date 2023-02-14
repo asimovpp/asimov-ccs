@@ -12,7 +12,6 @@ program tgv2d
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
-
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
@@ -89,7 +88,7 @@ program tgv2d
   pressure_solver_method_name = "cg"
   pressure_solver_precon_name = "gamg"
 
-  ! Set start and end iteration numbers (eventually will be read from input file)
+  ! Set start and end iteration numbers (read from input file)
   it_start = 1
   it_end = num_iters
 
