@@ -4,6 +4,12 @@ title: LidDrivenCavity
 # "steps" - currently the number of iterations
 steps: 10
 
+# Square/cubic mesh generation parameters
+# cells per side
+cps: 16
+# domain size
+L: 3.1415926535
+
 relaxation_factor:
   u: 0.9
   v: 0.9

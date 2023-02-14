@@ -6,7 +6,7 @@ program tgv
   use petscsys
 
   use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
-                         write_gradients
+                         write_gradients, cps, domain_size
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
@@ -48,7 +48,6 @@ program tgv
   type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 16 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -84,10 +83,6 @@ program tgv
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
-  if (irank == par_env%root) then
-    call print_configuration()
-  end if
-
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
   it_end = num_steps
@@ -98,12 +93,19 @@ program tgv
   ! Read mesh from *.geo file
   !if (irank == par_env%root) print *, "Reading mesh"
 
+  ! If cps is no longer the default value, it has been set explicity and 
+  ! the mesh generator is invoked
+  if (cps /= huge(0)) then
   ! Create a cubic mesh
-  if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
+    if (irank == par_env%root) print *, "Building mesh"
+    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
+  
+  ! Otherwise the mesh is read from file
+  else
   ! call read_mesh(par_env, case_name, mesh)
   ! call partition_kway(par_env, mesh)
   ! call compute_connectivity(par_env, mesh)
+  end if
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -276,6 +278,11 @@ program tgv
   end if
   save_freq = 2
 
+  if (irank == par_env%root) then
+    call print_configuration()
+  end if
+
+
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
 
@@ -322,7 +329,7 @@ contains
 
     use read_config, only: get_reference_number, get_steps, &
                           get_convection_scheme, get_relaxation_factor, &
-                          get_target_residual
+                          get_target_residual, get_cps, get_domain_size
 
     character(len=*), intent(in) :: config_filename
 
@@ -337,6 +344,16 @@ contains
     call get_steps(config_file, num_steps)
     if (num_steps == huge(0)) then
       call error_abort("No value assigned to num-steps.")
+    end if
+
+    call get_cps(config_file, cps)
+    if (cps == huge(0)) then
+      call error_abort("No value assigned to cps.")
+    end if
+
+    call get_domain_size(config_file, domain_size)
+    if (domain_size == huge(0.0)) then
+      call error_abort("No value assigned to domain_size.")
     end if
 
     call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
@@ -361,6 +378,10 @@ contains
     print *, "Running for ", num_steps, "iterations"
     print *, "++++"
     print *, "MESH"
+    if(cps /= huge(0)) then
+      print *,"Cells per side: ", cps
+      write (*, '(1x,a,e10.3)') "Domain size: ", domain_size
+    end if
     print *, "Global number of cells is ", mesh%topo%global_num_cells
     print *, "++++"
     print *, "RELAXATION FACTORS"

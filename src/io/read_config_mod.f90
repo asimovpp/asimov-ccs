@@ -14,6 +14,8 @@ module read_config
 
   public :: get_case_name
   public :: get_steps
+  public :: get_cps
+  public :: get_domain_size
   public :: get_init
   public :: get_reference_number
   public :: get_solve
@@ -49,6 +51,24 @@ module read_config
     module subroutine get_steps(config_file, steps)
       class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
       integer, intent(inout) :: steps               !< the maximum number of iterations
+    end subroutine
+
+    !v Get the number of cells per size
+    !
+    !  Get the number of cells per size
+    !  used to generate a square or cubic mesh
+    module subroutine get_cps(config_file, cps)
+      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+      integer, intent(inout) :: cps               !< the number of cells per size
+    end subroutine
+
+    !v Get the domain size
+    !
+    !  Get the domain size
+    !  used to generate a square or cubic mesh
+    module subroutine get_domain_size(config_file, domain_size)
+      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+      real(ccs_real), intent(inout) :: domain_size !< the domain size
     end subroutine
 
     !v Get source of initial values
