@@ -16,6 +16,7 @@ module read_config
   public :: get_steps
   public :: get_iters
   public :: get_cfl
+  public :: get_dt
   public :: get_init
   public :: get_reference_number
   public :: get_solve
@@ -69,6 +70,14 @@ module read_config
     module subroutine get_cfl(config_file, cfl)
       class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
       real(ccs_real), intent(inout) :: cfl          !< the cfl target
+    end subroutine
+
+    !v Get time step
+    !
+    !  Get the user-defined time step 
+    module subroutine get_dt(config_file, dt)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+      real(ccs_real), intent(inout) :: dt          !< the time step
     end subroutine
 
     !v Get source of initial values

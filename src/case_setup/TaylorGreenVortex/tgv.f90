@@ -5,7 +5,7 @@ program tgv
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, num_iters, cfl, &
+  use case_config, only: num_steps, num_iters, dt, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
@@ -63,7 +63,6 @@ program tgv
   logical :: w_sol = .true.
   logical :: p_sol = .true.
 
-  real(ccs_real) :: dt           ! The timestep
   integer(ccs_int) :: t          ! Timestep counter
   integer(ccs_int) :: save_freq  ! Frequency of saving solution data to file
 
@@ -263,10 +262,6 @@ program tgv
   call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
   call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
-  dt = cfl * (3.14_ccs_real / cps)
-  if (par_env%proc_id == par_env%root) then
-    print *, "Running dt = ", dt, " for ", num_steps, " steps"
-  end if
   save_freq = 2
 
   ! Write out mesh to file
@@ -321,7 +316,7 @@ contains
 
     use read_config, only: get_reference_number, get_steps, get_iters, &
                           get_convection_scheme, get_relaxation_factor, &
-                          get_target_residual, get_cfl
+                          get_target_residual, get_dt
 
     character(len=*), intent(in) :: config_filename
 
@@ -343,9 +338,9 @@ contains
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_cfl(config_file, cfl)
-    if (cfl == huge(0.0)) then
-      call error_abort("No value assigned to cfl.")
+    call get_dt(config_file, dt)
+    if (dt == huge(0.0)) then
+      call error_abort("No value assigned to dt.")
     end if
 
     call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
@@ -372,7 +367,7 @@ contains
     print *, "******************************************************************************"
     print *, "* SIMULATION LENGTH"
     print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-    write (*, '(1x,a,e10.3)') "* CFL target: ", cfl
+    write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
     print *, "* Global number of cells is ", mesh%topo%global_num_cells

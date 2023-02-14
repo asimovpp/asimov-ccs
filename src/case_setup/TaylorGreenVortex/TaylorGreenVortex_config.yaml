@@ -2,11 +2,11 @@
 title: TaylorGreenVortex
 
 #  number of timesteps
-steps: 5
+steps: 3
 #  number of iterations
-iterations: 5
-# CFL target
-cfl: 0.1
+iterations: 7
+# time step size
+dt: 0.01
 
 relaxation_factor:
   u: 0.9

@@ -8,7 +8,8 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
+  use case_config, only: num_steps, num_iters, &
+                         velocity_relax, pressure_relax, res_target, &
                          write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
@@ -73,13 +74,9 @@ program ldc
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
-  if (irank == par_env%root) then
-    call print_configuration()
-  end if
-
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
-  it_end = num_steps
+  it_end = num_iters
 
   ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
@@ -160,6 +157,10 @@ program ldc
   call update(w%values)
   call update(mf%values)
 
+  if (irank == par_env%root) then
+    call print_configuration()
+  end if
+
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -191,7 +192,7 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
+    use read_config, only: get_reference_number, get_iters, &
                           get_convection_scheme, get_relaxation_factor, &
                           get_target_residual
 
@@ -205,9 +206,9 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file, num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+    call get_iters(config_file, num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
     end if
 
     call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
@@ -225,18 +226,23 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
-    print *, "Solving ", case_name, " case"
-
-    print *, "++++"
-    print *, "SIMULATION LENGTH"
-    print *, "Running for ", num_steps, "iterations"
-    print *, "++++"
-    print *, "MESH"
-    print *, "Size is ", cps
-    print *, "++++"
-    print *, "RELAXATION FACTORS"
-    write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
-    write (*, '(1x,a,e10.3)') "pressure: ", pressure_relax
+    ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* Solving the ", case_name, " case"
+    print *, "******************************************************************************"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* SIMULATION LENGTH"
+    print *, "* Running for ", num_iters, "iterations"
+    print *, "******************************************************************************"
+    print *, "* MESH SIZE"
+    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "******************************************************************************"
+    print *, "* RELAXATION FACTORS"
+    write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
+    write (*, '(1x,a,e10.3)') "* pressure: ", pressure_relax
+    print *, "******************************************************************************"
 
   end subroutine
 

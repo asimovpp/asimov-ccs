@@ -182,6 +182,16 @@ contains
 
   end subroutine
 
+  !v Get time step
+  !
+  !  Get the user-defined time step 
+  module subroutine get_dt(config_file, dt)
+    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+    real(ccs_real), intent(inout) :: dt          !< the time step
+
+    call get_value(config_file, 'dt', dt)
+
+  end subroutine
 
   !v Get source of initial values
   !

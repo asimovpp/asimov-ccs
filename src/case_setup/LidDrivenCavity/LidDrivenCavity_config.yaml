@@ -1,8 +1,8 @@
 ---
 title: LidDrivenCavity
 
-# "steps" - currently the number of iterations
-steps: 10
+#  number of iterations
+iterations: 79
 
 relaxation_factor:
   u: 0.9
