@@ -71,7 +71,6 @@ program tgv
   real(ccs_real) :: CFL          ! The CFL target
   integer(ccs_int) :: save_freq  ! Frequency of saving solution data to file
 
-  ! XXX: development only
   type(fluid) :: flow_fields
   type(fluid_solve_selector) :: fluid_sol
 
@@ -289,7 +288,7 @@ program tgv
   call activate_timestepping()
   call set_timestep(dt)
 
-  ! XXX: development
+  ! XXX: This should get incorporated as part of create_field subroutines
   call set_fluid_solve_selector(field_u, u_sol, fluid_sol)
   call set_fluid_solve_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solve_selector(field_w, w_sol, fluid_sol)

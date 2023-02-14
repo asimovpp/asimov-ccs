@@ -64,7 +64,6 @@ contains
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: ivar ! Counter for flow variables
     
-    ! XXX: temporary for development
     logical :: u_sol !< solve u velocity field
     logical :: v_sol !< solve v velocity field
     logical :: w_sol !< solve w velocity field
