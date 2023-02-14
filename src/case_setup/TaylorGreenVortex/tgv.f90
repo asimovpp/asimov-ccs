@@ -36,6 +36,7 @@ program tgv
 
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: case_name  ! Case name
+  character(len=:), allocatable :: geo_file  ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -73,7 +74,7 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
+  call read_command_line_arguments(par_env, case_name=case_name)
 
   if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name // ccsconfig
@@ -87,14 +88,8 @@ program tgv
   it_start = 1
   it_end = num_steps
 
-  !geo_file = case_name       //       geoext
-  !adios2_file = case_name       //       adiosconfig
-
-  ! Read mesh from *.geo file
-  !if (irank == par_env%root) print *, "Reading mesh"
-
   ! If cps is no longer the default value, it has been set explicity and 
-  ! the mesh generator is invoked
+  ! the mesh generator is invoked...
   if (cps /= huge(0)) then
   ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
@@ -102,9 +97,11 @@ program tgv
   
   ! Otherwise the mesh is read from file
   else
-  ! call read_mesh(par_env, case_name, mesh)
-  ! call partition_kway(par_env, mesh)
-  ! call compute_connectivity(par_env, mesh)
+    geo_file = case_name // geoext
+    if (irank == par_env%root) print *, "Reading mesh"
+    call read_mesh(par_env, case_name, mesh)
+    call partition_kway(par_env, mesh)
+    call compute_connectivity(par_env, mesh)
   end if
 
   ! Initialise fields
