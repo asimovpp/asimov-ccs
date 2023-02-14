@@ -201,10 +201,6 @@ program tgv2d
 
   save_freq = 200
 
-  if (irank == par_env%root) then
-    call print_configuration()
-  end if
-
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
 
@@ -319,8 +315,8 @@ contains
     write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
-    print *,"Cells per side: ", cps
-    write (*, '(1x,a,e10.3)') "Domain size: ", domain_size
+    print *,"* Cells per side: ", cps
+    write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     print *, "Global number of cells is ", mesh%topo%global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"

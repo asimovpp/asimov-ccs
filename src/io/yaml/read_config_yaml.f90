@@ -180,6 +180,9 @@ contains
     real(ccs_real), intent(inout) :: domain_size !< the domain size
 
     call get_value(config_file, 'L', domain_size)
+
+  end subroutine
+  
   !v Get the number of iterations
   !
   !  Get the maximum number of iterations to be preformed in the current run

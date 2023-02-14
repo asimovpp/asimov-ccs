@@ -2,7 +2,7 @@
 title: LidDrivenCavity
 
 #  number of iterations
-iterations: 79
+iterations: 10
 
 # Square/cubic mesh generation parameters
 # cells per side

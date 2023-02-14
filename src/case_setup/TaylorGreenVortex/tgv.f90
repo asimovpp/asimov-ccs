@@ -5,7 +5,7 @@ program tgv
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, num_iters, dt, cps, domain_size &
+  use case_config, only: num_steps, num_iters, dt, cps, domain_size, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
@@ -274,11 +274,6 @@ program tgv
 
   save_freq = 2
 
-  if (irank == par_env%root) then
-    call print_configuration()
-  end if
-
-
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
 
@@ -396,8 +391,8 @@ contains
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
     if(cps /= huge(0)) then
-      print *,"Cells per side: ", cps
-      write (*, '(1x,a,e10.3)') "Domain size: ", domain_size
+      print *,"* Cells per side: ", cps
+      write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     end if
     print *, "* Global number of cells is ", mesh%topo%global_num_cells
     print *, "******************************************************************************"

@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, num_iters, ps, domain_size, &
+  use case_config, only: num_iters, cps, domain_size, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
