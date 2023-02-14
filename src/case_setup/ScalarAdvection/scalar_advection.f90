@@ -4,6 +4,8 @@ program scalar_advection
 
   ! ASiMoV-CCS uses
   use kinds, only: ccs_real, ccs_int
+  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, &
                    field, upwind_field, central_field, bc_config
@@ -42,6 +44,13 @@ program scalar_advection
   double precision :: end_time
 
   call initialise_parallel_environment(par_env)
+
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
+
   call read_command_line_arguments(par_env)
   call timer(start_time)
 
