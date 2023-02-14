@@ -19,6 +19,8 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
+  use types, only: field, fluid, fluid_solve_selector
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf 
 
   implicit none
 
@@ -44,6 +46,11 @@ module utils
   public :: calc_kinetic_energy
   public :: calc_enstrophy
   public :: add_field_to_outputlist
+  public :: get_field
+  public :: get_fluid_solve_selector
+  public :: set_field
+  public :: set_fluid_solve_selector
+  public :: allocate_fluid_fields
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -413,5 +420,72 @@ contains
     list(count)%name = name
 
   end subroutine add_field_to_outputlist
+
+  subroutine get_field(flow, field_name, flow_field)
+    type(fluid), intent(in) :: flow
+    integer(ccs_int), intent(in) :: field_name
+    class(field), allocatable, intent(out) :: flow_field
+
+    integer(ccs_int), dimension(1) :: field_index
+
+    field_index = findloc(flow%field_names, field_name)
+    flow_field = flow%fields(field_index(1))%ptr
+  end subroutine get_field
+
+  subroutine set_field(field_index, field_name, flow_field, flow)
+    integer(ccs_int), intent(in) :: field_index
+    integer(ccs_int), intent(in) :: field_name
+    class(field), target, intent(in) :: flow_field
+    type(fluid), intent(inout) :: flow
+
+    flow%fields(field_index)%ptr => flow_field
+    flow%field_names(field_index) = field_name
+  end subroutine set_field
+
+  subroutine get_fluid_solve_selector(solve_selector, field_name, selector)
+    type(fluid_solve_selector), intent(in) :: solve_selector
+    integer(ccs_int), intent(in) :: field_name
+    logical, intent(out) :: selector
+
+    select case (field_name)
+    case (field_u)
+      selector = solve_selector%u
+    case (field_v)
+      selector = solve_selector%v
+    case (field_w)
+      selector = solve_selector%w
+    case (field_p)
+      selector = solve_selector%p
+    case default
+      call error_abort("Unrecognised field index.")
+    end select
+  end subroutine get_fluid_solve_selector
+
+  subroutine set_fluid_solve_selector(field_name, selector, solve_selector)
+    integer(ccs_int), intent(in) :: field_name
+    logical, intent(in) :: selector
+    type(fluid_solve_selector), intent(inout) :: solve_selector
+
+    select case (field_name)
+    case (field_u)
+      solve_selector%u = selector 
+    case (field_v)
+      solve_selector%v = selector 
+    case (field_w)
+      solve_selector%w = selector 
+    case (field_p)
+      solve_selector%p = selector 
+    case default
+      call error_abort("Unrecognised field index.")
+    end select
+  end subroutine set_fluid_solve_selector
+
+  subroutine allocate_fluid_fields(n_fields, flow)
+    integer(ccs_int), intent(in) :: n_fields
+    type(fluid), intent(out) :: flow
+
+    allocate(flow%fields(n_fields))
+    allocate(flow%field_names(n_fields))
+  end subroutine allocate_fluid_fields
 
 end module utils

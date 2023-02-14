@@ -17,9 +17,9 @@ submodule(pv_coupling) pv_coupling_simple
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print
 
-  use utils, only: debug_print
+  use utils, only: debug_print, get_field, get_fluid_solve_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: insert_mode, add_mode, ndim, cell
+  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v,  field_w, field_p, field_p_prime, field_mf
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance, &
@@ -34,8 +34,7 @@ contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
   module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, &
-                                    mf, step)
+                                    flow_solve_selector, flow, step)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
@@ -43,16 +42,8 @@ contains
     integer(ccs_int), intent(in) :: it_start
     integer(ccs_int), intent(in) :: it_end
     real(ccs_real), intent(in) :: res_target !< Target residual
-    logical, intent(in) :: u_sol !< solve u velocity field
-    logical, intent(in) :: v_sol !< solve v velocity field
-    logical, intent(in) :: w_sol !< solve w velocity field
-    logical, intent(in) :: p_sol !< solve pressure field
-    class(field), intent(inout) :: u       !< velocity fields in x direction
-    class(field), intent(inout) :: v       !< velocity fields in y direction
-    class(field), intent(inout) :: w       !< velocity field in z direction
-    class(field), intent(inout) :: p       !< field containing pressure values
-    class(field), intent(inout) :: p_prime !< field containing pressure-correction values
-    class(field), intent(inout) :: mf      !< field containing the face-centred velocity flux
+    type(fluid_solve_selector), intent(in) :: flow_solve_selector
+    type(fluid), intent(inout) :: flow
     integer(ccs_int), optional, intent(in) :: step !< The current time-step
 
     ! Local variables
@@ -72,6 +63,29 @@ contains
 
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: ivar ! Counter for flow variables
+    
+    ! XXX: temporary for development
+    logical :: u_sol !< solve u velocity field
+    logical :: v_sol !< solve v velocity field
+    logical :: w_sol !< solve w velocity field
+    logical :: p_sol !< solve pressure field
+    class(field), allocatable :: u       !< velocity fields in x direction
+    class(field), allocatable :: v       !< velocity fields in y direction
+    class(field), allocatable :: w       !< velocity field in z direction
+    class(field), allocatable :: p       !< field containing pressure values
+    class(field), allocatable :: p_prime !< field containing pressure-correction values
+    class(field), allocatable :: mf      !< field containing the face-centred velocity flux
+
+    call get_field(flow, field_u, u)
+    call get_field(flow, field_v, v)
+    call get_field(flow, field_w, w)
+    call get_field(flow, field_p, p)
+    call get_field(flow, field_p_prime, p_prime)
+    call get_field(flow, field_mf, mf)
+    call get_fluid_solve_selector(flow_solve_selector, field_u, u_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_v, v_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_w, w_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_p, p_sol)
 
     ! Check whether 'step' has been passed into this subroutine (i.e. unsteady run)
     if (present(step)) then
