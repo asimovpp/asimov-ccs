@@ -89,8 +89,8 @@ program ldc
 
   ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
-  !mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)      ! 2-D mesh
+  !mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)      ! 2-D mesh
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
