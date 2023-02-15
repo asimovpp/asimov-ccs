@@ -224,7 +224,7 @@ contains
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_(config_file_pointer, 'target_residual', res_target)
+    call get_value(config_file_pointer, 'target_residual', res_target)
     if (res_target == huge(0.0)) then
       call error_abort("No value assigned to target residual.")
     end if
