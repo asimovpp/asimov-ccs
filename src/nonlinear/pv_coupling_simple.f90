@@ -150,7 +150,7 @@ contains
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
-      call compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, u, v, w, p, mf, source, residuals)
+      call compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
       call calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, source, lin_system, p_prime)
 
@@ -633,18 +633,14 @@ contains
   end subroutine calculate_pressure_correction
 
   !>  Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, u, v, w, p, mf, b, residuals)
+  subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, b, residuals)
 
     type(ccs_mesh), intent(in) :: mesh      !< The mesh object
     class(ccs_vector), intent(inout) :: invAu  !< The inverse x momentum equation diagonal coefficient
     class(ccs_vector), intent(inout) :: invAv  !< The inverse y momentum equation diagonal coefficient
     class(ccs_vector), intent(inout) :: invAw  !< The inverse z momentum equation diagonal coefficient
     integer(ccs_int), intent(inout) :: ivar !< Counter for flow variables
-    class(field), intent(inout) :: u        !< The x velocity component
-    class(field), intent(inout) :: v        !< The y velocity component
-    class(field), intent(inout) :: w        !< The z velocity component
-    class(field), intent(inout) :: p        !< The pressure field
-    class(field), intent(inout) :: mf       !< The face velocity flux
+    type(fluid), intent(inout) :: flow
     class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
     real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
@@ -680,6 +676,18 @@ contains
     real(ccs_real) :: mib ! Cell mass imbalance
 
     logical, save :: first_time = .true.
+    
+    class(field), pointer :: u        !< The x velocity component
+    class(field), pointer :: v        !< The y velocity component
+    class(field), pointer :: w        !< The z velocity component
+    class(field), pointer :: p        !< The pressure field
+    class(field), pointer :: mf       !< The face velocity flux
+
+    call get_field(flow, field_u, u)
+    call get_field(flow, field_v, v)
+    call get_field(flow, field_w, w)
+    call get_field(flow, field_p, p)
+    call get_field(flow, field_mf, mf)
 
     ! Set variable index for pressure
     if (first_time) then
