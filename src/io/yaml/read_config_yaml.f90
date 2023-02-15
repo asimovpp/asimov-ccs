@@ -20,7 +20,7 @@ submodule(read_config) read_config_utils
 contains
 
   !> Gets the integer value associated with the keyword from dict
-  subroutine get_integer_value(dict, keyword, int_val)
+  module subroutine get_integer_value(dict, keyword, int_val)
     class(*), pointer, intent(in) :: dict     !< The dictionary
     character(len=*), intent(in) :: keyword   !< The key
     integer, intent(out) :: int_val           !< The corresponding value
@@ -46,7 +46,7 @@ contains
   !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
   !  whether the key-value pair is present in the dictionary. Takes a flag indicating whether the
   !  value is required.
-  subroutine get_real_value(dict, keyword, real_val, value_present, required)
+  module subroutine get_real_value(dict, keyword, real_val, value_present, required)
     class(*), pointer, intent(in) :: dict            !< The dictionary to read from
     character(len=*), intent(in) :: keyword          !< The key to read
     real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
@@ -85,7 +85,7 @@ contains
   end subroutine
 
   !> Gets the string associated with the keyword from dict
-  subroutine get_string_value(dict, keyword, string_val, value_present, required)
+  module subroutine get_string_value(dict, keyword, string_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
     character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
