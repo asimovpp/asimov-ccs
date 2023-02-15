@@ -42,7 +42,7 @@ program ldc
   class(field), allocatable :: u, v, w, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 10 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end, t_count
   integer(ccs_int) :: irank ! MPI rank ID
@@ -86,10 +86,11 @@ program ldc
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
-  it_end = num_iters
+  it_end = 5
 
   ! Create a square mesh
   print *, "Building mesh"
+  cps = 5
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
