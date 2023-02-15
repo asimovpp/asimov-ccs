@@ -170,7 +170,7 @@ contains
       !call calculate_scalars()
 
       call check_convergence(par_env, i, residuals, res_target, &
-                             u_sol, v_sol, w_sol, p_sol, t, converged)
+                             flow_solve_selector, t, converged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
@@ -949,17 +949,14 @@ contains
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
-                               u_sol, v_sol, w_sol, p_sol, step, converged)
+                               flow_solve_selector, step, converged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
     real(ccs_real), dimension(:), intent(in) :: residuals           !< L2-norm of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
-    logical, intent(in) :: u_sol                                    !< Is x-velocity being solved (true/false)
-    logical, intent(in) :: v_sol                                    !< Is y-velocity being solved (true/false)
-    logical, intent(in) :: w_sol                                    !< Is z-velocity being solved (true/false)
-    logical, intent(in) :: p_sol                                    !< Is pressure field being solved (true/false)
+    type(fluid_solve_selector), intent(in) :: flow_solve_selector
     integer(ccs_int), intent(in) :: step                            !< The current time-step
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
@@ -967,6 +964,16 @@ contains
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
     character(len=30) :: fmt              ! Format string for writing out residuals
     logical, save :: first_time = .true.  ! Whether first time this subroutine is called
+
+    logical :: u_sol                                    !< Is x-velocity being solved (true/false)
+    logical :: v_sol                                    !< Is y-velocity being solved (true/false)
+    logical :: w_sol                                    !< Is z-velocity being solved (true/false)
+    logical :: p_sol                                    !< Is pressure field being solved (true/false)
+
+    call get_fluid_solve_selector(flow_solve_selector, field_u, u_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_v, v_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_w, w_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_p, p_sol)
 
     nvar = size(residuals)
 
