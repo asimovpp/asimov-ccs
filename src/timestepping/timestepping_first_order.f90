@@ -124,7 +124,7 @@ contains
       allocate (x%old_values(num_old_vals))
     end if
 
-    call create_vector(vec_properties, x%old_values(1)%vec)
+    call create_vector(vec_properties, "xold", x%old_values(1)%vec)
     call update(x%old_values(1)%vec)
 
   end subroutine

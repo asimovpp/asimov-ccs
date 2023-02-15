@@ -28,6 +28,7 @@ module petsctypes
     integer(ccs_int) :: mode !< Current mode for setting values
     logical :: modeset       !< Is the current mode still valid? i.e. does vector need updated before switching modes?
     logical :: checked_out   !< Is the vector's data currently checked out?
+    character(len=:), allocatable :: name  !< Name of the vector object
   contains
     final :: free_vector_petsc
   end type vector_petsc
@@ -38,6 +39,7 @@ module petsctypes
     logical :: allocated     !< Indicates whether the PETSc matrix has been allocated
     integer(ccs_int) :: mode !< Current mode for setting values
     logical :: modeset       !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
+    character(len=:), allocatable :: name  !< Name of the matrix object
   contains
     final :: free_matrix_petsc
   end type matrix_petsc

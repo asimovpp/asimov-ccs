@@ -99,22 +99,22 @@ contains
     call dprint("NONLINEAR: setup matrix")
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(mesh%topo%max_faces + 1, mat_properties)
-    call create_matrix(mat_properties, M)
+    call create_matrix(mat_properties, "M", M)
 
     ! Create RHS vector
     call dprint("NONLINEAR: setup RHS")
     call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, source)
+    call create_vector(vec_properties, "source", source)
 
     ! Create vectors for storing inverse of velocity central coefficients
     call dprint("NONLINEAR: setup ind coeff")
-    call create_vector(vec_properties, invAu)
-    call create_vector(vec_properties, invAv)
-    call create_vector(vec_properties, invAw)
+    call create_vector(vec_properties, "invAu", invAu)
+    call create_vector(vec_properties, "invAv", invAv)
+    call create_vector(vec_properties, "invAw", invAw)
 
     ! Create vectors for storing residuals
     call dprint("NONLINEAR: setup residuals")
-    call create_vector(vec_properties, res)
+    call create_vector(vec_properties, "res", res)
     if (u_sol) nvar = nvar + 1
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1

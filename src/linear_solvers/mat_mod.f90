@@ -39,9 +39,10 @@ module mat
   interface
 
     !> Interface to create a new matrix object.
-    module subroutine create_matrix(mat_properties, M)
+    module subroutine create_matrix(mat_properties, name, M)
       type(matrix_spec), intent(in) :: mat_properties  !< contains information about
       !< how the matrix should be allocated
+      character(len=*), intent(in) :: name !< name of the matrix object
       class(ccs_matrix), allocatable, intent(out) :: M !< the matrix object
     end subroutine
 

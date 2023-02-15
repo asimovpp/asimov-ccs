@@ -163,10 +163,10 @@ contains
       allocate (x%old_values(num_old_vals))
     end if
 
-    call create_vector(vec_properties, x%old_values(1)%vec)
+    call create_vector(vec_properties, "xold_1", x%old_values(1)%vec)
     call update(x%old_values(1)%vec)
 
-    call create_vector(vec_properties, x%old_values(2)%vec)
+    call create_vector(vec_properties, "xold_2", x%old_values(2)%vec)
     call update(x%old_values(2)%vec)
 
   end subroutine

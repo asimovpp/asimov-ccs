@@ -19,7 +19,7 @@ submodule(vec) vec_petsc
 contains
 
   !> Create a PETSc-backed vector
-  module subroutine create_vector(vec_properties, v)
+  module subroutine create_vector(vec_properties, name, v)
 
     use petsc, only: PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
@@ -28,6 +28,7 @@ contains
     use meshing, only: get_local_num_cells
     
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
+    character(len=*), intent(in) :: name                !< name of the vector object
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
@@ -42,6 +43,7 @@ contains
 
       v%modeset = .false.
       v%checked_out = .false.
+      v%name = name
 
       select type (par_env => vec_properties%par_env)
       type is (parallel_environment_mpi)
@@ -74,6 +76,7 @@ contains
           end select
         end associate
 
+        call VecSetOptionsPrefix(v%v, v%name//':', ierr)
         call VecSetFromOptions(v%v, ierr)
         call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
         call VecSet(v%v, 0.0_ccs_real, ierr)
