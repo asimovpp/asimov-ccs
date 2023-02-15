@@ -219,7 +219,7 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_value(config_file_pointer, 'itearions', num_iters)
+    call get_value(config_file_pointer, 'iterations', num_iters)
     if (num_iters == huge(0)) then
       call error_abort("No value assigned to num_iters.")
     end if
