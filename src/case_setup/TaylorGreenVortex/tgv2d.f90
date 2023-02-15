@@ -249,7 +249,7 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
+    use read_config, only: get_reference_number, get_steps, get_iters, &
                            get_convection_scheme, get_relaxation_factor, &
                            get_target_residual, get_cps, get_domain_size, get_dt
 
