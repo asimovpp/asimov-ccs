@@ -21,6 +21,9 @@ relaxation_factor:
 
 target_residual: 1.0e-10
 
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 5
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:
@@ -48,9 +51,6 @@ target_residual: 1.0e-10
 #  u: 1.0
 #  v: 1.0
 #  w: 1.0
-  
-#output:
-#  every: 1000
 
 #post:
 #  type: center

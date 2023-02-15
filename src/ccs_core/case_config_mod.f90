@@ -15,8 +15,11 @@ module case_config
   integer(ccs_int), public :: num_steps = huge(0)
   integer(ccs_int), public :: num_iters = huge(0)
 
+  ! Number of cells per side (used for mesh generation)
   integer(ccs_int), public :: cps = huge(0)
 
+  ! Frequency (in terms of timesteps) of writing solution to file
+  integer(ccs_int), public :: write_frequency = huge(0)
 
   real(ccs_real), public :: velocity_relax = huge(0.0)
   real(ccs_real), public :: pressure_relax = huge(0.0)
