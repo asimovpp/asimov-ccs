@@ -19,7 +19,7 @@ submodule(pv_coupling) pv_coupling_simple
 
   use utils, only: debug_print, get_field, get_fluid_solve_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v,  field_w, field_p, field_p_prime, field_mf
+  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance, &
@@ -219,14 +219,14 @@ contains
     integer(ccs_int), save :: varv = 0
     integer(ccs_int), save :: varw = 0
 
-    logical :: u_sol  
-    logical :: v_sol  
-    logical :: w_sol  
-    class(field), pointer :: u 
-    class(field), pointer :: v 
-    class(field), pointer :: w 
+    logical :: u_sol
+    logical :: v_sol
+    logical :: w_sol
+    class(field), pointer :: u
+    class(field), pointer :: v
+    class(field), pointer :: w
     class(field), pointer :: mf
-    class(field), pointer :: p 
+    class(field), pointer :: p
     
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
@@ -632,7 +632,7 @@ contains
 
   end subroutine calculate_pressure_correction
 
-  !>  Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
+  !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
   subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, b, residuals)
 
     type(ccs_mesh), intent(in) :: mesh      !< The mesh object

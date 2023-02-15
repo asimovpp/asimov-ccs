@@ -20,7 +20,7 @@ module utils
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
   use types, only: field, fluid, fluid_solve_selector
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf 
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf
 
   implicit none
 
@@ -127,7 +127,7 @@ module utils
     module procedure set_matrix_size
   end interface set_size
 
-  !>  Generic interface to perform multiplications
+  !> Generic interface to perform multiplications
   interface mult
     module procedure mult_vec_vec
   end interface mult
@@ -469,13 +469,13 @@ contains
 
     select case (field_name)
     case (field_u)
-      solve_selector%u = selector 
+      solve_selector%u = selector
     case (field_v)
-      solve_selector%v = selector 
+      solve_selector%v = selector
     case (field_w)
-      solve_selector%w = selector 
+      solve_selector%w = selector
     case (field_p)
-      solve_selector%p = selector 
+      solve_selector%p = selector
     case default
       call error_abort("Unrecognised field index.")
     end select
