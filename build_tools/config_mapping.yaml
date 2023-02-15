@@ -23,8 +23,11 @@ bases:
       timestepping: timestepping_second_order
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
+      reordering: reordering_rcm
+      reordering_common: reordering_common
     options:
       timestepping: [timestepping_first_order, timestepping_second_order]
+      reordering: [reordering_rcm, reordering_petsc]
   mpi:
     defaults:
       mat_common: mat_common
@@ -49,5 +52,7 @@ bases:
       timestepping: timestepping_second_order
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
+      reordering: reordering_rcm
+      reordering_common: reordering_common
     options:
       timestepping: [timestepping_first_order, timestepping_second_order]
