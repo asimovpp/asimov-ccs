@@ -26,7 +26,7 @@ program ldc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
                    get_field, set_field, get_fluid_solve_selector, set_fluid_solve_selector, &
-                   allocate_fluid_fields
+                   allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use io_visualisation, only: write_solution
@@ -189,6 +189,7 @@ program ldc
   call write_solution(par_env, case_name, mesh, output_list)
 
   ! Clean-up
+  call dealloc_fluid_fields(flow_fields)
   deallocate (u)
   deallocate (v)
   deallocate (w)

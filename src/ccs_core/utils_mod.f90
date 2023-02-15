@@ -51,6 +51,7 @@ module utils
   public :: set_field
   public :: set_fluid_solve_selector
   public :: allocate_fluid_fields
+  public :: dealloc_fluid_fields
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -487,5 +488,12 @@ contains
     allocate(flow%fields(n_fields))
     allocate(flow%field_names(n_fields))
   end subroutine allocate_fluid_fields
+
+  subroutine dealloc_fluid_fields(flow)
+    type(fluid), intent(inout) :: flow
+
+    deallocate(flow%fields)
+    deallocate(flow%field_names)
+  end subroutine dealloc_fluid_fields
 
 end module utils
