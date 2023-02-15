@@ -104,7 +104,7 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   ! Create linear solver & set options
-  call set_equation_system(par_env, b, u, M, poisson_eq)
+  call set_equation_system(par_env, b, u, M, "p", poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
