@@ -17,12 +17,6 @@ submodule(read_config) read_config_utils
 
   implicit none
 
-  interface get_value
-    module procedure get_integer_value
-    module procedure get_real_value
-    module procedure get_string_value
-  end interface
-
 contains
 
   !> Gets the integer value associated with the keyword from dict
@@ -145,86 +139,6 @@ contains
     character(len=:), allocatable, intent(inout) :: title !< the case name string
 
     call get_value(config_file, "title", title)
-
-  end subroutine
-
-  !v Get the number of steps
-  !
-  !  Get the maximum number of timesteps to be preformed in the current run
-  module subroutine get_steps(config_file, steps)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: steps              !< the maximum number of timesteps
-
-    call get_value(config_file, 'steps', steps)
-
-  end subroutine
-
-  !v Get the number of iterations
-  !
-  !  Get the maximum number of iterations to be preformed in the current run
-  module subroutine get_iters(config_file, iters)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: iters              !< the maximum number of iterations
-
-    call get_value(config_file, 'iterations', iters)
-
-  end subroutine
-
-  !v Get the write frequency
-  !
-  !  Get the frequency (in terms of timesteps) of writing solution to file
-  module subroutine get_write_frequency(config_file, write_frequency)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: write_frequency    !< the write frequency
-
-    call get_value(config_file, 'write_frequency', write_frequency)
-
-  end subroutine
-
-  !v Get the number of cells per size
-  !
-  !  Get the number of cells per size
-  !  used to generate a square or cubic mesh
-  module subroutine get_cps(config_file, cps)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: cps               !< the number of cells per size
-
-    call get_value(config_file, 'cps', cps)
-
-  end subroutine
-
-  !v Get the domain size
-  !
-  !  Get the domain size
-  !  used to generate a square or cubic mesh
-  module subroutine get_domain_size(config_file, domain_size)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    real(ccs_real), intent(inout) :: domain_size !< the domain size
-
-    call get_value(config_file, 'L', domain_size)
-
-  end subroutine
-
-  !v Get CFL
-  !
-  !  Get the CFL traget number, used to 
-  !  compute the timestep dt
-  module subroutine get_cfl(config_file, cfl)
-    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-    real(ccs_real), intent(inout) :: cfl          !< the cfl target
-
-    call get_value(config_file, 'cfl', cfl)
-
-  end subroutine
-
-  !v Get time step
-  !
-  !  Get the user-defined time step 
-  module subroutine get_dt(config_file, dt)
-    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-    real(ccs_real), intent(inout) :: dt          !< the time step
-
-    call get_value(config_file, 'dt', dt)
 
   end subroutine
 
@@ -489,19 +403,6 @@ contains
 
   end subroutine
 
-  !v Get target residual
-  !
-  !  Get the convergence criterion.
-  !  The calculation will stop when the residuals (L2-norm) of the
-  !  governing equations are less than the target residual.
-  module subroutine get_target_residual(config_file, residual)
-    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-    real(ccs_real), intent(inout) :: residual     !< convergence criterion
-
-    call get_value(config_file, "target_residual", residual)
-
-  end subroutine
-
   !v Get grid cell to monitor
   !
   !  Get the grid cell at which to monitor the values of the flow variables (U,V,W,P,TE,ED and T)
@@ -642,31 +543,6 @@ contains
       if (present(ed_relax)) then
         call get_value(dict, "ed", ed_relax)
       end if
-
-    class default
-      call error_abort("Unknown type")
-    end select
-
-  end subroutine
-
-  !v Get output frequency
-  !
-  !  Get output frequency, set with keywords "every", "iter", or both.
-  module subroutine get_output_frequency(config_file, output_freq, output_iter)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: output_freq        !< the frequency of writing output files
-    integer, intent(inout) :: output_iter        !< output files are written every output_iter/steps
-
-    class(*), pointer :: dict
-    type(type_error), allocatable :: io_err
-
-    select type (config_file)
-    type is (type_dictionary)
-
-      dict => config_file%get_dictionary('output', required=.false., error=io_err)
-
-      call get_value(dict, "every", output_freq)
-      call get_value(dict, "iter", output_iter)
 
     class default
       call error_abort("Unknown type")
