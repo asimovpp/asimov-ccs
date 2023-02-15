@@ -63,7 +63,7 @@ program scalar_advection
   ! Create stiffness matrix
   call set_size(par_env, mesh, mat_properties)
   call set_nnz(5, mat_properties)
-  call create_matrix(mat_properties, M)
+  call create_matrix(mat_properties, "M", M)
 
   ! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
