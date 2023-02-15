@@ -8,8 +8,10 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
-                         write_gradients
+  use case_config, only: num_iters, cps, domain_size, &
+                         velocity_relax, pressure_relax, res_target, &
+                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
@@ -46,7 +48,6 @@ program ldc
   type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -79,13 +80,15 @@ program ldc
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
-  if (irank == par_env%root) then
-    call print_configuration()
-  end if
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
 
-  ! Set start and end iteration numbers (eventually will be read from input file)
+  ! Set start and end iteration numbers (read from input file)
   it_start = 1
-  it_end = num_steps
+  it_end = num_iters
 
   ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
@@ -179,6 +182,10 @@ program ldc
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
   
+  if (irank == par_env%root) then
+    call print_configuration()
+  end if
+
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -211,9 +218,9 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
-                          get_convection_scheme, get_relaxation_factor, &
-                          get_target_residual
+    use read_config, only: get_reference_number, get_iters, &
+                          get_convection_scheme, get_relaxation_factors, &
+                          get_target_residual, get_cps, get_domain_size
 
     character(len=*), intent(in) :: config_filename
 
@@ -225,12 +232,24 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file, num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+    call get_iters(config_file, num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
+    if (cps == huge(0)) then ! cps was not set on the command line
+      call get_cps(config_file, cps)
+      if (cps == huge(0)) then
+        call error_abort("No value assigned to cps.")
+      end if
+    end if
+
+    call get_domain_size(config_file, domain_size)
+    if (domain_size == huge(0.0)) then
+      call error_abort("No value assigned to domain_size.")
+    end if
+
+    call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
@@ -245,18 +264,25 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
-    print *, "Solving ", case_name, " case"
-
-    print *, "++++"
-    print *, "SIMULATION LENGTH"
-    print *, "Running for ", num_steps, "iterations"
-    print *, "++++"
-    print *, "MESH"
-    print *, "Size is ", cps
-    print *, "++++"
-    print *, "RELAXATION FACTORS"
-    write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
-    write (*, '(1x,a,e10.3)') "pressure: ", pressure_relax
+    ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* Solving the ", case_name, " case"
+    print *, "******************************************************************************"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* SIMULATION LENGTH"
+    print *, "* Running for ", num_iters, "iterations"
+    print *, "******************************************************************************"
+    print *, "* MESH SIZE"
+    print *, "* Cells per side: ", cps
+    write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
+    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "******************************************************************************"
+    print *, "* RELAXATION FACTORS"
+    write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
+    write (*, '(1x,a,e10.3)') "* pressure: ", pressure_relax
+    print *, "******************************************************************************"
 
   end subroutine
 
