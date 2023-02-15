@@ -8,7 +8,7 @@ program tgv2d
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, num_iters, dt, cps, domain_size, &
+  use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
@@ -62,7 +62,6 @@ program tgv2d
   logical :: p_sol = .true.
 
   integer(ccs_int) :: t         ! Timestep counter
-  integer(ccs_int) :: save_freq ! Frequency of saving solution
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -70,7 +69,7 @@ program tgv2d
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name)
 
   if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name // ccsconfig
@@ -199,8 +198,6 @@ program tgv2d
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
 
-  save_freq = 200
-
   ! Write out mesh to file
   call write_mesh(par_env, case_name, mesh)
 
@@ -222,7 +219,7 @@ program tgv2d
     call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, t, u, v, w)
 
-    if ((t == 1) .or. (t == num_steps) .or. (mod(t, save_freq) == 0)) then
+    if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
       call write_solution(par_env, case_name, mesh, output_list, t, num_steps, dt)
     end if
   end do
@@ -250,7 +247,7 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_steps, get_iters, &
-                           get_convection_scheme, get_relaxation_factor, &
+                           get_convection_scheme, get_relaxation_factors, &
                            get_target_residual, get_cps, get_domain_size, get_dt
 
     character(len=*), intent(in) :: config_filename
@@ -278,9 +275,11 @@ contains
       call error_abort("No value assigned to dt.")
     end if
 
-    call get_cps(config_file, cps)
-    if (cps == huge(0)) then
-      call error_abort("No value assigned to cps.")
+    if (cps == huge(0)) then ! cps was not set on the command line
+      call get_cps(config_file, cps)
+      if (cps == huge(0)) then
+        call error_abort("No value assigned to cps.")
+      end if
     end if
 
     call get_domain_size(config_file, domain_size)
@@ -288,7 +287,7 @@ contains
       call error_abort("No value assigned to domain_size.")
     end if
 
-    call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if

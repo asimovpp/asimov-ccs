@@ -15,6 +15,7 @@ module read_config
   public :: get_case_name
   public :: get_steps
   public :: get_iters
+  public :: get_write_frequency
   public :: get_dt
   public :: get_cfl
   public :: get_cps
@@ -28,7 +29,7 @@ module read_config
   public :: get_monitor_cell
   public :: get_convection_scheme
   public :: get_blending_factor
-  public :: get_relaxation_factor
+  public :: get_relaxation_factors
   public :: get_output_frequency
   public :: get_plot_format
   public :: get_output_type
@@ -65,6 +66,14 @@ module read_config
       integer, intent(inout) :: iters               !< the maximum number of iterations
     end subroutine
 
+    !v Get the write frequency
+    !
+    !  Get the frequency (in terms of timesteps) of writing solution to file
+    module subroutine get_write_frequency(config_file, write_frequency)
+      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+      integer, intent(inout) :: write_frequency    !< the write frequency  
+    end subroutine
+    
     !v Get time step
     !
     !  Get the user-defined time step 
@@ -221,7 +230,7 @@ module read_config
     !v Get relaxation factor values
     !
     !  Get relaxation factors
-    module subroutine get_relaxation_factor(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
+    module subroutine get_relaxation_factors(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
       class(*), pointer, intent(in) :: config_file        !< the entry point to the config file
       real(ccs_real), optional, intent(inout) :: u_relax  !< relaxation factor for u
       real(ccs_real), optional, intent(inout) :: v_relax  !< relaxation factor for v

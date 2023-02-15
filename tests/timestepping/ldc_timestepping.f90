@@ -207,7 +207,7 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_iters, &
-                           get_convection_scheme, get_relaxation_factor, &
+                           get_convection_scheme, get_relaxation_factors, &
                            get_target_residual
 
     character(len=*), intent(in) :: config_filename
@@ -225,7 +225,7 @@ contains
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_relaxation_factors(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if

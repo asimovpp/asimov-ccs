@@ -199,7 +199,7 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_iters, &
-                          get_convection_scheme, get_relaxation_factor, &
+                          get_convection_scheme, get_relaxation_factors, &
                           get_target_residual, get_cps, get_domain_size
 
     character(len=*), intent(in) :: config_filename
@@ -217,9 +217,11 @@ contains
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_cps(config_file, cps)
-    if (cps == huge(0)) then
-      call error_abort("No value assigned to cps.")
+    if (cps == huge(0)) then ! cps was not set on the command line
+      call get_cps(config_file, cps)
+      if (cps == huge(0)) then
+        call error_abort("No value assigned to cps.")
+      end if
     end if
 
     call get_domain_size(config_file, domain_size)
@@ -227,7 +229,7 @@ contains
       call error_abort("No value assigned to domain_size.")
     end if
 
-    call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if

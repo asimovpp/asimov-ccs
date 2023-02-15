@@ -159,6 +159,28 @@ contains
 
   end subroutine
 
+  !v Get the number of iterations
+  !
+  !  Get the maximum number of iterations to be preformed in the current run
+  module subroutine get_iters(config_file, iters)
+    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+    integer, intent(inout) :: iters              !< the maximum number of iterations
+
+    call get_value(config_file, 'iterations', iters)
+
+  end subroutine
+
+  !v Get the write frequency
+  !
+  !  Get the frequency (in terms of timesteps) of writing solution to file
+  module subroutine get_write_frequency(config_file, write_frequency)
+    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+    integer, intent(inout) :: write_frequency    !< the write frequency
+
+    call get_value(config_file, 'write_frequency', write_frequency)
+
+  end subroutine
+
   !v Get the number of cells per size
   !
   !  Get the number of cells per size
@@ -180,17 +202,6 @@ contains
     real(ccs_real), intent(inout) :: domain_size !< the domain size
 
     call get_value(config_file, 'L', domain_size)
-
-  end subroutine
-  
-  !v Get the number of iterations
-  !
-  !  Get the maximum number of iterations to be preformed in the current run
-  module subroutine get_iters(config_file, iters)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: iters              !< the maximum number of iterations
-
-    call get_value(config_file, 'iterations', iters)
 
   end subroutine
 
@@ -596,7 +607,7 @@ contains
   !v Get relaxation factor values
   !
   !  Get relaxation factors
-  module subroutine get_relaxation_factor(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
+  module subroutine get_relaxation_factors(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
     class(*), pointer, intent(in) :: config_file        !< the entry point to the config file
     real(ccs_real), optional, intent(inout) :: u_relax  !< relaxation factor for u
     real(ccs_real), optional, intent(inout) :: v_relax  !< relaxation factor for v
