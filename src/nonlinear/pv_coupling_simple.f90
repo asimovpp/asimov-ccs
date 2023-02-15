@@ -145,8 +145,8 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, source, &
-                              lin_system, u, v, w, invAu, invAv, invAw, res, residuals)
+      call calculate_velocity(par_env, mesh, flow, flow_solve_selector, ivar, M, source, &
+                              lin_system, invAu, invAv, invAw, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -195,24 +195,18 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, mf, p, u_sol, v_sol, w_sol, ivar, M, vec, lin_sys, u, v, w, invAu, invAv, invAw, &
+  subroutine calculate_velocity(par_env, mesh, flow, flow_solve_selector, ivar, M, vec, lin_sys, invAu, invAv, invAw, &
                                 res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     type(ccs_mesh), intent(in) :: mesh                   !< the mesh
-    class(field), intent(inout) :: mf                    !< the face velocity flux
-    class(field), intent(inout) :: p                     !< the pressure field
-    logical, intent(in) :: u_sol                         !< solve x-velocity field
-    logical, intent(in) :: v_sol                         !< solve y-velocity field
-    logical, intent(in) :: w_sol                         !< solve w-velocity field
+    type(fluid_solve_selector), intent(in) :: flow_solve_selector
+    type(fluid), intent(inout) :: flow
     integer(ccs_int), intent(inout) :: ivar              !< flow variable counter
     class(ccs_matrix), allocatable, intent(inout) :: M   !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec !< vector object
     type(equation_system), intent(inout) :: lin_sys      !< linear system object
-    class(field), intent(inout) :: u                     !< the x velocity field
-    class(field), intent(inout) :: v                     !< the y velocity field
-    class(field), intent(inout) :: w                     !< the z velocity field
     class(ccs_vector), intent(inout) :: invAu            !< vector containing the inverse x momentum coefficients
     class(ccs_vector), intent(inout) :: invAv            !< vector containing the inverse y momentum coefficients
     class(ccs_vector), intent(inout) :: invAw            !< vector containing the inverse z momentum coefficients
@@ -224,6 +218,24 @@ contains
     integer(ccs_int), save :: varu = 0
     integer(ccs_int), save :: varv = 0
     integer(ccs_int), save :: varw = 0
+
+    logical :: u_sol  
+    logical :: v_sol  
+    logical :: w_sol  
+    class(field), pointer :: u 
+    class(field), pointer :: v 
+    class(field), pointer :: w 
+    class(field), pointer :: mf
+    class(field), pointer :: p 
+    
+    call get_field(flow, field_u, u)
+    call get_field(flow, field_v, v)
+    call get_field(flow, field_w, w)
+    call get_field(flow, field_p, p)
+    call get_field(flow, field_mf, mf)
+    call get_fluid_solve_selector(flow_solve_selector, field_u, u_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_v, v_sol)
+    call get_fluid_solve_selector(flow_solve_selector, field_w, w_sol)
 
     ! Set flow variable identifiers (for residuals)
     if (first_time) then
