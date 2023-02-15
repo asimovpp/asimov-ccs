@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, num_iters, &
+  use case_config, only: num_iters, cps, domain_size, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
@@ -45,7 +45,6 @@ program ldc
   type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -65,7 +64,7 @@ program ldc
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
+  call read_command_line_arguments(par_env, case_name=case_name)
 
   if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name // ccsconfig
@@ -87,7 +86,7 @@ program ldc
 
   ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
+  mesh = build_mesh(par_env, cps, cps, cps, domain_size)   ! 3-D mesh
   !mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)      ! 2-D mesh
 
   ! Initialise fields
@@ -201,7 +200,7 @@ contains
 
     use read_config, only: get_reference_number, get_iters, &
                           get_convection_scheme, get_relaxation_factor, &
-                          get_target_residual
+                          get_target_residual, get_cps, get_domain_size
 
     character(len=*), intent(in) :: config_filename
 
@@ -216,6 +215,16 @@ contains
     call get_iters(config_file, num_iters)
     if (num_iters == huge(0)) then
       call error_abort("No value assigned to num_iters.")
+    end if
+
+    call get_cps(config_file, cps)
+    if (cps == huge(0)) then
+      call error_abort("No value assigned to cps.")
+    end if
+
+    call get_domain_size(config_file, domain_size)
+    if (domain_size == huge(0.0)) then
+      call error_abort("No value assigned to domain_size.")
     end if
 
     call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
@@ -244,6 +253,8 @@ contains
     print *, "* Running for ", num_iters, "iterations"
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
+    print *, "* Cells per side: ", cps
+    write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     print *, "* Global number of cells is ", mesh%topo%global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"

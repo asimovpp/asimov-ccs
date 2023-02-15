@@ -5,7 +5,7 @@ program tgv
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, num_iters, dt, &
+  use case_config, only: num_steps, num_iters, dt, cps, domain_size, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
@@ -38,6 +38,7 @@ program tgv
 
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: case_name  ! Case name
+  character(len=:), allocatable :: geo_file  ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -50,7 +51,6 @@ program tgv
   type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 16 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -73,7 +73,7 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
+  call read_command_line_arguments(par_env, case_name=case_name)
 
   if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   ccs_config_file = case_name // ccsconfig
@@ -93,18 +93,21 @@ program tgv
   it_start = 1
   it_end = num_iters
 
-  !geo_file = case_name       //       geoext
-  !adios2_file = case_name       //       adiosconfig
-
-  ! Read mesh from *.geo file
-  !if (irank == par_env%root) print *, "Reading mesh"
-
+  ! If cps is no longer the default value, it has been set explicity and 
+  ! the mesh generator is invoked...
+  if (cps /= huge(0)) then
   ! Create a cubic mesh
-  if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
-  ! call read_mesh(par_env, case_name, mesh)
-  ! call partition_kway(par_env, mesh)
-  ! call compute_connectivity(par_env, mesh)
+    if (irank == par_env%root) print *, "Building mesh"
+    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
+  
+  ! Otherwise the mesh is read from file
+  else
+    geo_file = case_name // geoext
+    if (irank == par_env%root) print *, "Reading mesh"
+    call read_mesh(par_env, case_name, mesh)
+    call partition_kway(par_env, mesh)
+    call compute_connectivity(par_env, mesh)
+  end if
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -323,7 +326,7 @@ contains
 
     use read_config, only: get_reference_number, get_steps, get_iters, &
                           get_convection_scheme, get_relaxation_factor, &
-                          get_target_residual, get_dt
+                          get_target_residual, get_cps, get_domain_size, get_dt
 
     character(len=*), intent(in) :: config_filename
 
@@ -348,6 +351,16 @@ contains
     call get_dt(config_file, dt)
     if (dt == huge(0.0)) then
       call error_abort("No value assigned to dt.")
+    end if
+
+    call get_cps(config_file, cps)
+    if (cps == huge(0)) then
+      call error_abort("No value assigned to cps.")
+    end if
+
+    call get_domain_size(config_file, domain_size)
+    if (domain_size == huge(0.0)) then
+      call error_abort("No value assigned to domain_size.")
     end if
 
     call get_relaxation_factor(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
@@ -377,6 +390,10 @@ contains
     write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
+    if(cps /= huge(0)) then
+      print *,"* Cells per side: ", cps
+      write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
+    end if
     print *, "* Global number of cells is ", mesh%topo%global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"

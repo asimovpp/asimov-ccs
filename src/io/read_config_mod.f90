@@ -15,8 +15,10 @@ module read_config
   public :: get_case_name
   public :: get_steps
   public :: get_iters
-  public :: get_cfl
   public :: get_dt
+  public :: get_cfl
+  public :: get_cps
+  public :: get_domain_size
   public :: get_init
   public :: get_reference_number
   public :: get_solve
@@ -63,6 +65,14 @@ module read_config
       integer, intent(inout) :: iters               !< the maximum number of iterations
     end subroutine
 
+    !v Get time step
+    !
+    !  Get the user-defined time step 
+    module subroutine get_dt(config_file, dt)
+      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
+      real(ccs_real), intent(inout) :: dt          !< the time step
+    end subroutine
+
     !v Get CFL
     !
     !  Get the CFL traget number, used to 
@@ -72,12 +82,23 @@ module read_config
       real(ccs_real), intent(inout) :: cfl          !< the cfl target
     end subroutine
 
-    !v Get time step
+
+    !v Get the number of cells per size
     !
-    !  Get the user-defined time step 
-    module subroutine get_dt(config_file, dt)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      real(ccs_real), intent(inout) :: dt          !< the time step
+    !  Get the number of cells per size
+    !  used to generate a square or cubic mesh
+    module subroutine get_cps(config_file, cps)
+      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+      integer, intent(inout) :: cps               !< the number of cells per size
+    end subroutine
+
+    !v Get the domain size
+    !
+    !  Get the domain size
+    !  used to generate a square or cubic mesh
+    module subroutine get_domain_size(config_file, domain_size)
+      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
+      real(ccs_real), intent(inout) :: domain_size !< the domain size
     end subroutine
 
     !v Get source of initial values
