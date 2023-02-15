@@ -158,7 +158,7 @@ contains
       call dprint("NONLINEAR: correct face velocity")
       call update_face_velocity(mesh, invAu, invAv, invAw, p_prime, mf, res, residuals)
       call dprint("NONLINEAR: correct velocity")
-      call update_velocity(mesh, invAu, invAv, invAw, p_prime, u, v, w)
+      call update_velocity(mesh, invAu, invAv, invAw, flow)
 
       ! Update pressure field with pressure correction
       call dprint("NONLINEAR: correct pressure")
@@ -799,7 +799,7 @@ contains
   end subroutine update_pressure
 
   !> Corrects the velocity field using the pressure correction gradient
-  subroutine update_velocity(mesh, invAu, invAv, invAw, p_prime, u, v, w)
+  subroutine update_velocity(mesh, invAu, invAv, invAw, flow)
 
     use vec, only: zero_vector
 
@@ -808,10 +808,17 @@ contains
     class(ccs_vector), intent(in) :: invAu !< The inverse x momentum equation diagonal coefficient
     class(ccs_vector), intent(in) :: invAv !< The inverse y momentum equation diagonal coefficient
     class(ccs_vector), intent(in) :: invAw !< The inverse z momentum equation diagonal coefficient
-    class(field), intent(inout) :: p_prime !< The pressure correction
-    class(field), intent(inout) :: u       !< The x velocities being corrected
-    class(field), intent(inout) :: v       !< The y velocities being corrected
-    class(field), intent(inout) :: w       !< The z velocities being corrected
+    type(fluid), intent(inout) :: flow
+
+    class(field), pointer :: p_prime !< The pressure correction
+    class(field), pointer :: u       !< The x velocities being corrected
+    class(field), pointer :: v       !< The y velocities being corrected
+    class(field), pointer :: w       !< The z velocities being corrected
+
+    call get_field(flow, field_u, u)
+    call get_field(flow, field_v, v)
+    call get_field(flow, field_w, w)
+    call get_field(flow, field_p, p_prime)
 
     ! First update gradients
     call zero_vector(p_prime%x_gradients)
