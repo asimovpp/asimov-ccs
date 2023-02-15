@@ -68,12 +68,12 @@ contains
     logical :: v_sol !< solve v velocity field
     logical :: w_sol !< solve w velocity field
     logical :: p_sol !< solve pressure field
-    class(field), allocatable :: u       !< velocity fields in x direction
-    class(field), allocatable :: v       !< velocity fields in y direction
-    class(field), allocatable :: w       !< velocity field in z direction
-    class(field), allocatable :: p       !< field containing pressure values
-    class(field), allocatable :: p_prime !< field containing pressure-correction values
-    class(field), allocatable :: mf      !< field containing the face-centred velocity flux
+    class(field), pointer :: u       !< velocity fields in x direction
+    class(field), pointer :: v       !< velocity fields in y direction
+    class(field), pointer :: w       !< velocity field in z direction
+    class(field), pointer :: p       !< field containing pressure values
+    class(field), pointer :: p_prime !< field containing pressure-correction values
+    class(field), pointer :: mf      !< field containing the face-centred velocity flux
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)

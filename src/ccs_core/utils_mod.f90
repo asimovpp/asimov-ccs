@@ -425,12 +425,12 @@ contains
   subroutine get_field(flow, field_name, flow_field)
     type(fluid), intent(in) :: flow
     integer(ccs_int), intent(in) :: field_name
-    class(field), allocatable, intent(out) :: flow_field
+    class(field), pointer, intent(out) :: flow_field
 
     integer(ccs_int), dimension(1) :: field_index
 
     field_index = findloc(flow%field_names, field_name)
-    flow_field = flow%fields(field_index(1))%ptr
+    flow_field => flow%fields(field_index(1))%ptr
   end subroutine get_field
 
   subroutine set_field(field_index, field_name, flow_field, flow)
