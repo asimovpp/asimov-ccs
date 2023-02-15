@@ -28,10 +28,14 @@ program test_mesh_closed
 
   real(ccs_real) :: A_expected
 
+  integer(ccs_int), dimension(6) :: m = (/ 1, 2, 4, 8, 16, 20 /)
+  integer(ccs_int) :: mctr
+
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
-  do n = 1, 20 ! XXX: Should use some named constant, not just "20"
+  do mctr = 1, size(m)
+    n = m(mctr)
 
     nx = n
     ny = n
