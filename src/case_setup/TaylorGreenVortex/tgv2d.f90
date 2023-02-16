@@ -37,7 +37,6 @@ program tgv2d
 
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: input_path  ! Path to input directory
-  character(len=:), allocatable :: output_path ! Path to output directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
