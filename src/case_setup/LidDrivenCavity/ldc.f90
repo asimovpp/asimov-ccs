@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_iters, cps, domain_size, &
+  use case_config, only: num_iters, cps, domain_size, case_name, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
@@ -33,7 +33,8 @@ program ldc
   implicit none
 
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name       ! Case name
+  character(len=:), allocatable :: input_path  ! Path to input directory
+  character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -64,15 +65,22 @@ program ldc
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
+  
+  if(allocated(input_path)) then
+     case_path = input_path // "/" // case_name
+  else
+     case_path = case_name
+  end if
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name // ccsconfig
+  ccs_config_file = case_path // ccsconfig
 
   call timer(start_time)
 
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
+
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -173,8 +181,8 @@ program ldc
                        u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
 
   ! Write out mesh and solution
-  call write_mesh(par_env, case_name, mesh)
-  call write_solution(par_env, case_name, mesh, output_list)
+  call write_mesh(par_env, case_path, mesh)
+  call write_solution(par_env, case_path, mesh, output_list)
 
   ! Clean-up
   deallocate (u)

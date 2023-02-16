@@ -6,7 +6,7 @@ program tgv
   use petscsys
 
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
-                         velocity_relax, pressure_relax, res_target, &
+                         velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
@@ -37,8 +37,9 @@ program tgv
   implicit none
 
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name  ! Case name
-  character(len=:), allocatable :: geo_file  ! Geo file name
+  character(len=:), allocatable :: input_path  ! Path to input directory
+  character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
+  character(len=:), allocatable :: geo_file     ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -72,15 +73,22 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
+  
+  if(allocated(input_path)) then
+     case_path = input_path // "/" // case_name
+  else
+     case_path = case_name
+  end if
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name // ccsconfig
-
+  ccs_config_file = case_path // ccsconfig
+  
   call timer(start_time)
 
   ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
+
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -101,9 +109,9 @@ program tgv
   
   ! Otherwise the mesh is read from file
   else
-    geo_file = case_name // geoext
+    geo_file = case_path // geoext
     if (irank == par_env%root) print *, "Reading mesh"
-    call read_mesh(par_env, case_name, mesh)
+    call read_mesh(par_env, case_path, mesh)
     call partition_kway(par_env, mesh)
     call compute_connectivity(par_env, mesh)
   end if
@@ -272,7 +280,7 @@ program tgv
   call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
   ! Write out mesh to file
-  call write_mesh(par_env, case_name, mesh)
+  call write_mesh(par_env, case_path, mesh)
 
   ! Print the run configuration
   if (irank == par_env%root) then
@@ -295,7 +303,7 @@ program tgv
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call write_solution(par_env, case_name, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
     end if
   end do
 
