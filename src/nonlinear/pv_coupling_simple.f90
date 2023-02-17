@@ -99,22 +99,22 @@ contains
     call dprint("NONLINEAR: setup matrix")
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(mesh%topo%max_faces + 1, mat_properties)
-    call create_matrix(mat_properties, "M", M)
+    call create_matrix(mat_properties, M)
 
     ! Create RHS vector
     call dprint("NONLINEAR: setup RHS")
     call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, "source", source)
+    call create_vector(vec_properties, source)
 
     ! Create vectors for storing inverse of velocity central coefficients
     call dprint("NONLINEAR: setup ind coeff")
-    call create_vector(vec_properties, "invAu", invAu)
-    call create_vector(vec_properties, "invAv", invAv)
-    call create_vector(vec_properties, "invAw", invAw)
+    call create_vector(vec_properties, invAu)
+    call create_vector(vec_properties, invAv)
+    call create_vector(vec_properties, invAw)
 
     ! Create vectors for storing residuals
     call dprint("NONLINEAR: setup residuals")
-    call create_vector(vec_properties, "res", res)
+    call create_vector(vec_properties, res)
     if (u_sol) nvar = nvar + 1
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1
@@ -271,7 +271,6 @@ contains
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    character(len=1) :: name
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -326,14 +325,11 @@ contains
     residuals(ivar) = norm(res, 2)
 
     ! Create linear solver
-    if (component == 1) then
-      name = "u"
-    else if (component == 2) then
-      name = "v"
-    else if (component == 3) then
-      name = "w"
+    if (allocated(u%values%name)) then
+      call set_equation_system(par_env, vec, u%values, M, lin_sys, u%values%name)
+    else
+      call set_equation_system(par_env, vec, u%values, M, lin_sys)
     endif
-    call set_equation_system(par_env, vec, u%values, M, name, lin_sys)
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -599,7 +595,11 @@ contains
 
     ! Create linear solver
     call dprint("P': create lin sys")
-    call set_equation_system(par_env, vec, p_prime%values, M, "p", lin_sys)
+    if (allocated(p_prime%values%name)) then
+      call set_equation_system(par_env, vec, p_prime%values, M, lin_sys, p_prime%values%name)
+    else
+      call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
+    endif
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver

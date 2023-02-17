@@ -19,7 +19,7 @@ submodule(vec) vec_petsc
 contains
 
   !> Create a PETSc-backed vector
-  module subroutine create_vector(vec_properties, name, v)
+  module subroutine create_vector(vec_properties, v, name)
 
     use petsc, only: PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
@@ -28,8 +28,8 @@ contains
     use meshing, only: get_local_num_cells
     
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
-    character(len=*), intent(in) :: name                !< name of the vector object
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
+    character(len=*), optional, intent(in) :: name      !< name of the vector object
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
     integer(ccs_int) :: i

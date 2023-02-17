@@ -67,10 +67,10 @@ program scalar_advection
 
   ! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, "source", source)
-  call create_vector(vec_properties, "solution", solution)
-  call create_vector(vec_properties, "scalar", scalar%values)
-  call create_vector(vec_properties, "mf", mf%values)
+  call create_vector(vec_properties, source)
+  call create_vector(vec_properties, solution)
+  call create_vector(vec_properties, scalar%values)
+  call create_vector(vec_properties, mf%values)
 
   ! Set advection velocity
   call set_advection_velocity(mesh, mf)

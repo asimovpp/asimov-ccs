@@ -13,7 +13,7 @@ submodule(mat) mat_petsc
 contains
 
   !> Create a new PETSc matrix object.
-  module subroutine create_matrix(mat_properties, name, M)
+  module subroutine create_matrix(mat_properties, M, name)
 
     use mpi
 
@@ -24,8 +24,8 @@ contains
     use meshing, only: get_local_num_cells
     
     type(matrix_spec), intent(in) :: mat_properties   !< contains information about how the matrix should be allocated
-    character(len=*), intent(in) :: name              !< name of the matrix object
     class(ccs_matrix), allocatable, intent(out) :: M  !< the matrix object
+    character(len=*), optional, intent(in) :: name    !< name of the matrix object
 
     integer(ccs_int) :: local_num_cells
     

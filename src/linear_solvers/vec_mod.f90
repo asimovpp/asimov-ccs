@@ -38,13 +38,13 @@ module vec
   interface
 
     !> Interface to create a new vector object.
-    module subroutine create_vector(vec_properties, name, v)
+    module subroutine create_vector(vec_properties, v, name)
       type(vector_spec), intent(in) :: vec_properties  !< Data structure containing the global and local sizes
       !< of the vector, -1 is interpreted as unset. If both
       !< are set the local size is used.
-      character(len=*), intent(in) :: name !< Name of the vector object
       class(ccs_vector), allocatable, intent(out) :: v !< The vector returned allocated,
       !< but (potentially) uninitialised.
+      character(len=*), optional, intent(in) :: name !< Name of the vector object
     end subroutine
 
     !> Interface to set values in a vector.

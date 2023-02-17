@@ -82,9 +82,9 @@ program poisson
 
   ! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, "b", b)
-  call create_vector(vec_properties, "u_exact", u_exact)
-  call create_vector(vec_properties, "u", u)
+  call create_vector(vec_properties, b)
+  call create_vector(vec_properties, u_exact)
+  call create_vector(vec_properties, u)
 
   call begin_update(u) ! Start the parallel assembly for u
 
