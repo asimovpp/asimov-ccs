@@ -11,7 +11,7 @@ ifeq ($(BUILD),debug)
   FFLAGS += -g
   FFLAGS += -warn all,noexternals
 else
-  FFLAGS += -O3 -ipo
+  FFLAGS += -O3 ##-ipo
 endif
 ifeq ($(PROFILE),yes)
   FFLAGS += -qopt-report-per-object -qopt-report=5 -qopt-report-annotate=html -qopt-report-phase=cg,ipo,loop,vec -qopt-report-annotate-position=both

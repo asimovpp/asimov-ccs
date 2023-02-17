@@ -8,7 +8,9 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
+  use case_config, only: num_iters, velocity_relax, pressure_relax, res_target, &
+                         velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
@@ -40,7 +42,7 @@ program ldc
   class(field), allocatable :: u, v, w, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 10 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end, t_count
   integer(ccs_int) :: irank ! MPI rank ID
@@ -72,16 +74,23 @@ program ldc
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
+
   if (irank == par_env%root) then
     call print_configuration()
   end if
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
-  it_end = num_steps
+  it_end = 5
 
   ! Create a square mesh
   print *, "Building mesh"
+  cps = 5
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
@@ -198,8 +207,8 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
-                           get_convection_scheme, get_relaxation_factor, &
+    use read_config, only: get_reference_number, get_iters, &
+                           get_convection_scheme, get_relaxation_factors, &
                            get_target_residual
 
     character(len=*), intent(in) :: config_filename
@@ -212,12 +221,12 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file_pointer, num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+    call get_iters(config_file_pointer, num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_relaxation_factors(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
@@ -236,7 +245,7 @@ contains
 
     print *, "++++"
     print *, "SIMULATION LENGTH"
-    print *, "Running for ", num_steps, "iterations"
+    print *, "Running for ", num_iters, "iterations"
     print *, "++++"
     print *, "MESH"
     print *, "Size is ", cps

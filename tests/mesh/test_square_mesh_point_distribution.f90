@@ -17,9 +17,13 @@ program test_square_mesh_point_distribution
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
 
+  integer(ccs_int), dimension(9) :: m = (/ 1, 2, 4, 8, 16, 20, 40, 80, 100 /)
+  integer(ccs_int) :: mctr
+
   call init()
 
-  do n = 1, 100
+  do mctr = 1, size(m)
+    n = m(mctr)
     mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
 
     call get_local_num_cells(mesh, nlocal)
