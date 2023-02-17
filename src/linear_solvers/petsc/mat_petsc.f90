@@ -37,7 +37,7 @@ contains
     type is (matrix_petsc)
 
       M%modeset = .false.
-      M%name = name
+      if (present(name)) M%name = name
 
       select type (par_env => mat_properties%par_env)
       type is (parallel_environment_mpi)

@@ -43,7 +43,7 @@ contains
 
       v%modeset = .false.
       v%checked_out = .false.
-      v%name = name
+      if (present(name)) v%name = name
 
       select type (par_env => vec_properties%par_env)
       type is (parallel_environment_mpi)
