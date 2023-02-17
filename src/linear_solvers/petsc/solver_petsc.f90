@@ -141,7 +141,9 @@ contains
           call error_abort("ERROR: Unknown solver method " // method_name)
         end if
 
-        call KSPSetOptionsPrefix(ksp, solver%linear_system%name//':', ierr)
+        if (allocated(solver%linear_system%name)) then
+          call KSPSetOptionsPrefix(ksp, solver%linear_system%name//':', ierr)
+        endif
         call KSPSetFromOptions(ksp, ierr)
         
       end associate
@@ -179,7 +181,9 @@ contains
           call error_abort("ERROR: Unknown solver precon " // precon_name)
         end if
 
-        call PCSetOptionsPrefix(pc, solver%linear_system%name//':', ierr)
+        if (allocated(solver%linear_system%name)) then
+          call PCSetOptionsPrefix(pc, solver%linear_system%name//':', ierr)
+        endif
         call PCSetFromOptions(pc, ierr)
 
       end associate

@@ -76,7 +76,9 @@ contains
           end select
         end associate
 
-        call VecSetOptionsPrefix(v%v, v%name//':', ierr)
+        if (present(name)) then
+          call VecSetOptionsPrefix(v%v, v%name//':', ierr)
+        endif
         call VecSetFromOptions(v%v, ierr)
         call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
         call VecSet(v%v, 0.0_ccs_real, ierr)

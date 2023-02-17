@@ -54,7 +54,9 @@ contains
           M%allocated = .true.
         end if
 
-        call MatSetOptionsPrefix(M%M, M%name//':', ierr)
+        if (present(name)) then
+          call MatSetOptionsPrefix(M%M, M%name//':', ierr)
+        endif
         call MatSetFromOptions(M%M, ierr)
 
         if (mat_properties%nnz < 1) then
