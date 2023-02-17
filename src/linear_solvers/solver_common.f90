@@ -27,7 +27,7 @@ contains
     lin_sys%solution => solution
     lin_sys%matrix => mat
     lin_sys%par_env => par_env
-    lin_sys%name = name
+    if (present(name)) lin_sys%name = name
   end subroutine
 
 end submodule
