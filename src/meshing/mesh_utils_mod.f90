@@ -108,7 +108,6 @@ contains
 
     call read_geometry(par_env, geo_reader, mesh)
 
-    stop
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
 
@@ -281,7 +280,7 @@ contains
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     allocate (temp_x_f(ndim, mesh%topo%global_num_faces))
     allocate (temp_n_f(ndim, mesh%topo%global_num_faces))
-    allocate (temp_v_c(vert_per_cell, mesh%topo%global_num_vertices))
+    allocate (temp_v_c(ndim, mesh%topo%global_num_vertices))
     allocate (temp_a_f(mesh%topo%global_num_faces))
 
     f_xn_start = 0
@@ -293,6 +292,7 @@ contains
     ! Read variable "/face/n"
     call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
 
+    f_xn_count(1) = ndim
     f_xn_count(2) = mesh%topo%global_num_vertices
 
     ! Read variable "/vert"
@@ -316,14 +316,14 @@ contains
       global_icell = mesh%topo%global_indices(local_icell)
 
       do j = 1, mesh%topo%max_faces ! loop over all faces for each cell
-        call set_face_location(mesh, global_icell, j, loc_f)
+        call set_face_location(mesh, local_icell, j, loc_f)
 
         n = mesh%topo%global_face_indices(j, global_icell)
         call set_centre(loc_f, temp_x_f(:, n))
         do i = 1, ndim ! loop over dimensions
           ! Map from temp array to mesh for face centres and face normals
           mesh%geo%face_normals(i, j, local_icell) = temp_n_f(i, n)
-       end do
+        end do
 
        ! Map from temp array to mesh for face areas
        call set_area(temp_a_f(n), loc_f)
@@ -340,17 +340,11 @@ contains
 
     ! Delete temp arrays
     deallocate (temp_vol_c, stat=ier)
-    print *, "temp_vol_c", ier
-    deallocate (temp_x_p, stat=ier)
-    print *, "temp_x_p", ier
     deallocate (temp_x_f, stat=ier)
-    print *, "temp_x_f", ier
-    deallocate (temp_n_f, stat=ier)
-    print *, "temp_n_f", ier
-    deallocate (temp_a_f, stat=ier)
-    print *, "temp_a_f", ier
     deallocate (temp_v_c, stat=ier)
-    print *, "temp_v_c", ier
+    deallocate (temp_x_p, stat=ier)
+    deallocate (temp_n_f, stat=ier)
+    deallocate (temp_a_f, stat=ier)
 
   end subroutine read_geometry
 
