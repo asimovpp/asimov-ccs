@@ -74,7 +74,7 @@ program poisson
   ! Create stiffness matrix
   call set_size(par_env, mesh, mat_properties)
   call set_nnz(5, mat_properties)
-  call create_matrix(mat_properties, "M", M)
+  call create_matrix(mat_properties, M)
 
   call discretise_poisson(M)
 
@@ -104,7 +104,7 @@ program poisson
   call end_update(b) ! Complete the parallel assembly for b
 
   ! Create linear solver & set options
-  call set_equation_system(par_env, b, u, M, "p", poisson_eq)
+  call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
   call solve(poisson_solver)
 
