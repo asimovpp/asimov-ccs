@@ -24,12 +24,12 @@ module problem_setup
 
   private
 
-  public :: rhs_val
+  public :: eval_solution
   public :: eval_cell_rhs
   
 contains
   
-  function rhs_val(mesh, i, f) result(r)
+  function eval_solution(mesh, i, f) result(r)
 
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: i !< Cell index
@@ -57,7 +57,7 @@ contains
       end associate
     end if
 
-  end function rhs_val
+  end function eval_solution
 
   !> Apply forcing function
   pure subroutine eval_cell_rhs(x, y, H, r)
@@ -87,7 +87,7 @@ module poisson_discretisation
   use utils, only : clear_entries, set_mode, set_col, set_row, set_entry, set_values
   use vec, only : create_vector_values
 
-  use problem_setup, only : rhs_val
+  use problem_setup, only : eval_solution
   
   implicit none
 
@@ -246,7 +246,7 @@ contains
             call set_face_location(mesh, i, j, loc_f)
             call get_face_area(loc_f, A)
             boundary_coeff = (2.0 / mesh%geo%h) * A
-            boundary_val = rhs_val(mesh, i, j)
+            boundary_val = eval_solution(mesh, i, j)
 
             ! Coefficient
             coeff = coeff - boundary_coeff
@@ -435,7 +435,7 @@ contains
       call get_global_index(loc_p, global_index_p)
 
       call set_row(global_index_p, vec_values)
-      call set_entry(rhs_val(mesh, i), vec_values)
+      call set_entry(eval_solution(mesh, i), vec_values)
       call set_values(vec_values, u_exact)
     end do
     deallocate (vec_values%global_indices)
