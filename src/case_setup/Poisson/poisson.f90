@@ -111,9 +111,22 @@ module poisson_discretisation
   public :: discretise_poisson
   public :: apply_dirichlet_bcs
 
+  interface
+    module subroutine discretise_poisson(mesh, M)
+      type(ccs_mesh), intent(in) :: mesh    !< The mesh the problem is defined upon
+      class(ccs_matrix), intent(inout) :: M !< The system matrix
+    end subroutine discretise_poisson
+
+    module subroutine apply_dirichlet_bcs(mesh, M, b)
+      type(ccs_mesh), intent(in) :: mesh    !< The mesh the problem is defined upon
+      class(ccs_matrix), intent(inout) :: M !< The system matrix
+      class(ccs_vector), intent(inout) :: b !< The system righthand side vector
+    end subroutine apply_dirichlet_bcs
+  end interface
+  
 contains
 
-  subroutine discretise_poisson(mesh, M)
+  module subroutine discretise_poisson(mesh, M)
 
     type(ccs_mesh), intent(in) :: mesh
     class(ccs_matrix), intent(inout) :: M
@@ -197,7 +210,7 @@ contains
 
   end subroutine discretise_poisson
 
-  subroutine apply_dirichlet_bcs(mesh, M, b)
+  module subroutine apply_dirichlet_bcs(mesh, M, b)
 
     implicit none
 
