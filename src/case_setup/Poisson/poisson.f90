@@ -26,7 +26,8 @@ program poisson
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols
-  use solver, only: create_solver, solve, set_equation_system, axpy, norm
+  use solver, only: create_solver, solve, set_equation_system, axpy, norm, &
+       set_solver_method, set_solver_precon
   use utils, only: update, begin_update, end_update, finalise, initialise, &
                    set_size, &
                    set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
@@ -114,6 +115,8 @@ program poisson
   ! Create linear solver & set options
   call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
+  call set_solver_method(pressure_solver_method_name, poisson_solver)
+  call set_solver_precon(pressure_solver_precon_name, poisson_solver)
   call solve(poisson_solver)
 
   ! Check solution
