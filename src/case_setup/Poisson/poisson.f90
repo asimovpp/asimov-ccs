@@ -28,7 +28,11 @@ module problem_setup
   public :: eval_cell_rhs
   
 contains
-  
+
+  !! Evaluate the exact solution.
+  !
+  !  Used to set the Dirichlet BCs and also the reference solution for testing the numerical
+  !  solution. Thus this should reflect changes to the forcing function.
   function eval_solution(mesh, i, f) result(r)
 
     type(ccs_mesh), intent(in) :: mesh
