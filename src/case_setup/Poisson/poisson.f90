@@ -124,6 +124,12 @@ module poisson_discretisation
     end subroutine apply_dirichlet_bcs
   end interface
   
+end module poisson_discretisation
+
+submodule (poisson_discretisation) poisson_discretisation_ref
+
+  implicit none
+  
 contains
 
   module subroutine discretise_poisson(mesh, M)
@@ -303,7 +309,8 @@ contains
 
   end subroutine apply_dirichlet_bcs
   
-end module poisson_discretisation
+end submodule poisson_discretisation_ref
+
 
 program poisson
 
