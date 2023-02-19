@@ -12,6 +12,66 @@
 !    p\left(\boldsymbol{x}\right) = y,\ \boldsymbol{x}\in\partial\Omega
 !  \]
 
+module problem_setup
+
+  use constants, only : ndim
+  use kinds, only : ccs_int, ccs_real
+  use types, only : ccs_mesh, cell_locator, face_locator
+
+  use meshing, only : set_face_location, set_cell_location, get_centre
+  
+  implicit none
+
+  private
+
+  public :: rhs_val
+  public :: eval_cell_rhs
+  
+contains
+  
+  function rhs_val(mesh, i, f) result(r)
+
+    type(ccs_mesh), intent(in) :: mesh
+    integer(ccs_int), intent(in) :: i !< Cell index
+    integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
+
+    type(cell_locator) :: loc_p
+    type(face_locator) :: loc_f
+
+    real(ccs_real), dimension(ndim) :: x
+    real(ccs_real) :: r
+
+    if (present(f)) then
+      ! Face-centred value
+      call set_face_location(mesh, i, f, loc_f)
+      call get_centre(loc_f, x)
+      associate (y => x(2))
+        r = y
+      end associate
+    else
+      ! Cell-centred value
+      call set_cell_location(mesh, i, loc_p)
+      call get_centre(loc_p, x)
+      associate (y => x(2))
+        r = y
+      end associate
+    end if
+
+  end function rhs_val
+
+  !> Apply forcing function
+  pure subroutine eval_cell_rhs(x, y, H, r)
+
+    real(ccs_real), intent(in) :: x, y, H
+    real(ccs_real), intent(out) :: r
+
+    r = 0.0_ccs_real &
+        + 0.0_ccs_real * (x + y + H) ! Silence unused dummy argument error
+
+  end subroutine eval_cell_rhs
+
+end module problem_setup
+
 module poisson_discretisation
 
   use constants, only : ndim, add_mode, insert_mode
@@ -26,6 +86,8 @@ module poisson_discretisation
        set_face_location, get_face_area
   use utils, only : clear_entries, set_mode, set_col, set_row, set_entry, set_values
   use vec, only : create_vector_values
+
+  use problem_setup, only : rhs_val
   
   implicit none
 
@@ -33,69 +95,8 @@ module poisson_discretisation
 
   public :: discretise_poisson
   public :: apply_dirichlet_bcs
-  public :: eval_rhs
-  public :: rhs_val
 
 contains
-
-  subroutine eval_rhs(mesh, b)
-
-    type(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), intent(inout) :: b
-
-    integer(ccs_int) :: nloc
-    integer(ccs_int) :: i
-    real(ccs_real) :: r
-
-    type(vector_values) :: val_dat
-
-    type(cell_locator) :: loc_p
-    real(ccs_real), dimension(ndim) :: cc
-    real(ccs_real) :: V
-    integer(ccs_int) :: global_index_p
-    integer(ccs_int) :: nrows_working_set
-
-    nrows_working_set = 1_ccs_int
-    call create_vector_values(nrows_working_set, val_dat)
-    call set_mode(add_mode, val_dat)
-
-    call get_local_num_cells(mesh, nloc)
-    associate (h => mesh%geo%h)
-      ! this is currently setting 1 vector value at a time
-      ! consider changing to doing all the updates in one go
-      ! to do only 1 call to eval_cell_rhs and set_values
-      do i = 1, nloc
-        call clear_entries(val_dat)
-
-        call set_cell_location(mesh, i, loc_p)
-        call get_centre(loc_p, cc)
-        call get_volume(loc_p, V)
-        call get_global_index(loc_p, global_index_p)
-        associate (x => cc(1), y => cc(2))
-          call eval_cell_rhs(x, y, h**2, r)
-          r = V * r
-          call set_row(global_index_p, val_dat)
-          call set_entry(r, val_dat)
-          call set_values(val_dat, b)
-        end associate
-      end do
-    end associate
-
-    deallocate (val_dat%global_indices)
-    deallocate (val_dat%values)
-
-  end subroutine eval_rhs
-
-  !> Apply forcing function
-  pure subroutine eval_cell_rhs(x, y, H, r)
-
-    real(ccs_real), intent(in) :: x, y, H
-    real(ccs_real), intent(out) :: r
-
-    r = 0.0_ccs_real &
-        + 0.0_ccs_real * (x + y + H) ! Silence unused dummy argument error
-
-  end subroutine eval_cell_rhs
 
   subroutine discretise_poisson(mesh, M)
 
@@ -273,42 +274,13 @@ contains
     deallocate (vec_values%values)
 
   end subroutine apply_dirichlet_bcs
-
-  function rhs_val(mesh, i, f) result(r)
-
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: i !< Cell index
-    integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
-
-    type(cell_locator) :: loc_p
-    type(face_locator) :: loc_f
-
-    real(ccs_real), dimension(ndim) :: x
-    real(ccs_real) :: r
-
-    if (present(f)) then
-      ! Face-centred value
-      call set_face_location(mesh, i, f, loc_f)
-      call get_centre(loc_f, x)
-      associate (y => x(2))
-        r = y
-      end associate
-    else
-      ! Cell-centred value
-      call set_cell_location(mesh, i, loc_p)
-      call get_centre(loc_p, x)
-      associate (y => x(2))
-        r = y
-      end associate
-    end if
-
-  end function rhs_val
   
 end module poisson_discretisation
 
 program poisson
 
   use poisson_discretisation
+  use problem_setup
   
   ! ASiMoV-CCS uses
   use constants, only: ndim, add_mode, insert_mode
@@ -479,5 +451,54 @@ contains
     mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   end subroutine initialise_poisson
+
+  !! Forcing function
+  subroutine eval_rhs(mesh, b)
+
+    type(ccs_mesh), intent(in) :: mesh
+    class(ccs_vector), intent(inout) :: b
+
+    integer(ccs_int) :: nloc
+    integer(ccs_int) :: i
+    real(ccs_real) :: r
+
+    type(vector_values) :: val_dat
+
+    type(cell_locator) :: loc_p
+    real(ccs_real), dimension(ndim) :: cc
+    real(ccs_real) :: V
+    integer(ccs_int) :: global_index_p
+    integer(ccs_int) :: nrows_working_set
+
+    nrows_working_set = 1_ccs_int
+    call create_vector_values(nrows_working_set, val_dat)
+    call set_mode(add_mode, val_dat)
+
+    call get_local_num_cells(mesh, nloc)
+    associate (h => mesh%geo%h)
+      ! this is currently setting 1 vector value at a time
+      ! consider changing to doing all the updates in one go
+      ! to do only 1 call to eval_cell_rhs and set_values
+      do i = 1, nloc
+        call clear_entries(val_dat)
+
+        call set_cell_location(mesh, i, loc_p)
+        call get_centre(loc_p, cc)
+        call get_volume(loc_p, V)
+        call get_global_index(loc_p, global_index_p)
+        associate (x => cc(1), y => cc(2))
+          call eval_cell_rhs(x, y, h**2, r)
+          r = V * r
+          call set_row(global_index_p, val_dat)
+          call set_entry(r, val_dat)
+          call set_values(val_dat, b)
+        end associate
+      end do
+    end associate
+
+    deallocate (val_dat%global_indices)
+    deallocate (val_dat%values)
+
+  end subroutine eval_rhs
 
 end program poisson
