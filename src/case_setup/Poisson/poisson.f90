@@ -26,6 +26,12 @@ module problem_setup
 
   public :: eval_solution
   public :: eval_cell_rhs
+
+  !! Interface to evaluate exact solution.
+  interface eval_solution
+    module procedure eval_solution_cell
+    module procedure eval_solution_face
+  end interface eval_solution
   
 contains
 
@@ -33,35 +39,40 @@ contains
   !
   !  Used to set the Dirichlet BCs and also the reference solution for testing the numerical
   !  solution. Thus this should reflect changes to the forcing function.
-  function eval_solution(mesh, i, f) result(r)
+  function eval_solution_coordinates(x) result(r)
 
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: i !< Cell index
-    integer(ccs_int), intent(in), optional :: f !< Face index (local wrt cell)
-
-    type(cell_locator) :: loc_p
-    type(face_locator) :: loc_f
-
-    real(ccs_real), dimension(ndim) :: x
+    real(ccs_real), dimension(:), intent(in) :: x
     real(ccs_real) :: r
 
-    if (present(f)) then
-      ! Face-centred value
-      call set_face_location(mesh, i, f, loc_f)
-      call get_centre(loc_f, x)
-      associate (y => x(2))
-        r = y
-      end associate
-    else
-      ! Cell-centred value
-      call set_cell_location(mesh, i, loc_p)
-      call get_centre(loc_p, x)
-      associate (y => x(2))
-        r = y
-      end associate
-    end if
+    associate (y => x(2))
+      r = y
+    end associate
 
-  end function eval_solution
+  end function eval_solution_coordinates
+
+  function eval_solution_cell(loc_p) result(r)
+
+    type(cell_locator), intent(in) :: loc_p
+    real(ccs_real) :: r
+
+    real(ccs_real), dimension(ndim) :: x
+
+    call get_centre(loc_p, x)
+    r = eval_solution_coordinates(x)
+    
+  end function eval_solution_cell
+
+  function eval_solution_face(loc_f) result(r)
+
+    type(face_locator), intent(in) :: loc_f
+    real(ccs_real) :: r
+
+    real(ccs_real), dimension(ndim) :: x
+
+    call get_centre(loc_f, x)
+    r = eval_solution_coordinates(x)
+    
+  end function eval_solution_face
 
   !> Apply forcing function
   pure subroutine eval_cell_rhs(x, y, H, r)
@@ -250,7 +261,7 @@ contains
             call set_face_location(mesh, i, j, loc_f)
             call get_face_area(loc_f, A)
             boundary_coeff = (2.0 / mesh%geo%h) * A
-            boundary_val = eval_solution(mesh, i, j)
+            boundary_val = eval_solution(loc_f)
 
             ! Coefficient
             coeff = coeff - boundary_coeff
@@ -439,7 +450,7 @@ contains
       call get_global_index(loc_p, global_index_p)
 
       call set_row(global_index_p, vec_values)
-      call set_entry(eval_solution(mesh, i), vec_values)
+      call set_entry(eval_solution(loc_p), vec_values)
       call set_values(vec_values, u_exact)
     end do
     deallocate (vec_values%global_indices)
