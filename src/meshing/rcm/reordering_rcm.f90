@@ -28,8 +28,6 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    integer(ccs_int) :: idx_new
-    
     ! First build adjacency matrix for local cells
     call get_local_num_cells(mesh, local_num_cells)
 
