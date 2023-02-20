@@ -12,7 +12,7 @@ contains
   !  ordering - assumes a contiguous numbering of the processor's partition, i.e. proc N has global
   !  indices g0 - gN. Following reordering an update is required to inform other processors about the
   !  new global indices of their halo cells.
-  subroutine reorder_cells(mesh)
+  module subroutine reorder_cells(mesh)
     
     use meshing, only: get_local_num_cells
 
@@ -57,7 +57,7 @@ contains
     
   end subroutine reorder_cells
   ! Given a reordering, apply it.
-  subroutine apply_reordering(new_indices, mesh)
+  module subroutine apply_reordering(new_indices, mesh)
 
     use mpi
     use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
@@ -153,7 +153,7 @@ contains
      
   end subroutine apply_reordering
   
-  subroutine bandwidth(mesh)
+  module subroutine bandwidth(mesh)
     use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
                        get_local_index, set_neighbour_location, get_local_status
                        

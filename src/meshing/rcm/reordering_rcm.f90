@@ -6,7 +6,7 @@ submodule(reordering) reordering_rcm
 
 contains
 
-  subroutine get_reordering(mesh, new_indices)
+  module subroutine get_reordering(mesh, new_indices)
 
     use rcm_mod
     use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &

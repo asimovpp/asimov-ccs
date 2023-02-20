@@ -9,7 +9,7 @@ contains
 
   ! Determine how the mesh should be reordered
   ! XXX: Currently PETSc-specific
-  subroutine get_reordering(mesh, new_indices)
+  module subroutine get_reordering(mesh, new_indices)
 #include "petsc/finclude/petscmat.h"
 
     use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER, INSERT_VALUES
