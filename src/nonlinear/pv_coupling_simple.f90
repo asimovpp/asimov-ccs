@@ -19,7 +19,7 @@ submodule(pv_coupling) pv_coupling_simple
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print
 
-  use utils, only: debug_print, get_field, get_fluid_solve_selector
+  use utils, only: debug_print, get_field, get_fluid_solver_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -36,7 +36,7 @@ contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
   module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    flow_solve_selector, flow, step)
+                                    flow_solver_selector, flow, step)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
@@ -44,7 +44,7 @@ contains
     integer(ccs_int), intent(in) :: it_start
     integer(ccs_int), intent(in) :: it_end
     real(ccs_real), intent(in) :: res_target !< Target residual
-    type(fluid_solve_selector), intent(in) :: flow_solve_selector
+    type(fluid_solver_selector), intent(in) :: flow_solver_selector
     type(fluid), intent(inout) :: flow
     integer(ccs_int), optional, intent(in) :: step !< The current time-step
 
@@ -83,10 +83,10 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_p_prime, p_prime)
     call get_field(flow, field_mf, mf)
-    call get_fluid_solve_selector(flow_solve_selector, field_u, u_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_v, v_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_w, w_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_p, p_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
 
     ! Check whether 'step' has been passed into this subroutine (i.e. unsteady run)
     if (present(step)) then
@@ -147,7 +147,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, flow, flow_solve_selector, ivar, M, source, &
+      call calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, source, &
                               lin_system, invAu, invAv, invAw, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
@@ -172,7 +172,7 @@ contains
       !call calculate_scalars()
 
       call check_convergence(par_env, i, residuals, res_target, &
-                             flow_solve_selector, t, converged)
+                             flow_solver_selector, t, converged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
@@ -197,13 +197,13 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, flow, flow_solve_selector, ivar, M, vec, lin_sys, invAu, invAv, invAw, &
+  subroutine calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, vec, lin_sys, invAu, invAv, invAw, &
                                 res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     type(ccs_mesh), intent(in) :: mesh                   !< the mesh
-    type(fluid_solve_selector), intent(in) :: flow_solve_selector
+    type(fluid_solver_selector), intent(in) :: flow_solver_selector
     type(fluid), intent(inout) :: flow
     integer(ccs_int), intent(inout) :: ivar              !< flow variable counter
     class(ccs_matrix), allocatable, intent(inout) :: M   !< matrix object
@@ -235,9 +235,9 @@ contains
     call get_field(flow, field_w, w)
     call get_field(flow, field_p, p)
     call get_field(flow, field_mf, mf)
-    call get_fluid_solve_selector(flow_solve_selector, field_u, u_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_v, v_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_w, w_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
 
     ! Set flow variable identifiers (for residuals)
     if (first_time) then
@@ -951,14 +951,14 @@ contains
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
-                               flow_solve_selector, step, converged)
+                               flow_solver_selector, step, converged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
     real(ccs_real), dimension(:), intent(in) :: residuals           !< L2-norm of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
-    type(fluid_solve_selector), intent(in) :: flow_solve_selector
+    type(fluid_solver_selector), intent(in) :: flow_solver_selector
     integer(ccs_int), intent(in) :: step                            !< The current time-step
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
@@ -972,10 +972,10 @@ contains
     logical :: w_sol                                    !< Is z-velocity being solved (true/false)
     logical :: p_sol                                    !< Is pressure field being solved (true/false)
 
-    call get_fluid_solve_selector(flow_solve_selector, field_u, u_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_v, v_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_w, w_sol)
-    call get_fluid_solve_selector(flow_solve_selector, field_p, p_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
+    call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
 
     nvar = size(residuals)
 

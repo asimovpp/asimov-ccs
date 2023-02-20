@@ -11,7 +11,7 @@ program simple
   use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, fluid, fluid_solve_selector
+                   vector_spec, ccs_vector, fluid, fluid_solver_selector
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -21,7 +21,7 @@ program simple
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, get_field, set_field, &
-                   get_fluid_solve_selector, set_fluid_solve_selector, &
+                   get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
 
   implicit none
@@ -47,7 +47,7 @@ program simple
   logical :: p_sol = .true.  ! Solve p
   
   type(fluid) :: flow_fields
-  type(fluid_solve_selector) :: fluid_sol
+  type(fluid_solver_selector) :: fluid_sol
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
@@ -113,10 +113,10 @@ program simple
   call update(v%values)
   call update(mf%values)
 
-  call set_fluid_solve_selector(field_u, u_sol, fluid_sol)
-  call set_fluid_solve_selector(field_v, v_sol, fluid_sol)
-  call set_fluid_solve_selector(field_w, w_sol, fluid_sol)
-  call set_fluid_solve_selector(field_p, p_sol, fluid_sol)
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
   call allocate_fluid_fields(6, flow_fields)
   call set_field(1, field_u, u, flow_fields)
   call set_field(2, field_v, v, flow_fields)

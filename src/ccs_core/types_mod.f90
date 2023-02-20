@@ -212,12 +212,12 @@ module types
   !v Fluid solve selector
   !
   ! Type for storing which fields are being solved for
-  type, public :: fluid_solve_selector
+  type, public :: fluid_solver_selector
     logical :: u
     logical :: v
     logical :: w
     logical :: p
-  end type fluid_solve_selector
+  end type fluid_solver_selector
 
  !>  IO environment type
   type, public :: io_environment

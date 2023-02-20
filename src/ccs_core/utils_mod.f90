@@ -19,7 +19,7 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, fluid, fluid_solve_selector
+  use types, only: field, fluid, fluid_solver_selector
   use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf
 
   implicit none
@@ -47,9 +47,9 @@ module utils
   public :: calc_enstrophy
   public :: add_field_to_outputlist
   public :: get_field
-  public :: get_fluid_solve_selector
+  public :: get_fluid_solver_selector
   public :: set_field
-  public :: set_fluid_solve_selector
+  public :: set_fluid_solver_selector
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
 
@@ -443,43 +443,43 @@ contains
     flow%field_names(field_index) = field_name
   end subroutine set_field
 
-  subroutine get_fluid_solve_selector(solve_selector, field_name, selector)
-    type(fluid_solve_selector), intent(in) :: solve_selector
+  subroutine get_fluid_solver_selector(solver_selector, field_name, selector)
+    type(fluid_solver_selector), intent(in) :: solver_selector
     integer(ccs_int), intent(in) :: field_name
     logical, intent(out) :: selector
 
     select case (field_name)
     case (field_u)
-      selector = solve_selector%u
+      selector = solver_selector%u
     case (field_v)
-      selector = solve_selector%v
+      selector = solver_selector%v
     case (field_w)
-      selector = solve_selector%w
+      selector = solver_selector%w
     case (field_p)
-      selector = solve_selector%p
+      selector = solver_selector%p
     case default
       call error_abort("Unrecognised field index.")
     end select
-  end subroutine get_fluid_solve_selector
+  end subroutine get_fluid_solver_selector
 
-  subroutine set_fluid_solve_selector(field_name, selector, solve_selector)
+  subroutine set_fluid_solver_selector(field_name, selector, solver_selector)
     integer(ccs_int), intent(in) :: field_name
     logical, intent(in) :: selector
-    type(fluid_solve_selector), intent(inout) :: solve_selector
+    type(fluid_solver_selector), intent(inout) :: solver_selector
 
     select case (field_name)
     case (field_u)
-      solve_selector%u = selector
+      solver_selector%u = selector
     case (field_v)
-      solve_selector%v = selector
+      solver_selector%v = selector
     case (field_w)
-      solve_selector%w = selector
+      solver_selector%w = selector
     case (field_p)
-      solve_selector%p = selector
+      solver_selector%p = selector
     case default
       call error_abort("Unrecognised field index.")
     end select
-  end subroutine set_fluid_solve_selector
+  end subroutine set_fluid_solver_selector
 
   subroutine allocate_fluid_fields(n_fields, flow)
     integer(ccs_int), intent(in) :: n_fields
