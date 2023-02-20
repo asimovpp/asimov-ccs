@@ -15,7 +15,7 @@ program ldc
                        field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, fluid, fluid_solve_selector
+                   vector_spec, ccs_vector, fluid, fluid_solver_selector
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -26,7 +26,7 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, str, get_field, set_field, &
-                   get_fluid_solve_selector, set_fluid_solve_selector, allocate_fluid_fields
+                   get_fluid_solver_selector, set_fluid_solver_selector, allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, get_timestep, update_old_values, activate_timestepping, initialise_old_values
@@ -61,7 +61,7 @@ program ldc
   logical :: p_sol = .true.
 
   type(fluid) :: flow_fields
-  type(fluid_solve_selector) :: fluid_sol
+  type(fluid_solver_selector) :: fluid_sol
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -178,10 +178,10 @@ program ldc
   t_count = 0
 
   ! XXX: This should get incorporated as part of create_field subroutines
-  call set_fluid_solve_selector(field_u, u_sol, fluid_sol)
-  call set_fluid_solve_selector(field_v, v_sol, fluid_sol)
-  call set_fluid_solve_selector(field_w, w_sol, fluid_sol)
-  call set_fluid_solve_selector(field_p, p_sol, fluid_sol)
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
   call allocate_fluid_fields(6, flow_fields)
   call set_field(1, field_u, u, flow_fields)
   call set_field(2, field_v, v, flow_fields)
