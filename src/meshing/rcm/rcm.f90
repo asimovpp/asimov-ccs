@@ -2748,7 +2748,6 @@ subroutine r8mat_print_some ( m, n, a, ilo, jlo, ihi, jhi, title )
 
   real ( kind = 8 ) a(m,n)
   character ( len = 14 ) ctemp(incx)
-  logical d_is_int
   integer(ccs_int) i
   integer(ccs_int) i2hi
   integer(ccs_int) i2lo
