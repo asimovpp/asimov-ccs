@@ -27,7 +27,7 @@ module problem_setup
   public :: eval_solution
   public :: eval_cell_rhs
 
-  !! Interface to evaluate exact solution.
+  !> Interface to evaluate exact solution.
   interface eval_solution
     module procedure eval_solution_cell
     module procedure eval_solution_face
@@ -35,7 +35,7 @@ module problem_setup
   
 contains
 
-  !! Evaluate the exact solution.
+  !v Evaluate the exact solution.
   !
   !  Used to set the Dirichlet BCs and also the reference solution for testing the numerical
   !  solution. Thus this should reflect changes to the forcing function.
@@ -301,7 +301,7 @@ contains
 
   end subroutine initialise_poisson
 
-  !! Forcing function
+  !> Forcing function
   subroutine eval_rhs(mesh, b)
 
     type(ccs_mesh), intent(in) :: mesh
