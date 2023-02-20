@@ -36,7 +36,7 @@ contains
     ! print *, new_indices
     print *, "**************************"
     call get_reordering(mesh, new_indices)
-    print *, new_indices
+    ! print *, new_indices
     print *, "**************************"
     call apply_reordering(new_indices, mesh)
     deallocate(new_indices)

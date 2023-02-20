@@ -70,13 +70,12 @@ contains
     !call genrcm(node_num, adj_num, mesh%topo%xadj, mesh%topo%adjncy, perm)  
     ! create copies of xadj and adjncy and convert them to integers from longs
     ! because genrcm expects integers, but parhip (above) expects longs
-    call adj_show(node_num, adj_num, xadj, adjncy)
+    ! call adj_show(node_num, adj_num, xadj, adjncy)
     call genrcm(node_num, adj_num, xadj, adjncy, perm)  
     call perm_inverse3(node_num, perm, perm_inv)
-    call i4vec_print ( node_num, perm, '  The RCM permutation:' )
-    call adj_perm_show(node_num, adj_num, xadj, adjncy, perm, perm_inv )
+    ! call i4vec_print ( node_num, perm, '  The RCM permutation:' )
+    ! call adj_perm_show(node_num, adj_num, xadj, adjncy, perm, perm_inv )
 
-    print *, "======END PERM========"
     
     ! Fill local indices in original ordering -> destination, i.e. to(i) => new index of cell i.
     allocate(new_indices(local_num_cells))
