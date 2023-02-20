@@ -72,11 +72,7 @@ contains
     integer(ccs_int) :: local_num_cells
 
     type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    integer(ccs_int) :: i, j, ctr, nnb
-    integer(ccs_int), dimension(7) :: idx
-    real(ccs_real), dimension(7) :: row
-    logical :: cell_local
+    integer(ccs_int) :: i, j
 
     integer(ccs_int), dimension(:), allocatable :: new_global_ordering
 
