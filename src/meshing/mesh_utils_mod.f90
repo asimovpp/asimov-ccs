@@ -912,27 +912,7 @@ contains
 
       mesh%topo%total_num_cells = size(mesh%topo%global_indices)
       mesh%topo%halo_num_cells = mesh%topo%total_num_cells - mesh%topo%local_num_cells
-
-      ! Global vertex numbering
-      do i = 1, mesh%topo%local_num_cells
-        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          ii = mesh%topo%global_indices(i)
-          a = modulo(ii - 1, nx * ny) + 1
-          b = (a - 1) / nx
-          c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
-          d = (a + nx - 1) / nx
-          e = (nx + 1) * (ny + 1)
-
-          global_vert_index(front_bottom_left) = a + b + c
-          global_vert_index(front_bottom_right) = a + b + c + 1
-          global_vert_index(front_top_left) = a + c + d + nx
-          global_vert_index(front_top_right) = a + c + d + nx + 1
-          global_vert_index(back_bottom_left) = a + b + c + e
-          global_vert_index(back_bottom_right) = a + b + c + e + 1
-          global_vert_index(back_top_left) = a + c + d + e + nx
-          global_vert_index(back_top_right) = a + c + d + e + nx + 1
-        end associate
-      end do
+      
 
       mesh%topo%global_num_faces = (nx+1)*ny*nz + nx*(ny+1)*nz + nx*ny*(nz+1)
       allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
@@ -1113,6 +1093,7 @@ contains
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: face_index_counter    ! global face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
+    integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     logical :: is_boundary
 
@@ -1134,6 +1115,34 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
+
+      if (allocated(mesh%topo%global_vertex_indices)) then
+        deallocate (mesh%topo%global_vertex_indices)
+      end if
+      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
+
+      ! Global vertex numbering
+      do i = 1, mesh%topo%local_num_cells
+        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+          ii = mesh%topo%global_indices(i)
+          a = modulo(ii - 1, nx * ny) + 1
+          b = (a - 1) / nx
+          c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
+          d = (a + nx - 1) / nx
+          e = (nx + 1) * (ny + 1)
+
+          global_vert_index(front_bottom_left) = a + b + c
+          global_vert_index(front_bottom_right) = a + b + c + 1
+          global_vert_index(front_top_left) = a + c + d + nx
+          global_vert_index(front_top_right) = a + c + d + nx + 1
+          global_vert_index(back_bottom_left) = a + b + c + e
+          global_vert_index(back_bottom_right) = a + b + c + e + 1
+          global_vert_index(back_top_left) = a + c + d + e + nx
+          global_vert_index(back_top_right) = a + c + d + e + nx + 1
+        end associate
+      end do
+
+
 
       mesh%geo%h = side_length / real(nx, ccs_real) !< @note Assumes cube @endnote
 
