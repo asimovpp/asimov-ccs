@@ -24,7 +24,7 @@ contains
     
     use meshing, only: get_local_num_cells
 
-    type(ccs_mesh), intent(inout) :: mesh
+    type(ccs_mesh), intent(inout) :: mesh !< the mesh to be reordered
 
     integer(ccs_int) :: i
     integer(ccs_int) :: local_num_cells
@@ -68,7 +68,8 @@ contains
     end if
     
   end subroutine reorder_cells
-  ! Given a reordering, apply it.
+  
+
   module subroutine apply_reordering(new_indices, mesh)
 
     use mpi
@@ -76,8 +77,8 @@ contains
                        get_local_index, set_neighbour_location, get_local_status, &
                        get_centre, set_centre
     
-    integer(ccs_int), dimension(:), intent(in) :: new_indices
-    type(ccs_mesh), intent(inout) :: mesh
+    integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
+    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     integer(ccs_err) :: ierr
     
@@ -160,13 +161,13 @@ contains
     deallocate(idx_nb)
      
   end subroutine apply_reordering
-  
+ 
   module subroutine bandwidth(mesh)
     use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
                        get_local_index, set_neighbour_location, get_local_status
                        
 
-    type(ccs_mesh), intent(in) :: mesh
+    type(ccs_mesh), intent(in) :: mesh !< the mesh to evaluate
 
     integer(ccs_int) :: bw, bw_max, bw_rowmax
     real(ccs_real) :: bw_avg

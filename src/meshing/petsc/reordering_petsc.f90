@@ -7,7 +7,7 @@ submodule(reordering) reordering_petsc
 
 contains
 
-  !v Determine how the mesh should be reordered
+  !v Determine how the mesh should be reordered using PETSc reordering
   module subroutine get_reordering(mesh, new_indices)
 #include "petsc/finclude/petscmat.h"
 
@@ -15,8 +15,8 @@ contains
     use petscmat
     use petscis, only: tIS, ISGetIndicesF90, ISRestoreIndicesF90, ISDestroy
 
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices
+    type(ccs_mesh), intent(in) :: mesh                                      !< the mesh to be reordered
+    integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format
 
     type(tMat) :: M
     integer(ccs_err) :: ierr

@@ -6,14 +6,15 @@ submodule(reordering) reordering_rcm
 
 contains
 
+  !v Determine how the mesh should be reordered using bundled RCM reordering
   module subroutine get_reordering(mesh, new_indices)
 
     use rcm_mod
     use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
                        get_local_index, set_neighbour_location, get_local_status
 
-    type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices
+    type(ccs_mesh), intent(in) :: mesh                                      !< the mesh to be reordered
+    integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format 
 
     integer(ccs_int), allocatable, dimension(:) :: perm, perm_inv
     integer(ccs_int) :: node_num, adj_num 
