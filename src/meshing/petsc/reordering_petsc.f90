@@ -7,15 +7,11 @@ submodule(reordering) reordering_petsc
 
 contains
 
-  ! Determine how the mesh should be reordered
-  ! XXX: Currently PETSc-specific
+  !v Determine how the mesh should be reordered
   module subroutine get_reordering(mesh, new_indices)
 #include "petsc/finclude/petscmat.h"
 
     use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER, INSERT_VALUES
-    ! use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSeqAIJSetPreallocation, tMat, &
-    !      MatSetValues, MatAssemblyBegin, MatAssemblyEnd, MAT_FINAL_ASSEMBLY, &
-    !      MatDestroy
     use petscmat
     use petscis, only: tIS, ISGetIndicesF90, ISRestoreIndicesF90, ISDestroy
 

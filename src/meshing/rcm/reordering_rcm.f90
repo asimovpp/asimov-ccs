@@ -60,20 +60,11 @@ contains
     node_num = size(xadj) - 1
     adj_num = size(adjncy) 
 
-    ! print *, "node_num", node_num, "adj_num", adj_num 
-
     allocate(perm(node_num))
     allocate(perm_inv(node_num))
 
-    !call genrcm(node_num, adj_num, msh%topo%xadj, mesh%topo%adjncy, perm)  
-    ! create copies of xadj and adjncy and convert them to integers from longs
-    ! because genrcm expects integers, but parhip (above) expects longs
-    ! call adj_show(node_num, adj_num, xadj, adjncy)
     call genrcm(node_num, adj_num, xadj, adjncy, perm)  
     call perm_inverse3(node_num, perm, perm_inv)
-    ! call i4vec_print ( node_num, perm, '  The RCM permutation:' )
-    ! call adj_perm_show(node_num, adj_num, xadj, adjncy, perm, perm_inv )
-
     
     ! Fill local indices in original ordering -> destination, i.e. to(i) => new index of cell i.
     allocate(new_indices(local_num_cells))
