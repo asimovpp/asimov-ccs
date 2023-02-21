@@ -133,6 +133,8 @@ contains
 
     call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
 
+    call set_cell_face_indices(mesh)
+
     mesh%topo%num_faces = count_mesh_faces(mesh)
 
   end subroutine compute_connectivity
@@ -302,8 +304,6 @@ contains
 
     deallocate (tmp1)
     deallocate (tmp2)
-
-    call set_cell_face_indices(mesh)
 
   end subroutine
 

@@ -97,16 +97,17 @@ contains
 
     call read_topology(par_env, geo_reader, mesh)
 
-    call print_topo(par_env, mesh)
-
     call partition_kway(par_env, mesh)
-    ! for debug: Fake a 2 rank partitioning, even in serial
-    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
-    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
+    ! for debug: Hardcode a 2 rank partitioning (even in serial)
+    mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
+    mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
     
     call compute_connectivity(par_env, mesh)
 
     call read_geometry(par_env, geo_reader, mesh)
+
+    call print_topo(par_env, mesh)
+    !call print_geo(par_env, mesh)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -1502,12 +1503,88 @@ contains
 
   end function local_count
 
+  ! Print mesh geometry object
+  subroutine print_geo(par_env, mesh)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), intent(in) :: mesh       !< the mesh
+    integer(ccs_int) :: i,j          ! loop counters
+    integer(ccs_int) :: nb_elem = 10
+    integer(ccs_int) :: file_unit = 32098
+
+
+    print *, "############################# Print Geometry ########################################"
+
+    print *, par_env%proc_id, "h                  : ", mesh%geo%h
+    print *, par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
+    print *, ""
+
+    if (allocated(mesh%geo%volumes))    print *, par_env%proc_id, "volumes         : ", mesh%geo%volumes(1:nb_elem)
+
+    print *, ""
+    if (allocated(mesh%geo%face_areas))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "face_areas(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%face_areas(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%geo%x_p))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "x_p(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%x_p(1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%geo%x_f))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "x_f(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%x_f(2, 1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%geo%face_normals))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "face_normals(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%face_normals(2, 1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, ""
+    if (allocated(mesh%geo%vert_coords))   then
+      do i=1, nb_elem
+        print *, par_env%proc_id, "vert_coords(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%vert_coords(2, 1:nb_elem/2,i)
+      end do
+    end if
+
+    print *, "############################# End Print Geometry ########################################"
+
+    ! Write geometry to file
+
+ !   open(file_unit, file = 'raw_geometry_' // str(par_env%proc_id) // '.dat', status = 'new')  
+
+ !   write(file_unit, *) "h ", mesh%geo%h
+ !   write(file_unit, *) "scalefator ", mesh%geo%scalefactor
+ !   write(file_unit, *) "volumes ", mesh%geo%volumes(:)
+ !   write(file_unit, *) "face_areas ", mesh%geo%face_areas(:,:)
+ !   write(file_unit, *) "x_p ", mesh%geo%x_p(:,:)
+ !   write(file_unit, *) "x_f ", mesh%geo%x_f(:,:,:)
+ !   write(file_unit, *) "face_normals ", mesh%geo%face_normals(:,:,:)
+ !   write(file_unit, *) "vert_coords ", mesh%geo%vert_coords(:,:,:)
+ !   
+ !   close(file_unit) 
+
+
+
+
+  end subroutine print_geo
+
+
   ! Print mesh topology object
   subroutine print_topo(par_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
     integer(ccs_int) :: i,j          ! loop counters
     integer(ccs_int) :: nb_elem = 10
+    integer(ccs_int) :: file_unit = 23447
 
     print *, "############################# Print Topology ########################################"
 
@@ -1565,6 +1642,41 @@ contains
     end if
 
     print *, "############################# End Print Topology ########################################"
+
+!
+!    open(file_unit, file = 'raw_topology_' // str(par_env%proc_id) // '.dat', status = 'new')  
+!
+!    write(file_unit, *) "global_num_cells         ", mesh%topo%global_num_cells
+!    write(file_unit, *) "local_num_cells          ", mesh%topo%local_num_cells
+!    write(file_unit, *) "halo_num_cells           ", mesh%topo%halo_num_cells
+!    write(file_unit, *) "global_num_vertices      ", mesh%topo%global_num_vertices
+!    write(file_unit, *) "vert_per_cell            ", mesh%topo%vert_per_cell
+!    write(file_unit, *) "total_num_cells          ", mesh%topo%total_num_cells
+!    write(file_unit, *) "global_num_faces         ", mesh%topo%global_num_faces
+!    write(file_unit, *) "num_faces                ", mesh%topo%num_faces
+!    write(file_unit, *) "max_faces                ", mesh%topo%max_faces
+!    write(file_unit, *) "global_indices           ", mesh%topo%global_indices
+!    write(file_unit, *) "global_face_indices      ", mesh%topo%global_face_indices
+!    write(file_unit, *) "global_vertex_indices    ", mesh%topo%global_vertex_indices
+!    write(file_unit, *) "face_indices             ", mesh%topo%face_indices
+!    write(file_unit, *) "nb_indices               ", mesh%topo%nb_indices
+!    write(file_unit, *) "num_nb                   ", mesh%topo%num_nb
+!    write(file_unit, *) "global_boundaries        ", mesh%topo%global_boundaries
+!    write(file_unit, *) "face_cell1               ", mesh%topo%face_cell1
+!    write(file_unit, *) "face_cell2               ", mesh%topo%face_cell2
+!    write(file_unit, *) "bnd_rid                  ", mesh%topo%bnd_rid
+!    write(file_unit, *) "xadj                     ", mesh%topo%xadj
+!    write(file_unit, *) "adjncy                   ", mesh%topo%adjncy
+!    write(file_unit, *) "vtxdist                  ", mesh%topo%vtxdist
+!    write(file_unit, *) "vwgt                     ", mesh%topo%vwgt
+!    write(file_unit, *) "adjwgt                   ", mesh%topo%adjwgt
+!    write(file_unit, *) "local_partition          ", mesh%topo%local_partition
+!    write(file_unit, *) "global_partition         ", mesh%topo%global_partition     
+!
+!    close(file_unit)
+!
+
+
 
   end subroutine print_topo
 end module mesh_utils
