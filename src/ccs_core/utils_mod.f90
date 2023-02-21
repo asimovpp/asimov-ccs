@@ -19,6 +19,8 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
+  use types, only: field, fluid, fluid_solver_selector
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf
 
   implicit none
 
@@ -44,6 +46,12 @@ module utils
   public :: calc_kinetic_energy
   public :: calc_enstrophy
   public :: add_field_to_outputlist
+  public :: get_field
+  public :: get_fluid_solver_selector
+  public :: set_field
+  public :: set_fluid_solver_selector
+  public :: allocate_fluid_fields
+  public :: dealloc_fluid_fields
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -119,7 +127,7 @@ module utils
     module procedure set_matrix_size
   end interface set_size
 
-  !>  Generic interface to perform multiplications
+  !> Generic interface to perform multiplications
   interface mult
     module procedure mult_vec_vec
   end interface mult
@@ -413,5 +421,85 @@ contains
     list(count)%name = name
 
   end subroutine add_field_to_outputlist
+
+  !> Gets the field from the fluid structure specified by field_name
+  subroutine get_field(flow, field_name, flow_field)
+    type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
+    integer(ccs_int), intent(in) :: field_name        !< name of the field of interest
+    class(field), pointer, intent(out) :: flow_field  !< the field of interest
+
+    integer(ccs_int), dimension(1) :: field_index
+
+    field_index = findloc(flow%field_names, field_name)
+    flow_field => flow%fields(field_index(1))%ptr
+  end subroutine get_field
+
+  !< Sets the pointer to the field and the corresponding field name in the fluid structure
+  subroutine set_field(field_index, field_name, flow_field, flow)
+    integer(ccs_int), intent(in) :: field_index     !< index of arrays at which to set the field pointer and name
+    integer(ccs_int), intent(in) :: field_name      !< the name of the field
+    class(field), target, intent(in) :: flow_field  !< the field
+    type(fluid), intent(inout) :: flow              !< the fluid structure
+
+    flow%fields(field_index)%ptr => flow_field
+    flow%field_names(field_index) = field_name
+  end subroutine set_field
+
+  !> Gets the solver selector for a specified field
+  subroutine get_fluid_solver_selector(solver_selector, field_name, selector)
+    type(fluid_solver_selector), intent(in) :: solver_selector  !< Structure containing all of the solver selectors
+    integer(ccs_int), intent(in) :: field_name                  !< name of field
+    logical, intent(out) :: selector                            !< flag indicating whether to solve for the given field
+
+    select case (field_name)
+    case (field_u)
+      selector = solver_selector%u
+    case (field_v)
+      selector = solver_selector%v
+    case (field_w)
+      selector = solver_selector%w
+    case (field_p)
+      selector = solver_selector%p
+    case default
+      call error_abort("Unrecognised field index.")
+    end select
+  end subroutine get_fluid_solver_selector
+
+  !> Sets the solver selector for a specified field
+  subroutine set_fluid_solver_selector(field_name, selector, solver_selector)
+    integer(ccs_int), intent(in) :: field_name                      !< name of field
+    logical, intent(in) :: selector                                 !< flag indicating whether to solve for the given field
+    type(fluid_solver_selector), intent(inout) :: solver_selector   !< Structure containing all of the solver selectors
+
+    select case (field_name)
+    case (field_u)
+      solver_selector%u = selector
+    case (field_v)
+      solver_selector%v = selector
+    case (field_w)
+      solver_selector%w = selector
+    case (field_p)
+      solver_selector%p = selector
+    case default
+      call error_abort("Unrecognised field index.")
+    end select
+  end subroutine set_fluid_solver_selector
+
+  ! Allocates arrays in fluid field structure to specified size
+  subroutine allocate_fluid_fields(n_fields, flow)
+    integer(ccs_int), intent(in) :: n_fields  !< Size of arrays in fluid structure
+    type(fluid), intent(out) :: flow          !< the fluid structure
+
+    allocate(flow%fields(n_fields))
+    allocate(flow%field_names(n_fields))
+  end subroutine allocate_fluid_fields
+
+  ! Deallocates fluid arrays
+  subroutine dealloc_fluid_fields(flow)
+    type(fluid), intent(inout) :: flow  !< The fluid structure to deallocate
+
+    deallocate(flow%fields)
+    deallocate(flow%field_names)
+  end subroutine dealloc_fluid_fields
 
 end module utils
