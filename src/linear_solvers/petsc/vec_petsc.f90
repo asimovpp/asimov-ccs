@@ -62,9 +62,15 @@ contains
                                   nhalo, global_halo_indices, &
                                   v%v, ierr)
               deallocate (global_halo_indices)
+
+              if (nhalo > 0) then
+                v%ghosted = .true.
+              else
+                ! PETSc tries and fails to ghost update
+                v%ghosted = .false.
+              end if
             end associate
             ! Vector has ghost points, store this information
-            v%ghosted = .true.
           case (face)
             call VecCreate(par_env%comm, v%v, ierr)
             call VecSetSizes(v%v, mesh%topo%num_faces, PETSC_DECIDE, ierr)
