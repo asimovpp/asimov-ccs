@@ -5,7 +5,15 @@ submodule(reordering) reordering_common
 
   implicit none
 
+  logical :: write_csr = .false.
+  logical :: perform_reordering = .true.
+
 contains
+
+  module subroutine disable_reordering()
+    perform_reordering = .false.
+  end subroutine disable_reordering
+
   !v Cell reordering.
   !
   !  Performs a reordering of local cells and reassigns their global indices based on this new
@@ -23,21 +31,22 @@ contains
     
     integer(ccs_int), dimension(:), allocatable :: new_indices
 
+    if (.not. perform_reordering) then
+      return
+    end if
+
     call get_local_num_cells(mesh, local_num_cells)
     
-    open(unit=2031, FILE="csr_orig.txt", FORM="FORMATTED")
-    do i = 1, mesh%topo%local_num_cells
-       write(2031, *) mesh%topo%nb_indices(:, i)
-    end do
-    close(2031)
+    if (write_csr) then
+      open(unit=2031, FILE="csr_orig.txt", FORM="FORMATTED")
+      do i = 1, mesh%topo%local_num_cells
+         write(2031, *) mesh%topo%nb_indices(:, i)
+      end do
+      close(2031)
+    end if
 
-    ! print *, "**************************"
-    ! call get_reordering(mesh, new_indices)
-    ! print *, new_indices
-    print *, "**************************"
+    print *, "*********BEGIN REORDERING*****************"
     call get_reordering(mesh, new_indices)
-    ! print *, new_indices
-    print *, "**************************"
     call apply_reordering(new_indices, mesh)
     deallocate(new_indices)
 
@@ -48,12 +57,15 @@ contains
           stop
        end if
     end do
+    print *, "*********END   REORDERING*****************"
     
-    open(unit=2032, FILE="csr_new.txt", FORM="FORMATTED")
-    do i = 1, mesh%topo%local_num_cells
-       write(2032, *) mesh%topo%nb_indices(:, i)
-    end do
-    close(2032)
+    if (write_csr) then
+      open(unit=2032, FILE="csr_new.txt", FORM="FORMATTED")
+      do i = 1, mesh%topo%local_num_cells
+         write(2032, *) mesh%topo%nb_indices(:, i)
+      end do
+      close(2032)
+    end if
     
   end subroutine reorder_cells
   ! Given a reordering, apply it.

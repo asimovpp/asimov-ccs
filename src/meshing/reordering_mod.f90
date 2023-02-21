@@ -8,6 +8,7 @@ module reordering
   private
   public :: reorder_cells
   public :: bandwidth
+  public :: disable_reordering
 
 interface
   
@@ -28,7 +29,9 @@ interface
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices
   end subroutine
-  
+
+  module subroutine disable_reordering()
+  end subroutine
 
 end interface
 

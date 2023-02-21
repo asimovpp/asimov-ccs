@@ -60,12 +60,12 @@ contains
     node_num = size(xadj) - 1
     adj_num = size(adjncy) 
 
-    print *, "node_num", node_num, "adj_num", adj_num 
+    ! print *, "node_num", node_num, "adj_num", adj_num 
 
     allocate(perm(node_num))
     allocate(perm_inv(node_num))
 
-    !call genrcm(node_num, adj_num, mesh%topo%xadj, mesh%topo%adjncy, perm)  
+    !call genrcm(node_num, adj_num, msh%topo%xadj, mesh%topo%adjncy, perm)  
     ! create copies of xadj and adjncy and convert them to integers from longs
     ! because genrcm expects integers, but parhip (above) expects longs
     ! call adj_show(node_num, adj_num, xadj, adjncy)
