@@ -1,11 +1,13 @@
 
-submodule (poisson_discretisation) poisson_discretisation_acc
+submodule (poisson_discretisation) poisson_discretisation_omp
 
   implicit none
   
 contains
 
   module subroutine discretise_poisson(mesh, M)
+
+    use omp_lib
 
     type(ccs_mesh), intent(in) :: mesh
     class(ccs_matrix), intent(inout) :: M
@@ -31,8 +33,19 @@ contains
 
     ! Loop over cells
     call get_local_num_cells(mesh, local_num_cells)
-    !$acc parallel loop
+
+    !$omp parallel do &
+    !$omp PRIVATE (i, &
+    !$omp          loc_p, global_index_p, nnb, &
+    !$omp          mat_val_spec, mat_coeffs, &
+    !$omp          row, col, j, &
+    !$omp          coeff_p, coeff_f, coeff_nb, &
+    !$omp          loc_nb, loc_f, is_boundary, &
+    !$omp          A)
     do i = 1, local_num_cells
+
+      print *, "Hello ", omp_get_thread_num()
+
       !^ @todo Doing this in a loop is awful code - malloc maximum coefficients per row once,
       !        filling from front, and pass the number of coefficients to be set, requires
       !        modifying the matrix_values type and the implementation of set_values applied to
@@ -84,10 +97,11 @@ contains
       call set_entry(coeff_p, mat_coeffs)
 
       ! Set the values
+      ! XXX: I'm amazed this doesn't seem to cause conflicts...
       call set_values(mat_coeffs, M)
 
     end do
-    !$acc end parallel loop
+    !$omp end parallel do
     
   end subroutine discretise_poisson
 
@@ -184,4 +198,4 @@ contains
 
   end subroutine apply_dirichlet_bcs
   
-end submodule poisson_discretisation_acc
+end submodule poisson_discretisation_omp
