@@ -7,8 +7,6 @@ contains
 
   module subroutine discretise_poisson(mesh, M)
 
-    use omp_lib
-
     type(ccs_mesh), intent(in) :: mesh
     class(ccs_matrix), intent(inout) :: M
 
@@ -43,8 +41,6 @@ contains
     !$omp          loc_nb, loc_f, is_boundary, &
     !$omp          A)
     do i = 1, local_num_cells
-
-      print *, "Hello ", omp_get_thread_num()
 
       !^ @todo Doing this in a loop is awful code - malloc maximum coefficients per row once,
       !        filling from front, and pass the number of coefficients to be set, requires
