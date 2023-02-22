@@ -1,5 +1,5 @@
 
-submodule (poisson_discretisation) poisson_discretisation_ref
+submodule (poisson_discretisation) poisson_discretisation_acc
 
   implicit none
   
@@ -182,4 +182,4 @@ contains
 
   end subroutine apply_dirichlet_bcs
   
-end submodule poisson_discretisation_ref
+end submodule poisson_discretisation_acc
