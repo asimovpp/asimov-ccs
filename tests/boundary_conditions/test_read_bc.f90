@@ -38,14 +38,14 @@ program bc_test
   allocate (phi(size(variable_names) - 4))
 
   ! Check that the number of boundaries and the variables are read in correctly
-  call assert_equal(n_boundaries, 4, "n_boundaries doesn't match expected value")
-  call assert_equal(variable_names(1), "u", "variable name doesn't match expected value")
-  call assert_equal(variable_names(2), "v", "variable name doesn't match expected value")
-  call assert_equal(variable_names(3), "w", "variable name doesn't match expected value")
-  call assert_equal(variable_names(4), "p", "variable name doesn't match expected value")
+  call assert_eq(n_boundaries, 4, "n_boundaries doesn't match expected value")
+  call assert_eq(variable_names(1), "u", "variable name doesn't match expected value")
+  call assert_eq(variable_names(2), "v", "variable name doesn't match expected value")
+  call assert_eq(variable_names(3), "w", "variable name doesn't match expected value")
+  call assert_eq(variable_names(4), "p", "variable name doesn't match expected value")
   do i = 5, size(variable_names)
     write (variable_name, "(A, I0)") "phi_", i - 4
-    call assert_equal(variable_names(i), variable_name, "variable name doesn't match expected value")
+    call assert_eq(variable_names(i), variable_name, "variable name doesn't match expected value")
   end do
 
   ! Allocate arrays for the BCs on a per-variable basis
@@ -98,10 +98,10 @@ contains
     real(ccs_real), dimension(:), intent(in), optional :: values
 
     do i = 1, size(bcs%ids)
-      call assert_equal(bcs%ids(i), ids(i), '("bc id does not match. received ", i0, " expected ", i0)')
-      call assert_equal(bcs%bc_types(i), types(i), '("bc type does not match. received ", i0, " expected ", i0)')
+      call assert_eq(bcs%ids(i), ids(i), "bc id does not match.")
+      call assert_eq(bcs%bc_types(i), types(i), "bc type does not match.")
       if (present(values)) then
-        call assert_equal(bcs%values(i), values(i), '("bc value does not match. received ", f0, " expected ", f0)')
+        call assert_eq(bcs%values(i), values(i), "bc value does not match.")
       end if
     end do
   end subroutine check_bcs

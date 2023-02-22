@@ -9,12 +9,14 @@ program test_compute_bc_values
   use constants, only: ndim, cell
   use bc_constants
   use boundary_conditions, only: allocate_bc_arrays
-  use meshing, only: get_local_index, set_cell_location, count_neighbours, set_neighbour_location, get_boundary_status, set_face_location, get_face_normal
+  use meshing, only: get_local_index, set_cell_location, count_neighbours, set_neighbour_location, &
+                     get_boundary_status, set_face_location, get_face_normal, get_local_num_cells
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
 
   implicit none
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: nnb
   integer(ccs_int), parameter :: cps = 10, n_boundaries = 4
   integer(ccs_int) :: j, k
@@ -33,7 +35,8 @@ program test_compute_bc_values
 
   ! set locations
   index_p = 0
-  do k = 1, mesh%topo%local_num_cells
+  call get_local_num_cells(mesh, local_num_cells)
+  do k = 1, local_num_cells
     call set_cell_location(mesh, k, loc_p)
     call count_neighbours(loc_p, nnb)
     do j = 1, nnb
@@ -91,7 +94,7 @@ contains
     dirichlet_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
     call compute_boundary_values(dirichlet_field, component, loc_p, loc_f, face_norm, bc_val)
-    call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+    call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
     call dprint("done dirichlet test")
   end subroutine check_dirichlet_bc
 
@@ -122,7 +125,7 @@ contains
     neumann_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
     call get_vector_data(neumann_field%values, neumann_field_data)
-    do j = 1, mesh%topo%local_num_cells
+    do j = 1, local_num_cells
       neumann_field_data(j) = expected_bc_value
     end do
     call restore_vector_data(neumann_field%values, neumann_field_data)
@@ -130,7 +133,7 @@ contains
     call dprint("set neumann field")
 
     call compute_boundary_values(neumann_field, component, loc_p, loc_f, face_norm, bc_val)
-    call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+    call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
     call dprint("done neumann test")
   end subroutine check_neumann_bc
 
@@ -177,7 +180,7 @@ contains
       x_gradient_data = 0
       y_gradient_data = 1.0_ccs_real / cps
       z_gradient_data = 0
-      do j = 1, mesh%topo%local_num_cells
+      do j = 1, local_num_cells
         extrapolated_field_data(j) = j / cps
       end do
       expected_bc_value = extrapolated_field_data(index_p) - 0.5_ccs_real / cps * y_gradient_data(index_p)
@@ -190,7 +193,7 @@ contains
       call restore_vector_data(extrapolated_field%y_gradients, y_gradient_data)
       call restore_vector_data(extrapolated_field%z_gradients, z_gradient_data)
 
-      call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+      call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
       call dprint("done extrapolated test")
     end associate
   end subroutine check_extrapolated_bc
@@ -223,7 +226,7 @@ contains
   !!     sym_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
   !!     call get_vector_data(sym_field%values, sym_field_data)
-  !!     do j = 1, mesh%topo%local_num_cells
+  !!     do j = 1, local_num_cells
   !!       sym_field_data(j) = j / cps + 1
   !!     end do
   !!     call restore_vector_data(sym_field%values, sym_field_data)
@@ -236,7 +239,7 @@ contains
   !!         expected_bc_value = 1
   !!       end if
   !!       call compute_boundary_values(sym_field, component, loc_p, loc_f, face_norm, bc_val)
-  !!       call assert_equal(bc_val, expected_bc_value, '("bc values do not match received ", f7.4, " expected ", f7.4)')
+  !!       call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
   !!     end do
   !!     call dprint("done symmetric test")
   !!   end associate

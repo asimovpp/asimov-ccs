@@ -4,6 +4,7 @@ submodule(partitioning) partitioning_parhip
   use kinds, only: ccs_int, ccs_real
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
+  use meshing, only: set_local_num_cells, get_local_num_cells
 
   implicit none
 
@@ -31,7 +32,7 @@ contains
     integer(ccs_int) :: irank, isize
     integer(ccs_int) :: ierr
     integer(ccs_int) :: i
-
+    
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3%
     seed = 2022       ! "Random" seed
@@ -112,6 +113,7 @@ contains
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
+    integer(ccs_int) :: local_num_cells
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -129,8 +131,10 @@ contains
     end do
 
     ! Count the number of local cells per rank
-    mesh%topo%local_num_cells = count(mesh%topo%global_partition == irank)
-    call dprint("Initial number of local cells: " // str(mesh%topo%local_num_cells))
+    local_num_cells = count(mesh%topo%global_partition == irank)
+    call set_local_num_cells(local_num_cells, mesh)
+    call get_local_num_cells(mesh, local_num_cells) ! Ensure using true value
+    call dprint("Initial number of local cells: " // str(local_num_cells))
 
     ! Allocate adjacency index array xadj based on vtxdist
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
@@ -201,7 +205,7 @@ contains
 
     call dprint("Initial number of halo cells: " // str(mesh%topo%halo_num_cells))
 
-    mesh%topo%total_num_cells = mesh%topo%local_num_cells + mesh%topo%halo_num_cells
+    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
 
     call dprint("Total number of cells (local + halo): " // str(mesh%topo%total_num_cells))
 
