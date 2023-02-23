@@ -188,7 +188,6 @@ program poisson
   pressure_solver_precon_name = "gamg"
 
   call sync(par_env)
-  call timer(start_time)
 
   call initialise_poisson(par_env)
 
@@ -202,15 +201,16 @@ program poisson
   call set_nnz(5, mat_properties)
   call create_matrix(mat_properties, M)
 
-  call discretise_poisson(mesh, M)
-
-  call begin_update(M) ! Start the parallel assembly for M
-
   ! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, b)
   call create_vector(vec_properties, u_exact)
   call create_vector(vec_properties, u)
+
+  call timer(start_time)
+  call discretise_poisson(mesh, M)
+
+  call begin_update(M) ! Start the parallel assembly for M
 
   call begin_update(u) ! Start the parallel assembly for u
 
@@ -236,6 +236,8 @@ program poisson
   call set_solver_precon(pressure_solver_precon_name, poisson_solver)
   call solve(poisson_solver)
 
+  call timer(end_time)
+
   ! Check solution
   call set_exact_sol(u_exact)
   call axpy(-1.0_ccs_real, u_exact, u)
@@ -251,8 +253,6 @@ program poisson
   deallocate (u_exact)
   deallocate (M)
   deallocate (poisson_solver)
-
-  call timer(end_time)
 
   if (par_env%proc_id == par_env%root) then
     print *, "Elapsed time = ", (end_time - start_time)
