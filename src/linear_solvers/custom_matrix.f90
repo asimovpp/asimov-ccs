@@ -26,7 +26,7 @@ contains
     matrix%values(:) = 0.0
 
     allocate(matrix%columns(rows * values_per_row))
-    matrix%columns(:) = 0.0
+    matrix%columns(:) = 0
 
   end subroutine
 
