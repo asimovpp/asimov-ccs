@@ -26,7 +26,7 @@ bases:
       poisson_discretisation: poisson_discretisation_ref
     options:
       timestepping: [timestepping_first_order, timestepping_second_order]
-      poisson_discretisation: [poisson_discretisation_ref]
+      poisson_discretisation: [poisson_discretisation_ref, poisson_discretisation_acc, poisson_discretisation_omp]
   mpi:
     defaults:
       mat_common: mat_common
@@ -54,4 +54,4 @@ bases:
       poisson_discretisation: poisson_discretisation_ref
     options:
       timestepping: [timestepping_first_order, timestepping_second_order]
-      poisson_discretisation: [poisson_discretisation_ref]
+      poisson_discretisation: [poisson_discretisation_ref, poisson_discretisation_acc, poisson_discretisation_omp]
