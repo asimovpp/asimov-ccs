@@ -5,14 +5,16 @@ program tgv
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target, &
-                         write_gradients
+  use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
+                         velocity_relax, pressure_relax, res_target, case_name, &
+                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
                    field_ptr
-  use yaml, only: parse, error_length
+  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -35,7 +37,9 @@ program tgv
   implicit none
 
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name  ! Case name
+  character(len=:), allocatable :: input_path  ! Path to input directory
+  character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
+  character(len=:), allocatable :: geo_file     ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -48,7 +52,6 @@ program tgv
   type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 16 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -62,11 +65,7 @@ program tgv
   logical :: w_sol = .true.
   logical :: p_sol = .true.
 
-  real(ccs_real) :: dt           ! The timestep
   integer(ccs_int) :: t          ! Timestep counter
-  integer(ccs_int) :: nsteps     ! Number of timesteps to perform
-  real(ccs_real) :: CFL          ! The CFL target
-  integer(ccs_int) :: save_freq  ! Frequency of saving solution data to file
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -74,36 +73,48 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
-
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name // ccsconfig
-
-  call timer(start_time)
-
-  ! Read case name from configuration file
-  call read_configuration(ccs_config_file)
-
-  if (irank == par_env%root) then
-    call print_configuration()
+  call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
+  
+  if(allocated(input_path)) then
+     case_path = input_path // "/" // case_name
+  else
+     case_path = case_name
   end if
 
-  ! Set start and end iteration numbers (eventually will be read from input file)
+  ccs_config_file = case_path // ccsconfig
+  
+  call timer(start_time)
+
+  ! Read case name and runtime parameters from configuration file
+  call read_configuration(ccs_config_file)
+
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
+
+  ! Set start and end iteration numbers (read from input file)
   it_start = 1
-  it_end = num_steps
+  it_end = num_iters
 
-  !geo_file = case_name       //       geoext
-  !adios2_file = case_name       //       adiosconfig
-
-  ! Read mesh from *.geo file
-  !if (irank == par_env%root) print *, "Reading mesh"
-
+  ! If cps is no longer the default value, it has been set explicity and 
+  ! the mesh generator is invoked...
+  if (cps /= huge(0)) then
   ! Create a cubic mesh
-  if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
-  ! call read_mesh(par_env, case_name, mesh)
-  ! call partition_kway(par_env, mesh)
-  ! call compute_connectivity(par_env, mesh)
+    if (irank == par_env%root) print *, "Building mesh"
+    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
+  
+  ! Otherwise the mesh is read from file
+  else
+    geo_file = case_path // geoext
+    if (irank == par_env%root) print *, "Reading mesh"
+    call read_mesh(par_env, case_path, mesh)
+    call partition_kway(par_env, mesh)
+    call compute_connectivity(par_env, mesh)
+  end if
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -268,20 +279,18 @@ program tgv
   call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
   call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
-  CFL = 0.1_ccs_real
-  dt = CFL * (3.14_ccs_real / cps)
-  nsteps = 4 !000
-  if (par_env%proc_id == par_env%root) then
-    print *, "Running dt = ", dt, " for ", nsteps, " steps"
-  end if
-  save_freq = 2
-
   ! Write out mesh to file
-  call write_mesh(par_env, case_name, mesh)
+  call write_mesh(par_env, case_path, mesh)
+
+  ! Print the run configuration
+  if (irank == par_env%root) then
+    call print_configuration()
+  end if
 
   call activate_timestepping()
   call set_timestep(dt)
-  do t = 1, nsteps
+
+  do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf, t)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
@@ -293,8 +302,8 @@ program tgv
       print *, "TIME = ", t
     end if
 
-    if ((t == 1) .or. (t == nsteps) .or. (mod(t, save_freq) == 0)) then
-      call write_solution(par_env, case_name, mesh, output_list, t, nsteps, dt)
+    if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
+      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
     end if
   end do
 
@@ -320,31 +329,59 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
-                           get_convection_scheme, get_relaxation_factor, &
-                           get_target_residual
+    use read_config, only: get_reference_number, get_steps, get_iters, &
+                          get_convection_scheme, get_relaxation_factors, &
+                          get_target_residual, get_cps, get_domain_size, &
+                          get_dt, get_write_frequency
 
     character(len=*), intent(in) :: config_filename
 
-    class(*), pointer :: config_file_pointer  !< Pointer to CCS config file
-    character(len=error_length) :: error
+    class(*), pointer :: config_file  !< Pointer to CCS config file
+    character(:), allocatable :: error
 
-    config_file_pointer => parse(config_filename, error=error)
-    if (error /= '') then
+    config_file => parse(config_filename, error)
+    if (allocated(error)) then
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file_pointer, num_steps)
+    call get_steps(config_file, num_steps)
     if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+      call error_abort("No value assigned to num_steps.")
     end if
 
-    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_iters(config_file, num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
+    end if
+
+    call get_dt(config_file, dt)
+    if (dt == huge(0.0)) then
+      call error_abort("No value assigned to dt.")
+    end if
+
+    if (cps == huge(0)) then ! cps was not set on the command line
+      call get_cps(config_file, cps)
+      if (cps == huge(0)) then
+        call error_abort("No value assigned to cps.")
+      end if
+    end if
+
+    call get_write_frequency(config_file, write_frequency)
+    if (write_frequency == huge(0.0)) then
+      call error_abort("No value assigned to write_frequency.")
+    end if
+
+    call get_domain_size(config_file, domain_size)
+    if (domain_size == huge(0.0)) then
+      call error_abort("No value assigned to domain_size.")
+    end if
+
+    call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
-    call get_target_residual(config_file_pointer, res_target)
+    call get_target_residual(config_file, res_target)
     if (res_target == huge(0.0)) then
       call error_abort("No value assigned to target residual.")
     end if
@@ -354,18 +391,28 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
-    print *, "Solving ", case_name, " case"
-
-    print *, "++++"
-    print *, "SIMULATION LENGTH"
-    print *, "Running for ", num_steps, "iterations"
-    print *, "++++"
-    print *, "MESH"
-    print *, "Global number of cells is ", mesh%topo%global_num_cells
-    print *, "++++"
-    print *, "RELAXATION FACTORS"
-    write (*, '(1x,a,e10.3)') "velocity: ", velocity_relax
-    write (*, '(1x,a,e10.3)') "pressure: ", pressure_relax
+    ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* Solving the ", case_name, " case"
+    print *, "******************************************************************************"
+    print *, " "
+    print *, "******************************************************************************"
+    print *, "* SIMULATION LENGTH"
+    print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+    write (*, '(1x,a,e10.3)') "* Time step size: ", dt
+    print *, "******************************************************************************"
+    print *, "* MESH SIZE"
+    if(cps /= huge(0)) then
+      print *,"* Cells per side: ", cps
+      write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
+    end if
+    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "******************************************************************************"
+    print *, "* RELAXATION FACTORS"
+    write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
+    write (*, '(1x,a,e10.3)') "* pressure: ", pressure_relax
+    print *, "******************************************************************************"
 
   end subroutine
 
@@ -374,7 +421,8 @@ contains
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
     use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre
+                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre, &
+                       get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -385,6 +433,7 @@ contains
 
     ! Local variables
     integer(ccs_int) :: n, count
+    integer(ccs_int) :: n_local
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val, p_val
     type(cell_locator) :: loc_p
@@ -400,52 +449,52 @@ contains
     integer(ccs_int) :: j
 
     ! Set alias
-    associate (n_local => mesh%topo%local_num_cells)
-      call create_vector_values(n_local, u_vals)
-      call create_vector_values(n_local, v_vals)
-      call create_vector_values(n_local, w_vals)
-      call create_vector_values(n_local, p_vals)
-      call set_mode(insert_mode, u_vals)
-      call set_mode(insert_mode, v_vals)
-      call set_mode(insert_mode, w_vals)
-      call set_mode(insert_mode, p_vals)
+    call get_local_num_cells(mesh, n_local)
+    
+    call create_vector_values(n_local, u_vals)
+    call create_vector_values(n_local, v_vals)
+    call create_vector_values(n_local, w_vals)
+    call create_vector_values(n_local, p_vals)
+    call set_mode(insert_mode, u_vals)
+    call set_mode(insert_mode, v_vals)
+    call set_mode(insert_mode, w_vals)
+    call set_mode(insert_mode, p_vals)
 
-      ! Set initial values for velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
+    ! Set initial values for velocity fields
+    do index_p = 1, n_local
+       call set_cell_location(mesh, index_p, loc_p)
+       call get_global_index(loc_p, global_index_p)
 
-        call get_centre(loc_p, x_p)
+       call get_centre(loc_p, x_p)
 
-        u_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
-        v_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
-        w_val = 0.0_ccs_real
-        p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+       u_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
+       v_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
+       w_val = 0.0_ccs_real
+       p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
-        call set_row(global_index_p, u_vals)
-        call set_entry(u_val, u_vals)
-        call set_row(global_index_p, v_vals)
-        call set_entry(v_val, v_vals)
-        call set_row(global_index_p, w_vals)
-        call set_entry(w_val, w_vals)
-        call set_row(global_index_p, p_vals)
-        call set_entry(p_val, p_vals)
-      end do
+       call set_row(global_index_p, u_vals)
+       call set_entry(u_val, u_vals)
+       call set_row(global_index_p, v_vals)
+       call set_entry(v_val, v_vals)
+       call set_row(global_index_p, w_vals)
+       call set_entry(w_val, w_vals)
+       call set_row(global_index_p, p_vals)
+       call set_entry(p_val, p_vals)
+    end do
 
-      call set_values(u_vals, u%values)
-      call set_values(v_vals, v%values)
-      call set_values(w_vals, w%values)
-      call set_values(p_vals, p%values)
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
+    call set_values(w_vals, w%values)
+    call set_values(p_vals, p%values)
 
-      deallocate (u_vals%global_indices)
-      deallocate (v_vals%global_indices)
-      deallocate (w_vals%global_indices)
-      deallocate (p_vals%global_indices)
-      deallocate (u_vals%values)
-      deallocate (v_vals%values)
-      deallocate (w_vals%values)
-      deallocate (p_vals%values)
-    end associate
+    deallocate (u_vals%global_indices)
+    deallocate (v_vals%global_indices)
+    deallocate (w_vals%global_indices)
+    deallocate (p_vals%global_indices)
+    deallocate (u_vals%values)
+    deallocate (v_vals%values)
+    deallocate (w_vals%values)
+    deallocate (p_vals%values)
 
     call get_vector_data(mf%values, mf_data)
 
@@ -453,7 +502,8 @@ contains
     n = 0
 
     ! Loop over local cells and faces
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, n_local)
+    do index_p = 1, n_local
 
       call set_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)

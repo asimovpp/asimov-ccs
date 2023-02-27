@@ -15,7 +15,8 @@ program test_compute_fluxes
   use solver, only: axpy, norm
   use constants, only: add_mode, insert_mode
   use bc_constants
-
+  use meshing, only: get_local_num_cells
+  
   implicit none
 
   type(ccs_mesh) :: mesh
@@ -76,36 +77,37 @@ contains
     type(vector_values) :: u_vals, v_vals
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
-
+    integer(ccs_int) :: n_local
+    
     u_vals%setter_mode = insert_mode
     v_vals%setter_mode = insert_mode
 
-    associate (n_local => mesh%topo%local_num_cells)
-      allocate (u_vals%global_indices(n_local))
-      allocate (v_vals%global_indices(n_local))
-      allocate (u_vals%values(n_local))
-      allocate (v_vals%values(n_local))
+    call get_local_num_cells(mesh, n_local)
+    allocate (u_vals%global_indices(n_local))
+    allocate (v_vals%global_indices(n_local))
+    allocate (u_vals%values(n_local))
+    allocate (v_vals%values(n_local))
 
-      ! Set IC velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
+    ! Set IC velocity fields
+    do index_p = 1, n_local
+       call set_cell_location(mesh, index_p, loc_p)
+       call get_global_index(loc_p, global_index_p)
 
-        if (direction == x_dir) then
+       if (direction == x_dir) then
           u_val = 1.0_ccs_real
           v_val = 0.0_ccs_real
-        else if (direction == y_dir) then
+       else if (direction == y_dir) then
           u_val = 0.0_ccs_real
           v_val = 1.0_ccs_real
-        end if
+       end if
 
-        u_val = 0.0_ccs_real
-        v_val = 0.0_ccs_real
+       u_val = 0.0_ccs_real
+       v_val = 0.0_ccs_real
 
-        call pack_entries(index_p, global_index_p, u_val, u_vals)
-        call pack_entries(index_p, global_index_p, v_val, v_vals)
-      end do
-    end associate
+       call pack_entries(index_p, global_index_p, u_val, u_vals)
+       call pack_entries(index_p, global_index_p, v_val, v_vals)
+    end do
+
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
 
@@ -205,9 +207,12 @@ contains
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: row, col
     integer(ccs_int) :: vec_counter
+    integer(ccs_int) :: local_num_cells
 
     call initialise(vec_properties)
     call set_size(par_env, mesh, vec_properties)
+
+    call get_local_num_cells(mesh, local_num_cells)
 
     ! call compute_exact_advection_matrix(mesh, cps, flow, discretisation, M)
     ! call compute_exact_diffusion_matrix(mesh, cps, M)
@@ -236,7 +241,7 @@ contains
         do i = 1, cps
           call pack_entries(vec_counter, i, adv_coeff, vec_coeffs)
           vec_counter = vec_counter + 1
-          call pack_entries(vec_counter, mesh%topo%local_num_cells - i + 1, adv_coeff, vec_coeffs)
+          call pack_entries(vec_counter, local_num_cells - i + 1, adv_coeff, vec_coeffs)
           vec_counter = vec_counter + 1
         end do
       end if
@@ -289,6 +294,7 @@ contains
 
     real(ccs_real) :: diff_coeff
 
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
@@ -302,7 +308,8 @@ contains
 
     diff_coeff = -0.01_ccs_real
     ! Diffusion coefficients
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       mat_counter = 1
 
       ii = mesh%topo%global_indices(i)
@@ -354,6 +361,7 @@ contains
 
     type(matrix_values) :: mat_coeffs
 
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: mat_counter
 
@@ -363,10 +371,11 @@ contains
     allocate (mat_coeffs%values(2))
 
     ! Advection coefficients
-
+    call get_local_num_cells(mesh, local_num_cells)
+    
     if (flow == x_dir) then
       ! UDS and flow along +x direction
-      do i = 1, mesh%topo%local_num_cells
+      do i = 1, local_num_cells
         mat_counter = 1
         ii = mesh%topo%global_indices(i)
         if (mod(ii, cps) .ne. 1) then
@@ -379,7 +388,7 @@ contains
       end do
     else if (flow == y_dir) then
       ! UDS and flow along +y direction
-      do i = 1, mesh%topo%local_num_cells
+      do i = 1, local_num_cells
         mat_counter = 1
         ii = mesh%topo%global_indices(i)
         if (ii > cps) then

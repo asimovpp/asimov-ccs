@@ -8,7 +8,7 @@ program test_mesh_square_mesh_closed
 
   use constants
 
-  use meshing, only: set_face_location, get_face_normal, get_face_area
+  use meshing, only: set_face_location, get_face_normal, get_face_area, get_local_num_cells
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -23,20 +23,27 @@ program test_mesh_square_mesh_closed
   real(ccs_real), dimension(ndim) :: norm
   real(ccs_real) :: A
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i, j
 
   real(ccs_real) :: A_expected
 
+  integer(ccs_int), dimension(9) :: m = (/ 1, 2, 4, 8, 16, 20, 40, 80, 100 /)
+  integer(ccs_int) :: mctr
+
   call init()
 
-  do n = 1, 100 ! XXX: Should use some named constant, not just "100"
+  do mctr = 1, size(m)
+    n = m(mctr)
+    
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
 
     A_expected = l / n
 
     ! Loop over cells
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       S(:) = 0.0_ccs_real
 
       ! Loop over neighbours/faces

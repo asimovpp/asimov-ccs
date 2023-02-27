@@ -25,11 +25,14 @@ contains
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                         VecCreate
 
+    use meshing, only: get_local_num_cells
+    
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
     integer(ccs_int) :: i
+    integer(ccs_int) :: nlocal
     integer(ccs_err) :: ierr ! Error code
 
     allocate (vector_petsc :: v)
@@ -47,8 +50,8 @@ contains
 
           select case (vec_properties%storage_location)
           case (cell)
+            call get_local_num_cells(mesh, nlocal)
             associate (nhalo => mesh%topo%halo_num_cells, &
-                       nlocal => mesh%topo%local_num_cells, &
                        idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo
@@ -59,9 +62,15 @@ contains
                                   nhalo, global_halo_indices, &
                                   v%v, ierr)
               deallocate (global_halo_indices)
+
+              if (nhalo > 0) then
+                v%ghosted = .true.
+              else
+                ! PETSc tries and fails to ghost update
+                v%ghosted = .false.
+              end if
             end associate
             ! Vector has ghost points, store this information
-            v%ghosted = .true.
           case (face)
             call VecCreate(par_env%comm, v%v, ierr)
             call VecSetSizes(v%v, mesh%topo%num_faces, PETSC_DECIDE, ierr)
