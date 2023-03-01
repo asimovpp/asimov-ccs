@@ -1,13 +1,25 @@
 
 submodule (poisson_discretisation) poisson_discretisation_bindc
 
-  use foo
   use iso_c_binding
 
   use meshing, only: get_local_index
   
   implicit none
-  
+
+  interface
+    subroutine discretise_poisson_kernel(nrows, nnz_pr, h, &
+         mesh_neighbours, mesh_face_areas, csr_values) bind(c)
+      use iso_c_binding
+
+      integer(c_int) :: nrows, nnz_pr
+      real(c_double) :: h
+      integer(c_int), dimension(nrows * nnz_pr) :: mesh_neighbours
+      real(c_double), dimension(nrows * nnz_pr) :: mesh_face_areas
+      real(c_double), dimension(nrows * (nnz_pr + 1)) :: csr_values
+    end subroutine discretise_poisson_kernel
+  end interface
+    
 contains
 
   module subroutine discretise_poisson(mesh, M)

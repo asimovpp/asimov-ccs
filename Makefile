@@ -42,6 +42,7 @@ ifeq ($(NEED_CMP),yes)
 endif
 
 KFC ?= $(FC) # Kernel compiler
+KFLAGS ?= $(FFLAGS)
 
 EXE = ccs_app
 TOOLS=$(CCS_DIR)/build_tools
@@ -66,6 +67,7 @@ find_src_files = $(shell find $(dir) -type f -name '*.f90' -o -name '*.c')
 ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_src_files))
 
 SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
+SRC += $(CCS_DIR)/src/case_setup/Poisson/poisson_discretisation_kernel.f90
 TMP_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.f90=.o)))
 OBJ = $(TMP_OBJ:.c=.o)
 KOBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(KERNEL_OBJ)))
@@ -109,7 +111,7 @@ obj: $(OBJ)
 
 all: obj app
 
-$(EXE): $(EXE_DEPS)
+$(EXE): $(EXE_DEPS) $(KOBJ)
 	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) 
 	@echo -n "===> Built ccs_app with "
 	@grep main $(CCS_DIR)/config.yaml

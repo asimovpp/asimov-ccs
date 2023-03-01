@@ -2,12 +2,16 @@
 
 module foo
 
-  integer, parameter :: ccs_int = kind(1)
-  integer, parameter :: ccs_real = kind(0.0d0)
+  use iso_c_binding
+  
+  integer, parameter :: ccs_int = c_int
+  integer, parameter :: ccs_real = c_double
 
 contains
   
-  subroutine discretise_poisson_kernel(nrows, nnz_pr, h, mesh_neighbours, mesh_face_areas, csr_values)
+  subroutine discretise_poisson_kernel(nrows, nnz_pr, h, mesh_neighbours, mesh_face_areas, csr_values) bind(c)
+
+    use iso_c_binding
 
     integer(ccs_int), intent(in) :: nrows
     integer(ccs_int), intent(in) :: nnz_pr
