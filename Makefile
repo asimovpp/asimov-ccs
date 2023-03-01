@@ -41,6 +41,7 @@ ifeq ($(NEED_CMP),yes)
   include $(ARCH_DIR)/Makefile.$(CMP)
 endif
 
+KFC ?= $(FC) # Kernel compiler
 
 EXE = ccs_app
 TOOLS=$(CCS_DIR)/build_tools
@@ -67,6 +68,7 @@ ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_src_files))
 SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
 TMP_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.f90=.o)))
 OBJ = $(TMP_OBJ:.c=.o)
+KOBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(KERNEL_OBJ)))
 
 ifeq ($(NEED_CMP),yes)
   include $(TAG_DEPS)
@@ -116,6 +118,12 @@ COMPILE_FORTRAN = $(call printdo, $(FC) $(FFLAGS) -o $@ -c $< $(INC))
 COMPILE_C =       $(call printdo, $(CC) $(CFLAGS) -o $@ -c $< $(INC))
 $(OBJ_DIR)/%.o: 
 	@if [ $(suffix $<) = .f90 ]; then $(COMPILE_FORTRAN); elif [ $(suffix $<) = .c ]; then $(COMPILE_C); fi
+
+COMPILE_FORTRAN_KERNEL = $(call printdo, $(KFC) $(KFLAGS) -o $@ -c $< $(KINC))
+$(KOBJ):
+	$(info +++ Compiling kernel $@)
+	@$(COMPILE_FORTRAN_KERNEL)
+	$(info +++)
 
 $(CAF_OBJ): %.o: %.f90
 	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
