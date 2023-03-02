@@ -1,5 +1,5 @@
 main: poisson
 base: mpi_petsc
 options:
-  poisson_discretisation: poisson_discretisation_ref
+  poisson_discretisation: poisson_discretisation_omp
 extra: parhip
