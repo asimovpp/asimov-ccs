@@ -12,6 +12,8 @@ module custom_matrix
     integer(ccs_int) :: values_per_row
   end type csr_matrix
 
+  public
+
 contains
 
   subroutine create_new_matrix(rows, values_per_row, matrix)
@@ -21,6 +23,9 @@ contains
     type(csr_matrix), intent(inout) :: matrix
 
     matrix%values_per_row = values_per_row
+
+    if (allocated(matrix%values)) deallocate(matrix%values)
+    if (allocated(matrix%columns)) deallocate(matrix%columns)
 
     allocate(matrix%values(rows * values_per_row))
     matrix%values(:) = 0.0
@@ -39,10 +44,10 @@ contains
 
     integer(ccs_int) :: offset
     
-    offset = (row - 1) * matrix%values_per_row + 1
+    offset = (row - 1) * matrix%values_per_row
 
-    matrix%values(offset : offset + matrix%values_per_row) = vals(:)
-    matrix%columns(offset : offset + matrix%values_per_row) = cols(:)
+    matrix%values(offset + 1 : offset + matrix%values_per_row) = vals(:)
+    matrix%columns(offset + 1 : offset + matrix%values_per_row) = cols(:)
 
   end subroutine
 
@@ -63,18 +68,18 @@ end module custom_matrix
 
 
 
-program test_matrix
-  use custom_matrix
-
-  implicit none
-
-  type(csr_matrix) :: m
-
-  call create_new_matrix(3, 4, m)
-  call print_matrix(m)
-  call insert_values(1, (/1.0_ccs_real,2.0_ccs_real,3.0_ccs_real,4.0_ccs_real/), (/1,2,3,4/), m)
-  call insert_values(2, (/5.0_ccs_real,6.0_ccs_real,7.0_ccs_real,8.0_ccs_real/), (/2,3,4,1/), m)
-  call insert_values(3, (/9.0_ccs_real,10.0_ccs_real,11.0_ccs_real,12.0_ccs_real/), (/3,4,1,2/), m)
-  call print_matrix(m)
-
-end program
+!program test_matrix
+!  use custom_matrix
+!
+!  implicit none
+!
+!  type(csr_matrix) :: m
+!
+!  call create_new_matrix(3, 4, m)
+!  call print_matrix(m)
+!  call insert_values(1, (/1.0_ccs_real,2.0_ccs_real,3.0_ccs_real,4.0_ccs_real/), (/1,2,3,4/), m)
+!  call insert_values(2, (/5.0_ccs_real,6.0_ccs_real,7.0_ccs_real,8.0_ccs_real/), (/2,3,4,1/), m)
+!  call insert_values(3, (/9.0_ccs_real,10.0_ccs_real,11.0_ccs_real,12.0_ccs_real/), (/3,4,1,2/), m)
+!  call print_matrix(m)
+!
+!end program
