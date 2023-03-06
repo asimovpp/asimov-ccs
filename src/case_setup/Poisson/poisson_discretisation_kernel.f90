@@ -81,7 +81,7 @@ contains
 
     do i = 1, nrows
         !if (minval(mesh%topo%nb_indices(:, i)) < 0) then
-      if (minval(mesh_neighbours(1*(i-1)+1: nnz_pr*(i-1)+nnz_pr)) < 0) then  ! todo: maybe to remove?
+      if (minval(mesh_neighbours(nnz_pr*(i-1)+1: nnz_pr*(i-1)+nnz_pr)) < 0) then  ! todo: maybe to remove?
 
         coeff = 0.0_ccs_real
         r = 0.0_ccs_real
