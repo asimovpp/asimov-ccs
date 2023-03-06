@@ -111,8 +111,12 @@ obj: $(OBJ)
 
 all: obj app
 
+ifeq ($(KFC), nvfortran)
+  LIB += -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -lnvcpumath
+endif
+
 $(EXE): $(EXE_DEPS) $(KOBJ)
-	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) 
+	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
 	@echo -n "===> Built ccs_app with "
 	@grep main $(CCS_DIR)/config.yaml
 
