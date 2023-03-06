@@ -5,17 +5,17 @@ module custom_vector
   implicit none
 
   !v a simple vector format
-  type, public :: custom_vector
+  type, public :: lite_vector
     real(ccs_real), dimension(:), allocatable :: values
     integer(ccs_int) :: num_rows
-  end type custom_vector
+  end type lite_vector
 
 contains
 
   subroutine create_new_vector(rows, vector)
 
     integer(ccs_int), intent(in) :: rows
-    type(custom_vector), intent(inout) :: vector
+    type(lite_vector), intent(inout) :: vector
 
     vector%num_rows = rows
 
@@ -26,7 +26,7 @@ contains
 
   subroutine zeros(vector)
 
-    type(custom_vector), intent(inout) :: vector
+    type(lite_vector), intent(inout) :: vector
     
     vector%values(:) = 0.0_ccs_real
 
@@ -36,7 +36,7 @@ contains
 
     integer(ccs_int), intent(in) :: row
     real(ccs_real), intent(in) :: val
-    type(custom_vector), intent(inout) :: vector
+    type(lite_vector), intent(inout) :: vector
 
     vector%values(row) = vector%values(row) + val
 
@@ -46,14 +46,14 @@ contains
 
     integer(ccs_int), intent(in) :: row
     real(ccs_real), intent(in):: val
-    type(custom_vector), intent(inout) :: vector
+    type(lite_vector), intent(inout) :: vector
 
     vector%values(row) = val
   end subroutine
 
   subroutine print_vector(vector)
 
-    type(custom_vector), intent(in) :: vector
+    type(lite_vector), intent(in) :: vector
 
     print *, "values"
     print *, vector%values
@@ -72,7 +72,7 @@ program test_vector
 
   implicit none
 
-  type(custom_vector) :: v
+  type(lite_vector) :: v
 
   call create_new_vector(4, v)
   call print_vector(v)
