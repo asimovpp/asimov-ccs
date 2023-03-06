@@ -41,8 +41,13 @@ ifeq ($(NEED_CMP),yes)
   include $(ARCH_DIR)/Makefile.$(CMP)
 endif
 
-KFC ?= $(FC) # Kernel compiler
-KFLAGS ?= $(FFLAGS)
+ifdef KMP
+  include $(ARCH_DIR)/Makefile.kernel.$(KMP)
+else
+  KFC ?= $(FC) # Kernel compiler
+  KFLAGS ?= $(FFLAGS)
+  KLIB ?=
+endif
 
 EXE = ccs_app
 TOOLS=$(CCS_DIR)/build_tools
@@ -111,12 +116,8 @@ obj: $(OBJ)
 
 all: obj app
 
-ifeq ($(KFC), nvfortran)
-  LIB += -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -lnvcpumath
-endif
-
 $(EXE): $(EXE_DEPS) $(KOBJ)
-	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB)
+	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) $(KLIB)
 	@echo -n "===> Built ccs_app with "
 	@grep main $(CCS_DIR)/config.yaml
 
