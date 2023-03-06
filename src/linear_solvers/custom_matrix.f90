@@ -10,6 +10,7 @@ module custom_matrix
     real(ccs_real), dimension(:), allocatable :: values
     integer(ccs_int), dimension(:), allocatable :: columns
     integer(ccs_int) :: values_per_row
+    integer(ccs_int) :: num_rows
   end type csr_matrix
 
 contains
@@ -21,12 +22,68 @@ contains
     type(csr_matrix), intent(inout) :: matrix
 
     matrix%values_per_row = values_per_row
+    matrix%num_rows = rows
 
     allocate(matrix%values(rows * values_per_row))
     matrix%values(:) = 0.0
 
     allocate(matrix%columns(rows * values_per_row))
     matrix%columns(:) = 0
+
+  end subroutine
+
+  subroutine get_diagonal(diag, matrix)
+    !^ assumes the first element is the diagonal element
+
+    real(ccs_real), dimension(:), allocatable, intent(out) :: diag
+    type(csr_matrix), intent(inout) :: matrix
+
+    integer(ccs_int) :: offset
+    
+    allocate(diag(matrix%num_rows))
+    print *, "not tested..."
+
+    diag(:) = matrix%values(::matrix%values_per_row)
+
+  end subroutine
+
+  subroutine set_diagonal(diag, matrix)
+    !^ assumes the first element is the diagonal element
+
+    real(ccs_real), dimension(:), intent(in) :: diag
+    type(csr_matrix), intent(inout) :: matrix
+
+    integer(ccs_int) :: offset
+    
+    print *, "not tested..."
+
+    matrix%values(::matrix%values_per_row) = diag(:)
+
+  end subroutine
+
+  subroutine zeros(matrix)
+
+    type(csr_matrix), intent(inout) :: matrix
+    
+    print *, "not tested..."
+
+    matrix%values(:) = 0.0_ccs_real
+
+  end subroutine
+
+  subroutine add_values(row, vals, cols, matrix)
+
+    integer(ccs_int), intent(in) :: row
+    real(ccs_real), dimension(:) :: vals
+    integer(ccs_int), dimension(:) :: cols
+    type(csr_matrix), intent(inout) :: matrix
+
+    integer(ccs_int) :: offset
+    
+    offset = (row - 1) * matrix%values_per_row + 1
+
+    matrix%values(offset : offset + matrix%values_per_row) = matrix%values(offset : offset + matrix%values_per_row) + vals(:)
+    matrix%columns(offset : offset + matrix%values_per_row) = cols(:)
 
   end subroutine
 
