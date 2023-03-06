@@ -12,7 +12,7 @@ def parse_file(filename, data, categories):
 
 if __name__ == "__main__":
   suffix = "_OBJ"
-  obj_categories = ["CAF", "MPI", "MPI+OMP", "PETSC"]
+  obj_categories = ["CAF", "MPI", "MPI+OMP", "PETSC", "KERNEL"]
 
   data = {x:[] for x in obj_categories}
   for filename in sys.argv[1:]:
