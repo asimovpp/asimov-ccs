@@ -39,11 +39,11 @@ contains
 
   end subroutine
 
-  subroutine get_offsets(row, start, end, matrix)
+  subroutine get_offsets(row, matrix, start, end)
     integer(ccs_int), intent(in) :: row
+    type(csr_matrix), intent(in) :: matrix
     integer(ccs_int), intent(out) :: start
     integer(ccs_int), intent(out) :: end
-    type(csr_matrix), intent(in) :: matrix
 
     start = (row - 1) * matrix%values_per_row + 1
     end = start + matrix%values_per_row -1
@@ -53,13 +53,13 @@ contains
   subroutine insert_values(row, vals, cols, matrix)
 
     integer(ccs_int), intent(in) :: row
-    real(ccs_real), dimension(:) :: vals
-    integer(ccs_int), dimension(:) :: cols
+    real(ccs_real), dimension(:), intent(in) :: vals
+    integer(ccs_int), dimension(:), intent(in) :: cols
     type(csr_matrix), intent(inout) :: matrix
 
     integer(ccs_int) :: start, end
 
-    call get_offsets(row, start, end, matrix)
+    call get_offsets(row, matrix, start, end)
 
     matrix%values(start : end) = vals(:)
     matrix%columns(start : end) = cols(:)
@@ -69,13 +69,13 @@ contains
   subroutine add_values(row, vals, cols, matrix)
 
     integer(ccs_int), intent(in) :: row
-    real(ccs_real), dimension(:) :: vals
-    integer(ccs_int), dimension(:) :: cols
+    real(ccs_real), dimension(:), intent(in) :: vals
+    integer(ccs_int), dimension(:), intent(in) :: cols
     type(csr_matrix), intent(inout) :: matrix
 
     integer(ccs_int) :: start, end
 
-    call get_offsets(row, start, end, matrix)
+    call get_offsets(row, matrix, start, end)
 
     !if (present(cols)) then
     if (any(matrix%columns(start : end) .ne. cols(:))) then
@@ -95,10 +95,10 @@ contains
 
   end subroutine
 
-  subroutine get_rows_array(rows, matrix)
+  subroutine get_rows_array(matrix, rows)
 
-    integer(ccs_int), dimension(:), intent(out), allocatable :: rows
     type(csr_matrix), intent(in) :: matrix
+    integer(ccs_int), dimension(:), intent(out), allocatable :: rows
     integer(ccs_int) :: i
 
     allocate(rows(matrix%num_rows+1))
