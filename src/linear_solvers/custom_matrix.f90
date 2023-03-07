@@ -63,18 +63,18 @@ contains
 
     integer(ccs_int), intent(in) :: row
     real(ccs_real), dimension(:) :: vals
-    integer(ccs_int), dimension(:), optional :: cols
+    integer(ccs_int), dimension(:) :: cols
     type(csr_matrix), intent(inout) :: matrix
 
     integer(ccs_int) :: start, end
 
     call get_offsets(row, start, end, matrix)
 
-    if (present(cols)) then
-      if (any(matrix%columns(start : end) .ne. cols(:))) then
-        call error_abort("ERROR: adding values to non matching columns")
-      end if
+    !if (present(cols)) then
+    if (any(matrix%columns(start : end) .ne. cols(:))) then
+      call error_abort("ERROR: adding values to non matching columns")
     end if
+    !end if
 
     matrix%values(start : end) = matrix%values(start : end) + vals(:)
 
