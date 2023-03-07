@@ -1,5 +1,7 @@
 module custom_matrix
+#include "ccs_macros.inc"
 
+  use utils, only: exit_print
   use kinds, only: ccs_int, ccs_real
 
   implicit none
@@ -123,19 +125,19 @@ contains
 end module custom_matrix
 
 
-
-program test_matrix
-  use custom_matrix
-
-  implicit none
-
-  type(csr_matrix) :: m
-
-  call create_new_matrix(3, 4, m)
-  call print_matrix(m)
-  call insert_values(1, (/1.0_ccs_real,2.0_ccs_real,3.0_ccs_real,4.0_ccs_real/), (/1,2,3,4/), m)
-  call insert_values(2, (/5.0_ccs_real,6.0_ccs_real,7.0_ccs_real,8.0_ccs_real/), (/2,3,4,1/), m)
-  call insert_values(3, (/9.0_ccs_real,10.0_ccs_real,11.0_ccs_real,12.0_ccs_real/), (/3,4,1,2/), m)
-  call print_matrix(m)
-
-end program
+! Sample usage
+! program test_matrix
+!   use custom_matrix
+! 
+!   implicit none
+! 
+!   type(csr_matrix) :: m
+! 
+!   call create_new_matrix(3, 4, m)
+!   call print_matrix(m)
+!   call insert_values(1, (/1.0_ccs_real,2.0_ccs_real,3.0_ccs_real,4.0_ccs_real/), (/1,2,3,4/), m)
+!   call insert_values(2, (/5.0_ccs_real,6.0_ccs_real,7.0_ccs_real,8.0_ccs_real/), (/2,3,4,1/), m)
+!   call insert_values(3, (/9.0_ccs_real,10.0_ccs_real,11.0_ccs_real,12.0_ccs_real/), (/3,4,1,2/), m)
+!   call print_matrix(m)
+! 
+! end program
