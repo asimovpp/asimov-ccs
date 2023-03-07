@@ -1,4 +1,6 @@
 KFC = nvfortran
-KFLAGS =
+KFLAGS = -g -acc -Minfo=accel -gpu=cc70
 
-KLIB = -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -lnvcpumath
+#KLIB = -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -lnvcpumath
+KLIB = -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -lacchost -laccdevaux -laccdevice -lnvcpumath -lnvomp
+#KLIB = -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -laccdevaux -laccdevice -lnvcpumath -lnvomp

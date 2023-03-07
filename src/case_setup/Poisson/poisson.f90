@@ -171,7 +171,7 @@ program poisson
   type(equation_system) :: poisson_eq
   type(ccs_mesh) :: mesh
 
-  integer(ccs_int) :: cps = 10 !< Default value for cells per side
+  integer(ccs_int) :: cps = 100 !< Default value for cells per side
 
   real(ccs_real) :: err_norm
 

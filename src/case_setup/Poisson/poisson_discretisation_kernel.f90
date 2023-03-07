@@ -27,10 +27,18 @@ contains
     
     real(ccs_real) :: coeff_p, coeff_f, coeff_nb
     real(ccs_real) :: A
-    
+ 
+    print *, " +++ Entering kernel +++"
+    print *, " - NROWS = ", nrows
+    print *, " - NNZPR = ", nnz_pr
+    print *, " - h     = ", h
+
+    !$acc data copyin(mesh_neighbours, mesh_face_areas) copyout(csr_values)
+    !$acc parallel loop private(face_idx, csr_idx, index_nb, A, coeff_p, coeff_f, coeff_nb)
     do i = 1, nrows
       coeff_p = 0.0_ccs_real
 
+      !$acc loop seq
       do j = 1, nnz_pr
         face_idx = nnz_pr * (i - 1) + j
         csr_idx = (nnz_pr + 1) * (i - 1) + j
@@ -53,6 +61,9 @@ contains
       csr_idx = ((nnz_pr + 1) * (i - 1) + nnz_pr) + 1
       csr_values(csr_idx) = coeff_p
     end do
+    !$acc end data
+
+    print *, " +++ Leaving kernel +++"   
     
   end subroutine discretise_poisson_kernel
 

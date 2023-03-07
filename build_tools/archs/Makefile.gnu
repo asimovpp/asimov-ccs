@@ -22,7 +22,7 @@ endif
 ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
-FFLAGS += -fopenmp
+#FFLAGS += -fopenmp
 #FFLAGS += -fopenacc -foffload=disable
 FFLAGS += -J$(OBJ_DIR)
 MPIRUN = mpirun
