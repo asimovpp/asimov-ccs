@@ -39,7 +39,7 @@ contains
     type(csr_matrix), intent(in) :: matrix
 
     start = (row - 1) * matrix%values_per_row + 1
-    end = start + matrix%values_per_row
+    end = start + matrix%values_per_row -1
 
   end subroutine
 
