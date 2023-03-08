@@ -175,9 +175,9 @@ program poisson
   type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: cps = 10 !< Default value for cells per side
-  integer(ccs_int) :: num_steps = 500 !< Default number of timesteps
+  integer(ccs_int) :: num_steps = 20 !< Default number of timesteps
   integer(ccs_int) :: t
-  real(ccs_real) :: dt = 1e-2
+  real(ccs_real) :: dt = 1e-8
 
   real(ccs_real) :: err_norm
 
@@ -238,7 +238,7 @@ program poisson
     ! Evaluate right-hand-side vector
     call eval_rhs(mesh, b)
 
-    !Call apply_timestep(mesh, u, diag, M, b)
+    call apply_timestep(mesh, u, diag, M, b)
 
     call update(M) ! Start the parallel assembly for M
     call update(u%values) ! Start the parallel assembly for u
@@ -252,9 +252,11 @@ program poisson
 
     ! Create linear solver & set options
     call set_equation_system(par_env, b, u%values, M, poisson_eq)
-    call create_solver(poisson_eq, poisson_solver)
-    call set_solver_method(pressure_solver_method_name, poisson_solver)
-    call set_solver_precon(pressure_solver_precon_name, poisson_solver)
+    if (t .eq. 1) then
+      call create_solver(poisson_eq, poisson_solver)
+      call set_solver_method(pressure_solver_method_name, poisson_solver)
+      call set_solver_precon(pressure_solver_precon_name, poisson_solver)
+    end if
     call solve(poisson_solver)
 
 
