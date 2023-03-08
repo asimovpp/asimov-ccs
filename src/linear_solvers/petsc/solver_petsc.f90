@@ -144,7 +144,7 @@ contains
   module subroutine set_solver_precon(precon_name, solver)
 
     use petscksp, only: KSPGetPC
-    use petscpc, only: tPC, PCSetType
+    use petscpc, only: tPC, PCSetType, PCSetFromOptions, PCSetup
 
     ! Arguments
     character(len=*), intent(in) :: precon_name   !< String naming the preconditioner to be used.
@@ -161,6 +161,8 @@ contains
 
         ! Set preconditionner type directly using precon_name
         call PCSetType(pc, precon_name, ierr)
+
+        call PCSetFromOptions(pc, ierr)
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")
