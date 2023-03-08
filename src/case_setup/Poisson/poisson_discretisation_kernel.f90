@@ -33,8 +33,8 @@ contains
     print *, " - NNZPR = ", nnz_pr
     print *, " - h     = ", h
 
-    !$acc data copyin(mesh_neighbours, mesh_face_areas) copyout(csr_values)
-    !$acc parallel loop private(face_idx, csr_idx, index_nb, A, coeff_p, coeff_f, coeff_nb)
+    !$acc data copyin(mesh_neighbours(:), mesh_face_areas(:)) copyout(csr_values(:))
+    !$acc parallel loop
     do i = 1, nrows
       coeff_p = 0.0_ccs_real
 
