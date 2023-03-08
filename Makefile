@@ -118,7 +118,7 @@ all: obj app
 
 $(EXE): $(EXE_DEPS) $(KOBJ)
 	#$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) $(KLIB)
-	nvc -O3 -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/include -pthread -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib $(LIB) $(KLIB) -fortranlibs -lgfortran -lstdc++ -L/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -L/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,--enable-new-dtags -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
+	nvc -acc -O3 -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/include -pthread -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib $(LIB) $(KLIB) -fortranlibs -lgfortran -lstdc++ -L/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -L/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,--enable-new-dtags -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
 	@echo -n "===> Built ccs_app with "
 	@grep main $(CCS_DIR)/config.yaml
 
