@@ -59,9 +59,8 @@ contains
               end do
               call VecCreateGhost(par_env%comm, &
                                   nlocal, PETSC_DECIDE, &
-                                  nhalo, global_halo_indices, &
+                                  nhalo, global_halo_indices, 0_ccs_int, &
                                   v%v, ierr)
-              deallocate (global_halo_indices)
 
               if (nhalo > 0) then
                 v%ghosted = .true.
@@ -84,6 +83,8 @@ contains
         call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
         call VecSet(v%v, 0.0_ccs_real, ierr)
         v%allocated = .true.
+
+        if (allocated(global_halo_indices)) deallocate(global_halo_indices)
 
       class default
         call error_abort("Unknown parallel environment")
