@@ -22,47 +22,54 @@ contains
     use petscksp, only: KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
 
     type(equation_system), intent(in) :: linear_system        !< Data structure containing equation system to be solved.
-    class(linear_solver), allocatable, intent(out) :: solver  !< The linear solver returned allocated.
+    class(linear_solver), allocatable, intent(inout) :: solver  !< The linear solver returned allocated.
 
     integer(ccs_err) :: ierr ! Error code
 
-    allocate (linear_solver_petsc :: solver)
+    if (.not. allocated(solver)) then
+      print *, "create solver"
+      allocate (linear_solver_petsc :: solver)
+    end if
 
     select type (solver)
     type is (linear_solver_petsc)
 
-      select type (par_env => linear_system%par_env)
-      type is (parallel_environment_mpi)
+      if (.not. solver%allocated) then
 
-        solver%linear_system = linear_system
+        solver%allocated = .true.
+        select type (par_env => linear_system%par_env)
+        type is (parallel_environment_mpi)
 
-        associate (comm => par_env%comm, &
-                   ksp => solver%KSP, &
-                   M => solver%linear_system%matrix)
+          solver%linear_system = linear_system
 
-          select type (M)
-          type is (matrix_petsc)
+          associate (comm => par_env%comm, &
+                    ksp => solver%KSP, &
+                    M => solver%linear_system%matrix)
 
-            call KSPCreate(comm, ksp, ierr)
-            if (ierr /= 0) then
-              call error_abort("Error in creating solver KSP")
-            end if
-            call KSPSetOperators(ksp, M%M, M%M, ierr)
-            call KSPSetFromOptions(ksp, ierr)
-            call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
+            select type (M)
+            type is (matrix_petsc)
 
-          class default
-            call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver.")
+              call KSPCreate(comm, ksp, ierr)
+              if (ierr /= 0) then
+                call error_abort("Error in creating solver KSP")
+              end if
+              call KSPSetOperators(ksp, M%M, M%M, ierr)
+              call KSPSetFromOptions(ksp, ierr)
+              call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
 
-          end select
+            class default
+              call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver.")
 
-        end associate
+            end select
 
-      class default
-        call error_abort("Unknown parallel environment")
+          end associate
 
-      end select
+        class default
+          call error_abort("Unknown parallel environment")
 
+        end select
+
+      end if
       solver%allocated = .true.
 
     class default
@@ -128,12 +135,17 @@ contains
 
     select type (solver)
     type is (linear_solver_petsc)
-      associate (ksp => solver%KSP)
-        ! Set linear solver type directly from method name
-        call KSPSetType(ksp, method_name, ierr)
+      if (.not. solver%method_set) then
+        associate (ksp => solver%KSP)
+          ! Set linear solver type directly from method name
+          call KSPSetType(ksp, method_name, ierr)
 
-        call KSPSetFromOptions(ksp, ierr)
-      end associate
+          call KSPSetFromOptions(ksp, ierr)
+        end associate
+        
+        solver%method_set = .true.
+      end if
+
     class default
       call error_abort("ERROR: Unknown solver type")
     end select
@@ -145,6 +157,7 @@ contains
 
     use petscksp, only: KSPGetPC
     use petscpc, only: tPC, PCSetType
+    use petsc, only: PETSC_TRUE
 
     ! Arguments
     character(len=*), intent(in) :: precon_name   !< String naming the preconditioner to be used.
@@ -157,10 +170,15 @@ contains
     select type (solver)
     type is (linear_solver_petsc)
       associate (ksp => solver%KSP)
-        call KSPGetPC(ksp, pc, ierr)
+        if (.not. solver%precon_set) then
+          print *, "set precon"
+          call KSPGetPC(ksp, pc, ierr)
 
-        ! Set preconditionner type directly using precon_name
-        call PCSetType(pc, precon_name, ierr)
+          ! Set preconditionner type directly using precon_name
+          call PCSetType(pc, precon_name, ierr)
+          call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
+          solver%precon_set = .true.
+        end if
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")

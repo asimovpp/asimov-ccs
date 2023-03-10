@@ -45,6 +45,8 @@ module petsctypes
   type, public, extends(linear_solver) :: linear_solver_petsc
     type(tKSP) :: KSP !< The PETSc solver
     logical :: allocated
+    logical :: precon_set
+    logical :: method_set
   contains
     final :: free_linear_solver_petsc
   end type linear_solver_petsc
