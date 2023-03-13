@@ -77,9 +77,6 @@ contains
     class(field), pointer :: p_prime !< field containing pressure-correction values
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
 
-    class(linear_solver), allocatable :: lin_solverX
-    class(linear_solver), allocatable :: lin_solverY
-    class(linear_solver), allocatable :: lin_solverZ
     class(linear_solver), allocatable :: lin_solverP
 
     call get_field(flow, field_u, u)
@@ -152,10 +149,8 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, &
-                              source, &
-                              lin_system, invAu, invAv, invAw, res, &
-                              residuals, lin_solverX, lin_solverY, lin_solverZ)
+      call calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, source, &
+                              lin_system, invAu, invAv, invAw, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -192,9 +187,6 @@ contains
 
     end do outerloop
 
-    deallocate (lin_solverX)
-    deallocate (lin_solverY)
-    deallocate (lin_solverZ)
     deallocate (lin_solverP)
     call finalise_timestep()
 
@@ -209,8 +201,7 @@ contains
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
   subroutine calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, vec, &
-                                lin_sys, invAu, invAv, invAw, &
-                                res, residuals, lin_solverX, lin_solverY, lin_solverZ)
+                                lin_sys, invAu, invAv, invAw, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -226,10 +217,6 @@ contains
     class(ccs_vector), intent(inout) :: invAw            !< vector containing the inverse z momentum coefficients
     class(ccs_vector), intent(inout) :: res              !< residual field
     real(ccs_real), dimension(:), intent(inout) :: residuals !< L2-norm of residuals for each flow variable
-
-    class(linear_solver), allocatable, intent(inout) :: lin_solverX
-    class(linear_solver), allocatable, intent(inout) :: lin_solverY
-    class(linear_solver), allocatable, intent(inout) :: lin_solverZ
 
     ! Local variables
     logical, save :: first_time = .true.
@@ -275,25 +262,24 @@ contains
     ! u-velocity
     ! ----------
     if (u_sol) then
-      call calculate_velocity_component(par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals, lin_solverX)
+      call calculate_velocity_component(par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
     end if
 
     ! v-velocity
     ! ----------
     if (v_sol) then
-      call calculate_velocity_component(par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals, lin_solverY)
+      call calculate_velocity_component(par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
     end if
 
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals, lin_solverZ)
+      call calculate_velocity_component(par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
     end if
-
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, res, residuals, lin_solver)
+  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, res, residuals)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
@@ -314,7 +300,7 @@ contains
     real(ccs_real), dimension(:), intent(inout) :: residuals
 
     ! Local variables
-    class(linear_solver), allocatable, intent(inout) :: lin_solver
+    class(linear_solver), allocatable :: lin_solver
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -381,7 +367,7 @@ contains
     call solve(lin_solver)
 
     ! Clean up
-    !deallocate (lin_solver)
+    deallocate (lin_solver)
 
   end subroutine calculate_velocity_component
 
@@ -444,6 +430,7 @@ contains
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
     type(equation_system), intent(inout) :: lin_sys                 !< linear system object
     class(field), intent(inout) :: p_prime                          !< the pressure correction field
+    class(linear_solver), allocatable, intent(inout) :: lin_solver  !< Linear solver that is being reused
 
     ! Local variables
     type(matrix_values) :: mat_coeffs
@@ -451,7 +438,6 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
-    class(linear_solver), allocatable, intent(inout) :: lin_solver
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_index_p, global_index_nb, index_p
     integer(ccs_int) :: j
@@ -645,9 +631,6 @@ contains
     ! Solve the linear system
     call dprint("P': solve")
     call solve(lin_solver)
-
-    ! Clean up
-    !deallocate (lin_solver)
 
   end subroutine calculate_pressure_correction
 

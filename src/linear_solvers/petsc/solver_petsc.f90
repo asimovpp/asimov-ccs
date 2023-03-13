@@ -27,7 +27,6 @@ contains
     integer(ccs_err) :: ierr ! Error code
 
     if (.not. allocated(solver)) then
-      print *, "create solver"
       allocate (linear_solver_petsc :: solver)
     end if
 
@@ -36,7 +35,6 @@ contains
 
       if (.not. solver%allocated) then
 
-        solver%allocated = .true.
         select type (par_env => linear_system%par_env)
         type is (parallel_environment_mpi)
 
@@ -135,17 +133,12 @@ contains
 
     select type (solver)
     type is (linear_solver_petsc)
-      if (.not. solver%method_set) then
-        associate (ksp => solver%KSP)
-          ! Set linear solver type directly from method name
-          call KSPSetType(ksp, method_name, ierr)
+      associate (ksp => solver%KSP)
+        ! Set linear solver type directly from method name
+        call KSPSetType(ksp, method_name, ierr)
 
-          call KSPSetFromOptions(ksp, ierr)
-        end associate
-        
-        solver%method_set = .true.
-      end if
-
+        call KSPSetFromOptions(ksp, ierr)
+      end associate
     class default
       call error_abort("ERROR: Unknown solver type")
     end select
@@ -170,15 +163,11 @@ contains
     select type (solver)
     type is (linear_solver_petsc)
       associate (ksp => solver%KSP)
-        if (.not. solver%precon_set) then
-          print *, "set precon"
-          call KSPGetPC(ksp, pc, ierr)
+        call KSPGetPC(ksp, pc, ierr)
 
-          ! Set preconditionner type directly using precon_name
-          call PCSetType(pc, precon_name, ierr)
-          call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
-          solver%precon_set = .true.
-        end if
+        ! Set preconditionner type directly using precon_name
+        call PCSetType(pc, precon_name, ierr)
+        call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")
