@@ -37,10 +37,11 @@ module parallel
     end subroutine
 
     !> Read command line arguments and their values
-    module subroutine read_command_line_arguments(par_env, cps, case_name)
+    module subroutine read_command_line_arguments(par_env, cps, case_name, in_dir)
       class(parallel_environment), intent(in) :: par_env
       integer(ccs_int), optional, intent(inout) :: cps
       character(len=:), optional, allocatable, intent(out) :: case_name
+      character(len=:), optional, allocatable, intent(out) :: in_dir
     end subroutine read_command_line_arguments
 
     !> Timer for parallel environment

@@ -44,4 +44,6 @@ elif [ $ACTION = "fprettify" ]; then
     echo 'DOUBLE CHECK THAT "module procedure" INDENTATION IS OK IN FILES:'
     grep -rl "module procedure" $TARGET
   fi
+else
+  echo 'Unknown ACTION provided to linting script'
 fi
