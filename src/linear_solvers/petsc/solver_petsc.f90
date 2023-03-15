@@ -26,48 +26,47 @@ contains
 
     integer(ccs_err) :: ierr ! Error code
 
-    if (.not. allocated(solver)) then
-      allocate (linear_solver_petsc :: solver)
+    if (allocated(solver)) then
+      return
     end if
+
+    allocate (linear_solver_petsc :: solver)
 
     select type (solver)
     type is (linear_solver_petsc)
 
-      if (.not. solver%allocated) then
+      select type (par_env => linear_system%par_env)
+      type is (parallel_environment_mpi)
 
-        select type (par_env => linear_system%par_env)
-        type is (parallel_environment_mpi)
+        solver%linear_system = linear_system
 
-          solver%linear_system = linear_system
+        associate (comm => par_env%comm, &
+                   ksp => solver%KSP, &
+                   M => solver%linear_system%matrix)
 
-          associate (comm => par_env%comm, &
-                    ksp => solver%KSP, &
-                    M => solver%linear_system%matrix)
+          select type (M)
+          type is (matrix_petsc)
 
-            select type (M)
-            type is (matrix_petsc)
+            call KSPCreate(comm, ksp, ierr)
+            if (ierr /= 0) then
+              call error_abort("Error in creating solver KSP")
+            end if
+            call KSPSetOperators(ksp, M%M, M%M, ierr)
+            call KSPSetFromOptions(ksp, ierr)
+            call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
 
-              call KSPCreate(comm, ksp, ierr)
-              if (ierr /= 0) then
-                call error_abort("Error in creating solver KSP")
-              end if
-              call KSPSetOperators(ksp, M%M, M%M, ierr)
-              call KSPSetFromOptions(ksp, ierr)
-              call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
+          class default
+            call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver.")
 
-            class default
-              call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver.")
+          end select
 
-            end select
+        end associate
 
-          end associate
+      class default
+        call error_abort("Unknown parallel environment")
 
-        class default
-          call error_abort("Unknown parallel environment")
+      end select
 
-        end select
-
-      end if
       solver%allocated = .true.
 
     class default

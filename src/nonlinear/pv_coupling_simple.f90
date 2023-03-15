@@ -60,6 +60,7 @@ contains
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
+    class(linear_solver), allocatable :: lin_solverP !< Pressure correction linear solver
 
     logical :: converged
 
@@ -76,8 +77,6 @@ contains
     class(field), pointer :: p       !< field containing pressure values
     class(field), pointer :: p_prime !< field containing pressure-correction values
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
-
-    class(linear_solver), allocatable :: lin_solverP
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
