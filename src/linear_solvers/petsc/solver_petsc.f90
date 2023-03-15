@@ -129,16 +129,8 @@ contains
     select type (solver)
     type is (linear_solver_petsc)
       associate (ksp => solver%KSP)
-        ! Use linear solver name to set linear solver type
-        if (method_name == "CG") then
-          call KSPSetType(ksp, "cg", ierr)
-        else if (method_name == "GMRES") then
-          call KSPSetType(ksp, "gmres", ierr)
-        else if (method_name == "BCGS") then
-          call KSPSetType(ksp, "bcgs", ierr)
-        else
-          call error_abort("ERROR: Unknown solver method " // method_name)
-        end if
+        ! Set linear solver type directly from method name
+        call KSPSetType(ksp, method_name, ierr)
 
         call KSPSetFromOptions(ksp, ierr)
       end associate
@@ -167,14 +159,8 @@ contains
       associate (ksp => solver%KSP)
         call KSPGetPC(ksp, pc, ierr)
 
-        ! Use preconditioner name to set preconditioner type
-        if (precon_name == "BJACOBI") then
-          call PCSetType(pc, "bjacobi", ierr)
-        else if (precon_name == "GAMG") then
-          call PCSetType(pc, "gamg", ierr)
-        else
-          call error_abort("ERROR: Unknown solver precon " // precon_name)
-        end if
+        ! Set preconditionner type directly using precon_name
+        call PCSetType(pc, precon_name, ierr)
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")

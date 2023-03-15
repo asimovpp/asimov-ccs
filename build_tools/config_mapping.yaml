@@ -25,9 +25,11 @@ bases:
       partitioning_common: partitioning_common
       reordering: reordering_rcm
       reordering_common: reordering_common
+      poisson_discretisation: poisson_discretisation_ref
     options:
       timestepping: [timestepping_first_order, timestepping_second_order]
       reordering: [reordering_rcm, reordering_petsc]
+      poisson_discretisation: [poisson_discretisation_ref]
   mpi:
     defaults:
       mat_common: mat_common
@@ -54,5 +56,8 @@ bases:
       partitioning_common: partitioning_common
       reordering: reordering_rcm
       reordering_common: reordering_common
+      poisson_discretisation: poisson_discretisation_ref
     options:
       timestepping: [timestepping_first_order, timestepping_second_order]
+      reordering: [reordering_rcm, reordering_petsc]
+      poisson_discretisation: [poisson_discretisation_ref]

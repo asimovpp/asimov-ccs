@@ -140,6 +140,15 @@ lint_tests:
 
 #-----------------------------------------------------------------------------#
 
+generate_ford_docs:
+  extends: .general_setup
+  script:
+    - make ford
+  artifacts:
+    paths:
+      - doc
+  allow_failure: true
+
 generate_code_docs:
   extends: .general_setup
   script:

@@ -32,4 +32,12 @@ module constants
 
   integer(ccs_int), public, parameter :: ccs_string_len = 128
 
+  ! field names
+  integer(ccs_int), public, parameter :: field_u = 0
+  integer(ccs_int), public, parameter :: field_v = 1
+  integer(ccs_int), public, parameter :: field_w = 2
+  integer(ccs_int), public, parameter :: field_p = 3
+  integer(ccs_int), public, parameter :: field_p_prime = 4
+  integer(ccs_int), public, parameter :: field_mf = 5
+
 end module constants

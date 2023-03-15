@@ -17,9 +17,13 @@ program test_square_mesh_point_distribution
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
 
+  integer(ccs_int), dimension(9) :: m = (/ 1, 2, 4, 8, 16, 20, 40, 80, 100 /)
+  integer(ccs_int) :: mctr
+
   call init()
 
-  do n = 1, 100
+  do mctr = 1, size(m)
+    n = m(mctr)
     mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
 
     call get_local_num_cells(mesh, nlocal)
@@ -57,8 +61,8 @@ program test_square_mesh_point_distribution
       call stop_test(message)
     end if
 
-    call assert_equal(n_expected, mesh%topo%global_num_cells, &
-                      '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
+    call assert_eq(n_expected, mesh%topo%global_num_cells, &
+                      "(test_mesh:test_mesh_point_distribution/2)")
 
   end do
 
