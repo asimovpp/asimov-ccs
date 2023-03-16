@@ -80,6 +80,7 @@ module types
     integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
     integer(ccs_int) :: global_num_vertices                           !< Global number of vertices
     integer(ccs_int) :: vert_per_cell                                 !< Number of vertices per cell
+    integer(ccs_int) :: vert_nb_per_cell                              !< Number of neighbours via vertices per cell
     integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells
     integer(ccs_int) :: global_num_faces                              !< Global number of faces
     integer(ccs_int) :: num_faces                                     !< Local number of faces
@@ -88,8 +89,10 @@ module types
     integer(ccs_int), dimension(:, :), allocatable :: global_face_indices !< Global list of faces indices
     integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices
     integer(ccs_int), dimension(:, :), allocatable :: face_indices        !< Cell face index in local face vector (face, cell)
-    integer(ccs_int), dimension(:, :), allocatable :: nb_indices      !< Cell face index in local face vector (face, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: nb_indices      !< neighbour cell index in local neighbour vector (neighbour, cell)
+    integer(ccs_int), dimension(:, :), allocatable :: vert_nb_indices !< neighbour cell index via vertex in local neighbour vertex vector (neighbour, cell)
     integer(ccs_int), dimension(:), allocatable :: num_nb             !< The local number of neighbours per cell
+    integer(ccs_int), dimension(:), allocatable :: num_vert_nb        !< The local number of vertex neighbours per cell
     integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
     integer(ccs_int), dimension(:), allocatable :: face_cell1         !< Array of 1st face cells
     integer(ccs_int), dimension(:), allocatable :: face_cell2         !< Array of 2nd face cells

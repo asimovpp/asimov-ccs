@@ -499,16 +499,19 @@ contains
 
         ! Set number of vertices per cell
         mesh%topo%vert_per_cell = 4_ccs_int
+        mesh%topo%vert_nb_per_cell = 4_ccs_int
 
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(local_num_cells))
         allocate (mesh%topo%num_nb(local_num_cells))
         allocate (mesh%topo%nb_indices(mesh%topo%max_faces, local_num_cells))
+        allocate (mesh%topo%vert_nb_indices(mesh%topo%vert_nb_per_cell, local_num_cells))
         allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
         allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, local_num_cells))
 
         ! Initialise mesh arrays
         mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
+        mesh%topo%num_vert_nb(:) = mesh%topo%vert_nb_per_cell ! All cells have 4 vertex neighbours (possibly ghost/boundary cells)
 
         ! First set the global index of local cells
         index_counter = 1_ccs_int
@@ -768,15 +771,20 @@ contains
           ! Set number of vertices per cell (constant, 8)
           mesh%topo%vert_per_cell = 8
 
+          ! Set number of neighbours via vertex per cell
+          mesh%topo%vert_nb_per_cell = 20
+
           ! Allocate mesh arrays
           allocate (mesh%topo%global_indices(local_num_cells))
           allocate (mesh%topo%num_nb(local_num_cells))
           allocate (mesh%topo%nb_indices(mesh%topo%max_faces, local_num_cells))
+          allocate (mesh%topo%vert_nb_indices(mesh%topo%vert_nb_per_cell, local_num_cells))
           allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
           allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, local_num_cells))
 
           ! Initialise mesh arrays
           mesh%topo%num_nb(:) = mesh%topo%max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
+          mesh%topo%num_vert_nb(:) = mesh%topo%vert_nb_per_cell 
 
           ! Initalise neighbour indices
           mesh%topo%nb_indices(:, :) = 0_ccs_int
