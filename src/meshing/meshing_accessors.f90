@@ -79,7 +79,7 @@ contains
   !
   !  Creates the association between a neighbour cell F relative to cell P, i.e. to
   !  access the nth neighbour of cell i.
-  module subroutine set_neighbour_location(loc_p, nb_counter, loc_nb)
+  module subroutine set_face_neighbour_location(loc_p, nb_counter, loc_nb)
     type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell
     !< whose neighbour is being accessed.
     integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
@@ -109,7 +109,30 @@ contains
         call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
       end if
     end associate
-  end subroutine set_neighbour_location
+  end subroutine set_face_neighbour_location
+
+  !v Constructs a vertex neighbour locator object.
+  !
+  !  Creates the association between a neighbour cell F relative to cell P via a vertex, i.e. to
+  !  access the nth vertex neighbour of cell i.
+  module subroutine set_vertex_neighbour_location(loc_p, vert_nb_counter, loc_nb)
+    type(cell_locator), intent(in) :: loc_p        
+    integer(ccs_int), intent(in) :: vert_nb_counter
+    type(vertex_neighbour_locator), intent(out) :: loc_nb 
+
+    loc_nb%mesh => loc_p%mesh
+    loc_nb%index_p = loc_p%index_p
+
+    loc_nb%vert_nb_counter = vert_nb_counter
+
+    associate (mymesh => loc_nb%mesh, &
+               i => loc_nb%index_p, &
+               j => loc_nb%vert_nb_counter)
+      if (mymesh%topo%vert_nb_indices(j, i) == i) then
+        call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
+      end if
+    end associate
+  end subroutine set_vertex_neighbour_location
 
   !v Constructs a vertex locator object.
   !
@@ -370,6 +393,18 @@ contains
     end associate
   end subroutine get_neighbour_local_index
 
+  !> Returns the local index of a vertex neighbour cell
+  module subroutine get_vertex_neighbour_local_index(loc_nb, index_nb)
+    type(vertex_neighbour_locator), intent(in) :: loc_nb  !< the vertex neighbour locator object.
+    integer(ccs_int), intent(out) :: index_nb             !< the local index of the neighbour cell.
+
+    associate (mesh => loc_nb%mesh, &
+               i => loc_nb%index_p, &
+               j => loc_nb%vert_nb_counter)
+      index_nb = mesh%topo%vert_nb_indices(j, i)
+    end associate
+  end subroutine get_vertex_neighbour_local_index
+
   !> Returns the local index of a face
   module subroutine get_face_local_index(loc_f, index_f)
     type(face_locator), intent(in) :: loc_f  !< the face locator object.
@@ -458,5 +493,16 @@ contains
       end do
     end associate
   end subroutine set_normal
+
+  !> Counts the number of neighbours via vertices of a given cell
+  module subroutine cell_count_vertex_neighbours(loc_p, nvnb)
+    type(cell_locator), intent(in) :: loc_p 
+    integer(ccs_int), intent(out) :: nvnb   
+    
+    associate (mesh => loc_p%mesh, &
+               cell => loc_p%index_p)
+      nvnb = mesh%topo%num_vert_nb(cell)
+    end associate
+  end subroutine cell_count_vertex_neighbours
   
 end submodule meshing_accessors
