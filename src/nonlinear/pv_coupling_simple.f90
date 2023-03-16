@@ -60,6 +60,7 @@ contains
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
+    class(linear_solver), allocatable :: lin_solverP !< Pressure correction linear solver
 
     logical :: converged
 
@@ -154,7 +155,7 @@ contains
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, source, lin_system, p_prime)
+      call calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -185,6 +186,7 @@ contains
 
     end do outerloop
 
+    deallocate (lin_solverP)
     call finalise_timestep()
 
     ! Free up memory
@@ -197,8 +199,8 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, vec, lin_sys, invAu, invAv, invAw, &
-                                res, residuals)
+  subroutine calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, vec, &
+                                lin_sys, invAu, invAv, invAw, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -417,7 +419,7 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, vec, lin_sys, p_prime)
+  subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, vec, lin_sys, p_prime, lin_solver)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -427,6 +429,7 @@ contains
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
     type(equation_system), intent(inout) :: lin_sys                 !< linear system object
     class(field), intent(inout) :: p_prime                          !< the pressure correction field
+    class(linear_solver), allocatable, intent(inout) :: lin_solver  !< Linear solver that is being reused
 
     ! Local variables
     type(matrix_values) :: mat_coeffs
@@ -434,7 +437,6 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
-    class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_index_p, global_index_nb, index_p
     integer(ccs_int) :: j
@@ -628,9 +630,6 @@ contains
     ! Solve the linear system
     call dprint("P': solve")
     call solve(lin_solver)
-
-    ! Clean up
-    deallocate (lin_solver)
 
   end subroutine calculate_pressure_correction
 

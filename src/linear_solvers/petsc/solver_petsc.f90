@@ -22,9 +22,13 @@ contains
     use petscksp, only: KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
 
     type(equation_system), intent(in) :: linear_system        !< Data structure containing equation system to be solved.
-    class(linear_solver), allocatable, intent(out) :: solver  !< The linear solver returned allocated.
+    class(linear_solver), allocatable, intent(inout) :: solver  !< The linear solver returned allocated.
 
     integer(ccs_err) :: ierr ! Error code
+
+    if (allocated(solver)) then
+      return
+    end if
 
     allocate (linear_solver_petsc :: solver)
 
@@ -145,6 +149,7 @@ contains
 
     use petscksp, only: KSPGetPC
     use petscpc, only: tPC, PCSetType
+    use petsc, only: PETSC_TRUE
 
     ! Arguments
     character(len=*), intent(in) :: precon_name   !< String naming the preconditioner to be used.
@@ -161,6 +166,7 @@ contains
 
         ! Set preconditionner type directly using precon_name
         call PCSetType(pc, precon_name, ierr)
+        call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")
