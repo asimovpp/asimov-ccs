@@ -99,15 +99,19 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
     call partition_kway(par_env, mesh)
+
+    !call partition_kway(par_env, mesh)
+    call partition_stride(par_env, mesh)
+
     ! for debug: Hardcode a 2 rank partitioning (even in serial)
-    mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
-    mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
+    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
+    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
     
     call compute_connectivity(par_env, mesh)
 
     call read_geometry(par_env, geo_reader, mesh)
 
-    call print_topo(par_env, mesh)
+    !call print_topo(par_env, mesh)
     !call print_geo(par_env, mesh)
 
     ! Close the file and ADIOS2 engine
@@ -465,16 +469,47 @@ contains
 
   end subroutine write_geometry
 
+ !v Utility constructor to build a 3D mesh with hex cells.
+  !
+  !  Builds a Cartesian grid of nx*ny*nz cells.
+  function build_square_mesh(par_env, cps, side_length) result(mesh)
+
+  use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
+    real(ccs_real), intent(in) :: side_length          !< The length of the side.
+
+    type(ccs_mesh) :: mesh                             !< The resulting mesh.
+
+    call build_square_topology(par_env, cps, side_length, mesh)
+
+    call compute_partitioner_input(par_env, mesh)
+
+    !call partition_kway(par_env, mesh)
+    call partition_stride(par_env, mesh)
+
+    ! for debug: Hardcode a 2 rank partitioning (even in serial)
+    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
+    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
+    
+    call compute_connectivity(par_env, mesh)
+
+    call build_square_geometry(par_env, cps, side_length, mesh)
+
+  end function build_square_mesh
+
+
   !v Utility constructor to build a square mesh.
   !
   !  Builds a Cartesian grid of NxN cells on the domain LxL.
-  function build_square_mesh(par_env, cps, side_length) result(mesh)
+  subroutine build_square_topology(par_env, cps, side_length, mesh)
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
     real(ccs_real), intent(in) :: side_length          !< The length of each side.
 
-    type(ccs_mesh) :: mesh                             !< The resulting mesh.
+    type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
 
     integer(ccs_int) :: start_global    ! The (global) starting index of a partition
     integer(ccs_int) :: end_global      ! The (global) last index of a partition
@@ -505,7 +540,6 @@ contains
       ! Set the global mesh parameters
       mesh%topo%global_num_cells = cps**2
       mesh%topo%global_num_vertices = (cps + 1)**2
-      mesh%geo%h = side_length / real(cps, ccs_real)
 
       ! Associate aliases to make code easier to read
       associate (nglobal => mesh%topo%global_num_cells, &
@@ -603,6 +637,63 @@ contains
       mesh%topo%total_num_cells = size(mesh%topo%global_indices)
       mesh%topo%halo_num_cells = mesh%topo%total_num_cells - mesh%topo%local_num_cells
 
+      ! Set the global mesh parameters
+      mesh%topo%global_num_cells = cps**2
+      mesh%topo%global_num_vertices = (cps + 1)**2
+      mesh%topo%num_faces = count_mesh_faces(mesh)
+
+      call set_cell_face_indices(mesh)
+
+    class default
+      call error_abort("Unknown parallel environment type.")
+
+    end select
+
+   end subroutine build_square_topology
+
+
+
+  subroutine build_square_geometry(par_env, cps, side_length, mesh)
+  
+    class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
+    integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
+    real(ccs_real), intent(in) :: side_length          !< The length of each side.
+
+    type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
+
+    integer(ccs_int) :: i               ! Loop counter
+    integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
+    integer(ccs_int) :: index_counter   ! Local index counter
+    integer(ccs_int) :: face_counter    ! Cell-local face counter
+    integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
+    integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
+    integer(ccs_int) :: comm_size       ! The size of the parallel environment
+
+    logical :: is_boundary
+
+    integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
+    integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
+
+    real(ccs_real), dimension(2) :: x_p ! Cell centre array
+    type(cell_locator) :: loc_p         ! Cell locator object
+
+    real(ccs_real), dimension(2) :: x_nb ! Cell centre array of neighbour cell
+    type(neighbour_locator) :: loc_nb    ! the neighbour locator object.
+
+    real(ccs_real), dimension(2) :: x_f    ! Face centre array
+    real(ccs_real), dimension(2) :: normal ! Face normal array
+    type(face_locator) :: loc_f            ! Face locator object
+
+    real(ccs_real), dimension(2) :: x_v ! Vertex centre array
+    type(vert_locator) :: loc_v         ! Vertex locator object
+
+
+
+  select type (par_env)
+    type is (parallel_environment_mpi)
+
+
+
       ! Global vertex numbering
       do i = 1, mesh%topo%local_num_cells
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
@@ -615,6 +706,7 @@ contains
         end associate
       end do
 
+
       allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
       allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
       allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
@@ -622,6 +714,7 @@ contains
       allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells)) ! Currently hardcoded as a 2D mesh.
       allocate (mesh%geo%vert_coords(ndim, mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
 
+      mesh%geo%h = side_length / real(cps, ccs_real)
       mesh%geo%volumes(:) = mesh%geo%h**2 !< @note Mesh is square and 2D @endnote
       mesh%geo%face_normals(:, :, :) = 0.0_ccs_real
       mesh%geo%x_p(:, :) = 0.0_ccs_real
@@ -646,41 +739,56 @@ contains
           call set_cell_location(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
           
-          face_counter = left
-          call set_face_location(mesh, i, face_counter, loc_f)
-          x_f(1) = x_p(1) - 0.5_ccs_real * h
-          x_f(2) = x_p(2)
-          normal(1) = -1.0_ccs_real
-          normal(2) = 0.0_ccs_real
-          call set_centre(loc_f, x_f)
-          call set_normal(loc_f, normal)
+
+          do face_counter = 1_ccs_int, mesh%topo%max_faces
             
-          face_counter = right
-          call set_face_location(mesh, i, face_counter, loc_f)
-          x_f(1) = x_p(1) + 0.5_ccs_real * h
-          x_f(2) = x_p(2)
-          normal(1) = 1.0_ccs_real
-          normal(2) = 0.0_ccs_real
-          call set_centre(loc_f, x_f)
-          call set_normal(loc_f, normal)
+            call set_neighbour_location(loc_p, face_counter, loc_nb)
+            call get_boundary_status(loc_nb, is_boundary)
+            call set_face_location(mesh, i, face_counter, loc_f)
 
-          face_counter = bottom
-          call set_face_location(mesh, i, face_counter, loc_f)
-          x_f(1) = x_p(1)
-          x_f(2) = x_p(2) - 0.5_ccs_real * h
-          normal(1) = 0.0_ccs_real
-          normal(2) = -1.0_ccs_real
-          call set_centre(loc_f, x_f)
-          call set_normal(loc_f, normal)
+            if (.not. is_boundary) then
+              ! faces are midway between cell centre and nb cell centre
+              call get_centre(loc_nb, x_nb)
 
-          face_counter = top
-          call set_face_location(mesh, i, face_counter, loc_f)
-          x_f(1) = x_p(1)
-          x_f(2) = x_p(2) + 0.5_ccs_real * h
-          normal(1) = 0.0_ccs_real
-          normal(2) = 1.0_ccs_real
-          call set_centre(loc_f, x_f)
-          call set_normal(loc_f, normal)
+              x_f(:) = 0.5_ccs_real*(x_p(:) + x_nb(:))
+              normal(:) = (x_nb(:) - x_p(:)) / h
+              call set_centre(loc_f, x_f)
+              call set_normal(loc_f, normal)
+
+            else
+              ! for boundary faces we use their 'ID' to get their location
+
+              call get_local_index(loc_nb, index_nb)
+              x_f(1) = x_p(1)
+              x_f(2) = x_p(2)
+              normal(1) = 0.0_ccs_real
+              normal(2) = 0.0_ccs_real
+
+              if (index_nb .eq. -left) then
+                x_f(1) = x_p(1) - 0.5_ccs_real * h
+                normal(1) = -1.0_ccs_real
+              end if
+
+              if (index_nb .eq. -right) then
+                x_f(1) = x_p(1) + 0.5_ccs_real * h
+                normal(1) = +1.0_ccs_real
+              end if
+
+              if (index_nb .eq. -bottom) then
+                x_f(2) = x_p(2) - 0.5_ccs_real * h
+                normal(2) = -1.0_ccs_real
+              end if
+
+              if (index_nb .eq. -top) then
+                x_f(2) = x_p(2) + 0.5_ccs_real * h
+                normal(2) = +1.0_ccs_real
+              end if
+
+              call set_centre(loc_f, x_f)
+              call set_normal(loc_f, normal)
+
+            end if
+          end do
         end do
 
         do i = 1_ccs_int, mesh%topo%local_num_cells
@@ -713,15 +821,12 @@ contains
         end do
       end associate
 
-      mesh%topo%num_faces = count_mesh_faces(mesh)
-
-      call set_cell_face_indices(mesh)
-
     class default
       call error_abort("Unknown parallel environment type.")
 
     end select
-  end function build_square_mesh
+
+  end subroutine build_square_geometry
 
   !v Utility constructor to build a 3D mesh with hex cells.
   !
@@ -745,10 +850,13 @@ contains
     call build_topology(par_env, nx, ny, nz, side_length, mesh)
 
     call compute_partitioner_input(par_env, mesh)
-    call partition_kway(par_env, mesh)
+
+    !call partition_kway(par_env, mesh)
+    call partition_stride(par_env, mesh)
+
     ! for debug: Hardcode a 2 rank partitioning (even in serial)
-    mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
-    mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
+    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
+    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
     
     call compute_connectivity(par_env, mesh)
 
@@ -1085,9 +1193,7 @@ contains
 
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
 
-    integer(ccs_int) :: start_global    ! The (global) starting index of a partition
-    integer(ccs_int) :: end_global      ! The (global) last index of a partition
-    integer(ccs_int) :: i,j,k           ! Loop counter
+    integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
@@ -1144,7 +1250,6 @@ contains
 
 
 
-      mesh%geo%h = side_length / real(nx, ccs_real) !< @note Assumes cube @endnote
 
       allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
       allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
@@ -1153,6 +1258,7 @@ contains
       allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, mesh%topo%local_num_cells))
       allocate (mesh%geo%vert_coords(ndim, mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
 
+      mesh%geo%h = side_length / real(nx, ccs_real) !< @note Assumes cube @endnote
       mesh%geo%volumes(:) = mesh%geo%h**3 !< @note Mesh is cube @endnote
       mesh%geo%face_normals(:, :, :) = 0.0_ccs_real
       mesh%geo%x_p(:, :) = 0.0_ccs_real
@@ -1303,13 +1409,10 @@ contains
         end do
       end associate
 
-
-
     class default
       call error_abort("Unknown parallel environment type.")
 
     end select
-
 
   end subroutine build_geometry 
 
@@ -1539,6 +1642,22 @@ contains
       end if
     end do
   end function get_neighbour_face_index
+
+
+  ! Populate mesh%topo%global_partition with a split of cells in stride using global_start and local_count
+  subroutine partition_stride(par_env, mesh)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
+
+    integer(ccs_int) :: iproc, start, end
+
+    do iproc = 0, par_env%num_procs -1
+      start = global_start(mesh%topo%global_num_cells, iproc, par_env%num_procs)
+      end = start + local_count(mesh%topo%global_num_cells, iproc, par_env%num_procs) -1
+      mesh%topo%global_partition(start:end) = iproc
+    end do
+
+  end subroutine partition_stride
 
   integer function global_start(n, procid, nproc)
 
