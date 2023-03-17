@@ -56,12 +56,14 @@ module mesh_utils
   private
   public :: build_square_mesh
   public :: build_mesh
+  public :: read_mesh
+  public :: write_mesh
   public :: global_start
   public :: local_count
   public :: count_mesh_faces
   public :: set_cell_face_indices
-  public :: read_mesh
-  public :: write_mesh
+  public :: print_topo
+  public :: print_geo
 
 contains
 
@@ -109,7 +111,7 @@ contains
     
     call compute_connectivity(par_env, mesh)
 
-    call read_geometry(par_env, geo_reader, mesh)
+    call read_geometry(geo_reader, mesh)
 
     !call print_topo(par_env, mesh)
     !call print_geo(par_env, mesh)
@@ -215,14 +217,13 @@ contains
   end subroutine read_topology
 
   !v Read the geometry data from an input (HDF5) file
-  subroutine read_geometry(par_env, geo_reader, mesh)
+  subroutine read_geometry(geo_reader, mesh)
 
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
     integer(ccs_int) :: i, j, n, global_icell, local_icell
-    integer(ccs_int) :: start, end, ier
+    integer(ccs_int) :: ier
     integer(ccs_int) :: vert_per_cell
 
     integer(ccs_long), dimension(1) :: vol_p_start
@@ -482,7 +483,7 @@ contains
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
-    call build_square_topology(par_env, cps, side_length, mesh)
+    call build_square_topology(par_env, cps, mesh)
 
     call compute_partitioner_input(par_env, mesh)
 
@@ -503,11 +504,10 @@ contains
   !v Utility constructor to build a square mesh.
   !
   !  Builds a Cartesian grid of NxN cells on the domain LxL.
-  subroutine build_square_topology(par_env, cps, side_length, mesh)
+  subroutine build_square_topology(par_env, cps, mesh)
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
-    real(ccs_real), intent(in) :: side_length          !< The length of each side.
 
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
 
@@ -517,23 +517,12 @@ contains
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
-    integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
     integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
     integer(ccs_int) :: comm_size       ! The size of the parallel environment
 
     integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
-    real(ccs_real), dimension(2) :: x_p ! Cell centre array
-    type(cell_locator) :: loc_p         ! Cell locator object
-
-    real(ccs_real), dimension(2) :: x_f    ! Face centre array
-    real(ccs_real), dimension(2) :: normal ! Face normal array
-    type(face_locator) :: loc_f            ! Face locator object
-
-    real(ccs_real), dimension(2) :: x_v ! Vertex centre array
-    type(vert_locator) :: loc_v         ! Vertex locator object
-    
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -663,21 +652,18 @@ contains
 
     integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
-    integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
-    integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
-    integer(ccs_int) :: comm_size       ! The size of the parallel environment
 
     logical :: is_boundary
 
     integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
-    integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
     real(ccs_real), dimension(2) :: x_p ! Cell centre array
     type(cell_locator) :: loc_p         ! Cell locator object
 
-    real(ccs_real), dimension(2) :: x_nb ! Cell centre array of neighbour cell
+    real(ccs_real), dimension(3) :: x_nb_3 ! Cell centre array of neighbour cell
+    real(ccs_real), dimension(2) :: x_nb   ! Cell centre array of neighbour cell
     type(neighbour_locator) :: loc_nb    ! the neighbour locator object.
 
     real(ccs_real), dimension(2) :: x_f    ! Face centre array
@@ -692,7 +678,10 @@ contains
   select type (par_env)
     type is (parallel_environment_mpi)
 
-
+      if (allocated(mesh%topo%global_vertex_indices)) then
+        deallocate (mesh%topo%global_vertex_indices)
+      end if
+      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%local_num_cells))
 
       ! Global vertex numbering
       do i = 1, mesh%topo%local_num_cells
@@ -748,7 +737,8 @@ contains
 
             if (.not. is_boundary) then
               ! faces are midway between cell centre and nb cell centre
-              call get_centre(loc_nb, x_nb)
+              call get_centre(loc_nb, x_nb_3)
+              x_nb(:) = x_nb_3(1:2) ! XXX: hacky fix for issue with resolving get_neighbour_centre in 2D
 
               x_f(:) = 0.5_ccs_real*(x_p(:) + x_nb(:))
               normal(:) = (x_nb(:) - x_p(:)) / h
@@ -847,7 +837,7 @@ contains
       call error_abort("Only supporting cubes for now - nx, ny and nz must be the same!")
     end if
 
-    call build_topology(par_env, nx, ny, nz, side_length, mesh)
+    call build_topology(par_env, nx, ny, nz, mesh)
 
     call compute_partitioner_input(par_env, mesh)
 
@@ -867,13 +857,12 @@ contains
   !v Utility constructor to build a 3D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
-  subroutine build_topology(par_env, nx, ny, nz, side_length, mesh)
+  subroutine build_topology(par_env, nx, ny, nz, mesh)
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
     integer(ccs_int), intent(in) :: ny                 !< Number of cells in the y direction.
     integer(ccs_int), intent(in) :: nz                 !< Number of cells in the z direction.
-    real(ccs_real), intent(in) :: side_length          !< The length of the side.
 
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
 
@@ -884,11 +873,9 @@ contains
     integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: face_index_counter    ! global face counter
-    integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
 
     integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
-    integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -1195,9 +1182,7 @@ contains
 
     integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
-    integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
-    integer(ccs_int) :: face_index_counter    ! global face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
     integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
@@ -1218,6 +1203,7 @@ contains
     real(ccs_real), dimension(3) :: x_v ! Vertex centre array
     type(vert_locator) :: loc_v         ! Vertex locator object
  
+    e = nz ! silence dummy argument unused warning
 
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -1247,8 +1233,6 @@ contains
           global_vert_index(back_top_right) = a + c + d + e + nx + 1
         end associate
       end do
-
-
 
 
       allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
@@ -1697,9 +1681,9 @@ contains
   subroutine print_geo(par_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
-    integer(ccs_int) :: i,j          ! loop counters
+    integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
-    integer(ccs_int) :: file_unit = 32098
+    !integer(ccs_int) :: file_unit
 
 
     print *, "############################# Print Geometry ########################################"
@@ -1749,21 +1733,18 @@ contains
 
     ! Write geometry to file
 
- !   open(file_unit, file = 'raw_geometry_' // str(par_env%proc_id) // '.dat', status = 'new')  
+!    open(newunit=file_unit, file = 'raw_geometry_' // str(par_env%proc_id) // '.dat', status = 'new')  
 
- !   write(file_unit, *) "h ", mesh%geo%h
- !   write(file_unit, *) "scalefator ", mesh%geo%scalefactor
- !   write(file_unit, *) "volumes ", mesh%geo%volumes(:)
- !   write(file_unit, *) "face_areas ", mesh%geo%face_areas(:,:)
- !   write(file_unit, *) "x_p ", mesh%geo%x_p(:,:)
- !   write(file_unit, *) "x_f ", mesh%geo%x_f(:,:,:)
- !   write(file_unit, *) "face_normals ", mesh%geo%face_normals(:,:,:)
- !   write(file_unit, *) "vert_coords ", mesh%geo%vert_coords(:,:,:)
- !   
- !   close(file_unit) 
-
-
-
+!    write(file_unit, *) "h ", mesh%geo%h
+!    write(file_unit, *) "scalefator ", mesh%geo%scalefactor
+!    write(file_unit, *) "volumes ", mesh%geo%volumes(:)
+!    write(file_unit, *) "face_areas ", mesh%geo%face_areas(:,:)
+!    write(file_unit, *) "x_p ", mesh%geo%x_p(:,:)
+!    write(file_unit, *) "x_f ", mesh%geo%x_f(:,:,:)
+!    write(file_unit, *) "face_normals ", mesh%geo%face_normals(:,:,:)
+!    write(file_unit, *) "vert_coords ", mesh%geo%vert_coords(:,:,:)
+!    
+!    close(file_unit) 
 
   end subroutine print_geo
 
@@ -1772,9 +1753,9 @@ contains
   subroutine print_topo(par_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
-    integer(ccs_int) :: i,j          ! loop counters
+    integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
-    integer(ccs_int) :: file_unit = 23447
+!    integer(ccs_int) :: file_unit
 
     print *, "############################# Print Topology ########################################"
 
@@ -1834,7 +1815,7 @@ contains
     print *, "############################# End Print Topology ########################################"
 
 !
-!    open(file_unit, file = 'raw_topology_' // str(par_env%proc_id) // '.dat', status = 'new')  
+!    open(newunit=file_unit, file = 'raw_topology_' // str(par_env%proc_id) // '.dat', status = 'new')  
 !
 !    write(file_unit, *) "global_num_cells         ", mesh%topo%global_num_cells
 !    write(file_unit, *) "local_num_cells          ", mesh%topo%local_num_cells
@@ -1865,8 +1846,7 @@ contains
 !
 !    close(file_unit)
 !
-
-
-
   end subroutine print_topo
+
+
 end module mesh_utils

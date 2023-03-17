@@ -394,7 +394,7 @@ contains
 
   subroutine initialise_poisson(par_env)
 
-    class(parallel_environment) :: par_env
+    class(parallel_environment), allocatable :: par_env
 
     mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
