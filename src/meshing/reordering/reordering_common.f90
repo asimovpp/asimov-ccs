@@ -111,9 +111,9 @@ contains
       end do
     end if
 
-   call MPI_Allreduce(MPI_IN_PLACE, new_global_ordering, mesh%topo%global_num_cells, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, new_global_ordering, mesh%topo%global_num_cells, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-     !! Apply reordering
+    !! Apply reordering
 
     ! Set global indexing
     do i = 1, local_num_cells
