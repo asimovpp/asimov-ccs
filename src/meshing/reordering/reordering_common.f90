@@ -1,5 +1,7 @@
 submodule(reordering) reordering_common
-  
+#include "ccs_macros.inc"
+
+  use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_real, ccs_err
   use types, only: cell_locator, neighbour_locator
 
@@ -26,7 +28,7 @@ contains
 
     type(ccs_mesh), intent(inout) :: mesh !< the mesh to be reordered
 
-    integer(ccs_int) :: i
+    integer(ccs_int) :: i, wrunit
     integer(ccs_int) :: local_num_cells
     
     integer(ccs_int), dimension(:), allocatable :: new_indices
@@ -38,14 +40,14 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     
     if (write_csr) then
-      open(unit=2031, FILE="csr_orig.txt", FORM="FORMATTED")
+      open(newunit=wrunit, FILE="csr_orig.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
-         write(2031, *) mesh%topo%nb_indices(:, i)
+         write(wrunit, *) mesh%topo%nb_indices(:, i)
       end do
-      close(2031)
+      close(wrunit)
     end if
 
-    print *, "*********BEGIN REORDERING*****************"
+    call dprint("*********BEGIN REORDERING*****************")
     call get_reordering(mesh, new_indices)
     call apply_reordering(new_indices, mesh)
     deallocate(new_indices)
@@ -53,18 +55,17 @@ contains
     ! Global indices of local indices should be contiguous
     do i = 2, local_num_cells
        if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
-          print *, "ERROR: failed global index check at local index ", i
-          stop
+          call error_abort("ERROR: failed global index check at local index " // str(i))
        end if
     end do
-    print *, "*********END   REORDERING*****************"
+    call dprint("*********END   REORDERING*****************")
     
     if (write_csr) then
-      open(unit=2032, FILE="csr_new.txt", FORM="FORMATTED")
+      open(newunit=wrunit, FILE="csr_new.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
-         write(2032, *) mesh%topo%nb_indices(:, i)
+         write(wrunit, *) mesh%topo%nb_indices(:, i)
       end do
-      close(2032)
+      close(wrunit)
     end if
     
   end subroutine reorder_cells
