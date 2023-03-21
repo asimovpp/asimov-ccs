@@ -4,6 +4,9 @@ submodule(reordering) reordering_common
   use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_real, ccs_err
   use types, only: cell_locator, neighbour_locator
+  use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
+                     get_local_index, set_neighbour_location, get_local_status, &
+                     get_centre, set_centre
 
   implicit none
 
@@ -23,8 +26,6 @@ contains
   !  indices g0 - gN. Following reordering an update is required to inform other processors about the
   !  new global indices of their halo cells.
   module subroutine reorder_cells(mesh)
-
-    use meshing, only: get_local_num_cells
 
     type(ccs_mesh), intent(inout) :: mesh !< the mesh to be reordered
 
@@ -73,9 +74,6 @@ contains
   module subroutine apply_reordering(new_indices, mesh)
 
     use mpi
-    use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
-                       get_local_index, set_neighbour_location, get_local_status, &
-                       get_centre, set_centre
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
@@ -84,16 +82,12 @@ contains
 
     integer(ccs_int) :: local_num_cells
 
-    type(cell_locator) :: loc_p
-    integer(ccs_int) :: i, j
+    integer(ccs_int) :: i
 
     integer(ccs_int), dimension(:), allocatable :: new_global_ordering
 
     integer(ccs_int) :: start_global
     integer(ccs_int) :: idxg, idx_new
-
-    real(ccs_real), dimension(:, :), allocatable :: x
-    integer(ccs_int), dimension(:, :), allocatable :: idx_nb
 
     call get_local_num_cells(mesh, local_num_cells)
 
@@ -111,7 +105,8 @@ contains
       end do
     end if
 
-    call MPI_Allreduce(MPI_IN_PLACE, new_global_ordering, mesh%topo%global_num_cells, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, new_global_ordering, mesh%topo%global_num_cells, &
+                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
     !! Apply reordering
 
@@ -125,8 +120,27 @@ contains
     end do
     deallocate (new_global_ordering)
 
-    ! Reorder cell centres
+    call reorder_cell_centres(new_indices, mesh)
+    call reorder_neighbours(new_indices, mesh)
+    
+  end subroutine apply_reordering
+
+  subroutine reorder_cell_centres(new_indices, mesh)
+
+    integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
+    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i
+    integer(ccs_int) :: idx_new
+    type(cell_locator) :: loc_p
+    
+    real(ccs_real), dimension(:, :), allocatable :: x
+
+    call get_local_num_cells(mesh, local_num_cells)
+
     allocate (x(3, local_num_cells))
+
     do i = 1, local_num_cells
       idx_new = new_indices(i)
       call set_cell_location(mesh, i, loc_p)
@@ -136,21 +150,39 @@ contains
       call set_cell_location(mesh, i, loc_p)
       call set_centre(loc_p, x(:, i))
     end do
+
     deallocate (x)
 
-    ! Reorder neighbours
+  end subroutine reorder_cell_centres
+
+  subroutine reorder_neighbours(new_indices, mesh)
+
+    integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
+    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
+
+    integer(ccs_int) :: local_num_cells
+    
+    integer(ccs_int) :: i, j
+    integer(ccs_int) :: idx_tmp
+    integer(ccs_int) :: idx_new
+    
+    integer(ccs_int), dimension(:, :), allocatable :: idx_nb
+    
+    call get_local_num_cells(mesh, local_num_cells)
+
     allocate (idx_nb(4, local_num_cells))
+
     idx_nb(:, :) = mesh%topo%nb_indices(:, :)
     do i = 1, local_num_cells ! First update the neighbour copy
       do j = 1, 4
-        idxg = mesh%topo%nb_indices(j, i)
-        if ((idxg > 0) .and. (idxg <= local_num_cells)) then
-          idx_new = new_indices(idxg)
-          idxg = new_indices(i)
-          idx_nb(j, idxg) = idx_new
+        idx_tmp = mesh%topo%nb_indices(j, i)
+        if ((idx_tmp > 0) .and. (idx_tmp <= local_num_cells)) then
+          idx_new = new_indices(idx_tmp)
+          idx_tmp = new_indices(i)
+          idx_nb(j, idx_tmp) = idx_new
         else
-          idxg = new_indices(i)
-          idx_nb(j, idxg) = mesh%topo%nb_indices(j, i)
+          idx_tmp = new_indices(i)
+          idx_nb(j, idx_tmp) = mesh%topo%nb_indices(j, i)
         end if
       end do
     end do
@@ -160,11 +192,9 @@ contains
 
     deallocate (idx_nb)
 
-  end subroutine apply_reordering
-
+  end subroutine reorder_neighbours
+  
   module subroutine bandwidth(mesh)
-    use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
-                       get_local_index, set_neighbour_location, get_local_status
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh to evaluate
 
