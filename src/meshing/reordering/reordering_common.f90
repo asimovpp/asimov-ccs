@@ -23,9 +23,7 @@ contains
   !v Cell reordering.
   !
   !  Performs a reordering of local cells and reassigns their global indices based on this new
-  !  ordering - assumes a contiguous numbering of the processor's partition, i.e. proc N has global
-  !  indices g0 - gN. Following reordering an update is required to inform other processors about the
-  !  new global indices of their halo cells.
+  !  ordering.
   module subroutine reorder_cells(mesh)
 
     type(ccs_mesh), intent(inout) :: mesh !< the mesh to be reordered
@@ -54,12 +52,12 @@ contains
     call apply_reordering(new_indices, mesh)
     deallocate (new_indices)
 
-    ! Global indices of local indices should be contiguous
-    do i = 2, local_num_cells
-      if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
-        call error_abort("ERROR: failed global index check at local index " // str(i))
-      end if
-    end do
+    ! ! Global indices of local indices should be contiguous
+    ! do i = 2, local_num_cells
+    !   if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
+    !     call error_abort("ERROR: failed global index check at local index " // str(i))
+    !   end if
+    ! end do
     call dprint("*********END   REORDERING*****************")
 
     if (write_csr) then
