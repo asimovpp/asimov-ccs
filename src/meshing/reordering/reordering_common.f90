@@ -6,7 +6,8 @@ submodule(reordering) reordering_common
   use types, only: cell_locator, neighbour_locator
   use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
                      get_local_index, set_neighbour_location, get_local_status, &
-                     get_centre, set_centre
+                     get_centre, set_centre, &
+                     get_global_index
 
   implicit none
 
@@ -78,53 +79,43 @@ contains
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
-    integer(ccs_err) :: ierr
-
-    integer(ccs_int) :: local_num_cells
-
-    integer(ccs_int) :: i
-
-    integer(ccs_int), dimension(:), allocatable :: new_global_ordering
-
-    integer(ccs_int) :: start_global
-    integer(ccs_int) :: idxg, idx_new
-
-    call get_local_num_cells(mesh, local_num_cells)
-
-    !! Get global reordering
-    allocate (new_global_ordering(mesh%topo%global_num_cells))
-    new_global_ordering(:) = 0
-    start_global = -1
-    if (local_num_cells >= 1) then
-      start_global = mesh%topo%global_indices(1)
-
-      do i = 1, local_num_cells
-        idx_new = new_indices(i)
-        idxg = i + (start_global - 1)
-        new_global_ordering(idxg) = idx_new + (start_global - 1)
-      end do
-    end if
-
-    call MPI_Allreduce(MPI_IN_PLACE, new_global_ordering, mesh%topo%global_num_cells, &
-                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-
-    !! Apply reordering
-
-    ! Set global indexing
-    do i = 1, local_num_cells
-      mesh%topo%global_indices(i) = i + (start_global - 1)
-    end do
-    do i = local_num_cells + 1, mesh%topo%total_num_cells
-      idxg = mesh%topo%global_indices(i)
-      mesh%topo%global_indices(i) = new_global_ordering(idxg)
-    end do
-    deallocate (new_global_ordering)
-
+    call reorder_global_indices(new_indices, mesh)
     call reorder_cell_centres(new_indices, mesh)
     call reorder_neighbours(new_indices, mesh)
     
   end subroutine apply_reordering
 
+  subroutine reorder_global_indices(new_indices, mesh)
+
+    integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
+    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i
+    integer(ccs_int) :: idx_new
+    integer(ccs_int) :: idxg
+    type(cell_locator) :: loc_p
+    
+    integer(ccs_int), dimension(:), allocatable :: global_indices
+    
+    ! Only need to order local cells
+    call get_local_num_cells(mesh, local_num_cells)
+
+    allocate(global_indices(local_num_cells))
+    
+    do i = 1, local_num_cells
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, idxg)
+      
+      idx_new = new_indices(i)
+      global_indices(idx_new) = idxg
+    end do
+    mesh%topo%global_indices(1:local_num_cells) = global_indices(1:local_num_cells)
+
+    deallocate(global_indices)
+    
+  end subroutine reorder_global_indices
+  
   subroutine reorder_cell_centres(new_indices, mesh)
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
