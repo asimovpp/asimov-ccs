@@ -2,7 +2,7 @@ submodule(reordering) reordering_common
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, str, debug_print
-  use kinds, only: ccs_real, ccs_err
+  use kinds, only: ccs_int, ccs_real, ccs_err
   use types, only: cell_locator, neighbour_locator
   use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
                      get_local_index, set_neighbour_location, get_local_status, &
@@ -52,12 +52,12 @@ contains
     call apply_reordering(new_indices, mesh)
     deallocate (new_indices)
 
-    ! ! Global indices of local indices should be contiguous
-    ! do i = 2, local_num_cells
-    !   if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
-    !     call error_abort("ERROR: failed global index check at local index " // str(i))
-    !   end if
-    ! end do
+    ! System indices of local indices should be contiguous
+    do i = 2, local_num_cells
+      if (mesh%topo%system_indices(i) /= (mesh%topo%system_indices(i - 1) + 1)) then
+        call error_abort("ERROR: failed system index check at local index " // str(i))
+      end if
+    end do
     call dprint("*********END   REORDERING*****************")
 
     if (write_csr) then
@@ -72,8 +72,6 @@ contains
 
   module subroutine apply_reordering(new_indices, mesh)
 
-    use mpi
-
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
@@ -83,6 +81,55 @@ contains
     
   end subroutine apply_reordering
 
+  subroutine set_system_indices(mesh)
+
+    use mpi
+
+    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
+
+    integer(ccs_int) :: i
+    integer(ccs_int) :: idxg
+    integer(ccs_int) :: offset
+    
+    integer(ccs_int), dimension(:), allocatable :: system_indices
+
+    integer(ccs_int) :: nrank
+    integer(ccs_err) :: ierr
+    
+    if (allocated(mesh%topo%system_indices)) then
+      deallocate(mesh%topo%system_indices)
+    end if
+    allocate(mesh%topo%system_indices(mesh%topo%total_num_cells))
+
+    call MPI_Comm_rank(MPI_COMM_WORLD, nrank, ierr)
+    offset = int(mesh%topo%vtxdist(nrank), ccs_int) ! Everything else is ccs_int...
+    if (mesh%topo%vtxdist(1) == 0) then
+      ! Using C numbering
+      offset = offset + 1
+    end if
+    do i = 1, mesh%topo%local_num_cells
+      mesh%topo%system_indices(i) = i + (offset - 1)
+    end do
+    
+    allocate(system_indices(mesh%topo%global_num_cells))
+
+    system_indices(:) = 0
+    do i = 1, mesh%topo%local_num_cells
+      idxg = mesh%topo%global_indices(i)
+      system_indices(idxg) = mesh%topo%system_indices(i)
+    end do
+    call MPI_Allreduce(MPI_IN_PLACE, system_indices, mesh%topo%global_num_cells, &
+                       MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+    do i = mesh%topo%local_num_cells + 1, mesh%topo%total_num_cells
+      idxg = mesh%topo%global_indices(i)
+      mesh%topo%system_indices(i) = system_indices(idxg)
+    end do
+    
+    deallocate(system_indices)
+    
+  end subroutine set_system_indices
+  
   subroutine reorder_global_indices(new_indices, mesh)
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
@@ -111,6 +158,8 @@ contains
     mesh%topo%global_indices(1:local_num_cells) = global_indices(1:local_num_cells)
 
     deallocate(global_indices)
+
+    call set_system_indices(mesh)
     
   end subroutine reorder_global_indices
   
