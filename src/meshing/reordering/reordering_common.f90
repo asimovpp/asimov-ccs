@@ -54,7 +54,7 @@ contains
 
     ! System indices of local indices should be contiguous
     do i = 2, local_num_cells
-      if (mesh%topo%system_indices(i) /= (mesh%topo%system_indices(i - 1) + 1)) then
+      if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
         call error_abort("ERROR: failed system index check at local index " // str(i))
       end if
     end do
@@ -75,13 +75,13 @@ contains
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
-    call reorder_global_indices(new_indices, mesh)
+    call reorder_natural_indices(new_indices, mesh)
     call reorder_cell_centres(new_indices, mesh)
     call reorder_neighbours(new_indices, mesh)
     
   end subroutine apply_reordering
 
-  subroutine set_system_indices(mesh)
+  subroutine set_global_indices(mesh)
 
     use mpi
 
@@ -91,15 +91,15 @@ contains
     integer(ccs_int) :: idxg
     integer(ccs_int) :: offset
     
-    integer(ccs_int), dimension(:), allocatable :: system_indices
+    integer(ccs_int), dimension(:), allocatable :: global_indices
 
     integer(ccs_int) :: nrank
     integer(ccs_err) :: ierr
     
-    if (allocated(mesh%topo%system_indices)) then
-      deallocate(mesh%topo%system_indices)
+    if (allocated(mesh%topo%global_indices)) then
+      deallocate(mesh%topo%global_indices)
     end if
-    allocate(mesh%topo%system_indices(mesh%topo%total_num_cells))
+    allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
 
     call MPI_Comm_rank(MPI_COMM_WORLD, nrank, ierr)
     offset = int(mesh%topo%vtxdist(nrank), ccs_int) ! Everything else is ccs_int...
@@ -108,29 +108,33 @@ contains
       offset = offset + 1
     end if
     do i = 1, mesh%topo%local_num_cells
-      mesh%topo%system_indices(i) = i + (offset - 1)
+      mesh%topo%global_indices(i) = i + (offset - 1)
     end do
     
-    allocate(system_indices(mesh%topo%global_num_cells))
+    allocate(global_indices(mesh%topo%global_num_cells))
 
-    system_indices(:) = 0
+    global_indices(:) = 0
     do i = 1, mesh%topo%local_num_cells
-      idxg = mesh%topo%global_indices(i)
-      system_indices(idxg) = mesh%topo%system_indices(i)
+      idxg = mesh%topo%natural_indices(i)
+      global_indices(idxg) = mesh%topo%global_indices(i)
     end do
-    call MPI_Allreduce(MPI_IN_PLACE, system_indices, mesh%topo%global_num_cells, &
+    call MPI_Allreduce(MPI_IN_PLACE, global_indices, mesh%topo%global_num_cells, &
                        MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
 
     do i = mesh%topo%local_num_cells + 1, mesh%topo%total_num_cells
-      idxg = mesh%topo%global_indices(i)
-      mesh%topo%system_indices(i) = system_indices(idxg)
+      idxg = mesh%topo%natural_indices(i)
+      mesh%topo%global_indices(i) = global_indices(idxg)
     end do
     
-    deallocate(system_indices)
+    deallocate(global_indices)
     
-  end subroutine set_system_indices
-  
-  subroutine reorder_global_indices(new_indices, mesh)
+  end subroutine set_global_indices
+
+  !v Store the natural indices of the problem in the new ordering.
+  !
+  !  Note that up to this point the "natural" indices are stored in the global indices - these will
+  !  be replaced by the global indexing of the linear system.
+  subroutine reorder_natural_indices(new_indices, mesh)
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
@@ -141,27 +145,29 @@ contains
     integer(ccs_int) :: idxg
     type(cell_locator) :: loc_p
     
-    integer(ccs_int), dimension(:), allocatable :: global_indices
-    
     ! Only need to order local cells
     call get_local_num_cells(mesh, local_num_cells)
 
-    allocate(global_indices(local_num_cells))
-    
+    associate(total_num_cells => mesh%topo%total_num_cells)
+      allocate(mesh%topo%natural_indices(total_num_cells))
+    end associate
+
+    ! Copy the global indices into natural indices
+    mesh%topo%natural_indices(:) = mesh%topo%global_indices(:)
+
+    ! Apply reordering on the local natural indices
     do i = 1, local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, idxg)
       
       idx_new = new_indices(i)
-      global_indices(idx_new) = idxg
+      mesh%topo%natural_indices(idx_new) = idxg
     end do
-    mesh%topo%global_indices(1:local_num_cells) = global_indices(1:local_num_cells)
 
-    deallocate(global_indices)
-
-    call set_system_indices(mesh)
+    ! Set global indices to linear system
+    call set_global_indices(mesh)
     
-  end subroutine reorder_global_indices
+  end subroutine reorder_natural_indices
   
   subroutine reorder_cell_centres(new_indices, mesh)
 
