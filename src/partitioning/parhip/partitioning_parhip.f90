@@ -1,12 +1,34 @@
 submodule(partitioning) partitioning_parhip
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int, ccs_real
+  use kinds, only: ccs_int, ccs_real, ccs_long
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: set_local_num_cells, get_local_num_cells
 
   implicit none
+
+  interface 
+    subroutine partition_parhipkway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
+                                  num_procs, imbalance, suppress, &
+                                  seed, mode, edgecuts, local_partition, comm) bind(c)
+      use iso_c_binding
+
+      integer(c_long), dimension(:), allocatable, intent(in) :: vtxdist
+      integer(c_long), dimension(:), allocatable, intent(in) :: xadj
+      integer(c_long), dimension(:), allocatable, intent(in) :: adjncy
+      integer(c_long), dimension(:), allocatable, intent(in) :: vwgt
+      integer(c_long), dimension(:), allocatable, intent(in) :: adjwgt
+      integer(c_int), intent(in) :: num_procs
+      real(c_double), intent(in) :: imbalance
+      integer(c_int), intent(in) :: suppress
+      integer(c_int), intent(in) :: seed
+      integer(c_int), intent(in) :: mode
+      integer(c_int), intent(inout) :: edgecuts
+      integer(c_long), dimension(:), allocatable, intent(inout) :: local_partition
+      integer(c_int), intent(in) :: comm
+    end subroutine 
+  end interface
 
 contains
 
