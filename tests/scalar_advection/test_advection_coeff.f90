@@ -12,7 +12,8 @@ program test_advection_coeff
   use vec, only: create_vector, get_vector_data, restore_vector_data
   use fv, only: calc_advection_coeff, calc_cell_coords
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
-                     get_global_index, get_local_index, get_face_area, get_face_normal
+                     get_global_index, get_local_index, get_face_area, get_face_normal, &
+                     get_local_num_cells
   use utils, only: update, initialise, &
                    set_size, set_row, set_entry, set_values
   use petsctypes, only: vector_petsc
@@ -32,11 +33,15 @@ program test_advection_coeff
   real(ccs_real), dimension(ndim) :: normal
   real(ccs_real), dimension(:), pointer :: u_data, v_data
 
+  integer(ccs_int) :: local_num_cells
+  
   call init()
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
-  index_test = int(0.5 * mesh%topo%local_num_cells + 2, ccs_int)
+  call get_local_num_cells(mesh, local_num_cells)
+  
+  index_test = int(0.5 * local_num_cells + 2, ccs_int)
   do direction = x_dir, y_dir
     do discretisation = upwind, central
       if (discretisation == central) then
@@ -120,44 +125,45 @@ contains
     type(vector_values) :: u_vals, v_vals
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
+    integer(ccs_int) :: n_local
 
-    associate (n_local => mesh%topo%local_num_cells)
-      call create_vector_values(n_local, u_vals)
-      call create_vector_values(n_local, v_vals)
-      call set_mode(insert_mode, u_vals)
-      call set_mode(insert_mode, v_vals)
+    call get_local_num_cells(mesh, n_local)
 
-      ! Set IC velocity fields
-      do index_p = 1, n_local
-        call set_cell_location(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
+    call create_vector_values(n_local, u_vals)
+    call create_vector_values(n_local, v_vals)
+    call set_mode(insert_mode, u_vals)
+    call set_mode(insert_mode, v_vals)
 
-        if (direction == x_dir) then
+    ! Set IC velocity fields
+    do index_p = 1, n_local
+       call set_cell_location(mesh, index_p, loc_p)
+       call get_global_index(loc_p, global_index_p)
+
+       if (direction == x_dir) then
           u_val = 1.0_ccs_real
           v_val = 0.0_ccs_real
-        else if (direction == y_dir) then
+       else if (direction == y_dir) then
           u_val = 0.0_ccs_real
           v_val = 1.0_ccs_real
-        end if
+       end if
 
-        call set_row(global_index_p, u_vals)
-        call set_entry(u_val, u_vals)
+       call set_row(global_index_p, u_vals)
+       call set_entry(u_val, u_vals)
 
-        call set_row(global_index_p, v_vals)
-        call set_entry(v_val, v_vals)
-      end do
+       call set_row(global_index_p, v_vals)
+       call set_entry(v_val, v_vals)
+    end do
 
-      call set_values(u_vals, u%values)
-      call set_values(v_vals, v%values)
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
 
-      call update(u%values)
-      call update(v%values)
+    call update(u%values)
+    call update(v%values)
 
-      deallocate (u_vals%global_indices)
-      deallocate (v_vals%global_indices)
-      deallocate (u_vals%values)
-      deallocate (v_vals%values)
-    end associate
+    deallocate (u_vals%global_indices)
+    deallocate (v_vals%global_indices)
+    deallocate (u_vals%values)
+    deallocate (v_vals%values)
 
   end subroutine set_velocity_fields
 

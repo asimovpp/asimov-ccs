@@ -7,6 +7,38 @@ submodule(meshing) meshing_accessors
 
 contains
 
+  !> Sets the mesh local cell count.
+  module subroutine set_local_num_cells(local_num_cells, mesh)
+
+    integer(ccs_int), intent(in) :: local_num_cells !< The local cell count
+    type(ccs_mesh), intent(inout) :: mesh           !< The mesh
+
+    mesh%topo%local_num_cells = local_num_cells
+
+  end subroutine set_local_num_cells
+
+  !> Gets the mesh local cell count.
+  module subroutine get_local_num_cells_int(mesh, local_num_cells)
+
+    type(ccs_mesh), intent(in) :: mesh               !< The mesh
+    integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
+
+    local_num_cells = mesh%topo%local_num_cells
+
+  end subroutine get_local_num_cells_int
+
+  !v Gets the mesh local cell count.
+  !
+  !  Handles case when using a long integer to access the internal mesh data.
+  module subroutine get_local_num_cells_long(mesh, local_num_cells)
+
+    type(ccs_mesh), intent(in) :: mesh                !< The mesh
+    integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
+
+    local_num_cells = int(mesh%topo%local_num_cells, ccs_long)
+
+  end subroutine get_local_num_cells_long
+  
   !v Constructs a face locator object.
   !
   !  Creates the association between a face relative to a cell, i.e. to access the
@@ -31,12 +63,15 @@ contains
     integer(ccs_int), intent(in) :: index_p    !< the cell index.
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
 
+    integer(ccs_int) :: local_num_cells
+    
     loc_p%mesh => mesh
     loc_p%index_p = index_p
 
     ! XXX: Potentially expensive...
     if (index_p > mesh%topo%total_num_cells) then
-      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // " " // str(mesh%topo%local_num_cells))
+      call get_local_num_cells(mesh, local_num_cells)
+      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // " " // str(local_num_cells))
     end if
   end subroutine set_cell_location
 
@@ -218,8 +253,11 @@ contains
     type(cell_locator), intent(in) :: loc_p         !< the cell locator object.
     integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
 
+    integer(ccs_int) :: local_num_cells
+    
     associate (mesh => loc_p%mesh)
-      if (mesh%topo%local_num_cells > 0) then ! XXX: Potentially expensive...
+      call get_local_num_cells(mesh, local_num_cells)
+      if (local_num_cells > 0) then ! XXX: Potentially expensive...
         associate (cell => loc_p%index_p)
           global_index_p = mesh%topo%global_indices(cell)
         end associate
@@ -294,11 +332,13 @@ contains
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     logical, intent(out) :: is_local !< the local status of the neighbour.
 
-    integer :: index_nb
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: local_num_cells
 
     call get_neighbour_local_index(loc_nb, index_nb)
     associate (mesh => loc_nb%mesh)
-      if ((index_nb > 0) .and. (index_nb <= mesh%topo%local_num_cells)) then
+      call get_local_num_cells(mesh, local_num_cells)
+      if ((index_nb > 0) .and. (index_nb <= local_num_cells)) then
         is_local = .true.
       else
         is_local = .false.

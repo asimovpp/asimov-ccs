@@ -25,11 +25,14 @@ contains
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                         VecCreate
 
+    use meshing, only: get_local_num_cells
+    
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
     integer(ccs_int) :: i
+    integer(ccs_int) :: nlocal
     integer(ccs_err) :: ierr ! Error code
 
     allocate (vector_petsc :: v)
@@ -47,8 +50,8 @@ contains
 
           select case (vec_properties%storage_location)
           case (cell)
+            call get_local_num_cells(mesh, nlocal)
             associate (nhalo => mesh%topo%halo_num_cells, &
-                       nlocal => mesh%topo%local_num_cells, &
                        idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo

@@ -13,6 +13,7 @@ program test_partition_square_mesh
                           partition_kway, compute_connectivity
   use kinds, only: ccs_int, ccs_long
   use mesh_utils, only: build_square_topology
+  use meshing, only: get_local_num_cells
 
   use utils, only: debug_print
 
@@ -69,7 +70,6 @@ contains
     !   print *, "TOPO local_num_cells: ", topo%local_num_cells
     !   print *, "TOPO nb_indices: ", size(topo%nb_indices, 1), size(topo%nb_indices, 2)
     !   print *, "TOPO partition: ", topo%global_partition
-    !   print *, "MESH nlocal: ", mesh%topo%local_num_cells
     !   print *, "MESH nb_indices: ", size(mesh%topo%nb_indices, 1), size(mesh%topo%nb_indices, 2)
     !   write(message, *) "ERROR: topology size is wrong!"
     !   call stop_test(message)
@@ -132,9 +132,11 @@ contains
 
     character(len=*), intent(in) :: stage
 
-    integer :: i
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i
 
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       do j = int(mesh%topo%xadj(i)), int(mesh%topo%xadj(i + 1)) - 1
         if (mesh%topo%adjncy(j) == mesh%topo%global_indices(i)) then
           print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", &
@@ -151,11 +153,12 @@ contains
 
     character(len=*), intent(in) :: stage
 
-    integer :: i, j
+    integer(ccs_int) :: i, j, local_num_cells
     integer :: nadj
     integer, dimension(:), allocatable :: adjncy_global_expected, face_cell1_expected, face_cell2_expected
 
-    do i = 1, mesh%topo%local_num_cells ! Loop over local cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells ! Loop over local cells
 
       nadj = int(mesh%topo%xadj(i + 1) - mesh%topo%xadj(i))
       allocate (adjncy_global_expected(nadj))
@@ -290,6 +293,8 @@ contains
 
   !!!!! This could be the basis of testing the components of build_square_mesh/etc.
 
+    !call get_local_num_cells(mesh, local_num_cells)
+
     ! --- read_topology() ---
     ! topo%global_num_cells = mesh%topo%global_num_cells
     !mesh%topo%global_num_faces = 40 ! Hardcoded for now
@@ -310,7 +315,7 @@ contains
     ! <MISSING> set mesh%topo%global_partition array?
     ! FAKE partition array based on initial mesh decomposition
     !do i = 1, mesh%topo%global_num_cells
-    !  if (any(mesh%topo%global_indices(1:mesh%topo%local_num_cells) == i)) then
+    !  if (any(mesh%topo%global_indices(1:local_num_cells) == i)) then
     !    mesh%topo%global_partition(i) = par_env%proc_id
     !  else
     !    mesh%topo%global_partition(i) = -1
@@ -342,13 +347,13 @@ contains
     !   call stop_test(message)
     ! end select
 
-    ! topo%local_num_cells = mesh%topo%local_num_cells
-    !allocate (mesh%topo%xadj(mesh%topo%local_num_cells + 1))
+    ! topo%local_num_cells = local_num_cells
+    !allocate (mesh%topo%xadj(local_num_cells + 1))
 
     ! <MISSING> allocate mesh%topo%global_boundaries
     ! <MISSING> allocate mesh%topo%adjncy
 
-    !allocate (mesh%topo%local_partition(mesh%topo%local_num_cells))
+    !allocate (mesh%topo%local_partition(local_num_cells))
     ! mesh%topo%halo_num_cells = mesh%topo%halo_num_cells
 
     !select type (par_env)

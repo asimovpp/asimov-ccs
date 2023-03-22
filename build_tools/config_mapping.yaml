@@ -23,8 +23,10 @@ bases:
       timestepping: timestepping_second_order
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
-    #options:
-      #component: [opt_1, opt_2, opt_3]
+      poisson_discretisation: poisson_discretisation_ref
+    options:
+      timestepping: [timestepping_first_order, timestepping_second_order]
+      poisson_discretisation: [poisson_discretisation_ref]
   mpi:
     defaults:
       mat_common: mat_common
@@ -49,3 +51,7 @@ bases:
       timestepping: timestepping_second_order
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
+      poisson_discretisation: poisson_discretisation_ref
+    options:
+      timestepping: [timestepping_first_order, timestepping_second_order]
+      poisson_discretisation: [poisson_discretisation_ref]

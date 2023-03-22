@@ -22,7 +22,8 @@ contains
     use vec, only: get_vector_data, restore_vector_data
     use types, only: field_ptr
     use case_config, only: write_gradients
-
+    use meshing, only: get_local_num_cells
+    
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
@@ -71,7 +72,7 @@ contains
     ! 1D data
     sel_shape(1) = mesh%topo%global_num_cells
     sel_start(1) = mesh%topo%global_indices(1) - 1
-    sel_count(1) = mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, sel_count(1))
 
     ! 2D data
     sel2_shape(1) = ndim
@@ -79,8 +80,8 @@ contains
     sel2_start(1) = 0
     sel2_start(2) = mesh%topo%global_indices(1) - 1
     sel2_count(1) = ndim
-    sel2_count(2) = mesh%topo%local_num_cells
-
+    call get_local_num_cells(mesh, sel2_count(2))
+    
     ! Begin step
     call begin_step(sol_writer)
 

@@ -7,7 +7,8 @@ program test_mesh_centres
   use testing_lib
 
   use constants, only: ndim
-  use meshing, only: set_cell_location, set_face_location, set_vert_location, get_centre
+  use meshing, only: set_cell_location, set_face_location, set_vert_location, get_centre, &
+       get_local_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -17,6 +18,7 @@ program test_mesh_centres
   real(ccs_real) :: l
   integer(ccs_int) :: n, nx, ny, nz
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i
   integer(ccs_int) :: j
 
@@ -28,12 +30,16 @@ program test_mesh_centres
   real(ccs_real), dimension(ndim) :: vc
 
   integer :: dim
+
+  integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
+  integer(ccs_int) :: mctr
   
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
-  do n = 2, 20
-
+  do mctr = 1, size(m)
+    n = m(mctr)
+    
     nx = n
     ny = n
     nz = n
@@ -41,7 +47,8 @@ program test_mesh_centres
     l = parallel_random(par_env)
     mesh = build_mesh(par_env, nx, ny, nz, l)
 
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call get_centre(loc_p, cc)
       associate (x => cc(1), y => cc(2))

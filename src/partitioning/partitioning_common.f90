@@ -5,6 +5,7 @@ submodule(partitioning) partitioning_common
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
+  use meshing, only : set_local_num_cells, get_local_num_cells
 
   implicit none
 
@@ -29,13 +30,16 @@ contains
     integer(ccs_int) :: face_nb1
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: num_connections
+    integer(ccs_int) :: local_num_cells
 
     irank = par_env%proc_id
     isize = par_env%num_procs
 
     ! Count the new number of local cells per rank
-    mesh%topo%local_num_cells = count(mesh%topo%global_partition == irank)
-    call dprint("Number of local cells after partitioning: " // str(mesh%topo%local_num_cells))
+    local_num_cells = count(mesh%topo%global_partition == irank)
+    call set_local_num_cells(local_num_cells, mesh)
+    call get_local_num_cells(mesh, local_num_cells) ! Ensure using value set within mesh
+    call dprint("Number of local cells after partitioning: " // str(local_num_cells))
 
     ! Get global indices of local cells
     call compute_connectivity_get_local_cells(par_env, mesh)
@@ -78,7 +82,7 @@ contains
     if (allocated(mesh%topo%num_nb)) then
       deallocate (mesh%topo%num_nb)
     end if
-    allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
+    allocate (mesh%topo%num_nb(local_num_cells))
 
     ! All ranks loop over all the faces again
     do i = 1, mesh%topo%global_num_faces
@@ -123,13 +127,14 @@ contains
     if (allocated(mesh%topo%face_indices)) then
       deallocate (mesh%topo%face_indices)
     end if
-    allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+    allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
 
+    print *, "Max val tmp_int2d: ", maxval(tmp_int2d)
     call flatten_connectivity(tmp_int2d, mesh)
 
     call dprint("Number of halo cells after partitioning: " // str(mesh%topo%halo_num_cells))
 
-    mesh%topo%total_num_cells = mesh%topo%local_num_cells + mesh%topo%halo_num_cells
+    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
 
     call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
 
@@ -146,12 +151,14 @@ contains
 
     integer :: i
     integer :: ctr
+    integer :: local_num_cells
 
     ! Allocate and then compute global indices
     if (allocated(mesh%topo%global_indices)) then
-      deallocate (mesh%topo%global_indices)
+       deallocate (mesh%topo%global_indices)
     end if
-    allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
+    call get_local_num_cells(mesh, local_num_cells)
+    allocate (mesh%topo%global_indices(local_num_cells))
     mesh%topo%global_indices(:) = -1 ! This will allow us to check later
 
     ctr = 1
@@ -165,7 +172,7 @@ contains
       end do
     end associate
 
-    if (ctr /= (mesh%topo%local_num_cells + 1)) then
+    if (ctr /= (local_num_cells + 1)) then
       print *, "ERROR: didn't find all my cells!"
       stop
     end if
@@ -223,22 +230,24 @@ contains
     integer :: ctr
     integer, dimension(1) :: local_idx
 
+    integer(ccs_int) :: local_num_cells
+    
     mesh%topo%halo_num_cells = 0
-
+    call get_local_num_cells(mesh, local_num_cells)
     ctr = 1
 
-    allocate (tmp1(mesh%topo%local_num_cells))
+    allocate (tmp1(local_num_cells))
     if (allocated(mesh%topo%nb_indices)) then
       deallocate (mesh%topo%nb_indices)
     end if
-    allocate (mesh%topo%nb_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))
+    allocate (mesh%topo%nb_indices(mesh%topo%max_faces, local_num_cells))
 
     tmp1(:) = -1
 
     ! Initialise neighbour indices
     mesh%topo%nb_indices(:, :) = 0_ccs_int
 
-    do i = 1, mesh%topo%local_num_cells
+    do i = 1, local_num_cells
       mesh%topo%xadj(i) = ctr
 
       ! Loop over connections of cell i
@@ -252,7 +261,7 @@ contains
 
               mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
               if (mesh%topo%halo_num_cells > size(tmp1)) then
-                allocate (tmp2(size(tmp1) + mesh%topo%local_num_cells))
+                allocate (tmp2(size(tmp1) + local_num_cells))
 
                 tmp2(:) = -1
                 tmp2(1:size(tmp1)) = tmp1(1:size(tmp1))
@@ -266,7 +275,7 @@ contains
             end if
 
             local_idx = findloc(tmp1, nbidx)
-            mesh%topo%nb_indices(j, i) = mesh%topo%local_num_cells + local_idx(1)
+            mesh%topo%nb_indices(j, i) = local_num_cells + local_idx(1)
           end if
 
             !local_idx = findloc(tmp1, nbidx)
@@ -290,14 +299,14 @@ contains
       end do ! End j
 
     end do
-    mesh%topo%xadj(mesh%topo%local_num_cells + 1) = ctr
+    mesh%topo%xadj(local_num_cells + 1) = ctr
 
-    allocate (tmp2(mesh%topo%local_num_cells + mesh%topo%halo_num_cells))
-    do i = 1, mesh%topo%local_num_cells
+    allocate (tmp2(local_num_cells + mesh%topo%halo_num_cells))
+    do i = 1, local_num_cells
       tmp2(i) = mesh%topo%global_indices(i)
     end do
     do i = 1, mesh%topo%halo_num_cells
-      tmp2(mesh%topo%local_num_cells + i) = tmp1(i)
+      tmp2(local_num_cells + i) = tmp1(i)
     end do
     deallocate (mesh%topo%global_indices)
     allocate (mesh%topo%global_indices, source=tmp2)

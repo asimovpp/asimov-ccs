@@ -28,7 +28,7 @@ module solver
     module subroutine create_solver(linear_system, solver)
       type(equation_system), intent(in) :: linear_system !< Data structure containing
       !< equation system to be solved.
-      class(linear_solver), allocatable, intent(out) :: solver !< The linear solver returned allocated.
+      class(linear_solver), allocatable, intent(inout) :: solver !< The linear solver returned allocated.
     end subroutine
 
     !> Interface to solve the linear system in a solver.
