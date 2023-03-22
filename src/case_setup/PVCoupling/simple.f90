@@ -8,10 +8,10 @@ program simple
   use petscvec
   use petscsys
 
-  use constants, only: cell, face
+  use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector
+                   vector_spec, ccs_vector, fluid, fluid_solver_selector
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
@@ -20,7 +20,9 @@ program simple
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update
+  use utils, only: set_size, initialise, update, get_field, set_field, &
+                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   allocate_fluid_fields
 
   implicit none
 
@@ -43,6 +45,9 @@ program simple
   logical :: v_sol = .true.  ! Solve v
   logical :: w_sol = .false. ! Don't solve w
   logical :: p_sol = .true.  ! Solve p
+  
+  type(fluid) :: flow_fields
+  type(fluid_solver_selector) :: fluid_sol
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
@@ -108,10 +113,22 @@ program simple
   call update(v%values)
   call update(mf%values)
 
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call allocate_fluid_fields(6, flow_fields)
+  call set_field(1, field_u, u, flow_fields)
+  call set_field(2, field_v, v, flow_fields)
+  call set_field(3, field_w, w, flow_fields)
+  call set_field(4, field_p, p, flow_fields)
+  call set_field(5, field_p_prime, pp, flow_fields)
+  call set_field(6, field_mf, mf, flow_fields)
+
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, it_start, it_end, res_target, &
-                       u_sol, v_sol, w_sol, p_sol, u, v, w, p, pp, mf)
+                       fluid_sol, flow_fields)
 
   ! Clean-up
   deallocate (u)

@@ -12,10 +12,11 @@ program ldc
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
-  use constants, only: cell, face, ccsconfig, ccs_string_len
+  use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
+                       field_w, field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr
+                   vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -25,7 +26,9 @@ program ldc
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist
+  use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
+                   get_field, set_field, get_fluid_solver_selector, set_fluid_solver_selector, &
+                   allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use io_visualisation, only: write_solution
@@ -58,6 +61,9 @@ program ldc
   logical :: v_sol = .true.
   logical :: w_sol = .true.
   logical :: p_sol = .true.
+
+  type(fluid) :: flow_fields
+  type(fluid_solver_selector) :: fluid_sol
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -94,8 +100,8 @@ program ldc
 
   ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_mesh(par_env, cps, cps, cps, domain_size)   ! 3-D mesh
-  !mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)      ! 2-D mesh
+  !mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
+  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)      ! 2-D mesh
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -171,6 +177,19 @@ program ldc
   call update(w%values)
   call update(mf%values)
 
+  ! XXX: This should get incorporated as part of create_field subroutines
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call allocate_fluid_fields(6, flow_fields)
+  call set_field(1, field_u, u, flow_fields)
+  call set_field(2, field_v, v, flow_fields)
+  call set_field(3, field_w, w, flow_fields)
+  call set_field(4, field_p, p, flow_fields)
+  call set_field(5, field_p_prime, p_prime, flow_fields)
+  call set_field(6, field_mf, mf, flow_fields)
+  
   if (irank == par_env%root) then
     call print_configuration()
   end if
@@ -178,13 +197,14 @@ program ldc
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                       u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+                       fluid_sol, flow_fields)
 
   ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
   call write_solution(par_env, case_path, mesh, output_list)
 
   ! Clean-up
+  call dealloc_fluid_fields(flow_fields)
   deallocate (u)
   deallocate (v)
   deallocate (w)
