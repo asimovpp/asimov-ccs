@@ -55,6 +55,7 @@ module mesh_utils
 
   private
   public :: build_square_mesh
+  public :: build_square_topology
   public :: build_mesh
   public :: read_mesh
   public :: write_mesh
