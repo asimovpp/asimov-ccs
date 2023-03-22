@@ -354,7 +354,11 @@ contains
     residuals(ivar) = norm(res, 2)
 
     ! Create linear solver
-    call set_equation_system(par_env, vec, u%values, M, lin_sys)
+    if (allocated(u%values%name)) then
+      call set_equation_system(par_env, vec, u%values, M, lin_sys, u%values%name)
+    else
+      call set_equation_system(par_env, vec, u%values, M, lin_sys)
+    endif
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -620,7 +624,11 @@ contains
 
     ! Create linear solver
     call dprint("P': create lin sys")
-    call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
+    if (allocated(p_prime%values%name)) then
+      call set_equation_system(par_env, vec, p_prime%values, M, lin_sys, p_prime%values%name)
+    else
+      call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
+    endif
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver

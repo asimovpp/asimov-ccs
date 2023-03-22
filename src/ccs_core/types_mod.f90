@@ -13,10 +13,12 @@ module types
 
   !> Stub type for vectors to be extended in sub-modules.
   type, public :: ccs_vector
+    character(len=:), allocatable :: name  !< Name of the vector object
   end type ccs_vector
 
   !> Stub type for matrices to be extended in sub-modules.
   type, public :: ccs_matrix
+    character(len=:), allocatable :: name  !< Name of the matrix object
   end type ccs_matrix
 
   !> Container type for data required to initialise a vector.
