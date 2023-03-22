@@ -129,7 +129,6 @@ contains
     end if
     allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
 
-    print *, "Max val tmp_int2d: ", maxval(tmp_int2d)
     call flatten_connectivity(tmp_int2d, mesh)
 
     call dprint("Number of halo cells after partitioning: " // str(mesh%topo%halo_num_cells))

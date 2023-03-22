@@ -86,12 +86,6 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
-    ! integer(ccs_long), dimension(1) :: sel_start
-    ! integer(ccs_long), dimension(1) :: sel_count
-
-    ! integer(ccs_long), dimension(2) :: sel2_start
-    ! integer(ccs_long), dimension(2) :: sel2_count
-
     geo_file = case_name // "_mesh"// geoext
     adios2_file = case_name // adiosconfig
 
@@ -1128,7 +1122,6 @@ contains
 
       mesh%topo%total_num_cells = size(mesh%topo%global_indices)
       mesh%topo%halo_num_cells = mesh%topo%total_num_cells - local_num_cells
-      
 
       mesh%topo%global_num_faces = (nx+1)*ny*nz + nx*(ny+1)*nz + nx*ny*(nz+1)
       allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
