@@ -20,11 +20,16 @@ contains
 
     use petsc, only: PETSC_TRUE
     use petscksp, only: KSPCreate, KSPSetOperators, KSPSetFromOptions, KSPSetInitialGuessNonzero
+    
 
     type(equation_system), intent(in) :: linear_system        !< Data structure containing equation system to be solved.
-    class(linear_solver), allocatable, intent(out) :: solver  !< The linear solver returned allocated.
+    class(linear_solver), allocatable, intent(inout) :: solver  !< The linear solver returned allocated.
 
     integer(ccs_err) :: ierr ! Error code
+
+    if (allocated(solver)) then
+      return
+    end if
 
     allocate (linear_solver_petsc :: solver)
 
@@ -132,7 +137,11 @@ contains
         ! Set linear solver type directly from method name
         call KSPSetType(ksp, method_name, ierr)
 
+        if (allocated(solver%linear_system%name)) then
+          call KSPSetOptionsPrefix(ksp, solver%linear_system%name//':', ierr)
+        endif
         call KSPSetFromOptions(ksp, ierr)
+        
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")
@@ -145,6 +154,7 @@ contains
 
     use petscksp, only: KSPGetPC
     use petscpc, only: tPC, PCSetType
+    use petsc, only: PETSC_TRUE
 
     ! Arguments
     character(len=*), intent(in) :: precon_name   !< String naming the preconditioner to be used.
@@ -159,8 +169,16 @@ contains
       associate (ksp => solver%KSP)
         call KSPGetPC(ksp, pc, ierr)
 
-        ! Set preconditionner type directly using precon_name
+        ! Set preconditioner type directly using precon_name
         call PCSetType(pc, precon_name, ierr)
+        call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
+        
+        ! Allow command-line options to override settings in source or config file
+        if (allocated(solver%linear_system%name)) then
+          call PCSetOptionsPrefix(pc, solver%linear_system%name//':', ierr)
+        endif
+        call PCSetFromOptions(pc, ierr)
+
       end associate
     class default
       call error_abort("ERROR: Unknown solver type")

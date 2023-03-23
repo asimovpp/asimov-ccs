@@ -9,13 +9,14 @@ program tgv2d
   use petscsys
 
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
-                         velocity_relax, pressure_relax, res_target, &
+                         velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
-  use constants, only: cell, face, ccsconfig, ccs_string_len
+  use constants, only: cell, face, ccsconfig, ccs_string_len, &
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr
+                   vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -26,7 +27,9 @@ program tgv2d
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist
+                   add_field_to_outputlist, get_field, set_field, &
+                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
@@ -36,7 +39,8 @@ program tgv2d
   implicit none
 
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name       ! Case name
+  character(len=:), allocatable :: input_path  ! Path to input directory
+  character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -63,21 +67,31 @@ program tgv2d
 
   integer(ccs_int) :: t         ! Timestep counter
 
+  type(fluid) :: flow_fields
+  type(fluid_solver_selector) :: fluid_sol
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
+  
+  if(allocated(input_path)) then
+     case_path = input_path // "/" // case_name
+  else
+     case_path = case_name
+  end if
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name // ccsconfig
+  ccs_config_file = case_path // ccsconfig
 
   call timer(start_time)
 
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
+
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -131,14 +145,14 @@ program tgv2d
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, u%values)
-  call create_vector(vec_properties, v%values)
-  call create_vector(vec_properties, w%values)
-  call create_vector(vec_properties, p%values)
+  call create_vector(vec_properties, u%values, "u")
+  call create_vector(vec_properties, v%values, "v")
+  call create_vector(vec_properties, w%values, "w")
+  call create_vector(vec_properties, p%values, "p")
   call create_vector(vec_properties, p%x_gradients)
   call create_vector(vec_properties, p%y_gradients)
   call create_vector(vec_properties, p%z_gradients)
-  call create_vector(vec_properties, p_prime%values)
+  call create_vector(vec_properties, p_prime%values, "p_prime")
   call create_vector(vec_properties, p_prime%x_gradients)
   call create_vector(vec_properties, p_prime%y_gradients)
   call create_vector(vec_properties, p_prime%z_gradients)
@@ -199,7 +213,7 @@ program tgv2d
   if (irank == par_env%root) print *, "Start SIMPLE"
 
   ! Write out mesh to file
-  call write_mesh(par_env, case_name, mesh)
+  call write_mesh(par_env, case_path, mesh)
 
   ! Print the run configuration
   if (irank == par_env%root) then
@@ -208,9 +222,23 @@ program tgv2d
   
   call activate_timestepping()
   call set_timestep(dt)
+
+  ! XXX: This should get incorporated as part of create_field subroutines
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call allocate_fluid_fields(6, flow_fields)
+  call set_field(1, field_u, u, flow_fields)
+  call set_field(2, field_v, v, flow_fields)
+  call set_field(3, field_w, w, flow_fields)
+  call set_field(4, field_p, p, flow_fields)
+  call set_field(5, field_p_prime, p_prime, flow_fields)
+  call set_field(6, field_mf, mf, flow_fields)
+  
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf, t)
+                         fluid_sol, flow_fields, t)
     call calc_tgv2d_error(mesh, t, u, v, w, p)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
@@ -220,7 +248,7 @@ program tgv2d
     call calc_enstrophy(par_env, mesh, t, u, v, w)
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call write_solution(par_env, case_name, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
     end if
   end do
 

@@ -13,10 +13,12 @@ module types
 
   !> Stub type for vectors to be extended in sub-modules.
   type, public :: ccs_vector
+    character(len=:), allocatable :: name  !< Name of the vector object
   end type ccs_vector
 
   !> Stub type for matrices to be extended in sub-modules.
   type, public :: ccs_matrix
+    character(len=:), allocatable :: name  !< Name of the matrix object
   end type ccs_matrix
 
   !> Container type for data required to initialise a vector.
@@ -200,6 +202,24 @@ module types
     integer(ccs_int) :: index_p       !< Cell index
     integer(ccs_int) :: cell_vert_ctr !< Cell-vertex ctr i.e. I want to access vertex "3" of the cell.
   end type vert_locator
+  
+  !v Fluid type
+  !
+  ! Type for accumulating all the fluid data
+  type, public :: fluid
+    type(field_ptr), dimension(:), allocatable :: fields
+    integer(ccs_int), dimension(:), allocatable :: field_names
+  end type fluid
+
+  !v Fluid solve selector
+  !
+  ! Type for storing which fields are being solved for
+  type, public :: fluid_solver_selector
+    logical :: u
+    logical :: v
+    logical :: w
+    logical :: p
+  end type fluid_solver_selector
 
  !>  IO environment type
   type, public :: io_environment

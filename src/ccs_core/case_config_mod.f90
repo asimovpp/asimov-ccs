@@ -33,6 +33,7 @@ module case_config
   ! Fluid properties
   real(ccs_real), public :: viscocity = huge(0.0)
 
+  character(len=:), allocatable, save, public :: case_name
   character(len=:), allocatable, save, public :: velocity_solver_method_name
   character(len=:), allocatable, save, public :: velocity_solver_precon_name
 

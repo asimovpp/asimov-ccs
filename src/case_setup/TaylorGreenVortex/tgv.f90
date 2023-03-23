@@ -6,14 +6,15 @@ program tgv
   use petscsys
 
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
-                         velocity_relax, pressure_relax, res_target, &
+                         velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
-  use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim
+  use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr
+                   field_ptr, fluid, fluid_solver_selector
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -24,7 +25,9 @@ program tgv
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist
+                   add_field_to_outputlist, get_field, set_field, &
+                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
@@ -37,8 +40,9 @@ program tgv
   implicit none
 
   class(parallel_environment), allocatable :: par_env
-  character(len=:), allocatable :: case_name  ! Case name
-  character(len=:), allocatable :: geo_file  ! Geo file name
+  character(len=:), allocatable :: input_path  ! Path to input directory
+  character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
+  character(len=:), allocatable :: geo_file     ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -66,21 +70,31 @@ program tgv
 
   integer(ccs_int) :: t          ! Timestep counter
 
+  type(fluid) :: flow_fields
+  type(fluid_solver_selector) :: fluid_sol
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, cps, case_name=case_name)
+  call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
+  
+  if(allocated(input_path)) then
+     case_path = input_path // "/" // case_name
+  else
+     case_path = case_name
+  end if
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name // ccsconfig
-
+  ccs_config_file = case_path // ccsconfig
+  
   call timer(start_time)
 
   ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
+
+  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -101,9 +115,9 @@ program tgv
   
   ! Otherwise the mesh is read from file
   else
-    geo_file = case_name // geoext
+    geo_file = case_path // geoext
     if (irank == par_env%root) print *, "Reading mesh"
-    call read_mesh(par_env, case_name, mesh)
+    call read_mesh(par_env, case_path, mesh)
     call partition_kway(par_env, mesh)
     call compute_connectivity(par_env, mesh)
   end if
@@ -200,58 +214,6 @@ program tgv
   call update_gradient(mesh, w)
   !  END  set up vecs for enstrophy
 
-  ! START set up vecs for enstrophy
-  call create_vector(vec_properties, u%x_gradients)
-  call create_vector(vec_properties, u%y_gradients)
-  call create_vector(vec_properties, u%z_gradients)
-  call create_vector(vec_properties, v%x_gradients)
-  call create_vector(vec_properties, v%y_gradients)
-  call create_vector(vec_properties, v%z_gradients)
-  call create_vector(vec_properties, w%x_gradients)
-  call create_vector(vec_properties, w%y_gradients)
-  call create_vector(vec_properties, w%z_gradients)
-
-  call update(u%x_gradients)
-  call update(u%y_gradients)
-  call update(u%z_gradients)
-  call update(v%x_gradients)
-  call update(v%y_gradients)
-  call update(v%z_gradients)
-  call update(w%x_gradients)
-  call update(w%y_gradients)
-  call update(w%z_gradients)
-
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, w)
-  !  END  set up vecs for enstrophy
-
-  ! START set up vecs for enstrophy
-  call create_vector(vec_properties, u%x_gradients)
-  call create_vector(vec_properties, u%y_gradients)
-  call create_vector(vec_properties, u%z_gradients)
-  call create_vector(vec_properties, v%x_gradients)
-  call create_vector(vec_properties, v%y_gradients)
-  call create_vector(vec_properties, v%z_gradients)
-  call create_vector(vec_properties, w%x_gradients)
-  call create_vector(vec_properties, w%y_gradients)
-  call create_vector(vec_properties, w%z_gradients)
-
-  call update(u%x_gradients)
-  call update(u%y_gradients)
-  call update(u%z_gradients)
-  call update(v%x_gradients)
-  call update(v%y_gradients)
-  call update(v%z_gradients)
-  call update(w%x_gradients)
-  call update(w%y_gradients)
-  call update(w%z_gradients)
-
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, w)
-  !  END  set up vecs for enstrophy
-
   if (irank == par_env%root) print *, "Set vector location"
   call set_vector_location(face, vec_properties)
   if (irank == par_env%root) print *, "Set vector size"
@@ -272,7 +234,7 @@ program tgv
   call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
   ! Write out mesh to file
-  call write_mesh(par_env, case_name, mesh)
+  call write_mesh(par_env, case_path, mesh)
 
   ! Print the run configuration
   if (irank == par_env%root) then
@@ -282,9 +244,22 @@ program tgv
   call activate_timestepping()
   call set_timestep(dt)
 
+  ! XXX: This should get incorporated as part of create_field subroutines
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call allocate_fluid_fields(6, flow_fields)
+  call set_field(1, field_u, u, flow_fields)
+  call set_field(2, field_v, v, flow_fields)
+  call set_field(3, field_w, w, flow_fields)
+  call set_field(4, field_p, p, flow_fields)
+  call set_field(5, field_p_prime, p_prime, flow_fields)
+  call set_field(6, field_mf, mf, flow_fields)
+  
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf, t)
+                         fluid_sol, flow_fields, t)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
     call update_gradient(mesh, u)
     call update_gradient(mesh, v)
@@ -295,7 +270,7 @@ program tgv
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call write_solution(par_env, case_name, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
     end if
   end do
 
