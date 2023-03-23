@@ -329,6 +329,24 @@ contains
     end if
   end subroutine get_neighbour_boundary_status
 
+  !> Returns the boundary status of a neighbouring cell
+  module subroutine get_vertex_neighbour_boundary_status(loc_vnb, is_boundary)
+    type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the neighbour locator object.
+    logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
+
+    integer :: index_nb
+
+    call get_vertex_neighbour_local_index(loc_vnb, index_nb)
+
+    if (index_nb > 0) then
+      is_boundary = .false.
+    else if (index_nb < 0) then
+      is_boundary = .true.
+    else
+      call error_abort("ERROR: neighbour index (0) is invalid.")
+    end if
+  end subroutine get_vertex_neighbour_boundary_status
+
   !> Returns the boundary status of a face
   module subroutine get_face_boundary_status(loc_f, is_boundary)
     type(face_locator), intent(in) :: loc_f !< the face locator object.
@@ -351,7 +369,7 @@ contains
   !  Given a distributed mesh, a processor needs both the cells within its partition
   !  and cells from the surrounding halo - this subroutine get_indicates whether a
   !  cell's neighbour is within the local partition or the halo.
-  module subroutine get_local_status(loc_nb, is_local)
+  module subroutine get_neighbour_local_status(loc_nb, is_local)
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     logical, intent(out) :: is_local !< the local status of the neighbour.
 
@@ -367,7 +385,30 @@ contains
         is_local = .false.
       end if
     end associate
-  end subroutine get_local_status
+  end subroutine get_neighbour_local_status
+
+  !v Returns the local distribution status of a vertex neighbouring cell
+  !
+  !  Given a distributed mesh, a processor needs both the cells within its partition
+  !  and cells from the surrounding halo - this subroutine get_indicates whether a
+  !  cell's vertex neighbour is within the local partition or the halo.
+  module subroutine get_vertex_neighbour_local_status(loc_vnb, is_local)
+    type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the vertex neighbour locator object.
+    logical, intent(out) :: is_local !< the local status of the neighbour.
+
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: local_num_cells
+
+    call get_vertex_neighbour_local_index(loc_vnb, index_nb)
+    associate (mesh => loc_vnb%mesh)
+      call get_local_num_cells(mesh, local_num_cells)
+      if ((index_nb > 0) .and. (index_nb <= local_num_cells)) then
+        is_local = .true.
+      else
+        is_local = .false.
+      end if
+    end associate
+  end subroutine get_vertex_neighbour_local_status
 
   !v Returns the local index of a cell
   !
@@ -495,7 +536,7 @@ contains
   end subroutine set_normal
 
   !> Counts the number of neighbours via vertices of a given cell
-  module subroutine cell_count_vertex_neighbours(loc_p, nvnb)
+  module subroutine count_vertex_neighbours(loc_p, nvnb)
     type(cell_locator), intent(in) :: loc_p 
     integer(ccs_int), intent(out) :: nvnb   
     
@@ -503,6 +544,6 @@ contains
                cell => loc_p%index_p)
       nvnb = mesh%topo%num_vert_nb(cell)
     end associate
-  end subroutine cell_count_vertex_neighbours
+  end subroutine count_vertex_neighbours
   
 end submodule meshing_accessors

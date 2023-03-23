@@ -31,7 +31,7 @@ module meshing
   public :: set_centre
   public :: set_area
   public :: set_normal
-  public :: cell_count_vertex_neighbours
+  public :: count_vertex_neighbours
   
   interface get_centre
     module procedure get_cell_centre
@@ -58,6 +58,7 @@ module meshing
 
   interface get_boundary_status
     module procedure get_neighbour_boundary_status
+    module procedure get_vertex_neighbour_boundary_status
     module procedure get_face_boundary_status
   end interface get_boundary_status
 
@@ -86,6 +87,11 @@ module meshing
     module procedure set_face_neighbour_location
     module procedure set_vertex_neighbour_location
   end interface set_neighbour_location
+
+  interface get_local_status
+    module procedure get_neighbour_local_status
+    module procedure get_vertex_neighbour_local_status
+  end interface get_local_status
   
   interface
 
@@ -221,6 +227,12 @@ module meshing
       logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
     end subroutine get_neighbour_boundary_status
 
+    !> Returns the boundary status of a vertex neighbouring cell
+    module subroutine get_vertex_neighbour_boundary_status(loc_vnb, is_boundary)
+      type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the neighbour locator object.
+      logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
+    end subroutine get_vertex_neighbour_boundary_status
+
     !> Returns the boundary status of a face
     module subroutine get_face_boundary_status(loc_f, is_boundary)
       type(face_locator), intent(in) :: loc_f !< the face locator object.
@@ -232,10 +244,20 @@ module meshing
     !  Given a distributed mesh, a processor needs both the cells within its partition
     !  and cells from the surrounding halo - this subroutine get_indicates whether a
     !  cell's neighbour is within the local partition or the halo.
-    module subroutine get_local_status(loc_nb, is_local)
+    module subroutine get_neighbour_local_status(loc_nb, is_local)
       type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
       logical, intent(out) :: is_local !< the local status of the neighbour.
-    end subroutine get_local_status
+    end subroutine get_neighbour_local_status
+
+    !v Returns the local distribution status of a vertex neighbouring cell
+    !
+    !  Given a distributed mesh, a processor needs both the cells within its partition
+    !  and cells from the surrounding halo - this subroutine get_indicates whether a
+    !  cell's vertex neighbour is within the local partition or the halo.
+    module subroutine get_vertex_neighbour_local_status(loc_vnb, is_local)
+      type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the vertex neighbour locator object.
+      logical, intent(out) :: is_local !< the local status of the neighbour.
+    end subroutine get_vertex_neighbour_local_status
 
     !v Returns the local index of a cell
     !
@@ -331,10 +353,10 @@ module meshing
     end subroutine set_normal
 
     !> Counts the number of neighbours via vertices of a given cell
-    module subroutine cell_count_vertex_neighbours(loc_p, nvnb)
+    module subroutine count_vertex_neighbours(loc_p, nvnb)
       type(cell_locator), intent(in) :: loc_p   !< The cell locator object
       integer(ccs_int), intent(out) :: nvnb     !< The number of vertex neighbours of a cell
-    end subroutine cell_count_vertex_neighbours
+    end subroutine count_vertex_neighbours
   end interface
 
 end module meshing
