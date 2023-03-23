@@ -153,7 +153,7 @@ contains
   module subroutine set_solver_precon(precon_name, solver)
 
     use petscksp, only: KSPGetPC
-    use petscpc, only: tPC, PCSetType
+    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
     use petsc, only: PETSC_TRUE
 
     ! Arguments
