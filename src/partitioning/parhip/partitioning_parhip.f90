@@ -14,18 +14,18 @@ submodule(partitioning) partitioning_parhip
                                   seed, mode, edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
-      integer(c_long) :: vtxdist(*)
-      integer(c_long) :: xadj(*)
-      integer(c_long) :: adjncy(*)
-      integer(c_long) :: vwgt(*)
-      integer(c_long) :: adjwgt(*)
+      integer(c_long), dimension(*) :: vtxdist
+      integer(c_long), dimension(*) :: xadj
+      integer(c_long), dimension(*) :: adjncy
+      integer(c_long), dimension(*) :: vwgt
+      integer(c_long), dimension(*) :: adjwgt
       integer(c_int) :: num_procs
       real(c_double) :: imbalance
       integer(c_int) :: suppress
       integer(c_int) :: seed
       integer(c_int) :: mode
       integer(c_int) :: edgecuts
-      integer(c_long) :: local_partition(*)
+      integer(c_long), dimension(*) :: local_partition
       integer(c_int) :: comm
     end subroutine 
   end interface
@@ -51,18 +51,18 @@ contains
     integer(ccs_int) :: ierr
     integer(ccs_int) :: i
 
-    integer(c_long), allocatable :: vtxdist(:)
-    integer(c_long), allocatable :: xadj(:)
-    integer(c_long), allocatable :: adjncy(:)
-    integer(c_long), allocatable :: vwgt(:)
-    integer(c_long), allocatable :: adjwgt(:)
+    integer(c_long), dimension(:), allocatable :: vtxdist
+    integer(c_long), dimension(:), allocatable :: xadj
+    integer(c_long), dimension(:), allocatable :: adjncy
+    integer(c_long), dimension(:), allocatable :: vwgt
+    integer(c_long), dimension(:), allocatable :: adjwgt
     integer(c_int) :: num_procs
     real(c_double) :: imbalance
     integer(c_int) :: suppress
     integer(c_int) :: seed
     integer(c_int) :: mode
     integer(c_int) :: edgecuts
-    integer(c_long), allocatable :: local_partition(:)
+    integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
     ! Values hardcoded for now
