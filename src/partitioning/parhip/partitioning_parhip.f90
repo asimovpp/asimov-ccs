@@ -14,18 +14,18 @@ submodule(partitioning) partitioning_parhip
                                   seed, mode, edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
-      integer(c_long), dimension(:), allocatable :: vtxdist
-      integer(c_long), dimension(:), allocatable :: xadj
-      integer(c_long), dimension(:), allocatable :: adjncy
-      integer(c_long), dimension(:), allocatable :: vwgt
-      integer(c_long), dimension(:), allocatable :: adjwgt
+      integer(c_long) :: vtxdist(*)
+      integer(c_long) :: xadj(*)
+      integer(c_long) :: adjncy(*)
+      integer(c_long) :: vwgt(*)
+      integer(c_long) :: adjwgt(*)
       integer(c_int) :: num_procs
       real(c_double) :: imbalance
       integer(c_int) :: suppress
       integer(c_int) :: seed
       integer(c_int) :: mode
       integer(c_int) :: edgecuts
-      integer(c_long), dimension(:), allocatable :: local_partition
+      integer(c_long) :: local_partition(*)
       integer(c_int) :: comm
     end subroutine 
   end interface
@@ -51,18 +51,18 @@ contains
     integer(ccs_int) :: ierr
     integer(ccs_int) :: i
 
-    integer(c_long), dimension(:), allocatable :: vtxdist
-    integer(c_long), dimension(:), allocatable :: xadj
-    integer(c_long), dimension(:), allocatable :: adjncy
-    integer(c_long), dimension(:), allocatable :: vwgt
-    integer(c_long), dimension(:), allocatable :: adjwgt
+    integer(c_long), allocatable :: vtxdist(:)
+    integer(c_long), allocatable :: xadj(:)
+    integer(c_long), allocatable :: adjncy(:)
+    integer(c_long), allocatable :: vwgt(:)
+    integer(c_long), allocatable :: adjwgt(:)
     integer(c_int) :: num_procs
     real(c_double) :: imbalance
     integer(c_int) :: suppress
     integer(c_int) :: seed
     integer(c_int) :: mode
     integer(c_int) :: edgecuts
-    integer(c_long), dimension(:), allocatable :: local_partition
+    integer(c_long), allocatable :: local_partition(:)
     integer(c_int) :: comm
 
     ! Values hardcoded for now
@@ -83,6 +83,9 @@ contains
     xadj = mesh%topo%xadj - 1
     adjncy = mesh%topo%adjncy - 1
     
+    adjwgt = mesh%topo%adjwgt
+    vwgt = mesh%topo%vwgt
+
     ! Set weights to 1
     adjwgt = 1
     vwgt = 1
@@ -97,6 +100,8 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
 
+      comm = par_env%comm
+
       call partition_parhipkway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
                                 num_procs, imbalance, suppress, &
                                 seed, mode, edgecuts, local_partition, comm)
@@ -104,7 +109,7 @@ contains
       mesh%topo%local_partition(:) = local_partition(:)
 
       do i = 1, local_part_size
-        tmp_partition(i + mesh%topo%vtxdist(irank + 1)) = mesh%topo%local_partition(i)
+        tmp_partition(i + vtxdist(irank+1)) = mesh%topo%local_partition(i)
       end do
 
       call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
