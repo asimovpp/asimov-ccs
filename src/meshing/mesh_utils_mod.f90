@@ -102,16 +102,9 @@ contains
     !call partition_kway(par_env, mesh)
     call partition_stride(par_env, mesh)
 
-    ! for debug: Hardcode a 2 rank partitioning (even in serial)
-    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
-    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
-    
     call compute_connectivity(par_env, mesh)
 
     call read_geometry(geo_reader, mesh)
-
-    !call print_topo(par_env, mesh)
-    !call print_geo(par_env, mesh)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -220,7 +213,6 @@ contains
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
     integer(ccs_int) :: i, j, n, global_icell, local_icell
-    integer(ccs_int) :: ier
     integer(ccs_int) :: vert_per_cell
 
     integer(ccs_long), dimension(1) :: vol_p_start
@@ -233,10 +225,10 @@ contains
     integer(ccs_long), dimension(1) :: f_a_count
 
     real(ccs_real), dimension(:), allocatable :: temp_vol_c ! Temp array for cell volumes
-    real(ccs_real), dimension(:, :), allocatable :: temp_x_p ! Temp array for face centres
+    real(ccs_real), dimension(:, :), allocatable :: temp_x_p ! Temp array for cell centres
     real(ccs_real), dimension(:, :), allocatable :: temp_x_f ! Temp array for face centres
     real(ccs_real), dimension(:, :), allocatable :: temp_n_f ! Temp array for face normals
-    real(ccs_real), dimension(:, :), allocatable :: temp_v_c ! Temp array for vertex coordinates
+    real(ccs_real), dimension(:, :), allocatable :: temp_x_v ! Temp array for vertex coordinates
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
     integer(ccs_int) :: local_num_cells
@@ -281,7 +273,7 @@ contains
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     allocate (temp_x_f(ndim, mesh%topo%global_num_faces))
     allocate (temp_n_f(ndim, mesh%topo%global_num_faces))
-    allocate (temp_v_c(ndim, mesh%topo%global_num_vertices))
+    allocate (temp_x_v(ndim, mesh%topo%global_num_vertices))
     allocate (temp_a_f(mesh%topo%global_num_faces))
 
     f_xn_start = 0
@@ -297,7 +289,7 @@ contains
     f_xn_count(2) = mesh%topo%global_num_vertices
 
     ! Read variable "/vert"
-    call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_v_c)
+    call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
 
     f_a_start = 0
     f_a_count(1) = mesh%topo%global_num_faces
@@ -335,18 +327,18 @@ contains
         call set_vert_location(mesh, local_icell, j, loc_v)
          
         n = mesh%topo%global_vertex_indices(j, global_icell)
-        call set_centre(loc_v, temp_v_c(:, n))
+        call set_centre(loc_v, temp_x_v(:, n))
       end do
 
     end do
 
     ! Delete temp arrays
-    deallocate (temp_vol_c, stat=ier)
-    deallocate (temp_x_f, stat=ier)
-    deallocate (temp_v_c, stat=ier)
-    deallocate (temp_x_p, stat=ier)
-    deallocate (temp_n_f, stat=ier)
-    deallocate (temp_a_f, stat=ier)
+    deallocate (temp_vol_c)
+    deallocate (temp_x_f)
+    deallocate (temp_x_v)
+    deallocate (temp_x_p)
+    deallocate (temp_n_f)
+    deallocate (temp_a_f)
 
   end subroutine read_geometry
 
@@ -489,10 +481,6 @@ contains
     !call partition_kway(par_env, mesh)
     call partition_stride(par_env, mesh)
 
-    ! for debug: Hardcode a 2 rank partitioning (even in serial)
-    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
-    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
-    
     call compute_connectivity(par_env, mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
@@ -659,6 +647,7 @@ contains
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
+          ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
           !global_index_nb = i - 1_ccs_int
           !mesh%topo%face_cell1(face_index_counter) = global_index_nb
           !mesh%topo%face_cell2(face_index_counter) = i
@@ -695,6 +684,7 @@ contains
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
+          ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
           !global_index_nb = i - nx
           !mesh%topo%face_cell1(face_index_counter) = global_index_nb
           !mesh%topo%face_cell2(face_index_counter) = i
@@ -956,10 +946,6 @@ contains
     !call partition_kway(par_env, mesh)
     call partition_stride(par_env, mesh)
 
-    ! for debug: Hardcode a 2 rank partitioning (even in serial)
-    !mesh%topo%global_partition(1:mesh%topo%global_num_cells/2) = 1_ccs_int
-    !mesh%topo%global_partition(mesh%topo%global_num_cells/2+1:mesh%topo%global_num_cells) = 0_ccs_int
-    
     call compute_connectivity(par_env, mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
@@ -1153,6 +1139,7 @@ contains
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
+          ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
           !global_index_nb = i - 1_ccs_int
           !mesh%topo%face_cell1(face_index_counter) = global_index_nb
           !mesh%topo%face_cell2(face_index_counter) = i
@@ -1189,6 +1176,7 @@ contains
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
+          ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
           !global_index_nb = i - nx
           !mesh%topo%face_cell1(face_index_counter) = global_index_nb
           !mesh%topo%face_cell2(face_index_counter) = i
@@ -1224,6 +1212,7 @@ contains
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
+          ! If internal back face, nothing to be done, the face will be linked as a front face from its neighbour
           !global_index_nb = i - nx * ny
           !mesh%topo%face_cell1(face_index_counter) = global_index_nb
           !mesh%topo%face_cell2(face_index_counter) = i
@@ -1807,8 +1796,6 @@ contains
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
     integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
-    !integer(ccs_int) :: file_unit
-
 
     print *, "############################# Print Geometry ########################################"
 
@@ -1855,21 +1842,6 @@ contains
 
     print *, "############################# End Print Geometry ########################################"
 
-    ! Write geometry to file
-
-!    open(newunit=file_unit, file = 'raw_geometry_' // str(par_env%proc_id) // '.dat', status = 'new')  
-
-!    write(file_unit, *) "h ", mesh%geo%h
-!    write(file_unit, *) "scalefator ", mesh%geo%scalefactor
-!    write(file_unit, *) "volumes ", mesh%geo%volumes(:)
-!    write(file_unit, *) "face_areas ", mesh%geo%face_areas(:,:)
-!    write(file_unit, *) "x_p ", mesh%geo%x_p(:,:)
-!    write(file_unit, *) "x_f ", mesh%geo%x_f(:,:,:)
-!    write(file_unit, *) "face_normals ", mesh%geo%face_normals(:,:,:)
-!    write(file_unit, *) "vert_coords ", mesh%geo%vert_coords(:,:,:)
-!    
-!    close(file_unit) 
-
   end subroutine print_geo
 
 
@@ -1879,7 +1851,6 @@ contains
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
     integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
-!    integer(ccs_int) :: file_unit
 
     print *, "############################# Print Topology ########################################"
 
@@ -1938,38 +1909,6 @@ contains
 
     print *, "############################# End Print Topology ########################################"
 
-!
-!    open(newunit=file_unit, file = 'raw_topology_' // str(par_env%proc_id) // '.dat', status = 'new')  
-!
-!    write(file_unit, *) "global_num_cells         ", mesh%topo%global_num_cells
-!    write(file_unit, *) "local_num_cells          ", mesh%topo%local_num_cells
-!    write(file_unit, *) "halo_num_cells           ", mesh%topo%halo_num_cells
-!    write(file_unit, *) "global_num_vertices      ", mesh%topo%global_num_vertices
-!    write(file_unit, *) "vert_per_cell            ", mesh%topo%vert_per_cell
-!    write(file_unit, *) "total_num_cells          ", mesh%topo%total_num_cells
-!    write(file_unit, *) "global_num_faces         ", mesh%topo%global_num_faces
-!    write(file_unit, *) "num_faces                ", mesh%topo%num_faces
-!    write(file_unit, *) "max_faces                ", mesh%topo%max_faces
-!    write(file_unit, *) "global_indices           ", mesh%topo%global_indices
-!    write(file_unit, *) "global_face_indices      ", mesh%topo%global_face_indices
-!    write(file_unit, *) "global_vertex_indices    ", mesh%topo%global_vertex_indices
-!    write(file_unit, *) "face_indices             ", mesh%topo%face_indices
-!    write(file_unit, *) "nb_indices               ", mesh%topo%nb_indices
-!    write(file_unit, *) "num_nb                   ", mesh%topo%num_nb
-!    write(file_unit, *) "global_boundaries        ", mesh%topo%global_boundaries
-!    write(file_unit, *) "face_cell1               ", mesh%topo%face_cell1
-!    write(file_unit, *) "face_cell2               ", mesh%topo%face_cell2
-!    write(file_unit, *) "bnd_rid                  ", mesh%topo%bnd_rid
-!    write(file_unit, *) "xadj                     ", mesh%topo%xadj
-!    write(file_unit, *) "adjncy                   ", mesh%topo%adjncy
-!    write(file_unit, *) "vtxdist                  ", mesh%topo%vtxdist
-!    write(file_unit, *) "vwgt                     ", mesh%topo%vwgt
-!    write(file_unit, *) "adjwgt                   ", mesh%topo%adjwgt
-!    write(file_unit, *) "local_partition          ", mesh%topo%local_partition
-!    write(file_unit, *) "global_partition         ", mesh%topo%global_partition     
-!
-!    close(file_unit)
-!
   end subroutine print_topo
 
 

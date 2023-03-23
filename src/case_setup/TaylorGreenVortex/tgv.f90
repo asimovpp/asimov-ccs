@@ -43,7 +43,6 @@ program tgv
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
-  !character(len=:), allocatable :: geo_file     ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -112,7 +111,7 @@ program tgv
   if (cps /= huge(0)) then
   ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
-    mesh = build_mesh(par_env, cps, cps, cps, 4.0_ccs_real * atan(1.0_ccs_real))
+    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
     call read_mesh(par_env, case_name, mesh)

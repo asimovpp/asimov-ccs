@@ -280,7 +280,7 @@ contains
             !local_idx = findloc(tmp1, nbidx)
             !topo%adjncy(ctr) = local_idx(1)
           
-          if (nbidx .le. 0) then
+          if (nbidx .lt. 0) then
             ! boundary 'cell'
             mesh%topo%nb_indices(j, i) = nbidx
           end if

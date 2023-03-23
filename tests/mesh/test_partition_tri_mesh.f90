@@ -89,7 +89,6 @@ contains
       write (message, *) "ERROR: global indices min/max: ", &
         minval(mesh%topo%global_indices), maxval(mesh%topo%global_indices), &
         " outside expected range: ", 1, 16
-        print *, "global_indices", mesh%topo%global_indices
       call stop_test(message)
     end if
 
