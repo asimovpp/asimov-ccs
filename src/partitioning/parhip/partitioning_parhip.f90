@@ -40,7 +40,6 @@ contains
 
     use mpi
     use iso_c_binding
-    use parhip_interfaces
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
