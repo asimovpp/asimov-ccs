@@ -1517,10 +1517,7 @@ contains
       !      the (extended) original array.
       if (.not. found) then
         if ((ng + 1) > mesh%topo%global_num_cells) then
-          !call error_abort("ERROR: Trying to create halo that exceeds global mesh size.")
-          call error_abort("ERROR: Trying to create halo that exceeds global mesh size. " // str(ng+1) // " " // str(mesh%topo%global_num_cells) // " " // str(size(mesh%topo%global_indices)) &
-                            // " " // str(global_index_nb) // " " // str(index_p) // " " // str(index_p_nb) // " " // str(index_nb) // " " // str(global_index_nb))
-          return
+          call error_abort("ERROR: Trying to create halo that exceeds global mesh size.")
         end if
 
         call append_to_arr(global_index_nb, mesh%topo%global_indices)
