@@ -1803,8 +1803,11 @@ contains
     print *, par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
     print *, ""
 
-    if (allocated(mesh%geo%volumes))    print *, par_env%proc_id, "volumes         : ", mesh%geo%volumes(1:nb_elem)
-    if (.not. allocated(mesh%geo%volumes))    print *, par_env%proc_id, "volumes         : UNALLOCATED"
+    if (allocated(mesh%geo%volumes)) then
+      print *, par_env%proc_id, "volumes     : ", mesh%geo%volumes(1:nb_elem)
+    else
+      print *, par_env%proc_id, "volumes     : UNALLOCATED"
+    end if
 
     print *, ""
     if (allocated(mesh%geo%face_areas))   then
@@ -1876,44 +1879,66 @@ contains
     print *, par_env%proc_id, "max_faces           : ", mesh%topo%max_faces
     print *, ""
 
-    if (allocated(mesh%topo%global_indices))          print *, par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
-    if (.not. allocated(mesh%topo%global_indices))    print *, par_env%proc_id, "global_indices     : UNALLOCATED"
+    if (allocated(mesh%topo%global_indices)) then
+      print *, par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
+    else
+      print *, par_env%proc_id, "global_indices     : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%num_nb))                  print *, par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
-    if (.not. allocated(mesh%topo%num_nb))            print *, par_env%proc_id, "num_nb             : UNALLOCATED"
+    if (allocated(mesh%topo%num_nb)) then
+      print *, par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
+    else
+      print *, par_env%proc_id, "num_nb             : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%global_boundaries))       print *, par_env%proc_id, "global_boundaries  : ", mesh%topo%global_boundaries(1:nb_elem)
-    if (.not. allocated(mesh%topo%global_boundaries)) print *, par_env%proc_id, "global_boundaries  : UNALLOCATED"
+    if (allocated(mesh%topo%global_boundaries)) then
+      print *, par_env%proc_id, "global_boundaries : ", mesh%topo%global_boundaries(1:nb_elem)
+    else
+      print *, par_env%proc_id, "global_boundaries : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%face_cell1))              print *, par_env%proc_id, "face_cell1         : ", mesh%topo%face_cell1(1:nb_elem)
-    if (.not. allocated(mesh%topo%face_cell1))        print *, par_env%proc_id, "face_cell1         : UNALLOCATED"
+    if (allocated(mesh%topo%face_cell1)) then
+      print *, par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
+    else
+      print *, par_env%proc_id, "face_cell1        : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%face_cell2))              print *, par_env%proc_id, "face_cell2         : ", mesh%topo%face_cell2(1:nb_elem)
-    if (.not. allocated(mesh%topo%face_cell2))        print *, par_env%proc_id, "face_cell2         : UNALLOCATED"
+    if (allocated(mesh%topo%face_cell2)) then
+      print *, par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
+    else
+      print *, par_env%proc_id, "face_cell2        : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%bnd_rid))                 print *, par_env%proc_id, "bnd_rid            : ", mesh%topo%bnd_rid(1:nb_elem)
-    if (.not. allocated(mesh%topo%bnd_rid))           print *, par_env%proc_id, "bnd_rid            : UNALLOCATED"
+    if (allocated(mesh%topo%bnd_rid)) then
+      print *, par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
+    else
+      print *, par_env%proc_id, "bnd_rid           : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%xadj))                    print *, par_env%proc_id, "xadj               : ", mesh%topo%xadj(1:nb_elem)
-    if (.not. allocated(mesh%topo%xadj))              print *, par_env%proc_id, "xadj               : UNALLOCATED"
+    if (allocated(mesh%topo%vwgt)) then
+      print *, par_env%proc_id, "vwgt              : ", mesh%topo%vwgt(1:nb_elem)
+    else
+      print *, par_env%proc_id, "vwgt              : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%adjncy))                  print *, par_env%proc_id, "adjncy             : ", mesh%topo%adjncy(1:nb_elem)
-    if (.not. allocated(mesh%topo%adjncy))            print *, par_env%proc_id, "adjncy             : UNALLOCATED"
+    if (allocated(mesh%topo%adjwgt)) then
+      print *, par_env%proc_id, "adjwgt            : ", mesh%topo%adjwgt(1:nb_elem)
+    else
+      print *, par_env%proc_id, "adjwgt            : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%vtxdist))                 print *, par_env%proc_id, "vtxdist            : ", mesh%topo%vtxdist(1:nb_elem)
-    if (.not. allocated(mesh%topo%vtxdist))           print *, par_env%proc_id, "vtxdist            : UNALLOCATED"
+    if (allocated(mesh%topo%local_partition)) then
+      print *, par_env%proc_id, "local_partition   : ", mesh%topo%local_partition(1:nb_elem)
+    else
+      print *, par_env%proc_id, "local_partition   : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%vwgt))                    print *, par_env%proc_id, "vwgt               : ", mesh%topo%vwgt(1:nb_elem)
-    if (.not. allocated(mesh%topo%vwgt))              print *, par_env%proc_id, "vwgt               : UNALLOCATED"
+    if (allocated(mesh%topo%global_partition)) then
+      print *, par_env%proc_id, "global_partition  : ", mesh%topo%global_partition(1:nb_elem)
+    else
+      print *, par_env%proc_id, "global_partition  : UNALLOCATED"
+    end if
 
-    if (allocated(mesh%topo%adjwgt))                  print *, par_env%proc_id, "adjwgt             : ", mesh%topo%adjwgt(1:nb_elem)
-    if (.not. allocated(mesh%topo%adjwgt))            print *, par_env%proc_id, "adjwgt             : UNALLOCATED"
-
-    if (allocated(mesh%topo%local_partition))         print *, par_env%proc_id, "local_partition    : ", mesh%topo%local_partition(1:nb_elem)
-    if (.not. allocated(mesh%topo%local_partition))   print *, par_env%proc_id, "local_partition    : UNALLOCATED"
-
-    if (allocated(mesh%topo%global_partition))        print *, par_env%proc_id, "global_partition   : ", mesh%topo%global_partition (1:nb_elem)
-    if (.not. allocated(mesh%topo%global_partition))  print *, par_env%proc_id, "global_partition   : UNALLOCATED"
 
     print *, ""
     if (allocated(mesh%topo%global_face_indices))   then
@@ -1921,7 +1946,7 @@ contains
         print *, par_env%proc_id, "global_face_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%global_face_indices(1:nb_elem/2,i)
       end do
     else
-      print *, par_env%proc_id, "global_face_indices : UNALLOCATED"
+      print *, par_env%proc_id, "global_face_indices   : UNALLOCATED"
     end if
 
     print *, ""
@@ -1939,7 +1964,7 @@ contains
         print *, par_env%proc_id, "face_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%face_indices(1:nb_elem/2,i)
       end do
     else
-      print *, par_env%proc_id, "face_indices         : UNALLOCATED"
+      print *, par_env%proc_id, "face_indices          : UNALLOCATED"
     end if
 
     print *, ""
@@ -1948,7 +1973,7 @@ contains
         print *, par_env%proc_id, "nb_indices(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%topo%nb_indices(1:nb_elem/2,i)
       end do
     else
-      print *, par_env%proc_id, "nb_indices           : UNALLOCATED"
+      print *, par_env%proc_id, "nb_indices            : UNALLOCATED"
     end if
 
     print *, par_env%proc_id, "############################# End Print Topology ########################################"
