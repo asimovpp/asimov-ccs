@@ -53,18 +53,18 @@ module mesh_utils
   integer, parameter :: back_bottom_right = 6_ccs_int
   integer, parameter :: back_top_right = 7_ccs_int
   integer, parameter :: back_top_left = 8_ccs_int
-  integer, parameter :: front_left = 8_ccs_int
-  integer, parameter :: front_right = 9_ccs_int
-  integer, parameter :: front_bottom = 10_ccs_int
-  integer, parameter :: front_top = 11_ccs_int
-  integer, parameter :: middle_bottom_left = 12_ccs_int
-  integer, parameter :: middle_bottom_right = 13_ccs_int
-  integer, parameter :: middle_top_right = 14_ccs_int
-  integer, parameter :: middle_top_left = 15_ccs_int
-  integer, parameter :: back_left = 16_ccs_int
-  integer, parameter :: back_right = 17_ccs_int
-  integer, parameter :: back_bottom = 18_ccs_int
-  integer, parameter :: back_top = 19_ccs_int
+  integer, parameter :: front_left = 9_ccs_int
+  integer, parameter :: front_right = 10_ccs_int
+  integer, parameter :: front_bottom = 11_ccs_int
+  integer, parameter :: front_top = 12_ccs_int
+  integer, parameter :: middle_bottom_left = 13_ccs_int
+  integer, parameter :: middle_bottom_right = 14_ccs_int
+  integer, parameter :: middle_top_right = 15_ccs_int
+  integer, parameter :: middle_top_left = 16_ccs_int
+  integer, parameter :: back_left = 17_ccs_int
+  integer, parameter :: back_right = 18_ccs_int
+  integer, parameter :: back_bottom = 19_ccs_int
+  integer, parameter :: back_top = 20_ccs_int
 
   private
   public :: build_square_mesh
@@ -850,6 +850,7 @@ contains
           ! Allocate mesh arrays
           allocate (mesh%topo%global_indices(local_num_cells))
           allocate (mesh%topo%num_nb(local_num_cells))
+          allocate (mesh%topo%num_vert_nb(local_num_cells))
           allocate (mesh%topo%nb_indices(mesh%topo%max_faces, local_num_cells))
           allocate (mesh%topo%vert_nb_indices(mesh%topo%vert_nb_per_cell, local_num_cells))
           allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
@@ -967,12 +968,6 @@ contains
             else
               index_nb = index_counter + nx * ny + nx - 1_ccs_int
               global_index_nb = i + nx * ny + nx - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -986,12 +981,6 @@ contains
             else
               index_nb = index_counter + nx * ny + nx
               global_index_nb = i + nx * ny + nx
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1008,12 +997,6 @@ contains
             else
               index_nb = index_counter + nx * ny + nx + 1_ccs_int
               global_index_nb = i + nx * ny + nx + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1027,12 +1010,6 @@ contains
             else
               index_nb = index_counter + nx * ny + 1_ccs_int
               global_index_nb = i + nx * ny + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1049,12 +1026,6 @@ contains
             else
               index_nb = index_counter + nx * ny - nx + 1_ccs_int
               global_index_nb = i + nx * ny - nx + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1068,12 +1039,6 @@ contains
             else
               index_nb = index_counter + nx * ny - nx
               global_index_nb = i + nx * ny - nx
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1090,12 +1055,6 @@ contains
             else
               index_nb = index_counter + nx * ny - nx - 1_ccs_int
               global_index_nb = i + nx * ny - nx - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1109,12 +1068,6 @@ contains
             else
               index_nb = index_counter + nx * ny - 1_ccs_int
               global_index_nb = i + nx * ny - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1129,12 +1082,6 @@ contains
             else
               index_nb = index_counter + nx - 1_ccs_int
               global_index_nb = i + nx - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1148,12 +1095,6 @@ contains
             else
               index_nb = index_counter + nx + 1_ccs_int
               global_index_nb = i + nx + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1167,12 +1108,6 @@ contains
             else
               index_nb = index_counter - nx + 1_ccs_int
               global_index_nb = i - nx + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1186,12 +1121,6 @@ contains
             else
               index_nb = index_counter - nx - 1_ccs_int
               global_index_nb = i - nx - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1209,12 +1138,6 @@ contains
             else
               index_nb = index_counter - nx * ny + nx - 1_ccs_int
               global_index_nb = i - nx * ny + nx - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1228,12 +1151,6 @@ contains
             else
               index_nb = index_counter - nx * ny + nx
               global_index_nb = i - nx * ny + nx
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1250,12 +1167,6 @@ contains
             else
               index_nb = index_counter - nx * ny + nx + 1_ccs_int
               global_index_nb = i - nx * ny + nx + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1269,12 +1180,6 @@ contains
             else
               index_nb = index_counter - nx * ny + 1_ccs_int
               global_index_nb = i - nx * ny + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1291,12 +1196,6 @@ contains
             else
               index_nb = index_counter - nx * ny - nx + 1_ccs_int
               global_index_nb = i - nx * ny - nx + 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1310,12 +1209,6 @@ contains
             else
               index_nb = index_counter - nx * ny - nx
               global_index_nb = i - nx * ny - nx
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1332,12 +1225,6 @@ contains
             else
               index_nb = index_counter - nx * ny - nx - 1_ccs_int
               global_index_nb = i - nx * ny - nx - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
@@ -1351,12 +1238,6 @@ contains
             else
               index_nb = index_counter - nx * ny - 1_ccs_int
               global_index_nb = i - nx * ny - 1_ccs_int
-              if (index_nb < 1 .or. index_nb > mesh%topo%local_num_cells) then
-                call dprint("local index out of bounds " // str(index_nb) // " " // str(mesh%topo%local_num_cells))
-              end if
-              if (global_index_nb < 1 .or. global_index_nb > mesh%topo%global_num_cells) then
-                call dprint("global index out of bounds " // str(global_index_nb) // " " // str(mesh%topo%global_num_cells))
-              end if
             end if
             call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
