@@ -2,4 +2,5 @@ main: poisson
 base: mpi_petsc
 options:
   poisson_discretisation: poisson_discretisation_ref
+  timestepping: timestepping_first_order
 extra: parhip
