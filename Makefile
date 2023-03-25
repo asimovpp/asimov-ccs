@@ -43,10 +43,14 @@ endif
 
 ifdef KMP
   include $(ARCH_DIR)/Makefile.kernel.$(KMP)
+  LKR = $(KLKR)
+  LFLAGS = $(KLFLAGS)
 else
   KFC ?= $(FC) # Kernel compiler
   KFLAGS ?= $(FFLAGS)
   KLIB ?=
+  LKR ?= $(FC)
+  LFLAGS ?= $(FFLAGS)
 endif
 
 EXE = ccs_app
@@ -117,8 +121,12 @@ obj: $(OBJ)
 all: obj app
 
 $(EXE): $(EXE_DEPS) $(KOBJ)
-	#$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) $(KLIB)
-	nvc -acc -O3 -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/include -pthread -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib $(LIB) $(KLIB) -fortranlibs -lgfortran -lstdc++ -L/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -L/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,--enable-new-dtags -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
+ifdef KMP
+		$(info +++)
+		$(info +++ WARNING: linking using kernel compiler, check/edit the link line as appropriate!)
+		$(info +++)
+endif
+		$(LKR) $(LFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(KINC) $(LIB) $(KLIB)
 	@echo -n "===> Built ccs_app with "
 	@grep main $(CCS_DIR)/config.yaml
 
@@ -129,6 +137,7 @@ $(OBJ_DIR)/%.o:
 
 COMPILE_FORTRAN_KERNEL = $(call printdo, $(KFC) $(KFLAGS) -o $@ -c $< $(KINC))
 $(KOBJ):
+	$(info +++)
 	$(info +++ Compiling kernel $@)
 	@$(COMPILE_FORTRAN_KERNEL)
 	$(info +++)

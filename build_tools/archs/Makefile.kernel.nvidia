@@ -1,6 +1,15 @@
 KFC = nvfortran
-KFLAGS = -g -acc=gpu -Minfo=accel -gpu=cc70
+KFLAGS = -g -O3 -acc=gpu -Minfo=accel -gpu=cc70
 
-#KLIB = -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -lnvcpumath
-#KLIB = -L$(NVHPC_ROOT)/compilers/lib -lacchost #-lnvf -lnvc #-laccdevaux -laccdevice -lnvcpumath -lnvomp
-#KLIB = -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -laccdevaux -laccdevice -lnvcpumath -lnvomp
+#
+# To link accelerator code we use nvc.
+# Our code is an MPI code, we need to find out what the MPI compiler would include and link.
+# This can be found via `mpif90 -show` (replacing mpif90 as appropriate).
+#
+KINC = -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/include -pthread -I/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib
+KMPI_PATHS =  -L/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -L/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/openmpi/4.1.4/lib -Wl,-rpath -Wl,/mnt/lustre/indy2lfs/sw/libevent/2.1.12/lib -Wl,--enable-new-dtags
+KMPI_LIBS = -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
+KLIB = -fortranlibs -lgfortran -lstdc++ $(KMPI_PATHS) $(KMPI_LIBS)
+
+KLKR = nvc
+KLFLAGS = -acc -O3
