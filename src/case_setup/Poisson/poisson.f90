@@ -138,7 +138,7 @@ program poisson
                          pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
-                   neighbour_locator, vector_values, matrix_values, matrix_values_spec, field, upwind_field
+                   neighbour_locator, vector_values, matrix_values, matrix_values_spec, field, central_field
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, get_local_num_cells
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
@@ -187,7 +187,7 @@ program poisson
   call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env, cps=cps)
 
-  allocate (upwind_field :: u)
+  allocate (central_field :: u)
   
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
