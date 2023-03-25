@@ -138,7 +138,7 @@ program poisson
                          pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
-                   neighbour_locator, vector_values, matrix_values, matrix_values_spec
+                   neighbour_locator, vector_values, matrix_values, matrix_values_spec, field, central_field
   use meshing, only: set_cell_location, set_face_location, set_neighbour_location, get_local_num_cells
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
@@ -146,7 +146,7 @@ program poisson
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, &
        set_solver_method, set_solver_precon
   use utils, only: update, begin_update, end_update, finalise, initialise, &
-                   set_size, &
+                   set_size, zero, &
                    set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
   use vec, only: create_vector_values
   use mesh_utils, only: build_square_mesh
@@ -157,11 +157,14 @@ program poisson
                       cleanup_parallel_environment, &
                       read_command_line_arguments, &
                       timer, sync
+  use timestepping, only: update_old_values, finalise_timestep, activate_timestepping, &
+                          set_timestep, initialise_old_values, apply_timestep
 
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
-  class(ccs_vector), allocatable, target :: u, b
+  class(ccs_vector), allocatable, target :: b, diag
+  class(field), allocatable, target :: u
   class(ccs_vector), allocatable :: u_exact
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: poisson_solver
@@ -171,7 +174,10 @@ program poisson
   type(equation_system) :: poisson_eq
   type(ccs_mesh) :: mesh
 
-  integer(ccs_int) :: cps = 100 !< Default value for cells per side
+  integer(ccs_int) :: cps = 10 !< Default value for cells per side
+  integer(ccs_int) :: num_steps = 20 !< Default number of timesteps
+  integer(ccs_int) :: t
+  real(ccs_real) :: dt = 1e-8
 
   real(ccs_real) :: err_norm
 
@@ -180,14 +186,14 @@ program poisson
 
   call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env, cps=cps)
+
+  allocate (central_field :: u)
   
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
   velocity_solver_precon_name = "bjacobi"
   pressure_solver_method_name = "cg"
   pressure_solver_precon_name = "gamg"
-
-  call sync(par_env)
 
   call initialise_poisson(par_env)
 
@@ -196,56 +202,76 @@ program poisson
   call initialise(mat_properties)
   call initialise(poisson_eq)
 
-  ! Create stiffness matrix
   call set_size(par_env, mesh, mat_properties)
   call set_nnz(5, mat_properties)
-  call create_matrix(mat_properties, M)
 
   ! Create right-hand-side and solution vectors
   call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, b)
   call create_vector(vec_properties, u_exact)
-  call create_vector(vec_properties, u)
+  call create_vector(vec_properties, diag)
+  call create_vector(vec_properties, u%values)
 
-  call timer(start_time)
-  call discretise_poisson(mesh, M)
-
-  call begin_update(M) ! Start the parallel assembly for M
-
-  call begin_update(u) ! Start the parallel assembly for u
-
-  ! Evaluate right-hand-side vector
-  call eval_rhs(mesh, b)
-
-  call begin_update(b) ! Start the parallel assembly for b
-  call end_update(M) ! Complete the parallel assembly for M
-  call end_update(b) ! Complete the parallel assembly for b
-
-  ! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
-  call apply_dirichlet_bcs(mesh, M, b)
-  call begin_update(b) ! Start the parallel assembly for b
-  call finalise(M)
-
-  call end_update(u) ! Complete the parallel assembly for u
-  call end_update(b) ! Complete the parallel assembly for b
-
-  ! Create linear solver & set options
-  call set_equation_system(par_env, b, u, M, poisson_eq)
-  call create_solver(poisson_eq, poisson_solver)
-  call set_solver_method(pressure_solver_method_name, poisson_solver)
-  call set_solver_precon(pressure_solver_precon_name, poisson_solver)
-  call solve(poisson_solver)
-
-  call timer(end_time)
-
-  ! Check solution
+  ! Initialise with exact solution
   call set_exact_sol(u_exact)
-  call axpy(-1.0_ccs_real, u_exact, u)
 
-  err_norm = norm(u, 2) * mesh%geo%h
-  if (par_env%proc_id == par_env%root) then
-    print *, "Norm of error = ", err_norm
-  end if
+  call update(u%values)
+  call initialise_old_values(vec_properties, u)
+
+  call activate_timestepping()
+  call set_timestep(dt)
+
+  call sync(par_env)
+  call timer(start_time)
+  
+  do t = 1, num_steps
+
+    call update_old_values(u)
+
+    ! Create stiffness matrix
+    call create_matrix(mat_properties, M)
+    call create_vector(vec_properties, b)
+    
+    call zero(M)
+    call zero(b)
+
+    call discretise_poisson(mesh, M)
+    ! Evaluate right-hand-side vector
+    call eval_rhs(mesh, b)
+
+    call apply_timestep(mesh, u, diag, M, b)
+
+    call update(M) ! Start the parallel assembly for M
+    call update(u%values) ! Start the parallel assembly for u
+    call update(b) ! Start the parallel assembly for b
+
+    ! Modify matrix and right-hand-side vector to apply Dirichlet boundary conditions
+    call apply_dirichlet_bcs(mesh, M, b)
+    call update(b) ! Start the parallel assembly for b
+    call finalise(M)
+
+
+    ! Create linear solver & set options
+    call set_equation_system(par_env, b, u%values, M, poisson_eq)
+    if (t .eq. 1) then
+      call create_solver(poisson_eq, poisson_solver)
+      call set_solver_method(pressure_solver_method_name, poisson_solver)
+      call set_solver_precon(pressure_solver_precon_name, poisson_solver)
+    end if
+    call solve(poisson_solver)
+
+
+    call finalise_timestep()
+
+    call axpy(-1.0_ccs_real, u_exact, u%values)
+    err_norm = norm(u%values, 2) * mesh%geo%h
+
+    if (par_env%proc_id == par_env%root) then
+      print *, " TIME = ", t, "Error norm = ", err_norm
+    end if
+  end do
+
+  call sync(par_env)
+  call timer(end_time)
 
   ! Clean up
   deallocate (u)
