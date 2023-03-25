@@ -1,0 +1,4 @@
+KFC = nvfortran
+KFLAGS =
+
+KLIB = -L$(NVHPC_ROOT)/compilers/lib -lnvf -lnvc -lnvcpumath

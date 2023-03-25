@@ -195,9 +195,6 @@ program poisson
   pressure_solver_method_name = "cg"
   pressure_solver_precon_name = "gamg"
 
-  call sync(par_env)
-  call timer(start_time)
-
   call initialise_poisson(par_env)
 
   ! Initialise with default values
@@ -223,6 +220,9 @@ program poisson
   call activate_timestepping()
   call set_timestep(dt)
 
+  call sync(par_env)
+  call timer(start_time)
+  
   do t = 1, num_steps
 
     call update_old_values(u)
@@ -269,7 +269,9 @@ program poisson
       print *, " TIME = ", t, "Error norm = ", err_norm
     end if
   end do
- 
+
+  call sync(par_env)
+  call timer(end_time)
 
   ! Clean up
   deallocate (u)
@@ -277,8 +279,6 @@ program poisson
   deallocate (u_exact)
   deallocate (M)
   deallocate (poisson_solver)
-
-  call timer(end_time)
 
   if (par_env%proc_id == par_env%root) then
     print *, "Elapsed time = ", (end_time - start_time)
