@@ -3,17 +3,11 @@
 !  for any mesh with >1 cell, every cell must have at least 1 neighbour.
 program test_mesh_neighbours
 
-! XXX: debugging
-#include "ccs_macros.inc"
-
   use testing_lib
 
   use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, &
                      get_boundary_status, get_local_num_cells, count_vertex_neighbours
   use mesh_utils, only: build_mesh
-
-  ! XXX: debugging
-  use utils, only: exit_print, debug_print
 
   implicit none
 
@@ -76,9 +70,11 @@ program test_mesh_neighbours
       ! Now check the vertex neighbours
       if (nvnb < 2) then
         ! This could be the case if neighbouring cells both contain two of the vertices of a square cell (or similar configuration)
-        call error_abort("FAIL: cell should have at least 2 vertex neighbours, got " // str(nvnb))
+        write (message, *) "FAIL: cell should have 2 or more vertex neighbours, got ", nvnb
+        call stop_test(message)
       else if (nvnb > 20) then
-        call error_abort("FAIL: cell should have at least 20 vertex neighbours, got " // str(nvnb))
+        write (message, *) "FAIL: cell should have at most ", 20, " vertex neighbours, got ", nvnb
+        call stop_test(message)
       end if
 
       ! Loop over neighbours
