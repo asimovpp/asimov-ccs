@@ -798,8 +798,6 @@ contains
     integer(ccs_int) :: comm_rank       ! The process ID within the parallel environment
     integer(ccs_int) :: comm_size       ! The size of the parallel environment
 
-    integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
-    integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     integer(ccs_int) :: local_num_cells ! The local cell count
@@ -813,7 +811,9 @@ contains
 
     real(ccs_real), dimension(3) :: x_v ! Vertex centre array
     type(vert_locator) :: loc_v         ! Vertex locator object
-    logical, parameter :: set_vert_nb = .true.
+    logical :: set_vert_nb 
+
+    integer(ccs_int), dimension(3) :: nb_direction
     
     if (nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
 
@@ -881,365 +881,421 @@ contains
           !        -5 = back_boundary
           !        -6 = front_boundary
           index_counter = 1_ccs_int ! Set local indexing starting from 1...n
+          nb_direction(:) = 0_ccs_int
           do i = start_global, end_global
 
             ii = i - 1_ccs_int
 
+            set_vert_nb = .false. 
+
             ! Construct left (1) face/neighbour
+            nb_direction(1) = left
             face_counter = left
-            if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter - 1_ccs_int
-              global_index_nb = i - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
+            call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter - 1_ccs_int
+            !  global_index_nb = i - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct right (2) face/neighbour
+            nb_direction(1) = right
             face_counter = right
-            if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter + 1_ccs_int
-              global_index_nb = i + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
+            call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter + 1_ccs_int
+            !  global_index_nb = i + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct bottom (3) face/neighbour
+            nb_direction(1) = bottom
             face_counter = bottom
-            if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else
-              index_nb = index_counter - nx
-              global_index_nb = i - nx
-            end if
-            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
+            call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else
+            !  index_nb = index_counter - nx
+            !  global_index_nb = i - nx
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct top (4) face/neighbour
+            nb_direction(1) = top
             face_counter = top
-            if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else
-              index_nb = index_counter + nx
-              global_index_nb = i + nx
-            end if
-            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
+            call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else
+            !  index_nb = index_counter + nx
+            !  global_index_nb = i + nx
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct back (5) face/neighbour
+            nb_direction(1) = back
             face_counter = back
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else
-              index_nb = index_counter - nx * ny
-              global_index_nb = i - nx * ny
-            end if
-            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
+            call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else
+            !  index_nb = index_counter - nx * ny
+            !  global_index_nb = i - nx * ny
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Construct front (6) face/neighbour
+            nb_direction(1) = front
             face_counter = front
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else
-              index_nb = index_counter + nx * ny
-              global_index_nb = i + nx * ny
-            end if
-            call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
+            call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else
+            !  index_nb = index_counter + nx * ny
+            !  global_index_nb = i + nx * ny
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, face_counter, index_nb, global_index_nb, mesh)
 
             ! Now construct neighbours connected via vertex or edge. 
             ! There are 8 front neighbours, 4 middle neighbours and 8 back neighbours
             ! XXX: Since there are so many of these it would be good to put them into a function after ensuring correctness
             ! Start with the front top left and go clockwise
+            set_vert_nb = .true.
+            nb_direction = (/ front, top, left /)
             vertex_counter = front_top_left
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter + nx * ny + nx - 1_ccs_int
-              global_index_nb = i + nx * ny + nx - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter + nx * ny + nx - 1_ccs_int
+            !  global_index_nb = i + nx * ny + nx - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ front, top, 0_ccs_int /)
             vertex_counter = front_top
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else
-              index_nb = index_counter + nx * ny + nx
-              global_index_nb = i + nx * ny + nx
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else
+            !  index_nb = index_counter + nx * ny + nx
+            !  global_index_nb = i + nx * ny + nx
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ front, top, right /)
             vertex_counter = front_top_right
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter + nx * ny + nx + 1_ccs_int
-              global_index_nb = i + nx * ny + nx + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter + nx * ny + nx + 1_ccs_int
+            !  global_index_nb = i + nx * ny + nx + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ front, right, 0_ccs_int /)
             vertex_counter = front_right
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter + nx * ny + 1_ccs_int
-              global_index_nb = i + nx * ny + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter + nx * ny + 1_ccs_int
+            !  global_index_nb = i + nx * ny + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ front, bottom, right /)
             vertex_counter = front_bottom_right
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter + nx * ny - nx + 1_ccs_int
-              global_index_nb = i + nx * ny - nx + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter + nx * ny - nx + 1_ccs_int
+            !  global_index_nb = i + nx * ny - nx + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ front, bottom, 0_ccs_int /)
             vertex_counter = front_bottom
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else
-              index_nb = index_counter + nx * ny - nx
-              global_index_nb = i + nx * ny - nx
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else
+            !  index_nb = index_counter + nx * ny - nx
+            !  global_index_nb = i + nx * ny - nx
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ front, bottom, left /)
             vertex_counter = front_bottom_left
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter + nx * ny - nx - 1_ccs_int
-              global_index_nb = i + nx * ny - nx - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter + nx * ny - nx - 1_ccs_int
+            !  global_index_nb = i + nx * ny - nx - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ front, left, 0_ccs_int /)
             vertex_counter = front_left
-            if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-              index_nb = -front
-              global_index_nb = -front
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter + nx * ny - 1_ccs_int
-              global_index_nb = i + nx * ny - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            !  index_nb = -front
+            !  global_index_nb = -front
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter + nx * ny - 1_ccs_int
+            !  global_index_nb = i + nx * ny - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
             ! Now do the middle layer
+            nb_direction = (/ top, left, 0_ccs_int /)
             vertex_counter = middle_top_left
-            if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter + nx - 1_ccs_int
-              global_index_nb = i + nx - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter + nx - 1_ccs_int
+            !  global_index_nb = i + nx - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ top, right, 0_ccs_int /)
             vertex_counter = middle_top_right
-            if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter + nx + 1_ccs_int
-              global_index_nb = i + nx + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter + nx + 1_ccs_int
+            !  global_index_nb = i + nx + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ bottom, right, 0_ccs_int /)
             vertex_counter = middle_bottom_right
-            if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter - nx + 1_ccs_int
-              global_index_nb = i - nx + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter - nx + 1_ccs_int
+            !  global_index_nb = i - nx + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ bottom, left, 0_ccs_int /)
             vertex_counter = middle_bottom_left
-            if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter - nx - 1_ccs_int
-              global_index_nb = i - nx - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter - nx - 1_ccs_int
+            !  global_index_nb = i - nx - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
             ! And finally the back layer, again start at top left
+            nb_direction = (/ back, top, left /)
             vertex_counter = back_top_left
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter - nx * ny + nx - 1_ccs_int
-              global_index_nb = i - nx * ny + nx - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter - nx * ny + nx - 1_ccs_int
+            !  global_index_nb = i - nx * ny + nx - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ back, top, 0_ccs_int /)
             vertex_counter = back_top
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else
-              index_nb = index_counter - nx * ny + nx
-              global_index_nb = i - nx * ny + nx
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else
+            !  index_nb = index_counter - nx * ny + nx
+            !  global_index_nb = i - nx * ny + nx
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ back, top, right /)
             vertex_counter = back_top_right
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-              index_nb = -top
-              global_index_nb = -top
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter - nx * ny + nx + 1_ccs_int
-              global_index_nb = i - nx * ny + nx + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            !  index_nb = -top
+            !  global_index_nb = -top
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter - nx * ny + nx + 1_ccs_int
+            !  global_index_nb = i - nx * ny + nx + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ back, right, 0_ccs_int /)
             vertex_counter = back_right
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter - nx * ny + 1_ccs_int
-              global_index_nb = i - nx * ny + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter - nx * ny + 1_ccs_int
+            !  global_index_nb = i - nx * ny + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ back, bottom, right /)
             vertex_counter = back_bottom_right
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-              index_nb = -right
-              global_index_nb = -right
-            else
-              index_nb = index_counter - nx * ny - nx + 1_ccs_int
-              global_index_nb = i - nx * ny - nx + 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            !  index_nb = -right
+            !  global_index_nb = -right
+            !else
+            !  index_nb = index_counter - nx * ny - nx + 1_ccs_int
+            !  global_index_nb = i - nx * ny - nx + 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ back, bottom, 0_ccs_int /)
             vertex_counter = back_bottom
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else
-              index_nb = index_counter - nx * ny - nx
-              global_index_nb = i - nx * ny - nx
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else
+            !  index_nb = index_counter - nx * ny - nx
+            !  global_index_nb = i - nx * ny - nx
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ back, bottom, left /)
             vertex_counter = back_bottom_left
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii / nx, ny) == 0_ccs_int) then
-              index_nb = -bottom
-              global_index_nb = -bottom
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter - nx * ny - nx - 1_ccs_int
-              global_index_nb = i - nx * ny - nx - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii / nx, ny) == 0_ccs_int) then
+            !  index_nb = -bottom
+            !  global_index_nb = -bottom
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter - nx * ny - nx - 1_ccs_int
+            !  global_index_nb = i - nx * ny - nx - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
+            nb_direction = (/ back, left, 0_ccs_int /)
             vertex_counter = back_left
-            if ((ii / (nx * ny)) == 0_ccs_int) then
-              index_nb = -back
-              global_index_nb = -back
-            else if (modulo(ii, nx) == 0_ccs_int) then
-              index_nb = -left
-              global_index_nb = -left
-            else
-              index_nb = index_counter - nx * ny - 1_ccs_int
-              global_index_nb = i - nx * ny - 1_ccs_int
-            end if
-            call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+            !if ((ii / (nx * ny)) == 0_ccs_int) then
+            !  index_nb = -back
+            !  global_index_nb = -back
+            !else if (modulo(ii, nx) == 0_ccs_int) then
+            !  index_nb = -left
+            !  global_index_nb = -left
+            !else
+            !  index_nb = index_counter - nx * ny - 1_ccs_int
+            !  global_index_nb = i - nx * ny - 1_ccs_int
+            !end if
+            !call build_local_mesh_add_neighbour(index_counter, vertex_counter, index_nb, global_index_nb, mesh, set_vert_nb)
 
             index_counter = index_counter + 1_ccs_int
 
@@ -1446,6 +1502,77 @@ contains
     end if
 
   end function build_mesh
+
+  subroutine add_neighbour(index_p, nb_counter, index_counter, direction, nx, ny, nz, vertex_flag, mesh)
+    integer(ccs_int), intent(in) :: index_p
+    integer(ccs_int), intent(in) :: nb_counter
+    integer(ccs_int), intent(in) :: index_counter
+    integer(ccs_int), dimension(ndim), intent(in) :: direction
+    integer(ccs_int), intent(in) :: nx
+    integer(ccs_int), intent(in) :: ny
+    integer(ccs_int), intent(in) :: nz
+    logical, intent(in) :: vertex_flag
+    type(ccs_mesh), intent(inout) :: mesh
+
+    integer(ccs_int) :: i, ii
+    integer(ccs_int) :: index_nb = 0_ccs_int
+    integer(ccs_int) :: global_index_nb
+    integer(ccs_int) :: index_increment = 0_ccs_int
+
+    ii = index_p - 1    ! We're indexing cells starting from 1, so adjust for modulo computations.
+
+    do i = 1, ndim
+      select case (direction(i))
+      case (left)
+        if (modulo(ii, nx) == 0_ccs_int) then
+          index_nb = -left
+          global_index_nb = -left
+        end if
+        index_increment = index_increment - 1_ccs_int
+      case (right)
+        if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+          index_nb = -right
+          global_index_nb = -right
+        end if
+        index_increment = index_increment + 1_ccs_int
+      case (bottom)
+        if (modulo(ii / nx, ny) == 0_ccs_int) then
+          index_nb = -bottom
+          global_index_nb = -bottom
+        end if
+        index_increment = index_increment - nx
+      case (top)
+        if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+          index_nb = -top
+          global_index_nb = -top
+        end if
+        index_increment = index_increment + nx
+      case (back)
+        if ((ii / (nx * ny)) == 0_ccs_int) then
+          index_nb = -back
+          global_index_nb = -back
+        end if
+        index_increment = index_increment - nx * ny
+      case (front)
+        if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+          index_nb = -front
+          global_index_nb = -front
+        end if
+        index_increment = index_increment + nx * ny
+      case default
+        if (direction(i) /= 0) then
+          call error_abort("Unexpected value for neighbour direction. Index " // str(i) // " direction " // str(direction(i)))
+        end if
+      end select
+    end do
+
+    if (index_nb >= 0) then
+      index_nb = index_counter + index_increment
+      global_index_nb = index_p + index_increment
+    end if
+    
+    call build_local_mesh_add_neighbour(index_counter, nb_counter, index_nb, global_index_nb, mesh, vertex_flag)
+  end subroutine add_neighbour
 
   !v Helper subroutine to add a neighbour to a cell's neighbour list.
   !
