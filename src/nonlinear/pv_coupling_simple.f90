@@ -827,7 +827,7 @@ contains
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p_prime)
+    call get_field(flow, field_p_prime, p_prime)
 
     ! First update gradients
     call zero_vector(p_prime%x_gradients)
