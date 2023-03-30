@@ -36,13 +36,13 @@ program tgv
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
+  use utils, only: str
 
   implicit none
 
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
-  character(len=:), allocatable :: geo_file     ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -112,14 +112,9 @@ program tgv
   ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
     mesh = build_mesh(par_env, cps, cps, cps, domain_size)
-  
-  ! Otherwise the mesh is read from file
   else
-    geo_file = case_path // geoext
-    if (irank == par_env%root) print *, "Reading mesh"
-    call read_mesh(par_env, case_path, mesh)
-    call partition_kway(par_env, mesh)
-    call compute_connectivity(par_env, mesh)
+    if (irank == par_env%root) print *, "Reading mesh file"
+    call read_mesh(par_env, case_name, mesh)
   end if
 
   ! Initialise fields
