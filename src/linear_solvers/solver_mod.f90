@@ -28,7 +28,7 @@ module solver
     module subroutine create_solver(linear_system, solver)
       type(equation_system), intent(in) :: linear_system !< Data structure containing
       !< equation system to be solved.
-      class(linear_solver), allocatable, intent(out) :: solver !< The linear solver returned allocated.
+      class(linear_solver), allocatable, intent(inout) :: solver !< The linear solver returned allocated.
     end subroutine
 
     !> Interface to solve the linear system in a solver.
@@ -42,13 +42,14 @@ module solver
     end subroutine initialise_equation_system
 
     !> Setter for the linear system
-    module subroutine set_equation_system(par_env, rhs, solution, mat, lin_sys)
+    module subroutine set_equation_system(par_env, rhs, solution, mat, lin_sys, name)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< the parallel environment
       !< where the linear system resides
       class(ccs_vector), allocatable, target, intent(in) :: rhs               !< the right hand side vector
       class(ccs_vector), allocatable, target, intent(in) :: solution          !< the solution vector
       class(ccs_matrix), allocatable, target, intent(in) :: mat               !< the matrix
       type(equation_system), intent(inout) :: lin_sys                         !< the linear system
+      character(len=*), optional, intent(in) :: name                          !< name of the equation system
     end subroutine
 
     !> Interface to set the primary method of a linear solver

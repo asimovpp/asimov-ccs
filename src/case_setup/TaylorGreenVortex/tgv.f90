@@ -36,13 +36,13 @@ program tgv
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
+  use utils, only: str
 
   implicit none
 
   class(parallel_environment), allocatable :: par_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
-  character(len=:), allocatable :: geo_file     ! Geo file name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
@@ -112,14 +112,9 @@ program tgv
   ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
     mesh = build_mesh(par_env, cps, cps, cps, domain_size)
-  
-  ! Otherwise the mesh is read from file
   else
-    geo_file = case_path // geoext
-    if (irank == par_env%root) print *, "Reading mesh"
-    call read_mesh(par_env, case_path, mesh)
-    call partition_kway(par_env, mesh)
-    call compute_connectivity(par_env, mesh)
+    if (irank == par_env%root) print *, "Reading mesh file"
+    call read_mesh(par_env, case_name, mesh)
   end if
 
   ! Initialise fields
@@ -187,58 +182,6 @@ program tgv
   call initialise_old_values(vec_properties, u)
   call initialise_old_values(vec_properties, v)
   call initialise_old_values(vec_properties, w)
-
-  ! START set up vecs for enstrophy
-  call create_vector(vec_properties, u%x_gradients)
-  call create_vector(vec_properties, u%y_gradients)
-  call create_vector(vec_properties, u%z_gradients)
-  call create_vector(vec_properties, v%x_gradients)
-  call create_vector(vec_properties, v%y_gradients)
-  call create_vector(vec_properties, v%z_gradients)
-  call create_vector(vec_properties, w%x_gradients)
-  call create_vector(vec_properties, w%y_gradients)
-  call create_vector(vec_properties, w%z_gradients)
-
-  call update(u%x_gradients)
-  call update(u%y_gradients)
-  call update(u%z_gradients)
-  call update(v%x_gradients)
-  call update(v%y_gradients)
-  call update(v%z_gradients)
-  call update(w%x_gradients)
-  call update(w%y_gradients)
-  call update(w%z_gradients)
-
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, w)
-  !  END  set up vecs for enstrophy
-
-  ! START set up vecs for enstrophy
-  call create_vector(vec_properties, u%x_gradients)
-  call create_vector(vec_properties, u%y_gradients)
-  call create_vector(vec_properties, u%z_gradients)
-  call create_vector(vec_properties, v%x_gradients)
-  call create_vector(vec_properties, v%y_gradients)
-  call create_vector(vec_properties, v%z_gradients)
-  call create_vector(vec_properties, w%x_gradients)
-  call create_vector(vec_properties, w%y_gradients)
-  call create_vector(vec_properties, w%z_gradients)
-
-  call update(u%x_gradients)
-  call update(u%y_gradients)
-  call update(u%z_gradients)
-  call update(v%x_gradients)
-  call update(v%y_gradients)
-  call update(v%z_gradients)
-  call update(w%x_gradients)
-  call update(w%y_gradients)
-  call update(w%z_gradients)
-
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, w)
-  !  END  set up vecs for enstrophy
 
   ! START set up vecs for enstrophy
   call create_vector(vec_properties, u%x_gradients)
@@ -348,10 +291,8 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, get_iters, &
-                          get_convection_scheme, get_relaxation_factors, &
-                          get_target_residual, get_cps, get_domain_size, &
-                          get_dt, get_write_frequency
+    use read_config, only: get_reference_number, get_value, &
+                           get_relaxation_factors   
 
     character(len=*), intent(in) :: config_filename
 
@@ -363,46 +304,46 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file, num_steps)
+    call get_value(config_file, 'steps', num_steps)
     if (num_steps == huge(0)) then
       call error_abort("No value assigned to num_steps.")
     end if
 
-    call get_iters(config_file, num_iters)
+    call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_dt(config_file, dt)
+    call get_value(config_file, 'dt', dt)
     if (dt == huge(0.0)) then
       call error_abort("No value assigned to dt.")
     end if
 
     if (cps == huge(0)) then ! cps was not set on the command line
-      call get_cps(config_file, cps)
+      call get_value(config_file, 'cps', cps)
       if (cps == huge(0)) then
         call error_abort("No value assigned to cps.")
       end if
     end if
 
-    call get_write_frequency(config_file, write_frequency)
+    call get_value(config_file, 'write_frequency', write_frequency)
     if (write_frequency == huge(0.0)) then
       call error_abort("No value assigned to write_frequency.")
     end if
 
-    call get_domain_size(config_file, domain_size)
+    call get_value(config_file, 'L', domain_size)
     if (domain_size == huge(0.0)) then
       call error_abort("No value assigned to domain_size.")
+    end if
+
+    call get_value(config_file, 'target_residual', res_target)
+    if (res_target == huge(0.0)) then
+      call error_abort("No value assigned to target residual.")
     end if
 
     call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
-    end if
-
-    call get_target_residual(config_file, res_target)
-    if (res_target == huge(0.0)) then
-      call error_abort("No value assigned to target residual.")
     end if
 
   end subroutine
