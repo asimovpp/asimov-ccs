@@ -94,6 +94,7 @@ contains
     integer(ccs_int), dimension(:), allocatable :: global_indices
 
     integer(ccs_int) :: nrank
+    integer(ccs_int) :: rank_idx
     integer(ccs_err) :: ierr
     
     if (allocated(mesh%topo%global_indices)) then
@@ -102,7 +103,8 @@ contains
     allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
 
     call MPI_Comm_rank(MPI_COMM_WORLD, nrank, ierr)
-    offset = int(mesh%topo%vtxdist(nrank), ccs_int) ! Everything else is ccs_int...
+    rank_idx = nrank + 1 ! For indexing into stuff...
+    offset = int(mesh%topo%vtxdist(rank_idx), ccs_int) ! Everything else is ccs_int...
     if (mesh%topo%vtxdist(1) == 0) then
       ! Using C numbering
       offset = offset + 1
