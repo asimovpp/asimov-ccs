@@ -49,10 +49,12 @@ contains
 
     call dprint("*********BEGIN REORDERING*****************")
     call get_reordering(mesh, new_indices)
+    call dprint("---------APPLY REORDERING-----------------")
     call apply_reordering(new_indices, mesh)
     deallocate (new_indices)
 
     ! System indices of local indices should be contiguous
+    call dprint("---------CONTIGUOUS ORDERING--------------")
     do i = 2, local_num_cells
       if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
         call error_abort("ERROR: failed system index check at local index " // str(i))
@@ -75,8 +77,11 @@ contains
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
+    call dprint("         NATURAL INDICES")
     call reorder_natural_indices(new_indices, mesh)
+    call dprint("         CELL CENTRES")
     call reorder_cell_centres(new_indices, mesh)
+    call dprint("         CELL NEIGHBOURS")
     call reorder_neighbours(new_indices, mesh)
     
   end subroutine apply_reordering
@@ -116,12 +121,13 @@ contains
     allocate(global_indices(mesh%topo%global_num_cells))
 
     global_indices(:) = 0
+
     do i = 1, mesh%topo%local_num_cells
       idxg = mesh%topo%natural_indices(i)
       global_indices(idxg) = mesh%topo%global_indices(i)
     end do
     call MPI_Allreduce(MPI_IN_PLACE, global_indices, mesh%topo%global_num_cells, &
-                       MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
+                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
     do i = mesh%topo%local_num_cells + 1, mesh%topo%total_num_cells
       idxg = mesh%topo%natural_indices(i)
@@ -277,8 +283,10 @@ contains
       end do
       bw_avg = bw_avg + bw_rowmax
     end do
-    bw_avg = bw_avg / local_num_cells
-    print *, "Bandwidth: ", bw_max, bw_avg
+    if (local_num_cells > 0) then
+      bw_avg = bw_avg / local_num_cells
+      print *, "Bandwidth: ", bw_max, bw_avg
+    end if
 
   end subroutine bandwidth
 
