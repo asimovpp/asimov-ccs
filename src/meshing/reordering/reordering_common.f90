@@ -219,14 +219,23 @@ contains
     integer(ccs_int) :: idx_new
     
     integer(ccs_int), dimension(:, :), allocatable :: idx_nb
+    integer(ccs_int), dimension(:), allocatable :: num_nb
+
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: nnb
     
     call get_local_num_cells(mesh, local_num_cells)
 
-    allocate (idx_nb(4, local_num_cells))
+    allocate (idx_nb, mold=mesh%topo%nb_indices)
 
     idx_nb(:, :) = mesh%topo%nb_indices(:, :)
-    do i = 1, local_num_cells ! First update the neighbour copy
-      do j = 1, 4
+    do i = 1, local_num_cells
+      call set_cell_location(mesh, i, loc_p)
+      call count_neighbours(loc_p, nnb)
+
+      ! Get new /local/ index of neighbours, note only local cells are reordered, the local
+      ! index of halo cells remains unchanged.
+      do j = 1, nnb
         idx_tmp = mesh%topo%nb_indices(j, i)
         if ((idx_tmp > 0) .and. (idx_tmp <= local_num_cells)) then
           idx_new = new_indices(idx_tmp)
@@ -243,6 +252,10 @@ contains
     end do
 
     deallocate (idx_nb)
+
+    allocate(num_nb(local_num_cells))
+    num_nb(new_indices(:)) = mesh%topo%num_nb(:)
+    deallocate(num_nb)
 
   end subroutine reorder_neighbours
   
