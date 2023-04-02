@@ -177,9 +177,12 @@ contains
     allocate (idx_nb, mold=mesh%topo%nb_indices)
 
     idx_nb(:, :) = mesh%topo%nb_indices(:, :)
-    do i = 1, local_num_cells ! First update the neighbour copy
+    do i = 1, local_num_cells
       call set_cell_location(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
+
+      ! Get new /local/ index of neighbours, note only local cells are reordered, the local
+      ! index of halo cells remains unchanged.
       do j = 1, nnb
         idx_tmp = mesh%topo%nb_indices(j, i)
         if ((idx_tmp > 0) .and. (idx_tmp <= local_num_cells)) then
