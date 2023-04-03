@@ -255,6 +255,7 @@ contains
 
     allocate(num_nb(local_num_cells))
     num_nb(new_indices(:)) = mesh%topo%num_nb(:)
+    mesh%topo%num_nb(:) = num_nb(:)
     deallocate(num_nb)
 
   end subroutine reorder_neighbours
