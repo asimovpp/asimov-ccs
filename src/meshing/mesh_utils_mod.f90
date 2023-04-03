@@ -518,6 +518,7 @@ contains
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(local_num_cells))
         allocate (mesh%topo%num_nb(local_num_cells))
+        allocate (mesh%topo%num_vert_nb(local_num_cells))
         allocate (mesh%topo%nb_indices(mesh%topo%max_faces, local_num_cells))
         allocate (mesh%topo%vert_nb_indices(mesh%topo%vert_nb_per_cell, local_num_cells))
         allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
