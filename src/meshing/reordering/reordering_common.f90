@@ -4,6 +4,7 @@ submodule(reordering) reordering_common
   use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_real, ccs_err
   use types, only: cell_locator, neighbour_locator
+  use parallel_types, only: parallel_environment
   use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
                      get_local_index, set_neighbour_location, get_local_status, &
                      get_centre, set_centre, &
@@ -24,9 +25,10 @@ contains
   !
   !  Performs a reordering of local cells and reassigns their global indices based on this new
   !  ordering.
-  module subroutine reorder_cells(mesh)
+  module subroutine reorder_cells(par_env, mesh)
 
-    type(ccs_mesh), intent(inout) :: mesh !< the mesh to be reordered
+    class(parallel_environment), intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), intent(inout) :: mesh              !< the mesh to be reordered
 
     integer(ccs_int) :: i, wrunit
     integer(ccs_int) :: local_num_cells
@@ -50,7 +52,7 @@ contains
     call dprint("*********BEGIN REORDERING*****************")
     call get_reordering(mesh, new_indices)
     call dprint("---------APPLY REORDERING-----------------")
-    call apply_reordering(new_indices, mesh)
+    call apply_reordering(new_indices, par_env, mesh)
     deallocate (new_indices)
 
     ! System indices of local indices should be contiguous
@@ -72,13 +74,14 @@ contains
 
   end subroutine reorder_cells
 
-  module subroutine apply_reordering(new_indices, mesh)
+  module subroutine apply_reordering(new_indices, par_env, mesh)
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
+    class(parallel_environment), intent(in) :: par_env        !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     call dprint("         NATURAL INDICES")
-    call reorder_natural_indices(new_indices, mesh)
+    call reorder_natural_indices(new_indices, par_env, mesh)
     call dprint("         CELL CENTRES")
     call reorder_cell_centres(new_indices, mesh)
     call dprint("         CELL NEIGHBOURS")
@@ -86,10 +89,11 @@ contains
     
   end subroutine apply_reordering
 
-  subroutine set_global_indices(mesh)
+  subroutine set_global_indices(par_env, mesh)
 
     use mpi
 
+    class(parallel_environment), intent(in) :: par_env        !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     integer(ccs_int) :: i
@@ -98,8 +102,6 @@ contains
     
     integer(ccs_int), dimension(:), allocatable :: global_indices
 
-    integer(ccs_int) :: nrank
-    integer(ccs_int) :: rank_idx
     integer(ccs_err) :: ierr
     
     if (allocated(mesh%topo%global_indices)) then
@@ -108,13 +110,7 @@ contains
     allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
 
     ! Compute the global offset, this should start from 1.
-    call MPI_Comm_rank(MPI_COMM_WORLD, nrank, ierr)
-    rank_idx = nrank + 1 ! For indexing into stuff...
-    offset = int(mesh%topo%vtxdist(rank_idx), ccs_int) ! Everything else is ccs_int...
-    if (mesh%topo%vtxdist(1) == 0) then
-      ! Using C numbering
-      offset = offset + 1
-    end if
+    call get_global_offset(mesh, par_env, offset)
 
     ! Apply local (contiguous) global numbering
     do i = 1, mesh%topo%local_num_cells
@@ -151,9 +147,10 @@ contains
   !  Halo cells are left in place, therefore only the natural indices of local cells need to be
   !  reordered. Note, however, that the global (linear system) index of halo cells does need to be 
   !  updated by the call to set_global_indices.
-  subroutine reorder_natural_indices(new_indices, mesh)
+  subroutine reorder_natural_indices(new_indices, par_env, mesh)
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
+    class(parallel_environment), intent(in) :: par_env        !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     integer(ccs_int) :: local_num_cells
@@ -182,7 +179,7 @@ contains
     end do
 
     ! Set global indices to linear system
-    call set_global_indices(mesh)
+    call set_global_indices(par_env, mesh)
     
   end subroutine reorder_natural_indices
   
@@ -312,5 +309,48 @@ contains
     end if
 
   end subroutine bandwidth
+
+  ! Get the cell distribution across all processors in rank order, and compute my offset.
+  subroutine get_global_offset(mesh, par_env, offset)
+    
+    use mpi
+
+    use parallel_types_mpi, only: parallel_environment_mpi
+
+    type(ccs_mesh), intent(in) :: mesh
+    class(parallel_environment), intent(in) :: par_env
+    integer(ccs_int), intent(out) :: offset
+
+    integer(ccs_int) :: nproc
+    integer(ccs_int) :: par_idx
+    integer(ccs_int), dimension(:), allocatable :: cell_counts
+
+    integer(ccs_int) :: i
+    integer(ccs_err) :: ierr
+
+    select type(par_env)
+    type is (parallel_environment_mpi)
+      nproc = par_env%num_procs
+      par_idx = par_env%proc_id + 1 ! MPI is C-indexed
+    class default
+      print *, "ERROR!!!!"
+    end select
+
+    allocate(cell_counts(nproc))
+
+    cell_counts(:) = 0
+    cell_counts(par_idx) = mesh%topo%local_num_cells
+    call MPI_Allreduce(MPI_IN_PLACE, cell_counts, nproc, &
+                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, &
+                       ierr)
+
+    offset = 1
+    do i = 1, par_idx - 1
+      offset = offset + cell_counts(i)
+    end do
+
+    deallocate(cell_counts)
+
+  end subroutine
 
 end submodule
