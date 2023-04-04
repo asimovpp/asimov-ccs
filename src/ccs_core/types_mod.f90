@@ -75,7 +75,15 @@ module types
     type(equation_system) :: linear_system !< System of equations
   end type linear_solver
 
-  !> Topology type
+  !v Topology type
+  !
+  !  Describes the topology (i.e. connectivity) of the mesh.
+  !  This includes the numbering of cells, for which there are 3 important values:
+  !  - local index: this is implicitly defined by 1 <= local_index <= n, with halo cells stored at local indices > local_num_cells,
+  !  - natural index: this is the global index of the cells as originally defined by the mesh, a given process may have
+  !                   discontiguous range(s) of natural indices.
+  !  - global index: the index (i.e. row) of a cell in the linear system. Each process has a contiguous range of global indices,
+  !                  i.e. each global index is given by the local index + a constant pre-process offset.
   type, public :: topology
     integer(ccs_int) :: global_num_cells                                    !< Global number of cells
     integer(ccs_int) :: local_num_cells                                     !< Local number of cells
