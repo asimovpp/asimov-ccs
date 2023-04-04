@@ -222,5 +222,4 @@ nightly_gnu:
     - .setup_gnu
     - .test_common
   script:
-    - echo "This is a nightly"
-    #- HOME=${CI_HOME} CMP=gnu make tests
+    - HOME=${CI_HOME} RUNTESTS=nightly CMP=gnu make tests

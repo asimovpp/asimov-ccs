@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 
+# RUN: %mpirun -n 16 %t1 --ccs_case LidDrivenCavity --ccs_m 10
+
+main: ldc
+base: mpi_petsc
+extra: parhip
