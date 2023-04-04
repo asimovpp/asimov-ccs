@@ -828,7 +828,7 @@ contains
         end do
 
         call bandwidth(mesh)
-        call reorder_cells(mesh)
+        call reorder_cells(par_env, mesh)
         call bandwidth(mesh)
         
         do i = 1_ccs_int, local_num_cells
