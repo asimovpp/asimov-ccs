@@ -71,7 +71,9 @@ program test_advection_coeff
 
         do nb = 1, 4
           call get_cell_parameters(index_test, nb, index_p, index_nb, face_area, normal)
-          call run_advection_coeff_test(scalar, u_data, v_data, index_p, index_nb, face_area, normal)
+          if (index_nb > 0) then
+            call run_advection_coeff_test(scalar, u_data, v_data, index_p, index_nb, face_area, normal)
+          end if
         end do
 
         call restore_vector_data(u_vec, u_data)
