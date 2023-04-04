@@ -87,6 +87,7 @@ module types
     integer(ccs_int) :: num_faces                                           !< Local number of faces
     integer(ccs_int) :: max_faces                                           !< Maximum number of faces per cell
     integer(ccs_int), dimension(:), allocatable :: natural_indices          !< The global index of cells in the original ordering (local + halo)
+                                                                            !<   natural_icell = natural_indices(local_icell)
     integer(ccs_int), dimension(:), allocatable :: global_indices           !< The global index of cells (local + halo) 
                                                                             !<   global_icell = global_indices(local_icell)
     integer(ccs_int), dimension(:, :), allocatable :: global_face_indices   !< Global list of faces indices        
