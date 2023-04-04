@@ -142,6 +142,10 @@ contains
   !
   !  Note that up to this point the "natural" indices are stored in the global indices - these will
   !  be replaced by the global indexing of the linear system.
+  !
+  !  Halo cells are left in place, therefore only the natural indices of local cells need to be
+  !  reordered. Note, however, that the global (linear system) index of halo cells does need to be 
+  !  updated by the call to set_global_indices.
   subroutine reorder_natural_indices(new_indices, mesh)
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
