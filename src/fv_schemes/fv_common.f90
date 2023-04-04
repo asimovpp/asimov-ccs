@@ -640,7 +640,7 @@ contains
         if (.not. is_boundary) then
           call get_vector_data(phi%values, phi_data)
           call get_face_interpolation(mesh, loc_p, j, interpol_factor)
-          phif = interpol_factor * (phi_data(index_p) + phi_data(index_nb))
+          phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
           call restore_vector_data(phi%values, phi_data)
         else
           call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif, &
