@@ -107,6 +107,7 @@ contains
     end if
     allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
 
+    ! Compute the global offset, this should start from 1.
     call MPI_Comm_rank(MPI_COMM_WORLD, nrank, ierr)
     rank_idx = nrank + 1 ! For indexing into stuff...
     offset = int(mesh%topo%vtxdist(rank_idx), ccs_int) ! Everything else is ccs_int...
@@ -114,16 +115,20 @@ contains
       ! Using C numbering
       offset = offset + 1
     end if
+
+    ! Apply local (contiguous) global numbering
     do i = 1, mesh%topo%local_num_cells
       mesh%topo%global_indices(i) = i + (offset - 1)
     end do
     
+    ! Determine the new global index of halo cells.
+    ! The easiest way to do this is a global array with the new global indices in original ordering, i.e. to(from).
     allocate(global_indices(mesh%topo%global_num_cells))
 
     global_indices(:) = 0
 
     do i = 1, mesh%topo%local_num_cells
-      idxg = mesh%topo%natural_indices(i)
+      idxg = mesh%topo%natural_indices(i) ! where the cell was in the original ordering
       global_indices(idxg) = mesh%topo%global_indices(i)
     end do
     call MPI_Allreduce(MPI_IN_PLACE, global_indices, mesh%topo%global_num_cells, &
