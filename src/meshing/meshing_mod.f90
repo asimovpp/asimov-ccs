@@ -30,6 +30,8 @@ module meshing
   public :: set_centre
   public :: set_area
   public :: set_normal
+  public :: get_face_interpolation
+  public :: set_face_interpolation
   
   interface get_centre
     module procedure get_cell_centre
@@ -305,6 +307,22 @@ module meshing
       type(face_locator), intent(in) :: loc_f            !< The face locator object
       real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
     end subroutine set_normal
+
+  !v Set face interpolation from cell and its local face id
+    module subroutine set_face_interpolation(loc_p, cell_face_ctr, interpol_factor, mesh)
+      type(cell_locator), intent(in) :: loc_p   !< the cell locator object linking a cell index with the mesh.
+      integer(ccs_int), intent(in) :: cell_face_ctr   !< the cell-local index of the face.
+      real(ccs_real), intent(in) :: interpol_factor  !< the interpolation factor to be used for loc_p
+      type(ccs_mesh), intent(inout) :: mesh      !< the mesh object being referred to.
+    end subroutine set_face_interpolation
+
+  !v Retrieves face interpolation from cell and its local face id
+    module subroutine get_face_interpolation(mesh, loc_p, cell_face_ctr, interpol_factor)
+      type(ccs_mesh), target, intent(in) :: mesh      !< the mesh object being referred to.
+      type(cell_locator), intent(in) :: loc_p   !< the cell locator object linking a cell index with the mesh.
+      integer(ccs_int), intent(in) :: cell_face_ctr   !< the cell-local index of the face.
+      real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_p
+    end subroutine get_face_interpolation
   end interface
 
 end module meshing

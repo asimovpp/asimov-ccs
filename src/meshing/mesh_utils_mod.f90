@@ -19,7 +19,7 @@ module mesh_utils
                      set_face_index, get_boundary_status, get_local_status, &
                      get_centre, set_centre, &
                      set_area, set_normal, &
-                     get_local_num_cells, set_local_num_cells
+                     get_local_num_cells, set_local_num_cells, set_face_interpolation
   use bc_constants
 
   implicit none
@@ -1757,8 +1757,8 @@ contains
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
 
-    real(ccs_real) :: interp_factor
-    integer(ccs_int) :: index_p, index_nb, index_f
+    real(ccs_real) :: interpol_factor
+    integer(ccs_int) :: index_p, index_nb
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     integer(ccs_int) :: local_num_cells
@@ -1788,7 +1788,6 @@ contains
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         call set_face_location(mesh, index_p, j, loc_f)
-        call get_local_index(loc_f, index_f)
 
         if (.not. is_boundary) then
           call get_local_index(loc_nb, index_nb)
@@ -1799,16 +1798,17 @@ contains
 
           ! v_p_nb.V2 / |v_p_nb|**2
           v_p_nb = x_nb - x_p
-          interp_factor = dot_product(v_p_nb, x_f - x_p)/dot_product(v_p_nb, v_p_nb)
+          interpol_factor = dot_product(v_p_nb, x_f - x_p)/dot_product(v_p_nb, v_p_nb)
 
-          if (index_p < index_nb) then
-            mesh%geo%face_interpol(index_f) = interp_factor
-          else
-            mesh%geo%face_interpol(index_f) = 1 - interp_factor
-          end if
+          ! inverse interpol factor as it is relative to x_p
+          ! the closer x_f is to x_p, the higher the interpol_factor
+          interpol_factor = 1.0_ccs_real - interpol_factor
+
+          call set_face_interpolation(loc_p, j, interpol_factor, mesh)
+
         else
           ! Boundary faces values are not meaningful and shouldn't be read
-          mesh%geo%face_interpol(index_f) = 0.0_ccs_real
+          call set_face_interpolation(loc_p, j, 0.0_ccs_real, mesh)
         end if
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells

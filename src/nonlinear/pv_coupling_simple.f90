@@ -25,7 +25,7 @@ submodule(pv_coupling) pv_coupling_simple
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance, &
-                     get_local_num_cells
+                     get_local_num_cells, get_face_interpolation
   use timestepping, only: update_old_values, finalise_timestep
 
   implicit none
@@ -476,6 +476,7 @@ contains
 
     real(ccs_real) :: uSwitch, vSwitch, wSwitch
     real(ccs_real) :: problem_dim
+    real(ccs_real) :: interpol_factor
 
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
@@ -544,16 +545,17 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
+          call get_face_interpolation(mesh, loc_p, j, interpol_factor)
 
           call get_distance(loc_p, loc_nb, dx)
           dxmag = sqrt(sum(dx**2))
           coeff_f = (1.0 / dxmag) * face_area
 
           call get_volume(loc_nb, V_nb)
-          Vf = 0.5_ccs_real * (Vp + V_nb)
+          Vf = interpol_factor * Vp + (1.0_ccs_real - interpol_factor) * V_nb
 
           invA_nb = (uSwitch * invAu_data(index_nb) + vSwitch * invAv_data(index_nb) + wSwitch * invAw_data(index_nb)) / problem_dim
-          invA_f = 0.5_ccs_real * (invA_p + invA_nb)
+          invA_f = interpol_factor * invA_p + (1.0_ccs_real - interpol_factor) * invA_nb
 
           coeff_f = -(Vf * invA_f) * coeff_f
 
