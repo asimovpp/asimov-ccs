@@ -208,3 +208,19 @@ profile_cray:
       - obj/*.lst
       - ./*.lst
   allow_failure: true
+
+#-----------------------------------------------------------------------------#
+
+nightly_gnu:
+  only:
+    variables:
+      - $NIGHTLY
+  needs: 
+    - job: build_gnu
+      artifacts: true
+  extends: 
+    - .setup_gnu
+    - .test_common
+  script:
+    - echo "This is a nightly"
+    #- HOME=${CI_HOME} CMP=gnu make tests
