@@ -57,7 +57,7 @@ contains
     call dprint("---------CONTIGUOUS ORDERING--------------")
     do i = 2, local_num_cells
       if (mesh%topo%global_indices(i) /= (mesh%topo%global_indices(i - 1) + 1)) then
-        call error_abort("ERROR: failed system index check at local index " // str(i))
+        call error_abort("ERROR: failed global index check at local index " // str(i))
       end if
     end do
     call dprint("*********END   REORDERING*****************")
