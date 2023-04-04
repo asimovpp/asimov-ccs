@@ -491,9 +491,11 @@ contains
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(index_nb) - p(index_p)) / dxmag
 
-        flux_corr = flux_corr + ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
-                               + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
-                               + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
+        !v From Ferziger & Peric 8.2.2 (p243)
+        ! interpolation factor should be kept at 0.5 regardless of the mesh geometry
+        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(x_direction) &
+                                                + (dpdy(index_p) + dpdy(index_nb)) * face_normal(y_direction) &
+                                                + (dpdz(index_p) + dpdz(index_nb)) * face_normal(z_direction))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
