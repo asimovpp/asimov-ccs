@@ -167,7 +167,6 @@ contains
     integer(ccs_int) :: idx_new
     
     integer(ccs_int), dimension(:, :), allocatable :: idx_nb
-    integer(ccs_int), dimension(:), allocatable :: num_nb
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
@@ -201,10 +200,8 @@ contains
 
     deallocate (idx_nb)
 
-    allocate(num_nb(local_num_cells))
-    num_nb(new_indices(:)) = mesh%topo%num_nb(:)
-    mesh%topo%num_nb(:) = num_nb(:)
-    deallocate(num_nb)
+    ! Reorder neighbour counts
+    mesh%topo%num_nb(new_indices(:)) = mesh%topo%num_nb(:)
 
   end subroutine reorder_neighbours
   
