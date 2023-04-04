@@ -93,6 +93,8 @@ contains
 
     use mpi
 
+    use parallel_types_mpi, only: parallel_environment_mpi
+
     class(parallel_environment), intent(in) :: par_env        !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
@@ -127,8 +129,15 @@ contains
       idxg = mesh%topo%natural_indices(i) ! where the cell was in the original ordering
       global_indices(idxg) = mesh%topo%global_indices(i)
     end do
-    call MPI_Allreduce(MPI_IN_PLACE, global_indices, mesh%topo%global_num_cells, &
-                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+    select type(par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, global_indices, mesh%topo%global_num_cells, &
+                         MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
+
 
     do i = mesh%topo%local_num_cells + 1, mesh%topo%total_num_cells
       idxg = mesh%topo%natural_indices(i)
@@ -333,16 +342,22 @@ contains
       nproc = par_env%num_procs
       par_idx = par_env%proc_id + 1 ! MPI is C-indexed
     class default
-      print *, "ERROR!!!!"
+      call error_abort("Unsupported parallel environment!")
     end select
 
     allocate(cell_counts(nproc))
 
     cell_counts(:) = 0
     cell_counts(par_idx) = mesh%topo%local_num_cells
-    call MPI_Allreduce(MPI_IN_PLACE, cell_counts, nproc, &
-                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, &
-                       ierr)
+
+    select type(par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, cell_counts, nproc, &
+                         MPI_INTEGER, MPI_SUM, par_env%comm, &
+                         ierr)
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
 
     offset = 1
     do i = 1, par_idx - 1
