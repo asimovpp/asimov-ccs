@@ -220,6 +220,8 @@ nightly_gnu:
       artifacts: true
   extends: 
     - .setup_gnu
-    - .test_common
+      #- .test_common
   script:
     - HOME=${CI_HOME} RUNTESTS=nightly CMP=gnu make tests
+    - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/jzarins/asimov-ccs-nightly-data.git
+      #- asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/ccs_data.csv tests/nightly/*/data.out  
