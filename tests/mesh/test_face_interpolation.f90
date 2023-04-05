@@ -16,8 +16,6 @@ program test_face_interpolation
   integer(ccs_int) :: index_p, j
   real(ccs_real) :: interpol_factor
   real(ccs_real) :: face_coordinate
-  integer, parameter :: n_tests = 2
-  logical :: result
 
   call init()
 
@@ -33,11 +31,7 @@ program test_face_interpolation
   call set_cell_location(mesh, index_p, loc_p)
   call get_face_interpolation(mesh, loc_p, j, interpol_factor)
 
-  call assert_eq(interpol_factor, 1.0_ccs_real - face_coordinate, "FAIL: wrong interpolation for cell1", result)
-  if (.not. result) then
-    write (message, *) "FAIL: wrong interpolation for cell ", index_p
-    call stop_test(message)
-  end if
+  call assert_eq(interpol_factor, 1.0_ccs_real - face_coordinate, "FAIL: wrong interpolation for cell1")
 
   ! Test cell2 interpolation factor
   index_p = 2_ccs_int
@@ -46,11 +40,7 @@ program test_face_interpolation
   call set_cell_location(mesh, index_p, loc_p)
   call get_face_interpolation(mesh, loc_p, j, interpol_factor)
 
-  call assert_eq(interpol_factor, face_coordinate, "FAIL: wrong interpolation for cell2", result)
-  if (.not. result) then
-    write (message, *) "FAIL: wrong interpolation for cell ", index_p
-    call stop_test(message)
-  end if
+  call assert_eq(interpol_factor, face_coordinate, "FAIL: wrong interpolation for cell2")
 
   call fin()
 
