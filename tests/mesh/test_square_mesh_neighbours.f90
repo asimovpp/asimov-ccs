@@ -1,7 +1,7 @@
-!v Test that cells have correct numbers of neighbours
+!v Test that cells have correct numbers of neighbours when building square mesh
 !
 !  for any mesh with >1 cell, every cell must have at least 1 neighbour.
-program test_mesh_neighbours
+program test_square_mesh_neighbours
 
   use testing_lib
 
@@ -227,4 +227,4 @@ contains
 
   end subroutine test_mesh_internal_vertex_neighbours
 
-end program test_mesh_neighbours
+end program test_square_mesh_neighbours
