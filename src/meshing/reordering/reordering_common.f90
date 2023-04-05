@@ -86,6 +86,8 @@ contains
     call reorder_cell_centres(new_indices, mesh)
     call dprint("         CELL NEIGHBOURS")
     call reorder_neighbours(new_indices, mesh)
+    call dprint("         CELL FACES")
+    call reorder_faces(new_indices, mesh)
     
   end subroutine apply_reordering
 
@@ -271,6 +273,15 @@ contains
     mesh%topo%num_nb(new_indices(:)) = mesh%topo%num_nb(:)
 
   end subroutine reorder_neighbours
+
+  subroutine reorder_faces(new_indices, mesh)
+
+    integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
+    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
+
+    mesh%topo%face_indices(:, new_indices(:)) = mesh%topo%face_indices(:, :)
+
+  end subroutine
   
   module subroutine bandwidth(mesh)
 
