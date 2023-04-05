@@ -755,9 +755,8 @@ contains
 
     real(ccs_real), dimension(3) :: x_v ! Vertex centre array
     type(vert_locator) :: loc_v         ! Vertex locator object
-    logical :: set_vert_nb 
-
-    integer(ccs_int), dimension(3) :: nb_direction
+    logical :: set_vert_nb              ! Flag for whether we are setting a vertex neighbour
+    integer(ccs_int), dimension(3) :: nb_direction    ! The direction of the neighbour relative to the given cell
 
     if (nx .eq. ny .and. ny .eq. nz) then !< @note Must be a cube (for now) @endnote
 

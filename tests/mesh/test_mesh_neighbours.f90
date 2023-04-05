@@ -113,8 +113,9 @@ program test_mesh_neighbours
       call stop_test(message)
     end select
 
-    expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh
-    expected_vertex_boundary_ctr = 4 * (6 * nx * ny + nx + ny + nz + 2) ! XXX: specific to 3D cartesian mesh, double (or quadruple) counting boundaries on faces/edges + single count of vertices
+    expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh. For a cube this just counts the surface area in terms of cells.
+    expected_vertex_boundary_ctr = 4 * (6 * nx * ny + nx + ny + nz + 2) ! For a cube, this is an expected quadruple count of boundaries on faces of cube, 
+                                                                        ! double count on edges + single count of vertices
     if (global_boundary_ctr /= expected_boundary_ctr) then
       write (message, *) "FAIL: mesh boundary count is incorrect, expected ", &
         expected_boundary_ctr, " got ", global_boundary_ctr

@@ -109,8 +109,8 @@ program test_square_mesh_neighbours
       call stop_test(message)
     end select
 
-    expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh
-    expected_vertex_boundary_ctr = 4 * (n + n + 1) ! XXX: specific to 2D cartesian mesh, double (or quadruple) counting boundaries on faces/edges + single count of vertices
+    expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh. This just counts the boundary neighbours on the perimeter of the square mesh.
+    expected_vertex_boundary_ctr = 4 * (n + n + 1) ! XXX: specific to 2D cartesian mesh. For a square, this, expectedly, double counts boundaries on perimeter + single count of vertices
     if (global_boundary_ctr /= expected_boundary_ctr) then
       write (message, *) "FAIL: mesh boundary count is incorrect, expected ", &
         expected_boundary_ctr, " got ", global_boundary_ctr
