@@ -64,6 +64,7 @@ module mesh_utils
   public :: local_count
   public :: count_mesh_faces
   public :: set_cell_face_indices
+  public :: compute_face_interpolation
   public :: partition_stride
   public :: print_topo
   public :: print_geo
