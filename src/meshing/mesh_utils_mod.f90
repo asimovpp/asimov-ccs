@@ -1256,7 +1256,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= local_num_cells)) then
       ! Neighbour is local
-      if (present(vertex_nb_flag) .and. vertex_nb_flag) then
+      if (vertex_nb_flag) then
         mesh%topo%vert_nb_indices(index_p_nb, index_p) = index_nb
       else
         mesh%topo%nb_indices(index_p_nb, index_p) = index_nb
@@ -1266,7 +1266,7 @@ contains
       if (.not. (index_nb < 0_ccs_int)) then
         call error_abort("ERROR: boundary neighbours should have -ve indices.")
       end if
-      if (present(vertex_nb_flag) .and. vertex_nb_flag) then
+      if (vertex_nb_flag) then
         mesh%topo%vert_nb_indices(index_p_nb, index_p) = index_nb
       else
         mesh%topo%nb_indices(index_p_nb, index_p) = index_nb
@@ -1280,7 +1280,7 @@ contains
       do i = local_num_cells + 1, ng
         if (mesh%topo%global_indices(i) == global_index_nb) then
           found = .true.
-          if (present(vertex_nb_flag) .and. vertex_nb_flag) then
+          if (vertex_nb_flag) then
             mesh%topo%vert_nb_indices(index_p_nb, index_p) = i
           else
             mesh%topo%nb_indices(index_p_nb, index_p) = i
@@ -1300,7 +1300,7 @@ contains
 
         call append_to_arr(global_index_nb, mesh%topo%global_indices)
         ng = size(mesh%topo%global_indices)
-        if (present(vertex_nb_flag) .and. vertex_nb_flag) then
+        if (vertex_nb_flag) then
           mesh%topo%vert_nb_indices(index_p_nb, index_p) = ng
         else
           mesh%topo%nb_indices(index_p_nb, index_p) = ng
