@@ -15,10 +15,14 @@ program test_face_interpolation
   type(cell_locator) :: loc_p
   integer(ccs_int) :: index_p, j
   real(ccs_real) :: interpol_factor
+  real(ccs_real) :: face_coordinate
+  integer, parameter :: n_tests = 2
+  logical :: result
 
   call init()
 
-  mesh = generate_mesh(0.3*1.0_ccs_real)
+  face_coordinate = 0.3*1.0_ccs_real
+  mesh = generate_mesh(face_coordinate)
 
   call compute_face_interpolation(mesh)
 
@@ -29,7 +33,8 @@ program test_face_interpolation
   call set_cell_location(mesh, index_p, loc_p)
   call get_face_interpolation(mesh, loc_p, j, interpol_factor)
 
-  if (interpol_factor .lt. 0.5) then
+  call assert_eq(interpol_factor, 1.0_ccs_real - face_coordinate, "FAIL: wrong interpolation for cell1", result)
+  if (.not. result) then
     write (message, *) "FAIL: wrong interpolation for cell ", index_p
     call stop_test(message)
   end if
@@ -41,14 +46,17 @@ program test_face_interpolation
   call set_cell_location(mesh, index_p, loc_p)
   call get_face_interpolation(mesh, loc_p, j, interpol_factor)
 
-  if (interpol_factor .gt. 0.5) then
+  call assert_eq(interpol_factor, face_coordinate, "FAIL: wrong interpolation for cell2", result)
+  if (.not. result) then
     write (message, *) "FAIL: wrong interpolation for cell ", index_p
     call stop_test(message)
   end if
 
   call fin()
+
   contains
 
+  !v Generates a 2 cells mesh with cell1 at (0,0,0), cell2 at (1,0,0) and face1(face_coordinate, 0, 0)
   function generate_mesh(face_coordinate) result(mesh)
 
     real(ccs_real), intent(in) :: face_coordinate
