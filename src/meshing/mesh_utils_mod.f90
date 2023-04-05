@@ -882,12 +882,11 @@ contains
           !        -5 = back_boundary
           !        -6 = front_boundary
           index_counter = 1_ccs_int ! Set local indexing starting from 1...n
-          nb_direction(:) = 0_ccs_int
           do i = start_global, end_global
 
             ii = i - 1_ccs_int
-
             set_vert_nb = .false. 
+            nb_direction(:) = 0_ccs_int
 
             ! Construct left (1) face/neighbour
             nb_direction(1) = left
@@ -1570,10 +1569,16 @@ contains
       end select
     end do
 
-    if (index_nb >= 0) then
+    if (index_nb == 0) then
       index_nb = index_counter + index_increment
       global_index_nb = index_p + index_increment
+    elseif (index_nb > 0) then
+      call error_abort("index_nb shouldn't be positive at this point")
     end if
+      
+    !call dprint("index_p " // str(index_p) // " index_counter " // str(index_counter) // " nb_counter " // str(nb_counter) &
+    !            // " index_nb " // str(index_nb) // " global_index_nb " // str(global_index_nb) // " index_increment " // &
+    !            str(index_increment) // " direction " // str(direction(1)) // " " // str(direction(2)) // " " // str(direction(3)))
     
     call build_local_mesh_add_neighbour(index_counter, nb_counter, index_nb, global_index_nb, mesh, vertex_flag)
   end subroutine add_neighbour
