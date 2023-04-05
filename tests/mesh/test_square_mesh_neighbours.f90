@@ -7,14 +7,14 @@ program test_mesh_neighbours
 
   use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, &
                      get_boundary_status, get_local_num_cells, count_vertex_neighbours
-  use mesh_utils, only: build_mesh
+  use mesh_utils, only: build_square_mesh
 
   implicit none
 
   type(ccs_mesh), target :: mesh
   type(cell_locator) :: loc_p
 
-  integer(ccs_int) :: n, nx, ny, nz
+  integer(ccs_int) :: n
   real(ccs_real) :: l
 
   integer(ccs_int) :: local_num_cells
@@ -39,12 +39,8 @@ program test_mesh_neighbours
   do mctr = 1, size(m)
     n = m(mctr)
     
-    nx = n
-    ny = n
-    nz = n
-
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, nx, ny, nz, l)
+    mesh = build_square_mesh(par_env, n, l)
     
 
     boundary_ctr = 0
@@ -61,9 +57,9 @@ program test_mesh_neighbours
         ! Even in the limit of single 1D cell should have 2 boundary neighbours.
         write (message, *) "FAIL: cell should have 2 or more neighbours, got ", nnb
         call stop_test(message)
-      else if (nnb > 6) then
-        ! XXX: specific to 3D Cartesian mesh
-        write (message, *) "FAIL: cell should have at most ", 6, " neighbours, got ", nnb
+      else if (nnb > 4) then
+        ! XXX: specific to 2D Cartesian mesh
+        write (message, *) "FAIL: cell should have at most ", 4, " neighbours, got ", nnb
         call stop_test(message)
       end if
 
@@ -72,8 +68,8 @@ program test_mesh_neighbours
         ! This could be the case if neighbouring cells both contain two of the vertices of a square cell (or similar configuration)
         write (message, *) "FAIL: cell should have 2 or more vertex neighbours, got ", nvnb
         call stop_test(message)
-      else if (nvnb > 20) then
-        write (message, *) "FAIL: cell should have at most ", 20, " vertex neighbours, got ", nvnb
+      else if (nvnb > 4) then
+        write (message, *) "FAIL: cell should have at most ", 4, " vertex neighbours, got ", nvnb
         call stop_test(message)
       end if
 
@@ -113,8 +109,8 @@ program test_mesh_neighbours
       call stop_test(message)
     end select
 
-    expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh
-    expected_vertex_boundary_ctr = 4 * (6 * nx * ny + nx + ny + nz + 2) ! XXX: specific to 3D cartesian mesh, double (or quadruple) counting boundaries on faces/edges + single count of vertices
+    expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh
+    expected_vertex_boundary_ctr = 4 * (n + n + 1) ! XXX: specific to 2D cartesian mesh, double (or quadruple) counting boundaries on faces/edges + single count of vertices
     if (global_boundary_ctr /= expected_boundary_ctr) then
       write (message, *) "FAIL: mesh boundary count is incorrect, expected ", &
         expected_boundary_ctr, " got ", global_boundary_ctr
