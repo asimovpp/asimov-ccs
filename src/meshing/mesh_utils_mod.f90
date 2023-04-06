@@ -19,7 +19,7 @@ module mesh_utils
                      set_face_index, get_boundary_status, get_local_status, &
                      get_centre, set_centre, &
                      set_area, set_normal, &
-                     get_local_num_cells, set_local_num_cells
+                     get_local_num_cells, set_local_num_cells, set_face_interpolation
   use bc_constants
 
   implicit none
@@ -64,6 +64,7 @@ module mesh_utils
   public :: local_count
   public :: count_mesh_faces
   public :: set_cell_face_indices
+  public :: compute_face_interpolation
   public :: partition_stride
   public :: print_topo
   public :: print_geo
@@ -339,6 +340,8 @@ contains
     deallocate (temp_x_p)
     deallocate (temp_n_f)
     deallocate (temp_a_f)
+
+    call compute_face_interpolation(mesh)
 
   end subroutine read_geometry
 
@@ -913,6 +916,8 @@ contains
         end do
       end associate
 
+      call compute_face_interpolation(mesh)
+
     class default
       call error_abort("Unknown parallel environment type.")
 
@@ -1261,7 +1266,7 @@ contains
         mesh%topo%vtxdist(i) = j
         j = j + k
       end do
-  
+
     class default
       call error_abort("Unknown parallel environment type.")
 
@@ -1498,6 +1503,8 @@ contains
             call set_centre(loc_v, x_v)
         end do
       end associate
+
+      call compute_face_interpolation(mesh)
 
     class default
       call error_abort("Unknown parallel environment type.")
@@ -1741,6 +1748,79 @@ contains
   end function get_neighbour_face_index
 
 
+  !v From cell centre and face centre, computes face interpolation factors
+  ! face interpolations are bounded between 0 and 1, and are relative to
+  ! the cell with the lowest cell index.
+  subroutine compute_face_interpolation(mesh)
+    type(ccs_mesh), intent(inout) :: mesh
+
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    type(face_locator) :: loc_f
+
+    real(ccs_real) :: interpol_factor
+    integer(ccs_int) :: index_p, index_nb
+    integer(ccs_int) :: j
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: local_num_cells
+    logical :: is_boundary
+
+    real(ccs_real), dimension(ndim) :: x_p ! cell centre array
+    real(ccs_real), dimension(ndim) :: x_nb ! neighbour cell centre array
+    real(ccs_real), dimension(ndim) :: x_f ! face centre array
+    real(ccs_real), dimension(ndim) :: v_p_nb ! vector going through local and neighbour cell centres
+
+    if (allocated(mesh%geo%face_interpol)) then
+      deallocate(mesh%geo%face_interpol)
+    end if
+
+    allocate(mesh%geo%face_interpol(mesh%topo%num_faces))
+
+    ! Safe guard to make sure we go through all faces
+    mesh%geo%face_interpol(:) = - 1.0_ccs_real
+
+    call get_local_num_cells(mesh, local_num_cells)
+
+    do index_p = 1, local_num_cells
+      call set_cell_location(mesh, index_p, loc_p)
+      call count_neighbours(loc_p, nnb)
+
+      do j = 1, nnb
+        call set_neighbour_location(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        call set_face_location(mesh, index_p, j, loc_f)
+
+        if (.not. is_boundary) then
+          call get_local_index(loc_nb, index_nb)
+
+          call get_centre(loc_f, x_f)
+          call get_centre(loc_nb, x_nb)
+          call get_centre(loc_p, x_p)
+
+          ! v_p_nb.V2 / |v_p_nb|**2
+          v_p_nb = x_nb - x_p
+          interpol_factor = dot_product(v_p_nb, x_f - x_p)/dot_product(v_p_nb, v_p_nb)
+
+          ! inverse interpol factor as it is relative to x_p
+          ! the closer x_f is to x_p, the higher the interpol_factor
+          interpol_factor = 1.0_ccs_real - interpol_factor
+
+          call set_face_interpolation(interpol_factor, loc_f)
+
+        else
+          ! Boundary faces values are not meaningful and shouldn't be read
+          call set_face_interpolation(0.0_ccs_real, loc_f)
+        end if
+      end do  ! End loop over current cell's neighbours
+    end do    ! End loop over local cells
+
+    if (minval(mesh%geo%face_interpol) .lt. 0.0_ccs_real .or. &
+        maxval(mesh%geo%face_interpol) .gt. 1.0_ccs_real) then
+      call error_abort("Face interpolation out of bound.")
+    end if
+
+  end subroutine
+
   ! Populate mesh%topo%global_partition with a split of cells in stride using global_start and local_count
   subroutine partition_stride(par_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -1809,6 +1889,12 @@ contains
       print *, par_env%proc_id, "volumes     : UNALLOCATED"
     end if
 
+    if (allocated(mesh%geo%face_interpol)) then
+      print *, par_env%proc_id, "face_interpol          : ", mesh%geo%face_interpol(1:nb_elem)
+    else
+      print *, par_env%proc_id, "face_interpol          : UNALLOCATED"
+    end if
+
     print *, ""
     if (allocated(mesh%geo%face_areas))   then
       do i=1, nb_elem
@@ -1821,7 +1907,7 @@ contains
     print *, ""
     if (allocated(mesh%geo%x_p))   then
       do i=1, nb_elem
-        print *, par_env%proc_id, "x_p(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%x_p(1:nb_elem/2,i)
+        print *, par_env%proc_id, "x_p(:)", mesh%geo%x_p(:,i)
       end do
     else
       print *, par_env%proc_id, "x_p                    : UNALLOCATED"
@@ -1830,7 +1916,7 @@ contains
     print *, ""
     if (allocated(mesh%geo%x_f))   then
       do i=1, nb_elem
-        print *, par_env%proc_id, "x_f(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%x_f(2, 1:nb_elem/2,i)
+        print *, par_env%proc_id, "x_f(2, 1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%x_f(2, 1:nb_elem/2,i)
       end do
     else
       print *, par_env%proc_id, "x_f                    : UNALLOCATED"
@@ -1839,7 +1925,7 @@ contains
     print *, ""
     if (allocated(mesh%geo%face_normals))   then
       do i=1, nb_elem
-        print *, par_env%proc_id, "face_normals(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%face_normals(2, 1:nb_elem/2,i)
+        print *, par_env%proc_id, "face_normals(2, 1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%face_normals(2, 1:nb_elem/2,i)
       end do
     else
       print *, par_env%proc_id, "face_normals          : UNALLOCATED"
@@ -1848,7 +1934,7 @@ contains
     print *, ""
     if (allocated(mesh%geo%vert_coords))   then
       do i=1, nb_elem
-        print *, par_env%proc_id, "vert_coords(1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%vert_coords(2, 1:nb_elem/2,i)
+        print *, par_env%proc_id, "vert_coords(2, 1:"// str(nb_elem/2) // ", " // str(i) //")", mesh%geo%vert_coords(2, 1:nb_elem/2,i)
       end do
     else
       print *, par_env%proc_id, "vert_coords           : UNALLOCATED"
