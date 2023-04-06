@@ -100,8 +100,8 @@ contains
     call compute_partitioner_input(par_env, mesh)
     call partition_kway(par_env, mesh)
 
-    !call partition_kway(par_env, mesh)
-    call partition_stride(par_env, mesh)
+    call partition_kway(par_env, mesh)
+    ! call partition_stride(par_env, mesh)
 
     call compute_connectivity(par_env, mesh)
 
