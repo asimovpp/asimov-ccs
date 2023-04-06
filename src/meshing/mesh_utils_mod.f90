@@ -1765,10 +1765,10 @@ contains
     integer(ccs_int) :: local_num_cells
     logical :: is_boundary
 
-    real(ccs_real), dimension(3) :: x_p ! cell centre array
-    real(ccs_real), dimension(3) :: x_nb ! neighbour cell centre array
-    real(ccs_real), dimension(3) :: x_f ! face centre array
-    real(ccs_real), dimension(3) :: v_p_nb ! vector going through local and neighbour cell centres
+    real(ccs_real), dimension(ndim) :: x_p ! cell centre array
+    real(ccs_real), dimension(ndim) :: x_nb ! neighbour cell centre array
+    real(ccs_real), dimension(ndim) :: x_f ! face centre array
+    real(ccs_real), dimension(ndim) :: v_p_nb ! vector going through local and neighbour cell centres
 
     if (allocated(mesh%geo%face_interpol)) then
       deallocate(mesh%geo%face_interpol)

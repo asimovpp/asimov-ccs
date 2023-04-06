@@ -6,6 +6,7 @@ program test_face_interpolation
 
   use testing_lib
 
+  use constants, only: ndim
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_face_interpolation, set_cell_location
 
@@ -79,11 +80,11 @@ program test_face_interpolation
     mesh%topo%num_nb(:) = 1
 
     ! Build 2 cells mesh geometry
-    allocate(mesh%geo%x_p(3, mesh%topo%total_num_cells))
+    allocate(mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
     mesh%geo%x_p(:, 1) = (/ 0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real /)
     mesh%geo%x_p(:, 2) = (/ 1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real /)
 
-    allocate(mesh%geo%x_f(3, mesh%topo%max_faces, mesh%topo%total_num_cells))
+    allocate(mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%total_num_cells))
     mesh%geo%x_f(:, 1, 1) = (/ face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
     mesh%geo%x_f(:, 1, 2) = (/ face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
 
