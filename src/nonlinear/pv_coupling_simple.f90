@@ -545,7 +545,7 @@ contains
           call set_neighbour_location(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-          call get_face_interpolation(mesh, loc_p, j, interpol_factor)
+          call get_face_interpolation(loc_f, interpol_factor)
 
           call get_distance(loc_p, loc_nb, dx)
           dxmag = sqrt(sum(dx**2))

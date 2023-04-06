@@ -413,7 +413,7 @@ contains
         call get_vector_data(v_field%values, v_data)
         call get_vector_data(w_field%values, w_data)
 
-        call get_face_interpolation(mesh, loc_p, j, interpol_factor)
+        call get_face_interpolation(loc_f, interpol_factor)
 
         flux = ((interpol_factor * u_data(index_p) + (1.0_ccs_real - interpol_factor) * u_data(index_nb)) * face_normal(x_direction) &
               + (interpol_factor * v_data(index_p) + (1.0_ccs_real - interpol_factor) * v_data(index_nb)) * face_normal(y_direction) &
@@ -485,7 +485,7 @@ contains
         !
         ! Rhie-Chow correction from Ferziger & Peric
         !
-        call get_face_interpolation(mesh, loc_p, j, interpol_factor)
+        call get_face_interpolation(loc_f, interpol_factor)
         call get_distance(loc_p, loc_nb, dx)
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
@@ -639,7 +639,7 @@ contains
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
           call get_vector_data(phi%values, phi_data)
-          call get_face_interpolation(mesh, loc_p, j, interpol_factor)
+          call get_face_interpolation(loc_f, interpol_factor)
           phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
           call restore_vector_data(phi%values, phi_data)
         else

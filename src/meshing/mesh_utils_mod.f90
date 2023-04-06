@@ -1805,11 +1805,11 @@ contains
           ! the closer x_f is to x_p, the higher the interpol_factor
           interpol_factor = 1.0_ccs_real - interpol_factor
 
-          call set_face_interpolation(loc_p, j, interpol_factor, mesh)
+          call set_face_interpolation(interpol_factor, loc_f)
 
         else
           ! Boundary faces values are not meaningful and shouldn't be read
-          call set_face_interpolation(loc_p, j, 0.0_ccs_real, mesh)
+          call set_face_interpolation(0.0_ccs_real, loc_f)
         end if
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells
