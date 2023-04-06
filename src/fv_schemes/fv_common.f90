@@ -491,9 +491,9 @@ contains
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(index_nb) - p(index_p)) / dxmag
 
-        flux_corr = flux_corr + 0.5_ccs_real * ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
-                                              + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
-                                              + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
+        flux_corr = flux_corr * ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
+                               + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
+                               + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
