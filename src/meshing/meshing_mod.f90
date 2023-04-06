@@ -32,6 +32,8 @@ module meshing
   public :: set_area
   public :: set_normal
   public :: count_vertex_neighbours
+  public :: get_face_interpolation
+  public :: set_face_interpolation
   
   interface get_centre
     module procedure get_cell_centre
@@ -357,6 +359,18 @@ module meshing
       type(cell_locator), intent(in) :: loc_p   !< The cell locator object
       integer(ccs_int), intent(out) :: nvnb     !< The number of vertex neighbours of a cell
     end subroutine count_vertex_neighbours
+
+    !v Set face interpolation from cell and its local face id
+    module subroutine set_face_interpolation(interpol_factor, loc_f)
+      real(ccs_real), intent(in) :: interpol_factor  !< the interpolation factor to be used for loc_p
+      type(face_locator), intent(inout) :: loc_f        !< the face locator object linking a cell-relative
+    end subroutine set_face_interpolation
+
+    !v Retrieves face interpolation from a face locator
+    module subroutine get_face_interpolation(loc_f, interpol_factor)
+      type(face_locator), intent(in) :: loc_f        !< the face locator object
+      real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
+    end subroutine get_face_interpolation
   end interface
 
 end module meshing
