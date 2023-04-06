@@ -12,32 +12,58 @@ module read_config
 
   private
 
+  public :: get_value
   public :: get_case_name
-  public :: get_steps
-  public :: get_iters
-  public :: get_write_frequency
-  public :: get_dt
-  public :: get_cfl
-  public :: get_cps
-  public :: get_domain_size
   public :: get_init
   public :: get_reference_number
   public :: get_solve
   public :: get_solver
   public :: get_transient
-  public :: get_target_residual
   public :: get_monitor_cell
   public :: get_convection_scheme
   public :: get_blending_factor
   public :: get_relaxation_factors
-  public :: get_output_frequency
   public :: get_plot_format
   public :: get_output_type
   public :: get_bc_variables
   public :: get_bc_field
   public :: get_boundary_count
 
+  interface get_value
+    module procedure get_integer_value
+    module procedure get_real_value
+    module procedure get_string_value
+  end interface
+
   interface
+
+  !> Gets the integer value associated with the keyword from dict
+  module subroutine get_integer_value(dict, keyword, int_val)
+    class(*), pointer, intent(in) :: dict     !< The dictionary
+    character(len=*), intent(in) :: keyword   !< The key
+    integer, intent(out) :: int_val           !< The corresponding value
+  end subroutine
+
+  !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
+  !  whether the key-value pair is present in the dictionary. Takes a flag indicating whether the
+  !  value is required.
+  module subroutine get_real_value(dict, keyword, real_val, value_present, required)
+    class(*), pointer, intent(in) :: dict            !< The dictionary to read from
+    character(len=*), intent(in) :: keyword          !< The key to read
+    real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
+    logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+    logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
+  end subroutine
+
+  !> Gets the string associated with the keyword from dict
+  module subroutine get_string_value(dict, keyword, string_val, value_present, required)
+    class(*), pointer, intent(in) :: dict                       !< The dictionary
+    character(len=*), intent(in) :: keyword                     !< The key
+    character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
+    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+  end subroutine
+
 
     !v Get the name of the test case
     !
@@ -46,68 +72,6 @@ module read_config
     module subroutine get_case_name(config_file, title)
       class(*), pointer, intent(in) :: config_file            !< the entry point to the config file
       character(len=:), allocatable, intent(inout) :: title   !< the case name string
-    end subroutine
-
-    !v Get the number of steps
-    !
-    !  Get the maximum number of timesteps
-    !  to be preformed in the current run
-    module subroutine get_steps(config_file, steps)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      integer, intent(inout) :: steps               !< the maximum number of timesteps
-    end subroutine
-
-    !v Get the number of iterations
-    !
-    !  Get the maximum number of iterations
-    !  to be preformed in the current run
-    module subroutine get_iters(config_file, iters)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      integer, intent(inout) :: iters               !< the maximum number of iterations
-    end subroutine
-
-    !v Get the write frequency
-    !
-    !  Get the frequency (in terms of timesteps) of writing solution to file
-    module subroutine get_write_frequency(config_file, write_frequency)
-      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-      integer, intent(inout) :: write_frequency    !< the write frequency  
-    end subroutine
-    
-    !v Get time step
-    !
-    !  Get the user-defined time step 
-    module subroutine get_dt(config_file, dt)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      real(ccs_real), intent(inout) :: dt          !< the time step
-    end subroutine
-
-    !v Get CFL
-    !
-    !  Get the CFL traget number, used to 
-    !  compute the timestep dt
-    module subroutine get_cfl(config_file, cfl)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      real(ccs_real), intent(inout) :: cfl          !< the cfl target
-    end subroutine
-
-
-    !v Get the number of cells per size
-    !
-    !  Get the number of cells per size
-    !  used to generate a square or cubic mesh
-    module subroutine get_cps(config_file, cps)
-      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-      integer, intent(inout) :: cps               !< the number of cells per size
-    end subroutine
-
-    !v Get the domain size
-    !
-    !  Get the domain size
-    !  used to generate a square or cubic mesh
-    module subroutine get_domain_size(config_file, domain_size)
-      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-      real(ccs_real), intent(inout) :: domain_size !< the domain size
     end subroutine
 
     !v Get source of initial values
@@ -182,16 +146,6 @@ module read_config
       integer, intent(inout) :: max_sub_steps                        !< maximum number of sub-iterations at each time step
     end subroutine
 
-    !v Get target residual
-    !
-    !  Get the convergence criterion.
-    !  The calculation will stop when the residuals (L2-norm) of the
-    !  governing equations are less than the target residual.
-    module subroutine get_target_residual(config_file, residual)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      real(ccs_real), intent(inout) :: residual     !< convergence criterion
-    end subroutine
-
     !v Get grid cell to monitor
     !
     !  Get the grid cell at which to monitor the values
@@ -237,15 +191,6 @@ module read_config
       real(ccs_real), optional, intent(inout) :: p_relax  !< relaxation factor for p
       real(ccs_real), optional, intent(inout) :: te_relax !< relaxation factor for te
       real(ccs_real), optional, intent(inout) :: ed_relax !< relaxation factor for ed
-    end subroutine
-
-    !v Get output frequency
-    !
-    !  Get output frequency, set with keywords "every", "iter", or both.
-    module subroutine get_output_frequency(config_file, output_freq, output_iter)
-      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-      integer, intent(inout) :: output_freq        !< the frequency of writing output files
-      integer, intent(inout) :: output_iter        !< output files are written every output_iter/steps
     end subroutine
 
     !> Get output file format

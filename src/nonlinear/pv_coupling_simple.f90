@@ -354,7 +354,11 @@ contains
     residuals(ivar) = norm(res, 2)
 
     ! Create linear solver
-    call set_equation_system(par_env, vec, u%values, M, lin_sys)
+    if (allocated(u%values%name)) then
+      call set_equation_system(par_env, vec, u%values, M, lin_sys, u%values%name)
+    else
+      call set_equation_system(par_env, vec, u%values, M, lin_sys)
+    endif
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -620,7 +624,11 @@ contains
 
     ! Create linear solver
     call dprint("P': create lin sys")
-    call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
+    if (allocated(p_prime%values%name)) then
+      call set_equation_system(par_env, vec, p_prime%values, M, lin_sys, p_prime%values%name)
+    else
+      call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
+    endif
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -819,7 +827,7 @@ contains
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p_prime)
+    call get_field(flow, field_p_prime, p_prime)
 
     ! First update gradients
     call zero_vector(p_prime%x_gradients)
