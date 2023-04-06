@@ -20,7 +20,7 @@ program test_face_interpolation
 
   call init()
 
-  face_coordinate = 0.3*1.0_ccs_real
+  face_coordinate = 0.3_ccs_real
   mesh = generate_mesh(face_coordinate)
 
   call compute_face_interpolation(mesh)
@@ -85,8 +85,8 @@ program test_face_interpolation
     mesh%geo%x_p(:, 2) = (/ 1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real /)
 
     allocate(mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%total_num_cells))
-    mesh%geo%x_f(:, 1, 1) = (/ face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
-    mesh%geo%x_f(:, 1, 2) = (/ face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
+    mesh%geo%x_f(:, 1, 1) = (/ face_coordinate, 0.0_ccs_real, 0.0_ccs_real /)
+    mesh%geo%x_f(:, 1, 2) = (/ face_coordinate, 0.0_ccs_real, 0.0_ccs_real /)
 
   end function
 
