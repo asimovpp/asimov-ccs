@@ -536,6 +536,68 @@ contains
 
   end subroutine
 
+  !> PETSc implementation to get vector data in natural ordering
+  module subroutine get_natural_data_vec(par_env, mesh, v, data)
+
+    use petsc, only: PETSC_DECIDE
+    use petscvec, only: tVec, &
+                        VecCreate, VecSetSizes, VecSetFromOptions, &
+                        VecSetValues, VecAssemblyBegin, VecAssemblyEnd, &
+                        VecGetArrayReadF90, VecRestoreArrayReadF90, &
+                        VecDestroy
+
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(in) :: mesh
+    class(ccs_vector), intent(inout) :: v
+    real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
+                                                                   !< natural ordering. Note the use
+                                                                   !< of allocatable + intent(out),
+                                                                   !< this ensures it will be
+                                                                   !< de/reallocated by this subroutine.
+
+    real(ccs_real), dimension(:), pointer :: vec_data ! The data stored in the vector
+   
+    type(tVec) :: vec_tmp
+
+    integer(ccs_err) :: ierr
+
+    associate(topo => mesh%topo, &
+         local_num_cells => mesh%topo%local_num_cells)
+
+      ! Create temporary vector to hold the shuffled data
+      select type(par_env)
+      type is(parallel_environment_mpi)
+         call VecCreate(par_env%comm, vec_tmp, ierr)
+      class default
+         call error_abort("Only MPI parallel environments currently supported!")
+      end select
+      call VecSetSizes(vec_tmp, local_num_cells, PETSC_DECIDE, ierr)
+      call VecSetFromOptions(vec_tmp, ierr)
+      
+      ! Copy local data into temporary vector, inserting values at natural index locations
+      call get_vector_data(v, vec_data)
+      call VecSetValues(vec_tmp, local_num_cells, topo%natural_indices(1:local_num_cells) - 1, &
+           vec_data(1:local_num_cells), INSERT_VALUES, ierr)
+      call VecAssemblyBegin(vec_tmp, ierr)
+      call VecAssemblyEnd(vec_tmp, ierr)
+      call restore_vector_data(v, vec_data)
+
+      ! Extract natural-indexed data into data array and return
+      call VecGetArrayReadF90(vec_tmp, vec_data, ierr)
+      if (allocated(data)) then ! Really shouldn't happen
+         deallocate(data)
+      end if
+      allocate(data(local_num_cells))
+      data(1:local_num_cells) = vec_data(1:local_num_cells)
+      call VecRestoreArrayReadF90(vec_tmp, vec_data, ierr)
+
+      ! Clean up
+      call VecDestroy(vec_tmp, ierr)
+
+    end associate
+    
+  end subroutine get_natural_data_vec
+
 !   module subroutine vec_view(vec_properties, vec)
 
 ! #include <petsc/finclude/petscviewer.h>
