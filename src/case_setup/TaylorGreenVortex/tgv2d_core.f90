@@ -40,8 +40,8 @@ contains
 
   subroutine run_tgv2d(par_env, error_L2, error_Linf, input_mesh, input_dt)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    real(ccs_real), dimension(4), intent(out) :: error_L2
-    real(ccs_real), dimension(4), intent(out) :: error_Linf
+    real(ccs_real), dimension(3), intent(out) :: error_L2
+    real(ccs_real), dimension(3), intent(out) :: error_Linf
     type(ccs_mesh), intent(inout), optional :: input_mesh
     real(ccs_real), intent(in), optional :: input_dt
 
@@ -504,11 +504,11 @@ contains
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: t
     class(field), intent(inout) :: u, v, w, p
-    real(ccs_real), dimension(4), intent(out) :: error_L2
-    real(ccs_real), dimension(4), intent(out) :: error_Linf
+    real(ccs_real), dimension(3), intent(out) :: error_L2
+    real(ccs_real), dimension(3), intent(out) :: error_Linf
 
-    real(ccs_real), dimension(4) :: error_L2_local
-    real(ccs_real), dimension(4) :: error_Linf_local
+    real(ccs_real), dimension(3) :: error_L2_local
+    real(ccs_real), dimension(3) :: error_Linf_local
 
     real(ccs_real) :: ft
     real(ccs_real) :: u_an, v_an, w_an, p_an
@@ -559,13 +559,13 @@ contains
 
       error_L2_local(1) = error_L2_local(1) + (u_an - u_data(index_p))**2
       error_L2_local(2) = error_L2_local(2) + (v_an - v_data(index_p))**2
-      error_L2_local(3) = error_L2_local(3) + (w_an - w_data(index_p))**2
-      error_L2_local(4) = error_L2_local(4) + (p_an - p_data(index_p))**2
+      !error_L2_local(3) = error_L2_local(3) + (w_an - w_data(index_p))**2
+      error_L2_local(3) = error_L2_local(3) + (p_an - p_data(index_p))**2
 
       error_Linf_local(1) = max(error_Linf_local(1), abs(u_an - u_data(index_p)))
       error_Linf_local(2) = max(error_Linf_local(2), abs(v_an - v_data(index_p)))
-      error_Linf_local(3) = max(error_Linf_local(3), abs(w_an - w_data(index_p)))
-      error_Linf_local(4) = max(error_Linf_local(4), abs(p_an - p_data(index_p)))
+      !error_Linf_local(3) = max(error_Linf_local(3), abs(w_an - w_data(index_p)))
+      error_Linf_local(3) = max(error_Linf_local(3), abs(p_an - p_data(index_p)))
 
 
     end do
