@@ -17,6 +17,7 @@ module timestepping
   public :: activate_timestepping
   public :: initialise_old_values
   public :: finalise_timestep
+  public :: cleanup_timestep
 
   interface
     !> Apply one timestep correction
@@ -31,6 +32,10 @@ module timestepping
     !> Indicate a timestep has finished
     module subroutine finalise_timestep()
     end subroutine finalise_timestep
+
+    !> Reset save variables to their original state
+    module subroutine cleanup_timestep()
+    end subroutine cleanup_timestep
 
     !> Set timestep size
     module subroutine set_timestep(timestep)

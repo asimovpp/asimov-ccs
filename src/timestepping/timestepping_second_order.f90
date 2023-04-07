@@ -20,6 +20,14 @@ contains
 
   end subroutine finalise_timestep
 
+  module subroutine cleanup_timestep()
+
+    timestep_is_set = .false.
+    timestepping_is_active = .false.
+    first_update = .true.
+
+  end subroutine cleanup_timestep
+
   module subroutine apply_timestep(mesh, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
