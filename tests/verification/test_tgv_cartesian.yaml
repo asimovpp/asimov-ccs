@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 test_tgv_cartesian.f90
+# RUN: %mpirun -n 1 %t1  --ccs_case ../../src/case_setup/TaylorGreenVortex/TaylorGreenVortex2D 
+
+main: test_tgv_cartesian
+base: mpi_petsc
+extra: parhip
