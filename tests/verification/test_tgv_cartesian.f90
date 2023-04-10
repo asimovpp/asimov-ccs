@@ -30,6 +30,7 @@ program test_tgv_cartesian
   domain_size = 3.14159265358979323
 
   cps_list = (/ 8, 16, 32, 64 /)
+  !cps_list = (/ 32, 64, 128, 256 /)
   error_L2(:, :) = 0.0_ccs_real
   error_Linf(:, :) = 0.0_ccs_real
 
@@ -40,35 +41,39 @@ program test_tgv_cartesian
     call run_tgv2d(par_env, error_L2(:, i), error_Linf(:, i), mesh)
   end do
 
-  print *, "-------------------------------------"
-  print *, "Summary of errors"
+  if (par_env%proc_id == par_env%root) then
 
-  do j=1, nvar
-    if (j == 1) print *, "---- U errors"
-    if (j == 2) print *, "---- V errors"
-    if (j == 3) print *, "---- P errors"
-    do i=1, num_cps
-      print *, cps_list(i), error_L2(j, i), error_Linf(j, i)
+    print *, "-------------------------------------"
+    print *, "Summary of errors"
+
+    do j=1, nvar
+      if (j == 1) print *, "---- U errors"
+      if (j == 2) print *, "---- V errors"
+      if (j == 3) print *, "---- P errors"
+      do i=1, num_cps
+        print *, cps_list(i), error_L2(j, i), error_Linf(j, i)
+      end do
     end do
-  end do
 
-  call analyse_error(cps_list, error_L2, orders_L2, min_error_L2)
-  call analyse_error(cps_list, error_Linf, orders_Linf, min_error_Linf)
+    call analyse_error(cps_list, error_L2, orders_L2, min_error_L2)
+    call analyse_error(cps_list, error_Linf, orders_Linf, min_error_Linf)
 
-  print *, "-------------------------------------"
-  print *, "Results"
+    print *, "-------------------------------------"
+    print *, "Results"
 
-  print *, "U order: ", orders_L2(1), orders_Linf(1)
-  print *, "V order: ", orders_L2(2), orders_Linf(2)
-  print *, "P order: ", orders_L2(3), orders_Linf(3)
+    print *, "U order: ", orders_L2(1), orders_Linf(1)
+    print *, "V order: ", orders_L2(2), orders_Linf(2)
+    print *, "P order: ", orders_L2(3), orders_Linf(3)
 
-  call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
-  call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")
-  call assert_gt(orders_L2(3), 1.9_ccs_real, "P not converging in 2nd order ")
+    call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
+    call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")
+    call assert_gt(orders_L2(3), 1.9_ccs_real, "P not converging in 2nd order ")
 
-  call assert_gt(orders_Linf(1), 1.9_ccs_real, "U not converging in 2nd order ")
-  call assert_gt(orders_Linf(2), 1.9_ccs_real, "V not converging in 2nd order ")
-  call assert_gt(orders_Linf(3), 1.9_ccs_real, "P not converging in 2nd order ")
+    call assert_gt(orders_Linf(1), 1.9_ccs_real, "U not converging in 2nd order ")
+    call assert_gt(orders_Linf(2), 1.9_ccs_real, "V not converging in 2nd order ")
+    call assert_gt(orders_Linf(3), 1.9_ccs_real, "P not converging in 2nd order ")
+
+  end if
 
   call fin()
 

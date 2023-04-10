@@ -3,4 +3,6 @@
 
 main: test_tgv_cartesian
 base: mpi_petsc
+options:
+  timestepping: timestepping_second_order
 extra: parhip
