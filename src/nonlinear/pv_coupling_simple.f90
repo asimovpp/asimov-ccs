@@ -353,7 +353,7 @@ contains
     call mat_vec_product(M, u%values, res)
     call vec_aypx(vec, -1.0_ccs_real, res)
     ! Stores L2 norm of residuals
-    residuals(ivar) = norm(res, 2) / mesh%topo%global_num_cells
+    residuals(ivar) = norm(res, 2) / sqrt(mesh%topo%global_num_cells)
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(ivar + nvar) = norm(res, 0)
@@ -797,7 +797,7 @@ contains
 
     ! Pressure residual
     ! Stores L2 norm of residuals
-    residuals(varp) = norm(b, 2) / mesh%topo%global_num_cells
+    residuals(varp) = norm(b, 2) / sqrt(mesh%topo%global_num_cells)
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(varp + nvar) = norm(b, 0)
@@ -966,7 +966,7 @@ contains
     call update(b)
 
     ! Stores L2 norm of residuals
-    residuals(varp + 1) = norm(b, 2) / mesh%topo%global_num_cells
+    residuals(varp + 1) = norm(b, 2) / sqrt(mesh%topo%global_num_cells)
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(varp + 1 + nvar) = norm(b, 0)
