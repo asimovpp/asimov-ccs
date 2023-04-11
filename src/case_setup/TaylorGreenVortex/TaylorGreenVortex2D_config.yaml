@@ -24,6 +24,9 @@ target_residual: 1.0e-10
 # Frequency (in terms of timesteps) of writing solution to file
 write_frequency: 5
 
+# Fluid properties
+viscocity : 1.0e-3
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:

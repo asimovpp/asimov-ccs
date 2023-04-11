@@ -24,7 +24,6 @@ program test_partition_tri_mesh
   integer :: i
   
   integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
-  integer(topo_idx_type) :: current, previous
 
   ! Topology grid size
   integer, parameter :: nrows = 3
@@ -35,10 +34,12 @@ program test_partition_tri_mesh
 
   !n = count(mesh%topo%nb_indices > 0)
   !print*,"Number of positive value neighbour indices: ", n
+  call compute_partitioner_input(par_env, mesh)
+
   print *, "Adjacency arrays: ", mesh%topo%adjncy
   print *, "Adjacency index array: ", mesh%topo%xadj
 
-  call compute_connectivity(par_env, mesh)
+  ! Run test to check we agree
   call check_topology("mid")
 
   call partition_kway(par_env, mesh)
@@ -196,7 +197,7 @@ contains
 
     logical :: left_boundary, right_boundary
 
-    adjncy_global_expected(:) = 0
+    adjncy_global_expected(:) = -1
     interior_ctr = 1
 
     left_boundary = .false.
@@ -247,10 +248,8 @@ contains
 
   subroutine initialise_test
 
-    integer :: ctr
-    integer :: i, j
+    integer :: i
     integer(ccs_int) :: local_num_cells
-    
     ! Create a tri mesh
     !
     ! Sample graph - adapted from ParMETIS manual to use 1-indexing with added triangular connections.
@@ -269,6 +268,7 @@ contains
     mesh%topo%max_faces = 6 ! mesh%topo%num_nb(1)
     allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
     allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
+    allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
     allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
 
     ! Hardcode for now
@@ -279,132 +279,32 @@ contains
                                  0, 7, 12, 11, 8, 13, 12, 9, 14, 13, 10, 15, 14, 0, 15, &        ! 15 count
                                  0, 12, 0, 13, 0, 14, 0, 15, 0, 0, 0/)                          ! 11 count = 46
 
+
+    mesh%topo%bnd_rid   = (/-1,-1, 0, 0, 0,-1, 0, 0, 0,-1, 0, 0, 0,-1, 0,  0, 0,-1,-1,  0, & ! 20 count
+                                -1, 0,  0,  0, 0,  0,  0, 0,  0,  0,  0,  0, 0 ,-1,  0, &        ! 15 count
+                                -1,  0,-1,  0,-1,  0,-1,  0,-1,-1, -1/)                          ! 11 count = 46
+
     ! <MISSING> set topo%global_face_indices
 
     ! --- read_topology() --- end
 
     ! --- compute_partitioner_input() ---
     allocate (mesh%topo%vtxdist(par_env%num_procs + 1))
-    allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
 
     ! Hardcode vtxdist for now
     mesh%topo%vtxdist = (/1, 6, 11, 16/)
 
-    ! <MISSING> set topo%global_partition array?
-    ! FAKE partition array based on initial mesh decomposition
-    ctr = 1
-    do i = 1, mesh%topo%global_num_cells
-      if (i == mesh%topo%vtxdist(ctr + 1)) then
-        ctr = ctr + 1
-      end if
-      mesh%topo%global_partition(i) = (ctr - 1) ! Partitions/ranks are zero-indexed
-    end do
-
-    !select type(par_env)
-    !type is (parallel_environment_mpi)
-    !  allocate(tmp_partition, source=topo%global_partition)
-    !  write(message, *) "Initial partition: ", tmp_partition
-    !  call dprint(message)
-    !  call MPI_Allreduce(tmp_partition, topo%global_partition, topo%global_num_cells, &
-    !          MPI_LONG, MPI_SUM, &
-    !          par_env%comm, ierr)
-    !  deallocate(tmp_partition)
-    !  write(message, *) "Using partition: ", topo%global_partition
-    !  call dprint(message)
-    !class default
-    !  write(message, *) "ERROR: This test only works for MPI!"
-    !  call stop_test(message)
-    !end select
-
     local_num_cells = int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int)
     call set_local_num_cells(local_num_cells, mesh)
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
-    allocate (mesh%topo%xadj(local_num_cells + 1))
-
-    ! <MISSING> allocate topo%global_boundaries
-    ! <MISSING> allocate topo%adjncy
-
-    allocate (mesh%topo%local_partition(local_num_cells))
-    mesh%topo%halo_num_cells = 0
-
-    select type (par_env)
-    type is (parallel_environment_mpi)
-
-      ! Also hardcode the adjncy arrays
-      if (par_env%num_procs == 3) then
-
-        if (par_env%proc_id == 0) then
-          mesh%topo%adjncy = (/2, 6, 7, &
-                                   1, 3, 7, 8, &
-                                   2, 4, 8, 9, &
-                                   3, 5, 9, 10, &
-                                   4, 10/)
-        else if (par_env%proc_id == 1) then
-          mesh%topo%adjncy = (/1, 7, 11, 12, &
-                                   1, 2, 6, 8, 12, 13, &
-                                   2, 3, 7, 9, 13, 14, &
-                                   3, 4, 8, 10, 14, 15, &
-                                   4, 5, 9, 15/)
-        else
-          mesh%topo%adjncy = (/6, 12, &
-                                   6, 7, 11, 13, &
-                                   7, 8, 12, 14, &
-                                   8, 9, 13, 15, &
-                                   9, 10, 14/)
-        end if
-
-      else
-        write (message, *) "Test must be run on 3 MPI ranks"
-        call stop_test(message)
-      end if
-
-    class default
-      write (message, *) "ERROR: Unknown parallel environment."
-      call stop_test(message)
-    end select
-
-    ! Now compute the adjacency index array
-    ! XXX: this relies on adjacency being sorted within each cell
-    !      in ascending order.
-    j = 1
-    mesh%topo%xadj(j) = 1
-    previous = mesh%topo%adjncy(1)
-
-    do i = 2, size(mesh%topo%adjncy)
-      current = mesh%topo%adjncy(i)
-      if (current < previous) then
-        j = j + 1
-        mesh%topo%xadj(j) = i
-      end if
-      previous = current
-    end do
-
-    mesh%topo%xadj(j + 1) = size(mesh%topo%adjncy) + 1
-
-    allocate (mesh%topo%adjwgt(size(mesh%topo%adjncy)))
-    allocate (mesh%topo%vwgt(local_num_cells))
-
-    ! --- compute_partitioner_input() --- end
 
     ! Assign corresponding mesh values to the topology object
-    ! mesh%topo%total_num_cells = mesh%topo%total_num_cells
-    ! mesh%topo%num_faces = mesh%topo%num_faces
 
     allocate (mesh%topo%global_indices(local_num_cells))
     do i = 1, local_num_cells
       mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
 
-    ! These need to be set to 1 for them to do nothing
-    if (allocated(mesh%topo%adjwgt) .and. allocated(mesh%topo%vwgt)) then
-      mesh%topo%adjwgt = 1
-      mesh%topo%vwgt = 1
-    else
-      call stop_test("Not allocated.")
-    end if
-
-    ! Run test to check we agree
-    call check_topology("pre")
 
   end subroutine
 

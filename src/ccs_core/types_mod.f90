@@ -13,10 +13,12 @@ module types
 
   !> Stub type for vectors to be extended in sub-modules.
   type, public :: ccs_vector
+    character(len=:), allocatable :: name  !< Name of the vector object
   end type ccs_vector
 
   !> Stub type for matrices to be extended in sub-modules.
   type, public :: ccs_matrix
+    character(len=:), allocatable :: name  !< Name of the matrix object
   end type ccs_matrix
 
   !> Container type for data required to initialise a vector.
@@ -75,35 +77,50 @@ module types
 
   !> Topology type
   type, public :: topology
-    integer(ccs_int) :: global_num_cells                              !< Global number of cells
-    integer(ccs_int) :: local_num_cells                               !< Local number of cells
-    integer(ccs_int) :: halo_num_cells                                !< Number of halo cells
-    integer(ccs_int) :: global_num_vertices                           !< Global number of vertices
-    integer(ccs_int) :: vert_per_cell                                 !< Number of vertices per cell
-    integer(ccs_int) :: total_num_cells                               !< Number of local + halo cells
-    integer(ccs_int) :: global_num_faces                              !< Global number of faces
-    integer(ccs_int) :: num_faces                                     !< Local number of faces
-    integer(ccs_int) :: max_faces                                     !< Maximum number of faces per cell
-    integer(ccs_int), dimension(:), allocatable :: global_indices         !< The global index of cells (local + halo)
-    integer(ccs_int), dimension(:, :), allocatable :: global_face_indices !< Global list of faces indices
-    integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices
-    integer(ccs_int), dimension(:, :), allocatable :: face_indices        !< Cell face index in local face vector (face, cell)
-    integer(ccs_int), dimension(:, :), allocatable :: nb_indices      !< Cell face index in local face vector (face, cell)
-    integer(ccs_int), dimension(:), allocatable :: num_nb             !< The local number of neighbours per cell
-    integer(ccs_int), dimension(:), allocatable :: global_boundaries  !< Array of boundary faces
-    integer(ccs_int), dimension(:), allocatable :: face_cell1         !< Array of 1st face cells
-    integer(ccs_int), dimension(:), allocatable :: face_cell2         !< Array of 2nd face cells
-    integer(ccs_long), dimension(:), allocatable :: xadj              !< Array that points to where in adjncy the list for each vertex
-    !< begins and ends  - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: adjncy            !< Array storing adjacency lists for each vertex consecutively
-    !< - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: vtxdist           !< Array that indicates vertices local to a processor. Rank p_i stores
-    !< the vertices from vtxdist[i] up to (but not including) vertex
-    !< vtxdist[i + 1] - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: vwgt              !< Weights on vertices - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: adjwgt            !< Weights on edges - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: local_partition   !< Local partition array
-    integer(ccs_long), dimension(:), allocatable :: global_partition  !< Global partition array
+    integer(ccs_int) :: global_num_cells                                    !< Global number of cells
+    integer(ccs_int) :: local_num_cells                                     !< Local number of cells
+    integer(ccs_int) :: halo_num_cells                                      !< Local number of halo cells
+    integer(ccs_int) :: global_num_vertices                                 !< Global number of vertices
+    integer(ccs_int) :: vert_per_cell                                       !< Number of vertices per cell
+    integer(ccs_int) :: total_num_cells                                     !< Number of local + halo cells
+    integer(ccs_int) :: global_num_faces                                    !< Global number of faces
+    integer(ccs_int) :: num_faces                                           !< Local number of faces
+    integer(ccs_int) :: max_faces                                           !< Maximum number of faces per cell
+    integer(ccs_int), dimension(:), allocatable :: global_indices           !< The global index of cells (local + halo) 
+                                                                            !<   global_icell = global_indices(local_icell)
+    integer(ccs_int), dimension(:, :), allocatable :: global_face_indices   !< Global list of faces indices        
+                                                                 !<   global_iface = global_face_indices(cell_iface, global_icell)
+                                                                            !<   (no special treatment for halo or boundary faces)
+    integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices 
+                                                                    !<   global_ivert = global_vertex_indices(ivert, global_icell) 
+    integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell)
+                                                                            !<   iface = global_face_indices(cell_iface, icell)
+                                                                            !<   (no special treatment for halo or boundary faces)
+    integer(ccs_int), dimension(:, :), allocatable :: nb_indices            !< Cell face index in local face vector (face, cell) 
+                                                          !<   nb_icell = nb_indices(cell_iface, icell) -> returns <0 on boundaries
+    integer(ccs_int), dimension(:), allocatable :: num_nb                   !< The local number of neighbours per cell 
+                                          !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted 
+    integer(ccs_int), dimension(:), allocatable :: global_boundaries        !< Array of boundary faces. 
+                                                                            !<    Counts the number of boundary faces for each cell
+                                                                            !<   num_boundary = global_boundary(global_icell)
+    integer(ccs_int), dimension(:), allocatable :: face_cell1               !< Array of 1st face cells 
+                                                                            !<   global_icell1 = face_cell1(global_iface). 
+    integer(ccs_int), dimension(:), allocatable :: face_cell2               !< Array of 2nd face cells 
+                                                           !<   global_icell2 = face_cell2(global_iface) -> returns 0 on boundaries
+    integer(ccs_int), dimension(:), allocatable :: bnd_rid                  !< global face boundary index. 
+                                                                            !< 0 on internal faces
+                                                                            !< -X on a bondary face according to the boundary index
+    integer(ccs_long), dimension(:), allocatable :: xadj                    !< Array that points to where in adjncy the list for each vertex
+                                                                            !<   begins and ends  - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjncy                  !< Array storing adjacency lists for each vertex consecutively
+                                                                            !<   - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vtxdist                 !< Array that indicates vertices local to a processor. Rank p_i stores
+                                                                            !<   the vertices from vtxdist[i] up to (but not including) vertex
+                                                                            !<   vtxdist[i + 1] - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vwgt                    !< Weights on vertices - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjwgt                  !< Weights on edges - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: local_partition         !< Local partition array
+    integer(ccs_long), dimension(:), allocatable :: global_partition        !< Global partition array
   end type topology
 
   !> Geometry type
@@ -116,6 +133,7 @@ module types
     real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
     real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
     real(ccs_real), dimension(:, :, :), allocatable :: vert_coords      !< Vertex coordinates (dimension, vertex, cell)
+    real(ccs_real), dimension(:), allocatable :: face_interpol          !< Face interpolation factor, factor = face_interpol(iface)
   end type geometry
 
   !> Mesh type

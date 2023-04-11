@@ -54,6 +54,60 @@ contains
     loc_f%cell_face_ctr = cell_face_ctr
   end subroutine set_face_location
 
+  !v Sets face interpolation from a face locator
+  module subroutine set_face_interpolation(interpol_factor, loc_f)
+    real(ccs_real), intent(in) :: interpol_factor  !< the interpolation factor to be used for loc_p
+    type(face_locator), intent(inout) :: loc_f        !< the face locator object linking a cell-relative
+    type(cell_locator) :: loc_p   !< the cell locator object linking a cell index with the mesh.
+
+    type(neighbour_locator) :: loc_nb !< the neighbour locator object linking a
+    integer(ccs_int) :: index_nb, index_f
+
+    associate (mesh => loc_f%mesh, &
+               cell_face_ctr => loc_f%cell_face_ctr, &
+               index_p => loc_f%index_p)
+
+      call set_cell_location(mesh, index_p, loc_p)
+      call set_neighbour_location(loc_p, cell_face_ctr, loc_nb)
+      call get_local_index(loc_nb, index_nb)
+      call get_local_index(loc_f, index_f)
+
+      if (index_p < index_nb) then
+        mesh%geo%face_interpol(index_f) = interpol_factor
+      else
+        mesh%geo%face_interpol(index_f) = 1.0_ccs_real - interpol_factor
+      end if
+    end associate
+
+  end subroutine set_face_interpolation
+
+  !v Retrieves face interpolation from a face locator
+  module subroutine get_face_interpolation(loc_f, interpol_factor)
+    type(face_locator), intent(in) :: loc_f        !< the face locator object
+    real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
+
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: index_nb, index_f
+
+    associate (mesh => loc_f%mesh, &
+               cell_face_ctr => loc_f%cell_face_ctr, &
+               index_p => loc_f%index_p)
+
+      call set_cell_location(mesh, index_p, loc_p)
+      call set_neighbour_location(loc_p, cell_face_ctr, loc_nb)
+      call get_local_index(loc_nb, index_nb)
+      call get_local_index(loc_f, index_f)
+
+      if (index_p < index_nb) then
+        interpol_factor = mesh%geo%face_interpol(index_f)
+      else
+        interpol_factor = 1.0_ccs_real - mesh%geo%face_interpol(index_f)
+      end if
+    end associate
+
+  end subroutine get_face_interpolation
+
   !v Constructs a cell locator object.
   !
   !  Creates the association between a mesh and cell index, storing it in the
@@ -71,7 +125,7 @@ contains
     ! XXX: Potentially expensive...
     if (index_p > mesh%topo%total_num_cells) then
       call get_local_num_cells(mesh, local_num_cells)
-      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // str(local_num_cells))
+      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // " " // str(local_num_cells))
     end if
   end subroutine set_cell_location
 

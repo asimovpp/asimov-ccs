@@ -193,9 +193,7 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_iters, &
-                          get_convection_scheme, get_relaxation_factors, &
-                          get_target_residual, get_cps, get_domain_size
+    use read_config, only: get_value, get_relaxation_factors
 
     character(len=*), intent(in) :: config_filename
 
@@ -207,31 +205,31 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_iters(config_file, num_iters)
+    call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
       call error_abort("No value assigned to num_iters.")
     end if
 
     if (cps == huge(0)) then ! cps was not set on the command line
-      call get_cps(config_file, cps)
+      call get_value(config_file, 'cps', cps)
       if (cps == huge(0)) then
         call error_abort("No value assigned to cps.")
       end if
     end if
 
-    call get_domain_size(config_file, domain_size)
+    call get_value(config_file, 'L', domain_size)
     if (domain_size == huge(0.0)) then
       call error_abort("No value assigned to domain_size.")
+    end if
+
+    call get_value(config_file, 'target_residual', res_target)
+    if (res_target == huge(0.0)) then
+      call error_abort("No value assigned to target residual.")
     end if
 
     call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
-    end if
-
-    call get_target_residual(config_file, res_target)
-    if (res_target == huge(0.0)) then
-      call error_abort("No value assigned to target residual.")
     end if
 
   end subroutine
