@@ -5,6 +5,7 @@ program test_tgv_cartesian
 #include "ccs_macros.inc"
 
   use testing_lib
+  use error_analysis, only: get_order, print_error_summary
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d, domain_size
 
@@ -19,18 +20,24 @@ program test_tgv_cartesian
   real(ccs_real), dimension(:), allocatable :: orders_Linf
   real(ccs_real), dimension(:), allocatable :: min_error_L2
   real(ccs_real), dimension(:), allocatable :: min_error_Linf
+  real(ccs_real), dimension(num_cps) :: refinements
   integer(ccs_int), dimension(num_cps) :: cps_list
   integer(ccs_int) :: cps
+
+  character(len=12), dimension(nvar) :: variable_labels
 
   integer(ccs_int) :: i, j
 
 
   call init()
 
+  variable_labels = (/ "U", "V", "P" /)
   domain_size = 3.14159265358979323
 
   cps_list = (/ 8, 16, 32, 64 /)
-  !cps_list = (/ 32, 64, 128, 256 /)
+  !cps_list = (/ 16, 32, 64, 128, 256, 512, 1024 /)
+  refinements = real(maxval(cps_list(:)))/real(cps_list(:))
+
   error_L2(:, :) = 0.0_ccs_real
   error_Linf(:, :) = 0.0_ccs_real
 
@@ -43,27 +50,10 @@ program test_tgv_cartesian
 
   if (par_env%proc_id == par_env%root) then
 
-    print *, "-------------------------------------"
-    print *, "Summary of errors"
+    call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 
-    do j=1, nvar
-      if (j == 1) print *, "---- U errors"
-      if (j == 2) print *, "---- V errors"
-      if (j == 3) print *, "---- P errors"
-      do i=1, num_cps
-        print *, cps_list(i), error_L2(j, i), error_Linf(j, i)
-      end do
-    end do
-
-    call analyse_error(cps_list, error_L2, orders_L2, min_error_L2)
-    call analyse_error(cps_list, error_Linf, orders_Linf, min_error_Linf)
-
-    print *, "-------------------------------------"
-    print *, "Results"
-
-    print *, "U order: ", orders_L2(1), orders_Linf(1)
-    print *, "V order: ", orders_L2(2), orders_Linf(2)
-    print *, "P order: ", orders_L2(3), orders_Linf(3)
+    call get_order(refinements, error_L2, orders_L2)
+    call get_order(refinements, error_Linf, orders_Linf)
 
     call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
     call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")
@@ -76,49 +66,5 @@ program test_tgv_cartesian
   end if
 
   call fin()
-
- contains
-
-  subroutine analyse_error(cps_list, errors, orders, min_error)
-
-    integer(ccs_int), dimension(:), intent(in) :: cps_list
-    real(ccs_real), dimension(:, :), intent(in) :: errors
-    real(ccs_real), dimension(:), allocatable, intent(out) :: orders
-    real(ccs_real), dimension(:), allocatable, intent(out) :: min_error
-    real(ccs_real), dimension(num_cps) :: x, y
-    real(ccs_real) :: x_bar, y_bar, Sxx, Sxy, alpha, beta
-    integer(ccs_int) :: i, j, nvar
-
-    nvar = size(errors, dim=1)
-    allocate(orders(nvar))
-    allocate(min_error(nvar))
-    orders(:) = 0.0_ccs_real
-    min_error(:) = 0.0_ccs_real
-
-    do i=1, nvar
-
-      x(:) = log(real(maxval(cps_list(:)))/real(cps_list(:)))
-      
-      y(:) = log(errors(i, :))
-
-      x_bar = sum(x(:))/num_cps
-      y_bar = sum(y(:))/num_cps
-
-      Sxy = 0.0_ccs_real
-      Sxx = 0.0_ccs_real
-      do j=1, num_cps
-        Sxy = Sxy + (x(j) - x_bar) * (y(j) - y_bar)
-        Sxx = Sxx + (x(j) - x_bar)**2
-      end do
-
-      beta = Sxy/Sxx
-      alpha = y_bar - beta*x_bar
-
-      orders(i) = beta
-      min_error(i) = minval(errors(i, :)) !alpha
-
-    end do
-
-  end subroutine
 
 end program test_tgv_cartesian

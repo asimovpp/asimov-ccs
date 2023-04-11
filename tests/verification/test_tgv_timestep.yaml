@@ -1,0 +1,8 @@
+# RUN: %build_test %s %t1 test_tgv_timestep.f90
+# RUN: %mpirun -n 2 %t1  --ccs_case TaylorGreenVortex2D_timestep -ksp_atol 1.0e-16 -ksp_rtol 1.0e-50
+
+main: test_tgv_timestep
+base: mpi_petsc
+options:
+  timestepping: timestepping_second_order
+extra: parhip
