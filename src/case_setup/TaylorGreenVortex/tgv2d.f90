@@ -16,9 +16,10 @@ program tgv2d
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
+  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
-  use fields, only: create_field
+  use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
+       set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -49,6 +50,7 @@ program tgv2d
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
+  type(field_spec) :: field_properties
   class(field), allocatable, target :: u, v, w, p, p_prime, mf
 
   type(field_ptr), allocatable :: output_list(:)
@@ -119,15 +121,31 @@ program tgv2d
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_field(ccs_config_file, vec_properties, cell_centred_upwind, "u", n_boundaries, u)
-  call create_field(ccs_config_file, vec_properties, cell_centred_upwind, "v", n_boundaries, v)
-  call create_field(ccs_config_file, vec_properties, cell_centred_upwind, "w", n_boundaries, w)
-  call create_field(ccs_config_file, vec_properties, cell_centred_central, "p", n_boundaries, p)
-  call create_field(ccs_config_file, vec_properties, cell_centred_central, "p_prime", n_boundaries, p_prime)
+
+  call set_field_config_file(ccs_config_file, field_properties)
+  call set_field_n_boundaries(n_boundaries, field_properties)
+
+  call set_field_vector_properties(vec_properties, field_properties)
+  call set_field_type(cell_centred_upwind, field_properties)
+  call set_field_name("u", field_properties)
+  call create_field(field_properties, u)
+  call set_field_name("v", field_properties)
+  call create_field(field_properties, v)
+  call set_field_name("w", field_properties)
+  call create_field(field_properties, w)
+
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("p", field_properties)
+  call create_field(field_properties, p)
+  call set_field_name("p_prime", field_properties)
+  call create_field(field_properties, p_prime)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_field(ccs_config_file, vec_properties, face_centred, "mf", n_boundaries, mf)
+  call set_field_vector_properties(vec_properties, field_properties)
+  call set_field_type(face_centred, field_properties)
+  call set_field_name("mf", field_properties)
+  call create_field(field_properties, mf)
 
   ! Add fields to output list
   allocate (output_list(4))

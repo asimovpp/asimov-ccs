@@ -178,6 +178,15 @@ module types
   type, public, extends(field) :: face_field
   end type
 
+  !> Field specification type, used for defining new fields.
+  type, public :: field_spec
+    character(len=:), allocatable :: ccs_config_file !< Config file containing field information
+    type(vector_spec) :: vec_properties              !< Descriptor for the underlying vector
+    integer :: field_type                            !< Flag to identify which type of field to create
+    character(len=:), allocatable :: field_name      !< The name of the field
+    integer(ccs_int) :: n_boundaries                 !< The number of boundaries involved...
+  end type field_spec
+
   !> Type for storing pointer to a field
   type, public :: field_ptr
     class(field), pointer :: ptr => null()   !< Pointer to the field data
