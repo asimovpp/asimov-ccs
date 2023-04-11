@@ -135,7 +135,7 @@ contains
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1
     if (p_sol) nvar = nvar + 2 ! (Pressure residual & mass imbalance)
-    allocate (residuals(nvar))
+    allocate (residuals(2*nvar))
     residuals(:) = 0.0_ccs_real
 
     ! Get pressure gradient
@@ -215,7 +215,7 @@ contains
     class(ccs_vector), intent(inout) :: invAv            !< vector containing the inverse y momentum coefficients
     class(ccs_vector), intent(inout) :: invAw            !< vector containing the inverse z momentum coefficients
     class(ccs_vector), intent(inout) :: res              !< residual field
-    real(ccs_real), dimension(:), intent(inout) :: residuals !< L2-norm of residuals for each flow variable
+    real(ccs_real), dimension(:), intent(inout) :: residuals !< RMS and L-inf of residuals for each flow variable
 
     ! Local variables
     logical, save :: first_time = .true.
@@ -300,6 +300,7 @@ contains
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
+    integer(ccs_int) :: nvar ! Number of flow variables to solve
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -351,7 +352,11 @@ contains
     ! Compute residual
     call mat_vec_product(M, u%values, res)
     call vec_aypx(vec, -1.0_ccs_real, res)
-    residuals(ivar) = norm(res, 2)
+    ! Stores RMS of residuals
+    residuals(ivar) = norm(res, 2) / sqrt(real(mesh%topo%global_num_cells))
+    ! Stores Linf norm of residuals
+    nvar = int(size(residuals) / 2_ccs_int)
+    residuals(ivar + nvar) = norm(res, 0)
 
     ! Create linear solver
     if (allocated(u%values%name)) then
@@ -685,6 +690,7 @@ contains
     integer(ccs_int) :: index_nb      ! Neighbour cell index
 
     real(ccs_real) :: mib ! Cell mass imbalance
+    integer(ccs_int) :: nvar ! Number of flow variables to solve
 
     logical, save :: first_time = .true.
     
@@ -789,10 +795,12 @@ contains
     call update(b)
     call update(mf%values)
 
-    mib = norm(b, 2)
-
     ! Pressure residual
-    residuals(varp) = mib
+    ! Stores RMS of residuals
+    residuals(varp) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
+    ! Stores Linf norm of residuals
+    nvar = int(size(residuals) / 2_ccs_int)
+    residuals(varp + nvar) = norm(b, 0)
 
   end subroutine compute_mass_imbalance
 
@@ -889,6 +897,7 @@ contains
     integer(ccs_int) :: global_index_p  ! Central cell global index
     real(ccs_real) :: face_area         ! Face area
     real(ccs_real) :: mib
+    integer(ccs_int) :: nvar ! Number of flow variables to solve
     type(vector_values) :: vec_values
 
     call create_vector_values(1_ccs_int, vec_values)
@@ -955,8 +964,13 @@ contains
 
     !! Get corrected mass-imbalance
     call update(b)
-    mib = norm(b, 2)
-    residuals(varp + 1) = mib
+
+    ! Stores RMS of residuals
+    residuals(varp + 1) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
+    ! Stores Linf norm of residuals
+    nvar = int(size(residuals) / 2_ccs_int)
+    residuals(varp + 1 + nvar) = norm(b, 0)
+
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
@@ -965,7 +979,7 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
-    real(ccs_real), dimension(:), intent(in) :: residuals           !< L2-norm of residuals for each equation
+    real(ccs_real), dimension(:), intent(in) :: residuals           !< RMS and Linf of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector
     integer(ccs_int), intent(in) :: step                            !< The current time-step
@@ -973,6 +987,7 @@ contains
 
     ! Local variables
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
+    integer(ccs_int) :: i
     character(len=30) :: fmt              ! Format string for writing out residuals
     logical, save :: first_time = .true.  ! Whether first time this subroutine is called
 
@@ -986,7 +1001,7 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
 
-    nvar = size(residuals)
+    nvar = int(size(residuals) / 2_ccs_int)
 
     ! Print residuals
     if (par_env%proc_id == par_env%root) then
@@ -998,26 +1013,29 @@ contains
         else
           write (*, '(a6)', advance='no') 'Iter'
         end if
-        if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
-        if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
-        if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
-        if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
-        if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
+        do i=1, 2
+          if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
+          if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
+          if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
+          if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
+          if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
+        end do
         write (*, *)
         first_time = .false.
       end if
 
       ! Write step, iteration and residuals
       if (step > 0) then
-        fmt = '(i6,1x,i6,' // str(nvar) // '(1x,e12.4))'
-        write (*, fmt) step, itr, residuals(1:nvar)
+        fmt = '(i6,1x,i6,' // str(2*nvar) // '(1x,e12.4))'
+        write (*, fmt) step, itr, residuals(1:2*nvar)
       else
-        fmt = '(i6,' // str(nvar) // '(1x,e12.4))'
-        write (*, fmt) itr, residuals(1:nvar)
+        fmt = '(i6,' // str(2*nvar) // '(1x,e12.4))'
+        write (*, fmt) itr, residuals(1:2*nvar)
       end if
     end if
 
-    if (maxval(residuals(:)) < res_target) converged = .true.
+    ! checks if RMS of residuals is below target
+    if (maxval(residuals(1:nvar)) < res_target) converged = .true.
 
   end subroutine check_convergence
 
