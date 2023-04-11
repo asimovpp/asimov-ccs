@@ -107,7 +107,6 @@ program ldc
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (face_field :: mf)
 
   ! Write gradients to solution file
   write_gradients = .false.

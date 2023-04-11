@@ -111,7 +111,6 @@ program tgv2d
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (face_field :: mf)
 
   ! Create and initialise field vectors
   call initialise(vec_properties)

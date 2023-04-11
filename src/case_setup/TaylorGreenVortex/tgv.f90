@@ -121,19 +121,6 @@ program tgv
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (upwind_field :: u)
-  allocate (upwind_field :: v)
-  allocate (upwind_field :: w)
-  allocate (central_field :: p)
-  allocate (central_field :: p_prime)
-  allocate (face_field :: mf)
-
-  ! Add fields to output list
-  allocate (output_list(4))
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(w, "w", output_list)
-  call add_field_to_outputlist(p, "p", output_list)
 
   ! Write gradients to solution file
   write_gradients = .true.
@@ -158,6 +145,13 @@ program tgv
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call create_field(ccs_config_file, vec_properties, face_centred, "mf", n_boundaries, mf)
+
+  ! Add fields to output list
+  allocate (output_list(4))
+  call add_field_to_outputlist(u, "u", output_list)
+  call add_field_to_outputlist(v, "v", output_list)
+  call add_field_to_outputlist(w, "w", output_list)
+  call add_field_to_outputlist(p, "p", output_list)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
