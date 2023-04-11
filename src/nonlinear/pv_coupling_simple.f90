@@ -215,7 +215,7 @@ contains
     class(ccs_vector), intent(inout) :: invAv            !< vector containing the inverse y momentum coefficients
     class(ccs_vector), intent(inout) :: invAw            !< vector containing the inverse z momentum coefficients
     class(ccs_vector), intent(inout) :: res              !< residual field
-    real(ccs_real), dimension(:), intent(inout) :: residuals !< L2-norm and L-inf of residuals for each flow variable
+    real(ccs_real), dimension(:), intent(inout) :: residuals !< RMS and L-inf of residuals for each flow variable
 
     ! Local variables
     logical, save :: first_time = .true.
@@ -352,7 +352,7 @@ contains
     ! Compute residual
     call mat_vec_product(M, u%values, res)
     call vec_aypx(vec, -1.0_ccs_real, res)
-    ! Stores L2 norm of residuals
+    ! Stores RMS of residuals
     residuals(ivar) = norm(res, 2) / sqrt(real(mesh%topo%global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
@@ -796,7 +796,7 @@ contains
     call update(mf%values)
 
     ! Pressure residual
-    ! Stores L2 norm of residuals
+    ! Stores RMS of residuals
     residuals(varp) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
@@ -965,7 +965,7 @@ contains
     !! Get corrected mass-imbalance
     call update(b)
 
-    ! Stores L2 norm of residuals
+    ! Stores RMS of residuals
     residuals(varp + 1) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
@@ -979,7 +979,7 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
-    real(ccs_real), dimension(:), intent(in) :: residuals           !< L2-norm of residuals for each equation
+    real(ccs_real), dimension(:), intent(in) :: residuals           !< RMS and Linf of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector
     integer(ccs_int), intent(in) :: step                            !< The current time-step
@@ -1034,7 +1034,7 @@ contains
       end if
     end if
 
-    ! checks if L2 norm is below target
+    ! checks if RMS of residuals is below target
     if (maxval(residuals(1:nvar)) < res_target) converged = .true.
 
   end subroutine check_convergence
