@@ -5,6 +5,9 @@ alongside theoretical O1 and O2 convergence rates.
 """
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
+
+fmt = ScalarFormatter()
 
 M=[
         16,
@@ -32,31 +35,42 @@ def parse_error(filename):
 
     return u, v
 
-def ideal(x, y0, order=1):
+def ideal(h, y0, order=1):
 
     id = []
-    for xh in x:
-        id.append(y0 * (x[0] / xh)**order)
+    for hi in h:
+        id.append(y0 * (hi / h[0])**order)
 
     return id
 
-def plot_error(x, err, varname):
+def plot_error(h, err, varname):
 
-    plt.plot(x, err, label=varname)
-    plt.plot(x, ideal(x, err[0], 1), label="O1")
-    plt.plot(x, ideal(x, err[0], 2), label="O2")
+    plt.plot(h, err, label=varname,
+             ls="", marker="o")
+    plt.plot(h, ideal(h, err[0], 1), label="O1")
+    plt.plot(h, ideal(h, err[0], 2), label="O2")
 
     plt.xscale("log", base=2)
     plt.yscale("log")
 
-    plt.xlabel("N")
+    plt.xlabel("h (relative)")
     plt.ylabel("Error RMS")
     plt.legend()
 
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(fmt)
+    
     figname = "err-" + varname + ".pdf"
     plt.savefig(figname, bbox_inches="tight")
 
     plt.close()
+
+def relative_h(M):
+
+    h = []
+    for m in M:
+        h.append(M[0] / m)
+    return h
 
 def main():
     
@@ -69,8 +83,9 @@ def main():
         uh.append(u)
         vh.append(v)
 
-    plot_error(M, uh, "u")
-    plot_error(M, vh, "v")
+    h = relative_h(M)
+    plot_error(h, uh, "u")
+    plot_error(h, vh, "v")
 
 if __name__ == "__main__":
     main()
