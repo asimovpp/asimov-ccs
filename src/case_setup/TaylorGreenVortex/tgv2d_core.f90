@@ -9,17 +9,20 @@ module tgv2d_core
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
+  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
+  use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
+       set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_square_mesh, write_mesh
-  use vec, only: create_vector, set_vector_location
+  use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
@@ -28,7 +31,7 @@ module tgv2d_core
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, cleanup_timestep
+  use timestepping, only: set_timestep, activate_timestepping, cleanup_timestep
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
 
@@ -53,6 +56,7 @@ contains
     type(ccs_mesh) :: mesh
     type(vector_spec) :: vec_properties
 
+    type(field_spec) :: field_properties
     class(field), allocatable, target :: u, v, w, p, p_prime, mf
 
     type(field_ptr), allocatable :: output_list(:)
@@ -109,25 +113,51 @@ contains
       dt = input_dt
     end if
 
-
-    ! Set start and end iteration numbers (read from input file)
-    it_start = 1
-    it_end = num_iters
-
     ! set solver and preconditioner info
     velocity_solver_method_name = "gmres"
     velocity_solver_precon_name = "bjacobi"
     pressure_solver_method_name = "cg"
     pressure_solver_precon_name = "gamg"
 
+    ! Set start and end iteration numbers (read from input file)
+    it_start = 1
+    it_end = num_iters
+
     ! Initialise fields
     if (irank == par_env%root) print *, "Initialise fields"
-    allocate (central_field :: u)
-    allocate (central_field :: v)
-    allocate (central_field :: w)
-    allocate (central_field :: p)
-    allocate (central_field :: p_prime)
-    allocate (face_field :: mf)
+
+    ! Create and initialise field vectors
+    call initialise(vec_properties)
+    call get_boundary_count(ccs_config_file, n_boundaries)
+    call get_bc_variables(ccs_config_file, variable_names)
+
+    call set_vector_location(cell, vec_properties)
+    call set_size(par_env, mesh, vec_properties)
+
+    call set_field_config_file(ccs_config_file, field_properties)
+    call set_field_n_boundaries(n_boundaries, field_properties)
+
+    call set_field_vector_properties(vec_properties, field_properties)
+    call set_field_type(cell_centred_central, field_properties)
+    call set_field_name("u", field_properties)
+    call create_field(field_properties, u)
+    call set_field_name("v", field_properties)
+    call create_field(field_properties, v)
+    call set_field_name("w", field_properties)
+    call create_field(field_properties, w)
+
+    call set_field_type(cell_centred_central, field_properties)
+    call set_field_name("p", field_properties)
+    call create_field(field_properties, p)
+    call set_field_name("p_prime", field_properties)
+    call create_field(field_properties, p_prime)
+
+    call set_vector_location(face, vec_properties)
+    call set_size(par_env, mesh, vec_properties)
+    call set_field_vector_properties(vec_properties, field_properties)
+    call set_field_type(face_centred, field_properties)
+    call set_field_name("mf", field_properties)
+    call create_field(field_properties, mf)
 
     ! Add fields to output list
     allocate (output_list(4))
@@ -138,82 +168,6 @@ contains
 
     ! Write gradients to solution file
     write_gradients = .true.
-
-    ! Read boundary conditions
-    call get_boundary_count(ccs_config_file, n_boundaries)
-    call get_bc_variables(ccs_config_file, variable_names)
-    call allocate_bc_arrays(n_boundaries, u%bcs)
-    call allocate_bc_arrays(n_boundaries, v%bcs)
-    call allocate_bc_arrays(n_boundaries, w%bcs)
-    call allocate_bc_arrays(n_boundaries, p%bcs)
-    call allocate_bc_arrays(n_boundaries, p_prime%bcs)
-    call read_bc_config(ccs_config_file, "u", u)
-    call read_bc_config(ccs_config_file, "v", v)
-    call read_bc_config(ccs_config_file, "w", w)
-    call read_bc_config(ccs_config_file, "p", p)
-    call read_bc_config(ccs_config_file, "p", p_prime)
-
-    ! Create and initialise field vectors
-    call initialise(vec_properties)
-
-    call set_vector_location(cell, vec_properties)
-    call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, u%values, "u")
-    call create_vector(vec_properties, v%values, "v")
-    call create_vector(vec_properties, w%values, "w")
-    call create_vector(vec_properties, p%values, "p")
-    call create_vector(vec_properties, p%x_gradients)
-    call create_vector(vec_properties, p%y_gradients)
-    call create_vector(vec_properties, p%z_gradients)
-    call create_vector(vec_properties, p_prime%values, "p_prime")
-    call create_vector(vec_properties, p_prime%x_gradients)
-    call create_vector(vec_properties, p_prime%y_gradients)
-    call create_vector(vec_properties, p_prime%z_gradients)
-    call update(u%values)
-    call update(v%values)
-    call update(w%values)
-    call update(p%values)
-    call update(p%x_gradients)
-    call update(p%y_gradients)
-    call update(p%z_gradients)
-    call update(p_prime%values)
-    call update(p_prime%x_gradients)
-    call update(p_prime%y_gradients)
-    call update(p_prime%z_gradients)
-    call initialise_old_values(vec_properties, u)
-    call initialise_old_values(vec_properties, v)
-    call initialise_old_values(vec_properties, w)
-
-    ! START set up vecs for enstrophy
-    call create_vector(vec_properties, u%x_gradients)
-    call create_vector(vec_properties, u%y_gradients)
-    call create_vector(vec_properties, u%z_gradients)
-    call create_vector(vec_properties, v%x_gradients)
-    call create_vector(vec_properties, v%y_gradients)
-    call create_vector(vec_properties, v%z_gradients)
-    call create_vector(vec_properties, w%x_gradients)
-    call create_vector(vec_properties, w%y_gradients)
-    call create_vector(vec_properties, w%z_gradients)
-
-    call update(u%x_gradients)
-    call update(u%y_gradients)
-    call update(u%z_gradients)
-    call update(v%x_gradients)
-    call update(v%y_gradients)
-    call update(v%z_gradients)
-    call update(w%x_gradients)
-    call update(w%y_gradients)
-    call update(w%z_gradients)
-
-    call update_gradient(mesh, u)
-    call update_gradient(mesh, v)
-    call update_gradient(mesh, w)
-    !  END  set up vecs for enstrophy
-
-    call set_vector_location(face, vec_properties)
-    call set_size(par_env, mesh, vec_properties)
-    call create_vector(vec_properties, mf%values)
-    call update(mf%values)
 
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
@@ -341,7 +295,7 @@ contains
 
   ! Print test case configuration
   subroutine print_configuration(mesh)
-    type(ccs_mesh), intent(in) :: mesh
+    class(ccs_mesh), intent(in) :: mesh
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "

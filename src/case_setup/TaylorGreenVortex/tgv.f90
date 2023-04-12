@@ -10,11 +10,14 @@ program tgv
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int, ccs_long
-  use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
+  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
                    field_ptr, fluid, fluid_solver_selector
+  use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
+       set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -50,6 +53,7 @@ program tgv
 
   type(vector_spec) :: vec_properties
 
+  type(field_spec) :: field_properties
   class(field), allocatable, target :: u, v, w, p, p_prime, mf
 
   type(field_ptr), allocatable :: output_list(:)
@@ -119,19 +123,6 @@ program tgv
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (upwind_field :: u)
-  allocate (upwind_field :: v)
-  allocate (upwind_field :: w)
-  allocate (central_field :: p)
-  allocate (central_field :: p_prime)
-  allocate (face_field :: mf)
-
-  ! Add fields to output list
-  allocate (output_list(4))
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(w, "w", output_list)
-  call add_field_to_outputlist(p, "p", output_list)
 
   ! Write gradients to solution file
   write_gradients = .true.
@@ -140,16 +131,6 @@ program tgv
   if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
   call get_bc_variables(ccs_config_file, variable_names)
-  call allocate_bc_arrays(n_boundaries, u%bcs)
-  call allocate_bc_arrays(n_boundaries, v%bcs)
-  call allocate_bc_arrays(n_boundaries, w%bcs)
-  call allocate_bc_arrays(n_boundaries, p%bcs)
-  call allocate_bc_arrays(n_boundaries, p_prime%bcs)
-  call read_bc_config(ccs_config_file, "u", u)
-  call read_bc_config(ccs_config_file, "v", v)
-  call read_bc_config(ccs_config_file, "w", w)
-  call read_bc_config(ccs_config_file, "p", p)
-  call read_bc_config(ccs_config_file, "p_prime", p_prime)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -157,65 +138,38 @@ program tgv
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-  call create_vector(vec_properties, u%values)
-  call create_vector(vec_properties, v%values)
-  call create_vector(vec_properties, w%values)
-  call create_vector(vec_properties, p%values)
-  call create_vector(vec_properties, p%x_gradients)
-  call create_vector(vec_properties, p%y_gradients)
-  call create_vector(vec_properties, p%z_gradients)
-  call create_vector(vec_properties, p_prime%values)
-  call create_vector(vec_properties, p_prime%x_gradients)
-  call create_vector(vec_properties, p_prime%y_gradients)
-  call create_vector(vec_properties, p_prime%z_gradients)
-  call update(u%values)
-  call update(v%values)
-  call update(w%values)
-  call update(p%values)
-  call update(p%x_gradients)
-  call update(p%y_gradients)
-  call update(p%z_gradients)
-  call update(p_prime%values)
-  call update(p_prime%x_gradients)
-  call update(p_prime%y_gradients)
-  call update(p_prime%z_gradients)
-  call initialise_old_values(vec_properties, u)
-  call initialise_old_values(vec_properties, v)
-  call initialise_old_values(vec_properties, w)
 
-  ! START set up vecs for enstrophy
-  call create_vector(vec_properties, u%x_gradients)
-  call create_vector(vec_properties, u%y_gradients)
-  call create_vector(vec_properties, u%z_gradients)
-  call create_vector(vec_properties, v%x_gradients)
-  call create_vector(vec_properties, v%y_gradients)
-  call create_vector(vec_properties, v%z_gradients)
-  call create_vector(vec_properties, w%x_gradients)
-  call create_vector(vec_properties, w%y_gradients)
-  call create_vector(vec_properties, w%z_gradients)
+  call set_field_config_file(ccs_config_file, field_properties)
+  call set_field_n_boundaries(n_boundaries, field_properties)
 
-  call update(u%x_gradients)
-  call update(u%y_gradients)
-  call update(u%z_gradients)
-  call update(v%x_gradients)
-  call update(v%y_gradients)
-  call update(v%z_gradients)
-  call update(w%x_gradients)
-  call update(w%y_gradients)
-  call update(w%z_gradients)
+  call set_field_vector_properties(vec_properties, field_properties)
+  call set_field_type(cell_centred_upwind, field_properties)
+  call set_field_name("u", field_properties)
+  call create_field(field_properties, u)
+  call set_field_name("v", field_properties)
+  call create_field(field_properties, v)
+  call set_field_name("w", field_properties)
+  call create_field(field_properties, w)
 
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, w)
-  !  END  set up vecs for enstrophy
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("p", field_properties)
+  call create_field(field_properties, p)
+  call set_field_name("p_prime", field_properties)
+  call create_field(field_properties, p_prime)
 
-  if (irank == par_env%root) print *, "Set vector location"
   call set_vector_location(face, vec_properties)
-  if (irank == par_env%root) print *, "Set vector size"
   call set_size(par_env, mesh, vec_properties)
-  if (irank == par_env%root) print *, "Set mass flux vector values"
-  call create_vector(vec_properties, mf%values)
-  call update(mf%values)
+  call set_field_vector_properties(vec_properties, field_properties)
+  call set_field_type(face_centred, field_properties)
+  call set_field_name("mf", field_properties)
+  call create_field(field_properties, mf)
+
+  ! Add fields to output list
+  allocate (output_list(4))
+  call add_field_to_outputlist(u, "u", output_list)
+  call add_field_to_outputlist(v, "v", output_list)
+  call add_field_to_outputlist(w, "w", output_list)
+  call add_field_to_outputlist(p, "p", output_list)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
