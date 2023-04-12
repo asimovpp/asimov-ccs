@@ -183,7 +183,7 @@ contains
                i => loc_nb%index_p, &
                j => loc_nb%vert_nb_counter)
       if (mymesh%topo%vert_nb_indices(j, i) == i) then
-        call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
+        call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // " " // str(j))
       end if
     end associate
   end subroutine set_vertex_neighbour_location

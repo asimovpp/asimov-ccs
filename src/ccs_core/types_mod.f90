@@ -213,9 +213,9 @@ module types
     integer(ccs_int) :: nb_counter
   end type neighbour_locator
 
-  !v Neighbour locator
+  !v Vertex neighbour locator
   !
-  !  Lightweight type to provide easy cell-neighbour connection.
+  !  Lightweight type to provide easy cell-neighbour connection via vertices.
   type, public :: vertex_neighbour_locator
     type(ccs_mesh), pointer :: mesh
     integer(ccs_int) :: index_p
