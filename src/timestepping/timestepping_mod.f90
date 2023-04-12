@@ -17,7 +17,7 @@ module timestepping
   public :: activate_timestepping
   public :: initialise_old_values
   public :: finalise_timestep
-
+  
   interface
     !> Apply one timestep correction
     module subroutine apply_timestep(mesh, phi, diag, M, b)
@@ -57,6 +57,38 @@ module timestepping
     !> Create vectors for storing one or more previous timesteps.
     module subroutine initialise_old_values(vec_properties, x)
       type(vector_spec), intent(in) :: vec_properties
+      class(field), intent(inout) :: x
+    end subroutine
+
+
+    module function timestepping_is_active() result(active)
+      logical :: active
+    end function
+
+    module subroutine apply_timestep_first_order(mesh, phi, diag, M, b)
+      type(ccs_mesh), intent(in) :: mesh !< mesh object
+      class(field), intent(inout) :: phi !< flow variable
+      class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
+      class(ccs_matrix), intent(inout) :: M !< equation system
+      class(ccs_vector), intent(inout) :: b !< rhs vector
+    end subroutine
+    
+    module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
+      type(ccs_mesh), intent(in) :: mesh !< mesh object
+      class(field), intent(inout) :: phi !< flow variable
+      class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
+      class(ccs_matrix), intent(inout) :: M !< equation system
+      class(ccs_vector), intent(inout) :: b !< rhs vector
+    end subroutine
+    
+    module subroutine initialise_old_values_generic(vec_properties, num_old_vals, x)
+      type(vector_spec), intent(in) :: vec_properties
+      integer(ccs_int), intent(in) :: num_old_vals
+      class(field), intent(inout) :: x
+    end subroutine
+    
+    module subroutine update_old_values_generic(num_old_vals, x)
+      integer(ccs_int), intent(in) :: num_old_vals
       class(field), intent(inout) :: x
     end subroutine
 
