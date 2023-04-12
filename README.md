@@ -116,6 +116,6 @@ CCS uses FORD for code documentation. You can install FORD using `pip install fo
 See https://github.com/Fortran-FOSS-Programmers/ford and https://forddocs.readthedocs.io/en/latest/ for more information on FORD.
 
 ### Developer documentation
-A developer and style guide can be generated using `make -C dev_guide all`. This requires `latex`. The output can be found in `dev_guide/ccs_dev_guide.pdf`.
+A developer and style guide can be generated using `make dev_guide`. This requires `latex`. The output can be found in `dev_guide/ccs_dev_guide.pdf`.
 
 Documentation describing the build system, testing framework and linting in CCS can be found [here](build_tools/build_system_readme.md).

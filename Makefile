@@ -11,7 +11,7 @@ printdo = echo $(1); $1
 # NEED_CMP decides if full compilation is required or not
 # e.g. if the build is a simple clean, makedepf90 does not need to be invoked
 NEED_CMP = yes
-ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs ford doxy docs-latex))
+ifneq (,$(filter $(MAKECMDGOALS),clean clean-tests clean-full clean-docs docs ford dev_guide))
   NEED_CMP = no
 endif
 
@@ -142,15 +142,16 @@ ifeq ($(NEED_CMP),yes)
   include $(ALL_DEPS)
 endif
 
-docs: doxy 
-doxy:
-	doxygen .doxygen.cfg
+.PHONY: docs dev_guide ford
+docs: ford dev_guide
 ford:
 	ford .project_documentation_settings.md
-docs-latex: doxy
-	make -C latex
+dev_guide:
+	make -C dev_guide all
 clean-docs:
-	rm -rf doc html latex
+	rm -rf doc
+	make -C dev_guide clean
+  
 
 clean:
 	rm -f $(EXE) *.o *.mod *.smod *.deps
