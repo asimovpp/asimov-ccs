@@ -208,19 +208,10 @@ module types
   !
   !  Lightweight type to provide easy cell-neighbour connection.
   type, public :: neighbour_locator
-    type(ccs_mesh), pointer :: mesh
-    integer(ccs_int) :: index_p
-    integer(ccs_int) :: nb_counter
+    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh
+    integer(ccs_int) :: index_p       !< the cell index relative to which this is a neighbour
+    integer(ccs_int) :: nb_counter    !< the cell-relative counter identifying this neighbour
   end type neighbour_locator
-
-  !v Vertex neighbour locator
-  !
-  !  Lightweight type to provide easy cell-neighbour connection via vertices.
-  type, public :: vertex_neighbour_locator
-    type(ccs_mesh), pointer :: mesh
-    integer(ccs_int) :: index_p
-    integer(ccs_int) :: vert_nb_counter
-  end type vertex_neighbour_locator
 
   !v Vertex locator
   !
@@ -231,6 +222,15 @@ module types
     integer(ccs_int) :: cell_vert_ctr !< Cell-vertex ctr i.e. I want to access vertex "3" of the cell.
   end type vert_locator
   
+  !v Vertex neighbour locator
+  !
+  !  Lightweight type to provide easy cell-neighbour connection via vertices.
+  type, public :: vertex_neighbour_locator
+    type(ccs_mesh), pointer :: mesh       !< Pointer to the mesh
+    integer(ccs_int) :: index_p           !< the cell index relative to which this is a vertex neighbour
+    integer(ccs_int) :: vert_nb_counter   !< the cell-relative counter identifying this neighbour
+  end type vertex_neighbour_locator
+
   !v Fluid type
   !
   ! Type for accumulating all the fluid data
