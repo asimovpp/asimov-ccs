@@ -45,6 +45,7 @@ program test_square_mesh_neighbours
     
 
     boundary_ctr = 0
+    vertex_boundary_ctr = 0
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
 
@@ -52,27 +53,15 @@ program test_square_mesh_neighbours
       call count_neighbours(loc_p, nnb)
       call count_vertex_neighbours(loc_p, nvnb)
 
-      if (nnb < 2) then
-        ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
-        ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
-        ! Even in the limit of single 1D cell should have 2 boundary neighbours.
-        write (message, *) "FAIL: cell should have 2 or more neighbours, got ", nnb
-        call stop_test(message)
-      else if (nnb > 4) then
-        ! XXX: specific to 2D Cartesian mesh
-        write (message, *) "FAIL: cell should have at most ", 4, " neighbours, got ", nnb
-        call stop_test(message)
-      end if
+      ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
+      ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
+      ! Even in the limit of single 1D cell should have 2 boundary neighbours.
+      call assert_gt(nnb, 1, "FAIL: cell should have 2 or more neighbours ")
+      call assert_lt(nnb, 5, "FAIL: cell should have at most 4 neighbours ")
 
       ! Now check the vertex neighbours
-      if (nvnb < 2) then
-        ! This could be the case if neighbouring cells both contain two of the vertices of a square cell (or similar configuration)
-        write (message, *) "FAIL: cell should have 2 or more vertex neighbours, got ", nvnb
-        call stop_test(message)
-      else if (nvnb > 4) then
-        write (message, *) "FAIL: cell should have at most ", 4, " vertex neighbours, got ", nvnb
-        call stop_test(message)
-      end if
+      call assert_gt(nvnb, 1, "FAIL: cell should have 2 or more vertex neighbours ")
+      call assert_lt(nvnb, 5, "FAIL: cell should have at most 4 vertex neighbours ")
 
       ! Loop over neighbours
       do j = 1, nnb
