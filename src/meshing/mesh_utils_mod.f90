@@ -519,7 +519,6 @@ contains
     integer(ccs_int) :: vertex_counter    ! Cell-local face counter
     integer(ccs_int) :: face_index_counter    ! global face counter
 
-    integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
     integer(ccs_int) :: local_num_cells ! The local number of cells
@@ -987,7 +986,6 @@ contains
     integer(ccs_int) :: face_index_counter    ! global face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
 
-    integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: local_num_cells
     logical :: set_vert_nb              ! Flag for setting vertex neighbour
