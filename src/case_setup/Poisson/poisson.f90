@@ -14,12 +14,12 @@
 
 module problem_setup
 
-  use constants, only : ndim
-  use kinds, only : ccs_int, ccs_real
-  use types, only : ccs_mesh, cell_locator, face_locator
+  use constants, only: ndim
+  use kinds, only: ccs_int, ccs_real
+  use types, only: ccs_mesh, cell_locator, face_locator
 
-  use meshing, only : set_face_location, set_cell_location, get_centre
-  
+  use meshing, only: set_face_location, set_cell_location, get_centre
+
   implicit none
 
   private
@@ -32,7 +32,7 @@ module problem_setup
     module procedure eval_solution_cell
     module procedure eval_solution_face
   end interface eval_solution
-  
+
 contains
 
   !v Evaluate the exact solution.
@@ -59,7 +59,7 @@ contains
 
     call get_centre(loc_p, x)
     r = eval_solution_coordinates(x)
-    
+
   end function eval_solution_cell
 
   function eval_solution_face(loc_f) result(r)
@@ -71,7 +71,7 @@ contains
 
     call get_centre(loc_f, x)
     r = eval_solution_coordinates(x)
-    
+
   end function eval_solution_face
 
   !> Apply forcing function
@@ -89,21 +89,21 @@ end module problem_setup
 
 module poisson_discretisation
 
-  use constants, only : ndim, add_mode, insert_mode
-  use kinds, only : ccs_int, ccs_real
-  use types, only : ccs_vector, vector_values, &
-       ccs_matrix, matrix_values_spec, matrix_values, &
-       ccs_mesh, cell_locator, neighbour_locator, face_locator
+  use constants, only: ndim, add_mode, insert_mode
+  use kinds, only: ccs_int, ccs_real
+  use types, only: ccs_vector, vector_values, &
+                   ccs_matrix, matrix_values_spec, matrix_values, &
+                   ccs_mesh, cell_locator, neighbour_locator, face_locator
 
-  use mat, only : create_matrix_values, set_matrix_values_spec_ncols, set_matrix_values_spec_nrows
-  use meshing, only : get_local_num_cells, set_cell_location, get_centre, get_volume, &
-       get_global_index, count_neighbours, set_neighbour_location, get_boundary_status, &
-       set_face_location, get_face_area
-  use utils, only : clear_entries, set_mode, set_col, set_row, set_entry, set_values
-  use vec, only : create_vector_values
+  use mat, only: create_matrix_values, set_matrix_values_spec_ncols, set_matrix_values_spec_nrows
+  use meshing, only: get_local_num_cells, set_cell_location, get_centre, get_volume, &
+                     get_global_index, count_neighbours, set_neighbour_location, get_boundary_status, &
+                     set_face_location, get_face_area
+  use utils, only: clear_entries, set_mode, set_col, set_row, set_entry, set_values
+  use vec, only: create_vector_values
 
-  use problem_setup, only : eval_solution
-  
+  use problem_setup, only: eval_solution
+
   implicit none
 
   private
@@ -123,14 +123,14 @@ module poisson_discretisation
       class(ccs_vector), intent(inout) :: b !< The system righthand side vector
     end subroutine apply_dirichlet_bcs
   end interface
-  
+
 end module poisson_discretisation
 
 program poisson
 
   use poisson_discretisation
   use problem_setup
-  
+
   ! ASiMoV-CCS uses
   use constants, only: ndim, add_mode, insert_mode
   use kinds, only: ccs_real, ccs_int
@@ -144,7 +144,7 @@ program poisson
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, &
-       set_solver_method, set_solver_precon
+                    set_solver_method, set_solver_precon
   use utils, only: update, begin_update, end_update, finalise, initialise, &
                    set_size, &
                    set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
@@ -180,7 +180,7 @@ program poisson
 
   call initialise_parallel_environment(par_env)
   call read_command_line_arguments(par_env, cps=cps)
-  
+
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
   velocity_solver_precon_name = "bjacobi"

@@ -38,7 +38,7 @@ contains
     local_num_cells = int(mesh%topo%local_num_cells, ccs_long)
 
   end subroutine get_local_num_cells_long
-  
+
   !v Constructs a face locator object.
   !
   !  Creates the association between a face relative to a cell, i.e. to access the
@@ -118,7 +118,7 @@ contains
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
 
     integer(ccs_int) :: local_num_cells
-    
+
     loc_p%mesh => mesh
     loc_p%index_p = index_p
 
@@ -170,9 +170,9 @@ contains
   !  Creates the association between a neighbour cell F relative to cell P via a vertex, i.e. to
   !  access the nth vertex neighbour of cell i.
   module subroutine set_vertex_neighbour_location(loc_p, vert_nb_counter, loc_nb)
-    type(cell_locator), intent(in) :: loc_p        
+    type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(in) :: vert_nb_counter
-    type(vertex_neighbour_locator), intent(out) :: loc_nb 
+    type(vertex_neighbour_locator), intent(out) :: loc_nb
 
     loc_nb%mesh => loc_p%mesh
     loc_nb%index_p = loc_p%index_p
@@ -242,9 +242,9 @@ contains
     real(ccs_real), intent(in) :: area      !< The face area
     type(face_locator), intent(in) :: loc_f !< The face locator object
 
-    associate(mesh => loc_f%mesh, &
-         cell => loc_f%index_p, &
-         face => loc_f%cell_face_ctr)
+    associate (mesh => loc_f%mesh, &
+               cell => loc_f%index_p, &
+               face => loc_f%cell_face_ctr)
       mesh%geo%face_areas(face, cell) = area
     end associate
   end subroutine set_area
@@ -255,11 +255,11 @@ contains
     real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
 
     integer :: dim
-    
+
     associate (mesh => loc_p%mesh, &
                cell => loc_p%index_p)
       do dim = 1, min(size(x), ndim)
-         x(dim) = mesh%geo%x_p(dim, cell)
+        x(dim) = mesh%geo%x_p(dim, cell)
       end do
     end associate
   end subroutine get_cell_centre
@@ -294,11 +294,11 @@ contains
 
     integer :: dim
 
-    associate(mesh => loc_v%mesh, &
-      cell => loc_v%index_p, &
-      vert => loc_v%cell_vert_ctr)
+    associate (mesh => loc_v%mesh, &
+               cell => loc_v%index_p, &
+               vert => loc_v%cell_vert_ctr)
       do dim = 1, min(size(x), ndim)
-         x(dim) = mesh%geo%vert_coords(dim, vert, cell)
+        x(dim) = mesh%geo%vert_coords(dim, vert, cell)
       end do
     end associate
   end subroutine get_vert_centre
@@ -331,7 +331,7 @@ contains
     integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
 
     integer(ccs_int) :: local_num_cells
-    
+
     associate (mesh => loc_p%mesh)
       call get_local_num_cells(mesh, local_num_cells)
       if (local_num_cells > 0) then ! XXX: Potentially expensive...
@@ -529,10 +529,10 @@ contains
 
     integer :: dim
 
-    associate(mesh => loc_p%mesh, &
-         i => loc_p%index_p)
+    associate (mesh => loc_p%mesh, &
+               i => loc_p%index_p)
       do dim = 1, min(size(x_p), ndim)
-         mesh%geo%x_p(dim, i) = x_p(dim)
+        mesh%geo%x_p(dim, i) = x_p(dim)
       end do
     end associate
   end subroutine set_cell_centre
@@ -544,11 +544,11 @@ contains
 
     integer :: dim
 
-    associate(mesh => loc_f%mesh, &
-         i => loc_f%index_p, &
-         j => loc_f%cell_face_ctr)
+    associate (mesh => loc_f%mesh, &
+               i => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
       do dim = 1, min(size(x_f), ndim)
-         mesh%geo%x_f(dim, j, i) = x_f(dim)
+        mesh%geo%x_f(dim, j, i) = x_f(dim)
       end do
     end associate
   end subroutine set_face_centre
@@ -560,11 +560,11 @@ contains
 
     integer :: dim
 
-    associate(mesh => loc_v%mesh, &
-         i => loc_v%index_p, &
-         j => loc_v%cell_vert_ctr)
+    associate (mesh => loc_v%mesh, &
+               i => loc_v%index_p, &
+               j => loc_v%cell_vert_ctr)
       do dim = 1, min(size(x_v), ndim)
-         mesh%geo%vert_coords(dim, j, i) = x_v(dim)
+        mesh%geo%vert_coords(dim, j, i) = x_v(dim)
       end do
     end associate
   end subroutine set_vert_centre
@@ -580,24 +580,24 @@ contains
     real(ccs_real) :: invmag
 
     invmag = 1.0_ccs_real / sqrt(sum(normal**2))
-    associate(mesh => loc_f%mesh, &
-         cell => loc_f%index_p, &
-         face => loc_f%cell_face_ctr)
+    associate (mesh => loc_f%mesh, &
+               cell => loc_f%index_p, &
+               face => loc_f%cell_face_ctr)
       do dim = 1, min(size(normal), ndim)
-         mesh%geo%face_normals(dim, face, cell) = normal(dim) * invmag
+        mesh%geo%face_normals(dim, face, cell) = normal(dim) * invmag
       end do
     end associate
   end subroutine set_normal
 
   !> Counts the number of neighbours via vertices of a given cell
   module subroutine count_vertex_neighbours(loc_p, nvnb)
-    type(cell_locator), intent(in) :: loc_p 
-    integer(ccs_int), intent(out) :: nvnb   
-    
+    type(cell_locator), intent(in) :: loc_p
+    integer(ccs_int), intent(out) :: nvnb
+
     associate (mesh => loc_p%mesh, &
                cell => loc_p%index_p)
       nvnb = mesh%topo%num_vert_nb(cell)
     end associate
   end subroutine count_vertex_neighbours
-  
+
 end submodule meshing_accessors

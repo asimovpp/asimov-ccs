@@ -45,7 +45,7 @@ program simple
   logical :: v_sol = .true.  ! Solve v
   logical :: w_sol = .false. ! Don't solve w
   logical :: p_sol = .true.  ! Solve p
-  
+
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
@@ -182,22 +182,22 @@ contains
 
     ! Set initial values for velocity fields
     do local_idx = 1, n_local
-       call set_cell_location(cell_mesh, local_idx, self_loc)
-       call get_global_index(self_loc, self_idx)
-       call calc_cell_coords(self_idx, cps, row, col)
+      call set_cell_location(cell_mesh, local_idx, self_loc)
+      call get_global_index(self_loc, self_idx)
+      call calc_cell_coords(self_idx, cps, row, col)
 
-       u_val = real(col, ccs_real) / real(cps, ccs_real)
-       v_val = -real(row, ccs_real) / real(cps, ccs_real)
-       w_val = 0.0_ccs_real
+      u_val = real(col, ccs_real) / real(cps, ccs_real)
+      v_val = -real(row, ccs_real) / real(cps, ccs_real)
+      w_val = 0.0_ccs_real
 
-       call set_row(self_idx, u_vals)
-       call set_entry(u_val, u_vals)
+      call set_row(self_idx, u_vals)
+      call set_entry(u_val, u_vals)
 
-       call set_row(self_idx, v_vals)
-       call set_entry(v_val, v_vals)
+      call set_row(self_idx, v_vals)
+      call set_entry(v_val, v_vals)
 
-       call set_row(self_idx, w_vals)
-       call set_entry(w_val, w_vals)
+      call set_row(self_idx, w_vals)
+      call set_entry(w_val, w_vals)
     end do
 
     call set_values(u_vals, u%values)

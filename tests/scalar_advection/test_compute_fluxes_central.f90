@@ -171,7 +171,7 @@ contains
     real(ccs_real) :: aP, aF
 
     integer(ccs_int) :: local_num_cells
-    
+
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_values)
@@ -258,7 +258,7 @@ contains
     logical :: is_boundary
 
     integer(ccs_int) :: local_num_cells
-    
+
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: aP, aF, def_corr
     real(ccs_real) :: sgn

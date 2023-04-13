@@ -8,10 +8,10 @@ submodule(partitioning) partitioning_parhip
 
   implicit none
 
-  interface 
+  interface
     subroutine partition_parhipkway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
-                                  num_procs, imbalance, suppress, &
-                                  seed, mode, edgecuts, local_partition, comm) bind(c)
+                                    num_procs, imbalance, suppress, &
+                                    seed, mode, edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
       integer(c_long), dimension(*) :: vtxdist
@@ -27,7 +27,7 @@ submodule(partitioning) partitioning_parhip
       integer(c_int) :: edgecuts
       integer(c_long), dimension(*) :: local_partition
       integer(c_int) :: comm
-    end subroutine 
+    end subroutine
   end interface
 
 contains
@@ -82,7 +82,7 @@ contains
     vtxdist = mesh%topo%vtxdist - 1
     xadj = mesh%topo%xadj - 1
     adjncy = mesh%topo%adjncy - 1
-    
+
     adjwgt = mesh%topo%adjwgt
     vwgt = mesh%topo%vwgt
 
@@ -94,7 +94,7 @@ contains
     ! Needed for gathering loca partitions into global partition array
     local_part_size = size(mesh%topo%local_partition)
 
-    allocate(local_partition(local_part_size))
+    allocate (local_partition(local_part_size))
 
     ! Partitioning an unweighted graph
     select type (par_env)
@@ -109,7 +109,7 @@ contains
       mesh%topo%local_partition(:) = local_partition(:)
 
       do i = 1, local_part_size
-        tmp_partition(i + vtxdist(irank+1)) = mesh%topo%local_partition(i)
+        tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
 
       call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &

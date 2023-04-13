@@ -77,11 +77,11 @@ program tgv2d
   isize = par_env%num_procs
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
-  
-  if(allocated(input_path)) then
-     case_path = input_path // "/" // case_name
+
+  if (allocated(input_path)) then
+    case_path = input_path // "/" // case_name
   else
-     case_path = case_name
+    case_path = case_name
   end if
 
   ccs_config_file = case_path // ccsconfig
@@ -219,7 +219,7 @@ program tgv2d
   if (irank == par_env%root) then
     call print_configuration()
   end if
-  
+
   call activate_timestepping()
   call set_timestep(dt)
 
@@ -235,7 +235,7 @@ program tgv2d
   call set_field(4, field_p, p, flow_fields)
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
-  
+
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields, t)
@@ -340,7 +340,7 @@ contains
     write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
-    print *,"* Cells per side: ", cps
+    print *, "* Cells per side: ", cps
     write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     print *, "Global number of cells is ", mesh%topo%global_num_cells
     print *, "******************************************************************************"
@@ -397,24 +397,24 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
 
-       call get_centre(loc_p, x_p)
+      call get_centre(loc_p, x_p)
 
-       u_val = sin(x_p(1)) * cos(x_p(2))
-       v_val = -cos(x_p(1)) * sin(x_p(2))
-       w_val = 0.0_ccs_real
-       p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+      u_val = sin(x_p(1)) * cos(x_p(2))
+      v_val = -cos(x_p(1)) * sin(x_p(2))
+      w_val = 0.0_ccs_real
+      p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
-       call set_row(global_index_p, u_vals)
-       call set_entry(u_val, u_vals)
-       call set_row(global_index_p, v_vals)
-       call set_entry(v_val, v_vals)
-       call set_row(global_index_p, w_vals)
-       call set_entry(w_val, w_vals)
-       call set_row(global_index_p, p_vals)
-       call set_entry(p_val, p_vals)
+      call set_row(global_index_p, u_vals)
+      call set_entry(u_val, u_vals)
+      call set_row(global_index_p, v_vals)
+      call set_entry(v_val, v_vals)
+      call set_row(global_index_p, w_vals)
+      call set_entry(w_val, w_vals)
+      call set_row(global_index_p, p_vals)
+      call set_entry(p_val, p_vals)
     end do
 
     call set_values(u_vals, u%values)

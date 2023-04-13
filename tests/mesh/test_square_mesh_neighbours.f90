@@ -30,7 +30,7 @@ program test_square_mesh_neighbours
   integer(ccs_int) :: global_boundary_ctr, global_vertex_boundary_ctr
   integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
 
-  integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
+  integer(ccs_int), dimension(5) :: m = (/2, 4, 8, 16, 20/)
   integer(ccs_int) :: n_v, n_e, n_f
   integer(ccs_int) :: mctr
 
@@ -39,10 +39,9 @@ program test_square_mesh_neighbours
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
   do mctr = 1, size(m)
     n = m(mctr)
-    
+
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
-    
 
     boundary_ctr = 0
     vertex_boundary_ctr = 0
@@ -102,8 +101,8 @@ program test_square_mesh_neighbours
     expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh. This just counts the boundary neighbours on the perimeter of the square mesh.
     n_v = 4
     n_e = 4 * n - 8
-    expected_vertex_boundary_ctr = 3 * n_v + 2 * n_e ! A square should have 3 boundary neighbours for each corner, and 3 for 
-                                                     ! each cell on the edge excluding square vertices
+    expected_vertex_boundary_ctr = 3 * n_v + 2 * n_e ! A square should have 3 boundary neighbours for each corner, and 3 for
+    ! each cell on the edge excluding square vertices
     call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
     call assert_eq(global_vertex_boundary_ctr, expected_vertex_boundary_ctr, "FAIL: mesh vertex boundary count is incorrect")
 

@@ -26,7 +26,7 @@ contains
                         VecCreate
 
     use meshing, only: get_local_num_cells
-    
+
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
     character(len=*), optional, intent(in) :: name      !< name of the vector object
@@ -77,8 +77,8 @@ contains
         end associate
 
         if (present(name)) then
-          call VecSetOptionsPrefix(v%v, v%name//':', ierr)
-        endif
+          call VecSetOptionsPrefix(v%v, v%name // ':', ierr)
+        end if
         call VecSetFromOptions(v%v, ierr)
         call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
         call VecSet(v%v, 0.0_ccs_real, ierr)

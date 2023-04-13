@@ -34,7 +34,7 @@ module meshing
   public :: count_vertex_neighbours
   public :: get_face_interpolation
   public :: set_face_interpolation
-  
+
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
@@ -80,9 +80,9 @@ module meshing
   end interface get_local_num_cells
 
   interface set_centre
-     module procedure set_cell_centre
-     module procedure set_face_centre
-     module procedure set_vert_centre
+    module procedure set_cell_centre
+    module procedure set_face_centre
+    module procedure set_vert_centre
   end interface set_centre
 
   interface set_neighbour_location
@@ -94,7 +94,7 @@ module meshing
     module procedure get_neighbour_local_status
     module procedure get_vertex_neighbour_local_status
   end interface get_local_status
-  
+
   interface
 
     !v Constructs a cell locator object.
@@ -174,7 +174,7 @@ module meshing
       type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
       real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
     end subroutine get_cell_centre
-    
+
     !> Returns the centre of a neighbour cell
     module subroutine get_neighbour_centre(loc_nb, x)
       type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
