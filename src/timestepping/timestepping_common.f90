@@ -10,16 +10,16 @@ submodule(timestepping) timestepping_common
   real(ccs_real) :: dt !< timestep size
 
 contains
-  
+
   module subroutine activate_timestepping()
     timestepping_active = .true.
   end subroutine
-  
+
   module function timestepping_is_active() result(active)
     logical :: active
     active = timestepping_active
   end function
-  
+
   module subroutine set_timestep(timestep)
 
     real(ccs_real), intent(in) :: timestep
@@ -32,7 +32,7 @@ contains
     end if
 
   end subroutine set_timestep
-  
+
   module function get_timestep() result(timestep)
 
     real(ccs_real) :: timestep
@@ -45,7 +45,7 @@ contains
     end if
 
   end function
-  
+
   module subroutine initialise_old_values_generic(vec_properties, num_old_vals, x)
 
     use types, only: vector_spec
@@ -68,7 +68,7 @@ contains
     end do
 
   end subroutine
-  
+
   module subroutine update_old_values_generic(num_old_vals, x)
 
     use vec, only: get_vector_data, restore_vector_data
@@ -78,13 +78,13 @@ contains
 
     real(ccs_real), dimension(:), pointer :: values_data, old_values_data
     integer(ccs_int) :: i
-    
+
     do i = num_old_vals, 2, -1
       call get_vector_data(x%old_values(i)%vec, old_values_data)
-      call get_vector_data(x%old_values(i-1)%vec, values_data)
+      call get_vector_data(x%old_values(i - 1)%vec, values_data)
       old_values_data = values_data
       call restore_vector_data(x%old_values(i)%vec, old_values_data)
-      call restore_vector_data(x%old_values(i-1)%vec, values_data)
+      call restore_vector_data(x%old_values(i - 1)%vec, values_data)
     end do
 
     call get_vector_data(x%old_values(1)%vec, old_values_data)
@@ -138,7 +138,7 @@ contains
     call set_matrix_diagonal(diag, M)
 
   end subroutine apply_timestep_first_order
-  
+
   module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal

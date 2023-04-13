@@ -42,7 +42,7 @@ contains
     class(field), intent(inout) :: x
 
     real(ccs_real), dimension(:), pointer :: values_data, old_values_data
-    
+
     if (.not. timestepping_is_active()) then
       return
     end if

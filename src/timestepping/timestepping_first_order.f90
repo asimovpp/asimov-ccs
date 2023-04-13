@@ -20,7 +20,7 @@ contains
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b
-    
+
     if (.not. timestepping_is_active()) then
       return
     end if
@@ -36,7 +36,7 @@ contains
     class(field), intent(inout) :: x
 
     real(ccs_real), dimension(:), pointer :: values_data, old_values_data
-    
+
     if (.not. timestepping_is_active()) then
       return
     end if
@@ -44,7 +44,7 @@ contains
     call update_old_values_generic(num_old_vals, x)
 
   end subroutine
-  
+
   module subroutine initialise_old_values(vec_properties, x)
 
     type(vector_spec), intent(in) :: vec_properties

@@ -17,7 +17,7 @@ module timestepping
   public :: initialise_old_values
   public :: activate_timestepping
   public :: finalise_timestep
-  
+
   interface
     !> Apply one timestep correction
     module subroutine apply_timestep(mesh, phi, diag, M, b)
@@ -53,7 +53,7 @@ module timestepping
     !  calls to apply_timestep will return without doing anything.
     module subroutine activate_timestepping()
     end subroutine
-    
+
     !> Check whether timestepping is active
     module function timestepping_is_active() result(active)
       logical :: active
@@ -64,14 +64,14 @@ module timestepping
       type(vector_spec), intent(in) :: vec_properties
       class(field), intent(inout) :: x
     end subroutine
-    
+
     !> Internal routine for creating vectors for storing one or more previous timesteps
     module subroutine initialise_old_values_generic(vec_properties, num_old_vals, x)
       type(vector_spec), intent(in) :: vec_properties
       integer(ccs_int), intent(in) :: num_old_vals
       class(field), intent(inout) :: x
     end subroutine
-    
+
     !> Internal routine for placing current field values into old field values
     module subroutine update_old_values_generic(num_old_vals, x)
       integer(ccs_int), intent(in) :: num_old_vals
@@ -86,7 +86,7 @@ module timestepping
       class(ccs_matrix), intent(inout) :: M !< equation system
       class(ccs_vector), intent(inout) :: b !< rhs vector
     end subroutine
-    
+
     !> Apply second order timestep correction
     module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
       type(ccs_mesh), intent(in) :: mesh !< mesh object
