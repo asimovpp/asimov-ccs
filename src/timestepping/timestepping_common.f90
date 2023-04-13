@@ -14,6 +14,86 @@ contains
   module subroutine activate_timestepping()
     timestepping_active = .true.
   end subroutine
+  
+  module function timestepping_is_active() result(active)
+    logical :: active
+    active = timestepping_active
+  end function
+  
+  module subroutine set_timestep(timestep)
+
+    real(ccs_real), intent(in) :: timestep
+
+    if (.not. timestep_is_set) then
+      dt = timestep
+      timestep_is_set = .true.
+    else
+      call error_abort("Attempted to change timestep after it had already been set.")
+    end if
+
+  end subroutine set_timestep
+  
+  module function get_timestep() result(timestep)
+
+    real(ccs_real) :: timestep
+
+    if (timestep_is_set) then
+      timestep = dt
+    else
+      call error_abort("Attempted to retrieve timestep before it has been set.")
+      timestep = -1
+    end if
+
+  end function
+  
+  module subroutine initialise_old_values_generic(vec_properties, num_old_vals, x)
+
+    use types, only: vector_spec
+    use vec, only: create_vector
+    use utils, only: update
+
+    type(vector_spec), intent(in) :: vec_properties
+    integer(ccs_int), intent(in) :: num_old_vals
+    class(field), intent(inout) :: x
+
+    integer(ccs_int) :: i
+
+    if (.not. allocated(x%old_values)) then
+      allocate (x%old_values(num_old_vals))
+    end if
+
+    do i = 1, num_old_vals
+      call create_vector(vec_properties, x%old_values(i)%vec)
+      call update(x%old_values(i)%vec)
+    end do
+
+  end subroutine
+  
+  module subroutine update_old_values_generic(num_old_vals, x)
+
+    use vec, only: get_vector_data, restore_vector_data
+
+    integer(ccs_int), intent(in) :: num_old_vals
+    class(field), intent(inout) :: x
+
+    real(ccs_real), dimension(:), pointer :: values_data, old_values_data
+    integer(ccs_int) :: i
+    
+    do i = num_old_vals, 2, -1
+      call get_vector_data(x%old_values(i)%vec, old_values_data)
+      call get_vector_data(x%old_values(i-1)%vec, values_data)
+      old_values_data = values_data
+      call restore_vector_data(x%old_values(i)%vec, old_values_data)
+      call restore_vector_data(x%old_values(i-1)%vec, values_data)
+    end do
+
+    call get_vector_data(x%old_values(1)%vec, old_values_data)
+    call get_vector_data(x%values, values_data)
+    old_values_data = values_data
+    call restore_vector_data(x%old_values(1)%vec, old_values_data)
+    call restore_vector_data(x%values, values_data)
+
+  end subroutine
 
   module subroutine apply_timestep_first_order(mesh, phi, diag, M, b)
 
@@ -106,86 +186,5 @@ contains
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
   end subroutine apply_timestep_second_order
-
-  module function timestepping_is_active() result(active)
-    logical :: active
-    active = timestepping_active
-  end function
-  
-  module subroutine set_timestep(timestep)
-
-    real(ccs_real), intent(in) :: timestep
-
-    if (.not. timestep_is_set) then
-      dt = timestep
-      timestep_is_set = .true.
-    else
-      call error_abort("Attempted to change timestep after it had already been set.")
-    end if
-
-  end subroutine set_timestep
-  
-  module function get_timestep() result(timestep)
-
-    real(ccs_real) :: timestep
-
-    if (timestep_is_set) then
-      timestep = dt
-    else
-      call error_abort("Attempted to retrieve timestep before it has been set.")
-      timestep = -1
-    end if
-
-  end function
-  
-  module subroutine update_old_values_generic(num_old_vals, x)
-
-    use vec, only: get_vector_data, restore_vector_data
-
-    integer(ccs_int), intent(in) :: num_old_vals
-    class(field), intent(inout) :: x
-
-    real(ccs_real), dimension(:), pointer :: values_data, old_values_data
-    integer(ccs_int) :: i
-    
-    do i = num_old_vals, 2, -1
-      call get_vector_data(x%old_values(i)%vec, old_values_data)
-      call get_vector_data(x%old_values(i-1)%vec, values_data)
-      old_values_data = values_data
-      call restore_vector_data(x%old_values(i)%vec, old_values_data)
-      call restore_vector_data(x%old_values(i-1)%vec, values_data)
-    end do
-
-    call get_vector_data(x%old_values(1)%vec, old_values_data)
-    call get_vector_data(x%values, values_data)
-    old_values_data = values_data
-    call restore_vector_data(x%old_values(1)%vec, old_values_data)
-    call restore_vector_data(x%values, values_data)
-
-  end subroutine
-
-  module subroutine initialise_old_values_generic(vec_properties, num_old_vals, x)
-
-    use types, only: vector_spec
-    use vec, only: create_vector
-    use utils, only: update
-
-    type(vector_spec), intent(in) :: vec_properties
-    integer(ccs_int), intent(in) :: num_old_vals
-    class(field), intent(inout) :: x
-
-    integer(ccs_int) :: i
-
-    if (.not. allocated(x%old_values)) then
-      allocate (x%old_values(num_old_vals))
-    end if
-
-    do i = 1, num_old_vals
-      call create_vector(vec_properties, x%old_values(i)%vec)
-      call update(x%old_values(i)%vec)
-    end do
-
-  end subroutine
-
 
 end submodule timestepping_common
