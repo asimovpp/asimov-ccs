@@ -30,7 +30,8 @@ program test_mesh_neighbours
   integer(ccs_int) :: global_boundary_ctr, global_vertex_boundary_ctr
   integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
 
-  integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
+  !integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
+  integer(ccs_int), dimension(5) :: m = (/ 2, 2, 2, 2, 2 /)
   integer(ccs_int) :: mctr
 
   call init()
@@ -46,7 +47,7 @@ program test_mesh_neighbours
     l = parallel_random(par_env)
     mesh = build_mesh(par_env, nx, ny, nz, l)
     
-
+	  vertex_boundary_ctr = 0
     boundary_ctr = 0
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
@@ -55,27 +56,15 @@ program test_mesh_neighbours
       call count_neighbours(loc_p, nnb)
       call count_vertex_neighbours(loc_p, nvnb)
 
-      if (nnb < 2) then
-        ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
-        ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
-        ! Even in the limit of single 1D cell should have 2 boundary neighbours.
-        write (message, *) "FAIL: cell should have 2 or more neighbours, got ", nnb
-        call stop_test(message)
-      else if (nnb > 6) then
-        ! XXX: specific to 3D Cartesian mesh
-        write (message, *) "FAIL: cell should have at most ", 6, " neighbours, got ", nnb
-        call stop_test(message)
-      end if
+      ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
+      ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
+      ! Even in the limit of single 1D cell should have 2 boundary neighbours.
+      call assert_gt(nnb, 1, "FAIL: cell should have 2 or more neighbours ")
+      call assert_lt(nnb, 7, "FAIL: cell should have at most 6 neighbours ")
 
       ! Now check the vertex neighbours
-      if (nvnb < 2) then
-        ! This could be the case if neighbouring cells both contain two of the vertices of a square cell (or similar configuration)
-        write (message, *) "FAIL: cell should have 2 or more vertex neighbours, got ", nvnb
-        call stop_test(message)
-      else if (nvnb > 20) then
-        write (message, *) "FAIL: cell should have at most ", 20, " vertex neighbours, got ", nvnb
-        call stop_test(message)
-      end if
+      call assert_gt(nvnb, 1, "FAIL: cell should have 2 or more vertex neighbours ")
+      call assert_lt(nvnb, 21, "FAIL: cell should have at most 20 vertex neighbours ")
 
       ! Loop over neighbours
       do j = 1, nnb
@@ -109,19 +98,14 @@ program test_mesh_neighbours
       call MPI_Allreduce(boundary_ctr, global_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
       call MPI_Allreduce(vertex_boundary_ctr, global_vertex_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
     class default
-      write (message, *) "ERROR: Unknown parallel environment!"
-      call stop_test(message)
+      call stop_test("ERROR: Unknown parallel environment!")
     end select
 
     expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh. For a cube this just counts the surface area in terms of cells.
-    expected_vertex_boundary_ctr = 4 * (6 * nx * ny + nx + ny + nz + 2) ! For a cube, this is an expected quadruple count of boundaries on faces of cube, 
-                                                                        ! double count on edges + single count of vertices
-    if (global_boundary_ctr /= expected_boundary_ctr) then
-      write (message, *) "FAIL: mesh boundary count is incorrect, expected ", &
-        expected_boundary_ctr, " got ", global_boundary_ctr
-      call stop_test(message)
-    end if
-
+    expected_vertex_boundary_ctr = 4 * (6 * nx * ny + 2 * (nx + ny + nz) + 2) ! For a cube, this is an expected quadruple count of boundaries on faces of cube, 
+                                                                              ! double count on edges + single count of vertices
+    call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
+    call assert_eq(global_vertex_boundary_ctr, expected_vertex_boundary_ctr, "FAIL: mesh vertex boundary count is incorrect")
   end do
 
   call fin()
