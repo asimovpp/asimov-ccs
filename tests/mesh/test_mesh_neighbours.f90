@@ -30,8 +30,8 @@ program test_mesh_neighbours
   integer(ccs_int) :: global_boundary_ctr, global_vertex_boundary_ctr
   integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
 
-  !integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
-  integer(ccs_int), dimension(5) :: m = (/ 2, 2, 2, 2, 2 /)
+  integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
+  integer(ccs_int) :: n_v, n_e, n_f
   integer(ccs_int) :: mctr
 
   call init()
@@ -102,8 +102,12 @@ program test_mesh_neighbours
     end select
 
     expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh. For a cube this just counts the surface area in terms of cells.
-    expected_vertex_boundary_ctr = 4 * (6 * nx * ny + 2 * (nx + ny + nz) + 2) ! For a cube, this is an expected quadruple count of boundaries on faces of cube, 
-                                                                              ! double count on edges + single count of vertices
+    n_v = 8
+    n_e = 4 * (nx + ny + nz - 6)
+    n_f = 2 * ((nx - 2)*(ny - 2) + (ny - 2)*(nz - 2) + (nx - 2)*(nz - 2))
+    expected_vertex_boundary_ctr = 16 * n_v + 13 * n_e + 8 * n_f ! A cube should have 16 boundary neighbours for each (cube) vertex, 13 for 
+                                                                 ! each cell on the edge excluding cube vertices, and 8 for each cell on a face 
+                                                                 ! excluding cube vertices and edges
     call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
     call assert_eq(global_vertex_boundary_ctr, expected_vertex_boundary_ctr, "FAIL: mesh vertex boundary count is incorrect")
   end do

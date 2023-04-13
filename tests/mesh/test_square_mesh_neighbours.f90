@@ -31,6 +31,7 @@ program test_square_mesh_neighbours
   integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
 
   integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
+  integer(ccs_int) :: n_v, n_e, n_f
   integer(ccs_int) :: mctr
 
   call init()
@@ -110,12 +111,12 @@ program test_square_mesh_neighbours
     end select
 
     expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh. This just counts the boundary neighbours on the perimeter of the square mesh.
-    expected_vertex_boundary_ctr = 4 * (n + n + 1) ! XXX: specific to 2D cartesian mesh. For a square, this, expectedly, double counts boundaries on perimeter + single count of vertices
-    if (global_boundary_ctr /= expected_boundary_ctr) then
-      write (message, *) "FAIL: mesh boundary count is incorrect, expected ", &
-        expected_boundary_ctr, " got ", global_boundary_ctr
-      call stop_test(message)
-    end if
+    n_v = 4
+    n_e = 4 * n - 8
+    expected_vertex_boundary_ctr = 3 * n_v + 2 * n_e ! A square should have 3 boundary neighbours for each corner, and 3 for 
+                                                     ! each cell on the edge excluding square vertices
+    call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
+    call assert_eq(global_vertex_boundary_ctr, expected_vertex_boundary_ctr, "FAIL: mesh vertex boundary count is incorrect")
 
   end do
 
