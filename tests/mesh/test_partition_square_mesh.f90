@@ -43,7 +43,6 @@ program test_partition_square_mesh
   call partition_kway(par_env, mesh)
   call check_topology("mid")
 
-
   if (par_env%proc_id == 0) then
     print *, "Global partition after partitioning:"
     do i = 1, mesh%topo%global_num_cells
@@ -183,11 +182,10 @@ contains
         end if
       end do
 
-
       face_cell1_expected = (/1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, &
                               5, 5, 5, 6, 6, 7, 7, 8, 8, &
                               9, 9, 9, 10, 10, 11, 11, 12, 12, &
-                              13, 13, 13, 14, 14, 15, 15, 16, 16/) 
+                              13, 13, 13, 14, 14, 15, 15, 16, 16/)
       if (.not. all(face_cell1_expected == mesh%topo%face_cell1)) then
         write (message, *) "ERROR: face_cell1 not correct! " // stage // "- partitioning."
         call stop_test(message)
@@ -293,93 +291,93 @@ contains
 
   !!!!! This could be the basis of testing the components of build_square_mesh/etc.
 
-    !call get_local_num_cells(mesh, local_num_cells)
+  !call get_local_num_cells(mesh, local_num_cells)
 
-    ! --- read_topology() ---
-    ! topo%global_num_cells = mesh%topo%global_num_cells
-    !mesh%topo%global_num_faces = 40 ! Hardcoded for now
-    !mesh%topo%max_faces = mesh%topo%num_nb(1)
-    !allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
-    !allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
-    !allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
+  ! --- read_topology() ---
+  ! topo%global_num_cells = mesh%topo%global_num_cells
+  !mesh%topo%global_num_faces = 40 ! Hardcoded for now
+  !mesh%topo%max_faces = mesh%topo%num_nb(1)
+  !allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
+  !allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
+  !allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
 
-    ! --- read_topology() --- end
+  ! --- read_topology() --- end
 
-    ! --- compute_partitioner_input() ---
-    !allocate (mesh%topo%vtxdist(par_env%num_procs + 1))
-    !allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
+  ! --- compute_partitioner_input() ---
+  !allocate (mesh%topo%vtxdist(par_env%num_procs + 1))
+  !allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
 
-    ! Hardcode vtxdist for now
-    !mesh%topo%vtxdist = (/1, 5, 9, 13, 17/)
+  ! Hardcode vtxdist for now
+  !mesh%topo%vtxdist = (/1, 5, 9, 13, 17/)
 
-    ! <MISSING> set mesh%topo%global_partition array?
-    ! FAKE partition array based on initial mesh decomposition
-    !do i = 1, mesh%topo%global_num_cells
-    !  if (any(mesh%topo%global_indices(1:local_num_cells) == i)) then
-    !    mesh%topo%global_partition(i) = par_env%proc_id
-    !  else
-    !    mesh%topo%global_partition(i) = -1
-    !  end if
-    !end do
+  ! <MISSING> set mesh%topo%global_partition array?
+  ! FAKE partition array based on initial mesh decomposition
+  !do i = 1, mesh%topo%global_num_cells
+  !  if (any(mesh%topo%global_indices(1:local_num_cells) == i)) then
+  !    mesh%topo%global_partition(i) = par_env%proc_id
+  !  else
+  !    mesh%topo%global_partition(i) = -1
+  !  end if
+  !end do
 
-    ! ALTERNATIVE global partition
-    !ctr = 1
-    !do i = 1, mesh%topo%global_num_cells
-    !  if (i == mesh%topo%vtxdist(ctr + 1)) then
-    !    ctr = ctr + 1
-    !  end if
-    !  mesh%topo%global_partition(i) = (ctr - 1) ! Partitions/ranks are zero-indexed
-    !end do
+  ! ALTERNATIVE global partition
+  !ctr = 1
+  !do i = 1, mesh%topo%global_num_cells
+  !  if (i == mesh%topo%vtxdist(ctr + 1)) then
+  !    ctr = ctr + 1
+  !  end if
+  !  mesh%topo%global_partition(i) = (ctr - 1) ! Partitions/ranks are zero-indexed
+  !end do
 
-    ! select type(par_env)
-    ! type is (parallel_environment_mpi)
-    !   allocate(tmp_partition, source=mesh%topo%global_partition)
-    !   write(message, *) "Initial partition: ", tmp_partition
-    !   call dprint(message)
-    !   call MPI_Allreduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
-    !           MPI_LONG, MPI_SUM, &
-    !           par_env%comm, ierr)
-    !   deallocate(tmp_partition)
-    !   write(message, *) "Using partition: ", mesh%topo%global_partition
-    !   call dprint(message)
-    ! class default
-    !   write(message, *) "ERROR: This test only works for MPI."
-    !   call stop_test(message)
-    ! end select
+  ! select type(par_env)
+  ! type is (parallel_environment_mpi)
+  !   allocate(tmp_partition, source=mesh%topo%global_partition)
+  !   write(message, *) "Initial partition: ", tmp_partition
+  !   call dprint(message)
+  !   call MPI_Allreduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
+  !           MPI_LONG, MPI_SUM, &
+  !           par_env%comm, ierr)
+  !   deallocate(tmp_partition)
+  !   write(message, *) "Using partition: ", mesh%topo%global_partition
+  !   call dprint(message)
+  ! class default
+  !   write(message, *) "ERROR: This test only works for MPI."
+  !   call stop_test(message)
+  ! end select
 
-    ! topo%local_num_cells = local_num_cells
-    !allocate (mesh%topo%xadj(local_num_cells + 1))
+  ! topo%local_num_cells = local_num_cells
+  !allocate (mesh%topo%xadj(local_num_cells + 1))
 
-    ! <MISSING> allocate mesh%topo%global_boundaries
-    ! <MISSING> allocate mesh%topo%adjncy
+  ! <MISSING> allocate mesh%topo%global_boundaries
+  ! <MISSING> allocate mesh%topo%adjncy
 
-    !allocate (mesh%topo%local_partition(local_num_cells))
-    ! mesh%topo%halo_num_cells = mesh%topo%halo_num_cells
+  !allocate (mesh%topo%local_partition(local_num_cells))
+  ! mesh%topo%halo_num_cells = mesh%topo%halo_num_cells
 
-    !select type (par_env)
-    !type is (parallel_environment_mpi)
+  !select type (par_env)
+  !type is (parallel_environment_mpi)
 
     !!  ! Also hardcode the adjncy arrays
-    !  if (par_env%num_procs == 4) then
+  !  if (par_env%num_procs == 4) then
 
-    !    if (par_env%proc_id == 0) then
-    !      mesh%topo%adjncy = (/2, 5, 1, 3, 6, 2, 4, 7, 3, 8/)
-    !    else if (par_env%proc_id == 1) then
-    !      mesh%topo%adjncy = (/1, 6, 9, 2, 5, 7, 10, 3, 6, 8, 11, 4, 7, 12/)
-    !    else if (par_env%proc_id == 2) then
-    !      mesh%topo%adjncy = (/5, 10, 13, 6, 9, 11, 14, 7, 10, 12, 15, 8, 11, 16/)
-    !    else
-    !      mesh%topo%adjncy = (/9, 14, 10, 13, 15, 11, 14, 16, 12, 15/)
-    !    end if
+  !    if (par_env%proc_id == 0) then
+  !      mesh%topo%adjncy = (/2, 5, 1, 3, 6, 2, 4, 7, 3, 8/)
+  !    else if (par_env%proc_id == 1) then
+  !      mesh%topo%adjncy = (/1, 6, 9, 2, 5, 7, 10, 3, 6, 8, 11, 4, 7, 12/)
+  !    else if (par_env%proc_id == 2) then
+  !      mesh%topo%adjncy = (/5, 10, 13, 6, 9, 11, 14, 7, 10, 12, 15, 8, 11, 16/)
+  !    else
+  !      mesh%topo%adjncy = (/9, 14, 10, 13, 15, 11, 14, 16, 12, 15/)
+  !    end if
 
-    !  else
-    !    write (message, *) "Test must be run on 4 MPI ranks."
-    !    call stop_test(message)
-    !  end if
+  !  else
+  !    write (message, *) "Test must be run on 4 MPI ranks."
+  !    call stop_test(message)
+  !  end if
 
-    !class default
-    !  write (message, *) "ERROR: Unknown parallel environment."
-    !  call stop_test(message)
-    !end select
+  !class default
+  !  write (message, *) "ERROR: Unknown parallel environment."
+  !  call stop_test(message)
+  !end select
 
 end program

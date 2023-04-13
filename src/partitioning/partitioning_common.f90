@@ -5,7 +5,7 @@ submodule(partitioning) partitioning_common
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
-  use meshing, only : set_local_num_cells, get_local_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells
 
   implicit none
 
@@ -112,7 +112,7 @@ contains
       end if
 
     end do
-    
+
     ! New number of local connections
     num_connections = sum(tmp_int2d(:, mesh%topo%max_faces + 1))
     call dprint("Number of connections after partitioning: " // str(num_connections))
@@ -154,7 +154,7 @@ contains
 
     ! Allocate and then compute global indices
     if (allocated(mesh%topo%global_indices)) then
-       deallocate (mesh%topo%global_indices)
+      deallocate (mesh%topo%global_indices)
     end if
     call get_local_num_cells(mesh, local_num_cells)
     allocate (mesh%topo%global_indices(local_num_cells))
@@ -230,7 +230,7 @@ contains
     integer, dimension(1) :: local_idx
 
     integer(ccs_int) :: local_num_cells
-    
+
     mesh%topo%halo_num_cells = 0
     call get_local_num_cells(mesh, local_num_cells)
     ctr = 1
@@ -277,9 +277,9 @@ contains
             mesh%topo%nb_indices(j, i) = local_num_cells + local_idx(1)
           end if
 
-            !local_idx = findloc(tmp1, nbidx)
-            !topo%adjncy(ctr) = local_idx(1)
-          
+          !local_idx = findloc(tmp1, nbidx)
+          !topo%adjncy(ctr) = local_idx(1)
+
           if (nbidx .lt. 0) then
             ! boundary 'cell'
             mesh%topo%nb_indices(j, i) = nbidx

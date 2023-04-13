@@ -1,8 +1,8 @@
 
-submodule (poisson_discretisation) poisson_discretisation_ref
+submodule(poisson_discretisation) poisson_discretisation_ref
 
   implicit none
-  
+
 contains
 
   module subroutine discretise_poisson(mesh, M)
@@ -181,5 +181,5 @@ contains
     deallocate (vec_values%values)
 
   end subroutine apply_dirichlet_bcs
-  
+
 end submodule poisson_discretisation_ref

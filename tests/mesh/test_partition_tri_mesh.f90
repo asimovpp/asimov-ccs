@@ -22,7 +22,7 @@ program test_partition_tri_mesh
   ! type(topology) :: topo
   type(ccs_mesh), target :: mesh
   integer :: i
-  
+
   integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
 
   ! Topology grid size
@@ -279,10 +279,9 @@ contains
                                  0, 7, 12, 11, 8, 13, 12, 9, 14, 13, 10, 15, 14, 0, 15, &        ! 15 count
                                  0, 12, 0, 13, 0, 14, 0, 15, 0, 0, 0/)                          ! 11 count = 46
 
-
-    mesh%topo%bnd_rid   = (/-1,-1, 0, 0, 0,-1, 0, 0, 0,-1, 0, 0, 0,-1, 0,  0, 0,-1,-1,  0, & ! 20 count
-                                -1, 0,  0,  0, 0,  0,  0, 0,  0,  0,  0,  0, 0 ,-1,  0, &        ! 15 count
-                                -1,  0,-1,  0,-1,  0,-1,  0,-1,-1, -1/)                          ! 11 count = 46
+    mesh%topo%bnd_rid = (/-1, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, -1, 0, & ! 20 count
+                              -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, &        ! 15 count
+                              -1, 0, -1, 0, -1, 0, -1, 0, -1, -1, -1/)                          ! 11 count = 46
 
     ! <MISSING> set topo%global_face_indices
 
@@ -304,7 +303,6 @@ contains
     do i = 1, local_num_cells
       mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
-
 
   end subroutine
 

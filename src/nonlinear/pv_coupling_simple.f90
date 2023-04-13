@@ -66,7 +66,7 @@ contains
 
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: ivar ! Counter for flow variables
-    
+
     logical :: u_sol !< solve u velocity field
     logical :: v_sol !< solve v velocity field
     logical :: w_sol !< solve w velocity field
@@ -135,7 +135,7 @@ contains
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1
     if (p_sol) nvar = nvar + 2 ! (Pressure residual & mass imbalance)
-    allocate (residuals(2*nvar))
+    allocate (residuals(2 * nvar))
     residuals(:) = 0.0_ccs_real
 
     ! Get pressure gradient
@@ -231,7 +231,7 @@ contains
     class(field), pointer :: w
     class(field), pointer :: mf
     class(field), pointer :: p
-    
+
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
@@ -363,7 +363,7 @@ contains
       call set_equation_system(par_env, vec, u%values, M, lin_sys, u%values%name)
     else
       call set_equation_system(par_env, vec, u%values, M, lin_sys)
-    endif
+    end if
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -635,7 +635,7 @@ contains
       call set_equation_system(par_env, vec, p_prime%values, M, lin_sys, p_prime%values%name)
     else
       call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
-    endif
+    end if
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -693,7 +693,7 @@ contains
     integer(ccs_int) :: nvar ! Number of flow variables to solve
 
     logical, save :: first_time = .true.
-    
+
     class(field), pointer :: u        !< The x velocity component
     class(field), pointer :: v        !< The y velocity component
     class(field), pointer :: w        !< The z velocity component
@@ -1013,7 +1013,7 @@ contains
         else
           write (*, '(a6)', advance='no') 'Iter'
         end if
-        do i=1, 2
+        do i = 1, 2
           if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
           if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
           if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
@@ -1026,11 +1026,11 @@ contains
 
       ! Write step, iteration and residuals
       if (step > 0) then
-        fmt = '(i6,1x,i6,' // str(2*nvar) // '(1x,e12.4))'
-        write (*, fmt) step, itr, residuals(1:2*nvar)
+        fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
+        write (*, fmt) step, itr, residuals(1:2 * nvar)
       else
-        fmt = '(i6,' // str(2*nvar) // '(1x,e12.4))'
-        write (*, fmt) itr, residuals(1:2*nvar)
+        fmt = '(i6,' // str(2 * nvar) // '(1x,e12.4))'
+        write (*, fmt) itr, residuals(1:2 * nvar)
       end if
     end if
 
