@@ -16,7 +16,7 @@ program test_compute_fluxes
   use constants, only: add_mode, insert_mode
   use bc_constants
   use meshing, only: get_local_num_cells
-  
+
   implicit none
 
   type(ccs_mesh) :: mesh
@@ -78,7 +78,7 @@ contains
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: u_val, v_val
     integer(ccs_int) :: n_local
-    
+
     u_vals%setter_mode = insert_mode
     v_vals%setter_mode = insert_mode
 
@@ -90,22 +90,22 @@ contains
 
     ! Set IC velocity fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
 
-       if (direction == x_dir) then
-          u_val = 1.0_ccs_real
-          v_val = 0.0_ccs_real
-       else if (direction == y_dir) then
-          u_val = 0.0_ccs_real
-          v_val = 1.0_ccs_real
-       end if
+      if (direction == x_dir) then
+        u_val = 1.0_ccs_real
+        v_val = 0.0_ccs_real
+      else if (direction == y_dir) then
+        u_val = 0.0_ccs_real
+        v_val = 1.0_ccs_real
+      end if
 
-       u_val = 0.0_ccs_real
-       v_val = 0.0_ccs_real
+      u_val = 0.0_ccs_real
+      v_val = 0.0_ccs_real
 
-       call pack_entries(index_p, global_index_p, u_val, u_vals)
-       call pack_entries(index_p, global_index_p, v_val, v_vals)
+      call pack_entries(index_p, global_index_p, u_val, u_vals)
+      call pack_entries(index_p, global_index_p, v_val, v_vals)
     end do
 
     call set_values(u_vals, u%values)
@@ -372,7 +372,7 @@ contains
 
     ! Advection coefficients
     call get_local_num_cells(mesh, local_num_cells)
-    
+
     if (flow == x_dir) then
       ! UDS and flow along +x direction
       do i = 1, local_num_cells

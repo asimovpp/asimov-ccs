@@ -32,7 +32,7 @@ program test_ghost_cells
 
   mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
   call get_local_num_cells(mesh, local_num_cells)
-  
+
   ! Specify vector size based on the mesh
   call initialise(vec_properties)
   call set_size(par_env, mesh, vec_properties)

@@ -84,15 +84,15 @@ program tgv
   isize = par_env%num_procs
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
-  
-  if(allocated(input_path)) then
-     case_path = input_path // "/" // case_name
+
+  if (allocated(input_path)) then
+    case_path = input_path // "/" // case_name
   else
-     case_path = case_name
+    case_path = case_name
   end if
 
   ccs_config_file = case_path // ccsconfig
-  
+
   call timer(start_time)
 
   ! Read case name and runtime parameters from configuration file
@@ -110,10 +110,10 @@ program tgv
   it_start = 1
   it_end = num_iters
 
-  ! If cps is no longer the default value, it has been set explicity and 
+  ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...
   if (cps /= huge(0)) then
-  ! Create a cubic mesh
+    ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
     mesh = build_mesh(par_env, cps, cps, cps, domain_size)
   else
@@ -205,7 +205,7 @@ program tgv
   call set_field(4, field_p, p, flow_fields)
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
-  
+
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields, t)
@@ -246,7 +246,7 @@ contains
   subroutine read_configuration(config_filename)
 
     use read_config, only: get_reference_number, get_value, &
-                           get_relaxation_factors   
+                           get_relaxation_factors
 
     character(len=*), intent(in) :: config_filename
 
@@ -317,8 +317,8 @@ contains
     write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
-    if(cps /= huge(0)) then
-      print *,"* Cells per side: ", cps
+    if (cps /= huge(0)) then
+      print *, "* Cells per side: ", cps
       write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     end if
     print *, "* Global number of cells is ", mesh%topo%global_num_cells
@@ -364,7 +364,7 @@ contains
 
     ! Set alias
     call get_local_num_cells(mesh, n_local)
-    
+
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
     call create_vector_values(n_local, w_vals)
@@ -376,24 +376,24 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
 
-       call get_centre(loc_p, x_p)
+      call get_centre(loc_p, x_p)
 
-       u_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
-       v_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
-       w_val = 0.0_ccs_real
-       p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+      u_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
+      v_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
+      w_val = 0.0_ccs_real
+      p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
-       call set_row(global_index_p, u_vals)
-       call set_entry(u_val, u_vals)
-       call set_row(global_index_p, v_vals)
-       call set_entry(v_val, v_vals)
-       call set_row(global_index_p, w_vals)
-       call set_entry(w_val, w_vals)
-       call set_row(global_index_p, p_vals)
-       call set_entry(p_val, p_vals)
+      call set_row(global_index_p, u_vals)
+      call set_entry(u_val, u_vals)
+      call set_row(global_index_p, v_vals)
+      call set_entry(v_val, v_vals)
+      call set_row(global_index_p, w_vals)
+      call set_entry(w_val, w_vals)
+      call set_row(global_index_p, p_vals)
+      call set_entry(p_val, p_vals)
     end do
 
     call set_values(u_vals, u%values)
