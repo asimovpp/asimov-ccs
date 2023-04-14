@@ -15,7 +15,7 @@ contains
 
   module subroutine reset_timestepping()
 
-    call reset_timestep_module()
+    call reset_timestepping_module()
 
   end subroutine reset_timestepping
 
