@@ -13,6 +13,12 @@ contains
 
   end subroutine finalise_timestep
 
+  module subroutine reset_timestepping()
+
+    call reset_timestep_module()
+
+  end subroutine reset_timestepping
+
   module subroutine apply_timestep(mesh, phi, diag, M, b)
 
     type(ccs_mesh), intent(in) :: mesh

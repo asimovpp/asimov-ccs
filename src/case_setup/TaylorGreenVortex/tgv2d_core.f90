@@ -31,7 +31,7 @@ module tgv2d_core
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
-  use timestepping, only: set_timestep, activate_timestepping, cleanup_timestep
+  use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
 
@@ -227,7 +227,7 @@ contains
     deallocate (p_prime)
     deallocate (output_list)
 
-    call cleanup_timestep()
+    call reset_timestepping()
     call reset_outputlist_counter()
 
     call timer(end_time)

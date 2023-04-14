@@ -17,7 +17,7 @@ module timestepping
   public :: initialise_old_values
   public :: activate_timestepping
   public :: finalise_timestep
-  public :: cleanup_timestep
+  public :: reset_timestepping
 
   interface
     !> Apply one timestep correction
@@ -34,8 +34,8 @@ module timestepping
     end subroutine finalise_timestep
 
     !> Reset save variables to their original state
-    module subroutine cleanup_timestep()
-    end subroutine cleanup_timestep
+    module subroutine reset_timestepping()
+    end subroutine reset_timestepping
 
     !> Set timestep size
     module subroutine set_timestep(timestep)
@@ -57,6 +57,10 @@ module timestepping
     !  If this is not called at the start of a program,
     !  calls to apply_timestep will return without doing anything.
     module subroutine activate_timestepping()
+    end subroutine
+
+    !v reset global variable of timestep common module
+    module subroutine reset_timestepping_module()
     end subroutine
 
     !> Check whether timestepping is active

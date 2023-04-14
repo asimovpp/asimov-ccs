@@ -14,13 +14,12 @@ contains
 
   end subroutine finalise_timestep
 
-  module subroutine cleanup_timestep()
+  module subroutine reset_timestepping()
 
-    timestep_is_set = .false.
-    timestepping_is_active = .false.
     first_update = .true.
+    call reset_timestepping_module()
 
-  end subroutine cleanup_timestep
+  end subroutine reset_timestepping
 
   module subroutine apply_timestep(mesh, phi, diag, M, b)
 
