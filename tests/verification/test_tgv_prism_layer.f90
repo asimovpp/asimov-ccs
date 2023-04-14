@@ -66,7 +66,7 @@ program test_tgv_prism_layer
 
     call assert_gt(orders_Linf(1), 1.4_ccs_real, "U not converging in 2nd order ")
     call assert_gt(orders_Linf(2), 1.4_ccs_real, "V not converging in 2nd order ")
-    !call assert_gt(orders_Linf(3), 1.9_ccs_real, "P not converging in 2nd order ")
+    !call assert_gt(orders_Linf(3), 1.4_ccs_real, "P not converging in 2nd order ")
 
   end if
 
@@ -83,7 +83,6 @@ program test_tgv_prism_layer
     real(ccs_real) :: power, dx
     integer(ccs_int) :: iface, icell, local_num_cells
 
-    
     dx = domain_size / real(cps)
 
     ! Update face centers
