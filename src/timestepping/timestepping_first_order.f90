@@ -31,11 +31,7 @@ contains
 
   module subroutine update_old_values(x)
 
-    use vec, only: get_vector_data, restore_vector_data
-
     class(field), intent(inout) :: x
-
-    real(ccs_real), dimension(:), pointer :: values_data, old_values_data
 
     if (.not. timestepping_is_active()) then
       return
