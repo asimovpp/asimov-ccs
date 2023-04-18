@@ -41,12 +41,13 @@ module tgv2d_core
 
 contains
 
-  subroutine run_tgv2d(par_env, error_L2, error_Linf, input_mesh, input_dt)
+  subroutine run_tgv2d(par_env, error_L2, error_Linf, input_mesh, input_dt, input_num_steps)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    real(ccs_real), dimension(3), intent(out) :: error_L2
-    real(ccs_real), dimension(3), intent(out) :: error_Linf
-    type(ccs_mesh), intent(inout), optional :: input_mesh
-    real(ccs_real), intent(in), optional :: input_dt
+    real(ccs_real), dimension(3), intent(out) :: error_L2 !< L2 norm of the error for the U, V and P fields respectively
+    real(ccs_real), dimension(3), intent(out) :: error_Linf !< Linf norm of the error for the U, V and P fields respectively
+    type(ccs_mesh), intent(inout), optional :: input_mesh !< mesh object to use, if not provided, the build_square_mesh is used
+    real(ccs_real), intent(in), optional :: input_dt !< timestep, if not provided, the yaml config option is used
+    integer(ccs_int), intent(in), optional :: input_num_steps !< number of timesteps, if not provided, the yaml config option is used
 
     character(len=:), allocatable :: input_path  ! Path to input directory
     character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
@@ -111,6 +112,10 @@ contains
 
     if (present(input_dt)) then
       dt = input_dt
+    end if
+
+    if (present(input_num_steps)) then
+      num_steps = input_num_steps
     end if
 
     ! set solver and preconditioner info

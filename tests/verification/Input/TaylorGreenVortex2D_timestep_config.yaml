@@ -10,7 +10,7 @@ dt: 0.01
 
 # Square/cubic mesh generation parameters
 # cells per side
-cps: 32
+cps: 180
 # domain size
 L: 3.1415926535
 

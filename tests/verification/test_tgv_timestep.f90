@@ -21,6 +21,7 @@ program test_tgv_timestep
   real(ccs_real), dimension(num_dt) :: refinements
   real(ccs_real), dimension(num_dt) :: dt_list
   real(ccs_real) :: dt
+  integer(ccs_int) :: num_steps
 
   integer(ccs_int) :: i
   character(len=12), dimension(nvar) :: variable_labels
@@ -38,7 +39,8 @@ program test_tgv_timestep
 
   do i = 1, num_dt
     dt = dt_list(i)
-    call run_tgv2d(par_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt)
+    num_steps = int(1.0_ccs_real / dt)
+    call run_tgv2d(par_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt, input_num_steps=num_steps)
   end do
 
   if (par_env%proc_id == par_env%root) then
