@@ -18,6 +18,7 @@ module timestepping
   public :: activate_timestepping
   public :: finalise_timestep
   public :: reset_timestepping
+  public :: get_theoretical_order
 
   interface
     !> Apply one timestep correction
@@ -37,6 +38,11 @@ module timestepping
     module subroutine reset_timestepping()
     end subroutine reset_timestepping
 
+    !> Returns the expected theoretical order of the method
+    module subroutine get_theoretical_order(order)
+      real(ccs_real), intent(out) :: order
+    end subroutine
+    
     !> Set timestep size
     module subroutine set_timestep(timestep)
       real(ccs_real), intent(in) :: timestep

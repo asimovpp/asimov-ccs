@@ -5,6 +5,7 @@ submodule(timestepping) timestepping_second_order
 
   integer(ccs_int), parameter :: num_old_vals = 2 !< the number of old field values the scheme uses
   logical, save :: first_update = .true.
+  real(ccs_real), parameter :: theoretical_order = 2.0_ccs_real !< Theoretical order of accuracy of the scheme
 
 contains
 
@@ -20,6 +21,13 @@ contains
     call reset_timestepping_module()
 
   end subroutine reset_timestepping
+
+  module subroutine get_theoretical_order(order)
+    real(ccs_real), intent(out) :: order
+
+    order = theoretical_order
+
+  end subroutine
 
   module subroutine apply_timestep(mesh, phi, diag, M, b)
 
