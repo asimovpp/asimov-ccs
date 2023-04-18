@@ -10,11 +10,12 @@ module error_analysis
 
   !v Prints errors provided in argument in a human readable way, plus displays associated orders
   subroutine print_error_summary(variable_labels, refinements, errors, errors_secondary)
-    character(len=12), dimension(:), intent(in) :: variable_labels
-    real(ccs_real), dimension(:), intent(in) :: refinements
-    real(ccs_real), dimension(:, :), intent(in) :: errors
-    real(ccs_real), dimension(:, :), optional, intent(in) :: errors_secondary
-    real(ccs_real), dimension(:), allocatable :: orders
+    character(len=12), dimension(:), intent(in) :: variable_labels !< label associated to each error
+    real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
+    real(ccs_real), dimension(:, :), intent(in) :: errors !< error values, error(variable, refinement)
+    real(ccs_real), dimension(:, :), intent(in), optional :: errors_secondary !< An optional second set of errors to display (could be a different norm for example)
+
+    real(ccs_real), dimension(:), allocatable :: orders 
     real(ccs_real), dimension(:), allocatable :: orders_secondary
     character(len=30) :: fmt
     integer(ccs_int) :: nref, nvar, i, j
@@ -62,11 +63,12 @@ module error_analysis
   end subroutine
 
   !v Computes convergence orders from a refinement list and the associated errors
+  ! The orders are computed as the slope of the linear regression of the log of error against the log of refinements
   subroutine get_order(refinements, errors, orders)
 
-    real(ccs_real), dimension(:), intent(in) :: refinements
-    real(ccs_real), dimension(:, :), intent(in) :: errors
-    real(ccs_real), dimension(:), allocatable, intent(out) :: orders
+    real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
+    real(ccs_real), dimension(:, :), intent(in) :: errors !< error values, error(variable, refinement)
+    real(ccs_real), dimension(:), allocatable, intent(out) :: orders !< the computed orders for each variable
     real(ccs_real), dimension(:), allocatable :: x, y
     real(ccs_real) :: x_bar, y_bar, Sxx, Sxy, alpha, beta
     integer(ccs_int) :: nref, nvar, i, j
