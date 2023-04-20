@@ -229,3 +229,19 @@ nightly_gnu:
     - git add ccs_data.csv
     - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
     - git push
+
+
+nightly_wiki_update:
+  only:
+    variables:
+      - $NIGHTLY
+  needs: 
+    - job: [nightly_gnu]
+  script:
+    - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/jzarins/auto-wiki-tests.wiki.git 
+    - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/jzarins/asimov-ccs-nightly-data.git
+    - cd auto-wiki-tests.wiki
+    - gnuplot -e "set term png; set output 'img/auto-graph.png'; plot '../asimov-ccs-nightly-data/data.csv' u 0:1 w linespoints"
+    - git add img/auto-graph.png
+    - git -c user.name='CI' -c user.email='ci' commit -m "CI updates graph"
+    - git push
