@@ -16,7 +16,7 @@ Some extra scripts are used to work around inflexibilities in Makefiles:
 
 - `filter-out.py` : filters out filenames from a list without taking the path into account
 
-Additional information can be provided to the build system using doxygen build tags. For example, `!> @build mpi` or `!> @build petsc`. Multiple tags can be put on a single line: `!> @build mpi petsc`. This information could be used to know when to add compile flags for required libraries/headers, though this has not been added to the Makefile yet. 
+Additional information can be provided to the build system using "build tags". For example, `!> @build mpi` or `!> @build petsc`. Multiple tags can be put on a single line: `!> @build mpi petsc`. This information could be used to know when to add compile flags for required libraries/headers, though this has not been added to the Makefile yet. 
 Procesisng tags is handled by `process_build_tags.py`, which outputs a variable that can be used in a Makefile rule, e.g. `PETSC_OBJ = file1.o file2.o`.
 
 
