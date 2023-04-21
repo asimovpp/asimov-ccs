@@ -115,7 +115,6 @@ contains
     integer(ccs_int) :: i
     integer(ccs_int) :: local_num_cells
 
-    ! V = mesh%volumes
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
@@ -162,7 +161,6 @@ contains
 
     rho = 1.0
 
-    ! V = mesh%volumes
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
@@ -186,5 +184,53 @@ contains
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
   end subroutine apply_timestep_second_order
+  
+  module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
+    use kinds, only: ccs_int
+    use mat, only: set_matrix_diagonal, get_matrix_diagonal
+    use vec, only: get_vector_data, restore_vector_data
+    use utils, only: update, finalise
+    use meshing, only: get_local_num_cells
+
+    type(ccs_mesh), intent(in) :: mesh
+    real(ccs_real), intent(in) :: theta
+    class(field), intent(inout) :: phi
+    class(ccs_vector), intent(inout) :: diag
+    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(inout) :: b
+
+    real(ccs_real), dimension(:), pointer :: diag_data
+    real(ccs_real), dimension(:), pointer :: b_data
+    real(ccs_real), dimension(:), pointer :: phi_old1_data
+    real(ccs_real), dimension(:), pointer :: phi_old2_data
+    real(ccs_real) :: rho
+    integer(ccs_int) :: i
+    integer(ccs_int) :: local_num_cells
+
+    rho = 1.0
+
+    call finalise(M)
+    call get_matrix_diagonal(M, diag)
+
+    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
+    call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
+    call get_vector_data(diag, diag_data)
+    call update(b)
+    call get_vector_data(b, b_data)
+
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
+      ! A = A + (1.0 + 0.5 * theta)*rho*V/dt
+      diag_data(i) = diag_data(i) + (1.0 + 0.5 * theta) * rho * mesh%geo%volumes(i) / get_timestep()
+
+      ! b = b + rho*V/dt * ((1.0 + theta)*phi_old(n-1) - 0.5*theta*phi_old(n-2))
+      b_data(i) = b_data(i) + rho * mesh%geo%volumes(i) / get_timestep() * ((1.0 + theta) * phi_old1_data(i) - 0.5 * theta * phi_old2_data(i))
+    end do
+    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
+    call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
+    call restore_vector_data(diag, diag_data)
+    call restore_vector_data(b, b_data)
+    call set_matrix_diagonal(diag, M)
+  end subroutine apply_timestep_theta
 
 end submodule timestepping_common

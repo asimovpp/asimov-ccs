@@ -95,6 +95,16 @@ module timestepping
       class(ccs_matrix), intent(inout) :: M !< equation system
       class(ccs_vector), intent(inout) :: b !< rhs vector
     end subroutine
+    
+    !> Apply mixed order timestep correction (theta scheme)
+    module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
+      type(ccs_mesh), intent(in) :: mesh !< mesh object
+      real(ccs_real), intent(in) :: theta !< timestepping scheme mixing factor
+      class(field), intent(inout) :: phi !< flow variable
+      class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
+      class(ccs_matrix), intent(inout) :: M !< equation system
+      class(ccs_vector), intent(inout) :: b !< rhs vector
+    end subroutine
 
   end interface
 
