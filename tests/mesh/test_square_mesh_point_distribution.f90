@@ -1,7 +1,9 @@
-!> @brief Test the parallel distribution of a mesh's points.
+!v Test the parallel distribution of a mesh's points.
 !
-!> @description A mesh of size N should have its points distributed in parallel such that
-!!              \f$\sum_p n_p = N\f$.
+!  A mesh of size N should have its points distributed in parallel such that
+!  \f$\sum_p n_p = N\f$.
+!
+!  @dont_fail_linter
 program test_square_mesh_point_distribution
 
   use testing_lib
