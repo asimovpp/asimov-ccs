@@ -222,9 +222,6 @@ profile_cray:
       - $NIGHTLY
 
 nightly_gnu:
-  needs: 
-    - job: build_gnu
-      artifacts: true
   extends: 
     - .setup_gnu
     - .setup_nightly
@@ -238,9 +235,8 @@ nightly_gnu:
     - git push
 
 nightly_dummy:
-  needs: 
-    - job: build_intel
-      artifacts: true
+  needs:
+    - job: nightly_gnu
   extends: 
     - .setup_intel
     - .setup_nightly
@@ -256,7 +252,6 @@ nightly_dummy:
 
 nightly_wiki_update:
   needs: 
-    - job: nightly_gnu
     - job: nightly_dummy
   extends: 
     - .setup_nightly
