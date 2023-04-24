@@ -220,6 +220,7 @@ profile_cray:
   only:
     variables:
       - $NIGHTLY
+  dependencies: []
 
 nightly_gnu:
   extends: 
