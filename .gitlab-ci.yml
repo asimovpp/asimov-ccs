@@ -20,6 +20,10 @@
     when: always
     reports:
       junit: tests/report.xml
+
+stages:
+  - normal
+  - nightly
   
 
 #-----------------------------------------------------------------------------#
@@ -211,16 +215,19 @@ profile_cray:
 
 #-----------------------------------------------------------------------------#
 
-nightly_gnu:
+.setup_nightly:
+  stage: nightly
   only:
     variables:
       - $NIGHTLY
+
+nightly_gnu:
   needs: 
     - job: build_gnu
       artifacts: true
   extends: 
     - .setup_gnu
-      #- .test_common
+    - .setup_nightly
   script:
     - HOME=${CI_HOME} RUNTESTS=nightly CMP=gnu make tests
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
@@ -231,15 +238,12 @@ nightly_gnu:
     - git push
 
 nightly_dummy:
-  only:
-    variables:
-      - $NIGHTLY
   needs: 
     - job: build_intel
       artifacts: true
   extends: 
     - .setup_intel
-      #- .test_common
+    - .setup_nightly
   script:
     - echo "just a test"
       #- HOME=${CI_HOME} RUNTESTS=nightly CMP=intel make tests
@@ -251,12 +255,11 @@ nightly_dummy:
       #- git push
 
 nightly_wiki_update:
-  only:
-    variables:
-      - $NIGHTLY
   needs: 
     - job: nightly_gnu
     - job: nightly_dummy
+  extends: 
+    - .setup_nightly
   script:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
