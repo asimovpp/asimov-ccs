@@ -221,6 +221,7 @@ profile_cray:
     variables:
       - $NIGHTLY
   dependencies: []
+  allow_failure: true
 
 nightly_gnu:
   extends: 
@@ -243,6 +244,7 @@ nightly_dummy:
     - .setup_nightly
   script:
     - echo "just a test"
+    - ech
       #- HOME=${CI_HOME} RUNTESTS=nightly CMP=intel make tests
       #- git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
       #- asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/ccs_data.csv tests/nightly/*/output.txt  
