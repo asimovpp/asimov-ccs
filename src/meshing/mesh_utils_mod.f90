@@ -98,10 +98,9 @@ contains
     call read_topology(par_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, mesh)
-    call partition_kway(par_env, mesh)
 
-    call partition_kway(par_env, mesh)
-    ! call partition_stride(par_env, mesh)
+    !call partition_kway(par_env, mesh)
+    call partition_stride(par_env, mesh)
 
     call compute_connectivity(par_env, mesh)
 
@@ -479,8 +478,8 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
 
-    !call partition_kway(par_env, mesh)
-    call partition_stride(par_env, mesh)
+    call partition_kway(par_env, mesh)
+    !call partition_stride(par_env, mesh)
 
     call compute_connectivity(par_env, mesh)
 
@@ -948,8 +947,8 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
 
-    !call partition_kway(par_env, mesh)
-    call partition_stride(par_env, mesh)
+    call partition_kway(par_env, mesh)
+    !call partition_stride(par_env, mesh)
 
     call compute_connectivity(par_env, mesh)
 
@@ -1373,6 +1372,10 @@ contains
 
           call set_centre(loc_p, x_p)
         end do
+
+        call bandwidth(mesh)
+        call reorder_cells(par_env, mesh)
+        call bandwidth(mesh)
 
         do i = 1_ccs_int, local_num_cells
           call set_cell_location(mesh, i, loc_p)
