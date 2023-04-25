@@ -1,5 +1,9 @@
 .general_setup:
   before_script:
+  stage: normal
+  except:
+    variables:
+      - $NIGHTLY
 
 .setup_gnu:
   before_script:
@@ -21,21 +25,23 @@
     reports:
       junit: tests/report.xml
 
+.setup_nightly:
+
 stages:
-  - test
+  - normal
   - nightly
   
 
 #-----------------------------------------------------------------------------#
 
 debug_build_gnu:
-  extends: .setup_gnu
+  extends: [.general_setup, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu BUILD=debug make all
   allow_failure: true
 
 build_gnu:
-  extends: .setup_gnu
+  extends: [.general_setup, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu make obj
   artifacts:
@@ -46,7 +52,7 @@ test_gnu:
     - job: build_gnu
       artifacts: true
   extends: 
-    - .setup_gnu
+    - [.general_setup, .setup_gnu]
     - .test_common
   script:
     - HOME=${CI_HOME} CMP=gnu make tests
@@ -54,13 +60,13 @@ test_gnu:
 #-----------------------------------------------------------------------------#
 
 debug_build_intel:
-  extends: .setup_intel
+  extends: [.general_setup, .setup_intel]
   script:
     - HOME=${CI_HOME} CMP=intel BUILD=debug make all
   allow_failure: true
 
 build_intel:
-  extends: .setup_intel
+  extends: [.general_setup, .setup_intel]
   script:
     - HOME=${CI_HOME} CMP=intel make obj
   artifacts:
@@ -70,22 +76,20 @@ test_intel:
   needs: 
     - job: build_intel
       artifacts: true
-  extends: 
-    - .setup_intel
-    - .test_common
+  extends: [.general_setup, .setup_intel, .test_common]
   script:
     - HOME=${CI_HOME} CMP=intel make tests
 
 #-----------------------------------------------------------------------------#
 
 debug_build_intelx:
-  extends: .setup_intel
+  extends: [.general_setup, .setup_intel]
   script:
     - HOME=${CI_HOME} CMP=intelx BUILD=debug make all
   allow_failure: true
 
 build_intelx:
-  extends: .setup_intel
+  extends: [.general_setup, .setup_intel]
   script:
     - HOME=${CI_HOME} CMP=intelx make obj
   artifacts:
@@ -95,22 +99,20 @@ test_intelx:
   needs: 
     - job: build_intelx
       artifacts: true
-  extends: 
-    - .setup_intel
-    - .test_common
+  extends: [.general_setup, .setup_intel, .test_common]
   script:
     - HOME=${CI_HOME} CMP=intelx make tests
 
 #-----------------------------------------------------------------------------#
 
 debug_build_cray:
-  extends: .setup_cray
+  extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
   allow_failure: true
 
 build_cray:
-  extends: .setup_cray
+  extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"
   artifacts:
@@ -120,9 +122,7 @@ test_cray:
   needs: 
     - job: build_cray
       artifacts: true
-  extends: 
-    - .setup_cray
-    - .test_common
+  extends: [.general_setup, .setup_cray, .test_common]
   script:
     - cray_run_command "slurmctld -vv"
     - cray_run_command "slurmd -vv"
@@ -131,12 +131,14 @@ test_cray:
 #-----------------------------------------------------------------------------#
 
 lint_src:
+  extends: [.general_setup]
   script: 
     - bash build_tools/lint.sh lint src
     - bash build_tools/lint.sh score_each_file src
   allow_failure: true
 
 lint_tests:
+  extends: [.general_setup]
   script: 
     - bash build_tools/lint.sh lint tests
     - bash build_tools/lint.sh score_each_file tests
@@ -145,7 +147,7 @@ lint_tests:
 #-----------------------------------------------------------------------------#
 
 generate_ford_docs:
-  extends: .general_setup
+  extends: [.general_setup]
   script:
     - make ford
   artifacts:
@@ -154,7 +156,7 @@ generate_ford_docs:
   allow_failure: true
 
 generate_code_docs:
-  extends: .general_setup
+  extends: [.general_setup]
   script:
     - make docs
     - make docs-latex
@@ -164,7 +166,7 @@ generate_code_docs:
   allow_failure: true
 
 generate_dev_guide:
-  extends: .general_setup
+  extends: [.general_setup]
   script:
     - cd dev_guide
     - make all
@@ -179,7 +181,7 @@ profile_gnu:
   needs: 
     - job: build_gnu
       artifacts: false
-  extends: .setup_gnu
+  extends: [.general_setup, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu PROFILE=yes make all
   artifacts:
@@ -191,7 +193,7 @@ profile_intel:
   needs: 
     - job: build_intel
       artifacts: false
-  extends: .setup_intel
+  extends: [.general_setup, .setup_intel]
   script:
     - HOME=${CI_HOME} CMP=intel PROFILE=yes make all
   artifacts:
@@ -204,7 +206,7 @@ profile_cray:
   needs: 
     - job: build_cray
       artifacts: false
-  extends: .setup_cray
+  extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray PROFILE=yes make all"
   artifacts:
@@ -224,9 +226,7 @@ profile_cray:
   allow_failure: true
 
 nightly_gnu:
-  extends: 
-    - .setup_gnu
-    - .setup_nightly
+  extends: [.setup_nightly, .setup_gnu]
   script:
     - HOME=${CI_HOME} RUNTESTS=nightly CMP=gnu make tests
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
@@ -239,9 +239,7 @@ nightly_gnu:
 nightly_dummy:
   needs:
     - job: nightly_gnu
-  extends: 
-    - .setup_intel
-    - .setup_nightly
+  extends: [.setup_nightly, .setup_intel]
   script:
     - echo "just a test"
       #- HOME=${CI_HOME} RUNTESTS=nightly CMP=intel make tests
@@ -255,8 +253,7 @@ nightly_dummy:
 nightly_wiki_update:
   needs: 
     - job: nightly_dummy
-  extends: 
-    - .setup_nightly
+  extends: [.setup_nightly]
   script:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
