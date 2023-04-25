@@ -1,6 +1,5 @@
 .general_setup:
   before_script:
-  stage: normal
   except:
     variables:
       - $NIGHTLY
@@ -25,10 +24,6 @@
     reports:
       junit: tests/report.xml
 
-stages:
-  - normal
-  - nightly
-  
 
 #-----------------------------------------------------------------------------#
 
@@ -214,7 +209,6 @@ profile_cray:
 #-----------------------------------------------------------------------------#
 
 .setup_nightly:
-  stage: nightly
   only:
     variables:
       - $NIGHTLY
