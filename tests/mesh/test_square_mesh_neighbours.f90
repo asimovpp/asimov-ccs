@@ -1,20 +1,20 @@
-!v Test that cells have correct numbers of neighbours
+!v Test that cells have correct numbers of neighbours when building square mesh
 !
 !  for any mesh with >1 cell, every cell must have at least 1 neighbour.
-program test_mesh_neighbours
+program test_square_mesh_neighbours
 
   use testing_lib
 
   use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, &
                      get_boundary_status, get_local_num_cells, count_vertex_neighbours
-  use mesh_utils, only: build_mesh
+  use mesh_utils, only: build_square_mesh
 
   implicit none
 
   type(ccs_mesh), target :: mesh
   type(cell_locator) :: loc_p
 
-  integer(ccs_int) :: n, nx, ny, nz
+  integer(ccs_int) :: n
   real(ccs_real) :: l
 
   integer(ccs_int) :: local_num_cells
@@ -40,15 +40,11 @@ program test_mesh_neighbours
   do mctr = 1, size(m)
     n = m(mctr)
 
-    nx = n
-    ny = n
-    nz = n
-
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, nx, ny, nz, l)
+    mesh = build_square_mesh(par_env, n, l)
 
-    vertex_boundary_ctr = 0
     boundary_ctr = 0
+    vertex_boundary_ctr = 0
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
 
@@ -60,11 +56,11 @@ program test_mesh_neighbours
       ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
       ! Even in the limit of single 1D cell should have 2 boundary neighbours.
       call assert_gt(nnb, 1, "FAIL: cell should have 2 or more neighbours ")
-      call assert_lt(nnb, 7, "FAIL: cell should have at most 6 neighbours ")
+      call assert_lt(nnb, 5, "FAIL: cell should have at most 4 neighbours ")
 
       ! Now check the vertex neighbours
       call assert_gt(nvnb, 1, "FAIL: cell should have 2 or more vertex neighbours ")
-      call assert_lt(nvnb, 21, "FAIL: cell should have at most 20 vertex neighbours ")
+      call assert_lt(nvnb, 5, "FAIL: cell should have at most 4 vertex neighbours ")
 
       ! Loop over neighbours
       do j = 1, nnb
@@ -98,18 +94,18 @@ program test_mesh_neighbours
       call MPI_Allreduce(boundary_ctr, global_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
       call MPI_Allreduce(vertex_boundary_ctr, global_vertex_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
     class default
-      call stop_test("ERROR: Unknown parallel environment!")
+      write (message, *) "ERROR: Unknown parallel environment!"
+      call stop_test(message)
     end select
 
-    expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh. For a cube this just counts the surface area in terms of cells.
-    n_v = 8
-    n_e = 4 * (nx + ny + nz - 6)
-    n_f = 2 * ((nx - 2) * (ny - 2) + (ny - 2) * (nz - 2) + (nx - 2) * (nz - 2))
-    expected_vertex_boundary_ctr = 16 * n_v + 13 * n_e + 8 * n_f ! A cube should have 16 boundary neighbours for each (cube) vertex, 13 for
-    ! each cell on the edge excluding cube vertices, and 8 for each cell on a face
-    ! excluding cube vertices and edges
+    expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh. This just counts the boundary neighbours on the perimeter of the square mesh.
+    n_v = 4
+    n_e = 4 * n - 8
+    expected_vertex_boundary_ctr = 3 * n_v + 2 * n_e ! A square should have 3 boundary neighbours for each corner, and 3 for
+    ! each cell on the edge excluding square vertices
     call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
     call assert_eq(global_vertex_boundary_ctr, expected_vertex_boundary_ctr, "FAIL: mesh vertex boundary count is incorrect")
+
   end do
 
   call fin()
@@ -220,4 +216,4 @@ contains
 
   end subroutine test_mesh_internal_vertex_neighbours
 
-end program test_mesh_neighbours
+end program test_square_mesh_neighbours

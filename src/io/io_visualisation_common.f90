@@ -1,6 +1,8 @@
 !v Submodule file io_visualisation_common.smod
 !
 !  An implementation of the visualisation-related IO routines
+!
+!  @dont_fail_linter
 
 submodule(io_visualisation) io_visualisation_common
 #include "ccs_macros.inc"

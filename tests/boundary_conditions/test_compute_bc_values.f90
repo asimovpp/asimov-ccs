@@ -198,52 +198,52 @@ contains
     end associate
   end subroutine check_extrapolated_bc
 
-  !! ! Checks whether symmetric bcs are being computed correctly
-  !! subroutine check_symmetric_bc(loc_p, loc_f, cps)
-  !!   type(cell_locator), intent(in) :: loc_p   !< cell location to check bc at
-  !!   type(face_locator), intent(in) :: loc_f   !< the face location at the boundary
-  !!   integer(ccs_int), intent(in) :: cps       !< the number of cells per side of the mesh
+  ! ! Checks whether symmetric bcs are being computed correctly
+  ! subroutine check_symmetric_bc(loc_p, loc_f, cps)
+  !   type(cell_locator), intent(in) :: loc_p   !< cell location to check bc at
+  !   type(face_locator), intent(in) :: loc_f   !< the face location at the boundary
+  !   integer(ccs_int), intent(in) :: cps       !< the number of cells per side of the mesh
 
-  !!   type(vector_spec) :: vec_properties
-  !!   class(field), allocatable :: sym_field
-  !!   integer(ccs_int) :: component
-  !!   integer(ccs_int) :: n_boundaries = 4
-  !!   real(ccs_real), dimension(:), pointer :: sym_field_data
-  !!   real(ccs_real), dimension(ndim) :: face_norm
-  !!   real(ccs_real) :: expected_bc_value, bc_val
+  !   type(vector_spec) :: vec_properties
+  !   class(field), allocatable :: sym_field
+  !   integer(ccs_int) :: component
+  !   integer(ccs_int) :: n_boundaries = 4
+  !   real(ccs_real), dimension(:), pointer :: sym_field_data
+  !   real(ccs_real), dimension(ndim) :: face_norm
+  !   real(ccs_real) :: expected_bc_value, bc_val
 
-  !!   call get_face_normal(loc_f, face_norm)
+  !   call get_face_normal(loc_f, face_norm)
 
-  !!   associate (mesh => loc_f%mesh)
-  !!     call initialise(vec_properties)
-  !!     call set_vector_location(cell, vec_properties)
-  !!     call set_size(par_env, mesh, vec_properties)
-  !!     allocate (central_field :: sym_field)
-  !!     call create_vector(vec_properties, sym_field%values)
-  !!     call update(sym_field%values)
-  !!     call allocate_bc_arrays(n_boundaries, sym_field%bcs)
-  !!     sym_field%bcs%bc_types = bc_type_sym
-  !!     sym_field%bcs%ids = (/(j, j=1, n_boundaries)/)
+  !   associate (mesh => loc_f%mesh)
+  !     call initialise(vec_properties)
+  !     call set_vector_location(cell, vec_properties)
+  !     call set_size(par_env, mesh, vec_properties)
+  !     allocate (central_field :: sym_field)
+  !     call create_vector(vec_properties, sym_field%values)
+  !     call update(sym_field%values)
+  !     call allocate_bc_arrays(n_boundaries, sym_field%bcs)
+  !     sym_field%bcs%bc_types = bc_type_sym
+  !     sym_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
-  !!     call get_vector_data(sym_field%values, sym_field_data)
-  !!     do j = 1, local_num_cells
-  !!       sym_field_data(j) = j / cps + 1
-  !!     end do
-  !!     call restore_vector_data(sym_field%values, sym_field_data)
+  !     call get_vector_data(sym_field%values, sym_field_data)
+  !     do j = 1, local_num_cells
+  !       sym_field_data(j) = j / cps + 1
+  !     end do
+  !     call restore_vector_data(sym_field%values, sym_field_data)
 
-  !!     do j = 1, ndim
-  !!       component = j
-  !!       if (j == 2) then
-  !!         expected_bc_value = 0
-  !!       else
-  !!         expected_bc_value = 1
-  !!       end if
-  !!       call compute_boundary_values(sym_field, component, loc_p, loc_f, face_norm, bc_val)
-  !!       call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
-  !!     end do
-  !!     call dprint("done symmetric test")
-  !!   end associate
+  !     do j = 1, ndim
+  !       component = j
+  !       if (j == 2) then
+  !         expected_bc_value = 0
+  !       else
+  !         expected_bc_value = 1
+  !       end if
+  !       call compute_boundary_values(sym_field, component, loc_p, loc_f, face_norm, bc_val)
+  !       call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
+  !     end do
+  !     call dprint("done symmetric test")
+  !   end associate
 
-  !! end subroutine check_symmetric_bc
+  ! end subroutine check_symmetric_bc
 
 end program test_compute_bc_values

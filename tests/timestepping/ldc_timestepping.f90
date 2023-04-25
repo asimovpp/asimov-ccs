@@ -305,20 +305,20 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
-       call calc_cell_coords(global_index_p, cps, row, col)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call calc_cell_coords(global_index_p, cps, row, col)
 
-       u_val = 0.0_ccs_real
-       v_val = 0.0_ccs_real
-       w_val = 0.0_ccs_real
+      u_val = 0.0_ccs_real
+      v_val = 0.0_ccs_real
+      w_val = 0.0_ccs_real
 
-       call set_row(global_index_p, u_vals)
-       call set_entry(u_val, u_vals)
-       call set_row(global_index_p, v_vals)
-       call set_entry(v_val, v_vals)
-       call set_row(global_index_p, w_vals)
-       call set_entry(w_val, w_vals)
+      call set_row(global_index_p, u_vals)
+      call set_entry(u_val, u_vals)
+      call set_row(global_index_p, v_vals)
+      call set_entry(v_val, v_vals)
+      call set_row(global_index_p, w_vals)
+      call set_entry(w_val, w_vals)
     end do
 
     call set_values(u_vals, u%values)

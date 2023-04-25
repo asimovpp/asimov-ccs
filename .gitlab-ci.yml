@@ -146,21 +146,10 @@ generate_ford_docs:
       - doc
   allow_failure: true
 
-generate_code_docs:
-  extends: [.general_setup]
-  script:
-    - make docs
-    - make docs-latex
-  artifacts:
-    paths:
-      - latex/refman.pdf
-  allow_failure: true
-
 generate_dev_guide:
   extends: [.general_setup]
   script:
-    - cd dev_guide
-    - make all
+    - make dev_guide
   artifacts:
     paths:
       - dev_guide/ccs_dev_guide.pdf

@@ -21,6 +21,7 @@ bases:
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
       timestepping: timestepping_second_order
+      timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
       poisson_discretisation: poisson_discretisation_ref
@@ -49,6 +50,7 @@ bases:
       meshing_ops: meshing_operators
       pv_coupling: pv_coupling_simple
       timestepping: timestepping_second_order
+      timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
       poisson_discretisation: poisson_discretisation_ref

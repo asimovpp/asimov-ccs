@@ -556,7 +556,7 @@ to the selected \texttt{type} or \texttt{class}. In addition, indentation should
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{9}{10}\ttfamily
-    \label{lst:doxygen}
+    \label{lst:type_selection}
 ]
 select type (par_env)
 
@@ -575,18 +575,13 @@ Subroutines and functions should be marked as \texttt{pure} whenever possible (i
 in order to guarantee that the compiler will routinely inline these procedures.
 
 \section{Comments}
-All comments should be written using tags understood by the doxygen documentation generator. A minimal comment
-block would consist of only the \texttt{@brief} tag (single sentence description of the functionality), a better comment
-block will also include an \texttt{@details} tag with a detailed description of the functionality that can span many 
-lines/sentences. For subroutines or subroutine interfaces, the \texttt{@param} tag is useful to describe the arguments.
+All comments should be written using tags understood by the FORD\footnote{\url{https://github.com/Fortran-FOSS-Programmers/ford}} documentation generator. A minimal comment
+block would consist of only a single line description of the functionality in a comment beginning with either \texttt{!>} or \texttt{!v} for a multi-line comment. A better comment
+block will also include a detailed description (separated by a blank line from the short description) of the functionality that can span many 
+lines/sentences. 
+Argument descriptions should be put after each argument behind a \texttt{!<}. Argument properties such as \texttt{intent} will be parsed automatically.
 
-Other useful tags are:
-\begin{itemize}
-  \item \texttt{@todo}: Describe functionality that still needs to be implemented.
-  \item \texttt{@bug}: Give details of a bug that needs to be fixed, especially non-trivial fixes.
-  \item \texttt{@see}: Give reference to another program unit, e.g. to a parent module or a related subroutine.
-  \item \texttt{@build}: Submodule descriptor comments should include this tag if they have third-party dependencies, e.g. \texttt{@build mpi petsc}.
-\end{itemize}
+Submodule descriptor comments should include this tag if they have third-party dependencies, e.g. \texttt{@build mpi petsc}.
 
 
 This is an example of a comment block for a simple subroutine that adds two integers:
@@ -594,21 +589,17 @@ This is an example of a comment block for a simple subroutine that adds two inte
 \begin{lstlisting}[
 	language=fortran,
     basicstyle=\fontsize{9}{10}\ttfamily
-    \label{lst:doxygen}
+    \label{lst:ford}
 ]
-!> @brief A subroutine to add two integers.
-
-!> @details Take two integers (a and b) as input and add them
-!> together to produce the `total' output
-!> 
-!> @param a Integer input
-!> @param b Integer input
-!> @param total Integer output, total of a and b
-
+!v A subroutine to add two integers.
+!
+!  Take two integers (a and b) as input and add them
+!  together to produce the `total' output
 subroutine add(a, b, total)
 
-  integer, intent(in)  :: a, b
-  integer, intent(out) :: total
+  integer, intent(in)  :: a !< First number
+  integer, intent(in)  :: b !< Second number
+  integer, intent(out) :: total !< Total of a and b
 
   total = a + b
 
