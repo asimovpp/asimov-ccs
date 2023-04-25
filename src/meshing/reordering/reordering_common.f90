@@ -82,8 +82,6 @@ contains
 
     call dprint("         NATURAL INDICES")
     call reorder_natural_indices(new_indices, par_env, mesh)
-    call dprint("         CELL CENTRES")
-    call reorder_cell_centres(new_indices, mesh)
     call dprint("         CELL NEIGHBOURS")
     call reorder_neighbours(new_indices, mesh)
     call dprint("         CELL FACES")
@@ -193,36 +191,6 @@ contains
     call set_global_indices(par_env, mesh)
     
   end subroutine reorder_natural_indices
-  
-  subroutine reorder_cell_centres(new_indices, mesh)
-
-    integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
-    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
-
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: i
-    integer(ccs_int) :: idx_new
-    type(cell_locator) :: loc_p
-    
-    real(ccs_real), dimension(:, :), allocatable :: x
-
-    call get_local_num_cells(mesh, local_num_cells)
-
-    allocate (x(3, local_num_cells))
-
-    do i = 1, local_num_cells
-      idx_new = new_indices(i)
-      call set_cell_location(mesh, i, loc_p)
-      call get_centre(loc_p, x(:, idx_new))
-    end do
-    do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
-      call set_centre(loc_p, x(:, i))
-    end do
-
-    deallocate (x)
-
-  end subroutine reorder_cell_centres
 
   subroutine reorder_neighbours(new_indices, mesh)
 

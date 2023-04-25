@@ -483,6 +483,10 @@ contains
 
     call compute_connectivity(par_env, mesh)
 
+    call bandwidth(mesh)
+    call reorder_cells(par_env, mesh)
+    call bandwidth(mesh)
+
     call build_square_geometry(par_env, cps, side_length, mesh)
 
   end function build_square_mesh
@@ -818,17 +822,13 @@ contains
         do i = 1_ccs_int, mesh%topo%total_num_cells
           call set_cell_location(mesh, i, loc_p)
            
-          ii = mesh%topo%global_indices(i)
+          ii = mesh%topo%natural_indices(i)
 
           x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
           x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
 
           call set_centre(loc_p, x_p)
         end do
-
-        call bandwidth(mesh)
-        call reorder_cells(par_env, mesh)
-        call bandwidth(mesh)
         
         do i = 1_ccs_int, local_num_cells
           call set_cell_location(mesh, i, loc_p)
@@ -951,6 +951,10 @@ contains
     !call partition_stride(par_env, mesh)
 
     call compute_connectivity(par_env, mesh)
+
+    call bandwidth(mesh)
+    call reorder_cells(par_env, mesh)
+    call bandwidth(mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
@@ -1365,17 +1369,13 @@ contains
         do i = 1_ccs_int, mesh%topo%total_num_cells
           call set_cell_location(mesh, i, loc_p)
             
-          ii = mesh%topo%global_indices(i)
+          ii = mesh%topo%natural_indices(i)
           x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
           x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
           x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
 
           call set_centre(loc_p, x_p)
         end do
-
-        call bandwidth(mesh)
-        call reorder_cells(par_env, mesh)
-        call bandwidth(mesh)
 
         do i = 1_ccs_int, local_num_cells
           call set_cell_location(mesh, i, loc_p)
