@@ -3,6 +3,7 @@
 !  Implementation (using MPI) of the parallel utilities
 !
 !  @build mpi
+!  @dont_fail_linter
 
 submodule(parallel) parallel_utils_mpi
 #include "ccs_macros.inc"
