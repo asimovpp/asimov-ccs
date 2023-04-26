@@ -10,8 +10,9 @@ submodule(partitioning) partitioning_parmetis
 
   interface
     subroutine partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
-                                    num_procs, imbalance, suppress, &
-                                    seed, mode, edgecuts, local_partition, comm) bind(c)
+                                    wgtflag, numflag, ncon, num_procs, &
+                                    tpwgts, ubvec, options, &
+                                    edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
       integer(c_long), dimension(*) :: vtxdist
@@ -19,11 +20,13 @@ submodule(partitioning) partitioning_parmetis
       integer(c_long), dimension(*) :: adjncy
       integer(c_long), dimension(*) :: vwgt
       integer(c_long), dimension(*) :: adjwgt
+      integer(c_int) :: wgtflag ! Set to 0 for "no weights"
+      integer(c_int) :: numflag ! Numbering scheme - 1 means Fortran style
+      integer(c_int) :: ncon
       integer(c_int) :: num_procs
-      real(c_double) :: imbalance
-      integer(c_int) :: suppress
-      integer(c_int) :: seed
-      integer(c_int) :: mode
+      real(c_float), dimension(*) :: tpwgts
+      real(c_float), dimension(*) :: ubvec
+      integer(c_int), dimension(*) :: options
       integer(c_int) :: edgecuts
       integer(c_long), dimension(*) :: local_partition
       integer(c_int) :: comm
@@ -56,32 +59,44 @@ contains
     integer(c_long), dimension(:), allocatable :: adjncy
     integer(c_long), dimension(:), allocatable :: vwgt
     integer(c_long), dimension(:), allocatable :: adjwgt
+    integer(c_int) :: wgtflag ! Set to 0 for "no weights"
+    integer(c_int) :: numflag ! Numbering scheme - 1 means Fortran style
+    integer(c_int) :: ncon
     integer(c_int) :: num_procs
-    real(c_double) :: imbalance
-    integer(c_int) :: suppress
-    integer(c_int) :: seed
-    integer(c_int) :: mode
+    real(c_float), dimension(:), allocatable :: tpwgts
+    real(c_float), dimension(:), allocatable :: ubvec
+    integer(c_int), dimension(:), allocatable :: options
     integer(c_int) :: edgecuts
     integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
-    ! Values hardcoded for now
-    imbalance = 0.03  ! Desired balance - 0.03 = 3%
-    seed = 2022       ! "Random" seed
-    mode = 4          ! FASTSOCIAL
-    suppress = 0      ! Do not suppress the output
-    edgecuts = -1     ! XXX: silence unused variable warning
+    ! Values mostly hardcoded for now
+    wgtflag = 0 ! No weights
+    numflag = 0 ! Use C-style indexing for now
+    ncon = 3
+    num_procs = par_env%num_procs
+    edgecuts = -1 ! XXX: silence unused variable warning
+
+    allocate(ubvec(ncon))
+    allocate(tpwgts(ncon * num_procs))
+    allocate(options(3))
+
+    options(0) = 0 ! 0 = default values, 1 = values specified in (1) and (2)
+    options(1) = 1 ! Output verbosity - 1 gives timing information
+    options(2) = 2023 ! Random number seed
+
+    ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
+    tpwgts(:) = 1.0/num_procs ! Fraction of vertex weight that should be distributed 
+                              ! to each sub-domain. Sum of tpwgts(:) should be 1.
 
     allocate (tmp_partition(mesh%topo%global_num_cells)) ! Temporary partition array
     tmp_partition = 0
 
     irank = par_env%proc_id ! Current rank
-    num_procs = par_env%num_procs
 
-    ! Parmetis needs 0-indexing - shift array contents by -1
-    vtxdist = mesh%topo%vtxdist - 1
-    xadj = mesh%topo%xadj - 1
-    adjncy = mesh%topo%adjncy - 1
+    vtxdist = mesh%topo%vtxdist -1
+    xadj = mesh%topo%xadj -1
+    adjncy = mesh%topo%adjncy -1
 
     adjwgt = mesh%topo%adjwgt
     vwgt = mesh%topo%vwgt
@@ -103,8 +118,9 @@ contains
       comm = par_env%comm
 
       call partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
-                                num_procs, imbalance, suppress, &
-                                seed, mode, edgecuts, local_partition, comm)
+                                wgtflag, numflag, ncon, num_procs, &
+                                tpwgts, ubvec, options,
+                                edgecuts, local_partition, comm)
 
       mesh%topo%local_partition(:) = local_partition(:)
 
