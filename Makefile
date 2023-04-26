@@ -84,6 +84,9 @@ LIB += -Wl,-rpath,${FYAMLC}/lib -L${FYAMLC}/lib -lfortran-yaml-c
 INC += -I${PARHIP}/include
 LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
 
+INC += -I${PARMETIS}/include
+LIB += -L${PARMETIS}/lib -lparhip_interface -Wl,-rpath,${PARMETIS}/lib
+
 ifeq ($(NEED_CMP),yes)
   INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
   LIB += $(shell $(ADIOS2)/bin/adios2-config --fortran-libs)
