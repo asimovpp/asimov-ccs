@@ -119,7 +119,7 @@ contains
 
       call partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
                                 wgtflag, numflag, ncon, num_procs, &
-                                tpwgts, ubvec, options,
+                                tpwgts, ubvec, options, &
                                 edgecuts, local_partition, comm)
 
       mesh%topo%local_partition(:) = local_partition(:)
