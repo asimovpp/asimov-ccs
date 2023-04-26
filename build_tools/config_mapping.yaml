@@ -26,7 +26,7 @@ bases:
       partitioning_common: partitioning_common
       poisson_discretisation: poisson_discretisation_ref
     options:
-      timestepping: [timestepping_first_order, timestepping_second_order]
+      timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       poisson_discretisation: [poisson_discretisation_ref]
   mpi:
     defaults:
@@ -55,5 +55,5 @@ bases:
       partitioning_common: partitioning_common
       poisson_discretisation: poisson_discretisation_ref
     options:
-      timestepping: [timestepping_first_order, timestepping_second_order]
+      timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       poisson_discretisation: [poisson_discretisation_ref]
