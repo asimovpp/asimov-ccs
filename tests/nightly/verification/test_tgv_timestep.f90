@@ -31,7 +31,7 @@ program test_tgv_timestep
   call init()
 
   variable_labels = (/ "U", "V", "P" /)
-  dt_list = (/ 0.01, 0.005, 0.0025, 0.00125 /)
+  dt_list = (/ 0.001, 0.0005, 0.00025, 0.000125 /)
   refinements = dt_list / minval(dt_list)
 
   errors_L2(:, :) = 0.0_ccs_real
@@ -39,7 +39,7 @@ program test_tgv_timestep
 
   do i = 1, num_dt
     dt = dt_list(i)
-    num_steps = int(1.0_ccs_real / dt)
+    num_steps = int(0.02_ccs_real / dt)
     call run_tgv2d(par_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt, input_num_steps=num_steps)
   end do
 

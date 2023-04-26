@@ -514,7 +514,7 @@ contains
       u_an = sin(x_p(1)) * cos(x_p(2)) * ft
       v_an = -cos(x_p(1)) * sin(x_p(2)) * ft
       w_an = 0.0_ccs_real
-      p_an = -(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
+      p_an = +(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
 
       error_L2_local(1) = error_L2_local(1) + (u_an - u_data(index_p))**2
       error_L2_local(2) = error_L2_local(2) + (v_an - v_data(index_p))**2
@@ -549,8 +549,8 @@ contains
       else
         open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
       end if
-      fmt = '(I0,' // str(size(error_L2)) // '(1x,e12.4))'
-      write (io_unit, fmt) t, error_L2
+      fmt = '(I0,' // str(2*size(error_L2)) // '(1x,e12.4))'
+      write (io_unit, fmt) t, error_L2, error_Linf
       close (io_unit)
     end if
 
