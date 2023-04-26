@@ -255,7 +255,7 @@ contains
 
     ! Read variable "/cell/vol"
     call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
-    mesh%geo%volumes(:) = temp_vol_c(mesh%topo%global_indices(:))
+    mesh%geo%volumes(:) = temp_vol_c(mesh%topo%natural_indices(:))
 
     ! Starting point for reading chunk of data
     x_p_start = (/0, 0/)
@@ -268,7 +268,7 @@ contains
 
     ! Read variable "/cell/x"
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
-    mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%global_indices(:)) 
+    mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%natural_indices(:)) 
 
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     allocate (temp_x_f(ndim, mesh%topo%global_num_faces))
@@ -307,7 +307,7 @@ contains
 
     !    do k = start, end ! loop over cells owned by current process
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
-      global_icell = mesh%topo%global_indices(local_icell)
+      global_icell = mesh%topo%natural_indices(local_icell)
 
       do j = 1, mesh%topo%max_faces ! loop over all faces for each cell
         call set_face_location(mesh, local_icell, j, loc_f)
