@@ -6,11 +6,11 @@
 #include <mpi.h>
 #include <parmetis.h>
 
-void partition_parmetiskway(idxtype *vtxdist,idxtype *xadj,idxtype *adjncy,
-                              idxtype *vwgt,idxtype *adjwgt,
-                              int *wgtflag, int *numflag, int *ncon, int *nparts,
-                              float *tpwgts, float *ubvec, int *options, 
-                              int *edgecut, idxtype *part, MPI_Fint *ccomm)
+void partition_parmetiskway(idx_t *vtxdist,idx_t *xadj,idx_t *adjncy,
+                              idx_t *vwgt,idx_t *adjwgt,
+                              idx_t *wgtflag, idx_t *numflag, idx_t *ncon, idx_t *nparts,
+                              float *tpwgts, float *ubvec, idx_t *options, 
+                              idx_t *edgecut, idx_t *part, MPI_Fint *ccomm)
 
 {
   int mype, npes;
