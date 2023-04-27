@@ -1,0 +1,8 @@
+# RUN: %build_test %s %t1 test_mesh_partitioning_parmetis.f90
+# RUN: %mpirun -oversubscribe -n 3 %t1
+
+main: test_mesh_partitioning_parmetis
+base: mpi
+options: 
+  partitioning: partitioning_parmetis
+extra: parmetis
