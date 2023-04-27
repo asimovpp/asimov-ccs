@@ -20,14 +20,14 @@ submodule(partitioning) partitioning_parmetis
       integer(c_long), dimension(*) :: adjncy
       integer(c_long), dimension(*) :: vwgt
       integer(c_long), dimension(*) :: adjwgt
-      integer(c_int) :: wgtflag ! Set to 0 for "no weights"
-      integer(c_int) :: numflag ! Numbering scheme - 1 means Fortran style
-      integer(c_int) :: ncon
-      integer(c_int) :: num_procs
+      integer(c_long) :: wgtflag ! Set to 0 for "no weights"
+      integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
+      integer(c_long) :: ncon
+      integer(c_long) :: num_procs
       real(c_float), dimension(*) :: tpwgts
       real(c_float), dimension(*) :: ubvec
-      integer(c_int), dimension(*) :: options
-      integer(c_int) :: edgecuts
+      integer(c_long), dimension(*) :: options
+      integer(c_long) :: edgecuts
       integer(c_long), dimension(*) :: local_partition
       integer(c_int) :: comm
     end subroutine
@@ -59,14 +59,14 @@ contains
     integer(c_long), dimension(:), allocatable :: adjncy
     integer(c_long), dimension(:), allocatable :: vwgt
     integer(c_long), dimension(:), allocatable :: adjwgt
-    integer(c_int) :: wgtflag ! Set to 0 for "no weights"
-    integer(c_int) :: numflag ! Numbering scheme - 1 means Fortran style
-    integer(c_int) :: ncon
-    integer(c_int) :: num_procs
+    integer(c_long) :: wgtflag ! Set to 0 for "no weights"
+    integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
+    integer(c_long) :: ncon
+    integer(c_long) :: num_procs
     real(c_float), dimension(:), allocatable :: tpwgts
     real(c_float), dimension(:), allocatable :: ubvec
-    integer(c_int), dimension(:), allocatable :: options
-    integer(c_int) :: edgecuts
+    integer(c_long), dimension(:), allocatable :: options
+    integer(c_long) :: edgecuts
     integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
@@ -79,14 +79,16 @@ contains
 
     allocate(ubvec(ncon))
     allocate(tpwgts(ncon * num_procs))
-    allocate(options(3))
+    allocate(options(0:2))
 
     options(0) = 0 ! 0 = default values, 1 = values specified in (1) and (2)
     options(1) = 1 ! Output verbosity - 1 gives timing information
     options(2) = 2023 ! Random number seed
 
     ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
-    tpwgts(:) = 1.0/num_procs ! Fraction of vertex weight that should be distributed 
+    tpwgts(:) = 1.0/num_procs ! XXX: Not quite correct, though probably does not matter as
+                              ! we are not using weights
+                              ! Fraction of vertex weight that should be distributed 
                               ! to each sub-domain. Sum of tpwgts(:) should be 1.
 
     allocate (tmp_partition(mesh%topo%global_num_cells)) ! Temporary partition array
@@ -135,7 +137,7 @@ contains
       print *, "ERROR: Unknown parallel environment!"
     end select
 
-    call dprint("Number of edgecuts: " // str(edgecuts))
+    call dprint("Number of edgecuts: " // str(int(edgecuts)))
 
     deallocate (tmp_partition)
 
