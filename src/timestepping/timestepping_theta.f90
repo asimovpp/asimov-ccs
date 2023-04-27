@@ -5,7 +5,7 @@ submodule(timestepping) timestepping_theta
 
   real(ccs_real), parameter :: theta = 0.5 !< timestepping scheme mixing factor
   integer(ccs_int), parameter :: num_old_vals = 2 !< the number of old field values the scheme uses
-  real(ccs_real), parameter :: theoretical_order = 2.0_ccs_real !< Theoretical order of accuracy of the scheme
+  real(ccs_real), parameter :: theoretical_order = theta + 1.0_ccs_real !< Theoretical order of accuracy of the scheme
   logical, save :: first_update = .true.
 
 contains
