@@ -3,4 +3,6 @@
 
 main: test_mesh_partitioning
 base: mpi
+options: 
+  partitioning: partitioning_parhip
 extra: parhip
