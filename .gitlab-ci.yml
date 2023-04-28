@@ -109,7 +109,8 @@ build_cray:
   artifacts:
     paths: [obj/]
 
-test_cray:
+#don't run cray tests because slurm is broken on the CI
+.test_cray:
   needs: 
     - job: build_cray
       artifacts: true
