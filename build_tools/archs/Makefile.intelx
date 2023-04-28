@@ -17,4 +17,4 @@ FFLAGS += -xHOST
 FFLAGS += -module $(OBJ_DIR)
 FFLAGS += -no-wrap-margin
 CAFFLAGS = -coarray
-MPIRUN = mpirun --oversubscribe
+MPIRUN = mpirun
