@@ -20,6 +20,13 @@ contains
     active = timestepping_active
   end function
 
+  module subroutine reset_timestepping_module()
+
+    timestepping_active = .false.
+    timestep_is_set = .false.
+
+  end subroutine
+
   module subroutine set_timestep(timestep)
 
     real(ccs_real), intent(in) :: timestep
