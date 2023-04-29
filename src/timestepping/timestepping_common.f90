@@ -1,6 +1,8 @@
 submodule(timestepping) timestepping_common
 #include "ccs_macros.inc"
 
+  use meshing, only: get_local_num_cells, set_cell_location, get_volume
+  use types, only: cell_locator
   use utils, only: exit_print
 
   implicit none
@@ -108,7 +110,6 @@ contains
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
     use vec, only: get_vector_data, restore_vector_data
     use utils, only: update, finalise
-    use meshing, only: get_local_num_cells
 
     type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
@@ -122,6 +123,9 @@ contains
     integer(ccs_int) :: i
     integer(ccs_int) :: local_num_cells
 
+    real(ccs_real) :: V_p
+    type(cell_locator) :: loc_p
+    
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
@@ -132,11 +136,14 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
+      call set_cell_location(mesh, i, loc_p)
+      call get_volume(loc_p, V_p)
+      
       ! A = A + V/dt
-      diag_data(i) = diag_data(i) + mesh%geo%volumes(i) / get_timestep()
+      diag_data(i) = diag_data(i) + V_p / get_timestep()
 
       ! b = b + V/dt * phi_old
-      b_data(i) = b_data(i) + mesh%geo%volumes(i) / get_timestep() * phi_data(i)
+      b_data(i) = b_data(i) + V_p / get_timestep() * phi_data(i)
     end do
     call restore_vector_data(phi%old_values(1)%vec, phi_data)
     call restore_vector_data(diag, diag_data)
@@ -150,7 +157,6 @@ contains
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
     use vec, only: get_vector_data, restore_vector_data
     use utils, only: update, finalise
-    use meshing, only: get_local_num_cells
 
     type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
@@ -166,6 +172,9 @@ contains
     integer(ccs_int) :: i
     integer(ccs_int) :: local_num_cells
 
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: V_p
+
     rho = 1.0
 
     call finalise(M)
@@ -179,11 +188,14 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
+      call set_cell_location(mesh, i, loc_p)
+      call get_volume(loc_p, V_p)
+      
       ! A = A + 1.5*rho*V/dt
-      diag_data(i) = diag_data(i) + 1.5 * rho * mesh%geo%volumes(i) / get_timestep()
+      diag_data(i) = diag_data(i) + 1.5 * rho * V_p / get_timestep()
 
       ! b = b + rho*V/dt * (2*phi_old(n-1) - 0.5*phi_old(n-2))
-      b_data(i) = b_data(i) + rho * mesh%geo%volumes(i) / get_timestep() * (2 * phi_old1_data(i) - 0.5 * phi_old2_data(i))
+      b_data(i) = b_data(i) + rho * V_p / get_timestep() * (2 * phi_old1_data(i) - 0.5 * phi_old2_data(i))
     end do
     call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
     call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
@@ -214,6 +226,9 @@ contains
     integer(ccs_int) :: i
     integer(ccs_int) :: local_num_cells
 
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: V_p
+
     rho = 1.0
 
     call finalise(M)
@@ -227,11 +242,14 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
+      call set_cell_location(mesh, i, loc_p)
+      call get_volume(loc_p, V_p)
+
       ! A = A + (1.0 + 0.5 * theta)*rho*V/dt
-      diag_data(i) = diag_data(i) + (1.0 + 0.5 * theta) * rho * mesh%geo%volumes(i) / get_timestep()
+      diag_data(i) = diag_data(i) + (1.0 + 0.5 * theta) * rho * V_p / get_timestep()
 
       ! b = b + rho*V/dt * ((1.0 + theta)*phi_old(n-1) - 0.5*theta*phi_old(n-2))
-      b_data(i) = b_data(i) + rho * mesh%geo%volumes(i) / get_timestep() * ((1.0 + theta) * phi_old1_data(i) - 0.5 * theta * phi_old2_data(i))
+      b_data(i) = b_data(i) + rho * V_p / get_timestep() * ((1.0 + theta) * phi_old1_data(i) - 0.5 * theta * phi_old2_data(i))
     end do
     call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
     call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
