@@ -28,7 +28,8 @@ module mesh_utils
                      get_num_faces, set_num_faces, &
                      get_max_faces, set_max_faces, &
                      set_face_interpolation, &
-                     set_local_index
+                     set_local_index, &
+                     set_global_index
   use bc_constants
 
   implicit none
@@ -568,6 +569,8 @@ contains
     integer(ccs_int), dimension(2) :: nb_direction  ! Array indicating direction of neighbour
 
     integer(ccs_int) :: nglobal          ! The global number of cells
+
+    type(face_locator) :: loc_f
     
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -716,7 +719,8 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
@@ -728,21 +732,23 @@ contains
 
         ! Construct right (2) face/neighbour
         face_counter = right
-        mesh%topo%global_face_indices(face_counter, i) = face_index_counter
         if (modulo(ii, cps) == (cps - 1_ccs_int)) then
           global_index_nb = -right
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
           global_index_nb = i + 1_ccs_int
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
-          mesh%topo%global_face_indices(left, global_index_nb) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
+          call set_face_location(mesh, i, left, loc_f)
+          call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
 
@@ -753,7 +759,8 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
@@ -770,15 +777,18 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
           global_index_nb = i + cps
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
-          mesh%topo%global_face_indices(bottom, global_index_nb) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
+          call set_face_location(mesh, i, bottom, loc_f)
+          call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
 
@@ -1055,6 +1065,8 @@ contains
     logical :: set_vert_nb              ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(3) :: nb_direction  ! Array indicating direction of neighbour
 
+    type(face_locator) :: loc_f
+    
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -1278,7 +1290,8 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
@@ -1290,21 +1303,23 @@ contains
 
         ! Construct right (2) face/neighbour
         face_counter = right
-        mesh%topo%global_face_indices(face_counter, i) = face_index_counter
         if (modulo(ii, nx) == (nx - 1_ccs_int)) then
           global_index_nb = -right
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
           global_index_nb = i + 1_ccs_int
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
-          mesh%topo%global_face_indices(left, global_index_nb) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
+          call set_face_location(mesh, i, left, loc_f)
+          call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
 
@@ -1315,7 +1330,8 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
@@ -1332,15 +1348,18 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
           global_index_nb = i + nx
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
-          mesh%topo%global_face_indices(bottom, global_index_nb) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
+          call set_face_location(mesh, i, bottom, loc_f)
+          call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
 
@@ -1351,7 +1370,8 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
         else
@@ -1368,15 +1388,18 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
           global_index_nb = i + nx * ny
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          mesh%topo%global_face_indices(face_counter, i) = face_index_counter
-          mesh%topo%global_face_indices(back, global_index_nb) = face_index_counter
+          call set_face_location(mesh, i, face_counter, loc_f)
+          call set_global_index(face_index_counter, loc_f)
+          call set_face_location(mesh, i, back, loc_f)
+          call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
 

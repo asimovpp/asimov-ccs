@@ -21,7 +21,7 @@ module meshing
   public :: get_face_area
   public :: get_centre
   public :: get_volume
-  public :: get_global_index
+  public :: get_global_index, set_global_index
   public :: get_local_index, set_local_index
   public :: get_boundary_status
   public :: get_local_status
@@ -52,6 +52,10 @@ module meshing
     module procedure get_cell_global_index
     module procedure get_neighbour_global_index
   end interface get_global_index
+
+  interface set_global_index
+    module procedure set_face_global_index
+  end interface set_global_index
 
   interface get_local_index
     module procedure get_cell_local_index
@@ -227,6 +231,12 @@ module meshing
       integer(ccs_int), intent(out) :: global_index_nb !< the global index of the neighbour cell.
     end subroutine get_neighbour_global_index
 
+    !> Sets the global index of a face
+    module subroutine set_face_global_index(global_index_f, loc_f)
+      integer(ccs_int), intent(in) :: global_index_f !< The global index of the face.
+      type(face_locator), intent(inout) :: loc_f     !< The face locator object.
+    end subroutine set_face_global_index
+    
     !> Returns the neighbour count of a cell (including boundary neighbours)
     module subroutine cell_count_neighbours(loc_p, nnb)
       type(cell_locator), intent(in) :: loc_p !< the cell locator object.

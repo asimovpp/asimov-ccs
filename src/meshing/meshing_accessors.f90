@@ -476,6 +476,18 @@ contains
     call get_global_index(cell_loc_nb, global_index_nb)
   end subroutine get_neighbour_global_index
 
+  !> Sets the global index of a face
+  module subroutine set_face_global_index(global_index_f, loc_f)
+    integer(ccs_int), intent(in) :: global_index_f !< The global index of the face.
+    type(face_locator), intent(inout) :: loc_f     !< The face locator object.
+
+    associate (mesh => loc_f%mesh, &
+               ctr_f => loc_f%cell_face_ctr, &
+               global_index_p => loc_f%index_p)
+      mesh%topo%global_face_indices(ctr_f, global_index_p) = global_index_f
+    end associate
+  end subroutine set_face_global_index
+
   !> Returns the neighbour count of a cell (including boundary neighbours)
   module subroutine cell_count_neighbours(loc_p, nnb)
     type(cell_locator), intent(in) :: loc_p !< the cell locator object.
