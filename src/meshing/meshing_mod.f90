@@ -30,6 +30,7 @@ module meshing
   public :: get_local_num_cells, set_local_num_cells
   public :: get_global_num_cells, set_global_num_cells
   public :: get_halo_num_cells, set_halo_num_cells
+  public :: get_global_num_faces, set_global_num_faces
   public :: set_centre
   public :: set_area
   public :: set_normal
@@ -347,6 +348,18 @@ module meshing
       type(ccs_mesh), intent(in) :: mesh              !< The mesh
       integer(ccs_int), intent(out) :: halo_num_cells !< The halo cell count
     end subroutine get_halo_num_cells
+
+    !> Sets the mesh global face count.
+    module subroutine set_global_num_faces(global_num_faces, mesh)
+      integer(ccs_int), intent(in) :: global_num_faces !< The global face count
+      type(ccs_mesh), intent(inout) :: mesh            !< The mesh
+    end subroutine set_global_num_faces
+
+    !> Gets the mesh global face count.
+    module subroutine get_global_num_faces(mesh, global_num_faces)
+      type(ccs_mesh), intent(in) :: mesh                !< The mesh
+      integer(ccs_int), intent(out) :: global_num_faces !< The global face count
+    end subroutine get_global_num_faces
     
     !> Set the cell centre of specified cell
     module subroutine set_cell_centre(loc_p, x_p)

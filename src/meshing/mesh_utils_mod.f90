@@ -23,6 +23,7 @@ module mesh_utils
                      get_local_num_cells, set_local_num_cells, &
                      get_global_num_cells, set_global_num_cells, &
                      set_halo_num_cells, &
+                     get_global_num_faces, set_global_num_faces, &
                      set_face_interpolation
   use bc_constants
 
@@ -152,7 +153,8 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     integer(ccs_int) :: global_num_cells
-
+    integer(ccs_int) :: global_num_faces
+    
     ! Read attribute "ncel" - the total number of cells
     call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
     ! Read attribute "nfac" - the total number of faces
@@ -171,9 +173,10 @@ contains
       call error_abort("Currently only supporting hex cells.")
     end if
 
-    allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
-    allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
-    allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
+    call get_global_num_faces(mesh, global_num_faces)
+    allocate (mesh%topo%face_cell1(global_num_faces))
+    allocate (mesh%topo%face_cell2(global_num_faces))
+    allocate (mesh%topo%bnd_rid(global_num_faces))
     allocate (bnd_rid(num_bnd))
     allocate (bnd_face(num_bnd))
 
@@ -182,7 +185,7 @@ contains
     allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, global_num_cells))
 
     sel_start(1) = 0 ! Global index to start reading from
-    sel_count(1) = mesh%topo%global_num_faces ! How many elements to read in total
+    sel_count(1) = global_num_faces ! How many elements to read in total
 
     ! Read arrays face/cell1 and face/cell2
     call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
@@ -253,6 +256,7 @@ contains
 
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: global_num_faces
     type(face_locator) :: loc_f ! Face locator object
     type(vert_locator) :: loc_v ! Vertex locator object
 
@@ -295,14 +299,15 @@ contains
     mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%global_indices(:))
 
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
-    allocate (temp_x_f(ndim, mesh%topo%global_num_faces))
-    allocate (temp_n_f(ndim, mesh%topo%global_num_faces))
+    call get_global_num_faces(mesh, global_num_faces)
+    allocate (temp_x_f(ndim, global_num_faces))
+    allocate (temp_n_f(ndim, global_num_faces))
     allocate (temp_x_v(ndim, mesh%topo%global_num_vertices))
-    allocate (temp_a_f(mesh%topo%global_num_faces))
+    allocate (temp_a_f(global_num_faces))
 
     f_xn_start = 0
     f_xn_count(1) = ndim
-    f_xn_count(2) = mesh%topo%global_num_faces
+    f_xn_count(2) = global_num_faces
 
     ! Read variable "/face/x"
     call read_array(geo_reader, "/face/x", f_xn_start, f_xn_count, temp_x_f)
@@ -316,7 +321,7 @@ contains
     call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
 
     f_a_start = 0
-    f_a_count(1) = mesh%topo%global_num_faces
+    f_a_count(1) = global_num_faces
 
     ! Read variable "/face/area"
     call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
@@ -537,11 +542,12 @@ contains
 
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
-    integer(ccs_int) :: local_num_cells ! The local number of cells
-    logical :: set_vert_nb              ! Flag for setting vertex neighbour
+    integer(ccs_int) :: local_num_cells  ! The local number of cells
+    integer(ccs_int) :: global_num_faces ! The global number of faces
+    logical :: set_vert_nb               ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(2) :: nb_direction  ! Array indicating direction of neighbour
 
-    integer(ccs_int) :: nglobal
+    integer(ccs_int) :: nglobal          ! The global number of cells
     
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -656,11 +662,12 @@ contains
 
       call get_global_num_cells(mesh, nglobal)
       
-      mesh%topo%global_num_faces = (cps + 1) * cps + cps * (cps + 1)
-      allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
-      allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
+      call set_global_num_faces((cps + 1) * cps + cps * (cps + 1), mesh)
+      call get_global_num_faces(mesh, global_num_faces)
+      allocate (mesh%topo%face_cell1(global_num_faces))
+      allocate (mesh%topo%face_cell2(global_num_faces))
       allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, nglobal))
-      allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
+      allocate (mesh%topo%bnd_rid(global_num_faces))
 
       mesh%topo%face_cell1(:) = 0_ccs_int
       mesh%topo%face_cell2(:) = 0_ccs_int
@@ -1010,6 +1017,7 @@ contains
 
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: nglobal
     logical :: set_vert_nb              ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(3) :: nb_direction  ! Array indicating direction of neighbour
@@ -1203,12 +1211,13 @@ contains
       mesh%topo%total_num_cells = size(mesh%topo%global_indices)
       call set_halo_num_cells(mesh%topo%total_num_cells - local_num_cells, mesh)
       
+      call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
       call get_global_num_cells(mesh, nglobal)
-      mesh%topo%global_num_faces = (nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1)
-      allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
-      allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
+      call get_global_num_faces(mesh, global_num_faces)
+      allocate (mesh%topo%face_cell1(global_num_faces))
+      allocate (mesh%topo%face_cell2(global_num_faces))
       allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, nglobal))
-      allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
+      allocate (mesh%topo%bnd_rid(global_num_faces))
 
       mesh%topo%face_cell1(:) = 0_ccs_int
       mesh%topo%face_cell2(:) = 0_ccs_int
@@ -2139,12 +2148,14 @@ contains
     integer(ccs_int) :: nb_elem = 10
 
     integer(ccs_int) :: local_num_cells, global_num_cells, halo_num_cells
+    integer(ccs_int) :: global_num_faces
     
     print *, par_env%proc_id, "############################# Print Topology ########################################"
 
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
     call get_halo_num_cells(mesh, halo_num_cells)
+    call get_global_num_faces(mesh, global_num_faces)
     
     print *, par_env%proc_id, "global_num_cells    : ", global_num_cells
     print *, par_env%proc_id, "local_num_cells     : ", local_num_cells
@@ -2152,7 +2163,7 @@ contains
     print *, par_env%proc_id, "total_num_cells     : ", mesh%topo%total_num_cells
     print *, par_env%proc_id, "global_num_vertices : ", mesh%topo%global_num_vertices
     print *, par_env%proc_id, "vert_per_cell       : ", mesh%topo%vert_per_cell
-    print *, par_env%proc_id, "global_num_faces    : ", mesh%topo%global_num_faces
+    print *, par_env%proc_id, "global_num_faces    : ", global_num_faces
     print *, par_env%proc_id, "num_faces           : ", mesh%topo%num_faces
     print *, par_env%proc_id, "max_faces           : ", mesh%topo%max_faces
     print *, ""

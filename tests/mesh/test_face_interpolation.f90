@@ -52,7 +52,8 @@ contains
 
     use meshing, only: get_global_num_cells, set_global_num_cells, &
                        get_local_num_cells, set_local_num_cells, &
-                       set_halo_num_cells
+                       set_halo_num_cells, &
+                       set_global_num_faces
     
     real(ccs_real), intent(in) :: face_coordinate
     type(ccs_mesh) :: mesh
@@ -65,7 +66,7 @@ contains
     call set_global_num_cells(2, mesh)
     call set_halo_num_cells(0, mesh)
     mesh%topo%total_num_cells = 2
-    mesh%topo%global_num_faces = 1
+    call set_global_num_faces(1, mesh)
     mesh%topo%num_faces = 1
     mesh%topo%max_faces = 1
 

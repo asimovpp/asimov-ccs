@@ -137,7 +137,7 @@ contains
 
     use iso_fortran_env, only: int32
 
-    use meshing, only: set_halo_num_cells, get_halo_num_cells
+    use meshing, only: set_halo_num_cells, get_halo_num_cells, get_global_num_faces
     
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
@@ -157,6 +157,7 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: halo_num_cells
+    integer(ccs_int) :: global_num_faces
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -193,7 +194,8 @@ contains
     allocate (mesh%topo%global_boundaries(global_num_cells))
 
     ! All ranks loop over all the faces
-    do i = 1, mesh%topo%global_num_faces
+    call get_global_num_faces(mesh, global_num_faces)
+    do i = 1, global_num_faces
 
       face_nb1 = mesh%topo%face_cell1(i)
       face_nb2 = mesh%topo%face_cell2(i)

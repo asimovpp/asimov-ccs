@@ -6,7 +6,7 @@ submodule(partitioning) partitioning_common
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
-                     get_halo_num_cells
+                     get_halo_num_cells, get_global_num_faces
 
   implicit none
 
@@ -34,6 +34,7 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: halo_num_cells
+    integer(ccs_int) :: global_num_faces
     
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -89,7 +90,8 @@ contains
     allocate (mesh%topo%num_nb(local_num_cells))
 
     ! All ranks loop over all the faces again
-    do i = 1, mesh%topo%global_num_faces
+    call get_global_num_faces(mesh, global_num_faces)
+    do i = 1, global_num_faces
 
       face_nb1 = mesh%topo%face_cell1(i)
       face_nb2 = mesh%topo%face_cell2(i)
