@@ -14,7 +14,8 @@ submodule(fv) fv_common
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                      get_local_index, get_global_index, get_volume, get_distance, &
                      set_face_location, get_face_area, get_face_normal, set_cell_location, &
-                     get_local_num_cells, get_face_interpolation
+                     get_local_num_cells, get_face_interpolation, &
+                     get_max_faces
   use boundary_conditions, only: get_bc_index
   use bc_constants
 
@@ -31,6 +32,7 @@ contains
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: vec
 
+    integer(ccs_int) :: max_faces
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
 
@@ -39,7 +41,8 @@ contains
       call get_vector_data(mf_values, mf_data)
 
       ! Loop over cells computing advection and diffusion fluxes
-      n_int_cells = mesh%topo%max_faces + 1 ! 1 neighbour per face + central cell
+      call get_max_faces(mesh, max_faces)
+      n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: compute coeffs")
       call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec)
 

@@ -16,7 +16,8 @@ program test_partition_tri_mesh
   use mesh_utils, only: build_square_mesh
   use meshing, only: get_local_num_cells, set_local_num_cells, &
                      get_global_num_cells, set_global_num_cells, &
-                     get_global_num_faces, set_global_num_faces
+                     get_global_num_faces, set_global_num_faces, &
+                     get_max_faces, set_max_faces
   use utils, only: debug_print
 
   implicit none
@@ -260,6 +261,7 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: global_num_faces
+    integer(ccs_int) :: max_faces
     
     ! Create a tri mesh
     !
@@ -276,14 +278,16 @@ contains
     ! --- read_topology() ---
     call set_global_num_cells(nrows * ncols, mesh)
     call set_global_num_faces(46, mesh) ! Hardcoded for now (check face array counts)
-    mesh%topo%max_faces = 6 ! mesh%topo%num_nb(1)
+    call set_max_faces(6, mesh) ! mesh%topo%num_nb(1)
 
     call get_global_num_cells(mesh, global_num_cells)
     call get_global_num_faces(mesh, global_num_faces)
+    call get_max_faces(mesh, max_faces)
+
     allocate (mesh%topo%face_cell1(global_num_faces))
     allocate (mesh%topo%face_cell2(global_num_faces))
     allocate (mesh%topo%bnd_rid(global_num_faces))
-    allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, global_num_cells))
+    allocate (mesh%topo%global_face_indices(max_faces, global_num_cells))
 
     ! Hardcode for now
     mesh%topo%face_cell1 = (/1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, &   ! 20 count

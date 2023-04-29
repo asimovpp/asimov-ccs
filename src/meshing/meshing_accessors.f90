@@ -138,6 +138,26 @@ contains
     num_faces = mesh%topo%num_faces
 
   end subroutine get_num_faces
+
+  !> Sets the mesh face count.
+  module subroutine set_max_faces(max_faces, mesh)
+
+    integer(ccs_int), intent(in) :: max_faces !< The face count
+    type(ccs_mesh), intent(inout) :: mesh     !< The mesh
+
+    mesh%topo%max_faces = max_faces
+
+  end subroutine set_max_faces
+
+  !> Gets the mesh face count.
+  module subroutine get_max_faces(mesh, max_faces)
+
+    type(ccs_mesh), intent(in) :: mesh         !< The mesh
+    integer(ccs_int), intent(out) :: max_faces !< The face count
+
+    max_faces = mesh%topo%max_faces
+
+  end subroutine get_max_faces
   
   !v Constructs a face locator object.
   !

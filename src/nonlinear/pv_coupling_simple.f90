@@ -26,7 +26,8 @@ submodule(pv_coupling) pv_coupling_simple
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance, &
                      get_local_num_cells, get_face_interpolation, &
-                     get_global_num_cells
+                     get_global_num_cells, &
+                     get_max_faces
   use timestepping, only: update_old_values, finalise_timestep
 
   implicit none
@@ -57,7 +58,8 @@ contains
     class(ccs_vector), allocatable :: res
     real(ccs_real), dimension(:), allocatable :: residuals
     integer(ccs_int) :: t  ! Current time-step (dummy variable)
-
+    integer(ccs_int) :: max_faces ! The maximum number of faces per cell
+    
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
@@ -114,8 +116,9 @@ contains
 
     ! Create coefficient matrix
     call dprint("NONLINEAR: setup matrix")
+    call get_max_faces(mesh, max_faces)
     call set_size(par_env, mesh, mat_properties)
-    call set_nnz(mesh%topo%max_faces + 1, mat_properties)
+    call set_nnz(max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
 
     ! Create RHS vector

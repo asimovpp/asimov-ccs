@@ -4,7 +4,8 @@ submodule(partitioning) partitioning_parhip
   use kinds, only: ccs_int, ccs_real, ccs_long
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
+                     get_max_faces
 
   implicit none
 
@@ -160,7 +161,8 @@ contains
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: global_num_faces
-
+    integer(ccs_int) :: max_faces
+    
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -188,7 +190,8 @@ contains
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), mesh%topo%max_faces + 1))
+    call get_max_faces(mesh, max_faces)
+    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
     ! Allocate global boundaries array
@@ -205,19 +208,19 @@ contains
       ! If face neighbour 1 is local to the current rank
       ! and face neighbour 2 is not 0
       if (face_nb1 .ge. start_index .and. face_nb1 .le. end_index .and. face_nb2 .ne. 0) then
-        local_index = face_nb1 - start_index + 1                 ! Local cell index
-        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
-        tmp_int2d(local_index, k) = face_nb2                       ! Store global index of neighbour cell
-        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
+        local_index = face_nb1 - start_index + 1      ! Local cell index
+        k = tmp_int2d(local_index, max_faces + 1) + 1 ! Increment number of faces for this cell
+        tmp_int2d(local_index, k) = face_nb2          ! Store global index of neighbour cell
+        tmp_int2d(local_index, max_faces + 1) = k     ! Store number of faces for this cell
       end if
 
       ! If face neighbour 2 is local to the current rank
       ! and face neighbour 1 is not 0
       if (face_nb2 .ge. start_index .and. face_nb2 .le. end_index .and. face_nb1 .ne. 0) then
-        local_index = face_nb2 - start_index + 1                 ! Local cell index
-        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
-        tmp_int2d(local_index, k) = face_nb1                       ! Store global index of neighbour cell
-        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
+        local_index = face_nb2 - start_index + 1      ! Local cell index
+        k = tmp_int2d(local_index, max_faces + 1) + 1 ! Increment number of faces for this cell
+        tmp_int2d(local_index, k) = face_nb1          ! Store global index of neighbour cell
+        tmp_int2d(local_index, max_faces + 1) = k     ! Store number of faces for this cell
       end if
 
       ! If face neighbour 2 is 0 we have a boundary face
@@ -227,7 +230,7 @@ contains
 
     end do
 
-    num_connections = sum(tmp_int2d(:, mesh%topo%max_faces + 1))
+    num_connections = sum(tmp_int2d(:, max_faces + 1))
     call dprint("Initial number of connections: " // str(num_connections))
 
     ! Allocate adjncy array based on the number of computed connections
@@ -241,7 +244,7 @@ contains
 
       mesh%topo%xadj(i) = local_index                          ! Pointer to start of current
 
-      do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)               ! Loop over number of faces
+      do j = 1, tmp_int2d(i, max_faces + 1)               ! Loop over number of faces
         mesh%topo%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
         if (mesh%topo%global_partition(tmp_int2d(i, j)) /= irank) then
           call get_halo_num_cells(mesh, halo_num_cells)
@@ -249,7 +252,7 @@ contains
         end if
       end do
 
-      local_index = local_index + tmp_int2d(i, mesh%topo%max_faces + 1)
+      local_index = local_index + tmp_int2d(i, max_faces + 1)
       mesh%topo%xadj(i + 1) = local_index
 
     end do
