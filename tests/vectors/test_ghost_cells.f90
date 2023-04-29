@@ -8,7 +8,9 @@ program test_ghost_cells
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, update_vector, get_vector_data, restore_vector_data
   use meshing, only: set_neighbour_location, &
-                     get_global_index, get_local_index, get_face_area, get_face_normal, get_local_num_cells
+                     get_global_index, get_local_index, get_face_area, get_face_normal, &
+                     get_local_num_cells, &
+                     get_total_num_cells
   use utils, only: update, initialise, &
                    set_size, set_values
   use petsctypes, only: vector_petsc
@@ -21,6 +23,7 @@ program test_ghost_cells
   real(ccs_real), dimension(:), pointer :: values
 
   integer(ccs_int) :: local_num_cells
+  integer(ccs_int) :: total_num_cells
   integer(ccs_int) :: i
   integer(ccs_int) :: proc_id
   integer(ccs_int) :: num_procs
@@ -57,7 +60,8 @@ program test_ghost_cells
   ! Retrieve the new vector values (including ghost cells)
   call get_vector_data(v, values)
 
-  do i = 1, mesh%topo%total_num_cells
+  call get_total_num_cells(mesh, total_num_cells)
+  do i = 1, total_num_cells
     if (values(i) /= mesh%topo%global_indices(i)) then
       write (message, *) 'FAIL: wrong vector value. Expected ', mesh%topo%global_indices(i), ', got ', values(i)
       call stop_test(message)

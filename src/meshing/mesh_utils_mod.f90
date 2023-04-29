@@ -21,6 +21,7 @@ module mesh_utils
                      get_centre, set_centre, &
                      set_area, set_normal, &
                      get_local_num_cells, set_local_num_cells, &
+                     get_total_num_cells, set_total_num_cells, &
                      get_global_num_cells, set_global_num_cells, &
                      set_halo_num_cells, &
                      get_global_num_faces, set_global_num_faces, &
@@ -255,6 +256,7 @@ contains
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: global_num_faces
     type(face_locator) :: loc_f ! Face locator object
@@ -277,7 +279,8 @@ contains
     vol_p_count = global_num_cells
 
     ! Allocate memory for cell volumes array on each MPI rank
-    allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
+    call get_total_num_cells(mesh, total_num_cells)
+    allocate (mesh%geo%volumes(total_num_cells))
     allocate (temp_vol_c(global_num_cells))
 
     ! Read variable "/cell/vol"
@@ -291,7 +294,7 @@ contains
     x_p_count = (/ndim, global_num_cells/)
 
     ! Allocate memory for cell centre coordinates array on each MPI rank
-    allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
+    allocate (mesh%geo%x_p(ndim, total_num_cells))
     allocate (temp_x_p(ndim, global_num_cells))
 
     ! Read variable "/cell/x"
@@ -543,6 +546,7 @@ contains
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
     integer(ccs_int) :: local_num_cells  ! The local number of cells
+    integer(ccs_int) :: total_num_cells  ! The total number of cells
     integer(ccs_int) :: global_num_faces ! The global number of faces
     logical :: set_vert_nb               ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(2) :: nb_direction  ! Array indicating direction of neighbour
@@ -653,8 +657,9 @@ contains
         end do
       end associate
 
-      mesh%topo%total_num_cells = size(mesh%topo%global_indices)
-      call set_halo_num_cells(mesh%topo%total_num_cells - local_num_cells, mesh)
+      call set_total_num_cells(size(mesh%topo%global_indices), mesh)
+      call get_total_num_cells(mesh, total_num_cells)
+      call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
       
       ! Set the global mesh parameters
       call set_global_num_cells(cps**2, mesh) ! XXX: Is this necessary?
@@ -799,6 +804,7 @@ contains
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
 
     logical :: is_boundary
 
@@ -839,9 +845,10 @@ contains
         end associate
       end do
 
-      allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
+      call get_total_num_cells(mesh, total_num_cells)
+      allocate (mesh%geo%x_p(ndim, total_num_cells))
       allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
-      allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
+      allocate (mesh%geo%volumes(total_num_cells))
       allocate (mesh%geo%face_areas(mesh%topo%max_faces, local_num_cells))
       allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, local_num_cells)) ! Currently hardcoded as a 2D mesh.
       allocate (mesh%geo%vert_coords(ndim, mesh%topo%vert_per_cell, local_num_cells))
@@ -856,7 +863,7 @@ contains
 
       ! Set cell centre
       associate (h => mesh%geo%h)
-        do i = 1_ccs_int, mesh%topo%total_num_cells
+        do i = 1_ccs_int, total_num_cells
           call set_cell_location(mesh, i, loc_p)
 
           ii = mesh%topo%global_indices(i)
@@ -1017,6 +1024,7 @@ contains
 
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: nglobal
     logical :: set_vert_nb              ! Flag for setting vertex neighbour
@@ -1208,8 +1216,9 @@ contains
 
       ! print*,"Neighbour indices: ",mesh%neighbour_indices
 
-      mesh%topo%total_num_cells = size(mesh%topo%global_indices)
-      call set_halo_num_cells(mesh%topo%total_num_cells - local_num_cells, mesh)
+      call set_total_num_cells(size(mesh%topo%global_indices), mesh)
+      call get_total_num_cells(mesh, total_num_cells)
+      call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
       
       call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
       call get_global_num_cells(mesh, nglobal)
@@ -1396,6 +1405,7 @@ contains
 
     integer(ccs_int) :: index_nb        ! The local index of a neighbour cell
     integer(ccs_int) :: local_num_cells ! The local cell count
+    integer(ccs_int) :: total_num_cells ! The total cell count
 
     real(ccs_real), dimension(3) :: x_p ! Cell centre array
     type(cell_locator) :: loc_p         ! Cell locator object
@@ -1443,9 +1453,10 @@ contains
         end associate
       end do
 
-      allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
+      call get_total_num_cells(mesh, total_num_cells)
+      allocate (mesh%geo%x_p(ndim, total_num_cells))
       allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, local_num_cells))
-      allocate (mesh%geo%volumes(mesh%topo%total_num_cells))
+      allocate (mesh%geo%volumes(total_num_cells))
       allocate (mesh%geo%face_areas(mesh%topo%max_faces, local_num_cells))
       allocate (mesh%geo%face_normals(ndim, mesh%topo%max_faces, local_num_cells))
       allocate (mesh%geo%vert_coords(ndim, mesh%topo%vert_per_cell, local_num_cells))
@@ -1460,7 +1471,7 @@ contains
 
       ! Set cell centre
       associate (h => mesh%geo%h)
-        do i = 1_ccs_int, mesh%topo%total_num_cells
+        do i = 1_ccs_int, total_num_cells
           call set_cell_location(mesh, i, loc_p)
 
           ii = mesh%topo%global_indices(i)
@@ -2147,7 +2158,7 @@ contains
     integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
 
-    integer(ccs_int) :: local_num_cells, global_num_cells, halo_num_cells
+    integer(ccs_int) :: local_num_cells, global_num_cells, halo_num_cells, total_num_cells
     integer(ccs_int) :: global_num_faces
     
     print *, par_env%proc_id, "############################# Print Topology ########################################"
@@ -2155,12 +2166,13 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
     call get_halo_num_cells(mesh, halo_num_cells)
+    call get_total_num_cells(mesh, total_num_cells)
     call get_global_num_faces(mesh, global_num_faces)
     
     print *, par_env%proc_id, "global_num_cells    : ", global_num_cells
     print *, par_env%proc_id, "local_num_cells     : ", local_num_cells
     print *, par_env%proc_id, "halo_num_cells      : ", halo_num_cells
-    print *, par_env%proc_id, "total_num_cells     : ", mesh%topo%total_num_cells
+    print *, par_env%proc_id, "total_num_cells     : ", total_num_cells
     print *, par_env%proc_id, "global_num_vertices : ", mesh%topo%global_num_vertices
     print *, par_env%proc_id, "vert_per_cell       : ", mesh%topo%vert_per_cell
     print *, par_env%proc_id, "global_num_faces    : ", global_num_faces

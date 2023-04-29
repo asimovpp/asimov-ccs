@@ -39,6 +39,26 @@ contains
 
   end subroutine get_local_num_cells_long
 
+  !> Sets the mesh total cell count.
+  module subroutine set_total_num_cells(total_num_cells, mesh)
+
+    integer(ccs_int), intent(in) :: total_num_cells !< The total cell count
+    type(ccs_mesh), intent(inout) :: mesh           !< The mesh
+
+    mesh%topo%total_num_cells = total_num_cells
+
+  end subroutine set_total_num_cells
+
+  !> Gets the mesh total cell count.
+  module subroutine get_total_num_cells(mesh, total_num_cells)
+
+    type(ccs_mesh), intent(in) :: mesh               !< The mesh
+    integer(ccs_int), intent(out) :: total_num_cells !< The total cell count
+
+    total_num_cells = mesh%topo%total_num_cells
+
+  end subroutine get_total_num_cells
+
   !> Sets the mesh global cell count.
   module subroutine set_global_num_cells(global_num_cells, mesh)
 
@@ -178,12 +198,14 @@ contains
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
 
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
 
     loc_p%mesh => mesh
     loc_p%index_p = index_p
 
     ! XXX: Potentially expensive...
-    if (index_p > mesh%topo%total_num_cells) then
+    call get_total_num_cells(mesh, total_num_cells)
+    if (index_p > total_num_cells) then
       call get_local_num_cells(mesh, local_num_cells)
       call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // " " // str(local_num_cells))
     end if

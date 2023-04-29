@@ -137,7 +137,8 @@ contains
 
     use iso_fortran_env, only: int32
 
-    use meshing, only: set_halo_num_cells, get_halo_num_cells, get_global_num_faces
+    use meshing, only: set_halo_num_cells, get_halo_num_cells, get_global_num_faces, &
+                       get_total_num_cells, set_total_num_cells
     
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
@@ -155,6 +156,7 @@ contains
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: global_num_faces
@@ -255,9 +257,10 @@ contains
     call get_halo_num_cells(mesh, halo_num_cells)
     call dprint("Initial number of halo cells: " // str(halo_num_cells))
 
-    mesh%topo%total_num_cells = local_num_cells + halo_num_cells
+    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
 
-    call dprint("Total number of cells (local + halo): " // str(mesh%topo%total_num_cells))
+    call get_total_num_cells(mesh, total_num_cells)
+    call dprint("Total number of cells (local + halo): " // str(total_num_cells))
 
     ! Allocate weight arrays
     allocate (mesh%topo%adjwgt(num_connections))

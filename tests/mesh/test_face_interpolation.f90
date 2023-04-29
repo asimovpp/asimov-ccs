@@ -53,24 +53,27 @@ contains
     use meshing, only: get_global_num_cells, set_global_num_cells, &
                        get_local_num_cells, set_local_num_cells, &
                        set_halo_num_cells, &
-                       set_global_num_faces
+                       set_global_num_faces, &
+                       get_total_num_cells, set_total_num_cells
     
     real(ccs_real), intent(in) :: face_coordinate
     type(ccs_mesh) :: mesh
 
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
 
     ! Build 2 cells mesh topology
     call set_local_num_cells(2, mesh)
     call set_global_num_cells(2, mesh)
     call set_halo_num_cells(0, mesh)
-    mesh%topo%total_num_cells = 2
+    call set_total_num_cells(2, mesh)
     call set_global_num_faces(1, mesh)
     mesh%topo%num_faces = 1
     mesh%topo%max_faces = 1
 
     call get_local_num_cells(mesh, local_num_cells)
+    call get_total_num_cells(mesh, total_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
     
     allocate (mesh%topo%global_indices(global_num_cells))
@@ -91,11 +94,11 @@ contains
     mesh%topo%num_nb(:) = 1
 
     ! Build 2 cells mesh geometry
-    allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
+    allocate (mesh%geo%x_p(ndim, total_num_cells))
     mesh%geo%x_p(:, 1) = (/0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real/)
     mesh%geo%x_p(:, 2) = (/1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real/)
 
-    allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, mesh%topo%total_num_cells))
+    allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, total_num_cells))
     mesh%geo%x_f(:, 1, 1) = (/face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
     mesh%geo%x_f(:, 1, 2) = (/face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
 

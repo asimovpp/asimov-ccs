@@ -28,6 +28,7 @@ module meshing
   public :: count_neighbours
   public :: get_distance
   public :: get_local_num_cells, set_local_num_cells
+  public :: get_total_num_cells , set_total_num_cells
   public :: get_global_num_cells, set_global_num_cells
   public :: get_halo_num_cells, set_halo_num_cells
   public :: get_global_num_faces, set_global_num_faces
@@ -324,6 +325,18 @@ module meshing
       type(ccs_mesh), intent(in) :: mesh                !< The mesh
       integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
     end subroutine get_local_num_cells_long
+
+    !> Sets the mesh total cell count.
+    module subroutine set_total_num_cells(total_num_cells, mesh)
+      integer(ccs_int), intent(in) :: total_num_cells !< The total cell count
+      type(ccs_mesh), intent(inout) :: mesh           !< The mesh
+    end subroutine set_total_num_cells
+
+    !> Gets the mesh total cell count.
+    module subroutine get_total_num_cells(mesh, total_num_cells)
+      type(ccs_mesh), intent(in) :: mesh               !< The mesh
+      integer(ccs_int), intent(out) :: total_num_cells !< The total cell count
+    end subroutine get_total_num_cells
 
     !> Sets the mesh global cell count.
     module subroutine set_global_num_cells(global_num_cells, mesh)

@@ -539,28 +539,30 @@ contains
   !  correctly updated on other PEs. @endnote
   module subroutine update_gradient(mesh, phi)
 
+    use meshing, only: get_total_num_cells
+    
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
 
     real(ccs_real), dimension(:), pointer :: x_gradients_data, y_gradients_data, z_gradients_data
     real(ccs_real), dimension(:), allocatable :: x_gradients_old, y_gradients_old, z_gradients_old
 
-    integer(ccs_real) :: i
-
+    integer(ccs_int) :: i
+    integer(ccs_int) :: ntotal
+    
     call get_vector_data(phi%x_gradients, x_gradients_data)
     call get_vector_data(phi%y_gradients, y_gradients_data)
     call get_vector_data(phi%z_gradients, z_gradients_data)
 
-    associate (ntotal => mesh%topo%total_num_cells)
-      allocate (x_gradients_old(ntotal))
-      allocate (y_gradients_old(ntotal))
-      allocate (z_gradients_old(ntotal))
-      do i = 1, ntotal
-        x_gradients_old(i) = x_gradients_data(i)
-        y_gradients_old(i) = y_gradients_data(i)
-        z_gradients_old(i) = z_gradients_data(i)
-      end do
-    end associate
+    call get_total_num_cells(mesh, ntotal)
+    allocate (x_gradients_old(ntotal))
+    allocate (y_gradients_old(ntotal))
+    allocate (z_gradients_old(ntotal))
+    do i = 1, ntotal
+      x_gradients_old(i) = x_gradients_data(i)
+      y_gradients_old(i) = y_gradients_data(i)
+      z_gradients_old(i) = z_gradients_data(i)
+    end do
 
     call restore_vector_data(phi%x_gradients, x_gradients_data)
     call restore_vector_data(phi%y_gradients, y_gradients_data)

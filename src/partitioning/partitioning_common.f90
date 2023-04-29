@@ -6,7 +6,8 @@ submodule(partitioning) partitioning_common
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
-                     get_halo_num_cells, get_global_num_faces
+                     get_halo_num_cells, get_global_num_faces, &
+                     get_total_num_cells, set_total_num_cells
 
   implicit none
 
@@ -32,6 +33,7 @@ contains
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: global_num_faces
@@ -140,9 +142,10 @@ contains
     call get_halo_num_cells(mesh, halo_num_cells)
     call dprint("Number of halo cells after partitioning: " // str(halo_num_cells))
 
-    mesh%topo%total_num_cells = local_num_cells + halo_num_cells
+    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
 
-    call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
+    call get_total_num_cells(mesh, total_num_cells)
+    call dprint("Total number of cells (local + halo) after partitioning: " // str(total_num_cells))
 
     call set_cell_face_indices(mesh)
 
