@@ -240,6 +240,7 @@ contains
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
+    type(cell_locator) :: loc_p
     integer(ccs_int) :: i, j, n, global_icell, local_icell
     integer(ccs_int) :: vert_per_cell
 
@@ -344,8 +345,9 @@ contains
 
     !    do k = start, end ! loop over cells owned by current process
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
-      global_icell = mesh%topo%global_indices(local_icell)
-
+      call set_cell_location(mesh, local_icell, loc_p)
+      call get_global_index(loc_p, global_icell)
+      
       do j = 1, max_faces ! loop over all faces for each cell
         call set_face_location(mesh, local_icell, j, loc_f)
 
@@ -432,14 +434,20 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     integer(ccs_int) :: global_num_cells
+
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: index_global
     
     call get_global_num_cells(mesh, global_num_cells)
+
+    call set_cell_location(mesh, 1, loc_p)
+    call get_global_index(loc_p, index_global)
     
     ! Write cell vertices
     sel2_shape(1) = mesh%topo%vert_per_cell
     sel2_shape(2) = global_num_cells
     sel2_start(1) = 0
-    sel2_start(2) = mesh%topo%global_indices(1) - 1
+    sel2_start(2) = index_global - 1
     sel2_count(1) = mesh%topo%vert_per_cell
     call get_local_num_cells(mesh, sel2_count(2))
 
@@ -577,6 +585,7 @@ contains
         local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
         call set_local_num_cells(local_num_cells, mesh)
         call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+        call set_total_num_cells(local_num_cells, mesh) ! Set initial value
         end_global = start_global + (local_num_cells - 1)
 
         ! Set max faces per cell (constant, 4)
@@ -846,8 +855,9 @@ contains
       ! Global vertex numbering
       do i = 1, local_num_cells
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          ii = mesh%topo%global_indices(i)
-
+          call set_cell_location(mesh, i, loc_p)
+          call get_global_index(loc_p, ii)
+          
           global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
           global_vert_index(front_bottom_right) = ii + (ii - 1) / cps + 1
           global_vert_index(front_top_left) = ii + cps + (ii + cps - 1) / cps
@@ -876,8 +886,7 @@ contains
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
           call set_cell_location(mesh, i, loc_p)
-
-          ii = mesh%topo%global_indices(i)
+          call get_global_index(loc_p, ii)
 
           x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
           x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
@@ -1056,6 +1065,7 @@ contains
       local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
       call set_local_num_cells(local_num_cells, mesh)
       call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+      call set_total_num_cells(local_num_cells, mesh) ! Setting initial value
       end_global = start_global + (local_num_cells - 1)
 
       ! Set max number of faces (constant, 6)
@@ -1451,7 +1461,9 @@ contains
       ! Global vertex numbering
       do i = 1, local_num_cells
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          ii = mesh%topo%global_indices(i)
+          call set_cell_location(mesh, i, loc_p)
+          call get_global_index(loc_p, ii)
+
           a = modulo(ii - 1, nx * ny) + 1
           b = (a - 1) / nx
           c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
@@ -1490,8 +1502,8 @@ contains
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
           call set_cell_location(mesh, i, loc_p)
-
-          ii = mesh%topo%global_indices(i)
+          call get_global_index(loc_p, ii)
+          
           x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
           x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
           x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
@@ -1741,6 +1753,11 @@ contains
     integer(ccs_int) :: local_num_cells ! The number of local cells
     integer(ccs_int) :: global_num_cells ! The number of global cells
 
+    type(cell_locator) :: loc_h
+    integer(ccs_int) :: global_index_h
+
+    integer(ccs_int) :: total_num_cells
+    
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= local_num_cells)) then
@@ -1767,7 +1784,9 @@ contains
       ng = size(mesh%topo%global_indices)
       found = .false.
       do i = local_num_cells + 1, ng
-        if (mesh%topo%global_indices(i) == global_index_nb) then
+        call set_cell_location(mesh, i, loc_h)
+        call get_global_index(loc_h, global_index_h)
+        if (global_index_h == global_index_nb) then
           found = .true.
           if (vertex_nb_flag) then
             mesh%topo%vert_nb_indices(index_p_nb, index_p) = i
@@ -1794,6 +1813,10 @@ contains
         else
           mesh%topo%nb_indices(index_p_nb, index_p) = ng
         end if
+
+        ! Increment total cell count
+        call get_total_num_cells(mesh, total_num_cells)
+        call set_total_num_cells(total_num_cells + 1, mesh)
       end if
     end if
 

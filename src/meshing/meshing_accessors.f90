@@ -247,7 +247,7 @@ contains
     call get_total_num_cells(mesh, total_num_cells)
     if (index_p > total_num_cells) then
       call get_local_num_cells(mesh, local_num_cells)
-      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // " " // str(local_num_cells))
+      call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // " " // str(local_num_cells) // " " // str(total_num_cells))
     end if
   end subroutine set_cell_location
 

@@ -2,6 +2,7 @@ submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int
+  use types, only: cell_locator
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
@@ -9,7 +10,8 @@ submodule(partitioning) partitioning_common
                      get_halo_num_cells, get_global_num_faces, &
                      get_total_num_cells, set_total_num_cells, &
                      set_num_faces, &
-                     get_max_faces
+                     get_max_faces, &
+                     set_cell_location, get_global_index
 
   implicit none
 
@@ -147,8 +149,6 @@ contains
     call get_halo_num_cells(mesh, halo_num_cells)
     call dprint("Number of halo cells after partitioning: " // str(halo_num_cells))
 
-    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
-
     call get_total_num_cells(mesh, total_num_cells)
     call dprint("Total number of cells (local + halo) after partitioning: " // str(total_num_cells))
 
@@ -255,6 +255,9 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: max_faces
+
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
     
     call set_halo_num_cells(0, mesh)
     call get_halo_num_cells(mesh, halo_num_cells)
@@ -330,9 +333,14 @@ contains
     end do
     mesh%topo%xadj(local_num_cells + 1) = ctr
 
+    ! Now we have local + halo cells, update the total
+    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
+
     allocate (tmp2(local_num_cells + halo_num_cells))
     do i = 1, local_num_cells
-      tmp2(i) = mesh%topo%global_indices(i)
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      tmp2(i) = global_index_p
     end do
     do i = 1, halo_num_cells
       tmp2(local_num_cells + i) = tmp1(i)

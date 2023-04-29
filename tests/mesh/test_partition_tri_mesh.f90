@@ -16,8 +16,10 @@ program test_partition_tri_mesh
   use mesh_utils, only: build_square_mesh
   use meshing, only: get_local_num_cells, set_local_num_cells, &
                      get_global_num_cells, set_global_num_cells, &
+                     set_total_num_cells, set_halo_num_cells, &
                      get_global_num_faces, set_global_num_faces, &
-                     get_max_faces, set_max_faces
+                     get_max_faces, set_max_faces, &
+                     set_cell_location, get_global_index
   use utils, only: debug_print
 
   implicit none
@@ -41,8 +43,8 @@ program test_partition_tri_mesh
   !print*,"Number of positive value neighbour indices: ", n
   call compute_partitioner_input(par_env, mesh)
 
-  print *, "Adjacency arrays: ", mesh%topo%adjncy
-  print *, "Adjacency index array: ", mesh%topo%xadj
+  ! print *, "Adjacency arrays: ", mesh%topo%adjncy
+  ! print *, "Adjacency index array: ", mesh%topo%xadj
 
   ! Run test to check we agree
   call check_topology("mid")
@@ -144,11 +146,17 @@ contains
     integer(ccs_int) :: local_num_cells
     integer :: i, j
 
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
+    
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      
       do j = int(mesh%topo%xadj(i), ccs_int), int(mesh%topo%xadj(i + 1), ccs_int) - 1
-        if (mesh%topo%adjncy(j) == mesh%topo%global_indices(i)) then
-          print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+        if (mesh%topo%adjncy(j) == global_index_p) then
+          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
           write (message, *) "ERROR: found self-loop " // stage // "- partitioning."
           call stop_test(message)
         end if
@@ -166,9 +174,14 @@ contains
     integer :: nadj
     integer, dimension(:), allocatable :: adjncy_global_expected
 
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
+    
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells ! Loop over local cells
-
+      call set_cell_location(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      
       nadj = int(mesh%topo%xadj(i + 1) - mesh%topo%xadj(i), ccs_int)
       allocate (adjncy_global_expected(nadj))
 
@@ -176,18 +189,18 @@ contains
 
       do j = int(mesh%topo%xadj(i), ccs_int), int(mesh%topo%xadj(i + 1), ccs_int) - 1
         if (.not. any(adjncy_global_expected == mesh%topo%adjncy(j))) then
-          print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
-          print *, "Expected neighbours @ global idx ", mesh%topo%global_indices(i), ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are wrong " // stage // "- partitioning."
+          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+          print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
+          write (message, *) "ERROR: neighbours are wrong " // stage // "-partitioning."
           call stop_test(message)
         end if
       end do
 
       do j = 1, size(adjncy_global_expected)
         if (.not. any(mesh%topo%adjncy == adjncy_global_expected(j))) then
-          print *, "TOPO neighbours @ global idx ", mesh%topo%global_indices(i), ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
-          print *, "Expected neighbours @ global idx ", mesh%topo%global_indices(i), ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are missing " // stage // "- partitioning."
+          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+          print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
+          write (message, *) "ERROR: neighbours are missing " // stage // "-partitioning."
           call stop_test(message)
         end if
       end do
@@ -206,54 +219,58 @@ contains
 
     logical :: left_boundary, right_boundary
 
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: idx_global, cidx_global
+    
     adjncy_global_expected(:) = -1
     interior_ctr = 1
 
     left_boundary = .false.
     right_boundary = .false.
 
-    associate (idx_global => mesh%topo%global_indices(i), &
-               cidx_global => (mesh%topo%global_indices(i) - 1))
-      if ((modulo(cidx_global, ncols) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
-        ! NOT @ left boundary
-        adjncy_global_expected(interior_ctr) = idx_global - 1
-        interior_ctr = interior_ctr + 1
-      else
-        left_boundary = .true.
-      end if
+    call set_cell_location(mesh, i, loc_p)
+    call get_global_index(loc_p, idx_global)
+    cidx_global = idx_global - 1
+    
+    if ((modulo(cidx_global, ncols) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
+      ! NOT @ left boundary
+      adjncy_global_expected(interior_ctr) = idx_global - 1
+      interior_ctr = interior_ctr + 1
+    else
+      left_boundary = .true.
+    end if
 
-      if ((modulo(cidx_global, ncols) /= (ncols - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
-        ! NOT @ right boundary
-        adjncy_global_expected(interior_ctr) = idx_global + 1
-        interior_ctr = interior_ctr + 1
-      else
-        right_boundary = .true.
-      end if
+    if ((modulo(cidx_global, ncols) /= (ncols - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
+      ! NOT @ right boundary
+      adjncy_global_expected(interior_ctr) = idx_global + 1
+      interior_ctr = interior_ctr + 1
+    else
+      right_boundary = .true.
+    end if
 
-      if (((cidx_global / ncols) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
-        ! NOT @ bottom boundary
-        adjncy_global_expected(interior_ctr) = idx_global - ncols
+    if (((cidx_global / ncols) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
+      ! NOT @ bottom boundary
+      adjncy_global_expected(interior_ctr) = idx_global - ncols
+      interior_ctr = interior_ctr + 1
+      if (.not. left_boundary) then
+        ! There is a down, left neighbour
+        adjncy_global_expected(interior_ctr) = idx_global - ncols - 1
         interior_ctr = interior_ctr + 1
-        if (.not. left_boundary) then
-          ! There is a down, left neighbour
-          adjncy_global_expected(interior_ctr) = idx_global - ncols - 1
-          interior_ctr = interior_ctr + 1
-        end if
       end if
+    end if
 
-      if (((cidx_global / ncols) /= (nrows - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
-        ! NOT @ top boundary
-        adjncy_global_expected(interior_ctr) = idx_global + ncols
+    if (((cidx_global / ncols) /= (nrows - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
+      ! NOT @ top boundary
+      adjncy_global_expected(interior_ctr) = idx_global + ncols
+      interior_ctr = interior_ctr + 1
+      if (.not. right_boundary) then
+        ! There is an up, right neighbour
+        adjncy_global_expected(interior_ctr) = idx_global + ncols + 1
         interior_ctr = interior_ctr + 1
-        if (.not. right_boundary) then
-          ! There is an up, right neighbour
-          adjncy_global_expected(interior_ctr) = idx_global + ncols + 1
-          interior_ctr = interior_ctr + 1
-        end if
       end if
-    end associate
+    end if
 
-  end subroutine
+  end subroutine compute_expected_global_adjncy
 
   subroutine initialise_test
 
@@ -322,7 +339,10 @@ contains
       mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
 
-  end subroutine
+    call set_halo_num_cells(0, mesh)
+    call set_total_num_cells(local_num_cells, mesh)
+    
+  end subroutine initialise_test
 
   subroutine clean_test
     if (allocated(mesh%topo%xadj)) then

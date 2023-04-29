@@ -4,6 +4,7 @@ program test_square_mesh_indices
   use testing_lib
 
   use meshing, only: set_cell_location, get_global_index, get_local_num_cells, get_global_num_cells
+  use meshing, only: get_total_num_cells
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -15,6 +16,7 @@ program test_square_mesh_indices
 
   integer(ccs_int) :: nlocal
   integer(ccs_int) :: nglobal
+  integer(ccs_int) :: ntotal
   integer(ccs_int) :: i
 
   type(cell_locator) :: loc_p
@@ -31,6 +33,7 @@ program test_square_mesh_indices
     mesh = build_square_mesh(par_env, n, l)
 
     call get_local_num_cells(mesh, nlocal)
+    call get_total_num_cells(mesh, ntotal)
     call get_global_num_cells(mesh, nglobal)
     do i = 1, nlocal
       call set_cell_location(mesh, i, loc_p)
