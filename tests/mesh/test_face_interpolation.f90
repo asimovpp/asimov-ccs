@@ -54,7 +54,8 @@ contains
                        get_local_num_cells, set_local_num_cells, &
                        set_halo_num_cells, &
                        set_global_num_faces, &
-                       get_total_num_cells, set_total_num_cells
+                       get_total_num_cells, set_total_num_cells, &
+                       set_num_faces
     
     real(ccs_real), intent(in) :: face_coordinate
     type(ccs_mesh) :: mesh
@@ -69,7 +70,7 @@ contains
     call set_halo_num_cells(0, mesh)
     call set_total_num_cells(2, mesh)
     call set_global_num_faces(1, mesh)
-    mesh%topo%num_faces = 1
+    call set_num_faces(1, mesh)
     mesh%topo%max_faces = 1
 
     call get_local_num_cells(mesh, local_num_cells)

@@ -25,6 +25,7 @@ module mesh_utils
                      get_global_num_cells, set_global_num_cells, &
                      set_halo_num_cells, &
                      get_global_num_faces, set_global_num_faces, &
+                     get_num_faces, set_num_faces, &
                      set_face_interpolation
   use bc_constants
 
@@ -762,8 +763,8 @@ contains
 
       end do
 
-      mesh%topo%num_faces = count_mesh_faces(mesh)
-
+      call set_num_faces(count_mesh_faces(mesh), mesh)
+      
       call set_cell_face_indices(mesh)
 
       ! Create and populate the vtxdist array based on the total number of cells
@@ -1353,7 +1354,7 @@ contains
 
       end do
 
-      mesh%topo%num_faces = count_mesh_faces(mesh)
+      call set_num_faces(count_mesh_faces(mesh), mesh)
 
       call set_cell_face_indices(mesh)
 
@@ -1964,6 +1965,7 @@ contains
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: num_faces
     logical :: is_boundary
 
     real(ccs_real), dimension(ndim) :: x_p ! cell centre array
@@ -1975,7 +1977,8 @@ contains
       deallocate (mesh%geo%face_interpol)
     end if
 
-    allocate (mesh%geo%face_interpol(mesh%topo%num_faces))
+    call get_num_faces(mesh, num_faces)
+    allocate (mesh%geo%face_interpol(num_faces))
 
     ! Safe guard to make sure we go through all faces
     mesh%geo%face_interpol(:) = -1.0_ccs_real
@@ -2159,7 +2162,7 @@ contains
     integer(ccs_int) :: nb_elem = 10
 
     integer(ccs_int) :: local_num_cells, global_num_cells, halo_num_cells, total_num_cells
-    integer(ccs_int) :: global_num_faces
+    integer(ccs_int) :: global_num_faces, num_faces
     
     print *, par_env%proc_id, "############################# Print Topology ########################################"
 
@@ -2168,6 +2171,7 @@ contains
     call get_halo_num_cells(mesh, halo_num_cells)
     call get_total_num_cells(mesh, total_num_cells)
     call get_global_num_faces(mesh, global_num_faces)
+    call get_num_faces(mesh, num_faces)
     
     print *, par_env%proc_id, "global_num_cells    : ", global_num_cells
     print *, par_env%proc_id, "local_num_cells     : ", local_num_cells
@@ -2176,7 +2180,7 @@ contains
     print *, par_env%proc_id, "global_num_vertices : ", mesh%topo%global_num_vertices
     print *, par_env%proc_id, "vert_per_cell       : ", mesh%topo%vert_per_cell
     print *, par_env%proc_id, "global_num_faces    : ", global_num_faces
-    print *, par_env%proc_id, "num_faces           : ", mesh%topo%num_faces
+    print *, par_env%proc_id, "num_faces           : ", num_faces
     print *, par_env%proc_id, "max_faces           : ", mesh%topo%max_faces
     print *, ""
 

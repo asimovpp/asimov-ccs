@@ -7,7 +7,8 @@ submodule(partitioning) partitioning_common
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
                      get_halo_num_cells, get_global_num_faces, &
-                     get_total_num_cells, set_total_num_cells
+                     get_total_num_cells, set_total_num_cells, &
+                     set_num_faces
 
   implicit none
 
@@ -149,7 +150,7 @@ contains
 
     call set_cell_face_indices(mesh)
 
-    mesh%topo%num_faces = count_mesh_faces(mesh)
+    call set_num_faces(count_mesh_faces(mesh), mesh)
 
   end subroutine compute_connectivity
 

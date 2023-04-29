@@ -118,6 +118,26 @@ contains
     global_num_faces = mesh%topo%global_num_faces
 
   end subroutine get_global_num_faces
+
+  !> Sets the mesh face count.
+  module subroutine set_num_faces(num_faces, mesh)
+
+    integer(ccs_int), intent(in) :: num_faces !< The face count
+    type(ccs_mesh), intent(inout) :: mesh     !< The mesh
+
+    mesh%topo%num_faces = num_faces
+
+  end subroutine set_num_faces
+
+  !> Gets the mesh face count.
+  module subroutine get_num_faces(mesh, num_faces)
+
+    type(ccs_mesh), intent(in) :: mesh         !< The mesh
+    integer(ccs_int), intent(out) :: num_faces !< The face count
+
+    num_faces = mesh%topo%num_faces
+
+  end subroutine get_num_faces
   
   !v Constructs a face locator object.
   !
