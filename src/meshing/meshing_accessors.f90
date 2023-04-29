@@ -58,6 +58,26 @@ contains
     global_num_cells = mesh%topo%global_num_cells
 
   end subroutine get_global_num_cells
+
+  !> Sets the mesh halo cell count.
+  module subroutine set_halo_num_cells(halo_num_cells, mesh)
+
+    integer(ccs_int), intent(in) :: halo_num_cells !< The halo cell count
+    type(ccs_mesh), intent(inout) :: mesh          !< The mesh
+
+    mesh%topo%halo_num_cells = halo_num_cells
+
+  end subroutine set_halo_num_cells
+
+  !> Gets the mesh halo cell count.
+  module subroutine get_halo_num_cells(mesh, halo_num_cells)
+
+    type(ccs_mesh), intent(in) :: mesh              !< The mesh
+    integer(ccs_int), intent(out) :: halo_num_cells !< The halo cell count
+
+    halo_num_cells = mesh%topo%halo_num_cells
+
+  end subroutine get_halo_num_cells
   
   !v Constructs a face locator object.
   !

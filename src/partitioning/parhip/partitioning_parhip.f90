@@ -137,6 +137,8 @@ contains
 
     use iso_fortran_env, only: int32
 
+    use meshing, only: set_halo_num_cells, get_halo_num_cells
+    
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
@@ -154,6 +156,7 @@ contains
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: halo_num_cells
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -237,7 +240,8 @@ contains
       do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)               ! Loop over number of faces
         mesh%topo%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
         if (mesh%topo%global_partition(tmp_int2d(i, j)) /= irank) then
-          mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
+          call get_halo_num_cells(mesh, halo_num_cells)
+          call set_halo_num_cells(halo_num_cells + 1, mesh)
         end if
       end do
 
@@ -246,9 +250,10 @@ contains
 
     end do
 
-    call dprint("Initial number of halo cells: " // str(mesh%topo%halo_num_cells))
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call dprint("Initial number of halo cells: " // str(halo_num_cells))
 
-    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
+    mesh%topo%total_num_cells = local_num_cells + halo_num_cells
 
     call dprint("Total number of cells (local + halo): " // str(mesh%topo%total_num_cells))
 

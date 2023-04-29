@@ -5,7 +5,8 @@ submodule(partitioning) partitioning_common
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
-  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
+                     get_halo_num_cells
 
   implicit none
 
@@ -32,6 +33,7 @@ contains
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: halo_num_cells
     
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -133,9 +135,10 @@ contains
 
     call flatten_connectivity(tmp_int2d, mesh)
 
-    call dprint("Number of halo cells after partitioning: " // str(mesh%topo%halo_num_cells))
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call dprint("Number of halo cells after partitioning: " // str(halo_num_cells))
 
-    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
+    mesh%topo%total_num_cells = local_num_cells + halo_num_cells
 
     call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
 
@@ -224,6 +227,8 @@ contains
   !  Note that cell neighbours are still globally numbered at this point.
   subroutine flatten_connectivity(tmp_int2d, mesh)
 
+    use meshing, only: set_halo_num_cells
+    
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
 
@@ -235,8 +240,10 @@ contains
     integer, dimension(1) :: local_idx
 
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: halo_num_cells
 
-    mesh%topo%halo_num_cells = 0
+    call set_halo_num_cells(0, mesh)
+    call get_halo_num_cells(mesh, halo_num_cells)
     call get_local_num_cells(mesh, local_num_cells)
     ctr = 1
 
@@ -263,8 +270,10 @@ contains
               ! New halo cell
               ! Copy and extend size of halo cells buffer
 
-              mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
-              if (mesh%topo%halo_num_cells > size(tmp1)) then
+              call get_halo_num_cells(mesh, halo_num_cells)
+              call set_halo_num_cells(halo_num_cells + 1, mesh)
+              call get_halo_num_cells(mesh, halo_num_cells)
+              if (halo_num_cells > size(tmp1)) then
                 allocate (tmp2(size(tmp1) + local_num_cells))
 
                 tmp2(:) = -1
@@ -275,7 +284,7 @@ contains
                 deallocate (tmp2)
               end if
 
-              tmp1(mesh%topo%halo_num_cells) = nbidx
+              tmp1(halo_num_cells) = nbidx
             end if
 
             local_idx = findloc(tmp1, nbidx)
@@ -305,11 +314,11 @@ contains
     end do
     mesh%topo%xadj(local_num_cells + 1) = ctr
 
-    allocate (tmp2(local_num_cells + mesh%topo%halo_num_cells))
+    allocate (tmp2(local_num_cells + halo_num_cells))
     do i = 1, local_num_cells
       tmp2(i) = mesh%topo%global_indices(i)
     end do
-    do i = 1, mesh%topo%halo_num_cells
+    do i = 1, halo_num_cells
       tmp2(local_num_cells + i) = tmp1(i)
     end do
     deallocate (mesh%topo%global_indices)

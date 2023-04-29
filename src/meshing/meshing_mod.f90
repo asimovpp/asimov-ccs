@@ -29,6 +29,7 @@ module meshing
   public :: get_distance
   public :: get_local_num_cells, set_local_num_cells
   public :: get_global_num_cells, set_global_num_cells
+  public :: get_halo_num_cells, set_halo_num_cells
   public :: set_centre
   public :: set_area
   public :: set_normal
@@ -334,6 +335,18 @@ module meshing
       type(ccs_mesh), intent(in) :: mesh                !< The mesh
       integer(ccs_int), intent(out) :: global_num_cells !< The global cell count
     end subroutine get_global_num_cells
+
+    !> Sets the mesh halo cell count.
+    module subroutine set_halo_num_cells(halo_num_cells, mesh)
+      integer(ccs_int), intent(in) :: halo_num_cells !< The halo cell count
+      type(ccs_mesh), intent(inout) :: mesh          !< The mesh
+    end subroutine set_halo_num_cells
+
+    !> Gets the mesh halo cell count.
+    module subroutine get_halo_num_cells(mesh, halo_num_cells)
+      type(ccs_mesh), intent(in) :: mesh              !< The mesh
+      integer(ccs_int), intent(out) :: halo_num_cells !< The halo cell count
+    end subroutine get_halo_num_cells
     
     !> Set the cell centre of specified cell
     module subroutine set_cell_centre(loc_p, x_p)

@@ -51,7 +51,8 @@ contains
   function generate_mesh(face_coordinate) result(mesh)
 
     use meshing, only: get_global_num_cells, set_global_num_cells, &
-                       get_local_num_cells, set_local_num_cells
+                       get_local_num_cells, set_local_num_cells, &
+                       set_halo_num_cells
     
     real(ccs_real), intent(in) :: face_coordinate
     type(ccs_mesh) :: mesh
@@ -62,7 +63,7 @@ contains
     ! Build 2 cells mesh topology
     call set_local_num_cells(2, mesh)
     call set_global_num_cells(2, mesh)
-    mesh%topo%halo_num_cells = 0
+    call set_halo_num_cells(0, mesh)
     mesh%topo%total_num_cells = 2
     mesh%topo%global_num_faces = 1
     mesh%topo%num_faces = 1

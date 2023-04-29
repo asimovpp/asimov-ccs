@@ -22,6 +22,7 @@ module mesh_utils
                      set_area, set_normal, &
                      get_local_num_cells, set_local_num_cells, &
                      get_global_num_cells, set_global_num_cells, &
+                     set_halo_num_cells, &
                      set_face_interpolation
   use bc_constants
 
@@ -647,8 +648,8 @@ contains
       end associate
 
       mesh%topo%total_num_cells = size(mesh%topo%global_indices)
-      mesh%topo%halo_num_cells = mesh%topo%total_num_cells - local_num_cells
-
+      call set_halo_num_cells(mesh%topo%total_num_cells - local_num_cells, mesh)
+      
       ! Set the global mesh parameters
       call set_global_num_cells(cps**2, mesh) ! XXX: Is this necessary?
       mesh%topo%global_num_vertices = (cps + 1)**2
@@ -1200,8 +1201,8 @@ contains
       ! print*,"Neighbour indices: ",mesh%neighbour_indices
 
       mesh%topo%total_num_cells = size(mesh%topo%global_indices)
-      mesh%topo%halo_num_cells = mesh%topo%total_num_cells - local_num_cells
-
+      call set_halo_num_cells(mesh%topo%total_num_cells - local_num_cells, mesh)
+      
       call get_global_num_cells(mesh, nglobal)
       mesh%topo%global_num_faces = (nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1)
       allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
@@ -2129,24 +2130,28 @@ contains
 
   ! Print mesh topology object
   subroutine print_topo(par_env, mesh)
+
+    use meshing, only: get_halo_num_cells
+    
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
     integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
 
-    integer(ccs_int) :: local_num_cells, global_num_cells
+    integer(ccs_int) :: local_num_cells, global_num_cells, halo_num_cells
     
     print *, par_env%proc_id, "############################# Print Topology ########################################"
 
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
+    call get_halo_num_cells(mesh, halo_num_cells)
     
     print *, par_env%proc_id, "global_num_cells    : ", global_num_cells
     print *, par_env%proc_id, "local_num_cells     : ", local_num_cells
-    print *, par_env%proc_id, "halo_num_cells      : ", mesh%topo%halo_num_cells
+    print *, par_env%proc_id, "halo_num_cells      : ", halo_num_cells
+    print *, par_env%proc_id, "total_num_cells     : ", mesh%topo%total_num_cells
     print *, par_env%proc_id, "global_num_vertices : ", mesh%topo%global_num_vertices
     print *, par_env%proc_id, "vert_per_cell       : ", mesh%topo%vert_per_cell
-    print *, par_env%proc_id, "total_num_cells     : ", mesh%topo%total_num_cells
     print *, par_env%proc_id, "global_num_faces    : ", mesh%topo%global_num_faces
     print *, par_env%proc_id, "num_faces           : ", mesh%topo%num_faces
     print *, par_env%proc_id, "max_faces           : ", mesh%topo%max_faces
