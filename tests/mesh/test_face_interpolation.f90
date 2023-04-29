@@ -55,7 +55,10 @@ contains
                        set_halo_num_cells, &
                        set_global_num_faces, &
                        get_total_num_cells, set_total_num_cells, &
-                       set_num_faces, set_max_faces
+                       set_num_faces, set_max_faces, &
+                       set_cell_location, set_neighbour_location, &
+                       set_local_index
+    use types, only: cell_locator, neighbour_locator
     
     real(ccs_real), intent(in) :: face_coordinate
     type(ccs_mesh) :: mesh
@@ -64,6 +67,9 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: max_faces
+
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
     
     ! Build 2 cells mesh topology
     call set_local_num_cells(2, mesh)
@@ -90,8 +96,12 @@ contains
     mesh%topo%face_indices(:, :) = 1
 
     allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
-    mesh%topo%nb_indices(1, 1) = 2
-    mesh%topo%nb_indices(1, 2) = 1
+    call set_cell_location(mesh, 1, loc_p)        ! Select cell 1
+    call set_neighbour_location(loc_p, 1, loc_nb) ! Select 1st neighbour
+    call set_local_index(2, loc_nb)               ! Set neighbour index = 2
+    call set_cell_location(mesh, 2, loc_p)        ! Select cell 2
+    call set_neighbour_location(loc_p, 1, loc_nb) ! Select 1st neighbour
+    call set_local_index(1, loc_nb)               ! Set neighbour index = 1
 
     allocate (mesh%topo%num_nb(local_num_cells))
     mesh%topo%num_nb(:) = 1

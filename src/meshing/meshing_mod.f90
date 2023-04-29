@@ -22,7 +22,7 @@ module meshing
   public :: get_centre
   public :: get_volume
   public :: get_global_index
-  public :: get_local_index
+  public :: get_local_index, set_local_index
   public :: get_boundary_status
   public :: get_local_status
   public :: count_neighbours
@@ -59,6 +59,10 @@ module meshing
     module procedure get_vertex_neighbour_local_index
     module procedure get_face_local_index
   end interface get_local_index
+
+  interface set_local_index
+    module procedure set_neighbour_local_index
+  end interface set_local_index
 
   interface count_neighbours
     module procedure cell_count_neighbours
@@ -282,6 +286,12 @@ module meshing
       type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
       integer(ccs_int), intent(out) :: index_nb     !< the local index of the neighbour cell.
     end subroutine get_neighbour_local_index
+
+    !> Sets the local index of a neighbouring cell
+    module subroutine set_neighbour_local_index(index_nb, loc_nb)
+      integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+      type(neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+    end subroutine set_neighbour_local_index
 
     !> Returns the local index of a vertex neighbouring cell
     module subroutine get_vertex_neighbour_local_index(loc_nb, index_nb)

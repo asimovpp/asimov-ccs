@@ -2,7 +2,7 @@ submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int
-  use types, only: cell_locator
+  use types, only: cell_locator, neighbour_locator
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
@@ -11,7 +11,9 @@ submodule(partitioning) partitioning_common
                      get_total_num_cells, set_total_num_cells, &
                      set_num_faces, &
                      get_max_faces, &
-                     set_cell_location, get_global_index
+                     set_cell_location, set_neighbour_location, &
+                     get_global_index, &
+                     set_local_index
 
   implicit none
 
@@ -258,6 +260,8 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
+
+    type(neighbour_locator) :: loc_nb
     
     call set_halo_num_cells(0, mesh)
     call get_halo_num_cells(mesh, halo_num_cells)
@@ -277,9 +281,13 @@ contains
     ! Initialise neighbour indices
     mesh%topo%nb_indices(:, :) = 0_ccs_int
 
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
     do i = 1, local_num_cells
-      mesh%topo%xadj(i) = ctr
+      call set_cell_location(mesh, i, loc_p)
 
+      mesh%topo%xadj(i) = ctr
+      
       ! Loop over connections of cell i
       do j = 1, tmp_int2d(i, max_faces + 1)
         associate (nbidx => tmp_int2d(i, j))
@@ -292,6 +300,7 @@ contains
               call get_halo_num_cells(mesh, halo_num_cells)
               call set_halo_num_cells(halo_num_cells + 1, mesh)
               call get_halo_num_cells(mesh, halo_num_cells)
+              call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
               if (halo_num_cells > size(tmp1)) then
                 allocate (tmp2(size(tmp1) + local_num_cells))
 
@@ -307,7 +316,8 @@ contains
             end if
 
             local_idx = findloc(tmp1, nbidx)
-            mesh%topo%nb_indices(j, i) = local_num_cells + local_idx(1)
+            call set_neighbour_location(loc_p, j, loc_nb)
+            call set_local_index(local_num_cells + local_idx(1), loc_nb)
           end if
 
           !local_idx = findloc(tmp1, nbidx)
@@ -315,13 +325,15 @@ contains
 
           if (nbidx .lt. 0) then
             ! boundary 'cell'
-            mesh%topo%nb_indices(j, i) = nbidx
+            call set_neighbour_location(loc_p, j, loc_nb)
+            call set_local_index(nbidx, loc_nb)
           end if
 
           if (any(mesh%topo%global_indices == nbidx)) then
             ! local in cell
             local_idx = findloc(mesh%topo%global_indices, nbidx)
-            mesh%topo%nb_indices(j, i) = local_idx(1)
+            call set_neighbour_location(loc_p, j, loc_nb)
+            call set_local_index(local_idx(1), loc_nb)
           end if
 
           mesh%topo%adjncy(ctr) = nbidx
@@ -332,9 +344,6 @@ contains
 
     end do
     mesh%topo%xadj(local_num_cells + 1) = ctr
-
-    ! Now we have local + halo cells, update the total
-    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
 
     allocate (tmp2(local_num_cells + halo_num_cells))
     do i = 1, local_num_cells

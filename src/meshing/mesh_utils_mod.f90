@@ -27,7 +27,8 @@ module mesh_utils
                      get_global_num_faces, set_global_num_faces, &
                      get_num_faces, set_num_faces, &
                      get_max_faces, set_max_faces, &
-                     set_face_interpolation
+                     set_face_interpolation, &
+                     set_local_index
   use bc_constants
 
   implicit none
@@ -610,6 +611,9 @@ contains
         mesh%topo%num_nb(:) = max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
         mesh%topo%num_vert_nb(:) = mesh%topo%vert_nb_per_cell ! All cells have 4 vertex neighbours (possibly ghost/boundary cells)
 
+        ! Initialise neighbour indices
+        mesh%topo%nb_indices(:, :) = 0_ccs_int
+        
         ! First set the global index of local cells
         index_counter = 1_ccs_int
         do i = start_global, end_global
@@ -1757,15 +1761,23 @@ contains
     integer(ccs_int) :: global_index_h
 
     integer(ccs_int) :: total_num_cells
+
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
     
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
+
+    call set_cell_location(mesh, index_p, loc_p)
+    if (.not. vertex_nb_flag) then
+      call set_neighbour_location(loc_p, index_p_nb, loc_nb)
+    end if
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= local_num_cells)) then
       ! Neighbour is local
       if (vertex_nb_flag) then
         mesh%topo%vert_nb_indices(index_p_nb, index_p) = index_nb
       else
-        mesh%topo%nb_indices(index_p_nb, index_p) = index_nb
+        call set_local_index(index_nb, loc_nb)
       end if
     else if (global_index_nb < 0_ccs_int) then
       ! Boundary "neighbour" - local index should also be -ve
@@ -1775,7 +1787,7 @@ contains
       if (vertex_nb_flag) then
         mesh%topo%vert_nb_indices(index_p_nb, index_p) = index_nb
       else
-        mesh%topo%nb_indices(index_p_nb, index_p) = index_nb
+        call set_local_index(index_nb, loc_nb)
       end if
     else
       ! Neighbour is in a halo
@@ -1791,7 +1803,7 @@ contains
           if (vertex_nb_flag) then
             mesh%topo%vert_nb_indices(index_p_nb, index_p) = i
           else
-            mesh%topo%nb_indices(index_p_nb, index_p) = i
+            call set_local_index(i, loc_nb)
           end if
           exit
         end if
@@ -1811,7 +1823,7 @@ contains
         if (vertex_nb_flag) then
           mesh%topo%vert_nb_indices(index_p_nb, index_p) = ng
         else
-          mesh%topo%nb_indices(index_p_nb, index_p) = ng
+          call set_local_index(ng, loc_nb)
         end if
 
         ! Increment total cell count
