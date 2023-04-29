@@ -4,6 +4,8 @@ program scalar_advection
 
   ! ASiMoV-CCS uses
   use kinds, only: ccs_real, ccs_int
+  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, &
                    field, upwind_field, central_field, bc_config
@@ -42,6 +44,13 @@ program scalar_advection
   double precision :: end_time
 
   call initialise_parallel_environment(par_env)
+
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
+
   call read_command_line_arguments(par_env)
   call timer(start_time)
 
@@ -131,18 +140,18 @@ contains
 
     ! Set IC velocity and scalar fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
-       call calc_cell_coords(global_index_p, cps, row, col)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call calc_cell_coords(global_index_p, cps, row, col)
 
-       ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
-       u = real(col, ccs_real) / real(cps, ccs_real)
-       v = -real(row, ccs_real) / real(cps, ccs_real)
+      ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
+      u = real(col, ccs_real) / real(cps, ccs_real)
+      v = -real(row, ccs_real) / real(cps, ccs_real)
 
-       mf_val = u + v
+      mf_val = u + v
 
-       call set_row(global_index_p, mf_vals)
-       call set_entry(mf_val, mf_vals)
+      call set_row(global_index_p, mf_vals)
+      call set_entry(mf_val, mf_vals)
     end do
     call set_values(mf_vals, mf%values)
 

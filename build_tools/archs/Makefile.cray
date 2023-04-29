@@ -8,7 +8,11 @@ ifeq ($(VERBOSE),yes)
 endif
 ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
-  FFLAGS += -G2
+  CFLAGS = -O0
+  FFLAGS += -G0
+  FFLAGS += -g
+  FFLAGS += -R bcdps
+  FFLAGS += -O0
   FFLAGS += -eN
 else
 endif
@@ -18,4 +22,4 @@ endif
 FFLAGS += -homp
 FFLAGS += -J$(OBJ_DIR)
 CAFFLAGS = -hcaf
-MPIRUN = srun
+MPIRUN = srun --oversubscribe

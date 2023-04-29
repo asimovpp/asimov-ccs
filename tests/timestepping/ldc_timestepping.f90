@@ -8,11 +8,14 @@ program ldc
   use petscvec
   use petscsys
 
-  use case_config, only: num_steps, velocity_relax, pressure_relax, res_target
-  use constants, only: cell, face, ccsconfig, ccs_string_len
+  use case_config, only: num_iters, velocity_relax, pressure_relax, res_target, &
+                         velocity_solver_method_name, velocity_solver_precon_name, &
+                         pressure_solver_method_name, pressure_solver_precon_name
+  use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, field_w, &
+                       field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector
+                   vector_spec, ccs_vector, fluid, fluid_solver_selector
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -22,7 +25,8 @@ program ldc
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print, str
+  use utils, only: set_size, initialise, update, exit_print, str, get_field, set_field, &
+                   get_fluid_solver_selector, set_fluid_solver_selector, allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count
   use timestepping, only: set_timestep, get_timestep, update_old_values, activate_timestepping, initialise_old_values
@@ -40,7 +44,7 @@ program ldc
   class(field), allocatable :: u, v, w, p, p_prime, mf
 
   integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: cps = 50 ! Default value for cells per side
+  integer(ccs_int) :: cps = 10 ! Default value for cells per side
 
   integer(ccs_int) :: it_start, it_end, t_count
   integer(ccs_int) :: irank ! MPI rank ID
@@ -55,6 +59,9 @@ program ldc
   logical :: v_sol = .true.
   logical :: w_sol = .false.
   logical :: p_sol = .true.
+
+  type(fluid) :: flow_fields
+  type(fluid_solver_selector) :: fluid_sol
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -72,16 +79,23 @@ program ldc
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
 
+  ! set solver and preconditioner info
+  velocity_solver_method_name = "gmres"
+  velocity_solver_precon_name = "bjacobi"
+  pressure_solver_method_name = "cg"
+  pressure_solver_precon_name = "gamg"
+
   if (irank == par_env%root) then
     call print_configuration()
   end if
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
-  it_end = num_steps
+  it_end = 5
 
   ! Create a square mesh
   print *, "Building mesh"
+  cps = 5
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
@@ -163,13 +177,26 @@ program ldc
   t_end = 1.0
   t_count = 0
 
+  ! XXX: This should get incorporated as part of create_field subroutines
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call allocate_fluid_fields(6, flow_fields)
+  call set_field(1, field_u, u, flow_fields)
+  call set_field(2, field_v, v, flow_fields)
+  call set_field(3, field_w, w, flow_fields)
+  call set_field(4, field_p, p, flow_fields)
+  call set_field(5, field_p_prime, p_prime, flow_fields)
+  call set_field(6, field_mf, mf, flow_fields)
+
   ! Start time-stepping
   t = t_start
   do while (t < t_end)
     ! Solve using SIMPLE algorithm
     print *, "Start SIMPLE at t=" // str(t)
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         u_sol, v_sol, w_sol, p_sol, u, v, w, p, p_prime, mf)
+                         fluid_sol, flow_fields)
     call update_old_values(u)
     call update_old_values(v)
     call update_old_values(w)
@@ -198,9 +225,7 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_reference_number, get_steps, &
-                           get_convection_scheme, get_relaxation_factor, &
-                           get_target_residual
+    use read_config, only: get_value, get_relaxation_factors
 
     character(len=*), intent(in) :: config_filename
 
@@ -212,19 +237,19 @@ contains
       call error_abort(trim(error))
     end if
 
-    call get_steps(config_file_pointer, num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num-steps.")
+    call get_value(config_file_pointer, 'iterations', num_iters)
+    if (num_iters == huge(0)) then
+      call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_relaxation_factor(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
-    if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
-      call error_abort("No values assigned to velocity and pressure underrelaxation.")
-    end if
-
-    call get_target_residual(config_file_pointer, res_target)
+    call get_value(config_file_pointer, 'target_residual', res_target)
     if (res_target == huge(0.0)) then
       call error_abort("No value assigned to target residual.")
+    end if
+
+    call get_relaxation_factors(config_file_pointer, u_relax=velocity_relax, p_relax=pressure_relax)
+    if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
+      call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
   end subroutine
@@ -236,7 +261,7 @@ contains
 
     print *, "++++"
     print *, "SIMULATION LENGTH"
-    print *, "Running for ", num_steps, "iterations"
+    print *, "Running for ", num_iters, "iterations"
     print *, "++++"
     print *, "MESH"
     print *, "Size is ", cps
@@ -280,20 +305,20 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
-       call calc_cell_coords(global_index_p, cps, row, col)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call calc_cell_coords(global_index_p, cps, row, col)
 
-       u_val = 0.0_ccs_real
-       v_val = 0.0_ccs_real
-       w_val = 0.0_ccs_real
+      u_val = 0.0_ccs_real
+      v_val = 0.0_ccs_real
+      w_val = 0.0_ccs_real
 
-       call set_row(global_index_p, u_vals)
-       call set_entry(u_val, u_vals)
-       call set_row(global_index_p, v_vals)
-       call set_entry(v_val, v_vals)
-       call set_row(global_index_p, w_vals)
-       call set_entry(w_val, w_vals)
+      call set_row(global_index_p, u_vals)
+      call set_entry(u_val, u_vals)
+      call set_row(global_index_p, v_vals)
+      call set_entry(v_val, v_vals)
+      call set_row(global_index_p, w_vals)
+      call set_entry(w_val, w_vals)
     end do
 
     call set_values(u_vals, u%values)

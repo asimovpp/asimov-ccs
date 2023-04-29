@@ -19,9 +19,13 @@ program test_square_mesh_indices
   type(cell_locator) :: loc_p
   integer(ccs_int) :: global_index
 
+  integer(ccs_int), dimension(9) :: m = (/1, 2, 4, 8, 16, 20, 40, 80, 100/)
+  integer(ccs_int) :: mctr
+
   call init()
 
-  do n = 1, 100 ! TODO: Investigate how we can replicate nmax=100 across multiple test programs
+  do mctr = 1, size(m)
+    n = m(mctr)
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
 

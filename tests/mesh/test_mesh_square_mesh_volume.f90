@@ -28,9 +28,13 @@ program test_mesh_square_mesh_volume
 
   real(ccs_real) :: CV
 
+  integer(ccs_int), dimension(9) :: m = (/1, 2, 4, 8, 16, 20, 40, 80, 100/)
+  integer(ccs_int) :: mctr
+
   call init()
 
-  do n = 1, 100
+  do mctr = 1, size(m)
+    n = m(mctr)
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...

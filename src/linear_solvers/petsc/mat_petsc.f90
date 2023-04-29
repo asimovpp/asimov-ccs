@@ -13,7 +13,7 @@ submodule(mat) mat_petsc
 contains
 
   !> Create a new PETSc matrix object.
-  module subroutine create_matrix(mat_properties, M)
+  module subroutine create_matrix(mat_properties, M, name)
 
     use mpi
 
@@ -22,12 +22,13 @@ contains
                         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
 
     use meshing, only: get_local_num_cells
-    
+
     type(matrix_spec), intent(in) :: mat_properties   !< contains information about how the matrix should be allocated
     class(ccs_matrix), allocatable, intent(out) :: M  !< the matrix object
+    character(len=*), optional, intent(in) :: name    !< name of the matrix object
 
     integer(ccs_int) :: local_num_cells
-    
+
     integer(ccs_err) :: ierr  ! Error code
 
     allocate (matrix_petsc :: M)
@@ -36,6 +37,7 @@ contains
     type is (matrix_petsc)
 
       M%modeset = .false.
+      if (present(name)) M%name = name
 
       select type (par_env => mat_properties%par_env)
       type is (parallel_environment_mpi)
@@ -52,6 +54,9 @@ contains
           M%allocated = .true.
         end if
 
+        if (present(name)) then
+          call MatSetOptionsPrefix(M%M, M%name // ':', ierr)
+        end if
         call MatSetFromOptions(M%M, ierr)
 
         if (mat_properties%nnz < 1) then

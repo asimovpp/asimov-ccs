@@ -101,3 +101,21 @@ The command line option `--ccs_m` allows you to set the size of the mesh (the de
 ```
 mpirun -n 4 ../../../ccs_app --ccs_m 129 --ccs_case LidDrivenCavity
 ```
+
+The results can be plotted against Ghia's reference data by running the `plot-structured.py` scrip from the results directory
+```
+python ../../../scripts/plot-structured.py
+```
+this requires installation of `h5py`, which can be installed via `pip install h5py`.
+
+## Further documentation
+
+### Code documentation
+CCS uses FORD for code documentation. You can install FORD using `pip install ford`. Documentation can then be generated using `make ford`. This will generate HTML documentation in the `doc` directory with entry point `index.html`.
+
+See https://github.com/Fortran-FOSS-Programmers/ford and https://forddocs.readthedocs.io/en/latest/ for more information on FORD.
+
+### Developer documentation
+A developer and style guide can be generated using `make dev_guide`. This requires `latex`. The output can be found in `dev_guide/ccs_dev_guide.pdf`.
+
+Documentation describing the build system, testing framework and linting in CCS can be found [here](build_tools/build_system_readme.md).

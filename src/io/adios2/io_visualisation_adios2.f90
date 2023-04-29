@@ -23,7 +23,7 @@ contains
     use types, only: field_ptr
     use case_config, only: write_gradients
     use meshing, only: get_local_num_cells
-    
+
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
@@ -81,7 +81,7 @@ contains
     sel2_start(2) = mesh%topo%global_indices(1) - 1
     sel2_count(1) = ndim
     call get_local_num_cells(mesh, sel2_count(2))
-    
+
     ! Begin step
     call begin_step(sol_writer)
 

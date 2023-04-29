@@ -14,7 +14,7 @@ submodule(fv) fv_common
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                      get_local_index, get_global_index, get_volume, get_distance, &
                      set_face_location, get_face_area, get_face_normal, set_cell_location, &
-                     get_local_num_cells
+                     get_local_num_cells, get_face_interpolation
   use boundary_conditions, only: get_bc_index
   use bc_constants
 
@@ -393,6 +393,7 @@ contains
     real(ccs_real) :: u_bc, v_bc, w_bc             ! values of u, v and w at boundary
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data ! the vector data for u, v and w
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
+    real(ccs_real) :: interpol_factor
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -412,9 +413,11 @@ contains
         call get_vector_data(v_field%values, v_data)
         call get_vector_data(w_field%values, w_data)
 
-        flux = 0.5_ccs_real * ((u_data(index_p) + u_data(index_nb)) * face_normal(x_direction) &
-                               + (v_data(index_p) + v_data(index_nb)) * face_normal(y_direction) &
-                               + (w_data(index_p) + w_data(index_nb)) * face_normal(z_direction))
+        call get_face_interpolation(loc_f, interpol_factor)
+
+      flux = ((interpol_factor * u_data(index_p) + (1.0_ccs_real - interpol_factor) * u_data(index_nb)) * face_normal(x_direction) &
+            + (interpol_factor * v_data(index_p) + (1.0_ccs_real - interpol_factor) * v_data(index_nb)) * face_normal(y_direction) &
+             + (interpol_factor * w_data(index_p) + (1.0_ccs_real - interpol_factor) * w_data(index_nb)) * face_normal(z_direction))
 
         call restore_vector_data(u_field%values, u_data)
         call restore_vector_data(v_field%values, v_data)
@@ -464,6 +467,7 @@ contains
 
     real(ccs_real) :: uSwitch, vSwitch, wSwitch
     real(ccs_real) :: problem_dim
+    real(ccs_real) :: interpol_factor
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -481,17 +485,19 @@ contains
         !
         ! Rhie-Chow correction from Ferziger & Peric
         !
+        call get_face_interpolation(loc_f, interpol_factor)
         call get_distance(loc_p, loc_nb, dx)
         dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
         flux_corr = -(p(index_nb) - p(index_p)) / dxmag
-        flux_corr = flux_corr + 0.5_ccs_real * ((dpdx(index_p) + dpdx(index_nb)) * face_normal(x_direction) &
-                                                + (dpdy(index_p) + dpdy(index_nb)) * face_normal(y_direction) &
-                                                + (dpdz(index_p) + dpdz(index_nb)) * face_normal(z_direction))
+
+        flux_corr = flux_corr + ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
+                + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
+                 + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
-        Vf = 0.5_ccs_real * (Vp + V_nb)
+        Vf = interpol_factor * Vp + (1.0_ccs_real - interpol_factor) * V_nb
 
         ! This is probably not quite right ...
         uSwitch = 1.0_ccs_real
@@ -500,7 +506,7 @@ contains
         problem_dim = uSwitch + vSwitch + wSwitch
         invAp = (uSwitch * invAu(index_p) + vSwitch * invAv(index_p) + wSwitch * invAw(index_p)) / problem_dim
         invA_nb = (uSwitch * invAu(index_nb) + vSwitch * invAv(index_nb) + wSwitch * invAw(index_nb)) / problem_dim
-        invAf = 0.5_ccs_real * (invAp + invA_nb)
+        invAf = interpol_factor * invAp + (1.0_ccs_real - interpol_factor) * invA_nb
 
         flux_corr = (Vf * invAf) * flux_corr
 
@@ -602,6 +608,7 @@ contains
     integer(ccs_int) :: index_nb
 
     real(ccs_real) :: phif
+    real(ccs_real) :: interpol_factor
 
     logical :: is_boundary
 
@@ -632,7 +639,8 @@ contains
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
           call get_vector_data(phi%values, phi_data)
-          phif = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) ! XXX: Need to do proper interpolation
+          call get_face_interpolation(loc_f, interpol_factor)
+          phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
           call restore_vector_data(phi%values, phi_data)
         else
           call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif, &

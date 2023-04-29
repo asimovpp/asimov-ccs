@@ -3,6 +3,7 @@
 !  Implementation (using MPI) of the parallel utilities
 !
 !  @build mpi
+!  @dont_fail_linter
 
 submodule(parallel) parallel_utils_mpi
 #include "ccs_macros.inc"
@@ -36,11 +37,12 @@ contains
   end subroutine
 
   !> read command line arguments and their values
-  module subroutine read_command_line_arguments(par_env, cps, case_name)
+  module subroutine read_command_line_arguments(par_env, cps, case_name, in_dir)
 
     class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
     integer(ccs_int), optional, intent(inout) :: cps   !< number of cells per side
     character(len=:), optional, allocatable, intent(out) :: case_name
+    character(len=:), optional, allocatable, intent(out) :: in_dir
 
     character(len=1024) :: arg ! argument string
     integer(ccs_int) :: nargs  ! number of arguments
@@ -75,6 +77,12 @@ contains
               if (present(case_name)) then
                 allocate (character(len=arg_len) :: case_name)
                 case_name = trim(arg)
+              end if
+            case ('--ccs_in') ! input directory
+              call get_command_argument(nargs + 1, length=arg_len, value=arg)
+              if (present(in_dir)) then
+                allocate (character(len=arg_len) :: in_dir)
+                in_dir = trim(arg)
               end if
             case ('--ccs_help')
               if (par_env%proc_id == par_env%root) then
@@ -117,6 +125,7 @@ contains
     print *, "--ccs_help:               This help menu"
     print *, "--ccs_m <value>:          Problem size"
     print *, "--ccs_case <string>:      Test case name" // new_line('a')
+    print *, "--ccs_in <string>:        Path to input directory" // new_line('a')
 
   end subroutine
 

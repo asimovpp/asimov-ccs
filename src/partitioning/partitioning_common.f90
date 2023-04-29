@@ -4,7 +4,8 @@ submodule(partitioning) partitioning_common
   use kinds, only: ccs_int
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only : set_local_num_cells, get_local_num_cells
+  use mesh_utils, only: count_mesh_faces, set_cell_face_indices
+  use meshing, only: set_local_num_cells, get_local_num_cells
 
   implicit none
 
@@ -101,9 +102,13 @@ contains
         call compute_connectivity_add_connection(face_nb2, face_nb1, mesh, tmp_int2d)
       end if
 
-      ! If face neighbour 2 is 0 we have a boundary face
-      if (face_nb2 .eq. 0) then
+      ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
+      if (any(mesh%topo%global_indices == face_nb1) .and. (face_nb2 .eq. 0)) then
         mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
+
+        ! read the boundary id from bnd_rid
+        face_nb2 = mesh%topo%bnd_rid(i)
+        call compute_connectivity_add_connection(face_nb1, face_nb2, mesh, tmp_int2d)
       end if
 
     end do
@@ -119,6 +124,11 @@ contains
 
     allocate (mesh%topo%adjncy(num_connections))
 
+    if (allocated(mesh%topo%face_indices)) then
+      deallocate (mesh%topo%face_indices)
+    end if
+    allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
+
     call flatten_connectivity(tmp_int2d, mesh)
 
     call dprint("Number of halo cells after partitioning: " // str(mesh%topo%halo_num_cells))
@@ -126,6 +136,10 @@ contains
     mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
 
     call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
+
+    call set_cell_face_indices(mesh)
+
+    mesh%topo%num_faces = count_mesh_faces(mesh)
 
   end subroutine compute_connectivity
 
@@ -140,7 +154,7 @@ contains
 
     ! Allocate and then compute global indices
     if (allocated(mesh%topo%global_indices)) then
-       deallocate (mesh%topo%global_indices)
+      deallocate (mesh%topo%global_indices)
     end if
     call get_local_num_cells(mesh, local_num_cells)
     allocate (mesh%topo%global_indices(local_num_cells))
@@ -216,13 +230,21 @@ contains
     integer, dimension(1) :: local_idx
 
     integer(ccs_int) :: local_num_cells
-    
+
     mesh%topo%halo_num_cells = 0
     call get_local_num_cells(mesh, local_num_cells)
     ctr = 1
 
     allocate (tmp1(local_num_cells))
+    if (allocated(mesh%topo%nb_indices)) then
+      deallocate (mesh%topo%nb_indices)
+    end if
+    allocate (mesh%topo%nb_indices(mesh%topo%max_faces, local_num_cells))
+
     tmp1(:) = -1
+
+    ! Initialise neighbour indices
+    mesh%topo%nb_indices(:, :) = 0_ccs_int
 
     do i = 1, local_num_cells
       mesh%topo%xadj(i) = ctr
@@ -230,7 +252,7 @@ contains
       ! Loop over connections of cell i
       do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)
         associate (nbidx => tmp_int2d(i, j))
-          if (.not. any(mesh%topo%global_indices == nbidx)) then
+          if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
             ! Halo cell
             if (.not. any(tmp1 == nbidx)) then
               ! New halo cell
@@ -252,7 +274,21 @@ contains
             end if
 
             local_idx = findloc(tmp1, nbidx)
-            !topo%adjncy(ctr) = local_idx(1)
+            mesh%topo%nb_indices(j, i) = local_num_cells + local_idx(1)
+          end if
+
+          !local_idx = findloc(tmp1, nbidx)
+          !topo%adjncy(ctr) = local_idx(1)
+
+          if (nbidx .lt. 0) then
+            ! boundary 'cell'
+            mesh%topo%nb_indices(j, i) = nbidx
+          end if
+
+          if (any(mesh%topo%global_indices == nbidx)) then
+            ! local in cell
+            local_idx = findloc(mesh%topo%global_indices, nbidx)
+            mesh%topo%nb_indices(j, i) = local_idx(1)
           end if
 
           mesh%topo%adjncy(ctr) = nbidx

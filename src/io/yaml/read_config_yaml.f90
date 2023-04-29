@@ -17,16 +17,10 @@ submodule(read_config) read_config_utils
 
   implicit none
 
-  interface get_value
-    module procedure get_integer_value
-    module procedure get_real_value
-    module procedure get_string_value
-  end interface
-
 contains
 
   !> Gets the integer value associated with the keyword from dict
-  subroutine get_integer_value(dict, keyword, int_val)
+  module subroutine get_integer_value(dict, keyword, int_val)
     class(*), pointer, intent(in) :: dict     !< The dictionary
     character(len=*), intent(in) :: keyword   !< The key
     integer, intent(out) :: int_val           !< The corresponding value
@@ -52,7 +46,7 @@ contains
   !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
   !  whether the key-value pair is present in the dictionary. Takes a flag indicating whether the
   !  value is required.
-  subroutine get_real_value(dict, keyword, real_val, value_present, required)
+  module subroutine get_real_value(dict, keyword, real_val, value_present, required)
     class(*), pointer, intent(in) :: dict            !< The dictionary to read from
     character(len=*), intent(in) :: keyword          !< The key to read
     real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
@@ -91,7 +85,7 @@ contains
   end subroutine
 
   !> Gets the string associated with the keyword from dict
-  subroutine get_string_value(dict, keyword, string_val, value_present, required)
+  module subroutine get_string_value(dict, keyword, string_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
     character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
@@ -145,17 +139,6 @@ contains
     character(len=:), allocatable, intent(inout) :: title !< the case name string
 
     call get_value(config_file, "title", title)
-
-  end subroutine
-
-  !v Get the number of steps
-  !
-  !  Get the maximum number of iterations to be preformed in the current run
-  module subroutine get_steps(config_file, steps)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: steps              !< the maximum number of iterations
-
-    call get_value(config_file, 'steps', steps)
 
   end subroutine
 
@@ -420,19 +403,6 @@ contains
 
   end subroutine
 
-  !v Get target residual
-  !
-  !  Get the convergence criterion.
-  !  The calculation will stop when the residuals (L2-norm) of the
-  !  governing equations are less than the target residual.
-  module subroutine get_target_residual(config_file, residual)
-    class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-    real(ccs_real), intent(inout) :: residual     !< convergence criterion
-
-    call get_value(config_file, "target_residual", residual)
-
-  end subroutine
-
   !v Get grid cell to monitor
   !
   !  Get the grid cell at which to monitor the values of the flow variables (U,V,W,P,TE,ED and T)
@@ -538,7 +508,7 @@ contains
   !v Get relaxation factor values
   !
   !  Get relaxation factors
-  module subroutine get_relaxation_factor(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
+  module subroutine get_relaxation_factors(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
     class(*), pointer, intent(in) :: config_file        !< the entry point to the config file
     real(ccs_real), optional, intent(inout) :: u_relax  !< relaxation factor for u
     real(ccs_real), optional, intent(inout) :: v_relax  !< relaxation factor for v
@@ -573,31 +543,6 @@ contains
       if (present(ed_relax)) then
         call get_value(dict, "ed", ed_relax)
       end if
-
-    class default
-      call error_abort("Unknown type")
-    end select
-
-  end subroutine
-
-  !v Get output frequency
-  !
-  !  Get output frequency, set with keywords "every", "iter", or both.
-  module subroutine get_output_frequency(config_file, output_freq, output_iter)
-    class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-    integer, intent(inout) :: output_freq        !< the frequency of writing output files
-    integer, intent(inout) :: output_iter        !< output files are written every output_iter/steps
-
-    class(*), pointer :: dict
-    type(type_error), allocatable :: io_err
-
-    select type (config_file)
-    type is (type_dictionary)
-
-      dict => config_file%get_dictionary('output', required=.false., error=io_err)
-
-      call get_value(dict, "every", output_freq)
-      call get_value(dict, "iter", output_iter)
 
     class default
       call error_abort("Unknown type")

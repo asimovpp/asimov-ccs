@@ -7,7 +7,7 @@ program test_mesh_point_distribution
   use testing_lib
   use mesh_utils, only: build_mesh
   use meshing, only: get_local_num_cells
-  
+
   implicit none
 
   type(ccs_mesh) :: mesh
@@ -26,31 +26,31 @@ program test_mesh_point_distribution
   mesh = build_mesh(par_env, nx, ny, nz, 1.0_ccs_real)
   call get_local_num_cells(mesh, nlocal)
   if (nlocal < 0) then
-     ! XXX: Zero cells on a PE is not necessarily invalid...
-     ! ? exit
-     ! select type(par_env)
-     ! type is(parallel_environment_mpi)
-     !   call MPI_Allreduce(nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
-     ! class default
-     !   write (message,*) "ERROR: Unknown parallel environment!"
-     !   call stop_test(message)
-     ! end select
+    ! XXX: Zero cells on a PE is not necessarily invalid...
+    ! ? exit
+    ! select type(par_env)
+    ! type is(parallel_environment_mpi)
+    !   call MPI_Allreduce(nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
+    ! class default
+    !   write (message,*) "ERROR: Unknown parallel environment!"
+    !   call stop_test(message)
+    ! end select
   end if
 
   n_expected = nx * ny * nz
 
   if (nlocal > n_expected) then
-     write (message, *) "FAIL: Local number of cells ", nlocal, &
-          " exceeds requested total!"
-     call stop_test(message)
+    write (message, *) "FAIL: Local number of cells ", nlocal, &
+      " exceeds requested total!"
+    call stop_test(message)
   end if
 
   select type (par_env)
   type is (parallel_environment_mpi)
-     call MPI_Allreduce(nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
+    call MPI_Allreduce(nlocal, n_global, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
   class default
-     write (message, *) "ERROR: Unknown parallel environment!"
-     call stop_test(message)
+    write (message, *) "ERROR: Unknown parallel environment!"
+    call stop_test(message)
   end select
 
   if (n_global /= n_expected) then
@@ -59,8 +59,8 @@ program test_mesh_point_distribution
     call stop_test(message)
   end if
 
-  call assert_equal(n_expected, mesh%topo%global_num_cells, &
-                    '("FAIL: expected ", i0, " got ", i0, " (test_mesh:test_mesh_point_distribution/2)")')
+  call assert_eq(n_expected, mesh%topo%global_num_cells, &
+                 '(test_mesh:test_mesh_point_distribution/2)')
 
   call fin()
 
