@@ -28,6 +28,7 @@ module meshing
   public :: count_neighbours
   public :: get_distance
   public :: get_local_num_cells, set_local_num_cells
+  public :: get_global_num_cells, set_global_num_cells
   public :: set_centre
   public :: set_area
   public :: set_normal
@@ -322,6 +323,18 @@ module meshing
       integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
     end subroutine get_local_num_cells_long
 
+    !> Sets the mesh global cell count.
+    module subroutine set_global_num_cells(global_num_cells, mesh)
+      integer(ccs_int), intent(in) :: global_num_cells !< The global cell count
+      type(ccs_mesh), intent(inout) :: mesh            !< The mesh
+    end subroutine set_global_num_cells
+
+    !> Gets the mesh global cell count.
+    module subroutine get_global_num_cells(mesh, global_num_cells)
+      type(ccs_mesh), intent(in) :: mesh                !< The mesh
+      integer(ccs_int), intent(out) :: global_num_cells !< The global cell count
+    end subroutine get_global_num_cells
+    
     !> Set the cell centre of specified cell
     module subroutine set_cell_centre(loc_p, x_p)
       type(cell_locator), intent(in) :: loc_p         !< The cell locator object.

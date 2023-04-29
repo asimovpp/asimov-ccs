@@ -305,6 +305,12 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
+    use meshing, only: get_global_num_cells
+    
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+    
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
     print *, "******************************************************************************"
@@ -321,7 +327,7 @@ contains
       print *, "* Cells per side: ", cps
       write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     end if
-    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "* Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax

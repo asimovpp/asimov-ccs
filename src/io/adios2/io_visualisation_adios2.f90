@@ -22,7 +22,7 @@ contains
     use vec, only: get_vector_data, restore_vector_data
     use types, only: field_ptr
     use case_config, only: write_gradients
-    use meshing, only: get_local_num_cells
+    use meshing, only: get_local_num_cells, get_global_num_cells
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
@@ -52,6 +52,8 @@ contains
 
     integer(ccs_int) :: i
 
+    integer(ccs_int) :: global_num_cells
+
     sol_file = case_name // '.sol.h5'
     adios2_file = case_name // adiosconfig
 
@@ -69,14 +71,16 @@ contains
       call open_file(sol_file, "write", sol_writer)
     end if
 
+    call get_global_num_cells(mesh, global_num_cells)
+    
     ! 1D data
-    sel_shape(1) = mesh%topo%global_num_cells
+    sel_shape(1) = global_num_cells
     sel_start(1) = mesh%topo%global_indices(1) - 1
     call get_local_num_cells(mesh, sel_count(1))
 
     ! 2D data
     sel2_shape(1) = ndim
-    sel2_shape(2) = mesh%topo%global_num_cells
+    sel2_shape(2) = global_num_cells
     sel2_start(1) = 0
     sel2_start(2) = mesh%topo%global_indices(1) - 1
     sel2_count(1) = ndim

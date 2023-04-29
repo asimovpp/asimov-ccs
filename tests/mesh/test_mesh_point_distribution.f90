@@ -6,7 +6,7 @@ program test_mesh_point_distribution
 
   use testing_lib
   use mesh_utils, only: build_mesh
-  use meshing, only: get_local_num_cells
+  use meshing, only: get_local_num_cells, get_global_num_cells
 
   implicit none
 
@@ -16,7 +16,8 @@ program test_mesh_point_distribution
   integer(ccs_int) :: nlocal
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
-
+  integer(ccs_int) :: global_num_cells
+  
   call init()
 
   nx = 4
@@ -59,7 +60,8 @@ program test_mesh_point_distribution
     call stop_test(message)
   end if
 
-  call assert_eq(n_expected, mesh%topo%global_num_cells, &
+  call get_global_num_cells(mesh, global_num_cells)
+  call assert_eq(n_expected, global_num_cells, &
                  '(test_mesh:test_mesh_point_distribution/2)')
 
   call fin()

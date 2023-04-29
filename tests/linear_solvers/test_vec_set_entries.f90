@@ -106,12 +106,16 @@ contains
 
   subroutine test_vector()
 
+    use meshing, only: get_global_num_cells
     use solver, only: norm
 
     real(ccs_real) :: expectation
     real(ccs_real) :: test_value
 
-    expectation = sqrt(real(mesh%topo%global_num_cells, ccs_real))
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+    expectation = sqrt(real(global_num_cells, ccs_real))
     test_value = norm(v, 2)
     if (test_value /= expectation) then
       write (message, *) "FAIL: expected ", expectation, " got ", test_value

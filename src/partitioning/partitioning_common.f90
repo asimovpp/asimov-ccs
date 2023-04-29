@@ -5,7 +5,7 @@ submodule(partitioning) partitioning_common
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
-  use meshing, only: set_local_num_cells, get_local_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
 
   implicit none
 
@@ -31,7 +31,8 @@ contains
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
-
+    integer(ccs_int) :: global_num_cells
+    
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -65,7 +66,8 @@ contains
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
 
     if (allocated(mesh%topo%global_boundaries) .eqv. .false.) then
-      allocate (mesh%topo%global_boundaries(mesh%topo%global_num_cells))
+      call get_global_num_cells(mesh, global_num_cells)
+      allocate (mesh%topo%global_boundaries(global_num_cells))
     end if
 
     ! Reset global_boundaries array
@@ -151,6 +153,7 @@ contains
     integer :: i
     integer :: ctr
     integer :: local_num_cells
+    integer(ccs_int) :: global_num_cells
 
     ! Allocate and then compute global indices
     if (allocated(mesh%topo%global_indices)) then
@@ -162,8 +165,9 @@ contains
 
     ctr = 1
     associate (irank => par_env%proc_id, &
-               partition => mesh%topo%global_partition)
-      do i = 1, mesh%topo%global_num_cells
+         partition => mesh%topo%global_partition)
+      call get_global_num_cells(mesh, global_num_cells)
+      do i = 1, global_num_cells
         if (partition(i) == irank) then
           mesh%topo%global_indices(ctr) = i
           ctr = ctr + 1
@@ -181,7 +185,8 @@ contains
       stop
     end if
 
-    if (maxval(mesh%topo%global_indices) > mesh%topo%global_num_cells) then
+    call get_global_num_cells(mesh, global_num_cells)
+    if (maxval(mesh%topo%global_indices) > global_num_cells) then
       print *, "ERROR: global index exceeds range!"
       stop
     end if

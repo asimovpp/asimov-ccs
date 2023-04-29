@@ -50,23 +50,28 @@ contains
   !v Generates a 2 cells mesh with cell1 at (0,0,0), cell2 at (1,0,0) and face1(face_coordinate, 0, 0)
   function generate_mesh(face_coordinate) result(mesh)
 
+    use meshing, only: get_global_num_cells, set_global_num_cells, set_local_num_cells
+    
     real(ccs_real), intent(in) :: face_coordinate
     type(ccs_mesh) :: mesh
 
+    integer(ccs_int) :: global_num_cells
+
     ! Build 2 cells mesh topology
-    mesh%topo%global_num_cells = 2
-    mesh%topo%local_num_cells = 2
+    call set_local_num_cells(2, mesh)
+    call set_global_num_cells(2, mesh)
     mesh%topo%halo_num_cells = 0
     mesh%topo%total_num_cells = 2
     mesh%topo%global_num_faces = 1
     mesh%topo%num_faces = 1
     mesh%topo%max_faces = 1
 
-    allocate (mesh%topo%global_indices(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    allocate (mesh%topo%global_indices(global_num_cells))
     mesh%topo%global_indices(1) = 1
     mesh%topo%global_indices(2) = 2
 
-    allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
+    allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, global_num_cells))
     mesh%topo%global_face_indices(:, :) = 1
 
     allocate (mesh%topo%face_indices(mesh%topo%max_faces, mesh%topo%local_num_cells))

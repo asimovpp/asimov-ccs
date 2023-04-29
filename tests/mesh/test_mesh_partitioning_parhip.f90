@@ -16,16 +16,19 @@ program test_mesh_partitioning_parhip
   use partitioning, only: partition_kway
   use kinds, only: ccs_int, ccs_long
   use types, only: ccs_mesh, topology
+  use meshing, only: get_global_num_cells, set_global_num_cells
 
   implicit none
 
   type(ccs_mesh) :: mesh
+  integer(ccs_int) :: global_num_cells
 
   call init()
   call initialise_test()
 
   ! Partition
-  allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
+  call get_global_num_cells(mesh, global_num_cells)
+  allocate (mesh%topo%global_partition(global_num_cells))
   call partition_kway(par_env, mesh)
 
   if (par_env%proc_id == 0) then
@@ -42,7 +45,7 @@ contains
 
   subroutine initialise_test()
 
-    mesh%topo%global_num_cells = 15
+    call set_global_num_cells(15, mesh)
 
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -93,15 +96,18 @@ contains
     integer :: ntotal
     integer :: i
 
+    integer(ccs_int) :: global_num_cells
+    
     nnew = 0
-    do i = 1, mesh%topo%global_num_cells
+    call get_global_num_cells(mesh, global_num_cells)
+    do i = 1, global_num_cells
       if (mesh%topo%global_partition(i) == par_env%proc_id) then
         nnew = nnew + 1
       end if
     end do
     call MPI_Allreduce(nnew, ntotal, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
-    if (ntotal /= mesh%topo%global_num_cells) then
-      write (message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", mesh%topo%global_num_cells
+    if (ntotal /= global_num_cells) then
+      write (message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", global_num_cells
       call stop_test(message)
     end if
 

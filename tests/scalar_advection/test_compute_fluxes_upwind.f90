@@ -15,7 +15,7 @@ program test_compute_fluxes
   use solver, only: axpy, norm
   use constants, only: add_mode, insert_mode
   use bc_constants
-  use meshing, only: get_local_num_cells
+  use meshing, only: get_local_num_cells, get_global_num_cells
 
   implicit none
 
@@ -69,7 +69,7 @@ contains
 
   !v Sets the velocity field in the desired direction and discretisation
   subroutine set_velocity_fields(mesh, direction, u, v)
-    use meshing, only: set_cell_location, get_global_index
+    use meshing, only: set_cell_location
     class(ccs_mesh), intent(in) :: mesh       !< The mesh structure
     integer(ccs_int), intent(in) :: direction !< Integer indicating the direction of the velocity field
     class(field), intent(inout) :: u, v       !< The velocity fields in x and y directions
@@ -192,6 +192,7 @@ contains
   !v Computes the known flux matrix for the given flow and discretisation
   subroutine compute_exact_matrix(mesh, flow, discretisation, cps, M, b)
 
+    use meshing, only: get_global_num_cells
     use vec, only: zero_vector
 
     class(ccs_mesh), intent(in) :: mesh            !< The (square) mesh
@@ -208,6 +209,7 @@ contains
     integer(ccs_int) :: row, col
     integer(ccs_int) :: vec_counter
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells
 
     call initialise(vec_properties)
     call set_size(par_env, mesh, vec_properties)
@@ -222,8 +224,9 @@ contains
     call zero_vector(b)
 
     ! Advection first
-    allocate (vec_coeffs%global_indices(2 * mesh%topo%global_num_cells / cps))
-    allocate (vec_coeffs%global_indices(2 * mesh%topo%global_num_cells / cps))
+    call get_global_num_cells(mesh, global_num_cells)
+    allocate (vec_coeffs%global_indices(2 * global_num_cells / cps))
+    allocate (vec_coeffs%global_indices(2 * global_num_cells / cps))
 
     vec_counter = 1
     adv_coeff = 0.0_ccs_real
@@ -295,6 +298,7 @@ contains
     real(ccs_real) :: diff_coeff
 
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: i, ii
     integer(ccs_int) :: j
     integer(ccs_int) :: mat_counter
@@ -309,6 +313,7 @@ contains
     diff_coeff = -0.01_ccs_real
     ! Diffusion coefficients
     call get_local_num_cells(mesh, local_num_cells)
+    call get_global_num_cells(mesh, global_num_cells)
     do i = 1, local_num_cells
       mat_counter = 1
 
@@ -325,11 +330,11 @@ contains
         mat_counter = mat_counter + 1
       end if
 
-      if (ii + 1 .le. mesh%topo%global_num_cells .and. mod(ii, cps) .ne. 0) then
+      if (ii + 1 .le. global_num_cells .and. mod(ii, cps) .ne. 0) then
         call pack_entries(1, mat_counter, ii, ii + 1, diff_coeff, mat_coeffs)
         mat_counter = mat_counter + 1
       end if
-      if (ii + cps .le. mesh%topo%global_num_cells) then
+      if (ii + cps .le. global_num_cells) then
         call pack_entries(1, mat_counter, ii, ii + cps, diff_coeff, mat_coeffs)
         mat_counter = mat_counter + 1
       end if

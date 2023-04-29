@@ -39,6 +39,26 @@ contains
 
   end subroutine get_local_num_cells_long
 
+  !> Sets the mesh global cell count.
+  module subroutine set_global_num_cells(global_num_cells, mesh)
+
+    integer(ccs_int), intent(in) :: global_num_cells !< The global cell count
+    type(ccs_mesh), intent(inout) :: mesh            !< The mesh
+
+    mesh%topo%global_num_cells = global_num_cells
+
+  end subroutine set_global_num_cells
+
+  !> Gets the mesh global cell count.
+  module subroutine get_global_num_cells(mesh, global_num_cells)
+
+    type(ccs_mesh), intent(in) :: mesh                !< The mesh
+    integer(ccs_int), intent(out) :: global_num_cells !< The global cell count
+
+    global_num_cells = mesh%topo%global_num_cells
+
+  end subroutine get_global_num_cells
+  
   !v Constructs a face locator object.
   !
   !  Creates the association between a face relative to a cell, i.e. to access the

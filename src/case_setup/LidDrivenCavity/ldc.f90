@@ -26,6 +26,7 @@ program ldc
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
+  use meshing, only: get_global_num_cells
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
@@ -254,6 +255,10 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+    
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
     print *, "******************************************************************************"
@@ -267,7 +272,7 @@ contains
     print *, "* MESH SIZE"
     print *, "* Cells per side: ", cps
     write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
-    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "* Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax

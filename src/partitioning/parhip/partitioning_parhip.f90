@@ -4,7 +4,7 @@ submodule(partitioning) partitioning_parhip
   use kinds, only: ccs_int, ccs_real, ccs_long
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
 
   implicit none
 
@@ -65,6 +65,8 @@ contains
     integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
+    integer(ccs_int) :: global_num_cells
+
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3%
     seed = 2022       ! "Random" seed
@@ -72,7 +74,8 @@ contains
     suppress = 0      ! Do not suppress the output
     edgecuts = -1     ! XXX: silence unused variable warning
 
-    allocate (tmp_partition(mesh%topo%global_num_cells)) ! Temporary partition array
+    call get_global_num_cells(mesh, global_num_cells)
+    allocate (tmp_partition(global_num_cells)) ! Temporary partition array
     tmp_partition = 0
 
     irank = par_env%proc_id ! Current rank
@@ -112,7 +115,8 @@ contains
         tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
 
-      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
+      call get_global_num_cells(mesh, global_num_cells)
+      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
                          MPI_LONG, MPI_SUM, par_env%comm, ierr)
 
     class default
@@ -149,6 +153,7 @@ contains
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -156,8 +161,10 @@ contains
     start_index = int(mesh%topo%vtxdist(irank + 1), int32)
     end_index = int(mesh%topo%vtxdist(irank + 2), int32) - 1
 
+    call get_global_num_cells(mesh, global_num_cells)
+    
     ! Allocate global partition array
-    allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
+    allocate (mesh%topo%global_partition(global_num_cells))
 
     ! Initial global partition
     do i = 1, size(mesh%topo%vtxdist) - 1
@@ -179,7 +186,8 @@ contains
     tmp_int2d = 0
 
     ! Allocate global boundaries array
-    allocate (mesh%topo%global_boundaries(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells) ! Ensure true value
+    allocate (mesh%topo%global_boundaries(global_num_cells))
 
     ! All ranks loop over all the faces
     do i = 1, mesh%topo%global_num_faces

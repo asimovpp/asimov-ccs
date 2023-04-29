@@ -25,7 +25,8 @@ submodule(pv_coupling) pv_coupling_simple
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance, &
-                     get_local_num_cells, get_face_interpolation
+                     get_local_num_cells, get_face_interpolation, &
+                     get_global_num_cells
   use timestepping, only: update_old_values, finalise_timestep
 
   implicit none
@@ -301,7 +302,8 @@ contains
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
-
+    integer(ccs_int) :: global_num_cells
+    
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
@@ -353,7 +355,8 @@ contains
     call mat_vec_product(M, u%values, res)
     call vec_aypx(vec, -1.0_ccs_real, res)
     ! Stores RMS of residuals
-    residuals(ivar) = norm(res, 2) / sqrt(real(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    residuals(ivar) = norm(res, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(ivar + nvar) = norm(res, 0)
@@ -486,6 +489,8 @@ contains
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
 
+    integer(ccs_int) :: global_num_cells
+    
     ! First zero matrix
     call zero(M)
 
@@ -592,7 +597,8 @@ contains
       ! XXX: Need to fix pressure somewhere
       !      Row is the global index - should be unique
       !      Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
+      call get_global_num_cells(mesh, global_num_cells)
+      cps = int(sqrt(real(global_num_cells)), ccs_int)
       rcrit = (cps / 2) * (1 + cps)
       if (row == rcrit) then
         coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
@@ -700,6 +706,8 @@ contains
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
 
+    integer(ccs_int) :: global_num_cells
+    
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
@@ -797,7 +805,8 @@ contains
 
     ! Pressure residual
     ! Stores RMS of residuals
-    residuals(varp) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    residuals(varp) = norm(b, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(varp + nvar) = norm(b, 0)
@@ -900,6 +909,8 @@ contains
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     type(vector_values) :: vec_values
 
+    integer(ccs_int) :: global_num_cells
+    
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
     call zero(b)
@@ -966,7 +977,8 @@ contains
     call update(b)
 
     ! Stores RMS of residuals
-    residuals(varp + 1) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    residuals(varp + 1) = norm(b, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(varp + 1 + nvar) = norm(b, 0)

@@ -31,7 +31,7 @@ program test_square_mesh_neighbours
   integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
 
   integer(ccs_int), dimension(5) :: m = (/2, 4, 8, 16, 20/)
-  integer(ccs_int) :: n_v, n_e, n_f
+  integer(ccs_int) :: n_v, n_e
   integer(ccs_int) :: mctr
 
   call init()

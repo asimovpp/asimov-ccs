@@ -49,7 +49,8 @@ contains
   module subroutine write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
 
     use case_config, only: write_gradients
-
+    use meshing, only: get_global_num_cells
+    
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
@@ -76,6 +77,8 @@ contains
     character(len=10), parameter :: l5 = '          '   ! Indentation level 5
     character(len=12), parameter :: l6 = '            ' ! Indentation level 6
 
+    integer(ccs_int) :: ncel
+    
     xdmf_file = case_name // '.sol.xmf'
     sol_file = case_name // '.sol.h5'
     geo_file = case_name // '.geo'
@@ -107,8 +110,8 @@ contains
         write (ioxdmf, '(a,a)') l1, '<Domain>'
       end if
 
-      associate (ncel => mesh%topo%global_num_cells, &
-                 nvrt => mesh%topo%global_num_vertices)
+      call get_global_num_cells(mesh, ncel)
+      associate (nvrt => mesh%topo%global_num_vertices)
 
         write (ioxdmf, '(a,a)') l3, '<Grid Name = "Mesh">'
 

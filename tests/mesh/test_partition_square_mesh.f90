@@ -13,7 +13,7 @@ program test_partition_square_mesh
                           partition_kway, compute_connectivity
   use kinds, only: ccs_int, ccs_long
   use mesh_utils, only: build_square_topology
-  use meshing, only: get_local_num_cells
+  use meshing, only: get_local_num_cells, get_global_num_cells
 
   use utils, only: debug_print
 
@@ -23,7 +23,8 @@ program test_partition_square_mesh
   integer :: i, j, n
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
-
+  integer(ccs_int) :: global_num_cells
+  
   call init()
 
   print *, "Building mesh."
@@ -45,7 +46,8 @@ program test_partition_square_mesh
 
   if (par_env%proc_id == 0) then
     print *, "Global partition after partitioning:"
-    do i = 1, mesh%topo%global_num_cells
+    call get_global_num_cells(mesh, global_num_cells)
+    do i = 1, global_num_cells
       print *, mesh%topo%global_partition(i)
     end do
   end if
@@ -103,6 +105,8 @@ contains
     integer :: i
     integer :: ctr
 
+    integer(ccs_int) :: global_num_cells
+    
     ! Do some basic verification
 
     if (size(mesh%topo%vtxdist) /= (par_env%num_procs + 1)) then
@@ -120,7 +124,8 @@ contains
       ctr = ctr + int(mesh%topo%vtxdist(i) - mesh%topo%vtxdist(i - 1))
     end do
 
-    if (ctr /= mesh%topo%global_num_cells) then
+    call get_global_num_cells(mesh, global_num_cells)
+    if (ctr /= global_num_cells) then
       write (message, *) "ERROR: global vertex distribution count is wrong " // stage // "- partitioning."
       call stop_test(message)
     end if

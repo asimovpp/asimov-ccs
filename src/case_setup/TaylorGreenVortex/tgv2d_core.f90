@@ -21,6 +21,7 @@ module tgv2d_core
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
+  use meshing, only: get_global_num_cells
   use mesh_utils, only: build_square_mesh, write_mesh
   use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
@@ -300,7 +301,12 @@ contains
 
   ! Print test case configuration
   subroutine print_configuration(mesh)
+    
     class(ccs_mesh), intent(in) :: mesh
+
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
@@ -316,7 +322,7 @@ contains
     print *, "* MESH SIZE"
     print *,"* Cells per side: ", cps
     write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
-    print *, "Global number of cells is ", mesh%topo%global_num_cells
+    print *, "Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
@@ -484,6 +490,8 @@ contains
     character(len=ccs_string_len) :: fmt
     real(ccs_real) :: time
 
+    integer(ccs_int) :: global_num_cells
+    
     integer :: io_unit
 
     integer :: ierr
@@ -540,7 +548,9 @@ contains
     class default
       call error_abort("ERROR: Unknown type")
     end select
-    error_L2(:) = sqrt(error_L2(:) / mesh%topo%global_num_cells)
+
+    call get_global_num_cells(mesh, global_num_cells)
+    error_L2(:) = sqrt(error_L2(:) / global_num_cells)
 
     if (par_env%proc_id == par_env%root) then
       if (first_time) then

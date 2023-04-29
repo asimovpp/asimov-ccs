@@ -14,7 +14,8 @@ program test_partition_tri_mesh
   use kinds, only: ccs_int, ccs_long
   ! use types, only: topology
   use mesh_utils, only: build_square_mesh
-  use meshing, only: get_local_num_cells, set_local_num_cells
+  use meshing, only: get_local_num_cells, set_local_num_cells, &
+                     get_global_num_cells, set_global_num_cells
   use utils, only: debug_print
 
   implicit none
@@ -29,6 +30,8 @@ program test_partition_tri_mesh
   integer, parameter :: nrows = 3
   integer, parameter :: ncols = 5
 
+  integer(ccs_int) :: global_num_cells
+  
   call init()
   call initialise_test()
 
@@ -46,7 +49,8 @@ program test_partition_tri_mesh
 
   if (par_env%proc_id == 0) then
     print *, "Global partition after partitioning:"
-    do i = 1, mesh%topo%global_num_cells
+    call get_global_num_cells(mesh, global_num_cells)
+    do i = 1, global_num_cells
       print *, mesh%topo%global_partition(i)
     end do
   end if
@@ -104,6 +108,8 @@ contains
     integer :: i
     integer :: ctr
 
+    integer(ccs_int) :: global_num_cells
+    
     ! Do some basic verification
 
     if (size(mesh%topo%vtxdist) /= (par_env%num_procs + 1)) then
@@ -121,7 +127,8 @@ contains
       ctr = ctr + int(mesh%topo%vtxdist(i) - mesh%topo%vtxdist(i - 1), ccs_int)
     end do
 
-    if (ctr /= mesh%topo%global_num_cells) then
+    call get_global_num_cells(mesh, global_num_cells)
+    if (ctr /= global_num_cells) then
       write (message, *) "ERROR: global vertex distribution count is wrong " // stage // "- partitioning."
       call stop_test(message)
     end if
@@ -250,6 +257,8 @@ contains
 
     integer :: i
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells
+    
     ! Create a tri mesh
     !
     ! Sample graph - adapted from ParMETIS manual to use 1-indexing with added triangular connections.
@@ -263,13 +272,15 @@ contains
     ! N.B. in terms of "top"/"bottom" boundaries this graph should be reflected about the horizontal axis.
 
     ! --- read_topology() ---
-    mesh%topo%global_num_cells = nrows * ncols
+    call set_global_num_cells(nrows * ncols, mesh)
     mesh%topo%global_num_faces = 46 ! Hardcoded for now (check face array counts)
     mesh%topo%max_faces = 6 ! mesh%topo%num_nb(1)
+
+    call get_global_num_cells(mesh, global_num_cells)
     allocate (mesh%topo%face_cell1(mesh%topo%global_num_faces))
     allocate (mesh%topo%face_cell2(mesh%topo%global_num_faces))
     allocate (mesh%topo%bnd_rid(mesh%topo%global_num_faces))
-    allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, mesh%topo%global_num_cells))
+    allocate (mesh%topo%global_face_indices(mesh%topo%max_faces, global_num_cells))
 
     ! Hardcode for now
     mesh%topo%face_cell1 = (/1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, &   ! 20 count
