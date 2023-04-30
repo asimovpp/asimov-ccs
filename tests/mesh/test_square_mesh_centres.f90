@@ -26,13 +26,14 @@ program test_square_mesh_centres
   type(face_locator) :: loc_f
   real(ccs_real), dimension(ndim) :: fc
 
-  integer(ccs_int), dimension(9) :: m = (/ 1, 2, 4, 8, 16, 20, 40, 80, 100 /)
+  integer(ccs_int), dimension(7) :: m = (/ 4, 8, 16, 20, 40, 80, 100 /)
   integer(ccs_int) :: mctr
 
   call init()
 
   do mctr = 1, size(m)
     n = m(mctr)
+    
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
 

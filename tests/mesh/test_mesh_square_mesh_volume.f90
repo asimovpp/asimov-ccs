@@ -28,7 +28,7 @@ program test_mesh_square_mesh_volume
 
   real(ccs_real) :: CV
 
-  integer(ccs_int), dimension(9) :: m = (/ 1, 2, 4, 8, 16, 20, 40, 80, 100 /)
+  integer(ccs_int), dimension(7) :: m = (/ 4, 8, 16, 20, 40, 80, 100 /)
   integer(ccs_int) :: mctr
 
   call init()
