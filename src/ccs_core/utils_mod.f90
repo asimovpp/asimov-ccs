@@ -48,6 +48,7 @@ module utils
   public :: calc_kinetic_energy
   public :: calc_enstrophy
   public :: add_field_to_outputlist
+  public :: reset_outputlist_counter
   public :: get_field
   public :: get_fluid_solver_selector
   public :: set_field
@@ -159,6 +160,8 @@ module utils
     module procedure get_natural_data_vec
   end interface get_natural_data
   
+  integer(ccs_int), save :: outputlist_counter = 0
+
 contains
 
   !> Print a message, along with with its location.
@@ -225,7 +228,7 @@ contains
     end if
     out_string = trim(adjustl(tmp_string))
   end function
-  
+
   !> Convert bool to string.
   function bool2str(in_bool) result(out_string)
     logical, intent(in) :: in_bool          !< bool to convert
@@ -261,7 +264,7 @@ contains
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells
-    
+
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: t !< timestep
@@ -344,7 +347,7 @@ contains
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells
-    
+
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: t !< timestep
@@ -421,14 +424,19 @@ contains
     type(field_ptr), dimension(:), intent(inout) :: list
 
     ! Local variables
-    integer(ccs_int), save :: count = 0
 
-    count = count + 1
+    outputlist_counter = outputlist_counter + 1
 
-    list(count)%ptr => var
-    list(count)%name = name
+    list(outputlist_counter)%ptr => var
+    list(outputlist_counter)%name = name
 
   end subroutine add_field_to_outputlist
+
+  subroutine reset_outputlist_counter()
+
+    outputlist_counter = 0
+
+  end subroutine
 
   !> Gets the field from the fluid structure specified by field_name
   subroutine get_field(flow, field_name, flow_field)
@@ -498,16 +506,16 @@ contains
     integer(ccs_int), intent(in) :: n_fields  !< Size of arrays in fluid structure
     type(fluid), intent(out) :: flow          !< the fluid structure
 
-    allocate(flow%fields(n_fields))
-    allocate(flow%field_names(n_fields))
+    allocate (flow%fields(n_fields))
+    allocate (flow%field_names(n_fields))
   end subroutine allocate_fluid_fields
 
   ! Deallocates fluid arrays
   subroutine dealloc_fluid_fields(flow)
     type(fluid), intent(inout) :: flow  !< The fluid structure to deallocate
 
-    deallocate(flow%fields)
-    deallocate(flow%field_names)
+    deallocate (flow%fields)
+    deallocate (flow%field_names)
   end subroutine dealloc_fluid_fields
 
 end module utils

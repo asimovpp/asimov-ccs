@@ -26,7 +26,7 @@ contains
                         VecCreate
 
     use meshing, only: get_local_num_cells
-    
+
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
     character(len=*), optional, intent(in) :: name      !< name of the vector object
@@ -77,8 +77,8 @@ contains
         end associate
 
         if (present(name)) then
-          call VecSetOptionsPrefix(v%v, v%name//':', ierr)
-        endif
+          call VecSetOptionsPrefix(v%v, v%name // ':', ierr)
+        end if
         call VecSetFromOptions(v%v, ierr)
         call VecSetOption(v%v, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
         call VecSet(v%v, 0.0_ccs_real, ierr)
@@ -341,7 +341,7 @@ contains
   !> Compute the norm of a PETSc vector
   module function vec_norm(v, norm_type) result(n)
 
-    use petscvec, only: NORM_2, VecNorm
+    use petscvec, only: NORM_2, NORM_INFINITY, VecNorm
 
     class(ccs_vector), intent(in) :: v          !< the PETSc vector
     integer(ccs_int), intent(in) :: norm_type   !< which norm to compute? Currently supported is the 2 norm: norm_type=2.
@@ -354,11 +354,14 @@ contains
     select type (v)
     type is (vector_petsc)
 
-      if (norm_type == 2) then
+      select case (norm_type)
+      case (0)
+        call VecNorm(v%v, NORM_INFINITY, n, ierr)
+      case (2)
         call VecNorm(v%v, NORM_2, n, ierr)
-      else
+      case default
         call error_abort("ERROR: unknown vector norm type " // str(norm_type))
-      end if
+      end select
 
     class default
       call error_abort("Type unhandled")

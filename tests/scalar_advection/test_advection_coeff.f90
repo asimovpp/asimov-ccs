@@ -34,13 +34,13 @@ program test_advection_coeff
   real(ccs_real), dimension(:), pointer :: u_data, v_data
 
   integer(ccs_int) :: local_num_cells
-  
+
   call init()
 
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
 
   call get_local_num_cells(mesh, local_num_cells)
-  
+
   index_test = int(0.5 * local_num_cells + 2, ccs_int)
   do direction = x_dir, y_dir
     do discretisation = upwind, central
@@ -138,22 +138,22 @@ contains
 
     ! Set IC velocity fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
 
-       if (direction == x_dir) then
-          u_val = 1.0_ccs_real
-          v_val = 0.0_ccs_real
-       else if (direction == y_dir) then
-          u_val = 0.0_ccs_real
-          v_val = 1.0_ccs_real
-       end if
+      if (direction == x_dir) then
+        u_val = 1.0_ccs_real
+        v_val = 0.0_ccs_real
+      else if (direction == y_dir) then
+        u_val = 0.0_ccs_real
+        v_val = 1.0_ccs_real
+      end if
 
-       call set_row(global_index_p, u_vals)
-       call set_entry(u_val, u_vals)
+      call set_row(global_index_p, u_vals)
+      call set_entry(u_val, u_vals)
 
-       call set_row(global_index_p, v_vals)
-       call set_entry(v_val, v_vals)
+      call set_row(global_index_p, v_vals)
+      call set_entry(v_val, v_vals)
     end do
 
     call set_values(u_vals, u%values)

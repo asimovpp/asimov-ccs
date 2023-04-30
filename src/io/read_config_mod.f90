@@ -37,33 +37,32 @@ module read_config
 
   interface
 
-  !> Gets the integer value associated with the keyword from dict
-  module subroutine get_integer_value(dict, keyword, int_val)
-    class(*), pointer, intent(in) :: dict     !< The dictionary
-    character(len=*), intent(in) :: keyword   !< The key
-    integer, intent(out) :: int_val           !< The corresponding value
-  end subroutine
+    !> Gets the integer value associated with the keyword from dict
+    module subroutine get_integer_value(dict, keyword, int_val)
+      class(*), pointer, intent(in) :: dict     !< The dictionary
+      character(len=*), intent(in) :: keyword   !< The key
+      integer, intent(out) :: int_val           !< The corresponding value
+    end subroutine
 
-  !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
-  !  whether the key-value pair is present in the dictionary. Takes a flag indicating whether the
-  !  value is required.
-  module subroutine get_real_value(dict, keyword, real_val, value_present, required)
-    class(*), pointer, intent(in) :: dict            !< The dictionary to read from
-    character(len=*), intent(in) :: keyword          !< The key to read
-    real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
-    logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
-    logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
-  end subroutine
+    !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
+    !  whether the key-value pair is present in the dictionary. Takes a flag indicating whether the
+    !  value is required.
+    module subroutine get_real_value(dict, keyword, real_val, value_present, required)
+      class(*), pointer, intent(in) :: dict            !< The dictionary to read from
+      character(len=*), intent(in) :: keyword          !< The key to read
+      real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
+      logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
+    end subroutine
 
-  !> Gets the string associated with the keyword from dict
-  module subroutine get_string_value(dict, keyword, string_val, value_present, required)
-    class(*), pointer, intent(in) :: dict                       !< The dictionary
-    character(len=*), intent(in) :: keyword                     !< The key
-    character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
-    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
-    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
-  end subroutine
-
+    !> Gets the string associated with the keyword from dict
+    module subroutine get_string_value(dict, keyword, string_val, value_present, required)
+      class(*), pointer, intent(in) :: dict                       !< The dictionary
+      character(len=*), intent(in) :: keyword                     !< The key
+      character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
+      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+    end subroutine
 
     !v Get the name of the test case
     !

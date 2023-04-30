@@ -75,7 +75,7 @@ contains
     integer(ccs_int) :: global_index_p
 
     call get_local_num_cells(mesh, nlocal)
-    
+
     nrows = 1_ccs_int
     nblocks = nlocal / nrows
 
@@ -83,20 +83,20 @@ contains
     call set_mode(mode, val_dat)
 
     do i = 1_ccs_int, nblocks
-       call clear_entries(val_dat)
+      call clear_entries(val_dat)
 
-       do j = 1_ccs_int, nrows
-          ! Compute local and global indices
-          index_p = j + (i - 1) * nrows
+      do j = 1_ccs_int, nrows
+        ! Compute local and global indices
+        index_p = j + (i - 1) * nrows
 
-          call set_cell_location(mesh, index_p, loc_p)
-          call get_global_index(loc_p, global_index_p)
+        call set_cell_location(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
 
-          call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...
-          call set_entry(elt_val, val_dat)
-       end do
+        call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...
+        call set_entry(elt_val, val_dat)
+      end do
 
-       call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
+      call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
     end do
     ! TODO: remainder loop (required for blocksize > 1)...
 

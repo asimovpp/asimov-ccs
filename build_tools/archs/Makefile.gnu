@@ -24,7 +24,7 @@ ifeq ($(PROFILE),yes)
 endif
 FFLAGS += -fopenmp
 FFLAGS += -J$(OBJ_DIR)
-MPIRUN = mpirun
+MPIRUN = mpirun --oversubscribe
 
 # Only set this value if building a CAF binary otherwise keep unset
 #CAFLINK= #-fcoarray=single

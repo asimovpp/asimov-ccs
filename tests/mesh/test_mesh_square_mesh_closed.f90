@@ -35,7 +35,7 @@ program test_mesh_square_mesh_closed
 
   do mctr = 1, size(m)
     n = m(mctr)
-    
+
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, n, l)
 
