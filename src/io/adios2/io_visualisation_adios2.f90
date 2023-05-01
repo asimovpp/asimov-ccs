@@ -23,7 +23,7 @@ contains
     use types, only: field_ptr, cell_locator
     use case_config, only: write_gradients
     use meshing, only: get_local_num_cells, get_global_num_cells, &
-                       set_cell_location, &
+                       get_cell_location, &
                        get_global_index
 
     ! Arguments
@@ -79,7 +79,7 @@ contains
     call get_global_num_cells(mesh, global_num_cells)
 
     ! Need to get data relating to first cell
-    call set_cell_location(mesh, 1, loc_p)
+    call get_cell_location(mesh, 1, loc_p)
 
     call get_global_index(loc_p, index_global)
     

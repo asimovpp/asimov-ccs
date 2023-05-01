@@ -13,7 +13,7 @@ module meshing
 
   private
   public :: get_face_location
-  public :: set_cell_location
+  public :: get_cell_location
   public :: set_neighbour_location
   public :: set_vert_location
   public :: set_face_index
@@ -115,11 +115,11 @@ module meshing
     !
     !  Creates the association between a mesh and cell index, storing it in the
     !  returned cell locator object.
-    module subroutine set_cell_location(mesh, index_p, loc_p)
+    module subroutine get_cell_location(mesh, index_p, loc_p)
       type(ccs_mesh), target, intent(in) :: mesh !< the mesh object being referred to.
       integer(ccs_int), intent(in) :: index_p    !< the cell index.
       type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with teh mesh.
-    end subroutine set_cell_location
+    end subroutine get_cell_location
 
     !v Constructs a face locator object.
     !

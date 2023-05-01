@@ -7,7 +7,7 @@ program test_square_mesh_centres
   use testing_lib
 
   use constants, only: ndim
-  use meshing, only: set_cell_location, get_face_location, get_centre, get_local_num_cells
+  use meshing, only: get_cell_location, get_face_location, get_centre, get_local_num_cells
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -38,7 +38,7 @@ program test_square_mesh_centres
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call get_centre(loc_p, cc)
       associate (x => cc(1), y => cc(2))
         if ((x > l) .or. (x < 0_ccs_real) &

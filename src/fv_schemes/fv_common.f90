@@ -13,7 +13,7 @@ submodule(fv) fv_common
   use utils, only: debug_print, exit_print, str
   use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
                      get_local_index, get_global_index, get_volume, get_distance, &
-                     get_face_location, get_face_area, get_face_normal, set_cell_location, &
+                     get_face_location, get_face_area, get_face_normal, get_cell_location, &
                      get_local_num_cells, get_face_interpolation, &
                      get_max_faces
   use boundary_conditions, only: get_bc_index
@@ -100,7 +100,7 @@ contains
       call clear_entries(b_coeffs)
 
       ! Calculate contribution from neighbours
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -362,7 +362,7 @@ contains
     call get_face_area(loc_f, face_area)
     call get_boundary_status(loc_f, is_boundary)
 
-    call set_cell_location(mesh, index_p, loc_p)
+    call get_cell_location(mesh, index_p, loc_p)
     if (.not. is_boundary) then
       call set_neighbour_location(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
@@ -404,7 +404,7 @@ contains
                index_p => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call set_neighbour_location(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
@@ -478,7 +478,7 @@ contains
                index_p => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call set_neighbour_location(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
@@ -632,7 +632,7 @@ contains
 
       grad = 0.0_ccs_int
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call get_face_location(mesh, index_p, j, loc_f)

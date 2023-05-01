@@ -57,7 +57,7 @@ contains
     use types, only: cell_locator
     use utils, only: set_mode, set_row, set_entry, set_values, clear_entries, update
     use vec, only: create_vector_values
-    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
+    use meshing, only: get_cell_location, get_global_index, get_local_num_cells
 
     integer(ccs_int), intent(in) :: mode
 
@@ -89,7 +89,7 @@ contains
         ! Compute local and global indices
         index_p = j + (i - 1) * nrows
 
-        call set_cell_location(mesh, index_p, loc_p)
+        call get_cell_location(mesh, index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
 
         call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...

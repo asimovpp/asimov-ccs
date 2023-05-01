@@ -3,7 +3,7 @@ program test_mesh_indices
 
   use testing_lib
 
-  use meshing, only: set_cell_location, get_global_index, get_local_num_cells, get_global_num_cells
+  use meshing, only: get_cell_location, get_global_index, get_local_num_cells, get_global_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -39,7 +39,7 @@ program test_mesh_indices
     call get_local_num_cells(mesh, nlocal)
     call get_global_num_cells(mesh, nglobal)
     do i = 1, nlocal
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index)
       if ((global_index < 1) .or. (global_index > nglobal)) then
         if (global_index /= -1) then

@@ -187,7 +187,7 @@ contains
                cell_face_ctr => loc_f%cell_face_ctr, &
                index_p => loc_f%index_p)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call set_neighbour_location(loc_p, cell_face_ctr, loc_nb)
       call get_local_index(loc_nb, index_nb)
       call get_local_index(loc_f, index_f)
@@ -214,7 +214,7 @@ contains
                cell_face_ctr => loc_f%cell_face_ctr, &
                index_p => loc_f%index_p)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call set_neighbour_location(loc_p, cell_face_ctr, loc_nb)
       call get_local_index(loc_nb, index_nb)
       call get_local_index(loc_f, index_f)
@@ -232,7 +232,7 @@ contains
   !
   !  Creates the association between a mesh and cell index, storing it in the
   !  returned cell locator object.
-  module subroutine set_cell_location(mesh, index_p, loc_p)
+  module subroutine get_cell_location(mesh, index_p, loc_p)
     type(ccs_mesh), target, intent(in) :: mesh !< the mesh object being referred to.
     integer(ccs_int), intent(in) :: index_p    !< the cell index.
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
@@ -249,7 +249,7 @@ contains
       call get_local_num_cells(mesh, local_num_cells)
       call error_abort("ERROR: trying to access cell I don't have access to." // str(index_p) // " " // str(local_num_cells) // " " // str(total_num_cells))
     end if
-  end subroutine set_cell_location
+  end subroutine get_cell_location
 
   !v Constructs a neighbour locator object.
   !
@@ -546,7 +546,7 @@ contains
     associate (mesh => loc_f%mesh, &
                i => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call set_neighbour_location(loc_p, j, loc_nb)
     end associate
     call get_neighbour_boundary_status(loc_nb, is_boundary)
@@ -665,7 +665,7 @@ contains
     integer(ccs_int) :: index_nb
 
     call get_local_index(loc_nb, index_nb)
-    call set_cell_location(loc_nb%mesh, index_nb, loc_p)
+    call get_cell_location(loc_nb%mesh, index_nb, loc_p)
   end subroutine get_neighbour_cell_locator
 
   !> Set the cell centre of specified cell

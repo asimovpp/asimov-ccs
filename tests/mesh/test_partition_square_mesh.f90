@@ -15,7 +15,7 @@ program test_partition_square_mesh
   use types, only: cell_locator
   use mesh_utils, only: build_square_topology
   use meshing, only: get_local_num_cells, get_global_num_cells, &
-                     set_cell_location, get_global_index
+                     get_cell_location, get_global_index
 
   use utils, only: debug_print
 
@@ -146,7 +146,7 @@ contains
     
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       
       do j = int(mesh%topo%xadj(i)), int(mesh%topo%xadj(i + 1)) - 1
@@ -174,7 +174,7 @@ contains
     
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells ! Loop over local cells
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       
       nadj = int(mesh%topo%xadj(i + 1) - mesh%topo%xadj(i))
@@ -238,7 +238,7 @@ contains
     adjncy_global_expected(:) = 0
     interior_ctr = 1
 
-    call set_cell_location(mesh, i, loc_p)
+    call get_cell_location(mesh, i, loc_p)
     call get_global_index(loc_p, idx_global)
     cidx_global = idx_global - 1 ! C-style indexing
     

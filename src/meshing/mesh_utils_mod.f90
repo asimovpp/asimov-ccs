@@ -15,7 +15,7 @@ module mesh_utils
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
-                     set_cell_location, set_neighbour_location, get_face_location, set_vert_location, &
+                     get_cell_location, set_neighbour_location, get_face_location, set_vert_location, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_local_num_cells, set_local_num_cells, &
                      get_centre, set_centre, &
@@ -363,7 +363,7 @@ contains
 
     !    do k = start, end ! loop over cells owned by current process
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
-      call set_cell_location(mesh, local_icell, loc_p)
+      call get_cell_location(mesh, local_icell, loc_p)
       call get_global_index(loc_p, global_icell)
       
       do j = 1, max_faces ! loop over all faces for each cell
@@ -458,7 +458,7 @@ contains
     
     call get_global_num_cells(mesh, global_num_cells)
 
-    call set_cell_location(mesh, 1, loc_p)
+    call get_cell_location(mesh, 1, loc_p)
     call get_global_index(loc_p, index_global)
     
     ! Write cell vertices
@@ -702,12 +702,6 @@ contains
       call get_total_num_cells(mesh, total_num_cells)
       call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
       
-      ! Set the global mesh parameters
-      call set_global_num_cells(cps**2, mesh) ! XXX: Is this necessary?
-      mesh%topo%global_num_vertices = (cps + 1)**2
-
-      call get_global_num_cells(mesh, nglobal)
-      
       call set_global_num_faces((cps + 1) * cps + cps * (cps + 1), mesh)
       call get_global_num_faces(mesh, global_num_faces)
       allocate (mesh%topo%face_cell1(global_num_faces))
@@ -885,7 +879,7 @@ contains
       ! Global vertex numbering
       do i = 1, local_num_cells
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
           
           global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
@@ -915,7 +909,7 @@ contains
       ! Set cell centre
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
 
           x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
@@ -925,7 +919,7 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           do face_counter = 1_ccs_int, max_faces
@@ -981,7 +975,7 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           vertex_counter = front_bottom_left
@@ -1277,7 +1271,6 @@ contains
       call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
       
       call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
-      call get_global_num_cells(mesh, nglobal)
       call get_global_num_faces(mesh, global_num_faces)
       call get_max_faces(mesh, max_faces)
       allocate (mesh%topo%face_cell1(global_num_faces))
@@ -1294,7 +1287,7 @@ contains
       !  - face_cell1 < face_cell2
       !  - and if face is a boundary, then: face_cell1 = current_cell, face_cell2 = 0
       face_index_counter = 1_ccs_int
-      call get_global_num_cells(mesh, nglobal)
+
       do i = 1, nglobal
 
         ii = i - 1_ccs_int
@@ -1429,7 +1422,6 @@ contains
       ! and the total number of ranks in the parallel environment
       allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
 
-      call get_global_num_cells(mesh, nglobal)
       mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
       mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
 
@@ -1504,7 +1496,7 @@ contains
       ! Global vertex numbering
       do i = 1, local_num_cells
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
 
           a = modulo(ii - 1, nx * ny) + 1
@@ -1544,7 +1536,7 @@ contains
       ! Set cell centre
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
           
           x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
@@ -1555,7 +1547,7 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           do face_counter = 1_ccs_int, max_faces
@@ -1623,7 +1615,7 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           vertex_counter = front_bottom_left
@@ -1807,7 +1799,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
 
-    call set_cell_location(mesh, index_p, loc_p)
+    call get_cell_location(mesh, index_p, loc_p)
     if (.not. vertex_nb_flag) then
       call set_neighbour_location(loc_p, index_p_nb, loc_nb)
     end if
@@ -1835,7 +1827,7 @@ contains
       ng = size(mesh%topo%global_indices)
       found = .false.
       do i = local_num_cells + 1, ng
-        call set_cell_location(mesh, i, loc_h)
+        call get_cell_location(mesh, i, loc_h)
         call get_global_index(loc_h, global_index_h)
         if (global_index_h == global_index_nb) then
           found = .true.
@@ -1929,7 +1921,7 @@ contains
     ! Loop over cells
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -1981,7 +1973,7 @@ contains
     ! Loop over cells
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
@@ -2025,7 +2017,7 @@ contains
     type(face_locator) :: loc_f
     integer(ccs_int) :: index_nb_nb
 
-    call set_cell_location(mesh, index_nb, loc_nb)
+    call get_cell_location(mesh, index_nb, loc_nb)
     call count_neighbours(loc_nb, nnb_nb)
     do k = 1, nnb_nb
       call set_neighbour_location(loc_nb, k, loc_nb_nb)
@@ -2076,7 +2068,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
 
     do index_p = 1, local_num_cells
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb

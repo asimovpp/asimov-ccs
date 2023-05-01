@@ -340,7 +340,7 @@ contains
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
-    use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
+    use meshing, only: get_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
                        get_local_index, get_face_location, get_local_index, get_face_normal, get_centre, &
                        get_local_num_cells
     use fv, only: calc_cell_coords
@@ -382,7 +382,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_centre(loc_p, x_p)
@@ -425,7 +425,7 @@ contains
     call get_local_num_cells(mesh, n_local)
     do index_p = 1, n_local
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 

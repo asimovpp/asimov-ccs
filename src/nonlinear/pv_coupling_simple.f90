@@ -24,7 +24,7 @@ submodule(pv_coupling) pv_coupling_simple
   use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, set_neighbour_location, get_face_location, &
-                     set_cell_location, get_volume, get_distance, &
+                     get_cell_location, get_volume, get_distance, &
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
                      get_max_faces
@@ -413,7 +413,7 @@ contains
     do index_p = 1, local_num_cells
       call clear_entries(vec_values)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_volume(loc_p, V)
@@ -523,7 +523,7 @@ contains
     do index_p = 1, local_num_cells
       call clear_entries(vec_values)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -751,7 +751,7 @@ contains
     do i = 1, local_num_cells
       call clear_entries(vec_values)
 
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -935,7 +935,7 @@ contains
       call clear_entries(vec_values)
       mib = 0.0_ccs_real
 
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb

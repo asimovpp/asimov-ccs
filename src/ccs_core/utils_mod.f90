@@ -256,7 +256,7 @@ contains
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use meshing, only: get_local_num_cells, set_cell_location, get_volume
+    use meshing, only: get_local_num_cells, get_cell_location, get_volume
     
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
@@ -292,7 +292,7 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call get_volume(loc_p, volume)
       
       ek_local = ek_local + 0.5 * rho * volume * &

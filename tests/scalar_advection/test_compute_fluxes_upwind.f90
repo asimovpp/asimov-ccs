@@ -69,7 +69,7 @@ contains
 
   !v Sets the velocity field in the desired direction and discretisation
   subroutine set_velocity_fields(mesh, direction, u, v)
-    use meshing, only: set_cell_location
+    use meshing, only: get_cell_location
     class(ccs_mesh), intent(in) :: mesh       !< The mesh structure
     integer(ccs_int), intent(in) :: direction !< Integer indicating the direction of the velocity field
     class(field), intent(inout) :: u, v       !< The velocity fields in x and y directions
@@ -90,7 +90,7 @@ contains
 
     ! Set IC velocity fields
     do index_p = 1, n_local
-      call set_cell_location(mesh, index_p, loc_p)
+      call get_cell_location(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       if (direction == x_dir) then
@@ -236,7 +236,7 @@ contains
     if (par_env%proc_id == 0) then
       if (flow == x_dir) then
         do i = 1, cps
-          call set_cell_location(mesh, i, loc_p)
+          call get_cell_location(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
           
           call pack_entries(vec_counter, (i - 1) * cps + 1, adv_coeff, vec_coeffs)
@@ -323,7 +323,7 @@ contains
     do i = 1, local_num_cells
       mat_counter = 1
 
-      call set_cell_location(mesh, i, loc_p)
+      call get_cell_location(mesh, i, loc_p)
       call get_global_index(loc_p, ii)
       call pack_entries(1, mat_counter, ii, ii, -4 * diff_coeff, mat_coeffs)
       mat_counter = mat_counter + 1
@@ -392,7 +392,7 @@ contains
       do i = 1, local_num_cells
         mat_counter = 1
 
-        call set_cell_location(mesh, i, loc_p)
+        call get_cell_location(mesh, i, loc_p)
         call get_global_index(loc_p, ii)
         
         if (mod(ii, cps) .ne. 1) then
@@ -408,7 +408,7 @@ contains
       do i = 1, local_num_cells
         mat_counter = 1
 
-        call set_cell_location(mesh, i, loc_p)
+        call get_cell_location(mesh, i, loc_p)
         call get_global_index(loc_p, ii)
         
         if (ii > cps) then
