@@ -96,28 +96,29 @@ test_intelx:
 
 #-----------------------------------------------------------------------------#
 
-#debug_build_cray:
-#  extends: [.general_setup, .setup_cray]
-#  script:
-#    - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
-#  allow_failure: true
+debug_build_cray:
+  extends: [.general_setup, .setup_cray]
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
+  allow_failure: true
 
-#build_cray:
-#  extends: [.general_setup, .setup_cray]
-#  script:
-#    - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"
-#  artifacts:
-#    paths: [obj/]
+build_cray:
+  extends: [.general_setup, .setup_cray]
+  script:
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"
+  artifacts:
+    paths: [obj/]
 
-#test_cray:
-#  needs: 
-#    - job: build_cray
-#      artifacts: true
-#  extends: [.general_setup, .setup_cray, .test_common]
-#  script:
-#    - cray_run_command "slurmctld -vv"
-#    - cray_run_command "slurmd -vv"
-#    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
+#don't run cray tests because slurm is broken on the CI
+.test_cray:
+  needs: 
+    - job: build_cray
+      artifacts: true
+  extends: [.general_setup, .setup_cray, .test_common]
+  script:
+    - cray_run_command "slurmctld -vv"
+    - cray_run_command "slurmd -vv"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
 
 #-----------------------------------------------------------------------------#
 
