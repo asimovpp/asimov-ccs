@@ -69,7 +69,7 @@ module meshing
   end interface set_local_index
 
   interface count_neighbours
-    module procedure cell_count_neighbours
+    module procedure get_cell_count_neighbours
   end interface count_neighbours
 
   interface get_boundary_status
@@ -238,10 +238,10 @@ module meshing
     end subroutine set_face_global_index
     
     !> Returns the neighbour count of a cell (including boundary neighbours)
-    module subroutine cell_count_neighbours(loc_p, nnb)
+    module subroutine get_cell_count_neighbours(loc_p, nnb)
       type(cell_locator), intent(in) :: loc_p !< the cell locator object.
       integer(ccs_int), intent(out) :: nnb    !< the neighbour count of the cell.
-    end subroutine cell_count_neighbours
+    end subroutine get_cell_count_neighbours
 
     !> Returns the boundary status of a neighbouring cell
     module subroutine get_neighbour_boundary_status(loc_nb, is_boundary)
