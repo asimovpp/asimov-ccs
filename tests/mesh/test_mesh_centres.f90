@@ -7,7 +7,7 @@ program test_mesh_centres
   use testing_lib
 
   use constants, only: ndim
-  use meshing, only: get_cell_location, get_face_location, set_vert_location, get_centre, &
+  use meshing, only: create_cell_locator, get_face_location, create_vert_locator, get_centre, &
                      get_local_num_cells
   use mesh_utils, only: build_mesh
 
@@ -49,7 +49,7 @@ program test_mesh_centres
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_centre(loc_p, cc)
       associate (x => cc(1), y => cc(2))
         if ((x > l) .or. (x < 0_ccs_real) &
@@ -74,7 +74,7 @@ program test_mesh_centres
       end associate
 
       do j = 1, mesh%topo%vert_per_cell
-        call set_vert_location(mesh, i, j, loc_v)
+        call create_vert_locator(mesh, i, j, loc_v)
         call get_centre(loc_v, vc)
         do dim = 1, ndim
           if ((vc(dim) > (l + eps)) .or. (vc(dim) < (0.0_ccs_real - eps))) then

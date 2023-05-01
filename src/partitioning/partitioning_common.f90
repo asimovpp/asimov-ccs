@@ -11,7 +11,7 @@ submodule(partitioning) partitioning_common
                      get_total_num_cells, set_total_num_cells, &
                      set_num_faces, &
                      get_max_faces, &
-                     get_cell_location, set_neighbour_location, &
+                     create_cell_locator, set_neighbour_location, &
                      get_global_index, &
                      set_local_index
 
@@ -284,7 +284,7 @@ contains
     call get_halo_num_cells(mesh, halo_num_cells)
     call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
     do i = 1, local_num_cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
 
       mesh%topo%xadj(i) = ctr
       
@@ -347,7 +347,7 @@ contains
 
     allocate (tmp2(local_num_cells + halo_num_cells))
     do i = 1, local_num_cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       tmp2(i) = global_index_p
     end do

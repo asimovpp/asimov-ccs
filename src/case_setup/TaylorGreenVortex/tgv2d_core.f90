@@ -335,7 +335,7 @@ contains
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
-    use meshing, only: get_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
+    use meshing, only: create_cell_locator, get_global_index, count_neighbours, set_neighbour_location, &
                        get_local_index, get_face_location, get_local_index, get_face_normal, get_centre, &
                        get_local_num_cells
     use fv, only: calc_cell_coords
@@ -377,7 +377,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-       call get_cell_location(mesh, index_p, loc_p)
+       call create_cell_locator(mesh, index_p, loc_p)
        call get_global_index(loc_p, global_index_p)
 
        call get_centre(loc_p, x_p)
@@ -419,7 +419,7 @@ contains
     ! Loop over local cells and faces
     do index_p = 1, n_local
 
-      call get_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
@@ -460,7 +460,7 @@ contains
 
     use vec, only: get_vector_data, restore_vector_data
 
-    use meshing, only: get_centre, get_cell_location, get_local_num_cells
+    use meshing, only: get_centre, create_cell_locator, get_local_num_cells
 
     use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
@@ -511,7 +511,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
 
-      call get_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_centre(loc_p, x_p)
 
       ! Compute analytical solution

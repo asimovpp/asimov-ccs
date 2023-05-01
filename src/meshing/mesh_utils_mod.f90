@@ -15,7 +15,7 @@ module mesh_utils
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
-                     get_cell_location, set_neighbour_location, get_face_location, set_vert_location, &
+                     create_cell_locator, set_neighbour_location, get_face_location, create_vert_locator, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_local_num_cells, set_local_num_cells, &
                      get_centre, set_centre, &
@@ -363,7 +363,7 @@ contains
 
     !    do k = start, end ! loop over cells owned by current process
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
-      call get_cell_location(mesh, local_icell, loc_p)
+      call create_cell_locator(mesh, local_icell, loc_p)
       call get_global_index(loc_p, global_icell)
       
       do j = 1, max_faces ! loop over all faces for each cell
@@ -381,7 +381,7 @@ contains
       end do
 
       do j = 1, vert_per_cell ! loop over all vertices for each cell
-        call set_vert_location(mesh, local_icell, j, loc_v)
+        call create_vert_locator(mesh, local_icell, j, loc_v)
 
         n = mesh%topo%global_vertex_indices(j, global_icell)
         call set_centre(loc_v, temp_x_v(:, n))
@@ -458,7 +458,7 @@ contains
     
     call get_global_num_cells(mesh, global_num_cells)
 
-    call get_cell_location(mesh, 1, loc_p)
+    call create_cell_locator(mesh, 1, loc_p)
     call get_global_index(loc_p, index_global)
     
     ! Write cell vertices
@@ -879,7 +879,7 @@ contains
       ! Global vertex numbering
       do i = 1, local_num_cells
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
           
           global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
@@ -909,7 +909,7 @@ contains
       ! Set cell centre
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
 
           x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
@@ -919,7 +919,7 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           do face_counter = 1_ccs_int, max_faces
@@ -975,29 +975,29 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           vertex_counter = front_bottom_left
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) - 0.5_ccs_real * h
           x_v(2) = x_p(2) - 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = front_bottom_right
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) + 0.5_ccs_real * h
           x_v(2) = x_p(2) - 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = front_top_left
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) - 0.5_ccs_real * h
           x_v(2) = x_p(2) + 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = front_top_right
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) + 0.5_ccs_real * h
           x_v(2) = x_p(2) + 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
@@ -1496,7 +1496,7 @@ contains
       ! Global vertex numbering
       do i = 1, local_num_cells
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
 
           a = modulo(ii - 1, nx * ny) + 1
@@ -1536,7 +1536,7 @@ contains
       ! Set cell centre
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
           
           x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
@@ -1547,7 +1547,7 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           do face_counter = 1_ccs_int, max_faces
@@ -1615,60 +1615,60 @@ contains
         end do
 
         do i = 1_ccs_int, local_num_cells
-          call get_cell_location(mesh, i, loc_p)
+          call create_cell_locator(mesh, i, loc_p)
           call get_centre(loc_p, x_p)
 
           vertex_counter = front_bottom_left
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) - 0.5_ccs_real * h
           x_v(2) = x_p(2) - 0.5_ccs_real * h
           x_v(3) = x_p(3) + 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = front_bottom_right
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) + 0.5_ccs_real * h
           x_v(2) = x_p(2) - 0.5_ccs_real * h
           x_v(3) = x_p(3) + 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = front_top_left
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) - 0.5_ccs_real * h
           x_v(2) = x_p(2) + 0.5_ccs_real * h
           x_v(3) = x_p(3) + 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = front_top_right
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) + 0.5_ccs_real * h
           x_v(2) = x_p(2) + 0.5_ccs_real * h
           x_v(3) = x_p(3) + 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = back_bottom_left
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) - 0.5_ccs_real * h
           x_v(2) = x_p(2) - 0.5_ccs_real * h
           x_v(3) = x_p(3) - 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = back_bottom_right
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) + 0.5_ccs_real * h
           x_v(2) = x_p(2) - 0.5_ccs_real * h
           x_v(3) = x_p(3) - 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = back_top_left
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) - 0.5_ccs_real * h
           x_v(2) = x_p(2) + 0.5_ccs_real * h
           x_v(3) = x_p(3) - 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
 
           vertex_counter = back_top_right
-          call set_vert_location(mesh, i, vertex_counter, loc_v)
+          call create_vert_locator(mesh, i, vertex_counter, loc_v)
           x_v(1) = x_p(1) + 0.5_ccs_real * h
           x_v(2) = x_p(2) + 0.5_ccs_real * h
           x_v(3) = x_p(3) - 0.5_ccs_real * h
@@ -1799,7 +1799,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
 
-    call get_cell_location(mesh, index_p, loc_p)
+    call create_cell_locator(mesh, index_p, loc_p)
     if (.not. vertex_nb_flag) then
       call set_neighbour_location(loc_p, index_p_nb, loc_nb)
     end if
@@ -1827,7 +1827,7 @@ contains
       ng = size(mesh%topo%global_indices)
       found = .false.
       do i = local_num_cells + 1, ng
-        call get_cell_location(mesh, i, loc_h)
+        call create_cell_locator(mesh, i, loc_h)
         call get_global_index(loc_h, global_index_h)
         if (global_index_h == global_index_nb) then
           found = .true.
@@ -1921,7 +1921,7 @@ contains
     ! Loop over cells
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-      call get_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -1973,7 +1973,7 @@ contains
     ! Loop over cells
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-      call get_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
@@ -2017,7 +2017,7 @@ contains
     type(face_locator) :: loc_f
     integer(ccs_int) :: index_nb_nb
 
-    call get_cell_location(mesh, index_nb, loc_nb)
+    call create_cell_locator(mesh, index_nb, loc_nb)
     call count_neighbours(loc_nb, nnb_nb)
     do k = 1, nnb_nb
       call set_neighbour_location(loc_nb, k, loc_nb_nb)
@@ -2068,7 +2068,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
 
     do index_p = 1, local_num_cells
-      call get_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb

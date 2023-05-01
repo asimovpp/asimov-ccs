@@ -13,9 +13,9 @@ module meshing
 
   private
   public :: get_face_location
-  public :: get_cell_location
+  public :: create_cell_locator
   public :: set_neighbour_location
-  public :: set_vert_location
+  public :: create_vert_locator
   public :: set_face_index
   public :: get_face_normal
   public :: get_face_area
@@ -100,8 +100,8 @@ module meshing
   end interface set_centre
 
   interface set_neighbour_location
-    module procedure get_face_neighbour_location
-    module procedure get_vertex_neighbour_location
+    module procedure create_face_neighbour_locator
+    module procedure create_vertex_neighbour_locator
   end interface set_neighbour_location
 
   interface get_local_status
@@ -115,11 +115,11 @@ module meshing
     !
     !  Creates the association between a mesh and cell index, storing it in the
     !  returned cell locator object.
-    module subroutine get_cell_location(mesh, index_p, loc_p)
+    module subroutine create_cell_locator(mesh, index_p, loc_p)
       type(ccs_mesh), target, intent(in) :: mesh !< the mesh object being referred to.
       integer(ccs_int), intent(in) :: index_p    !< the cell index.
       type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with teh mesh.
-    end subroutine get_cell_location
+    end subroutine create_cell_locator
 
     !v Constructs a face locator object.
     !
@@ -136,32 +136,32 @@ module meshing
     !
     !  Creates the association between a neighbour cell F relative to cell P, i.e. to
     !  access the nth neighbour of cell i.
-    module subroutine get_face_neighbour_location(loc_p, nb_counter, loc_nb)
+    module subroutine create_face_neighbour_locator(loc_p, nb_counter, loc_nb)
       type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell whose neighbour is being accessed.
       integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
       type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a cell-relative index with the mesh.
-    end subroutine get_face_neighbour_location
+    end subroutine create_face_neighbour_locator
 
     !v Constructs a neighbour locator object.
     !
     !  Creates the association between a neighbour cell F relative to cell P via a specified vertex, i.e. to
     !  access the nth vertex neighbour of cell i.
-    module subroutine get_vertex_neighbour_location(loc_p, vert_nb_counter, loc_nb)
+    module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
       type(cell_locator), intent(in) :: loc_p           !< the cell locator object of the cell whose neighbour is being accessed.
       integer(ccs_int), intent(in) :: vert_nb_counter   !< the cell-local index of the neighbour.
       type(vertex_neighbour_locator), intent(out) :: loc_nb    !< the neighbour locator object linking a cell-relative index with the mesh.
-    end subroutine get_vertex_neighbour_location
+    end subroutine create_vertex_neighbour_locator
 
     !v Constructs a vertex locator object.
     !
     !  Creates the association between a vertex relative to a cell, i.e. to access the
     !  nth vertex of cell i.
-    module subroutine set_vert_location(mesh, index_p, cell_vert_ctr, loc_v)
+    module subroutine create_vert_locator(mesh, index_p, cell_vert_ctr, loc_v)
       type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
       integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose vertex is being accessed.
       integer(ccs_int), intent(in) :: cell_vert_ctr !< the cell-local index of the vertex.
       type(vert_locator), intent(out) :: loc_v      !< the vertex locator object linking a cell-relative index with the mesh.
-    end subroutine set_vert_location
+    end subroutine create_vert_locator
 
     !> Set face index
     module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)

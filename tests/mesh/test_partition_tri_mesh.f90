@@ -19,7 +19,7 @@ program test_partition_tri_mesh
                      set_total_num_cells, set_halo_num_cells, &
                      get_global_num_faces, set_global_num_faces, &
                      get_max_faces, set_max_faces, &
-                     get_cell_location, get_global_index
+                     create_cell_locator, get_global_index
   use utils, only: debug_print
 
   implicit none
@@ -151,7 +151,7 @@ contains
     
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       
       do j = int(mesh%topo%xadj(i), ccs_int), int(mesh%topo%xadj(i + 1), ccs_int) - 1
@@ -179,7 +179,7 @@ contains
     
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells ! Loop over local cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       
       nadj = int(mesh%topo%xadj(i + 1) - mesh%topo%xadj(i), ccs_int)
@@ -228,7 +228,7 @@ contains
     left_boundary = .false.
     right_boundary = .false.
 
-    call get_cell_location(mesh, i, loc_p)
+    call create_cell_locator(mesh, i, loc_p)
     call get_global_index(loc_p, idx_global)
     cidx_global = idx_global - 1
     

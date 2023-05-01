@@ -7,7 +7,7 @@ program test_ghost_cells
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, update_vector, get_vector_data, restore_vector_data
-  use meshing, only: set_neighbour_location, get_cell_location, &
+  use meshing, only: set_neighbour_location, create_cell_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal, &
                      get_local_num_cells, &
                      get_total_num_cells
@@ -51,7 +51,7 @@ program test_ghost_cells
 
   ! Set vector values to global mesh indices
   do i = 1, local_num_cells
-    call get_cell_location(mesh, i, loc_p)
+    call create_cell_locator(mesh, i, loc_p)
     call get_global_index(loc_p, global_index_p)
     values(i) = global_index_p
   end do
@@ -67,7 +67,7 @@ program test_ghost_cells
 
   call get_total_num_cells(mesh, total_num_cells)
   do i = 1, total_num_cells
-    call get_cell_location(mesh, i, loc_p)
+    call create_cell_locator(mesh, i, loc_p)
     call get_global_index(loc_p, global_index_p)
     if (values(i) /= global_index_p) then
       write (message, *) 'FAIL: wrong vector value. Expected ', global_index_p, ', got ', values(i)

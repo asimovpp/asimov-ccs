@@ -1,7 +1,7 @@
 submodule(timestepping) timestepping_common
 #include "ccs_macros.inc"
 
-  use meshing, only: get_local_num_cells, get_cell_location, get_volume
+  use meshing, only: get_local_num_cells, create_cell_locator, get_volume
   use types, only: cell_locator
   use utils, only: exit_print
 
@@ -136,7 +136,7 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_volume(loc_p, V_p)
       
       ! A = A + V/dt
@@ -188,7 +188,7 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_volume(loc_p, V_p)
       
       ! A = A + 1.5*rho*V/dt
@@ -242,7 +242,7 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_volume(loc_p, V_p)
 
       ! A = A + (1.0 + 0.5 * theta)*rho*V/dt

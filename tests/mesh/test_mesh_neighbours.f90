@@ -5,7 +5,7 @@ program test_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only: get_cell_location, set_neighbour_location, count_neighbours, &
+  use meshing, only: create_cell_locator, set_neighbour_location, count_neighbours, &
                      get_boundary_status, get_local_num_cells, count_vertex_neighbours
   use mesh_utils, only: build_mesh
 
@@ -52,7 +52,7 @@ program test_mesh_neighbours
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
 
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       call count_vertex_neighbours(loc_p, nvnb)
 
@@ -144,7 +144,7 @@ contains
       call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call get_cell_location(mesh, index_nb, cell_loc_nb)
+        call create_cell_locator(mesh, index_nb, cell_loc_nb)
         call count_neighbours(cell_loc_nb, nnb)
         found_parent = .false.
         do j = 1, nnb
@@ -196,7 +196,7 @@ contains
       call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call get_cell_location(mesh, index_nb, cell_loc_nb)
+        call create_cell_locator(mesh, index_nb, cell_loc_nb)
         call count_vertex_neighbours(cell_loc_nb, nvnb)
         found_parent = .false.
         do j = 1, nvnb

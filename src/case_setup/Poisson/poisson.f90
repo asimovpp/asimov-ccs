@@ -18,7 +18,7 @@ module problem_setup
   use kinds, only: ccs_int, ccs_real
   use types, only: ccs_mesh, cell_locator, face_locator
 
-  use meshing, only: get_face_location, get_cell_location, get_centre
+  use meshing, only: get_face_location, create_cell_locator, get_centre
 
   implicit none
 
@@ -96,7 +96,7 @@ module poisson_discretisation
                    ccs_mesh, cell_locator, neighbour_locator, face_locator
 
   use mat, only: create_matrix_values, set_matrix_values_spec_ncols, set_matrix_values_spec_nrows
-  use meshing, only: get_local_num_cells, get_cell_location, get_centre, get_volume, &
+  use meshing, only: get_local_num_cells, create_cell_locator, get_centre, get_volume, &
                      get_global_index, count_neighbours, set_neighbour_location, get_boundary_status, &
                      get_face_location, get_face_area
   use utils, only: clear_entries, set_mode, set_col, set_row, set_entry, set_values
@@ -139,7 +139,7 @@ program poisson
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
-  use meshing, only: get_cell_location, get_face_location, set_neighbour_location, get_local_num_cells
+  use meshing, only: create_cell_locator, get_face_location, set_neighbour_location, get_local_num_cells
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols
@@ -280,7 +280,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
       call clear_entries(vec_values)
-      call get_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call set_row(global_index_p, vec_values)
@@ -331,7 +331,7 @@ contains
       do i = 1, nloc
         call clear_entries(val_dat)
 
-        call get_cell_location(mesh, i, loc_p)
+        call create_cell_locator(mesh, i, loc_p)
         call get_centre(loc_p, cc)
         call get_volume(loc_p, V)
         call get_global_index(loc_p, global_index_p)
