@@ -1,5 +1,5 @@
 # RUN: %build_test %s %t1 test_face_interpolation.f90
-# RUN: %mpirun -oversubscribe -n 1 %t1
+# RUN: %mpirun -n 1 %t1
 
 main: test_face_interpolation
 base: mpi
