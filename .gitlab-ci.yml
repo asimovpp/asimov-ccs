@@ -14,9 +14,9 @@
     - source setup_gitlab_runner_env
     - source ${INTEL_SETUP}
 
-.setup_cray:
-  before_script:
-    - source setup_gitlab_runner_env
+#.setup_cray:
+#  before_script:
+#    - source setup_gitlab_runner_env
 
 .test_common:
   artifacts:
@@ -183,18 +183,18 @@ profile_intel:
       - ./*.html
   allow_failure: true
 
-profile_cray:
-  needs: 
-    - job: build_cray
-      artifacts: false
-  extends: [.general_setup, .setup_cray]
-  script:
-    - HOME=${CI_HOME} cray_run_command "CMP=cray PROFILE=yes make all"
-  artifacts:
-    paths:
-      - obj/*.lst
-      - ./*.lst
-  allow_failure: true
+#profile_cray:
+#  needs: 
+#    - job: build_cray
+#      artifacts: false
+#  extends: [.general_setup, .setup_cray]
+#  script:
+#    - HOME=${CI_HOME} cray_run_command "CMP=cray PROFILE=yes make all"
+#  artifacts:
+#    paths:
+#      - obj/*.lst
+#      - ./*.lst
+#  allow_failure: true
 
 #-----------------------------------------------------------------------------#
 
