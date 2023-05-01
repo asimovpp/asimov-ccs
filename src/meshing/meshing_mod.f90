@@ -37,7 +37,7 @@ module meshing
   public :: set_centre
   public :: set_area
   public :: set_normal
-  public :: count_vertex_neighbours
+  public :: get_count_vertex_neighbours
   public :: get_face_interpolation
   public :: set_face_interpolation
 
@@ -453,10 +453,10 @@ module meshing
     end subroutine set_normal
 
     !> Counts the number of neighbours via vertices of a given cell
-    module subroutine count_vertex_neighbours(loc_p, nvnb)
+    module subroutine get_count_vertex_neighbours(loc_p, nvnb)
       type(cell_locator), intent(in) :: loc_p   !< The cell locator object
       integer(ccs_int), intent(out) :: nvnb     !< The number of vertex neighbours of a cell
-    end subroutine count_vertex_neighbours
+    end subroutine get_count_vertex_neighbours
 
     !v Set face interpolation from cell and its local face id
     module subroutine set_face_interpolation(interpol_factor, loc_f)

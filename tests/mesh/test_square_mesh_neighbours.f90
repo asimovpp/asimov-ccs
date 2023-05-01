@@ -6,7 +6,7 @@ program test_square_mesh_neighbours
   use testing_lib
 
   use meshing, only: create_cell_locator, set_neighbour_location, count_neighbours, &
-                     get_boundary_status, get_local_num_cells, count_vertex_neighbours
+                     get_boundary_status, get_local_num_cells, get_count_vertex_neighbours
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -50,7 +50,7 @@ program test_square_mesh_neighbours
 
       call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
-      call count_vertex_neighbours(loc_p, nvnb)
+      call get_count_vertex_neighbours(loc_p, nvnb)
 
       ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
       ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
@@ -193,7 +193,7 @@ contains
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
         call create_cell_locator(mesh, index_nb, cell_loc_nb)
-        call count_vertex_neighbours(cell_loc_nb, nvnb)
+        call get_count_vertex_neighbours(cell_loc_nb, nvnb)
         found_parent = .false.
         do j = 1, nvnb
           call set_neighbour_location(cell_loc_nb, j, loc_nb_nb)

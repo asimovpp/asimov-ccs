@@ -736,7 +736,7 @@ contains
   end subroutine set_normal
 
   !> Counts the number of neighbours via vertices of a given cell
-  module subroutine count_vertex_neighbours(loc_p, nvnb)
+  module subroutine get_count_vertex_neighbours(loc_p, nvnb)
     type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(out) :: nvnb
 
@@ -744,6 +744,6 @@ contains
                cell => loc_p%index_p)
       nvnb = mesh%topo%num_vert_nb(cell)
     end associate
-  end subroutine count_vertex_neighbours
+  end subroutine get_count_vertex_neighbours
 
 end submodule meshing_accessors
