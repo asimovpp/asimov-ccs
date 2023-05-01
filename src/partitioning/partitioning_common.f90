@@ -15,23 +15,16 @@ contains
   module subroutine compute_connectivity(par_env, mesh)
 
     use mpi
-    use iso_fortran_env, only: int32
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
     ! Local variables
-    integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
-    integer(ccs_int) :: i
-    integer(ccs_int) :: start_index
-    integer(ccs_int) :: end_index
-    integer(ccs_int) :: face_nb1
-    integer(ccs_int) :: face_nb2
-    integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
-
+    integer(ccs_int) :: i
+    
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -56,6 +49,34 @@ contains
       end do
     end if
 
+    call compute_face_connectivity(par_env, mesh)
+    
+  end subroutine compute_connectivity
+
+  subroutine compute_face_connectivity(par_env, mesh)
+
+    use iso_fortran_env, only: int32
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+
+    ! Local variables
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
+    integer(ccs_int) :: irank ! MPI rank ID
+    integer(ccs_int) :: isize ! Size of MPI world
+    integer(ccs_int) :: i
+    integer(ccs_int) :: start_index
+    integer(ccs_int) :: end_index
+    integer(ccs_int) :: face_nb1
+    integer(ccs_int) :: face_nb2
+    integer(ccs_int) :: num_connections
+    integer(ccs_int) :: local_num_cells
+
+    irank = par_env%proc_id
+    isize = par_env%num_procs
+
+    call get_local_num_cells(mesh, local_num_cells)
+    
     ! Deallocate old xadj array
     if (allocated(mesh%topo%xadj)) then
       deallocate (mesh%topo%xadj)
@@ -140,8 +161,8 @@ contains
     call set_cell_face_indices(mesh)
 
     mesh%topo%num_faces = count_mesh_faces(mesh)
-
-  end subroutine compute_connectivity
+    
+  end subroutine compute_face_connectivity
 
   subroutine compute_connectivity_get_local_cells(par_env, mesh)
 
