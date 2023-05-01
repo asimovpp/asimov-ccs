@@ -1,5 +1,5 @@
 # RUN: %build_test %s %t1 test_partition_tri_mesh.f90
-# RUN: %mpirun -n 3 %t1
+# RUN: %mpirun -oversubscribe -n 3 %t1
 
 main: test_partition_tri_mesh
 base: mpi

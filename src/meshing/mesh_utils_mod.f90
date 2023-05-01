@@ -15,7 +15,7 @@ module mesh_utils
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
-                     set_cell_location, set_neighbour_location, set_face_location, set_vert_location, &
+                     set_cell_location, set_neighbour_location, get_face_location, set_vert_location, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_local_num_cells, set_local_num_cells, &
                      get_centre, set_centre, &
@@ -160,7 +160,23 @@ contains
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: halo_num_cells 
+    integer(ccs_int) :: total_num_cells
+    integer(ccs_int) :: num_faces
+    ! integer(ccs_int) :: global_num_vertices
+    ! integer(ccs_int) :: vert_per_cell
+    ! integer(ccs_int) :: vert_nb_per_cell
     
+    ! Zero scalar topology values to have known initial state
+    call set_global_num_cells(0, mesh)
+    call set_global_num_faces(0, mesh)
+    call set_max_faces(0, mesh)
+    call set_local_num_cells(0, mesh)
+    call set_halo_num_cells(0, mesh)
+    call set_total_num_cells(0, mesh)
+    call set_num_faces(0,mesh)
+
     ! Read attribute "ncel" - the total number of cells
     call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
     ! Read attribute "nfac" - the total number of faces
@@ -351,7 +367,7 @@ contains
       call get_global_index(loc_p, global_icell)
       
       do j = 1, max_faces ! loop over all faces for each cell
-        call set_face_location(mesh, local_icell, j, loc_f)
+        call get_face_location(mesh, local_icell, j, loc_f)
 
         n = mesh%topo%global_face_indices(j, global_icell)
         call set_centre(loc_f, temp_x_f(:, n))
@@ -719,7 +735,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
@@ -737,7 +753,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
@@ -745,9 +761,9 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call set_face_location(mesh, i, left, loc_f)
+          call get_face_location(mesh, i, left, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -759,7 +775,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
@@ -777,7 +793,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
@@ -785,9 +801,9 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call set_face_location(mesh, i, bottom, loc_f)
+          call get_face_location(mesh, i, bottom, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -916,7 +932,7 @@ contains
 
             call set_neighbour_location(loc_p, face_counter, loc_nb)
             call get_boundary_status(loc_nb, is_boundary)
-            call set_face_location(mesh, i, face_counter, loc_f)
+            call get_face_location(mesh, i, face_counter, loc_f)
 
             if (.not. is_boundary) then
               ! faces are midway between cell centre and nb cell centre
@@ -1290,7 +1306,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
@@ -1308,7 +1324,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
@@ -1316,9 +1332,9 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call set_face_location(mesh, i, left, loc_f)
+          call get_face_location(mesh, i, left, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -1330,7 +1346,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
@@ -1348,7 +1364,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
@@ -1356,9 +1372,9 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call set_face_location(mesh, i, bottom, loc_f)
+          call get_face_location(mesh, i, bottom, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -1370,7 +1386,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           face_index_counter = face_index_counter + 1_ccs_int
@@ -1388,7 +1404,7 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = 0
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
           mesh%topo%bnd_rid(face_index_counter) = global_index_nb
         else
@@ -1396,9 +1412,9 @@ contains
           mesh%topo%face_cell1(face_index_counter) = i
           mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          call set_face_location(mesh, i, face_counter, loc_f)
+          call get_face_location(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call set_face_location(mesh, i, back, loc_f)
+          call get_face_location(mesh, i, back, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -1546,7 +1562,7 @@ contains
 
             call set_neighbour_location(loc_p, face_counter, loc_nb)
             call get_boundary_status(loc_nb, is_boundary)
-            call set_face_location(mesh, i, face_counter, loc_f)
+            call get_face_location(mesh, i, face_counter, loc_f)
 
             if (.not. is_boundary) then
               ! faces are midway between cell centre and nb cell centre
@@ -2015,7 +2031,7 @@ contains
       call set_neighbour_location(loc_nb, k, loc_nb_nb)
       call get_local_index(loc_nb_nb, index_nb_nb)
       if (index_nb_nb == index_p) then
-        call set_face_location(mesh, index_nb, k, loc_f)
+        call get_face_location(mesh, index_nb, k, loc_f)
         call get_local_index(loc_f, index_f)
         exit ! Exit the loop, as found shared face
       else if (k == nnb_nb) then
@@ -2066,7 +2082,7 @@ contains
       do j = 1, nnb
         call set_neighbour_location(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
-        call set_face_location(mesh, index_p, j, loc_f)
+        call get_face_location(mesh, index_p, j, loc_f)
 
         if (.not. is_boundary) then
           call get_local_index(loc_nb, index_nb)

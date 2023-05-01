@@ -163,7 +163,7 @@ contains
   !
   !  Creates the association between a face relative to a cell, i.e. to access the
   !  nth face of cell i.
-  module subroutine set_face_location(mesh, index_p, cell_face_ctr, loc_f)
+  module subroutine get_face_location(mesh, index_p, cell_face_ctr, loc_f)
     type(ccs_mesh), target, intent(in) :: mesh      !< the mesh object being referred to.
     integer(ccs_int), intent(in) :: index_p         !< the index of the cell whose face is being accessed.
     integer(ccs_int), intent(in) :: cell_face_ctr   !< the cell-local index of the face.
@@ -172,7 +172,7 @@ contains
     loc_f%mesh => mesh
     loc_f%index_p = index_p
     loc_f%cell_face_ctr = cell_face_ctr
-  end subroutine set_face_location
+  end subroutine get_face_location
 
   !v Sets face interpolation from a face locator
   module subroutine set_face_interpolation(interpol_factor, loc_f)

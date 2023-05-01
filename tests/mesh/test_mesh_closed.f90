@@ -8,7 +8,7 @@ program test_mesh_closed
 
   use constants
 
-  use meshing, only: set_face_location, get_face_normal, get_face_area, get_local_num_cells
+  use meshing, only: get_face_location, get_face_normal, get_face_area, get_local_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -54,7 +54,7 @@ program test_mesh_closed
       ! Loop over neighbours/faces
       do j = 1, mesh%topo%num_nb(i)
 
-        call set_face_location(mesh, i, j, loc_f)
+        call get_face_location(mesh, i, j, loc_f)
         call get_face_area(loc_f, A)
         call get_face_normal(loc_f, norm)
         S(:) = S(:) + norm(:) * A

@@ -56,7 +56,7 @@ contains
         if (.not. is_boundary) then
           ! Interior face
 
-          call set_face_location(mesh, i, j, loc_f)
+          call get_face_location(mesh, i, j, loc_f)
           call get_face_area(loc_f, A)
           coeff_f = (1.0 / mesh%geo%h) * A
 
@@ -150,7 +150,7 @@ contains
           call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(mesh, i, j, loc_f)
+            call get_face_location(mesh, i, j, loc_f)
             call get_face_area(loc_f, A)
             boundary_coeff = (2.0 / mesh%geo%h) * A
             boundary_val = eval_solution(loc_f)

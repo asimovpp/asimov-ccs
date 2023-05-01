@@ -18,7 +18,7 @@ module problem_setup
   use kinds, only: ccs_int, ccs_real
   use types, only: ccs_mesh, cell_locator, face_locator
 
-  use meshing, only: set_face_location, set_cell_location, get_centre
+  use meshing, only: get_face_location, set_cell_location, get_centre
 
   implicit none
 
@@ -98,7 +98,7 @@ module poisson_discretisation
   use mat, only: create_matrix_values, set_matrix_values_spec_ncols, set_matrix_values_spec_nrows
   use meshing, only: get_local_num_cells, set_cell_location, get_centre, get_volume, &
                      get_global_index, count_neighbours, set_neighbour_location, get_boundary_status, &
-                     set_face_location, get_face_area
+                     get_face_location, get_face_area
   use utils, only: clear_entries, set_mode, set_col, set_row, set_entry, set_values
   use vec, only: create_vector_values
 
@@ -139,7 +139,7 @@ program poisson
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
-  use meshing, only: set_cell_location, set_face_location, set_neighbour_location, get_local_num_cells
+  use meshing, only: set_cell_location, get_face_location, set_neighbour_location, get_local_num_cells
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols

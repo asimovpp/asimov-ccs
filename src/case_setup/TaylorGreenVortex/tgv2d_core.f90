@@ -336,7 +336,7 @@ contains
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
     use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre, &
+                       get_local_index, get_face_location, get_local_index, get_face_normal, get_centre, &
                        get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
@@ -429,7 +429,7 @@ contains
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then ! XXX: abstract this test
 
-          call set_face_location(mesh, index_p, j, loc_f)
+          call get_face_location(mesh, index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)

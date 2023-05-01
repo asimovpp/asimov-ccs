@@ -12,7 +12,7 @@ module meshing
   implicit none
 
   private
-  public :: set_face_location
+  public :: get_face_location
   public :: set_cell_location
   public :: set_neighbour_location
   public :: set_vert_location
@@ -125,12 +125,12 @@ module meshing
     !
     !  Creates the association between a face relative to a cell, i.e. to access the
     !  nth face of cell i.
-    module subroutine set_face_location(mesh, index_p, cell_face_ctr, loc_f)
+    module subroutine get_face_location(mesh, index_p, cell_face_ctr, loc_f)
       type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
       integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose face is being accessed.
       integer(ccs_int), intent(in) :: cell_face_ctr !< the cell-local index of the face.
       type(face_locator), intent(out) :: loc_f      !< the face locator object linking a cell-relative index with the mesh.
-    end subroutine set_face_location
+    end subroutine get_face_location
 
     !v Constructs a neighbour locator object.
     !
