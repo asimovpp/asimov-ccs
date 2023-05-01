@@ -11,7 +11,7 @@ submodule(partitioning) partitioning_common
                      get_total_num_cells, set_total_num_cells, &
                      set_num_faces, &
                      get_max_faces, &
-                     create_cell_locator, set_neighbour_location, &
+                     create_cell_locator, create_neighbour_locator, &
                      get_global_index, &
                      set_local_index
 
@@ -316,7 +316,7 @@ contains
             end if
 
             local_idx = findloc(tmp1, nbidx)
-            call set_neighbour_location(loc_p, j, loc_nb)
+            call create_neighbour_locator(loc_p, j, loc_nb)
             call set_local_index(local_num_cells + local_idx(1), loc_nb)
           end if
 
@@ -325,14 +325,14 @@ contains
 
           if (nbidx .lt. 0) then
             ! boundary 'cell'
-            call set_neighbour_location(loc_p, j, loc_nb)
+            call create_neighbour_locator(loc_p, j, loc_nb)
             call set_local_index(nbidx, loc_nb)
           end if
 
           if (any(mesh%topo%global_indices == nbidx)) then
             ! local in cell
             local_idx = findloc(mesh%topo%global_indices, nbidx)
-            call set_neighbour_location(loc_p, j, loc_nb)
+            call create_neighbour_locator(loc_p, j, loc_nb)
             call set_local_index(local_idx(1), loc_nb)
           end if
 

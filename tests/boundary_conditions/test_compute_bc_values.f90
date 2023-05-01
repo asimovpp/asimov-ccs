@@ -9,7 +9,7 @@ program test_compute_bc_values
   use constants, only: ndim, cell
   use bc_constants
   use boundary_conditions, only: allocate_bc_arrays
-  use meshing, only: get_local_index, create_cell_locator, count_neighbours, set_neighbour_location, &
+  use meshing, only: get_local_index, create_cell_locator, count_neighbours, create_neighbour_locator, &
                      get_boundary_status, get_face_location, get_face_normal, get_local_num_cells
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
@@ -40,7 +40,7 @@ program test_compute_bc_values
     call create_cell_locator(mesh, k, loc_p)
     call count_neighbours(loc_p, nnb)
     do j = 1, nnb
-      call set_neighbour_location(loc_p, j, loc_nb)
+      call create_neighbour_locator(loc_p, j, loc_nb)
       call get_boundary_status(loc_nb, is_boundary)
       call get_face_location(mesh, k, j, loc_f)
       call get_face_normal(loc_f, face_normal)

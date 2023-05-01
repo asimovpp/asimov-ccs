@@ -50,7 +50,7 @@ contains
 
       ! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
@@ -146,7 +146,7 @@ contains
         call count_neighbours(loc_p, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(loc_p, j, loc_nb)
+          call create_neighbour_locator(loc_p, j, loc_nb)
           call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then

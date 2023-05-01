@@ -15,7 +15,7 @@ module mesh_utils
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
-                     create_cell_locator, set_neighbour_location, get_face_location, create_vert_locator, &
+                     create_cell_locator, create_neighbour_locator, get_face_location, create_vert_locator, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_local_num_cells, set_local_num_cells, &
                      get_centre, set_centre, &
@@ -577,6 +577,7 @@ contains
 
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
 
+    integer(ccs_int) :: nglobal          ! The global number of cells
     integer(ccs_int) :: local_num_cells  ! The local number of cells
     integer(ccs_int) :: total_num_cells  ! The total number of cells
     integer(ccs_int) :: global_num_faces ! The global number of faces
@@ -584,7 +585,6 @@ contains
     logical :: set_vert_nb               ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(2) :: nb_direction  ! Array indicating direction of neighbour
 
-    integer(ccs_int) :: nglobal          ! The global number of cells
 
     type(face_locator) :: loc_f
     
@@ -812,7 +812,6 @@ contains
       ! and the total number of ranks in the parallel environment
       allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
 
-      call get_global_num_cells(mesh, nglobal)
       mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
       mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
 
@@ -924,7 +923,7 @@ contains
 
           do face_counter = 1_ccs_int, max_faces
 
-            call set_neighbour_location(loc_p, face_counter, loc_nb)
+            call create_neighbour_locator(loc_p, face_counter, loc_nb)
             call get_boundary_status(loc_nb, is_boundary)
             call get_face_location(mesh, i, face_counter, loc_f)
 
@@ -1552,7 +1551,7 @@ contains
 
           do face_counter = 1_ccs_int, max_faces
 
-            call set_neighbour_location(loc_p, face_counter, loc_nb)
+            call create_neighbour_locator(loc_p, face_counter, loc_nb)
             call get_boundary_status(loc_nb, is_boundary)
             call get_face_location(mesh, i, face_counter, loc_f)
 
@@ -1801,7 +1800,7 @@ contains
 
     call create_cell_locator(mesh, index_p, loc_p)
     if (.not. vertex_nb_flag) then
-      call set_neighbour_location(loc_p, index_p_nb, loc_nb)
+      call create_neighbour_locator(loc_p, index_p_nb, loc_nb)
     end if
     if ((index_nb >= 1_ccs_int) .and. (index_nb <= local_num_cells)) then
       ! Neighbour is local
@@ -1926,7 +1925,7 @@ contains
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
@@ -1977,7 +1976,7 @@ contains
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
@@ -2020,7 +2019,7 @@ contains
     call create_cell_locator(mesh, index_nb, loc_nb)
     call count_neighbours(loc_nb, nnb_nb)
     do k = 1, nnb_nb
-      call set_neighbour_location(loc_nb, k, loc_nb_nb)
+      call create_neighbour_locator(loc_nb, k, loc_nb_nb)
       call get_local_index(loc_nb_nb, index_nb_nb)
       if (index_nb_nb == index_p) then
         call get_face_location(mesh, index_nb, k, loc_f)
@@ -2072,7 +2071,7 @@ contains
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         call get_face_location(mesh, index_p, j, loc_f)
 

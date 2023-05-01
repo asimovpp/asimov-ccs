@@ -5,7 +5,7 @@ program test_square_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only: create_cell_locator, set_neighbour_location, count_neighbours, &
+  use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
                      get_boundary_status, get_local_num_cells, get_count_vertex_neighbours
   use mesh_utils, only: build_square_mesh
 
@@ -64,7 +64,7 @@ program test_square_mesh_neighbours
 
       ! Loop over neighbours
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
@@ -76,7 +76,7 @@ program test_square_mesh_neighbours
 
       ! Loop over vertex neighbours
       do j = 1, nvnb
-        call set_neighbour_location(loc_p, j, loc_vnb)
+        call create_neighbour_locator(loc_p, j, loc_vnb)
         call get_boundary_status(loc_vnb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
@@ -144,7 +144,7 @@ contains
         call count_neighbours(cell_loc_nb, nnb)
         found_parent = .false.
         do j = 1, nnb
-          call set_neighbour_location(cell_loc_nb, j, loc_nb_nb)
+          call create_neighbour_locator(cell_loc_nb, j, loc_nb_nb)
           call get_boundary_status(loc_nb_nb, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
             call get_local_index(loc_nb_nb, index_nb)
@@ -196,7 +196,7 @@ contains
         call get_count_vertex_neighbours(cell_loc_nb, nvnb)
         found_parent = .false.
         do j = 1, nvnb
-          call set_neighbour_location(cell_loc_nb, j, loc_nb_nb)
+          call create_neighbour_locator(cell_loc_nb, j, loc_nb_nb)
           call get_boundary_status(loc_nb_nb, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
             call get_local_index(loc_nb_nb, index_nb)

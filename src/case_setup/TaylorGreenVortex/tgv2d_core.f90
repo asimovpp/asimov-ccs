@@ -335,7 +335,7 @@ contains
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
-    use meshing, only: create_cell_locator, get_global_index, count_neighbours, set_neighbour_location, &
+    use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
                        get_local_index, get_face_location, get_local_index, get_face_normal, get_centre, &
                        get_local_num_cells
     use fv, only: calc_cell_coords
@@ -423,7 +423,7 @@ contains
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
 
         ! if neighbour index is greater than previous face index

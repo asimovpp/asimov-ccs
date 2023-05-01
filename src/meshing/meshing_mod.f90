@@ -14,7 +14,7 @@ module meshing
   private
   public :: get_face_location
   public :: create_cell_locator
-  public :: set_neighbour_location
+  public :: create_neighbour_locator
   public :: create_vert_locator
   public :: set_face_index
   public :: get_face_normal
@@ -99,10 +99,10 @@ module meshing
     module procedure set_vert_centre
   end interface set_centre
 
-  interface set_neighbour_location
+  interface create_neighbour_locator
     module procedure create_face_neighbour_locator
     module procedure create_vertex_neighbour_locator
-  end interface set_neighbour_location
+  end interface create_neighbour_locator
 
   interface get_local_status
     module procedure get_neighbour_local_status

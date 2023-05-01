@@ -11,7 +11,7 @@ submodule(fv) fv_common
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
   use utils, only: debug_print, exit_print, str
-  use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
+  use meshing, only: count_neighbours, get_boundary_status, create_neighbour_locator, &
                      get_local_index, get_global_index, get_volume, get_distance, &
                      get_face_location, get_face_area, get_face_normal, create_cell_locator, &
                      get_local_num_cells, get_face_interpolation, &
@@ -111,7 +111,7 @@ contains
       diff_coeff_total = 0.0_ccs_real
 
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         call get_face_location(mesh, index_p, j, loc_f)
         call get_face_normal(loc_f, face_normal)
@@ -285,7 +285,7 @@ contains
     real(ccs_real) :: dxmag
 
     call get_local_index(loc_p, index_p)
-    call set_neighbour_location(loc_p, loc_f%cell_face_ctr, loc_nb)
+    call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
     call get_bc_index(phi, index_nb, index_bc)
 
@@ -364,7 +364,7 @@ contains
 
     call create_cell_locator(mesh, index_p, loc_p)
     if (.not. is_boundary) then
-      call set_neighbour_location(loc_p, index_nb, loc_nb)
+      call create_neighbour_locator(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
     else
       call get_distance(loc_p, loc_f, dx)
@@ -405,7 +405,7 @@ contains
                j => loc_f%cell_face_ctr)
 
       call create_cell_locator(mesh, index_p, loc_p)
-      call set_neighbour_location(loc_p, j, loc_nb)
+      call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
       call get_face_normal(loc_f, face_normal)
@@ -479,7 +479,7 @@ contains
                j => loc_f%cell_face_ctr)
 
       call create_cell_locator(mesh, index_p, loc_p)
-      call set_neighbour_location(loc_p, j, loc_nb)
+      call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
       call get_face_normal(loc_f, face_normal)
@@ -640,7 +640,7 @@ contains
         call get_face_area(loc_f, face_area)
         call get_face_normal(loc_f, face_norm)
 
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
           call get_vector_data(phi%values, phi_data)

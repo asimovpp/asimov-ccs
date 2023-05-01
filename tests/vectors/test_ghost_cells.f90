@@ -7,7 +7,7 @@ program test_ghost_cells
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, update_vector, get_vector_data, restore_vector_data
-  use meshing, only: set_neighbour_location, create_cell_locator, &
+  use meshing, only: create_neighbour_locator, create_cell_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal, &
                      get_local_num_cells, &
                      get_total_num_cells

@@ -188,7 +188,7 @@ contains
                index_p => loc_f%index_p)
 
       call create_cell_locator(mesh, index_p, loc_p)
-      call set_neighbour_location(loc_p, cell_face_ctr, loc_nb)
+      call create_neighbour_locator(loc_p, cell_face_ctr, loc_nb)
       call get_local_index(loc_nb, index_nb)
       call get_local_index(loc_f, index_f)
 
@@ -215,7 +215,7 @@ contains
                index_p => loc_f%index_p)
 
       call create_cell_locator(mesh, index_p, loc_p)
-      call set_neighbour_location(loc_p, cell_face_ctr, loc_nb)
+      call create_neighbour_locator(loc_p, cell_face_ctr, loc_nb)
       call get_local_index(loc_nb, index_nb)
       call get_local_index(loc_f, index_f)
 
@@ -547,7 +547,7 @@ contains
                i => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
       call create_cell_locator(mesh, i, loc_p)
-      call set_neighbour_location(loc_p, j, loc_nb)
+      call create_neighbour_locator(loc_p, j, loc_nb)
     end associate
     call get_neighbour_boundary_status(loc_nb, is_boundary)
   end subroutine get_face_boundary_status
