@@ -291,7 +291,7 @@ contains
   !
   !  Creates the association between a neighbour cell F relative to cell P via a vertex, i.e. to
   !  access the nth vertex neighbour of cell i.
-  module subroutine set_vertex_neighbour_location(loc_p, vert_nb_counter, loc_nb)
+  module subroutine get_vertex_neighbour_location(loc_p, vert_nb_counter, loc_nb)
     type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(in) :: vert_nb_counter
     type(vertex_neighbour_locator), intent(out) :: loc_nb
@@ -308,7 +308,7 @@ contains
         call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // " " // str(j))
       end if
     end associate
-  end subroutine set_vertex_neighbour_location
+  end subroutine get_vertex_neighbour_location
 
   !v Constructs a vertex locator object.
   !
