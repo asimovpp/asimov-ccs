@@ -86,7 +86,7 @@ contains
     options(2) = 2023 ! Random number seed
 
     ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
-    tpwgts(:) = 1.0/num_procs ! XXX: Not quite correct, though probably does not matter as
+    tpwgts(:) = 1.0/real(num_procs,c_float) ! XXX: Not quite correct, though probably does not matter as
                               ! we are not using weights
                               ! Fraction of vertex weight that should be distributed 
                               ! to each sub-domain. Sum of tpwgts(:) should be 1.
