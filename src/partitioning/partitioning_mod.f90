@@ -28,11 +28,17 @@ module partitioning
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
     end subroutine compute_partitioner_input
-
+   
     module subroutine compute_connectivity(par_env, mesh)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
     end subroutine compute_connectivity
+
+    !v Internal routine for computingd the input arrays for the partitioner
+    module subroutine compute_partitioner_input_generic(par_env, mesh)
+      class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+      type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+    end subroutine compute_partitioner_input_generic
 
   end interface
 
