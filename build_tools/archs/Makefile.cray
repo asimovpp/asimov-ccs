@@ -22,4 +22,4 @@ endif
 FFLAGS += -homp
 FFLAGS += -J$(OBJ_DIR)
 CAFFLAGS = -hcaf
-MPIRUN = srun
+MPIRUN = srun --oversubscribe

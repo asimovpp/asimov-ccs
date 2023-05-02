@@ -17,6 +17,8 @@ module timestepping
   public :: initialise_old_values
   public :: activate_timestepping
   public :: finalise_timestep
+  public :: reset_timestepping
+  public :: get_theoretical_order
 
   interface
     !> Apply one timestep correction
@@ -32,6 +34,15 @@ module timestepping
     module subroutine finalise_timestep()
     end subroutine finalise_timestep
 
+    !> Reset save variables to their original state
+    module subroutine reset_timestepping()
+    end subroutine reset_timestepping
+
+    !> Returns the expected theoretical order of the method
+    module subroutine get_theoretical_order(order)
+      real(ccs_real), intent(out) :: order
+    end subroutine
+    
     !> Set timestep size
     module subroutine set_timestep(timestep)
       real(ccs_real), intent(in) :: timestep
@@ -52,6 +63,10 @@ module timestepping
     !  If this is not called at the start of a program,
     !  calls to apply_timestep will return without doing anything.
     module subroutine activate_timestepping()
+    end subroutine
+
+    !v reset global variable of timestep common module
+    module subroutine reset_timestepping_module()
     end subroutine
 
     !> Check whether timestepping is active
@@ -90,6 +105,16 @@ module timestepping
     !> Apply second order timestep correction
     module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
       type(ccs_mesh), intent(in) :: mesh !< mesh object
+      class(field), intent(inout) :: phi !< flow variable
+      class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
+      class(ccs_matrix), intent(inout) :: M !< equation system
+      class(ccs_vector), intent(inout) :: b !< rhs vector
+    end subroutine
+    
+    !> Apply mixed order timestep correction (theta scheme)
+    module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
+      type(ccs_mesh), intent(in) :: mesh !< mesh object
+      real(ccs_real), intent(in) :: theta !< timestepping scheme mixing factor
       class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
       class(ccs_matrix), intent(inout) :: M !< equation system

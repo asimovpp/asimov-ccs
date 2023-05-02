@@ -1,11 +1,12 @@
-!v Implementation of a second order timestepping scheme with a fixed-size timestep.
-submodule(timestepping) timestepping_second_order
+!v Implementation of the theta timestepping scheme with a fixed-size timestep.
+submodule(timestepping) timestepping_theta
 
   implicit none
 
+  real(ccs_real), parameter :: theta = 0.5 !< timestepping scheme mixing factor
   integer(ccs_int), parameter :: num_old_vals = 2 !< the number of old field values the scheme uses
+  real(ccs_real), parameter :: theoretical_order = theta + 1.0_ccs_real !< Theoretical order of accuracy of the scheme
   logical, save :: first_update = .true.
-  real(ccs_real), parameter :: theoretical_order = 2.0_ccs_real !< Theoretical order of accuracy of the scheme
 
 contains
 
@@ -45,7 +46,7 @@ contains
     if (first_update) then
       call apply_timestep_first_order(mesh, phi, diag, M, b)
     else
-      call apply_timestep_second_order(mesh, phi, diag, M, b)
+      call apply_timestep_theta(mesh, theta, phi, diag, M, b)
     end if
 
   end subroutine apply_timestep
@@ -72,3 +73,4 @@ contains
   end subroutine
 
 end submodule
+

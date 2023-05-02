@@ -46,6 +46,7 @@ module utils
   public :: calc_kinetic_energy
   public :: calc_enstrophy
   public :: add_field_to_outputlist
+  public :: reset_outputlist_counter
   public :: get_field
   public :: get_fluid_solver_selector
   public :: set_field
@@ -150,6 +151,9 @@ module utils
     module procedure debug_print_actual
     module procedure noop
   end interface debug_print
+
+
+  integer(ccs_int), save :: outputlist_counter = 0
 
 contains
 
@@ -413,14 +417,19 @@ contains
     type(field_ptr), dimension(:), intent(inout) :: list
 
     ! Local variables
-    integer(ccs_int), save :: count = 0
 
-    count = count + 1
+    outputlist_counter = outputlist_counter + 1
 
-    list(count)%ptr => var
-    list(count)%name = name
+    list(outputlist_counter)%ptr => var
+    list(outputlist_counter)%name = name
 
   end subroutine add_field_to_outputlist
+
+  subroutine reset_outputlist_counter()
+
+    outputlist_counter = 0
+
+  end subroutine
 
   !> Gets the field from the fluid structure specified by field_name
   subroutine get_field(flow, field_name, flow_field)
