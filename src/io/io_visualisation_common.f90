@@ -49,7 +49,7 @@ contains
   module subroutine write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
 
     use case_config, only: write_gradients
-    use meshing, only: get_global_num_cells
+    use meshing, only: get_global_num_cells, get_vert_per_cell
     
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
@@ -78,6 +78,7 @@ contains
     character(len=12), parameter :: l6 = '            ' ! Indentation level 6
 
     integer(ccs_int) :: ncel
+    integer(ccs_int) :: vert_per_cell
     
     xdmf_file = case_name // '.sol.xmf'
     sol_file = case_name // '.sol.h5'
@@ -111,6 +112,8 @@ contains
       end if
 
       call get_global_num_cells(mesh, ncel)
+      call get_vert_per_cell(mesh, vert_per_cell)
+
       associate (nvrt => mesh%topo%global_num_vertices)
 
         write (ioxdmf, '(a,a)') l3, '<Grid Name = "Mesh">'
@@ -120,14 +123,14 @@ contains
         end if
 
         ! Topology
-        if (mesh%topo%vert_per_cell == 4) then
+        if (vert_per_cell == 4) then
           write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Quadrilateral" NumberOfElements = "', ncel, '" BaseOffset = "1">'
         else
           write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Hexahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
         end if
 
         fmt = '(a,a,i0,1x,i0,3(a))'
-        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, mesh%topo%vert_per_cell, '" Format = "HDF">', &
+        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, vert_per_cell, '" Format = "HDF">', &
           trim(geo_file), ':/Step0/cell/vertices</DataItem>'
         write (ioxdmf, '(a,a)') l4, '</Topology>'
 

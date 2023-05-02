@@ -8,7 +8,7 @@ program test_mesh_centres
 
   use constants, only: ndim
   use meshing, only: create_cell_locator, get_face_location, create_vert_locator, get_centre, &
-                     get_local_num_cells
+                     get_local_num_cells, get_vert_per_cell
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -19,6 +19,7 @@ program test_mesh_centres
   integer(ccs_int) :: n, nx, ny, nz
 
   integer(ccs_int) :: local_num_cells
+  integer(ccs_int) :: vert_per_cell
   integer(ccs_int) :: i
   integer(ccs_int) :: j
 
@@ -73,7 +74,9 @@ program test_mesh_centres
         end do
       end associate
 
-      do j = 1, mesh%topo%vert_per_cell
+      call get_vert_per_cell(mesh, vert_per_cell)
+
+      do j = 1, vert_per_cell
         call create_vert_locator(mesh, i, j, loc_v)
         call get_centre(loc_v, vc)
         do dim = 1, ndim

@@ -34,6 +34,9 @@ module meshing
   public :: get_global_num_faces, set_global_num_faces
   public :: get_num_faces, set_num_faces
   public :: get_max_faces, set_max_faces
+  public :: get_global_num_vertices, set_global_num_vertices
+  public :: get_vert_per_cell, set_vert_per_cell
+  public :: get_vert_nb_per_cell, set_vert_nb_per_cell
   public :: set_centre
   public :: set_area
   public :: set_normal
@@ -419,6 +422,42 @@ module meshing
       type(ccs_mesh), intent(in) :: mesh         !< The mesh
       integer(ccs_int), intent(out) :: max_faces !< The face count
     end subroutine get_max_faces
+
+    !> Sets the global number of vertices.
+    module subroutine set_global_num_vertices(global_num_vertices, mesh)
+      integer(ccs_int), intent(in) :: global_num_vertices !< The global number of vertices
+      type(ccs_mesh), intent(inout) :: mesh               !< The mesh
+    end subroutine set_global_num_vertices
+
+    !> Gets the global number of vertices.
+    module subroutine get_global_num_vertices(mesh, global_num_vertices)
+      type(ccs_mesh), intent(in) :: mesh                   !< The mesh
+      integer(ccs_int), intent(out) :: global_num_vertices !< The global number of vertices
+    end subroutine get_global_num_vertices
+    
+    !> Sets the number of vertices per cell.
+    module subroutine set_vert_per_cell(vert_per_cell, mesh)
+      integer(ccs_int), intent(in) :: vert_per_cell !< The number of vertices per cell
+      type(ccs_mesh), intent(inout) :: mesh         !< The mesh
+    end subroutine set_vert_per_cell
+
+    !> Gets the number of vertices per cell.
+    module subroutine get_vert_per_cell(mesh, vert_per_cell)
+      type(ccs_mesh), intent(in) :: mesh             !< The mesh
+      integer(ccs_int), intent(out) :: vert_per_cell !< The number of vertices per cell
+    end subroutine get_vert_per_cell
+
+    !> Sets the number of neighbours via vertices per cell.
+    module subroutine set_vert_nb_per_cell(vert_nb_per_cell, mesh)
+      integer(ccs_int), intent(in) :: vert_nb_per_cell !< The number of neighbours via vertices per cell
+      type(ccs_mesh), intent(inout) :: mesh         !< The mesh
+    end subroutine set_vert_nb_per_cell
+
+    !> Gets the number of neighbours via vertices per cell.
+    module subroutine get_vert_nb_per_cell(mesh, vert_nb_per_cell)
+      type(ccs_mesh), intent(in) :: mesh             !< The mesh
+      integer(ccs_int), intent(out) :: vert_nb_per_cell !< The number of neighbours via vertices per cell
+    end subroutine get_vert_nb_per_cell
     
     !> Set the cell centre of specified cell
     module subroutine set_cell_centre(loc_p, x_p)
