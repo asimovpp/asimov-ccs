@@ -86,7 +86,7 @@ contains
     options(2) = 2023 ! Random number seed
 
     ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
-    tpwgts(:) = 1.0/real(num_procs,c_float) ! XXX: Not quite correct, though probably does not matter as
+    tpwgts(:) = 1.0 / real(num_procs, c_float) ! XXX: Not quite correct, though probably does not matter as
                               ! we are not using weights
                               ! Fraction of vertex weight that should be distributed 
                               ! to each sub-domain. Sum of tpwgts(:) should be 1.
@@ -96,9 +96,9 @@ contains
 
     irank = par_env%proc_id ! Current rank
 
-    vtxdist = mesh%topo%vtxdist -1
-    xadj = mesh%topo%xadj -1
-    adjncy = mesh%topo%adjncy -1
+    vtxdist = mesh%topo%vtxdist - 1
+    xadj = mesh%topo%xadj - 1
+    adjncy = mesh%topo%adjncy - 1
 
     adjwgt = mesh%topo%adjwgt
     vwgt = mesh%topo%vwgt
