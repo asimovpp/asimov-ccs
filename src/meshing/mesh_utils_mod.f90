@@ -28,6 +28,7 @@ module mesh_utils
                      get_num_faces, set_num_faces, &
                      get_max_faces, set_max_faces, &
                      get_vert_per_cell, set_vert_per_cell, &
+                     get_vert_nb_per_cell, set_vert_nb_per_cell, &
                      set_face_interpolation, &
                      set_local_index, &
                      set_global_index
@@ -167,7 +168,7 @@ contains
     integer(ccs_int) :: num_faces
     ! integer(ccs_int) :: global_num_vertices
     integer(ccs_int) :: vert_per_cell
-    ! integer(ccs_int) :: vert_nb_per_cell
+    integer(ccs_int) :: vert_nb_per_cell
     
     ! Zero scalar topology values to have known initial state
     call set_global_num_cells(0_ccs_int, mesh)
@@ -178,6 +179,7 @@ contains
     call set_total_num_cells(0_ccs_int, mesh)
     call set_num_faces(0_ccs_int,mesh)
     call set_vert_per_cell(0_ccs_int,mesh)
+    call set_vert_nb_per_cell(0_ccs_int,mesh)
 
     ! Read attribute "ncel" - the total number of cells
     call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
@@ -549,9 +551,9 @@ contains
 
   end subroutine write_geometry
 
-  !v Utility constructor to build a 3D mesh with hex cells.
+  !v Utility constructor to build a 2D mesh with hex cells.
   !
-  !  Builds a Cartesian grid of nx*ny*nz cells.
+  !  Builds a Cartesian grid of nx*ny cells.
   function build_square_mesh(par_env, cps, side_length) result(mesh)
 
     use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
@@ -602,6 +604,7 @@ contains
     integer(ccs_int) :: global_num_faces ! The global number of faces
     integer(ccs_int) :: max_faces        ! The maximum number of faces per cell
     integer(ccs_int) :: vert_per_cell    ! The number of vertices per cell
+    integer(ccs_int) :: vert_nb_per_cell ! The number of neighbours via vertices per cell
     logical :: set_vert_nb               ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(2) :: nb_direction  ! Array indicating direction of neighbour
 
@@ -633,23 +636,24 @@ contains
         
         ! Set number of vertices per cell
         call set_vert_per_cell(4_ccs_int, mesh)
-        mesh%topo%vert_nb_per_cell = 4_ccs_int
+        call set_vert_nb_per_cell(4_ccs_int, mesh)
 
         call get_max_faces(mesh, max_faces)
         call get_vert_per_cell(mesh, vert_per_cell)
+        call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
 
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(local_num_cells))
         allocate (mesh%topo%num_nb(local_num_cells))
         allocate (mesh%topo%num_vert_nb(local_num_cells))
         allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
-        allocate (mesh%topo%vert_nb_indices(mesh%topo%vert_nb_per_cell, local_num_cells))
+        allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
         allocate (mesh%topo%face_indices(max_faces, local_num_cells))
         allocate (mesh%topo%global_vertex_indices(vert_per_cell, local_num_cells))
 
         ! Initialise mesh arrays
         mesh%topo%num_nb(:) = max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
-        mesh%topo%num_vert_nb(:) = mesh%topo%vert_nb_per_cell ! All cells have 4 vertex neighbours (possibly ghost/boundary cells)
+        mesh%topo%num_vert_nb(:) = vert_nb_per_cell ! All cells have 4 vertex neighbours (possibly ghost/boundary cells)
 
         ! Initialise neighbour indices
         mesh%topo%nb_indices(:, :) = 0_ccs_int
@@ -1096,6 +1100,7 @@ contains
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: vert_per_cell
+    integer(ccs_int) :: vert_nb_per_cell
     integer(ccs_int) :: nglobal
     logical :: set_vert_nb              ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(3) :: nb_direction  ! Array indicating direction of neighbour
@@ -1126,23 +1131,24 @@ contains
       call set_vert_per_cell(8, mesh)
 
       ! Set number of neighbours via vertex per cell
-      mesh%topo%vert_nb_per_cell = 20
+      call set_vert_nb_per_cell(20_ccs_int, mesh)
 
       call get_max_faces(mesh, max_faces)
       call get_vert_per_cell(mesh, vert_per_cell)
+      call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
       
       ! Allocate mesh arrays
       allocate (mesh%topo%global_indices(local_num_cells))
       allocate (mesh%topo%num_nb(local_num_cells))
       allocate (mesh%topo%num_vert_nb(local_num_cells))
       allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
-      allocate (mesh%topo%vert_nb_indices(mesh%topo%vert_nb_per_cell, local_num_cells))
+      allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
       allocate (mesh%topo%face_indices(max_faces, local_num_cells))
       allocate (mesh%topo%global_vertex_indices(vert_per_cell, local_num_cells))
 
       ! Initialise mesh arrays
       mesh%topo%num_nb(:) = max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
-      mesh%topo%num_vert_nb(:) = mesh%topo%vert_nb_per_cell
+      mesh%topo%num_vert_nb(:) = vert_nb_per_cell
 
       ! Initalise neighbour indices
       mesh%topo%nb_indices(:, :) = 0_ccs_int
