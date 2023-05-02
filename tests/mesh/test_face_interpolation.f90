@@ -8,7 +8,7 @@ program test_face_interpolation
 
   use constants, only: ndim
   use mesh_utils, only: compute_face_interpolation
-  use meshing, only: get_face_interpolation, get_face_location, get_max_faces
+  use meshing, only: get_face_interpolation, create_face_locator, get_max_faces
 
   implicit none
 
@@ -29,7 +29,7 @@ program test_face_interpolation
   index_p = 1_ccs_int
   j = 1_ccs_int
 
-  call get_face_location(mesh, index_p, j, loc_f)
+  call create_face_locator(mesh, index_p, j, loc_f)
   call get_face_interpolation(loc_f, interpol_factor)
 
   call assert_eq(interpol_factor, 1.0_ccs_real - face_coordinate, "FAIL: wrong interpolation for cell1")
@@ -38,7 +38,7 @@ program test_face_interpolation
   index_p = 2_ccs_int
   j = 1_ccs_int
 
-  call get_face_location(mesh, index_p, j, loc_f)
+  call create_face_locator(mesh, index_p, j, loc_f)
   call get_face_interpolation(loc_f, interpol_factor)
 
   call assert_eq(interpol_factor, face_coordinate, "FAIL: wrong interpolation for cell2")

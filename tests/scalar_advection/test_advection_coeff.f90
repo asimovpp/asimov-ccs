@@ -11,7 +11,7 @@ program test_advection_coeff
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, get_vector_data, restore_vector_data
   use fv, only: calc_advection_coeff, calc_cell_coords
-  use meshing, only: create_cell_locator, get_face_location, create_neighbour_locator, &
+  use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal, &
                      get_local_num_cells
   use utils, only: update, initialise, &
@@ -106,7 +106,7 @@ contains
     call create_neighbour_locator(loc_p, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
-    call get_face_location(mesh, index, nb, loc_f)
+    call create_face_locator(mesh, index, nb, loc_f)
     call get_face_area(loc_f, face_area)
 
     call get_face_normal(loc_f, normal)

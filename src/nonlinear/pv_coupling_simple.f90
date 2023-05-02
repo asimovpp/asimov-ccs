@@ -23,7 +23,7 @@ submodule(pv_coupling) pv_coupling_simple
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
-                     get_boundary_status, get_face_normal, create_neighbour_locator, get_face_location, &
+                     get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
@@ -547,7 +547,7 @@ contains
 
       ! Loop over faces
       do j = 1, nnb
-        call get_face_location(mesh, index_p, j, loc_f)
+        call create_face_locator(mesh, index_p, j, loc_f)
         call get_face_area(loc_f, face_area)
         call get_face_normal(loc_f, face_normal)
 
@@ -758,7 +758,7 @@ contains
       mib = 0.0_ccs_real
 
       do j = 1, nnb
-        call get_face_location(mesh, i, j, loc_f)
+        call create_face_locator(mesh, i, j, loc_f)
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, index_f)
 
@@ -939,7 +939,7 @@ contains
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call get_face_location(mesh, i, j, loc_f)
+        call create_face_locator(mesh, i, j, loc_f)
         call get_local_index(loc_f, index_f)
         call get_face_area(loc_f, face_area)
         call get_boundary_status(loc_f, is_boundary)
