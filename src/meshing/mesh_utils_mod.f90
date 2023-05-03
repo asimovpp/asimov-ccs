@@ -163,13 +163,7 @@ contains
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: halo_num_cells
-    integer(ccs_int) :: total_num_cells
-    integer(ccs_int) :: num_faces
-    integer(ccs_int) :: global_num_vertices
     integer(ccs_int) :: vert_per_cell
-    integer(ccs_int) :: vert_nb_per_cell
 
     ! Zero scalar topology values to have known initial state
     call set_global_num_cells(0_ccs_int, mesh)
