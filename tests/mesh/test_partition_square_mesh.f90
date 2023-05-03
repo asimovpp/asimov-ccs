@@ -26,7 +26,7 @@ program test_partition_square_mesh
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
   integer(ccs_int) :: global_num_cells
-  
+
   call init()
 
   print *, "Building mesh."
@@ -108,18 +108,18 @@ contains
     integer :: ctr
 
     integer(ccs_int) :: global_num_cells
-    
+
     ! Do some basic verification
 
     if (size(mesh%topo%vtxdist) /= (par_env%num_procs + 1)) then
-      write (message, *) "ERROR: global vertex distribution is wrong size "   //   stage   //   "- partitioning."
+      write (message, *) "ERROR: global vertex distribution is wrong size " // stage // "- partitioning."
       call stop_test(message)
     end if
 
     ctr = 0
     do i = 2, size(mesh%topo%vtxdist)
       if (mesh%topo%vtxdist(i) < mesh%topo%vtxdist(i - 1)) then
-        write (message, *) "ERROR: global vertex distribution ordering is wrong "   //   stage   //   "- partitioning."
+        write (message, *) "ERROR: global vertex distribution ordering is wrong " // stage // "- partitioning."
         call stop_test(message)
       end if
 
@@ -128,7 +128,7 @@ contains
 
     call get_global_num_cells(mesh, global_num_cells)
     if (ctr /= global_num_cells) then
-      write (message, *) "ERROR: global vertex distribution count is wrong "   //   stage   //   "- partitioning."
+      write (message, *) "ERROR: global vertex distribution count is wrong " // stage // "- partitioning."
       call stop_test(message)
     end if
 
@@ -143,17 +143,17 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
-    
+
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
-      
+
       do j = int(mesh%topo%xadj(i)), int(mesh%topo%xadj(i + 1)) - 1
         if (mesh%topo%adjncy(j) == global_index_p) then
           print *, "TOPO neighbours @ global idx ", global_index_p, ": ", &
             mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i + 1) - 1)
-          write (message, *) "ERROR: found self-loop "   //   stage   //   "- partitioning."
+          write (message, *) "ERROR: found self-loop " // stage // "- partitioning."
           call stop_test(message)
         end if
       end do
@@ -171,12 +171,12 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
-    
+
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells ! Loop over local cells
       call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
-      
+
       nadj = int(mesh%topo%xadj(i + 1) - mesh%topo%xadj(i))
       allocate (adjncy_global_expected(nadj))
 
@@ -184,18 +184,18 @@ contains
 
       do j = int(mesh%topo%xadj(i)), int(mesh%topo%xadj(i + 1)) - 1
         if (.not. any(adjncy_global_expected == mesh%topo%adjncy(j)) .and. mesh%topo%adjncy(j) .gt. 0) then
-          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are wrong "   //   stage   //   "- partitioning."
+          write (message, *) "ERROR: neighbours are wrong " // stage // "- partitioning."
           call stop_test(message)
         end if
       end do
 
       do j = 1, size(adjncy_global_expected)
         if (.not. any(mesh%topo%adjncy == adjncy_global_expected(j)) .and. adjncy_global_expected(j) /= 0) then
-          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are missing "   //   stage   //   "- partitioning."
+          write (message, *) "ERROR: neighbours are missing " // stage // "- partitioning."
           call stop_test(message)
         end if
       end do
@@ -205,7 +205,7 @@ contains
                               9, 9, 9, 10, 10, 11, 11, 12, 12, &
                               13, 13, 13, 14, 14, 15, 15, 16, 16/)
       if (.not. all(face_cell1_expected == mesh%topo%face_cell1)) then
-        write (message, *) "ERROR: face_cell1 not correct! "   //   stage   //   "- partitioning."
+        write (message, *) "ERROR: face_cell1 not correct! " // stage // "- partitioning."
         call stop_test(message)
       end if
 
@@ -214,7 +214,7 @@ contains
                               10, 13, 11, 14, 12, 15, 0, 16, &
                               0, 14, 0, 15, 0, 16, 0, 0, 0/)
       if (.not. all(face_cell2_expected == mesh%topo%face_cell2)) then
-        write (message, *) "ERROR: face_cell2 not correct! "   //   stage   //   "- partitioning."
+        write (message, *) "ERROR: face_cell2 not correct! " // stage // "- partitioning."
         call stop_test(message)
       end if
 
@@ -234,14 +234,14 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: idx_global, cidx_global
-    
+
     adjncy_global_expected(:) = 0
     interior_ctr = 1
 
     call create_cell_locator(mesh, i, loc_p)
     call get_global_index(loc_p, idx_global)
     cidx_global = idx_global - 1 ! C-style indexing
-    
+
     if ((modulo(cidx_global, 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
       ! NOT @ left boundary
       adjncy_global_expected(interior_ctr) = idx_global - 1

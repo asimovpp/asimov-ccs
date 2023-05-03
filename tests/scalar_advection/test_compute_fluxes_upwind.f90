@@ -212,7 +212,7 @@ contains
     integer(ccs_int) :: global_num_cells
 
     type(cell_locator) :: loc_p
-    
+
     call initialise(vec_properties)
     call set_size(par_env, mesh, vec_properties)
 
@@ -238,7 +238,7 @@ contains
         do i = 1, cps
           call create_cell_locator(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
-          
+
           call pack_entries(vec_counter, (i - 1) * cps + 1, adv_coeff, vec_coeffs)
           vec_counter = vec_counter + 1
           call pack_entries(vec_counter, i * cps, adv_coeff, vec_coeffs)
@@ -308,7 +308,7 @@ contains
     integer(ccs_int) :: mat_counter
 
     type(cell_locator) :: loc_p
-    
+
     allocate (mat_coeffs%global_row_indices(1))
     allocate (mat_coeffs%global_col_indices(5))
     allocate (mat_coeffs%values(5))
@@ -378,7 +378,7 @@ contains
     integer(ccs_int) :: mat_counter
 
     type(cell_locator) :: loc_p
-    
+
     mat_coeffs%setter_mode = add_mode
     allocate (mat_coeffs%global_row_indices(1))
     allocate (mat_coeffs%global_col_indices(2))
@@ -394,7 +394,7 @@ contains
 
         call create_cell_locator(mesh, i, loc_p)
         call get_global_index(loc_p, ii)
-        
+
         if (mod(ii, cps) .ne. 1) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1
@@ -410,7 +410,7 @@ contains
 
         call create_cell_locator(mesh, i, loc_p)
         call get_global_index(loc_p, ii)
-        
+
         if (ii > cps) then
           call pack_entries(1, mat_counter, ii, ii, 0.2_ccs_real, mat_coeffs)
           mat_counter = mat_counter + 1

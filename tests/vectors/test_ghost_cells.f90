@@ -30,7 +30,7 @@ program test_ghost_cells
 
   type(cell_locator) :: loc_p
   integer(ccs_int) :: global_index_p
-  
+
   call init()
 
   proc_id = par_env%proc_id

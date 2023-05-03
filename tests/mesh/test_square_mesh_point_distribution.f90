@@ -21,7 +21,7 @@ program test_square_mesh_point_distribution
   integer(ccs_int) :: mctr
 
   integer(ccs_int) :: global_num_cells
-  
+
   call init()
 
   do mctr = 1, size(m)

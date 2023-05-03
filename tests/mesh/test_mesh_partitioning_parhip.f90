@@ -97,7 +97,7 @@ contains
     integer :: i
 
     integer(ccs_int) :: global_num_cells
-    
+
     nnew = 0
     call get_global_num_cells(mesh, global_num_cells)
     do i = 1, global_num_cells

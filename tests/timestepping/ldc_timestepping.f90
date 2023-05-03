@@ -72,7 +72,7 @@ program ldc
   call read_command_line_arguments(par_env, cps, case_name=case_name)
 
   print *, "Starting ", case_name, " case!"
-  ccs_config_file = case_name   //   ccsconfig
+  ccs_config_file = case_name // ccsconfig
 
   call timer(start_time)
 
@@ -194,7 +194,7 @@ program ldc
   t = t_start
   do while (t < t_end)
     ! Solve using SIMPLE algorithm
-    print *, "Start SIMPLE at t="   //   str(t)
+    print *, "Start SIMPLE at t=" // str(t)
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields)
     call update_old_values(u)

@@ -17,7 +17,7 @@ program test_mesh_point_distribution
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
   integer(ccs_int) :: global_num_cells
-  
+
   call init()
 
   nx = 4

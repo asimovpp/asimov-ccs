@@ -59,7 +59,7 @@ contains
                        create_cell_locator, create_neighbour_locator, &
                        set_local_index
     use types, only: cell_locator, neighbour_locator
-    
+
     real(ccs_real), intent(in) :: face_coordinate
     type(ccs_mesh) :: mesh
 
@@ -70,7 +70,7 @@ contains
 
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    
+
     ! Build 2 cells mesh topology
     call set_local_num_cells(2, mesh)
     call set_global_num_cells(2, mesh)
@@ -79,12 +79,12 @@ contains
     call set_global_num_faces(1, mesh)
     call set_num_faces(1, mesh)
     call set_max_faces(1, mesh)
-    
+
     call get_local_num_cells(mesh, local_num_cells)
     call get_total_num_cells(mesh, total_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
     call get_max_faces(mesh, max_faces)
-    
+
     allocate (mesh%topo%global_indices(global_num_cells))
     mesh%topo%global_indices(1) = 1
     mesh%topo%global_indices(2) = 2
