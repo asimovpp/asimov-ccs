@@ -125,7 +125,7 @@ contains
 
     real(ccs_real) :: V_p
     type(cell_locator) :: loc_p
-    
+
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
@@ -138,7 +138,7 @@ contains
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call get_volume(loc_p, V_p)
-      
+
       ! A = A + V/dt
       diag_data(i) = diag_data(i) + V_p / get_timestep()
 
@@ -190,7 +190,7 @@ contains
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call get_volume(loc_p, V_p)
-      
+
       ! A = A + 1.5*rho*V/dt
       diag_data(i) = diag_data(i) + 1.5 * rho * V_p / get_timestep()
 
@@ -203,7 +203,7 @@ contains
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
   end subroutine apply_timestep_second_order
-  
+
   module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal

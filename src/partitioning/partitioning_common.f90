@@ -44,7 +44,7 @@ contains
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
-    
+
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -86,7 +86,7 @@ contains
     mesh%topo%global_boundaries = 0
 
     call get_max_faces(mesh, max_faces)
-    
+
     ! Allocate temporary 2D integer work array and initialise to 0
     allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
@@ -180,7 +180,7 @@ contains
 
     ctr = 1
     associate (irank => par_env%proc_id, &
-         partition => mesh%topo%global_partition)
+               partition => mesh%topo%global_partition)
       call get_global_num_cells(mesh, global_num_cells)
       do i = 1, global_num_cells
         if (partition(i) == irank) then
@@ -243,7 +243,7 @@ contains
   subroutine flatten_connectivity(tmp_int2d, mesh)
 
     use meshing, only: set_halo_num_cells
-    
+
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
 
@@ -262,12 +262,12 @@ contains
     integer(ccs_int) :: global_index_p
 
     type(neighbour_locator) :: loc_nb
-    
+
     call set_halo_num_cells(0, mesh)
     call get_halo_num_cells(mesh, halo_num_cells)
     call get_local_num_cells(mesh, local_num_cells)
     call get_max_faces(mesh, max_faces)
-    
+
     ctr = 1
 
     allocate (tmp1(local_num_cells))
@@ -287,7 +287,7 @@ contains
       call create_cell_locator(mesh, i, loc_p)
 
       mesh%topo%xadj(i) = ctr
-      
+
       ! Loop over connections of cell i
       do j = 1, tmp_int2d(i, max_faces + 1)
         associate (nbidx => tmp_int2d(i, j))

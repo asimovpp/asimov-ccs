@@ -58,7 +58,7 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
-    
+
     sol_file = case_name // '.sol.h5'
     adios2_file = case_name // adiosconfig
 
@@ -82,7 +82,7 @@ contains
     call create_cell_locator(mesh, 1, loc_p)
 
     call get_global_index(loc_p, index_global)
-    
+
     ! 1D data
     sel_shape(1) = global_num_cells
     sel_start(1) = index_global - 1

@@ -42,7 +42,7 @@ module timestepping
     module subroutine get_theoretical_order(order)
       real(ccs_real), intent(out) :: order
     end subroutine
-    
+
     !> Set timestep size
     module subroutine set_timestep(timestep)
       real(ccs_real), intent(in) :: timestep
@@ -110,7 +110,7 @@ module timestepping
       class(ccs_matrix), intent(inout) :: M !< equation system
       class(ccs_vector), intent(inout) :: b !< rhs vector
     end subroutine
-    
+
     !> Apply mixed order timestep correction (theta scheme)
     module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
       type(ccs_mesh), intent(in) :: mesh !< mesh object

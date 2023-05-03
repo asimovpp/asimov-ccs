@@ -140,7 +140,7 @@ contains
 
     use meshing, only: set_halo_num_cells, get_halo_num_cells, get_global_num_faces, &
                        get_total_num_cells, set_total_num_cells
-    
+
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
@@ -162,7 +162,7 @@ contains
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
-    
+
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -170,7 +170,7 @@ contains
     end_index = int(mesh%topo%vtxdist(irank + 2), int32) - 1
 
     call get_global_num_cells(mesh, global_num_cells)
-    
+
     ! Allocate global partition array
     allocate (mesh%topo%global_partition(global_num_cells))
 

@@ -15,7 +15,7 @@ module tgv2d_core
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -86,8 +86,8 @@ contains
     isize = par_env%num_procs
 
     call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
-    
-    if(allocated(input_path)) then
+
+    if (allocated(input_path)) then
       case_path = input_path // "/" // case_name
     else
       case_path = case_name
@@ -192,7 +192,7 @@ contains
     if (irank == par_env%root) then
       call print_configuration(mesh)
     end if
-    
+
     call activate_timestepping()
     call set_timestep(dt)
 
@@ -208,10 +208,10 @@ contains
     call set_field(4, field_p, p, flow_fields)
     call set_field(5, field_p_prime, p_prime, flow_fields)
     call set_field(6, field_mf, mf, flow_fields)
-    
+
     do t = 1, num_steps
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                          fluid_sol, flow_fields, t)
+                           fluid_sol, flow_fields, t)
       call calc_tgv2d_error(par_env, mesh, t, u, v, w, p, error_L2, error_Linf)
       call calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
@@ -243,7 +243,6 @@ contains
     end if
 
   end subroutine run_tgv2d
-
 
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
@@ -301,7 +300,7 @@ contains
 
   ! Print test case configuration
   subroutine print_configuration(mesh)
-    
+
     class(ccs_mesh), intent(in) :: mesh
 
     integer(ccs_int) :: global_num_cells
@@ -320,7 +319,7 @@ contains
     write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
-    print *,"* Cells per side: ", cps
+    print *, "* Cells per side: ", cps
     write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     print *, "Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
@@ -377,24 +376,24 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-       call create_cell_locator(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
+      call create_cell_locator(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
 
-       call get_centre(loc_p, x_p)
+      call get_centre(loc_p, x_p)
 
-       u_val = sin(x_p(1)) * cos(x_p(2))
-       v_val = -cos(x_p(1)) * sin(x_p(2))
-       w_val = 0.0_ccs_real
-       p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+      u_val = sin(x_p(1)) * cos(x_p(2))
+      v_val = -cos(x_p(1)) * sin(x_p(2))
+      w_val = 0.0_ccs_real
+      p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
-       call set_row(global_index_p, u_vals)
-       call set_entry(u_val, u_vals)
-       call set_row(global_index_p, v_vals)
-       call set_entry(v_val, v_vals)
-       call set_row(global_index_p, w_vals)
-       call set_entry(w_val, w_vals)
-       call set_row(global_index_p, p_vals)
-       call set_entry(p_val, p_vals)
+      call set_row(global_index_p, u_vals)
+      call set_entry(u_val, u_vals)
+      call set_row(global_index_p, v_vals)
+      call set_entry(v_val, v_vals)
+      call set_row(global_index_p, w_vals)
+      call set_entry(w_val, w_vals)
+      call set_row(global_index_p, p_vals)
+      call set_entry(p_val, p_vals)
     end do
 
     call set_values(u_vals, u%values)
@@ -491,7 +490,7 @@ contains
     real(ccs_real) :: time
 
     integer(ccs_int) :: global_num_cells
-    
+
     integer :: io_unit
 
     integer :: ierr
@@ -534,7 +533,6 @@ contains
       !error_Linf_local(3) = max(error_Linf_local(3), abs(w_an - w_data(index_p)))
       error_Linf_local(3) = max(error_Linf_local(3), abs(p_an - p_data(index_p)))
 
-
     end do
     call restore_vector_data(u%values, u_data)
     call restore_vector_data(v%values, v_data)
@@ -559,7 +557,7 @@ contains
       else
         open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
       end if
-      fmt = '(I0,' // str(2*size(error_L2)) // '(1x,e12.4))'
+      fmt = '(I0,' // str(2 * size(error_L2)) // '(1x,e12.4))'
       write (io_unit, fmt) t, error_L2, error_Linf
       close (io_unit)
     end if

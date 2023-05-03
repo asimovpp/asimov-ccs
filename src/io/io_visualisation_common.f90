@@ -50,7 +50,7 @@ contains
 
     use case_config, only: write_gradients
     use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices
-    
+
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
@@ -80,7 +80,7 @@ contains
     integer(ccs_int) :: ncel
     integer(ccs_int) :: vert_per_cell
     integer(ccs_int) :: nvrt
-    
+
     xdmf_file = case_name // '.sol.xmf'
     sol_file = case_name // '.sol.h5'
     geo_file = case_name // '.geo'
@@ -254,7 +254,6 @@ contains
       end if
 
       write (ioxdmf, '(a,a)') l3, '</Grid>'
-
 
       flush (ioxdmf)
 

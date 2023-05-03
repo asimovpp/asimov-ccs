@@ -117,14 +117,14 @@ contains
     ! Do some basic verification
 
     if (size(mesh%topo%vtxdist) /= (par_env%num_procs + 1)) then
-      write (message, *) "ERROR: global vertex distribution is wrong size " // stage // "- partitioning."
+      write (message, *) "ERROR: global vertex distribution is wrong size "   //   stage   //   "- partitioning."
       call stop_test(message)
     end if
 
     ctr = 0
     do i = 2, size(mesh%topo%vtxdist)
       if (mesh%topo%vtxdist(i) < mesh%topo%vtxdist(i - 1)) then
-        write (message, *) "ERROR: global vertex distribution ordering is wrong " // stage // "- partitioning."
+        write (message, *) "ERROR: global vertex distribution ordering is wrong "   //   stage   //   "- partitioning."
         call stop_test(message)
       end if
 
@@ -133,7 +133,7 @@ contains
 
     call get_global_num_cells(mesh, global_num_cells)
     if (ctr /= global_num_cells) then
-      write (message, *) "ERROR: global vertex distribution count is wrong " // stage // "- partitioning."
+      write (message, *) "ERROR: global vertex distribution count is wrong "   //   stage   //   "- partitioning."
       call stop_test(message)
     end if
 
@@ -157,7 +157,7 @@ contains
       do j = int(mesh%topo%xadj(i), ccs_int), int(mesh%topo%xadj(i + 1), ccs_int) - 1
         if (mesh%topo%adjncy(j) == global_index_p) then
           print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
-          write (message, *) "ERROR: found self-loop " // stage // "- partitioning."
+          write (message, *) "ERROR: found self-loop "   //   stage   //   "- partitioning."
           call stop_test(message)
         end if
       end do
@@ -191,7 +191,7 @@ contains
         if (.not. any(adjncy_global_expected == mesh%topo%adjncy(j))) then
           print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are wrong " // stage // "-partitioning."
+          write (message, *) "ERROR: neighbours are wrong "   //   stage   //   "-partitioning."
           call stop_test(message)
         end if
       end do
@@ -200,7 +200,7 @@ contains
         if (.not. any(mesh%topo%adjncy == adjncy_global_expected(j))) then
           print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are missing " // stage // "-partitioning."
+          write (message, *) "ERROR: neighbours are missing "   //   stage   //   "-partitioning."
           call stop_test(message)
         end if
       end do

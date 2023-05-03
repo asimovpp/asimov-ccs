@@ -54,10 +54,10 @@ program test_asserts
   if (.not. all(res)) then
     outmsg = ""
     do i = 1, n_tests
-      outmsg = trim(outmsg) // str(i) // " " // str(res(i)) // " " // new_line('a')
+      outmsg = trim(outmsg)   //   str(i)   //   " "   //   str(res(i))   //   " "   //   new_line('a')
     end do
 
-    call stop_test("Some tests failed." // new_line('a') // outmsg)
+    call stop_test("Some tests failed."   //   new_line('a')   //   outmsg)
   end if
 
   res(:) = .true.
@@ -84,10 +84,10 @@ program test_asserts
   if (.not. all(.not. res)) then
     outmsg = ""
     do i = 1, n_tests
-      outmsg = trim(outmsg) // str(i) // " " // str(res(i)) // " " // new_line('a')
+      outmsg = trim(outmsg)   //   str(i)   //   " "   //   str(res(i))   //   " "   //   new_line('a')
     end do
 
-    call stop_test("Some tests did not fail when they should have." // new_line('a') // outmsg)
+    call stop_test("Some tests did not fail when they should have."   //   new_line('a')   //   outmsg)
   end if
 
   call fin()

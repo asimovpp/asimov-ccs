@@ -70,7 +70,7 @@ contains
             v%ghosted = .true.
           case (face)
             call get_num_faces(mesh, num_faces)
-            
+
             call VecCreate(par_env%comm, v%v, ierr)
             call VecSetSizes(v%v, num_faces, PETSC_DECIDE, ierr)
 

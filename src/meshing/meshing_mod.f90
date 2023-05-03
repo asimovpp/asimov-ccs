@@ -28,7 +28,7 @@ module meshing
   public :: count_neighbours
   public :: get_distance
   public :: get_local_num_cells, set_local_num_cells
-  public :: get_total_num_cells , set_total_num_cells
+  public :: get_total_num_cells, set_total_num_cells
   public :: get_global_num_cells, set_global_num_cells
   public :: get_halo_num_cells, set_halo_num_cells
   public :: get_global_num_faces, set_global_num_faces
@@ -239,7 +239,7 @@ module meshing
       integer(ccs_int), intent(in) :: global_index_f !< The global index of the face.
       type(face_locator), intent(inout) :: loc_f     !< The face locator object.
     end subroutine set_face_global_index
-    
+
     !> Returns the neighbour count of a cell (including boundary neighbours)
     module subroutine get_cell_count_neighbours(loc_p, nnb)
       type(cell_locator), intent(in) :: loc_p !< the cell locator object.
@@ -434,7 +434,7 @@ module meshing
       type(ccs_mesh), intent(in) :: mesh                   !< The mesh
       integer(ccs_int), intent(out) :: global_num_vertices !< The global number of vertices
     end subroutine get_global_num_vertices
-    
+
     !> Sets the number of vertices per cell.
     module subroutine set_vert_per_cell(vert_per_cell, mesh)
       integer(ccs_int), intent(in) :: vert_per_cell !< The number of vertices per cell
@@ -458,7 +458,7 @@ module meshing
       type(ccs_mesh), intent(in) :: mesh             !< The mesh
       integer(ccs_int), intent(out) :: vert_nb_per_cell !< The number of neighbours via vertices per cell
     end subroutine get_vert_nb_per_cell
-    
+
     !> Set the cell centre of specified cell
     module subroutine set_cell_centre(loc_p, x_p)
       type(cell_locator), intent(in) :: loc_p         !< The cell locator object.

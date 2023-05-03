@@ -164,13 +164,13 @@ contains
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: halo_num_cells 
+    integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: num_faces
     integer(ccs_int) :: global_num_vertices
     integer(ccs_int) :: vert_per_cell
     integer(ccs_int) :: vert_nb_per_cell
-    
+
     ! Zero scalar topology values to have known initial state
     call set_global_num_cells(0_ccs_int, mesh)
     call set_global_num_faces(0_ccs_int, mesh)
@@ -309,7 +309,7 @@ contains
 
     ! Starting point for reading chunk of data
     vol_p_start = 0
-    
+
     ! How many data points will be read?
     call get_global_num_cells(mesh, global_num_cells)
     vol_p_count = global_num_cells
@@ -325,7 +325,7 @@ contains
 
     ! Starting point for reading chunk of data
     x_p_start = (/0, 0/)
-    
+
     ! How many data points will be read?
     x_p_count = (/ndim, global_num_cells/)
 
@@ -377,7 +377,7 @@ contains
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
       call create_cell_locator(mesh, local_icell, loc_p)
       call get_global_index(loc_p, global_icell)
-      
+
       do j = 1, max_faces ! loop over all faces for each cell
         call create_face_locator(mesh, local_icell, j, loc_f)
 
@@ -468,17 +468,17 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
-    
+
     call get_global_num_cells(mesh, global_num_cells)
     call get_vert_per_cell(mesh, vert_per_cell)
 
-    if(vert_per_cell == 0) then
+    if (vert_per_cell == 0) then
       call error_abort("Number of vertices per cell unset.")
     end if
 
     call create_cell_locator(mesh, 1, loc_p)
     call get_global_index(loc_p, index_global)
-    
+
     ! Write cell vertices
     sel2_shape(1) = vert_per_cell
     sel2_shape(2) = global_num_cells
@@ -514,7 +514,7 @@ contains
     call get_vert_per_cell(mesh, vert_per_cell)
     call get_global_num_vertices(mesh, global_num_vertices)
 
-    if(vert_per_cell == 0) then
+    if (vert_per_cell == 0) then
       call error_abort("Number of vertices per cell unset.")
     end if
 
@@ -615,9 +615,8 @@ contains
     logical :: set_vert_nb               ! Flag for setting vertex neighbour
     integer(ccs_int), dimension(2) :: nb_direction  ! Array indicating direction of neighbour
 
-
     type(face_locator) :: loc_f
-    
+
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -641,7 +640,7 @@ contains
 
         ! Set max faces per cell (constant, 4)
         call set_max_faces(4_ccs_int, mesh)
-        
+
         ! Set number of vertices per cell
         call set_vert_per_cell(4_ccs_int, mesh)
         call set_vert_nb_per_cell(4_ccs_int, mesh)
@@ -665,7 +664,7 @@ contains
 
         ! Initialise neighbour indices
         mesh%topo%nb_indices(:, :) = 0_ccs_int
-        
+
         ! First set the global index of local cells
         index_counter = 1_ccs_int
         do i = start_global, end_global
@@ -734,7 +733,7 @@ contains
       call set_total_num_cells(size(mesh%topo%global_indices), mesh)
       call get_total_num_cells(mesh, total_num_cells)
       call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
-      
+
       call set_global_num_faces((cps + 1) * cps + cps * (cps + 1), mesh)
       call get_global_num_faces(mesh, global_num_faces)
       allocate (mesh%topo%face_cell1(global_num_faces))
@@ -838,7 +837,7 @@ contains
       end do
 
       call set_num_faces(count_mesh_faces(mesh), mesh)
-      
+
       call set_cell_face_indices(mesh)
 
       ! Create and populate the vtxdist array based on the total number of cells
@@ -900,7 +899,6 @@ contains
     real(ccs_real), dimension(2) :: x_v ! Vertex centre array
     type(vert_locator) :: loc_v         ! Vertex locator object
 
-
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -917,7 +915,7 @@ contains
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
           call create_cell_locator(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
-          
+
           global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
           global_vert_index(front_bottom_right) = ii + (ii - 1) / cps + 1
           global_vert_index(front_top_left) = ii + cps + (ii + cps - 1) / cps
@@ -1115,7 +1113,7 @@ contains
     integer(ccs_int), dimension(3) :: nb_direction  ! Array indicating direction of neighbour
 
     type(face_locator) :: loc_f
-    
+
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -1136,7 +1134,7 @@ contains
 
       ! Set max number of faces (constant, 6)
       call set_max_faces(6_ccs_int, mesh)
-      
+
       ! Set number of vertices per cell (constant, 8)
       call set_vert_per_cell(8, mesh)
 
@@ -1146,7 +1144,7 @@ contains
       call get_max_faces(mesh, max_faces)
       call get_vert_per_cell(mesh, vert_per_cell)
       call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
-      
+
       ! Allocate mesh arrays
       allocate (mesh%topo%global_indices(local_num_cells))
       allocate (mesh%topo%num_nb(local_num_cells))
@@ -1311,7 +1309,7 @@ contains
       call set_total_num_cells(size(mesh%topo%global_indices), mesh)
       call get_total_num_cells(mesh, total_num_cells)
       call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
-      
+
       call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
       call get_global_num_faces(mesh, global_num_faces)
       call get_max_faces(mesh, max_faces)
@@ -1510,7 +1508,7 @@ contains
     integer(ccs_int) :: total_num_cells ! The total cell count
     integer(ccs_int) :: max_faces       ! The maximum number of faces per cell
     integer(ccs_int) :: vert_per_cell
-    
+
     real(ccs_real), dimension(3) :: x_p ! Cell centre array
     type(cell_locator) :: loc_p         ! Cell locator object
 
@@ -1582,7 +1580,7 @@ contains
         do i = 1_ccs_int, total_num_cells
           call create_cell_locator(mesh, i, loc_p)
           call get_global_index(loc_p, ii)
-          
+
           x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
           x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
           x_p(3) = (((ii - 1) / (nx * ny)) + 0.5_ccs_real) * h
@@ -1839,7 +1837,7 @@ contains
 
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    
+
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
 
@@ -2160,7 +2158,7 @@ contains
     integer(ccs_int) :: global_num_cells
 
     call get_global_num_cells(mesh, global_num_cells)
-    
+
     do iproc = 0, par_env%num_procs - 1
       start = global_start(global_num_cells, iproc, par_env%num_procs)
       end = start + local_count(global_num_cells, iproc, par_env%num_procs) - 1
@@ -2258,7 +2256,7 @@ contains
     print *, ""
     if (allocated(mesh%geo%face_normals)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "face_normals(2, 1:"  //   str(nb_elem/2)   //   ", "   //   str(i)   //  ")", mesh%geo%face_normals(2, 1:nb_elem/2,i)
+        print *, par_env%proc_id, "face_normals(2, 1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%geo%face_normals(2, 1:nb_elem/2,i)
       end do
     else
       print *, par_env%proc_id, "face_normals          : UNALLOCATED"
@@ -2281,7 +2279,7 @@ contains
   subroutine print_topo(par_env, mesh)
 
     use meshing, only: get_halo_num_cells
-    
+
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh       !< the mesh
     integer(ccs_int) :: i          ! loop counters
@@ -2290,7 +2288,7 @@ contains
     integer(ccs_int) :: local_num_cells, global_num_cells, halo_num_cells, total_num_cells
     integer(ccs_int) :: global_num_faces, num_faces, max_faces
     integer(ccs_int) :: vert_per_cell, global_num_vertices
-    
+
     print *, par_env%proc_id, "############################# Print Topology ########################################"
 
     call get_local_num_cells(mesh, local_num_cells)
@@ -2302,7 +2300,7 @@ contains
     call get_max_faces(mesh, max_faces)
     call get_vert_per_cell(mesh, vert_per_cell)
     call get_global_num_vertices(mesh, global_num_vertices)
-    
+
     print *, par_env%proc_id, "global_num_cells    : ", global_num_cells
     print *, par_env%proc_id, "local_num_cells     : ", local_num_cells
     print *, par_env%proc_id, "halo_num_cells      : ", halo_num_cells
@@ -2377,7 +2375,7 @@ contains
     print *, ""
     if (allocated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_face_indices(1:"  //   str(nb_elem/2)   //   ", "   //   str(i)   //  ")", mesh%topo%global_face_indices(1:nb_elem/2,i)
+        print *, par_env%proc_id, "global_face_indices(1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%topo%global_face_indices(1:nb_elem/2,i)
       end do
     else
       print *, par_env%proc_id, "global_face_indices   : UNALLOCATED"
@@ -2386,7 +2384,7 @@ contains
     print *, ""
     if (allocated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_vertex_indices(1:"  //   str(nb_elem/2)   //   ", "   //   str(i)   //  ")", mesh%topo%global_vertex_indices(1:nb_elem/2,i)
+        print *, par_env%proc_id, "global_vertex_indices(1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%topo%global_vertex_indices(1:nb_elem/2,i)
       end do
     else
       print *, par_env%proc_id, "global_vertex_indices : UNALLOCATED"

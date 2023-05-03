@@ -19,7 +19,7 @@ program ldc
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -258,7 +258,7 @@ contains
     integer(ccs_int) :: global_num_cells
 
     call get_global_num_cells(mesh, global_num_cells)
-    
+
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
     print *, "******************************************************************************"

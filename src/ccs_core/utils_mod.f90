@@ -152,7 +152,6 @@ module utils
     module procedure noop
   end interface debug_print
 
-
   integer(ccs_int), save :: outputlist_counter = 0
 
 contains
@@ -257,7 +256,7 @@ contains
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells, create_cell_locator, get_volume
-    
+
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: t !< timestep
@@ -278,7 +277,7 @@ contains
 
     type(cell_locator) :: loc_p
     real(ccs_real) :: volume
-    
+
     rho = 1.0_ccs_real
 
     ek_local = 0.0_ccs_real
@@ -294,7 +293,7 @@ contains
     do index_p = 1, local_num_cells
       call create_cell_locator(mesh, index_p, loc_p)
       call get_volume(loc_p, volume)
-      
+
       ek_local = ek_local + 0.5 * rho * volume * &
                  (u_data(index_p)**2 + v_data(index_p)**2 + w_data(index_p)**2)
 

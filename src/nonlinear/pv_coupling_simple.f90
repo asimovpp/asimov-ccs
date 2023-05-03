@@ -59,7 +59,7 @@ contains
     real(ccs_real), dimension(:), allocatable :: residuals
     integer(ccs_int) :: t  ! Current time-step (dummy variable)
     integer(ccs_int) :: max_faces ! The maximum number of faces per cell
-    
+
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
     type(equation_system) :: lin_system
@@ -306,7 +306,7 @@ contains
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: global_num_cells
-    
+
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
@@ -493,7 +493,7 @@ contains
     real(ccs_real) :: dxmag
 
     integer(ccs_int) :: global_num_cells
-    
+
     ! First zero matrix
     call zero(M)
 
@@ -710,7 +710,7 @@ contains
     class(field), pointer :: mf       !< The face velocity flux
 
     integer(ccs_int) :: global_num_cells
-    
+
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
@@ -913,7 +913,7 @@ contains
     type(vector_values) :: vec_values
 
     integer(ccs_int) :: global_num_cells
-    
+
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
     call zero(b)

@@ -543,7 +543,7 @@ contains
   module subroutine update_gradient(mesh, phi)
 
     use meshing, only: get_total_num_cells
-    
+
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
 
@@ -552,7 +552,7 @@ contains
 
     integer(ccs_int) :: i
     integer(ccs_int) :: ntotal
-    
+
     call get_vector_data(phi%x_gradients, x_gradients_data)
     call get_vector_data(phi%y_gradients, y_gradients_data)
     call get_vector_data(phi%z_gradients, z_gradients_data)
