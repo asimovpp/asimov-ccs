@@ -1,0 +1,153 @@
+---
+title: BackwardFacingStep
+
+#  number of timesteps
+steps: 2
+#  number of iterations
+iterations: 2
+# time step size
+dt: 1.0e-2
+
+# Square/cubic mesh generation parameters
+# cells per side
+# cps: 8
+# domain size
+L: 3.1415926535
+
+relaxation_factor:
+  u: 0.9
+  v: 0.9
+  p: 0.1
+
+target_residual: 1.0e-8
+
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 5
+
+# Fluid properties
+viscocity : 1.0e-3
+
+### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
+
+#reference_numbers:
+#    pressure: 101325.0
+#    temperature: 289.0
+#    density: 1.0
+#    viscosity: 1.0e-03
+#    pref_at_cell: 4096
+
+#solve:
+#  w: off
+
+#init: 
+#  type: user
+
+#monitor_cell: 1990
+
+# 1 = central
+#convection_scheme:
+#  u: 1 
+#  v: 1
+#  w: 1
+
+#blending_factor:
+#  u: 1.0
+#  v: 1.0
+#  w: 1.0
+
+#post:
+#  type: center
+#  variables: [u, v, w, p]
+
+variables:
+  n_variables: 4
+  variable_1:
+    name: u
+    type: central
+  variable_2:
+    name: v
+    type: central
+  variable_3:
+    name: p
+    type: central
+  variable_4:
+    name: p_prime
+    type: central
+
+boundaries:
+  n_boundaries: 8
+  boundary_1: 
+    name: left
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
+  boundary_2:
+    name: right
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
+  boundary_3:
+    name: bottom
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 1
+  boundary_4:
+    name: top
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 1
+  boundary_5:
+    name: back
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_6:
+    name: front
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_7:
+    name: other1
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_v:
+      type: dirichlet
+      value: 0  
+  boundary_8:
+    name: other2
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
