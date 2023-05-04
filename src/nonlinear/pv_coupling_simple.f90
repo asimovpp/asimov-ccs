@@ -1000,7 +1000,7 @@ contains
       if (first_time) then
         ! Write header
         write (*, *)
-        if (step > 0) then
+        if (step >= 0) then
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
         else
           write (*, '(a6)', advance='no') 'Iter'
@@ -1017,7 +1017,7 @@ contains
       end if
 
       ! Write step, iteration and residuals
-      if (step > 0) then
+      if (step >= 0) then
         fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) step, itr, residuals(1:2 * nvar)
       else
