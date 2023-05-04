@@ -208,7 +208,7 @@ program tgv
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields, t)
+                         fluid_sol, flow_fields)
     call calc_kinetic_energy(par_env, mesh, t, u, v, w)
     call update_gradient(mesh, u)
     call update_gradient(mesh, v)

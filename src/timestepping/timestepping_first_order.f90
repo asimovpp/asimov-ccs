@@ -10,7 +10,7 @@ contains
 
   module subroutine finalise_timestep()
 
-    ! not required for this timestepping scheme
+    call increment_time_step()
 
   end subroutine finalise_timestep
 

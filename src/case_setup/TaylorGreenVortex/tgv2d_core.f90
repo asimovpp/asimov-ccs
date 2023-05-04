@@ -210,7 +210,7 @@ contains
     
     do t = 1, num_steps
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                          fluid_sol, flow_fields, t)
+                          fluid_sol, flow_fields)
       call calc_tgv2d_error(par_env, mesh, t, u, v, w, p, error_L2, error_Linf)
       call calc_kinetic_energy(par_env, mesh, t, u, v, w)
 
