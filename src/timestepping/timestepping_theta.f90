@@ -13,6 +13,7 @@ contains
   module subroutine finalise_timestep()
 
     first_update = .false.
+    call increment_time_step()
 
   end subroutine finalise_timestep
 
