@@ -171,16 +171,19 @@ program tgv
   call add_field_to_outputlist(w, "w", output_list)
   call add_field_to_outputlist(p, "p", output_list)
 
+  call activate_timestepping()
+  call set_timestep(dt)
+
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(mesh, u, v, w, p, mf)
-  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
-  call calc_enstrophy(par_env, mesh, 0, u, v, w)
+  call calc_kinetic_energy(par_env, mesh, u, v, w)
+  call calc_enstrophy(par_env, mesh, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
-  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
-  call calc_enstrophy(par_env, mesh, 0, u, v, w)
+  call calc_kinetic_energy(par_env, mesh, u, v, w)
+  call calc_enstrophy(par_env, mesh, u, v, w)
 
   ! Write out mesh to file
   call write_mesh(par_env, case_path, mesh)
@@ -189,9 +192,6 @@ program tgv
   if (irank == par_env%root) then
     call print_configuration()
   end if
-
-  call activate_timestepping()
-  call set_timestep(dt)
 
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
@@ -209,11 +209,11 @@ program tgv
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields)
-    call calc_kinetic_energy(par_env, mesh, t, u, v, w)
+    call calc_kinetic_energy(par_env, mesh, u, v, w)
     call update_gradient(mesh, u)
     call update_gradient(mesh, v)
     call update_gradient(mesh, w)
-    call calc_enstrophy(par_env, mesh, t, u, v, w)
+    call calc_enstrophy(par_env, mesh, u, v, w)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
     end if
