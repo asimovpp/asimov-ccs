@@ -1003,7 +1003,7 @@ contains
         open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
 
         write (*, *)
-        if (step > 0) then
+        if (step >= 0) then
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
 
           write (io_unit, '(a6, 1x, a6)', advance='no') '# step', 'iter'
@@ -1033,7 +1033,7 @@ contains
       end if
 
       ! Write step, iteration and residuals
-      if (step > 0) then
+      if (step >= 0) then
         fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) step, itr, residuals(1:2 * nvar)
 
