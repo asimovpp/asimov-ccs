@@ -976,6 +976,7 @@ contains
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
     ! Local variables
+    integer :: io_unit
     integer(ccs_int) :: step                            !< The current time-step
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
     integer(ccs_int) :: i
@@ -999,11 +1000,17 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
         ! Write header
+        open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
+
         write (*, *)
         if (step > 0) then
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
+
+          write (io_unit, '(a6, 1x, a6)', advance='no') '# step', 'iter'
         else
           write (*, '(a6)', advance='no') 'Iter'
+
+          write (io_unit, '(a6)', advance='no') '# iter'
         end if
         do i = 1, 2
           if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
@@ -1011,19 +1018,33 @@ contains
           if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
           if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
           if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
+
+          if (u_sol) write (io_unit, '(1x,a12)', advance='no') 'u'
+          if (v_sol) write (io_unit, '(1x,a12)', advance='no') 'v'
+          if (w_sol) write (io_unit, '(1x,a12)', advance='no') 'w'
+          if (p_sol) write (io_unit, '(1x,a12)', advance='no') 'p'
+          if (p_sol) write (io_unit, '(1x,a12)', advance='no') '|div(u)|'
         end do
         write (*, *)
+        write (io_unit, *) 
         first_time = .false.
+      else
+        open (newunit=io_unit, file="residuals.log", status="old", form="formatted", position="append")
       end if
 
       ! Write step, iteration and residuals
       if (step > 0) then
         fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) step, itr, residuals(1:2 * nvar)
+
+        write (io_unit, fmt) step, itr, residuals(1:2 * nvar)
       else
         fmt = '(i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) itr, residuals(1:2 * nvar)
+
+        write (io_unit, fmt) itr, residuals(1:2 * nvar)
       end if
+      close (io_unit)
     end if
 
     ! checks if RMS of residuals is below target
