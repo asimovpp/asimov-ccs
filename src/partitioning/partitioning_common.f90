@@ -93,13 +93,13 @@ contains
       ! If face neighbour 1 is local to the current rank
       ! and face neighbour 2 is not 0
       if (any(mesh%topo%global_indices == face_nb1) .and. (face_nb2 .ne. 0)) then
-        call compute_connectivity_add_connection(face_nb1, face_nb2, mesh, tmp_int2d)
+        call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
       end if
 
       ! If face neighbour 2 is local to the current rank
       ! and face neighbour 1 is not 0
       if (any(mesh%topo%global_indices == face_nb2) .and. (face_nb1 .ne. 0)) then
-        call compute_connectivity_add_connection(face_nb2, face_nb1, mesh, tmp_int2d)
+        call compute_connectivity_add_connection(face_nb2, face_nb1, i, mesh, tmp_int2d)
       end if
 
       ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
@@ -108,7 +108,7 @@ contains
 
         ! read the boundary id from bnd_rid
         face_nb2 = mesh%topo%bnd_rid(i)
-        call compute_connectivity_add_connection(face_nb1, face_nb2, mesh, tmp_int2d)
+        call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
       end if
 
     end do
@@ -188,10 +188,11 @@ contains
 
   end subroutine
 
-  subroutine compute_connectivity_add_connection(face_nb1, face_nb2, mesh, tmp_int2d)
+  subroutine compute_connectivity_add_connection(face_nb1, face_nb2, face_index, mesh, tmp_int2d)
 
     integer(ccs_int), intent(in) :: face_nb1             !< Local cell global index
     integer(ccs_int), intent(in) :: face_nb2             !< Neighbouring cell global index
+    integer(ccs_int), intent(in) :: face_index           !< global face index between cell and its neighbour
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
     integer, dimension(:, :), intent(inout) :: tmp_int2d !< Temporary connectivity array
 
@@ -212,6 +213,8 @@ contains
     tmp_int2d(local_index(1), fctr) = face_nb2               ! Store global index of neighbour cell
     tmp_int2d(local_index(1), mesh%topo%max_faces + 1) = fctr     ! Store number of faces for this cell
     mesh%topo%num_nb(local_index(1)) = fctr
+
+    mesh%topo%global_face_indices(fctr, face_nb1) = face_index ! Update face indices to make its order consistent with nb_indices
 
   end subroutine
 

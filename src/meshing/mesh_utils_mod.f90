@@ -110,7 +110,6 @@ contains
     call read_topology(par_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, mesh)
-    call partition_kway(par_env, mesh)
 
     !call partition_kway(par_env, mesh)
     call partition_stride(par_env, mesh)
