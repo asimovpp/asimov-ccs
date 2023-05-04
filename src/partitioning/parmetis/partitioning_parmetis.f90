@@ -10,9 +10,9 @@ submodule(partitioning) partitioning_parmetis
 
   interface
     subroutine partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
-                                    wgtflag, numflag, ncon, num_procs, &
-                                    tpwgts, ubvec, options, &
-                                    edgecuts, local_partition, comm) bind(c)
+                                      wgtflag, numflag, ncon, num_procs, &
+                                      tpwgts, ubvec, options, &
+                                      edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
       integer(c_long), dimension(*) :: vtxdist
@@ -75,21 +75,18 @@ contains
     numflag = 0 ! Use C-style indexing for now
     ncon = 3
     num_procs = par_env%num_procs
-    edgecuts = -1 ! XXX: silence unused variable warning
+    edgecuts = -1
 
-    allocate(ubvec(ncon))
-    allocate(tpwgts(ncon * num_procs))
-    allocate(options(0:2))
+    allocate (ubvec(ncon))
+    allocate (tpwgts(ncon * num_procs))
+    allocate (options(0:2))
 
     options(0) = 0 ! 0 = default values, 1 = values specified in (1) and (2)
     options(1) = 1 ! Output verbosity - 1 gives timing information
     options(2) = 2023 ! Random number seed
 
     ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
-    tpwgts(:) = 1.0 / real(num_procs, c_float) ! XXX: Not quite correct, though probably does not matter as
-                              ! we are not using weights
-                              ! Fraction of vertex weight that should be distributed 
-                              ! to each sub-domain. Sum of tpwgts(:) should be 1.
+    tpwgts(:) = 1.0 / real(num_procs, c_float) ! Sum of tpwgts(:) should be 1. Check this is correct
 
     allocate (tmp_partition(mesh%topo%global_num_cells)) ! Temporary partition array
     tmp_partition = 0
@@ -120,9 +117,9 @@ contains
       comm = par_env%comm
 
       call partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
-                                wgtflag, numflag, ncon, num_procs, &
-                                tpwgts, ubvec, options, &
-                                edgecuts, local_partition, comm)
+                                  wgtflag, numflag, ncon, num_procs, &
+                                  tpwgts, ubvec, options, &
+                                  edgecuts, local_partition, comm)
 
       mesh%topo%local_partition(:) = local_partition(:)
 
@@ -134,7 +131,7 @@ contains
                          MPI_LONG, MPI_SUM, par_env%comm, ierr)
 
     class default
-      print *, "ERROR: Unknown parallel environment!"
+      print *, "ERROR: Unknown parallel environment! "
     end select
 
     call dprint("Number of edgecuts: " // str(int(edgecuts)))
