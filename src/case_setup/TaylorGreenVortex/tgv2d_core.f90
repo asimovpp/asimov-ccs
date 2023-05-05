@@ -458,7 +458,7 @@ contains
 
     use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
-    use timestepping, only: get_current_time
+    use timestepping, only: get_current_time, get_current_step
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh
