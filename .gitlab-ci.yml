@@ -210,7 +210,7 @@ nightly_gnu:
   script:
     - HOME=${CI_HOME} RUNTESTS=nightly CMP=gnu make tests
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
-    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/ccs_data.csv tests/nightly/*/output.txt  
+    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
     - cd asimov-ccs-nightly-data
     - git add ccs_data.csv
     - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
@@ -238,7 +238,7 @@ nightly_wiki_update:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
     - cd asimov-ccs.wiki
-    - gnuplot -e "set term png; set output 'img/ci-performance-graph-test.png'; plot '../asimov-ccs-nightly-data/ccs_data.csv' u 0:1 w linespoints"
-    - git add img/ci-performance-graph-test.png
+    - ../asimov-ccs-nightly-data/plot_performance.py ../asimov-ccs-nightly-data/performance_results.json img/ci-performance-graph.png
+    - git add img/ci-performance-graph.png
     - git -c user.name='CI' -c user.email='ci' commit -m "CI updates graph"
     - git push
