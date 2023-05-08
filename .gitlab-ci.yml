@@ -244,7 +244,7 @@ nightly_wiki_update:
     - git switch new-datastructure
     - cd ..
     - cd asimov-ccs.wiki
-    - ../asimov-ccs-nightly-data/plot_performance.py ../asimov-ccs-nightly-data/performance_results.json img/ci-performance-graph.png
-    - git add img/ci-performance-graph.png
+    - ../asimov-ccs-nightly-data/plot_performance.py ../asimov-ccs-nightly-data/performance_results.json img/ci-performance-graph
+    - git add img/ci-performance-graph*
     - git -c user.name='CI' -c user.email='ci' commit -m "CI updates graph"
     - git push
