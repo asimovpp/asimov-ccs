@@ -215,7 +215,7 @@ nightly_gnu:
     - cd ..
     - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
     - cd asimov-ccs-nightly-data
-    - git add ccs_data.csv
+    - git add performance_results.json
     - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
     - git push
 
