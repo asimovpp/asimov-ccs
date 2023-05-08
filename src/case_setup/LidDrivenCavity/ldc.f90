@@ -59,6 +59,7 @@ program ldc
   integer(ccs_int) :: isize ! Size of MPI world
 
   double precision :: start_time
+  double precision :: init_time
   double precision :: end_time
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
@@ -178,6 +179,7 @@ program ldc
     call print_configuration()
   end if
 
+  call timer(init_time)
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -199,6 +201,7 @@ program ldc
   call timer(end_time)
 
   if (irank == par_env%root) then
+    print *, "Init time: ", init_time - start_time
     print *, "Elapsed time: ", end_time - start_time
   end if
 
