@@ -254,7 +254,7 @@ contains
   end subroutine compute_boundary_values
 
   !> Compute the coefficients of the boundary condition
-  subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
+  module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
                                      a, b, &
                                      x_gradients, y_gradients, z_gradients)
 

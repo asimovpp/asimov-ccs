@@ -421,6 +421,8 @@ contains
   !  Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, vec, lin_sys, p_prime, lin_solver)
 
+    use fv, only: compute_boundary_coeffs
+
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     class(ccs_mesh), intent(in) :: mesh                             !< the mesh
@@ -446,6 +448,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: r
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
+    real(ccs_real) :: aPb, bP
     logical :: is_boundary
 
     real(ccs_real), dimension(:), pointer :: invAu_data
@@ -461,8 +464,8 @@ contains
 
     integer(ccs_int) :: index_nb
 
-    integer(ccs_int) :: cps   ! Cells per side
-    integer(ccs_int) :: rcrit ! Global index of approximate central cell
+    !integer(ccs_int) :: cps   ! Cells per side
+    !integer(ccs_int) :: rcrit ! Global index of approximate central cell
 
     ! Specify block size (how many elements to set at once?)
     integer(ccs_int) :: block_nrows
@@ -558,18 +561,17 @@ contains
           coeff_nb = coeff_f
           col = global_index_nb
         else
-          ! XXX: Fixed velocity BC - no pressure correction
-          col = -1
-          coeff_nb = 0.0_ccs_real
-          coeff_f = 0.0_ccs_real
+          call get_distance(loc_p, loc_f, dx)
+          dxmag = sqrt(sum(dx**2))
 
-          ! coeff_f = -(Vp * invA_p) * coeff_f
+          coeff_f = (1.0 / (2 * dxmag)) * face_area
+          coeff_f = -(Vp * invA_p) * coeff_f
 
-          ! ! Zero gradient
-          ! !
-          ! ! (p_F - p_P) / dx = 0
-          ! coeff_nb = coeff_f
-          ! coeff_p = coeff_p + coeff_nb
+          call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
+          coeff_p = coeff_p + coeff_f * aPb
+          r = r - coeff_f * bP
+          col = -1 ! Don't attempt to set neighbour coefficients
+          coeff_nb = 0.0
         end if
         coeff_p = coeff_p - coeff_f
 
@@ -580,15 +582,15 @@ contains
 
       end do
 
-      ! XXX: Need to fix pressure somewhere
-      !      Row is the global index - should be unique
-      !      Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
-      rcrit = (cps / 2) * (1 + cps)
-      if (row == rcrit) then
-        coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-        call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
-      end if
+      !!! ! XXX: Need to fix pressure somewhere
+      !!! !      Row is the global index - should be unique
+      !!! !      Locate approximate centre of mesh (assuming a square)
+      !!! cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
+      !!! rcrit = (cps / 2) * (1 + cps)
+      !!! if (row == rcrit) then
+      !!!   coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
+      !!!   call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
+      !!! end if
 
       ! Add the diagonal entry
       col = row
@@ -756,6 +758,12 @@ contains
                                               invAu_data, invAv_data, invAw_data, &
                                               loc_f)
           end if
+        else
+          ! Compute mass flux through face
+          mf_data(index_f) = calc_mass_flux(u, v, w, &
+                                            p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                            invAu_data, invAv_data, invAw_data, &
+                                            loc_f)
         end if
 
         mib = mib + mf_data(index_f) * face_area

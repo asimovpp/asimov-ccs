@@ -1,4 +1,4 @@
-main: tgv
+main: poisseuille
 base: mpi_petsc
 #options:
   #component: opt_2
