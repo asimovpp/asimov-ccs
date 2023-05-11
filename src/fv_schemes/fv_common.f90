@@ -415,9 +415,9 @@ contains
 
         call get_face_interpolation(loc_f, interpol_factor)
 
-      flux = ((interpol_factor * u_data(index_p) + (1.0_ccs_real - interpol_factor) * u_data(index_nb)) * face_normal(x_direction) &
-            + (interpol_factor * v_data(index_p) + (1.0_ccs_real - interpol_factor) * v_data(index_nb)) * face_normal(y_direction) &
-             + (interpol_factor * w_data(index_p) + (1.0_ccs_real - interpol_factor) * w_data(index_nb)) * face_normal(z_direction))
+        flux = ((interpol_factor * u_data(index_p) + (1.0_ccs_real - interpol_factor) * u_data(index_nb)) * face_normal(x_direction) &
+              + (interpol_factor * v_data(index_p) + (1.0_ccs_real - interpol_factor) * v_data(index_nb)) * face_normal(y_direction) &
+              + (interpol_factor * w_data(index_p) + (1.0_ccs_real - interpol_factor) * w_data(index_nb)) * face_normal(z_direction))
 
         call restore_vector_data(u_field%values, u_data)
         call restore_vector_data(v_field%values, v_data)
