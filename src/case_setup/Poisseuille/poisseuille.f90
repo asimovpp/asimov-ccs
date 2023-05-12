@@ -1,5 +1,5 @@
 !> Program file for TaylorGreenVortex case
-program tgv
+program poisseuille
 #include "ccs_macros.inc"
 
   use petscvec
@@ -34,7 +34,7 @@ program tgv
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh, build_mesh, write_mesh
+  use mesh_utils, only: read_mesh, build_square_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
@@ -115,7 +115,7 @@ program tgv
   if (cps /= huge(0)) then
     ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
-    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
+    mesh = build_square_mesh(par_env, cps, domain_size)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
     call read_mesh(par_env, case_name, mesh)
@@ -381,10 +381,10 @@ contains
 
       call get_centre(loc_p, x_p)
 
-      u_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
-      v_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
+      u_val = 0.0_ccs_real 
+      v_val = 0.0_ccs_real 
       w_val = 0.0_ccs_real
-      p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+      p_val = 0.0_ccs_real
 
       call set_row(global_index_p, u_vals)
       call set_entry(u_val, u_vals)
@@ -435,8 +435,7 @@ contains
           call get_centre(loc_f, x_f)
 
           ! compute initial value based on current face coordinates
-          mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * cos(x_f(3)) * face_normal(1) &
-                             - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
+          mf_data(index_f) = 0.0_ccs_real * face_normal(1)
         end if
 
       end do
@@ -452,4 +451,4 @@ contains
 
   end subroutine initialise_flow
 
-end program tgv
+end program poisseuille

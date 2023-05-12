@@ -80,7 +80,7 @@ def main():
         fname = parser.file
         outstub = parser.prefix
     else:
-        fname = "LidDrivenCavity.sol.h5"
+        fname = "Poisseuille.sol.h5"
         outstub = ""
 
     if (ADIOS2):

@@ -26,7 +26,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
                      set_cell_location, get_volume, get_distance, &
                      get_local_num_cells, get_face_interpolation
-  use timestepping, only: update_old_values, finalise_timestep
+  use timestepping, only: update_old_values, finalise_timestep, get_current_step
 
   implicit none
 
@@ -36,7 +36,7 @@ contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
   module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    flow_solver_selector, flow, step)
+                                    flow_solver_selector, flow)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env   !< parallel environment
@@ -46,7 +46,6 @@ contains
     real(ccs_real), intent(in) :: res_target                          !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector   !< determines which fluid fields need to be solved for
     type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
-    integer(ccs_int), optional, intent(in) :: step                    !< The current time-step
 
     ! Local variables
     integer(ccs_int) :: i
@@ -55,7 +54,6 @@ contains
     class(ccs_vector), allocatable :: invAu, invAv, invAw
     class(ccs_vector), allocatable :: res
     real(ccs_real), dimension(:), allocatable :: residuals
-    integer(ccs_int) :: t  ! Current time-step (dummy variable)
 
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
@@ -88,13 +86,6 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
-
-    ! Check whether 'step' has been passed into this subroutine (i.e. unsteady run)
-    if (present(step)) then
-      t = step
-    else
-      t = -1 ! Dummy value
-    end if
 
     ! Initialising SIMPLE solver
     nvar = 0
@@ -173,7 +164,7 @@ contains
       !call calculate_scalars()
 
       call check_convergence(par_env, i, residuals, res_target, &
-                             flow_solver_selector, t, converged)
+                             flow_solver_selector, converged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
@@ -430,6 +421,8 @@ contains
   !  Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, vec, lin_sys, p_prime, lin_solver)
 
+    use fv, only: compute_boundary_coeffs
+
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     class(ccs_mesh), intent(in) :: mesh                             !< the mesh
@@ -455,6 +448,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: r
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
+    real(ccs_real) :: aPb, bP
     logical :: is_boundary
 
     real(ccs_real), dimension(:), pointer :: invAu_data
@@ -470,8 +464,8 @@ contains
 
     integer(ccs_int) :: index_nb
 
-    integer(ccs_int) :: cps   ! Cells per side
-    integer(ccs_int) :: rcrit ! Global index of approximate central cell
+    !integer(ccs_int) :: cps   ! Cells per side
+    !integer(ccs_int) :: rcrit ! Global index of approximate central cell
 
     ! Specify block size (how many elements to set at once?)
     integer(ccs_int) :: block_nrows
@@ -567,18 +561,17 @@ contains
           coeff_nb = coeff_f
           col = global_index_nb
         else
-          ! XXX: Fixed velocity BC - no pressure correction
-          col = -1
-          coeff_nb = 0.0_ccs_real
-          coeff_f = 0.0_ccs_real
+          call get_distance(loc_p, loc_f, dx)
+          dxmag = sqrt(sum(dx**2))
 
-          ! coeff_f = -(Vp * invA_p) * coeff_f
+          coeff_f = (1.0 / (2 * dxmag)) * face_area
+          coeff_f = -(Vp * invA_p) * coeff_f
 
-          ! ! Zero gradient
-          ! !
-          ! ! (p_F - p_P) / dx = 0
-          ! coeff_nb = coeff_f
-          ! coeff_p = coeff_p + coeff_nb
+          call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
+          coeff_p = coeff_p + coeff_f * aPb
+          r = r - coeff_f * bP
+          col = -1 ! Don't attempt to set neighbour coefficients
+          coeff_nb = 0.0
         end if
         coeff_p = coeff_p - coeff_f
 
@@ -589,15 +582,15 @@ contains
 
       end do
 
-      ! XXX: Need to fix pressure somewhere
-      !      Row is the global index - should be unique
-      !      Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
-      rcrit = (cps / 2) * (1 + cps)
-      if (row == rcrit) then
-        coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-        call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
-      end if
+      !!! ! XXX: Need to fix pressure somewhere
+      !!! !      Row is the global index - should be unique
+      !!! !      Locate approximate centre of mesh (assuming a square)
+      !!! cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
+      !!! rcrit = (cps / 2) * (1 + cps)
+      !!! if (row == rcrit) then
+      !!!   coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
+      !!!   call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
+      !!! end if
 
       ! Add the diagonal entry
       col = row
@@ -765,6 +758,12 @@ contains
                                               invAu_data, invAv_data, invAw_data, &
                                               loc_f)
           end if
+        else
+          ! Compute mass flux through face
+          mf_data(index_f) = calc_mass_flux(u, v, w, &
+                                            p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                            invAu_data, invAv_data, invAw_data, &
+                                            loc_f)
         end if
 
         mib = mib + mf_data(index_f) * face_area
@@ -974,7 +973,7 @@ contains
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
-                               flow_solver_selector, step, converged)
+                               flow_solver_selector, converged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
@@ -982,10 +981,10 @@ contains
     real(ccs_real), dimension(:), intent(in) :: residuals           !< RMS and Linf of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector
-    integer(ccs_int), intent(in) :: step                            !< The current time-step
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
     ! Local variables
+    integer(ccs_int) :: step                            !< The current time-step
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
     integer(ccs_int) :: i
     character(len=30) :: fmt              ! Format string for writing out residuals
@@ -1000,6 +999,7 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
+    call get_current_step(step)
 
     nvar = int(size(residuals) / 2_ccs_int)
 
@@ -1008,7 +1008,7 @@ contains
       if (first_time) then
         ! Write header
         write (*, *)
-        if (step > 0) then
+        if (step >= 0) then
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
         else
           write (*, '(a6)', advance='no') 'Iter'
@@ -1025,7 +1025,7 @@ contains
       end if
 
       ! Write step, iteration and residuals
-      if (step > 0) then
+      if (step >= 0) then
         fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) step, itr, residuals(1:2 * nvar)
       else
