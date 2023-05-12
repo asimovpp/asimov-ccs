@@ -297,6 +297,9 @@ contains
     call set_local_num_cells(local_num_cells, mesh)
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
 
+    mesh%topo%halo_num_cells = 0
+    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
+    
     ! Assign corresponding mesh values to the topology object
 
     allocate (mesh%topo%global_indices(local_num_cells))
@@ -304,6 +307,12 @@ contains
       mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
 
+    ! Dummy vertex connectivity
+    mesh%topo%vert_per_cell = 6 ! Interior cells are hexagonal
+    allocate(mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
+    allocate(mesh%topo%vert_nb_indices(mesh%topo%vert_per_cell, local_num_cells))
+    allocate(mesh%topo%num_vert_nb(local_num_cells))
+    
   end subroutine
 
   subroutine clean_test
@@ -325,6 +334,13 @@ contains
 
     if (allocated(mesh%topo%vtxdist)) then
       deallocate (mesh%topo%vtxdist)
+    end if
+
+    if (allocated(mesh%topo%vert_nb_indices)) then
+      deallocate(mesh%topo%vert_nb_indices)
+    end if
+    if (allocated(mesh%topo%num_vert_nb)) then
+      deallocate(mesh%topo%num_vert_nb)
     end if
   end subroutine
 

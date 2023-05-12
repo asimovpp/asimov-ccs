@@ -1,8 +1,8 @@
 submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int
-  use utils, only: str, debug_print
+  use kinds, only: ccs_int, ccs_err
+  use utils, only: str, debug_print, exit_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
   use meshing, only: set_local_num_cells, get_local_num_cells
@@ -50,6 +50,7 @@ contains
     end if
 
     call compute_face_connectivity(par_env, mesh)
+    call compute_vertex_connectivity(mesh)
     
   end subroutine compute_connectivity
 
@@ -164,6 +165,99 @@ contains
     
   end subroutine compute_face_connectivity
 
+  subroutine compute_vertex_connectivity(mesh)
+
+    use mpi
+    
+    type(ccs_mesh), target, intent(inout) :: mesh !< The mesh for which to compute the parition
+
+    integer(ccs_int) :: local_num_cells
+
+    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: local_idx
+    integer(ccs_int) :: global_idx
+    
+    integer(ccs_int) :: max_vert_nb
+    
+    integer(ccs_err) :: ierr
+
+    integer(ccs_int), dimension(:), allocatable :: tmp_arr
+
+    if (.not. allocated(mesh%topo%global_vertex_indices)) then
+      call error_abort("The global vertex indices array was deallocated prematurely!")
+    else
+      if (size(mesh%topo%global_vertex_indices, 2) /= mesh%topo%global_num_cells) then
+        call error_abort("Need the global cell-vertex connnectivity, not just local!")
+      end if
+    end if
+
+    call get_local_num_cells(mesh, local_num_cells)
+
+    max_vert_nb = maxval(mesh%topo%num_vert_nb)
+    call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
+    
+    if (allocated(mesh%topo%vert_nb_indices)) then
+      deallocate(mesh%topo%vert_nb_indices)
+    end if
+
+    !! XXX: Need to get the maximum number of vertex neighbours BEFORE deallocating
+    if (allocated(mesh%topo%num_vert_nb)) then
+      deallocate(mesh%topo%num_vert_nb)
+    end if
+    
+    allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
+    allocate(mesh%topo%num_vert_nb(local_num_cells))
+
+    do i = 1, local_num_cells
+      mesh%topo%num_vert_nb(i) = 0
+
+      associate(my_vertex_indices => mesh%topo%global_vertex_indices(:, i), &
+                index_p_global => mesh%topo%global_indices(i), &
+                num_vert_nb => mesh%topo%num_vert_nb(i))
+
+        mesh%topo%vert_nb_indices(:, i) = -1 ! Set vertex neighbours to invalid value
+        
+        do j = 1, mesh%topo%global_num_cells
+          if (j /= index_p_global) then
+            do k = 1, mesh%topo%vert_per_cell
+              if (any(my_vertex_indices == mesh%topo%global_vertex_indices(k, j))) then
+                ! Check for double counting
+                if (.not. any(mesh%topo%vert_nb_indices(:, i) == j)) then
+                  num_vert_nb = num_vert_nb + 1
+
+                  mesh%topo%vert_nb_indices(num_vert_nb, i) = j
+                end if
+              end if
+            end do
+          end if
+        end do
+      end associate
+
+      ! Convert global->local indices
+      do j = 1, mesh%topo%num_vert_nb(i)
+        global_idx = mesh%topo%vert_nb_indices(j, i)
+        local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
+        if (local_idx == 0) then
+          ! New global index
+          allocate(tmp_arr(mesh%topo%total_num_cells + 1))
+          tmp_arr(1:mesh%topo%total_num_cells) = mesh%topo%global_indices(1:mesh%topo%total_num_cells)
+          tmp_arr(mesh%topo%total_num_cells + 1) = global_idx
+          deallocate(mesh%topo%global_indices)
+          mesh%topo%total_num_cells = mesh%topo%total_num_cells + 1
+          allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
+          mesh%topo%global_indices(:) = tmp_arr(:)
+          deallocate(tmp_arr)
+
+          mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
+
+          local_idx = mesh%topo%total_num_cells
+        end if
+        mesh%topo%vert_nb_indices(j, i) = local_idx
+      end do
+    end do
+    
+  end subroutine compute_vertex_connectivity
+  
   subroutine compute_connectivity_get_local_cells(par_env, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment

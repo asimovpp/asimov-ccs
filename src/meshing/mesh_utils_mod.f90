@@ -337,7 +337,7 @@ contains
       do j = 1, vert_per_cell ! loop over all vertices for each cell
         call set_vert_location(mesh, local_icell, j, loc_v)
 
-        n = mesh%topo%global_vertex_indices(j, global_icell)
+        n = mesh%topo%global_vertex_indices(j, local_icell)
         call set_centre(loc_v, temp_x_v(:, n))
       end do
 
@@ -552,7 +552,7 @@ contains
 
         ! Set number of vertices per cell
         mesh%topo%vert_per_cell = 4_ccs_int
-        mesh%topo%vert_nb_per_cell = 4_ccs_int
+        mesh%topo%vert_nb_per_cell = 9_ccs_int - 1_ccs_int
 
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(local_num_cells))
@@ -749,6 +749,23 @@ contains
       k = int(real(mesh%topo%global_num_cells) / par_env%num_procs)
       j = 1
 
+      if (allocated(mesh%topo%global_vertex_indices)) then
+        deallocate (mesh%topo%global_vertex_indices)
+      end if
+      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
+
+      ! Global vertex numbering
+      do i = 1, mesh%topo%global_num_cells
+        ii = i
+        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+
+          global_vert_index(front_bottom_left) = ii + (cps + 1) * ((ii - 1) / cps)
+          global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
+          global_vert_index(front_top_left) = global_vert_index(front_bottom_right) + (cps + 1)
+          global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
+        end associate
+      end do
+
       do i = 1, par_env%num_procs
         mesh%topo%vtxdist(i) = j
         j = j + k
@@ -797,22 +814,6 @@ contains
     type is (parallel_environment_mpi)
 
       call get_local_num_cells(mesh, local_num_cells)
-      if (allocated(mesh%topo%global_vertex_indices)) then
-        deallocate (mesh%topo%global_vertex_indices)
-      end if
-      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, local_num_cells))
-
-      ! Global vertex numbering
-      do i = 1, local_num_cells
-        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          ii = mesh%topo%global_indices(i)
-
-          global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
-          global_vert_index(front_bottom_right) = ii + (ii - 1) / cps + 1
-          global_vert_index(front_top_left) = ii + cps + (ii + cps - 1) / cps
-          global_vert_index(front_top_right) = ii + cps + (ii + cps - 1) / cps + 1
-        end associate
-      end do
 
       allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
       allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, local_num_cells)) !< @note Currently hardcoded as a 2D mesh. @endnote
@@ -993,6 +994,7 @@ contains
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: face_index_counter    ! global face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
+    integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: local_num_cells
@@ -1020,10 +1022,10 @@ contains
         mesh%topo%max_faces = 6_ccs_int
 
         ! Set number of vertices per cell (constant, 8)
-        mesh%topo%vert_per_cell = 8
+        mesh%topo%vert_per_cell = 8_ccs_int
 
         ! Set number of neighbours via vertex per cell
-        mesh%topo%vert_nb_per_cell = 20
+        mesh%topo%vert_nb_per_cell = 26_ccs_int
 
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(local_num_cells))
@@ -1324,6 +1326,32 @@ contains
 
       call set_cell_face_indices(mesh)
 
+      if (allocated(mesh%topo%global_vertex_indices)) then
+        deallocate (mesh%topo%global_vertex_indices)
+      end if
+      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
+
+      ! Global vertex numbering
+      do i = 1, mesh%topo%global_num_cells
+        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+          ii = i
+          a = modulo(ii - 1, nx * ny) + 1
+          b = (a - 1) / nx
+          c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
+          d = (a + nx - 1) / nx
+          e = (nx + 1) * (ny + 1)
+
+          global_vert_index(front_bottom_left) = a + b + c
+          global_vert_index(front_bottom_right) = a + b + c + 1
+          global_vert_index(front_top_left) = a + c + d + nx
+          global_vert_index(front_top_right) = a + c + d + nx + 1
+          global_vert_index(back_bottom_left) = a + b + c + e
+          global_vert_index(back_bottom_right) = a + b + c + e + 1
+          global_vert_index(back_top_left) = a + c + d + e + nx
+          global_vert_index(back_top_right) = a + c + d + e + nx + 1
+        end associate
+      end do
+
       ! Create and populate the vtxdist array based on the total number of cells
       ! and the total number of ranks in the parallel environment
       allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
@@ -1365,7 +1393,6 @@ contains
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
-    integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     logical :: is_boundary
 
@@ -1385,38 +1412,13 @@ contains
     real(ccs_real), dimension(3) :: x_v ! Vertex centre array
     type(vert_locator) :: loc_v         ! Vertex locator object
 
-    e = nz ! silence dummy argument unused warning
-
+    associate(foo => nz) ! Silence unused dummy argument
+    end associate
+    
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
 
     select type (par_env)
     type is (parallel_environment_mpi)
-
-      if (allocated(mesh%topo%global_vertex_indices)) then
-        deallocate (mesh%topo%global_vertex_indices)
-      end if
-      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, local_num_cells))
-
-      ! Global vertex numbering
-      do i = 1, local_num_cells
-        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          ii = mesh%topo%global_indices(i)
-          a = modulo(ii - 1, nx * ny) + 1
-          b = (a - 1) / nx
-          c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
-          d = (a + nx - 1) / nx
-          e = (nx + 1) * (ny + 1)
-
-          global_vert_index(front_bottom_left) = a + b + c
-          global_vert_index(front_bottom_right) = a + b + c + 1
-          global_vert_index(front_top_left) = a + c + d + nx
-          global_vert_index(front_top_right) = a + c + d + nx + 1
-          global_vert_index(back_bottom_left) = a + b + c + e
-          global_vert_index(back_bottom_right) = a + b + c + e + 1
-          global_vert_index(back_top_left) = a + c + d + e + nx
-          global_vert_index(back_top_right) = a + c + d + e + nx + 1
-        end associate
-      end do
 
       allocate (mesh%geo%x_p(ndim, mesh%topo%total_num_cells))
       allocate (mesh%geo%x_f(ndim, mesh%topo%max_faces, local_num_cells))
