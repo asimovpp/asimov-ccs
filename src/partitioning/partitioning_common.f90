@@ -211,26 +211,31 @@ contains
     do i = 1, local_num_cells
       mesh%topo%num_vert_nb(i) = 0
 
-      associate(my_vertex_indices => mesh%topo%global_vertex_indices(:, i), &
-                index_p_global => mesh%topo%global_indices(i), &
+      associate(index_p_global => mesh%topo%global_indices(i), &
                 num_vert_nb => mesh%topo%num_vert_nb(i))
-
-        mesh%topo%vert_nb_indices(:, i) = -1 ! Set vertex neighbours to invalid value
+        associate(my_vertex_indices => mesh%topo%global_vertex_indices(:, index_p_global))
+          mesh%topo%vert_nb_indices(:, i) = -1 ! Set vertex neighbours to invalid value
         
-        do j = 1, mesh%topo%global_num_cells
-          if (j /= index_p_global) then
-            do k = 1, mesh%topo%vert_per_cell
-              if (any(my_vertex_indices == mesh%topo%global_vertex_indices(k, j))) then
-                ! Check for double counting
-                if (.not. any(mesh%topo%vert_nb_indices(:, i) == j)) then
-                  num_vert_nb = num_vert_nb + 1
+          do j = 1, mesh%topo%global_num_cells
+            if ((j /= index_p_global) .and. &
+                (.not. any(mesh%topo%global_indices(pack(mesh%topo%nb_indices(:, i), &
+                                                         mesh%topo%nb_indices(:, i) > 0)) == j))) then
+              ! J is neither the global index of I, nor one of its neighbours
+              do k = 1, mesh%topo%vert_per_cell
+                if (any(my_vertex_indices == mesh%topo%global_vertex_indices(k, j))) then
+                  ! Check for double counting
+                  if (.not. any(mesh%topo%vert_nb_indices(:, i) == j)) then
+                    num_vert_nb = num_vert_nb + 1
 
-                  mesh%topo%vert_nb_indices(num_vert_nb, i) = j
+                    mesh%topo%vert_nb_indices(num_vert_nb, i) = j
+
+                    exit ! No need to check other vertices attached to this neighbour
+                  end if
                 end if
-              end if
-            end do
-          end if
-        end do
+              end do
+            end if
+          end do
+        end associate
       end associate
 
       ! Convert global->local indices
