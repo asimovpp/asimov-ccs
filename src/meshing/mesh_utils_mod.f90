@@ -552,7 +552,7 @@ contains
 
         ! Set number of vertices per cell
         mesh%topo%vert_per_cell = 4_ccs_int
-        mesh%topo%vert_nb_per_cell = 9_ccs_int - 1_ccs_int
+        mesh%topo%vert_nb_per_cell = 4_ccs_int
 
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(local_num_cells))
@@ -759,7 +759,7 @@ contains
         ii = i
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
 
-          global_vert_index(front_bottom_left) = ii + (cps + 1) * ((ii - 1) / cps)
+          global_vert_index(front_bottom_left) = (modulo(ii - 1, cps) + 1) + (cps + 1) * ((ii - 1) / cps)
           global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
           global_vert_index(front_top_left) = global_vert_index(front_bottom_right) + (cps + 1)
           global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
@@ -1025,7 +1025,7 @@ contains
         mesh%topo%vert_per_cell = 8_ccs_int
 
         ! Set number of neighbours via vertex per cell
-        mesh%topo%vert_nb_per_cell = 26_ccs_int
+        mesh%topo%vert_nb_per_cell = 20_ccs_int
 
         ! Allocate mesh arrays
         allocate (mesh%topo%global_indices(local_num_cells))
