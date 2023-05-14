@@ -28,6 +28,9 @@ contains
     irank = par_env%proc_id
     isize = par_env%num_procs
 
+    ! Prepare global data needed later
+    call store_global_vertex_connectivity(par_env, mesh)
+    
     ! Count the new number of local cells per rank
     local_num_cells = count(mesh%topo%global_partition == irank)
     call set_local_num_cells(local_num_cells, mesh)
@@ -50,7 +53,7 @@ contains
     end if
 
     call compute_face_connectivity(par_env, mesh)
-    call compute_vertex_connectivity(mesh)
+    call compute_vertex_connectivity(par_env, mesh)
     
   end subroutine compute_connectivity
 
@@ -165,15 +168,88 @@ contains
     
   end subroutine compute_face_connectivity
 
-  subroutine compute_vertex_connectivity(mesh)
+  subroutine store_global_vertex_connectivity(par_env, mesh)
 
     use mpi
     
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(inout) :: mesh
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: max_vert_nb
+
+    integer(ccs_int), dimension(:), allocatable :: tmp_arr
+    integer(ccs_int) :: i, j
+    integer(ccs_int) :: idx
+    integer(ccs_int) :: vert_nb_idx
+    
+    integer(ccs_err) :: ierr
+    
+    global_num_cells = mesh%topo%global_num_cells
+
+    if (size(mesh%topo%vert_nb_indices, 2) /= global_num_cells) then
+      ! We only have a local view of vertex neighbours
+
+      max_vert_nb = maxval(mesh%topo%num_vert_nb)
+      select type(par_env)
+      type is(parallel_environment_mpi)
+        call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment!")
+      end select
+
+      allocate(tmp_arr(max_vert_nb * global_num_cells))
+      tmp_arr(:) = 0
+
+      ! XXX: cannot read local_num_cells - arrays haven't been resized!
+      local_num_cells = size(mesh%topo%num_vert_nb)
+
+      do i = 1, local_num_cells
+        idx = max_vert_nb * (mesh%topo%global_indices(i) - 1)
+        
+        do j = 1, mesh%topo%num_vert_nb(i)
+          vert_nb_idx = mesh%topo%vert_nb_indices(j, i)
+          if (vert_nb_idx > 0) then
+            tmp_arr(idx + j) = mesh%topo%global_indices(vert_nb_idx)
+          else
+            tmp_arr(idx + j) = vert_nb_idx
+          end if
+        end do
+      end do
+
+      select type(par_env)
+      type is(parallel_environment_mpi)
+        call MPI_Allreduce(MPI_IN_PLACE, tmp_arr, max_vert_nb * global_num_cells, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment!")
+      end select
+
+      deallocate(mesh%topo%vert_nb_indices)
+      allocate(mesh%topo%vert_nb_indices(max_vert_nb, global_num_cells))
+      mesh%topo%vert_nb_indices(:, :) = 0
+      do i = 1, global_num_cells
+        do j = 1, max_vert_nb
+          idx = max_vert_nb * (i - 1) + j
+          mesh%topo%vert_nb_indices(j, i) = tmp_arr(idx)
+        end do
+      end do
+      
+      deallocate(tmp_arr)
+    end if
+    
+  end subroutine store_global_vertex_connectivity
+  
+  subroutine compute_vertex_connectivity(par_env, mesh)
+
+    use mpi
+
+    class(parallel_environment), intent(in) :: par_env
     type(ccs_mesh), target, intent(inout) :: mesh !< The mesh for which to compute the parition
 
     integer(ccs_int) :: local_num_cells
 
-    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: i, j
     integer(ccs_int) :: local_idx
     integer(ccs_int) :: global_idx
     
@@ -181,6 +257,7 @@ contains
     
     integer(ccs_err) :: ierr
 
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_vert_nb_indices
     integer(ccs_int), dimension(:), allocatable :: tmp_arr
 
     if (.not. allocated(mesh%topo%global_vertex_indices)) then
@@ -194,70 +271,55 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
 
     max_vert_nb = maxval(mesh%topo%num_vert_nb)
-    call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
-    
-    if (allocated(mesh%topo%vert_nb_indices)) then
-      deallocate(mesh%topo%vert_nb_indices)
-    end if
+    select type(par_env)
+    type is(parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
 
     !! XXX: Need to get the maximum number of vertex neighbours BEFORE deallocating
     if (allocated(mesh%topo%num_vert_nb)) then
       deallocate(mesh%topo%num_vert_nb)
     end if
-    
-    allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
     allocate(mesh%topo%num_vert_nb(local_num_cells))
 
+    ! Copy vertex neighbour indices from global array
+    allocate(tmp_vert_nb_indices, source=mesh%topo%vert_nb_indices)
+    deallocate(mesh%topo%vert_nb_indices)
+    allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
+    do local_idx = 1, local_num_cells
+      global_idx = mesh%topo%global_indices(local_idx)
+
+      mesh%topo%vert_nb_indices(:, local_idx) = tmp_vert_nb_indices(:, global_idx)
+      mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
+    end do
+    deallocate(tmp_vert_nb_indices)
+    
     do i = 1, local_num_cells
-      mesh%topo%num_vert_nb(i) = 0
-
-      associate(index_p_global => mesh%topo%global_indices(i), &
-                num_vert_nb => mesh%topo%num_vert_nb(i))
-        associate(my_vertex_indices => mesh%topo%global_vertex_indices(:, index_p_global))
-          mesh%topo%vert_nb_indices(:, i) = -1 ! Set vertex neighbours to invalid value
-        
-          do j = 1, mesh%topo%global_num_cells
-            if ((j /= index_p_global) .and. &
-                (.not. any(mesh%topo%global_indices(pack(mesh%topo%nb_indices(:, i), &
-                                                         mesh%topo%nb_indices(:, i) > 0)) == j))) then
-              ! J is neither the global index of I, nor one of its neighbours
-              do k = 1, mesh%topo%vert_per_cell
-                if (any(my_vertex_indices == mesh%topo%global_vertex_indices(k, j))) then
-                  ! Check for double counting
-                  if (.not. any(mesh%topo%vert_nb_indices(:, i) == j)) then
-                    num_vert_nb = num_vert_nb + 1
-
-                    mesh%topo%vert_nb_indices(num_vert_nb, i) = j
-
-                    exit ! No need to check other vertices attached to this neighbour
-                  end if
-                end if
-              end do
-            end if
-          end do
-        end associate
-      end associate
 
       ! Convert global->local indices
       do j = 1, mesh%topo%num_vert_nb(i)
         global_idx = mesh%topo%vert_nb_indices(j, i)
-        local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
-        if (local_idx == 0) then
-          ! New global index
-          allocate(tmp_arr(mesh%topo%total_num_cells + 1))
-          tmp_arr(1:mesh%topo%total_num_cells) = mesh%topo%global_indices(1:mesh%topo%total_num_cells)
-          tmp_arr(mesh%topo%total_num_cells + 1) = global_idx
-          deallocate(mesh%topo%global_indices)
-          mesh%topo%total_num_cells = mesh%topo%total_num_cells + 1
-          allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
-          mesh%topo%global_indices(:) = tmp_arr(:)
-          deallocate(tmp_arr)
+        if (global_idx > 0) then
+          local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
+          if (local_idx == 0) then
+            ! New global index
+            allocate(tmp_arr(mesh%topo%total_num_cells + 1))
+            tmp_arr(1:mesh%topo%total_num_cells) = mesh%topo%global_indices(1:mesh%topo%total_num_cells)
+            tmp_arr(mesh%topo%total_num_cells + 1) = global_idx
+            deallocate(mesh%topo%global_indices)
+            mesh%topo%total_num_cells = mesh%topo%total_num_cells + 1
+            allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
+            mesh%topo%global_indices(:) = tmp_arr(:)
+            deallocate(tmp_arr)
 
-          mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
+            mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
 
-          local_idx = mesh%topo%total_num_cells
+            local_idx = mesh%topo%total_num_cells
+          end if
+          mesh%topo%vert_nb_indices(j, i) = local_idx
         end if
-        mesh%topo%vert_nb_indices(j, i) = local_idx
       end do
     end do
     
