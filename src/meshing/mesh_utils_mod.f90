@@ -491,9 +491,11 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
 
-    call partition_kway(par_env, mesh)
-    !call partition_stride(par_env, mesh)
-
+    if (par_env%num_procs > 1) then
+      call partition_kway(par_env, mesh)
+    else
+      call partition_stride(par_env, mesh)
+    end if
     call compute_connectivity(par_env, mesh)
 
     call bandwidth(mesh)
@@ -961,9 +963,12 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
 
-    call partition_kway(par_env, mesh)
-    !call partition_stride(par_env, mesh)
-
+    if (par_env%num_procs > 1) then
+      call partition_kway(par_env, mesh)
+    else
+      call partition_stride(par_env, mesh)
+    end if
+    
     call compute_connectivity(par_env, mesh)
 
     call bandwidth(mesh)
