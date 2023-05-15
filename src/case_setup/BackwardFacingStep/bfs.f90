@@ -27,7 +27,6 @@ program bfs
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, &
-                   calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, set_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
@@ -167,13 +166,9 @@ program bfs
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(mesh, u, v, w, p, mf)
-  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
-  call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
-  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
-  call calc_enstrophy(par_env, mesh, 0, u, v, w)
 
   ! Write out mesh to file
   call write_mesh(par_env, case_path, mesh)
@@ -201,12 +196,10 @@ program bfs
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields, t)
-    call calc_kinetic_energy(par_env, mesh, t, u, v, w)
+                         fluid_sol, flow_fields)
     call update_gradient(mesh, u)
     call update_gradient(mesh, v)
     call update_gradient(mesh, w)
-    call calc_enstrophy(par_env, mesh, t, u, v, w)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
     end if

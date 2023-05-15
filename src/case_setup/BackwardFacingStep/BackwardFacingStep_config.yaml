@@ -4,9 +4,9 @@ title: BackwardFacingStep
 #  number of timesteps
 steps: 2
 #  number of iterations
-iterations: 2
+iterations: 20
 # time step size
-dt: 1.0e-2
+dt: 1.0e-3
 
 # Square/cubic mesh generation parameters
 # cells per side
@@ -15,8 +15,8 @@ dt: 1.0e-2
 L: 3.1415926535
 
 relaxation_factor:
-  u: 0.9
-  v: 0.9
+  u: 0.5
+  v: 0.5
   p: 0.1
 
 target_residual: 1.0e-8
@@ -82,18 +82,12 @@ boundaries:
     value: 0
     variable_p:
       type: extrapolate
-    variable_u:
-      type: dirichlet
-      value: 0
   boundary_2:
     name: right
     type: neumann
     value: 0
     variable_p:
       type: extrapolate
-    variable_u:
-      type: dirichlet
-      value: 0
   boundary_3:
     name: bottom
     type: neumann
@@ -103,6 +97,9 @@ boundaries:
     variable_u:
       type: dirichlet
       value: 1
+    variable_v:
+      type: dirichlet
+      value: 0
   boundary_4:
     name: top
     type: neumann
@@ -112,15 +109,15 @@ boundaries:
     variable_v:
       type: dirichlet
       value: 0
-    variable_u:
-      type: dirichlet
-      value: 1
   boundary_5:
     name: back
     type: neumann
     value: 0
     variable_p:
       type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
     variable_v:
       type: dirichlet
       value: 0
@@ -130,6 +127,9 @@ boundaries:
     value: 0
     variable_p:
       type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
     variable_v:
       type: dirichlet
       value: 0
@@ -139,6 +139,9 @@ boundaries:
     value: 0
     variable_p:
       type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
     variable_v:
       type: dirichlet
       value: 0  
@@ -149,5 +152,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
       type: dirichlet
       value: 0
