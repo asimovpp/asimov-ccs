@@ -15,7 +15,7 @@ program ldc
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
+  use types, only: field, upwind_field, central_field, gamma_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
@@ -80,7 +80,8 @@ program ldc
   end if
 
   ccs_config_file = case_path // ccsconfig
-
+  print*,ccs_config_file
+ 
   call timer(start_time)
 
   ! Read case name from configuration file
@@ -105,9 +106,12 @@ program ldc
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-  allocate (upwind_field :: u)
-  allocate (upwind_field :: v)
-  allocate (upwind_field :: w)
+  !allocate (upwind_field :: u)
+  !allocate (upwind_field :: v)
+  !allocate (upwind_field :: w)
+  allocate (gamma_field :: u)
+  allocate (gamma_field :: v)
+  allocate (gamma_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: p_prime)
   allocate (face_field :: mf)
@@ -198,9 +202,10 @@ program ldc
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                        fluid_sol, flow_fields)
-
+  print*,"writing mesh"
   ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
+  print*,"writing solution"
   call write_solution(par_env, case_path, mesh, output_list)
 
   ! Clean-up

@@ -177,6 +177,8 @@ module types
   end type
   type, public, extends(field) :: face_field
   end type
+  type, public, extends(field) :: gamma_field
+  end type
 
   !> Type for storing pointer to a field
   type, public :: field_ptr

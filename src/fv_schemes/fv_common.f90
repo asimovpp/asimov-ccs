@@ -90,11 +90,11 @@ contains
 
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
-
-    call get_local_num_cells(mesh, local_num_cells)
+    
+    call get_local_num_cells(mesh, local_num_cells) 
     do index_p = 1, local_num_cells
-      call clear_entries(mat_coeffs)
-      call clear_entries(b_coeffs)
+      call clear_entries(mat_coeffs) !?
+      call clear_entries(b_coeffs)  !?
 
       ! Calculate contribution from neighbours
       call set_cell_location(mesh, index_p, loc_p)
@@ -133,6 +133,8 @@ contains
           type is (central_field)
             call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
           type is (upwind_field)
+            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+          type is (gamma_field)
             call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
           class default
             call error_abort("Invalid velocity field discretisation.")
@@ -179,11 +181,13 @@ contains
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
-
+          
           select type (phi)
           type is (central_field)
             call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
           type is (upwind_field)
+            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+          type is (gamma_field)
             call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
           class default
             call error_abort("Invalid velocity field discretisation.")
