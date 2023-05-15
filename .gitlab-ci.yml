@@ -183,7 +183,7 @@ profile_intel:
       - ./*.html
   allow_failure: true
 
-profile_cray:
+.profile_cray:
   needs: 
     - job: build_cray
       artifacts: false
