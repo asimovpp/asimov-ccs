@@ -1,0 +1,13 @@
+# RUN: %build_test %s %t1 
+# RUN: export outputfile="output_ldc.txt"
+# RUN: echo "date: $(date -Iminutes)" > $outputfile
+# RUN: echo "ncores: 10" >> $outputfile
+# RUN: echo "label: ldc_512" >> $outputfile
+# RUN: echo "commitID: $(git rev-parse --short HEAD)" >> $outputfile
+# RUN: echo "commitdate: $(git show -s --format=%cd --date=iso)" >> $outputfile
+# RUN: echo "compiler: $CMP" >> $outputfile
+# RUN: %mpirun -n 10 %t1 --ccs_case Input/LidDrivenCavity --ccs_m 512 >> $outputfile
+
+main: ldc
+base: mpi_petsc
+extra: parhip

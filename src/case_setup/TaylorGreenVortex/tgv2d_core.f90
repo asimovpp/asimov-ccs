@@ -70,6 +70,7 @@ contains
     integer(ccs_int) :: isize ! Size of MPI world
 
     double precision :: start_time
+    double precision :: init_time
     double precision :: end_time
 
     logical :: u_sol = .true.  ! Default equations to solve for LDC case
@@ -208,6 +209,8 @@ contains
     call set_field(4, field_p, p, flow_fields)
     call set_field(5, field_p_prime, p_prime, flow_fields)
     call set_field(6, field_mf, mf, flow_fields)
+    
+    call timer(init_time)
 
     do t = 1, num_steps
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -239,6 +242,7 @@ contains
     call timer(end_time)
 
     if (irank == par_env%root) then
+      print *, "Init time: ", init_time - start_time
       print *, "Elapsed time: ", end_time - start_time
     end if
 
