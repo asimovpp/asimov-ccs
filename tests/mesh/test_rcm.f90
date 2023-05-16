@@ -6,8 +6,9 @@ program test_rcm
   use testing_lib
 
   use constants, only: ndim
-  use meshing, only: set_cell_location, set_face_location, set_vert_location, get_centre, &
-       get_local_num_cells, get_global_index, set_neighbour_location, get_boundary_status
+  use meshing, only: create_cell_locator, create_face_locator, create_vert_locator, get_centre, &
+       get_local_num_cells, get_global_index, create_neighbour_locator, get_boundary_status, &
+       get_natural_index
   use mesh_utils, only: build_square_topology, partition_stride
   use partitioning, only: compute_partitioner_input, compute_connectivity
   use reordering, only: reorder_cells
@@ -68,23 +69,29 @@ contains
     integer(ccs_int) :: natural_index_p
     integer(ccs_int) :: natural_index_nb
     integer(ccs_int) :: index_nb
+
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    logical :: is_boundary
     
     do i = 1, local_num_cells
-       natural_index_p = mesh%topo%natural_indices(i)
+      call create_cell_locator(mesh, i, loc_p)
+      call get_natural_index(loc_p, natural_index_p)
 
-       do j = 1, nnb
-          index_nb = mesh%topo%nb_indices(j, i)
-          print *, i, j, index_nb
-          if (index_nb > 0) then
-             natural_index_nb = mesh%topo%natural_indices(index_nb)
+      do j = 1, nnb
+        index_nb = mesh%topo%nb_indices(j, i)
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        if (.not. is_boundary) then
+          call get_natural_index(loc_nb, natural_index_nb)
 
-             if (natural_index_nb /= global_neighbours_ref(j, natural_index_p)) then
-                write(message, *) "FAIL: neighbour natural index doesn't match reference at ", j, &
-                     " ", natural_index_p
-                call stop_test(message)
-             end if
+          if (natural_index_nb /= global_neighbours_ref(j, natural_index_p)) then
+            write(message, *) "FAIL: neighbour natural index doesn't match reference at ", j, &
+                 " ", natural_index_p
+            call stop_test(message)
           end if
-       end do
+        end if
+      end do
     end do
     
   end subroutine test_global_connectivity
@@ -108,11 +115,11 @@ contains
     global_neighbours_ref(:, :) = 0
 
     do i = 1, local_num_cells
-       call set_cell_location(mesh, i, loc_p)
+       call create_cell_locator(mesh, i, loc_p)
        call get_global_index(loc_p, global_index_p)
        
        do j = 1, nnb
-          call set_neighbour_location(loc_p, j, loc_nb)
+          call create_neighbour_locator(loc_p, j, loc_nb)
           call get_boundary_status(loc_nb, is_boundary)
           if (.not. is_boundary) then
              call get_global_index(loc_nb, global_index_nb)

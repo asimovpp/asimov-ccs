@@ -19,6 +19,7 @@ program test_partition_tri_mesh
                      set_total_num_cells, set_halo_num_cells, &
                      get_global_num_faces, set_global_num_faces, &
                      get_max_faces, set_max_faces, &
+                     get_vert_per_cell, set_vert_per_cell, &
                      create_cell_locator, get_global_index
   use utils, only: debug_print
 
@@ -279,7 +280,8 @@ contains
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
-
+    integer(ccs_int) :: vert_per_cell
+    
     ! Create a tri mesh
     !
     ! Sample graph - adapted from ParMETIS manual to use 1-indexing with added triangular connections.
@@ -344,6 +346,7 @@ contains
 
     ! Dummy vertex connectivity
     call set_vert_per_cell(6, mesh) ! Interior cells are hexagonal
+    call get_vert_per_cell(mesh, vert_per_cell)
     allocate(mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
     allocate(mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
     allocate(mesh%topo%num_vert_nb(local_num_cells))

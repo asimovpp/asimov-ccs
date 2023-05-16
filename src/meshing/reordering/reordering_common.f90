@@ -8,7 +8,9 @@ submodule(reordering) reordering_common
   use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
                      get_local_index, create_neighbour_locator, get_local_status, &
                      get_centre, set_centre, &
-                     get_global_index
+                     get_global_index, get_natural_index, &
+                     set_natural_index, &
+                     get_total_num_cells
 
   implicit none
 
@@ -105,6 +107,8 @@ contains
     integer(ccs_int), dimension(:), allocatable :: global_indices
 
     integer(ccs_err) :: ierr
+
+    type(cell_locator) :: loc_p
     
     if (allocated(mesh%topo%global_indices)) then
       deallocate(mesh%topo%global_indices)
@@ -126,7 +130,8 @@ contains
     global_indices(:) = 0
 
     do i = 1, mesh%topo%local_num_cells
-      idxg = mesh%topo%natural_indices(i) ! where the cell was in the original ordering
+      call create_cell_locator(mesh, i, loc_p)
+      call get_natural_index(loc_p, idxg) ! where the cell was in the original ordering
       global_indices(idxg) = mesh%topo%global_indices(i)
     end do
 
@@ -140,7 +145,8 @@ contains
 
 
     do i = mesh%topo%local_num_cells + 1, mesh%topo%total_num_cells
-      idxg = mesh%topo%natural_indices(i)
+      call create_cell_locator(mesh, i, loc_p)
+      call get_natural_index(loc_p, idxg)
       mesh%topo%global_indices(i) = global_indices(idxg)
     end do
     
@@ -163,6 +169,7 @@ contains
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: i
     integer(ccs_int) :: idx_new
     integer(ccs_int) :: idxg
@@ -170,13 +177,8 @@ contains
     
     ! Only need to order local cells
     call get_local_num_cells(mesh, local_num_cells)
-
-    associate(total_num_cells => mesh%topo%total_num_cells)
-      allocate(mesh%topo%natural_indices(total_num_cells))
-    end associate
-
-    ! Copy the global indices into natural indices
-    mesh%topo%natural_indices(:) = mesh%topo%global_indices(:)
+    call get_total_num_cells(mesh, total_num_cells)
+    allocate(mesh%topo%natural_indices(total_num_cells))
 
     ! Apply reordering on the local natural indices
     do i = 1, local_num_cells
@@ -184,7 +186,15 @@ contains
       call get_global_index(loc_p, idxg)
       
       idx_new = new_indices(i)
-      mesh%topo%natural_indices(idx_new) = idxg
+      call create_cell_locator(mesh, idx_new, loc_p)
+      call set_natural_index(idxg, loc_p)
+    end do
+
+    ! Copy halo global indices -> natural indices
+    do i = local_num_cells + 1, total_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+      call get_global_index(loc_p, idxg)
+      call set_natural_index(idxg, loc_p)
     end do
 
     ! Set global indices to linear system
