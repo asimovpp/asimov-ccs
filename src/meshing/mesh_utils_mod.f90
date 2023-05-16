@@ -783,7 +783,7 @@ contains
 
           call create_face_locator(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, i, left, loc_f)
+          call create_face_locator(mesh, global_index_nb, left, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -823,7 +823,7 @@ contains
 
           call create_face_locator(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, i, bottom, loc_f)
+          call create_face_locator(mesh, global_index_nb, bottom, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -1361,7 +1361,7 @@ contains
 
           call create_face_locator(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, i, left, loc_f)
+          call create_face_locator(mesh, global_index_nb, left, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -1401,7 +1401,7 @@ contains
 
           call create_face_locator(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, i, bottom, loc_f)
+          call create_face_locator(mesh, global_index_nb, bottom, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
@@ -1441,7 +1441,7 @@ contains
 
           call create_face_locator(mesh, i, face_counter, loc_f)
           call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, i, back, loc_f)
+          call create_face_locator(mesh, global_index_nb, back, loc_f)
           call set_global_index(face_index_counter, loc_f)
         end if
         face_index_counter = face_index_counter + 1_ccs_int
