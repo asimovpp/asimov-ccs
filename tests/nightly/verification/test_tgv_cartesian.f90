@@ -28,14 +28,13 @@ program test_tgv_cartesian
 
   integer(ccs_int) :: i, j
 
-
   call init()
 
-  variable_labels = (/ "U", "V", "P" /)
+  variable_labels = (/"U", "V", "P"/)
   domain_size = 3.14159265358979323
 
-  cps_list = (/ 16, 32, 64, 128, 256 /)
-  refinements = real(maxval(cps_list(:)))/real(cps_list(:))
+  cps_list = (/16, 32, 64, 128, 256/)
+  refinements = real(maxval(cps_list(:))) / real(cps_list(:))
 
   error_L2(:, :) = 0.0_ccs_real
   error_Linf(:, :) = 0.0_ccs_real

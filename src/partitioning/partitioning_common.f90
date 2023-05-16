@@ -2,10 +2,18 @@ submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int
+  use types, only: cell_locator, neighbour_locator
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
-  use meshing, only: set_local_num_cells, get_local_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
+                     get_halo_num_cells, get_global_num_faces, &
+                     get_total_num_cells, set_total_num_cells, &
+                     set_num_faces, &
+                     get_max_faces, &
+                     create_cell_locator, create_neighbour_locator, &
+                     get_global_index, &
+                     set_local_index
 
   implicit none
 
@@ -31,6 +39,11 @@ contains
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
+    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: halo_num_cells
+    integer(ccs_int) :: global_num_faces
+    integer(ccs_int) :: max_faces
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -65,14 +78,17 @@ contains
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
 
     if (allocated(mesh%topo%global_boundaries) .eqv. .false.) then
-      allocate (mesh%topo%global_boundaries(mesh%topo%global_num_cells))
+      call get_global_num_cells(mesh, global_num_cells)
+      allocate (mesh%topo%global_boundaries(global_num_cells))
     end if
 
     ! Reset global_boundaries array
     mesh%topo%global_boundaries = 0
 
+    call get_max_faces(mesh, max_faces)
+
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), mesh%topo%max_faces + 1))
+    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
     start_index = int(mesh%topo%vtxdist(irank + 1), int32)
@@ -85,7 +101,8 @@ contains
     allocate (mesh%topo%num_nb(local_num_cells))
 
     ! All ranks loop over all the faces again
-    do i = 1, mesh%topo%global_num_faces
+    call get_global_num_faces(mesh, global_num_faces)
+    do i = 1, global_num_faces
 
       face_nb1 = mesh%topo%face_cell1(i)
       face_nb2 = mesh%topo%face_cell2(i)
@@ -114,7 +131,7 @@ contains
     end do
 
     ! New number of local connections
-    num_connections = sum(tmp_int2d(:, mesh%topo%max_faces + 1))
+    num_connections = sum(tmp_int2d(:, max_faces + 1))
     call dprint("Number of connections after partitioning: " // str(num_connections))
 
     ! Allocate new adjncy array based on the new number of computed connections
@@ -127,19 +144,19 @@ contains
     if (allocated(mesh%topo%face_indices)) then
       deallocate (mesh%topo%face_indices)
     end if
-    allocate (mesh%topo%face_indices(mesh%topo%max_faces, local_num_cells))
+    allocate (mesh%topo%face_indices(max_faces, local_num_cells))
 
     call flatten_connectivity(tmp_int2d, mesh)
 
-    call dprint("Number of halo cells after partitioning: " // str(mesh%topo%halo_num_cells))
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call dprint("Number of halo cells after partitioning: " // str(halo_num_cells))
 
-    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
-
-    call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
+    call get_total_num_cells(mesh, total_num_cells)
+    call dprint("Total number of cells (local + halo) after partitioning: " // str(total_num_cells))
 
     call set_cell_face_indices(mesh)
 
-    mesh%topo%num_faces = count_mesh_faces(mesh)
+    call set_num_faces(count_mesh_faces(mesh), mesh)
 
   end subroutine compute_connectivity
 
@@ -151,6 +168,7 @@ contains
     integer :: i
     integer :: ctr
     integer :: local_num_cells
+    integer(ccs_int) :: global_num_cells
 
     ! Allocate and then compute global indices
     if (allocated(mesh%topo%global_indices)) then
@@ -163,7 +181,8 @@ contains
     ctr = 1
     associate (irank => par_env%proc_id, &
                partition => mesh%topo%global_partition)
-      do i = 1, mesh%topo%global_num_cells
+      call get_global_num_cells(mesh, global_num_cells)
+      do i = 1, global_num_cells
         if (partition(i) == irank) then
           mesh%topo%global_indices(ctr) = i
           ctr = ctr + 1
@@ -181,7 +200,8 @@ contains
       stop
     end if
 
-    if (maxval(mesh%topo%global_indices) > mesh%topo%global_num_cells) then
+    call get_global_num_cells(mesh, global_num_cells)
+    if (maxval(mesh%topo%global_indices) > global_num_cells) then
       print *, "ERROR: global index exceeds range!"
       stop
     end if
@@ -198,6 +218,8 @@ contains
     integer, dimension(1) :: local_index
     integer :: fctr
 
+    integer(ccs_int) :: max_faces
+
     local_index = findloc(mesh%topo%global_indices, face_nb1)
     if (local_index(1) <= 0) then
       print *, "ERROR: failed to find face neighbour in global indices, findloc: "
@@ -208,9 +230,10 @@ contains
       stop
     end if
 
-    fctr = tmp_int2d(local_index(1), mesh%topo%max_faces + 1) + 1 ! Increment number of faces for this cell
+    call get_max_faces(mesh, max_faces)
+    fctr = tmp_int2d(local_index(1), max_faces + 1) + 1 ! Increment number of faces for this cell
     tmp_int2d(local_index(1), fctr) = face_nb2               ! Store global index of neighbour cell
-    tmp_int2d(local_index(1), mesh%topo%max_faces + 1) = fctr     ! Store number of faces for this cell
+    tmp_int2d(local_index(1), max_faces + 1) = fctr     ! Store number of faces for this cell
     mesh%topo%num_nb(local_index(1)) = fctr
 
   end subroutine
@@ -218,6 +241,8 @@ contains
   !v Take the 2D connectivity graph and convert to 1D
   !  Note that cell neighbours are still globally numbered at this point.
   subroutine flatten_connectivity(tmp_int2d, mesh)
+
+    use meshing, only: set_halo_num_cells
 
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
@@ -230,27 +255,41 @@ contains
     integer, dimension(1) :: local_idx
 
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: halo_num_cells
+    integer(ccs_int) :: max_faces
 
-    mesh%topo%halo_num_cells = 0
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
+
+    type(neighbour_locator) :: loc_nb
+
+    call set_halo_num_cells(0, mesh)
+    call get_halo_num_cells(mesh, halo_num_cells)
     call get_local_num_cells(mesh, local_num_cells)
+    call get_max_faces(mesh, max_faces)
+
     ctr = 1
 
     allocate (tmp1(local_num_cells))
     if (allocated(mesh%topo%nb_indices)) then
       deallocate (mesh%topo%nb_indices)
     end if
-    allocate (mesh%topo%nb_indices(mesh%topo%max_faces, local_num_cells))
+    allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
 
     tmp1(:) = -1
 
     ! Initialise neighbour indices
     mesh%topo%nb_indices(:, :) = 0_ccs_int
 
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
     do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+
       mesh%topo%xadj(i) = ctr
 
       ! Loop over connections of cell i
-      do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)
+      do j = 1, tmp_int2d(i, max_faces + 1)
         associate (nbidx => tmp_int2d(i, j))
           if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
             ! Halo cell
@@ -258,8 +297,11 @@ contains
               ! New halo cell
               ! Copy and extend size of halo cells buffer
 
-              mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
-              if (mesh%topo%halo_num_cells > size(tmp1)) then
+              call get_halo_num_cells(mesh, halo_num_cells)
+              call set_halo_num_cells(halo_num_cells + 1, mesh)
+              call get_halo_num_cells(mesh, halo_num_cells)
+              call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
+              if (halo_num_cells > size(tmp1)) then
                 allocate (tmp2(size(tmp1) + local_num_cells))
 
                 tmp2(:) = -1
@@ -270,11 +312,12 @@ contains
                 deallocate (tmp2)
               end if
 
-              tmp1(mesh%topo%halo_num_cells) = nbidx
+              tmp1(halo_num_cells) = nbidx
             end if
 
             local_idx = findloc(tmp1, nbidx)
-            mesh%topo%nb_indices(j, i) = local_num_cells + local_idx(1)
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(local_num_cells + local_idx(1), loc_nb)
           end if
 
           !local_idx = findloc(tmp1, nbidx)
@@ -282,13 +325,15 @@ contains
 
           if (nbidx .lt. 0) then
             ! boundary 'cell'
-            mesh%topo%nb_indices(j, i) = nbidx
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(nbidx, loc_nb)
           end if
 
           if (any(mesh%topo%global_indices == nbidx)) then
             ! local in cell
             local_idx = findloc(mesh%topo%global_indices, nbidx)
-            mesh%topo%nb_indices(j, i) = local_idx(1)
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(local_idx(1), loc_nb)
           end if
 
           mesh%topo%adjncy(ctr) = nbidx
@@ -300,11 +345,13 @@ contains
     end do
     mesh%topo%xadj(local_num_cells + 1) = ctr
 
-    allocate (tmp2(local_num_cells + mesh%topo%halo_num_cells))
+    allocate (tmp2(local_num_cells + halo_num_cells))
     do i = 1, local_num_cells
-      tmp2(i) = mesh%topo%global_indices(i)
+      call create_cell_locator(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      tmp2(i) = global_index_p
     end do
-    do i = 1, mesh%topo%halo_num_cells
+    do i = 1, halo_num_cells
       tmp2(local_num_cells + i) = tmp1(i)
     end do
     deallocate (mesh%topo%global_indices)

@@ -11,10 +11,11 @@ submodule(fv) fv_common
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
   use utils, only: debug_print, exit_print, str
-  use meshing, only: count_neighbours, get_boundary_status, set_neighbour_location, &
+  use meshing, only: count_neighbours, get_boundary_status, create_neighbour_locator, &
                      get_local_index, get_global_index, get_volume, get_distance, &
-                     set_face_location, get_face_area, get_face_normal, set_cell_location, &
-                     get_local_num_cells, get_face_interpolation
+                     create_face_locator, get_face_area, get_face_normal, create_cell_locator, &
+                     get_local_num_cells, get_face_interpolation, &
+                     get_max_faces
   use boundary_conditions, only: get_bc_index
   use bc_constants
 
@@ -31,6 +32,7 @@ contains
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: vec
 
+    integer(ccs_int) :: max_faces
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
 
@@ -39,7 +41,8 @@ contains
       call get_vector_data(mf_values, mf_data)
 
       ! Loop over cells computing advection and diffusion fluxes
-      n_int_cells = mesh%topo%max_faces + 1 ! 1 neighbour per face + central cell
+      call get_max_faces(mesh, max_faces)
+      n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: compute coeffs")
       call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec)
 
@@ -97,7 +100,7 @@ contains
       call clear_entries(b_coeffs)
 
       ! Calculate contribution from neighbours
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -108,9 +111,9 @@ contains
       diff_coeff_total = 0.0_ccs_real
 
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
-        call set_face_location(mesh, index_p, j, loc_f)
+        call create_face_locator(mesh, index_p, j, loc_f)
         call get_face_normal(loc_f, face_normal)
 
         call get_local_index(loc_nb, index_nb)
@@ -282,7 +285,7 @@ contains
     real(ccs_real) :: dxmag
 
     call get_local_index(loc_p, index_p)
-    call set_neighbour_location(loc_p, loc_f%cell_face_ctr, loc_nb)
+    call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
     call get_bc_index(phi, index_nb, index_bc)
 
@@ -355,13 +358,13 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call set_face_location(mesh, index_p, index_nb, loc_f)
+    call create_face_locator(mesh, index_p, index_nb, loc_f)
     call get_face_area(loc_f, face_area)
     call get_boundary_status(loc_f, is_boundary)
 
-    call set_cell_location(mesh, index_p, loc_p)
+    call create_cell_locator(mesh, index_p, loc_p)
     if (.not. is_boundary) then
-      call set_neighbour_location(loc_p, index_nb, loc_nb)
+      call create_neighbour_locator(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
     else
       call get_distance(loc_p, loc_f, dx)
@@ -401,8 +404,8 @@ contains
                index_p => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
 
-      call set_cell_location(mesh, index_p, loc_p)
-      call set_neighbour_location(loc_p, j, loc_nb)
+      call create_cell_locator(mesh, index_p, loc_p)
+      call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
       call get_face_normal(loc_f, face_normal)
@@ -475,8 +478,8 @@ contains
                index_p => loc_f%index_p, &
                j => loc_f%cell_face_ctr)
 
-      call set_cell_location(mesh, index_p, loc_p)
-      call set_neighbour_location(loc_p, j, loc_nb)
+      call create_cell_locator(mesh, index_p, loc_p)
+      call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
       call get_face_normal(loc_f, face_normal)
@@ -539,28 +542,30 @@ contains
   !  correctly updated on other PEs. @endnote
   module subroutine update_gradient(mesh, phi)
 
+    use meshing, only: get_total_num_cells
+
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
 
     real(ccs_real), dimension(:), pointer :: x_gradients_data, y_gradients_data, z_gradients_data
     real(ccs_real), dimension(:), allocatable :: x_gradients_old, y_gradients_old, z_gradients_old
 
-    integer(ccs_real) :: i
+    integer(ccs_int) :: i
+    integer(ccs_int) :: ntotal
 
     call get_vector_data(phi%x_gradients, x_gradients_data)
     call get_vector_data(phi%y_gradients, y_gradients_data)
     call get_vector_data(phi%z_gradients, z_gradients_data)
 
-    associate (ntotal => mesh%topo%total_num_cells)
-      allocate (x_gradients_old(ntotal))
-      allocate (y_gradients_old(ntotal))
-      allocate (z_gradients_old(ntotal))
-      do i = 1, ntotal
-        x_gradients_old(i) = x_gradients_data(i)
-        y_gradients_old(i) = y_gradients_data(i)
-        z_gradients_old(i) = z_gradients_data(i)
-      end do
-    end associate
+    call get_total_num_cells(mesh, ntotal)
+    allocate (x_gradients_old(ntotal))
+    allocate (y_gradients_old(ntotal))
+    allocate (z_gradients_old(ntotal))
+    do i = 1, ntotal
+      x_gradients_old(i) = x_gradients_data(i)
+      y_gradients_old(i) = y_gradients_data(i)
+      z_gradients_old(i) = z_gradients_data(i)
+    end do
 
     call restore_vector_data(phi%x_gradients, x_gradients_data)
     call restore_vector_data(phi%y_gradients, y_gradients_data)
@@ -627,15 +632,15 @@ contains
 
       grad = 0.0_ccs_int
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_face_location(mesh, index_p, j, loc_f)
+        call create_face_locator(mesh, index_p, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
         call get_face_area(loc_f, face_area)
         call get_face_normal(loc_f, face_norm)
 
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
           call get_vector_data(phi%values, phi_data)

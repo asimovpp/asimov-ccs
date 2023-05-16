@@ -31,15 +31,14 @@ program test_tgv_prism_layer
 
   integer(ccs_int) :: i, j
 
-
   call init()
 
-  variable_labels = (/ "U", "V", "P" /)
+  variable_labels = (/"U", "V", "P"/)
   domain_size = 3.14159265358979323
   growth_rate = 1.2
 
-  cps_list = (/ 16, 32, 64, 128, 256 /)
-  refinements = real(maxval(cps_list(:)))/real(cps_list(:))
+  cps_list = (/16, 32, 64, 128, 256/)
+  refinements = real(maxval(cps_list(:))) / real(cps_list(:))
 
   error_L2(:, :) = 0.0_ccs_real
   error_Linf(:, :) = 0.0_ccs_real
@@ -72,7 +71,7 @@ program test_tgv_prism_layer
 
   call fin()
 
-  contains
+contains
 
   !v Modifies a square mesh by applying a growth rate along the x axis hence generating a prism layer
   subroutine generate_prism_layer(growth_rate, cps, mesh)
@@ -89,7 +88,7 @@ program test_tgv_prism_layer
     mesh%geo%x_f(1, :, :) = apply_gr(mesh%geo%x_f(1, :, :), growth_rate)
 
     ! Update vertices
-    mesh%geo%vert_coords(1, :, :) = apply_gr(mesh%geo%vert_coords(1, :, :), growth_rate) 
+    mesh%geo%vert_coords(1, :, :) = apply_gr(mesh%geo%vert_coords(1, :, :), growth_rate)
 
     ! Update face areas
     call get_local_num_cells(mesh, local_num_cells)
@@ -111,7 +110,6 @@ program test_tgv_prism_layer
     call compute_face_interpolation(mesh)
 
   end subroutine
-
 
   !v applies a growth rate to the x coordinate
   elemental function apply_gr(x, growth_rate) result(new_x)

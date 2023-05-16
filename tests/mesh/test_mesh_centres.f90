@@ -7,8 +7,8 @@ program test_mesh_centres
   use testing_lib
 
   use constants, only: ndim
-  use meshing, only: set_cell_location, set_face_location, set_vert_location, get_centre, &
-                     get_local_num_cells
+  use meshing, only: create_cell_locator, create_face_locator, create_vert_locator, get_centre, &
+                     get_local_num_cells, get_vert_per_cell
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -19,6 +19,7 @@ program test_mesh_centres
   integer(ccs_int) :: n, nx, ny, nz
 
   integer(ccs_int) :: local_num_cells
+  integer(ccs_int) :: vert_per_cell
   integer(ccs_int) :: i
   integer(ccs_int) :: j
 
@@ -49,7 +50,7 @@ program test_mesh_centres
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_centre(loc_p, cc)
       associate (x => cc(1), y => cc(2))
         if ((x > l) .or. (x < 0_ccs_real) &
@@ -61,7 +62,7 @@ program test_mesh_centres
 
       associate (nnb => mesh%topo%num_nb(i))
         do j = 1, nnb
-          call set_face_location(mesh, i, j, loc_f)
+          call create_face_locator(mesh, i, j, loc_f)
           call get_centre(loc_f, fc)
           associate (x => fc(1), y => fc(2))
             if ((x > (l + eps)) .or. (x < (0.0_ccs_real - eps)) &
@@ -73,8 +74,10 @@ program test_mesh_centres
         end do
       end associate
 
-      do j = 1, mesh%topo%vert_per_cell
-        call set_vert_location(mesh, i, j, loc_v)
+      call get_vert_per_cell(mesh, vert_per_cell)
+
+      do j = 1, vert_per_cell
+        call create_vert_locator(mesh, i, j, loc_v)
         call get_centre(loc_v, vc)
         do dim = 1, ndim
           if ((vc(dim) > (l + eps)) .or. (vc(dim) < (0.0_ccs_real - eps))) then
