@@ -350,6 +350,7 @@ contains
     allocate(mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
     allocate(mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
     allocate(mesh%topo%num_vert_nb(local_num_cells))
+    mesh%topo%num_vert_nb(:) = 0
 
     call set_halo_num_cells(0, mesh)
     call set_total_num_cells(local_num_cells, mesh)
