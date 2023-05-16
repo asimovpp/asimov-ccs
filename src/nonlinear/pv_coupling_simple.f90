@@ -28,7 +28,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
                      get_max_faces
-  use timestepping, only: update_old_values, finalise_timestep
+  use timestepping, only: update_old_values, finalise_timestep, get_current_step
 
   implicit none
 
@@ -38,7 +38,7 @@ contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
   module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    flow_solver_selector, flow, step)
+                                    flow_solver_selector, flow)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env   !< parallel environment
@@ -48,7 +48,6 @@ contains
     real(ccs_real), intent(in) :: res_target                          !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector   !< determines which fluid fields need to be solved for
     type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
-    integer(ccs_int), optional, intent(in) :: step                    !< The current time-step
 
     ! Local variables
     integer(ccs_int) :: i
@@ -57,7 +56,6 @@ contains
     class(ccs_vector), allocatable :: invAu, invAv, invAw
     class(ccs_vector), allocatable :: res
     real(ccs_real), dimension(:), allocatable :: residuals
-    integer(ccs_int) :: t  ! Current time-step (dummy variable)
     integer(ccs_int) :: max_faces ! The maximum number of faces per cell
 
     type(vector_spec) :: vec_properties
@@ -91,13 +89,6 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
-
-    ! Check whether 'step' has been passed into this subroutine (i.e. unsteady run)
-    if (present(step)) then
-      t = step
-    else
-      t = -1 ! Dummy value
-    end if
 
     ! Initialising SIMPLE solver
     nvar = 0
@@ -177,7 +168,7 @@ contains
       !call calculate_scalars()
 
       call check_convergence(par_env, i, residuals, res_target, &
-                             flow_solver_selector, t, converged)
+                             flow_solver_selector, converged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
@@ -989,7 +980,7 @@ contains
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
-                               flow_solver_selector, step, converged)
+                               flow_solver_selector, converged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
@@ -997,10 +988,10 @@ contains
     real(ccs_real), dimension(:), intent(in) :: residuals           !< RMS and Linf of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector
-    integer(ccs_int), intent(in) :: step                            !< The current time-step
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
     ! Local variables
+    integer(ccs_int) :: step                            !< The current time-step
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
     integer(ccs_int) :: i
     character(len=30) :: fmt              ! Format string for writing out residuals
@@ -1015,6 +1006,7 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
+    call get_current_step(step)
 
     nvar = int(size(residuals) / 2_ccs_int)
 
@@ -1023,7 +1015,7 @@ contains
       if (first_time) then
         ! Write header
         write (*, *)
-        if (step > 0) then
+        if (step >= 0) then
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
         else
           write (*, '(a6)', advance='no') 'Iter'
@@ -1040,7 +1032,7 @@ contains
       end if
 
       ! Write step, iteration and residuals
-      if (step > 0) then
+      if (step >= 0) then
         fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) step, itr, residuals(1:2 * nvar)
       else

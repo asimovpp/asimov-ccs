@@ -10,6 +10,7 @@ submodule(timestepping) timestepping_common
   logical :: timestepping_active = .false. !< flag to signify whether timestepping should occur
   logical :: timestep_is_set = .false. !< flag to signify whether dt has already been set
   real(ccs_real) :: dt !< timestep size
+  integer(ccs_int) :: current_step = 0
 
 contains
 
@@ -26,6 +27,7 @@ contains
 
     timestepping_active = .false.
     timestep_is_set = .false.
+    current_step = 0
 
   end subroutine
 
@@ -54,6 +56,36 @@ contains
     end if
 
   end function
+
+  module subroutine get_current_step(step) 
+
+    integer(ccs_int), intent(out) :: step
+
+    if (timestepping_active) then
+      step = current_step
+    else
+      step = -1
+    end if
+
+  end subroutine
+
+  module subroutine get_current_time(time) 
+
+    real(ccs_real), intent(out) :: time
+
+    if (timestepping_active .and. timestep_is_set) then
+      time = current_step * dt
+    else
+      time = -1.0_ccs_real
+    end if
+
+  end subroutine
+
+  module subroutine increment_time_step()
+
+    current_step = current_step + 1
+
+  end subroutine
 
   module subroutine initialise_old_values_generic(vec_properties, num_old_vals, x)
 

@@ -245,7 +245,7 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate kinetic energy over density
-  subroutine calc_kinetic_energy(par_env, mesh, t, u, v, w)
+  subroutine calc_kinetic_energy(par_env, mesh, u, v, w)
 
     use mpi
 
@@ -256,10 +256,10 @@ contains
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells, create_cell_locator, get_volume
+    use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: t !< timestep
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
@@ -271,6 +271,7 @@ contains
     integer(ccs_int) :: index_p
     character(len=ccs_string_len) :: fmt
     integer(ccs_int) :: ierr
+    integer(ccs_int) :: step !< timestep
 
     logical, save :: first_time = .true.
     integer :: io_unit
@@ -278,6 +279,7 @@ contains
     type(cell_locator) :: loc_p
     real(ccs_real) :: volume
 
+    call get_current_step(step)
     rho = 1.0_ccs_real
 
     ek_local = 0.0_ccs_real
@@ -324,7 +326,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ek.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) t, ek_global
+      write (io_unit, fmt) step, ek_global
       close (io_unit)
     end if
 
@@ -332,7 +334,7 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate enstrophy
-  subroutine calc_enstrophy(par_env, mesh, t, u, v, w)
+  subroutine calc_enstrophy(par_env, mesh, u, v, w)
 
     use mpi
 
@@ -343,10 +345,10 @@ contains
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells
+    use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: t !< timestep
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
@@ -357,10 +359,12 @@ contains
     integer(ccs_int) :: index_p
     character(len=ccs_string_len) :: fmt
     integer(ccs_int) :: ierr
+    integer(ccs_int) :: step !< timestep
 
     logical, save :: first_time = .true.
     integer :: io_unit
 
+    call get_current_step(step)
     ens_local = 0.0_ccs_real
     ens_global = 0.0_ccs_real
 
@@ -404,7 +408,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) t, ens_global
+      write (io_unit, fmt) step, ens_global
       close (io_unit)
     end if
 

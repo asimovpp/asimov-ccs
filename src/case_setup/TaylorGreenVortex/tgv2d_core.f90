@@ -175,12 +175,15 @@ contains
     ! Write gradients to solution file
     write_gradients = .true.
 
+    call activate_timestepping()
+    call set_timestep(dt)
+
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
     call initialise_flow(mesh, u, v, w, p, mf)
-    call calc_tgv2d_error(par_env, mesh, 0, u, v, w, p, error_L2, error_Linf)
-    call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
-    call calc_enstrophy(par_env, mesh, 0, u, v, w)
+    call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+    call calc_kinetic_energy(par_env, mesh, u, v, w)
+    call calc_enstrophy(par_env, mesh, u, v, w)
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
@@ -192,9 +195,6 @@ contains
     if (irank == par_env%root) then
       call print_configuration(mesh)
     end if
-
-    call activate_timestepping()
-    call set_timestep(dt)
 
     ! XXX: This should get incorporated as part of create_field subroutines
     call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
@@ -211,14 +211,14 @@ contains
 
     do t = 1, num_steps
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                           fluid_sol, flow_fields, t)
-      call calc_tgv2d_error(par_env, mesh, t, u, v, w, p, error_L2, error_Linf)
-      call calc_kinetic_energy(par_env, mesh, t, u, v, w)
+                          fluid_sol, flow_fields)
+      call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+      call calc_kinetic_energy(par_env, mesh, u, v, w)
 
       call update_gradient(mesh, u)
       call update_gradient(mesh, v)
       call update_gradient(mesh, w)
-      call calc_enstrophy(par_env, mesh, t, u, v, w)
+      call calc_enstrophy(par_env, mesh, u, v, w)
 
       if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
         call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
@@ -451,7 +451,7 @@ contains
 
   end subroutine initialise_flow
 
-  subroutine calc_tgv2d_error(par_env, mesh, t, u, v, w, p, error_L2, error_Linf)
+  subroutine calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
 
     use constants, only: ndim
     use types, only: cell_locator
@@ -463,10 +463,10 @@ contains
 
     use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
+    use timestepping, only: get_current_time, get_current_step
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh
-    integer(ccs_int), intent(in) :: t
     class(field), intent(inout) :: u, v, w, p
     real(ccs_real), dimension(3), intent(out) :: error_L2
     real(ccs_real), dimension(3), intent(out) :: error_Linf
@@ -488,6 +488,7 @@ contains
 
     character(len=ccs_string_len) :: fmt
     real(ccs_real) :: time
+    integer(ccs_int) :: step
 
     integer(ccs_int) :: global_num_cells
 
@@ -506,6 +507,8 @@ contains
     call get_vector_data(v%values, v_data)
     call get_vector_data(w%values, w_data)
     call get_vector_data(p%values, p_data)
+    call get_current_time(time)
+    call get_current_step(step)
 
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
@@ -514,7 +517,6 @@ contains
       call get_centre(loc_p, x_p)
 
       ! Compute analytical solution
-      time = t * dt
       ft = exp(-2 * nu * time)
       ! u_an = cos(x_p(1)) * sin(x_p(2)) * ft
       ! v_an = -sin(x_p(1)) * cos(x_p(2)) * ft
@@ -558,7 +560,7 @@ contains
         open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,' // str(2 * size(error_L2)) // '(1x,e12.4))'
-      write (io_unit, fmt) t, error_L2, error_Linf
+      write (io_unit, fmt) step, error_L2, error_Linf
       close (io_unit)
     end if
 

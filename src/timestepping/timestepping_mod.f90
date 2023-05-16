@@ -13,6 +13,9 @@ module timestepping
   public :: apply_timestep
   public :: set_timestep
   public :: get_timestep
+  public :: get_current_step
+  public :: get_current_time
+  public :: increment_time_step
   public :: update_old_values
   public :: initialise_old_values
   public :: activate_timestepping
@@ -52,6 +55,20 @@ module timestepping
     module function get_timestep() result(timestep)
       real(ccs_real) :: timestep
     end function
+
+    !> Get the current (time)step, i.e. an integer
+    module subroutine get_current_step(step) 
+      integer(ccs_int), intent(out) :: step
+    end subroutine
+
+    !> Get the current time
+    module subroutine get_current_time(time) 
+      real(ccs_real), intent(out) :: time
+    end subroutine
+
+    !> Increment internal (time) step counter
+    module subroutine increment_time_step()
+    end subroutine
 
     !> Place current field values into old field values
     module subroutine update_old_values(x)
