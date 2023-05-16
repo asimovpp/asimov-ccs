@@ -10,8 +10,8 @@ contains
   module subroutine get_reordering(mesh, new_indices)
 
     use rcm_mod
-    use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
-                       get_local_index, set_neighbour_location, get_local_status
+    use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
+                       get_local_index, create_neighbour_locator, get_local_status
 
     type(ccs_mesh), intent(in) :: mesh                                      !< the mesh to be reordered
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format
@@ -37,10 +37,10 @@ contains
     ctr = 1
     xadj = [xadj, ctr]
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_status(loc_nb, cell_local)
         if (cell_local) then
           call get_local_index(loc_nb, idx)

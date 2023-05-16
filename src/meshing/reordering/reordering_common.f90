@@ -5,8 +5,8 @@ submodule(reordering) reordering_common
   use kinds, only: ccs_int, ccs_real, ccs_err
   use types, only: cell_locator, neighbour_locator
   use parallel_types, only: parallel_environment
-  use meshing, only: get_local_num_cells, set_cell_location, count_neighbours, &
-                     get_local_index, set_neighbour_location, get_local_status, &
+  use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
+                     get_local_index, create_neighbour_locator, get_local_status, &
                      get_centre, set_centre, &
                      get_global_index
 
@@ -180,7 +180,7 @@ contains
 
     ! Apply reordering on the local natural indices
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, idxg)
       
       idx_new = new_indices(i)
@@ -214,7 +214,7 @@ contains
 
     idx_nb(:, :) = mesh%topo%nb_indices(:, :)
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
 
       ! Get new /local/ index of neighbours, note only local cells are reordered, the local
@@ -272,12 +272,12 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       call get_local_index(loc_p, idx_p)
       bw_rowmax = 0
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_status(loc_nb, is_local)
         if (is_local) then
           call get_local_index(loc_nb, idx_nb)
