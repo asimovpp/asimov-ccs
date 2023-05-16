@@ -18,7 +18,7 @@ module mesh_utils
                      set_cell_location, set_neighbour_location, set_face_location, set_vert_location, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_centre, set_centre, &
-                     set_area, set_normal, &
+                     set_area, set_normal, get_face_normal, &
                      get_local_num_cells, set_local_num_cells, set_face_interpolation
   use bc_constants
 
@@ -242,7 +242,9 @@ contains
     real(ccs_real), dimension(:, :), allocatable :: temp_x_v ! Temp array for vertex coordinates
     real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
 
-    integer(ccs_int) :: local_num_cells
+    real(ccs_real), dimension(3) :: face_normal, x_p, x_f
+    integer(ccs_int) :: local_num_cells, index_p, nnb
+    type(cell_locator) :: loc_p ! Face locator object
     type(face_locator) :: loc_f ! Face locator object
     type(vert_locator) :: loc_v ! Vertex locator object
 
@@ -340,6 +342,29 @@ contains
         call set_centre(loc_v, temp_x_v(:, n))
       end do
 
+    end do
+
+    ! Correct normal orientations and norms
+    do index_p = 1, local_num_cells ! loop over cells owned by current process
+
+      call set_cell_location(mesh, index_p, loc_p)
+      call get_centre(loc_p, x_p)
+      call count_neighbours(loc_p, nnb)
+
+      do j = 1, nnb ! loop over all faces for each cell
+
+        call set_face_location(mesh, index_p, j, loc_f)
+        call get_face_normal(loc_f, face_normal)
+        call get_centre(loc_f, x_f)
+        
+        if (dot_product(face_normal(:), x_f - x_p) .lt. 0.0_ccs_real) then
+          face_normal = - face_normal
+        end if
+
+        ! Normalise face normals too
+        call set_normal(loc_f, face_normal / norm2(face_normal))
+
+      end do
     end do
 
     ! Delete temp arrays
