@@ -862,9 +862,9 @@ contains
         ii = i
         associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
 
-          global_vert_index(front_bottom_left) = (modulo(ii - 1, cps) + 1) + (cps + 1) * ((ii - 1) / cps)
+          global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
           global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
-          global_vert_index(front_top_left) = global_vert_index(front_bottom_right) + (cps + 1)
+          global_vert_index(front_top_left) = global_vert_index(front_bottom_left) + (cps + 1)
           global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
         end associate
       end do
