@@ -2,11 +2,11 @@
 title: BackwardFacingStep
 
 #  number of timesteps
-steps: 2
+steps: 50
 #  number of iterations
-iterations: 20
+iterations: 5
 # time step size
-dt: 1.0e-3
+dt: 5.0e-1
 
 # Square/cubic mesh generation parameters
 # cells per side
@@ -15,14 +15,14 @@ dt: 1.0e-3
 L: 3.1415926535
 
 relaxation_factor:
-  u: 0.5
-  v: 0.5
+  u: 0.9
+  v: 0.9
   p: 0.1
 
-target_residual: 1.0e-8
+target_residual: 1.0e-10
 
 # Frequency (in terms of timesteps) of writing solution to file
-write_frequency: 5
+write_frequency: 50
 
 # Fluid properties
 viscocity : 1.0e-3
@@ -82,12 +82,16 @@ boundaries:
     value: 0
     variable_p:
       type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
   boundary_2:
     name: right
     type: neumann
     value: 0
-    variable_p:
-      type: extrapolate
   boundary_3:
     name: bottom
     type: neumann
@@ -105,7 +109,11 @@ boundaries:
     type: neumann
     value: 0
     variable_p:
-      type: extrapolate
+      type: dirichlet
+      value: 0
+    variable_p_prime:
+      type: dirichlet
+      value: 0
     variable_v:
       type: dirichlet
       value: 0
@@ -141,10 +149,10 @@ boundaries:
       type: extrapolate
     variable_u:
       type: dirichlet
-      value: 0
+      value: 0  
     variable_v:
       type: dirichlet
-      value: 0  
+      value: 0
   boundary_8:
     name: other2
     type: neumann
