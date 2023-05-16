@@ -17,7 +17,7 @@ program tgv
                    vector_spec, ccs_vector, io_environment, io_process, &
                    field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -305,6 +305,12 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
+    use meshing, only: get_global_num_cells
+
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
     print *, "******************************************************************************"
@@ -321,7 +327,7 @@ contains
       print *, "* Cells per side: ", cps
       write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     end if
-    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "* Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
@@ -334,8 +340,8 @@ contains
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
-    use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre, &
+    use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
+                       get_local_index, create_face_locator, get_local_index, get_face_normal, get_centre, &
                        get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
@@ -376,7 +382,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_centre(loc_p, x_p)
@@ -419,17 +425,17 @@ contains
     call get_local_num_cells(mesh, n_local)
     do index_p = 1, n_local
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
 
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then ! XXX: abstract this test
 
-          call set_face_location(mesh, index_p, j, loc_f)
+          call create_face_locator(mesh, index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)

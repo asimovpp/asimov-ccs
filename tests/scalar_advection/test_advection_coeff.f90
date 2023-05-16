@@ -11,7 +11,7 @@ program test_advection_coeff
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, get_vector_data, restore_vector_data
   use fv, only: calc_advection_coeff, calc_cell_coords
-  use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
+  use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal, &
                      get_local_num_cells
   use utils, only: update, initialise, &
@@ -100,13 +100,13 @@ contains
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
 
-    call set_cell_location(mesh, index, loc_p)
+    call create_cell_locator(mesh, index, loc_p)
     call get_local_index(loc_p, index_p)
 
-    call set_neighbour_location(loc_p, nb, loc_nb)
+    call create_neighbour_locator(loc_p, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
-    call set_face_location(mesh, index, nb, loc_f)
+    call create_face_locator(mesh, index, nb, loc_f)
     call get_face_area(loc_f, face_area)
 
     call get_face_normal(loc_f, normal)
@@ -136,7 +136,7 @@ contains
 
     ! Set IC velocity fields
     do index_p = 1, n_local
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       if (direction == x_dir) then

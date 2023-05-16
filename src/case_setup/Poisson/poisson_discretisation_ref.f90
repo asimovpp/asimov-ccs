@@ -36,7 +36,7 @@ contains
       !        filling from front, and pass the number of coefficients to be set, requires
       !        modifying the matrix_values type and the implementation of set_values applied to
       !        matrices.
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -50,13 +50,13 @@ contains
 
       ! Loop over faces
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
 
         if (.not. is_boundary) then
           ! Interior face
 
-          call set_face_location(mesh, i, j, loc_f)
+          call create_face_locator(mesh, i, j, loc_f)
           call get_face_area(loc_f, A)
           coeff_f = (1.0 / mesh%geo%h) * A
 
@@ -134,7 +134,7 @@ contains
       if (minval(mesh%topo%nb_indices(:, i)) < 0) then
         call clear_entries(mat_coeffs)
         call clear_entries(vec_values)
-        call set_cell_location(mesh, i, loc_p)
+        call create_cell_locator(mesh, i, loc_p)
         call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real
         r = 0.0_ccs_real
@@ -146,11 +146,11 @@ contains
         call count_neighbours(loc_p, nnb)
         do j = 1, nnb
 
-          call set_neighbour_location(loc_p, j, loc_nb)
+          call create_neighbour_locator(loc_p, j, loc_nb)
           call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
-            call set_face_location(mesh, i, j, loc_f)
+            call create_face_locator(mesh, i, j, loc_f)
             call get_face_area(loc_f, A)
             boundary_coeff = (2.0 / mesh%geo%h) * A
             boundary_val = eval_solution(loc_f)

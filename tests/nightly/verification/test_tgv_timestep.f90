@@ -27,11 +27,10 @@ program test_tgv_timestep
   character(len=12), dimension(nvar) :: variable_labels
   real(ccs_real) :: theoretical_order
 
-
   call init()
 
-  variable_labels = (/ "U", "V", "P" /)
-  dt_list = (/ 0.01, 0.005, 0.0025, 0.00125 /)
+  variable_labels = (/"U", "V", "P"/)
+  dt_list = (/0.01, 0.005, 0.0025, 0.00125/)
   refinements = dt_list / minval(dt_list)
 
   errors_L2(:, :) = 0.0_ccs_real
@@ -44,7 +43,7 @@ program test_tgv_timestep
   end do
 
   if (par_env%proc_id == par_env%root) then
- 
+
     call print_error_summary(variable_labels, refinements, errors_L2, errors_Linf)
 
     call get_order(refinements, errors_L2, orders_L2)
@@ -64,6 +63,6 @@ program test_tgv_timestep
 
   call fin()
 
- contains
+contains
 
 end program test_tgv_timestep
