@@ -274,8 +274,8 @@ contains
     
     integer(ccs_err) :: ierr
 
-    integer(ccs_int), dimension(:, :), allocatable :: tmp_vert_nb_indices
-    integer(ccs_int), dimension(:), allocatable :: tmp_arr
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
+    integer(ccs_int), dimension(:), allocatable :: tmp_1d
 
     if (.not. allocated(mesh%topo%global_vertex_indices)) then
       call error_abort("The global vertex indices array was deallocated prematurely!")
@@ -302,16 +302,16 @@ contains
     allocate(mesh%topo%num_vert_nb(local_num_cells))
 
     ! Copy vertex neighbour indices from global array
-    allocate(tmp_vert_nb_indices, source=mesh%topo%vert_nb_indices)
+    allocate(tmp_2d, source=mesh%topo%vert_nb_indices)
     deallocate(mesh%topo%vert_nb_indices)
     allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
     do local_idx = 1, local_num_cells
       global_idx = mesh%topo%global_indices(local_idx)
 
-      mesh%topo%vert_nb_indices(:, local_idx) = tmp_vert_nb_indices(:, global_idx)
+      mesh%topo%vert_nb_indices(:, local_idx) = tmp_2d(:, global_idx)
       mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
     end do
-    deallocate(tmp_vert_nb_indices)
+    deallocate(tmp_2d)
     
     do i = 1, local_num_cells
 
@@ -322,14 +322,14 @@ contains
           local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
           if (local_idx == 0) then
             ! New global index
-            allocate(tmp_arr(mesh%topo%total_num_cells + 1))
-            tmp_arr(1:mesh%topo%total_num_cells) = mesh%topo%global_indices(1:mesh%topo%total_num_cells)
-            tmp_arr(mesh%topo%total_num_cells + 1) = global_idx
+            allocate(tmp_1d(mesh%topo%total_num_cells + 1))
+            tmp_1d(1:mesh%topo%total_num_cells) = mesh%topo%global_indices(1:mesh%topo%total_num_cells)
+            tmp_1d(mesh%topo%total_num_cells + 1) = global_idx
             deallocate(mesh%topo%global_indices)
             mesh%topo%total_num_cells = mesh%topo%total_num_cells + 1
             allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
-            mesh%topo%global_indices(:) = tmp_arr(:)
-            deallocate(tmp_arr)
+            mesh%topo%global_indices(:) = tmp_1d(:)
+            deallocate(tmp_1d)
 
             mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
 
