@@ -17,7 +17,7 @@ program tgv
                    vector_spec, ccs_vector, io_environment, io_process, &
                    field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -32,7 +32,7 @@ program tgv
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count, get_case_name
+  use read_config, only: get_bc_variables, get_boundary_count, get_case_name, get_store_residuals
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
@@ -72,6 +72,8 @@ program tgv
   logical :: v_sol = .true.
   logical :: w_sol = .true.
   logical :: p_sol = .true.
+
+  logical :: store_residuals
 
   integer(ccs_int) :: t          ! Timestep counter
 
@@ -132,6 +134,7 @@ program tgv
   if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
   call get_bc_variables(ccs_config_file, variable_names)
+  call get_store_residuals(ccs_config_file, store_residuals)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -142,6 +145,7 @@ program tgv
 
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
+  call set_field_store_residuals(store_residuals, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)

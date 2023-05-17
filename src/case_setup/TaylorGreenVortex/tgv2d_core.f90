@@ -15,7 +15,7 @@ module tgv2d_core
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -31,7 +31,7 @@ module tgv2d_core
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count
+  use read_config, only: get_bc_variables, get_boundary_count, get_store_residuals
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
@@ -78,6 +78,8 @@ contains
     logical :: w_sol = .false.
     logical :: p_sol = .true.
 
+    logical :: store_residuals
+    
     integer(ccs_int) :: t         ! Timestep counter
 
     type(fluid) :: flow_fields
@@ -137,12 +139,14 @@ contains
     call initialise(vec_properties)
     call get_boundary_count(ccs_config_file, n_boundaries)
     call get_bc_variables(ccs_config_file, variable_names)
+    call get_store_residuals(ccs_config_file, store_residuals)
 
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
 
     call set_field_config_file(ccs_config_file, field_properties)
     call set_field_n_boundaries(n_boundaries, field_properties)
+    call set_field_store_residuals(store_residuals, field_properties)
 
     call set_field_vector_properties(vec_properties, field_properties)
     call set_field_type(cell_centred_central, field_properties)
