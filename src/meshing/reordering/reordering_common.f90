@@ -10,7 +10,8 @@ submodule(reordering) reordering_common
                      get_centre, set_centre, &
                      get_global_index, get_natural_index, &
                      set_natural_index, &
-                     get_total_num_cells
+                     get_total_num_cells, &
+                     get_vert_per_cell
 
   implicit none
 
@@ -88,6 +89,8 @@ contains
     call reorder_neighbours(new_indices, mesh)
     call dprint("         CELL FACES")
     call reorder_faces(new_indices, mesh)
+    call dprint("         CELL VERTICES")
+    call reorder_vertices(mesh)
     
   end subroutine apply_reordering
 
@@ -259,6 +262,29 @@ contains
 
     mesh%topo%face_indices(:, new_indices(:)) = mesh%topo%face_indices(:, :)
 
+  end subroutine
+
+  !> Extract the vertex indices from the global data (restricting to local data)
+  subroutine reorder_vertices(mesh)
+
+    type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
+
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
+    integer(ccs_int) :: vert_per_cell
+    integer(ccs_err) :: local_num_cells
+
+    call get_vert_per_cell(mesh, vert_per_cell)
+    call get_local_num_cells(mesh, local_num_cells)
+    allocate(tmp_2d(vert_per_cell, local_num_cells))
+
+    ! Extract vertex indices of local cells from the global array
+    tmp_2d(:, :) = mesh%topo%global_vertex_indices(:, mesh%topo%natural_indices)
+
+    deallocate(mesh%topo%global_vertex_indices)
+    allocate(mesh%topo%global_vertex_indices, source=tmp_2d)
+    
+    deallocate(tmp_2d)
+    
   end subroutine
   
   module subroutine bandwidth(mesh)
