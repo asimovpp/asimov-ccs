@@ -448,6 +448,8 @@ contains
   !v Write the mesh topology data to file
   subroutine write_topology(geo_writer, mesh)
 
+    use mpi
+    
     ! Arguments
     class(io_process), allocatable, target, intent(in) :: geo_writer        !< The IO process for writing the mesh ("geo") file
     type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
@@ -458,11 +460,19 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: vert_per_cell
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
+    integer(ccs_int), dimension(:), allocatable :: tmp_1d
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
+    integer(ccs_err) ierr
+
+    integer(ccs_int) :: i, j, idx
+    
+    call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
     call get_vert_per_cell(mesh, vert_per_cell)
 
@@ -479,10 +489,34 @@ contains
     sel2_start(1) = 0
     sel2_start(2) = index_global - 1
     sel2_count(1) = vert_per_cell
-    call get_local_num_cells(mesh, sel2_count(2))
+    sel2_count(2) = local_num_cells
 
-    call write_array(geo_writer, "/cell/vertices", sel2_shape, sel2_start, sel2_count, mesh%topo%global_vertex_indices)
+    ! Get global vertex indices in cell natural order
+    allocate(tmp_1d(vert_per_cell * global_num_cells))
+    tmp_1d(:) = 0
+    do i = 1, local_num_cells
+      idx = vert_per_cell * (mesh%topo%natural_indices(i) - 1)
+      do j = 1, vert_per_cell
+        tmp_1d(idx + j) = mesh%topo%global_vertex_indices(j, i)
+      end do
+    end do
+    call MPI_Allreduce(MPI_IN_PLACE, tmp_1d, size(tmp_1d), MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
+    allocate(tmp_2d(vert_per_cell, local_num_cells))
+    do i = 1, local_num_cells
+      idx = vert_per_cell * (mesh%topo%global_indices(i) - 1)
+      do j = 1, vert_per_cell
+        tmp_2d(j, i) = tmp_1d(idx + j)
+      end do
+    end do
+    
+    deallocate(tmp_1d)
+
+    call write_array(geo_writer, "/cell/vertices", sel2_shape, sel2_start, sel2_count, &
+                     tmp_2d)
+
+    deallocate(tmp_2d)
+    
   end subroutine write_topology
 
   !v Write the mesh geometry data to file
