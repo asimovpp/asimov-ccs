@@ -273,13 +273,22 @@ contains
     integer(ccs_int) :: vert_per_cell
     integer(ccs_err) :: local_num_cells
 
+    integer(ccs_int) :: i
+
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: natural_index
+    
     call get_vert_per_cell(mesh, vert_per_cell)
     call get_local_num_cells(mesh, local_num_cells)
     allocate(tmp_2d(vert_per_cell, local_num_cells))
 
     ! Extract vertex indices of local cells from the global array
-    tmp_2d(:, :) = mesh%topo%global_vertex_indices(:, mesh%topo%natural_indices)
-
+    do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+      call get_natural_index(loc_p, natural_index)
+      tmp_2d(:, i) = mesh%topo%global_vertex_indices(:, natural_index)
+    end do
+    
     deallocate(mesh%topo%global_vertex_indices)
     allocate(mesh%topo%global_vertex_indices, source=tmp_2d)
     
