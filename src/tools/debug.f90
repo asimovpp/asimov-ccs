@@ -25,7 +25,7 @@ contains
     class(field), intent(inout) :: u, v, w, p
 
     ! Local variables
-    integer :: io_unit, irank, ierr
+    integer :: io_unit, irank
     integer(ccs_int) :: n_local
     integer(ccs_int) :: index_p
     type(cell_locator) :: loc_p
