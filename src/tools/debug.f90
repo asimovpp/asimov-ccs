@@ -1,4 +1,4 @@
-!v Set of tools used to analyse discretisation errors
+!v Set of tools used for debugging purposes
 module debug
 #include "ccs_macros.inc"
 
