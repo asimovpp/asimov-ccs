@@ -761,6 +761,18 @@ contains
     end associate
   end subroutine get_vertex_neighbour_local_index
 
+  !> Sets the local index of a vertex-neighbouring cell
+  module subroutine set_vertex_neighbour_local_index(index_nb, loc_nb)
+    integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+    type(vertex_neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+
+    associate (mesh => loc_nb%mesh, &
+               i => loc_nb%index_p, &
+               j => loc_nb%vert_nb_counter)
+      mesh%topo%vert_nb_indices(j, i) = index_nb
+    end associate
+  end subroutine set_vertex_neighbour_local_index
+
   !> Returns the local index of a face
   module subroutine get_face_local_index(loc_f, index_f)
     type(face_locator), intent(in) :: loc_f  !< the face locator object.

@@ -80,6 +80,7 @@ module meshing
 
   interface set_local_index
     module procedure set_neighbour_local_index
+    module procedure set_vertex_neighbour_local_index
   end interface set_local_index
 
   interface count_neighbours
@@ -346,6 +347,12 @@ module meshing
       integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
       type(neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
     end subroutine set_neighbour_local_index
+
+    !> Sets the local index of a vertex-neighbouring cell
+    module subroutine set_vertex_neighbour_local_index(index_nb, loc_nb)
+      integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+      type(vertex_neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+    end subroutine set_vertex_neighbour_local_index
 
     !> Returns the local index of a vertex neighbouring cell
     module subroutine get_vertex_neighbour_local_index(loc_nb, index_nb)

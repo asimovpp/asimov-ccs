@@ -2,18 +2,20 @@ submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_err
-  use types, only: cell_locator, neighbour_locator
+  use types, only: cell_locator, neighbour_locator, vertex_neighbour_locator
   use utils, only: str, debug_print, exit_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
-                     get_halo_num_cells, get_global_num_faces, &
+                     get_halo_num_cells, set_halo_num_cells, &
+                     get_global_num_faces, &
                      get_total_num_cells, set_total_num_cells, &
                      set_num_faces, &
                      get_max_faces, &
                      create_cell_locator, create_neighbour_locator, &
                      get_global_index, &
-                     set_local_index
+                     get_local_index, set_local_index, &
+                     get_count_vertex_neighbours
 
   implicit none
 
@@ -277,6 +279,13 @@ contains
     integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
     integer(ccs_int), dimension(:), allocatable :: tmp_1d
 
+    type(cell_locator) :: loc_p
+    type(vertex_neighbour_locator) :: loc_nb
+    integer(ccs_int) :: nvnb
+
+    integer(ccs_int) :: total_num_cells
+    integer(ccs_int) :: halo_num_cells
+    
     if (.not. allocated(mesh%topo%global_vertex_indices)) then
       call error_abort("The global vertex indices array was deallocated prematurely!")
     else
@@ -306,7 +315,8 @@ contains
     deallocate(mesh%topo%vert_nb_indices)
     allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
     do local_idx = 1, local_num_cells
-      global_idx = mesh%topo%global_indices(local_idx)
+      call create_cell_locator(mesh, local_idx, loc_p)
+      call get_global_index(loc_p, global_idx)
 
       mesh%topo%vert_nb_indices(:, local_idx) = tmp_2d(:, global_idx)
       mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
@@ -314,28 +324,40 @@ contains
     deallocate(tmp_2d)
     
     do i = 1, local_num_cells
-
+      call create_cell_locator(mesh, i, loc_p)
+      
       ! Convert global->local indices
-      do j = 1, mesh%topo%num_vert_nb(i)
-        global_idx = mesh%topo%vert_nb_indices(j, i)
+      call get_count_vertex_neighbours(loc_p, nvnb)
+      do j = 1, nvnb
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_local_index(loc_nb, global_idx) ! XXX: This is deliberate, at this point it is a global index
+
         if (global_idx > 0) then
           local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
           if (local_idx == 0) then
             ! New global index
-            allocate(tmp_1d(mesh%topo%total_num_cells + 1))
-            tmp_1d(1:mesh%topo%total_num_cells) = mesh%topo%global_indices(1:mesh%topo%total_num_cells)
-            tmp_1d(mesh%topo%total_num_cells + 1) = global_idx
+            call get_total_num_cells(mesh, total_num_cells)
+
+            allocate(tmp_1d(total_num_cells + 1))
+            tmp_1d(1:total_num_cells) = mesh%topo%global_indices(1:total_num_cells)
+            tmp_1d(total_num_cells + 1) = global_idx
+
+            ! Update total and halo cell counts
+            call set_total_num_cells(total_num_cells + 1, mesh)
+            call get_total_num_cells(mesh, total_num_cells)
+            call get_halo_num_cells(mesh, halo_num_cells)
+            call set_halo_num_cells(halo_num_cells + 1, mesh)
+
+            ! Copy extended global indices back into mesh object
             deallocate(mesh%topo%global_indices)
-            mesh%topo%total_num_cells = mesh%topo%total_num_cells + 1
-            allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
+            allocate(mesh%topo%global_indices(total_num_cells))
             mesh%topo%global_indices(:) = tmp_1d(:)
             deallocate(tmp_1d)
 
-            mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
-
-            local_idx = mesh%topo%total_num_cells
+            local_idx = total_num_cells
           end if
-          mesh%topo%vert_nb_indices(j, i) = local_idx
+
+          call set_local_index(local_idx, loc_nb)
         end if
       end do
     end do
