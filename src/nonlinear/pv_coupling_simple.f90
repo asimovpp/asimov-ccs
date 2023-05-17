@@ -486,8 +486,6 @@ contains
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
 
-    integer(ccs_int) :: global_num_cells
-
     ! First zero matrix
     call zero(M)
 
@@ -692,6 +690,7 @@ contains
 
     real(ccs_real) :: mib ! Cell mass imbalance
     integer(ccs_int) :: nvar ! Number of flow variables to solve
+    integer(ccs_int) :: global_num_cells
 
     logical, save :: first_time = .true.
 
@@ -700,8 +699,6 @@ contains
     class(field), pointer :: w        !< The z velocity component
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
-
-    integer(ccs_int) :: global_num_cells
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)

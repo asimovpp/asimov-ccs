@@ -17,10 +17,10 @@ module mesh_utils
   use meshing, only: get_global_index, get_local_index, count_neighbours, &
                      create_cell_locator, create_neighbour_locator, create_face_locator, create_vert_locator, &
                      set_face_index, get_boundary_status, get_local_status, &
-                     get_local_num_cells, set_local_num_cells, &
                      get_centre, set_centre, &
                      set_area, set_normal, get_face_normal, &
-                     get_local_num_cells, set_local_num_cells, set_face_interpolation
+                     set_total_num_cells, get_total_num_cells, &
+                     get_local_num_cells, set_local_num_cells, set_face_interpolation, &
                      get_global_num_cells, set_global_num_cells, &
                      set_halo_num_cells, &
                      get_global_num_faces, set_global_num_faces, &
@@ -258,7 +258,6 @@ contains
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
-    type(cell_locator) :: loc_p
     integer(ccs_int) :: i, j, n, global_icell, local_icell
     integer(ccs_int) :: vert_per_cell
 
@@ -398,13 +397,13 @@ contains
     ! Correct normal orientations and norms
     do index_p = 1, local_num_cells ! loop over cells owned by current process
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_centre(loc_p, x_p)
       call count_neighbours(loc_p, nnb)
 
       do j = 1, nnb ! loop over all faces for each cell
 
-        call set_face_location(mesh, index_p, j, loc_f)
+        call create_face_locator(mesh, index_p, j, loc_f)
         call get_face_normal(loc_f, face_normal)
         call get_centre(loc_f, x_f)
         

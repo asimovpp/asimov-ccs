@@ -14,7 +14,7 @@ contains
     use constants, only: ndim
     use types, only: cell_locator
     use vec, only: get_vector_data, restore_vector_data
-    use meshing, only: set_cell_location, get_centre, &
+    use meshing, only: create_cell_locator, get_centre, &
                        get_local_num_cells
     use parallel, only: sync
     use parallel_types, only: parallel_environment
@@ -53,7 +53,7 @@ contains
         end if
 
         do index_p = 1, n_local
-          call set_cell_location(mesh, index_p, loc_p)
+          call create_cell_locator(mesh, index_p, loc_p)
           call get_centre(loc_p, x_p)
 
           write (io_unit, '(7(1x,e12.4), 1x,i12, 1x,i12)') x_p(:), u_data(index_p), v_data(index_p), w_data(index_p), p_data(index_p), irank, index_p
