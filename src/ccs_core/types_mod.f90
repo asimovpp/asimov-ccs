@@ -189,7 +189,7 @@ module types
     integer :: field_type                            !< Flag to identify which type of field to create
     character(len=:), allocatable :: field_name      !< The name of the field
     integer(ccs_int) :: n_boundaries                 !< The number of boundaries involved...
-    logical :: store_residuals = .false.
+    logical :: store_residuals = .false.             !< Wether or not residuals should be stored for this field
   end type field_spec
 
   !> Type for storing pointer to a field
