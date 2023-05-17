@@ -33,7 +33,7 @@ program bfs
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh, build_mesh, write_mesh
+  use mesh_utils, only: read_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
@@ -356,7 +356,7 @@ contains
 
       call get_centre(loc_p, x_p)
 
-      u_val = 1.0_ccs_real
+      u_val = 0.0_ccs_real
       v_val = 0.0_ccs_real
       w_val = 0.0_ccs_real
       p_val = 0.0_ccs_real 
