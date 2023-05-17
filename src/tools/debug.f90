@@ -3,12 +3,13 @@ module debug
 #include "ccs_macros.inc"
 
   use kinds
+  use types
 
 contains
 
 
 !v Export fields as well as mpi rank and local cell ID to text file
-  subroutine dump_flow_tofile(mesh, u, v, w, p)
+  subroutine dump_flow_tofile(par_env, mesh, u, v, w, p)
 
     use constants, only: ndim
     use types, only: cell_locator
@@ -16,10 +17,12 @@ contains
     use meshing, only: set_cell_location, get_centre, &
                        get_local_num_cells
     use parallel, only: sync
+    use parallel_types, only: parallel_environment
 
     ! Arguments
+    class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, p
+    class(field), intent(inout) :: u, v, w, p
 
     ! Local variables
     integer :: io_unit, irank, ierr
