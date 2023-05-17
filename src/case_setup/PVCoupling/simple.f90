@@ -151,7 +151,7 @@ contains
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
-    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
+    use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: set_values, set_mode, set_entry, set_row
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -182,7 +182,7 @@ contains
 
     ! Set initial values for velocity fields
     do local_idx = 1, n_local
-      call set_cell_location(cell_mesh, local_idx, self_loc)
+      call create_cell_locator(cell_mesh, local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call calc_cell_coords(self_idx, cps, row, col)
 

@@ -15,12 +15,13 @@ module tgv2d_core
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
+  use meshing, only: get_global_num_cells
   use mesh_utils, only: build_square_mesh, write_mesh
   use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
@@ -69,6 +70,7 @@ contains
     integer(ccs_int) :: isize ! Size of MPI world
 
     double precision :: start_time
+    double precision :: init_time
     double precision :: end_time
 
     logical :: u_sol = .true.  ! Default equations to solve for LDC case
@@ -85,8 +87,8 @@ contains
     isize = par_env%num_procs
 
     call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
-    
-    if(allocated(input_path)) then
+
+    if (allocated(input_path)) then
       case_path = input_path // "/" // case_name
     else
       case_path = case_name
@@ -194,7 +196,7 @@ contains
     if (irank == par_env%root) then
       call print_configuration(mesh)
     end if
-    
+
     ! XXX: This should get incorporated as part of create_field subroutines
     call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
     call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
@@ -208,6 +210,8 @@ contains
     call set_field(5, field_p_prime, p_prime, flow_fields)
     call set_field(6, field_mf, mf, flow_fields)
     
+    call timer(init_time)
+
     do t = 1, num_steps
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                           fluid_sol, flow_fields)
@@ -238,11 +242,11 @@ contains
     call timer(end_time)
 
     if (irank == par_env%root) then
+      print *, "Init time: ", init_time - start_time
       print *, "Elapsed time: ", end_time - start_time
     end if
 
   end subroutine run_tgv2d
-
 
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
@@ -300,7 +304,12 @@ contains
 
   ! Print test case configuration
   subroutine print_configuration(mesh)
+
     class(ccs_mesh), intent(in) :: mesh
+
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
@@ -314,9 +323,9 @@ contains
     write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
-    print *,"* Cells per side: ", cps
+    print *, "* Cells per side: ", cps
     write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
-    print *, "Global number of cells is ", mesh%topo%global_num_cells
+    print *, "Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
@@ -329,8 +338,8 @@ contains
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
-    use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre, &
+    use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
+                       get_local_index, create_face_locator, get_local_index, get_face_normal, get_centre, &
                        get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
@@ -371,24 +380,24 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
+      call create_cell_locator(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
 
-       call get_centre(loc_p, x_p)
+      call get_centre(loc_p, x_p)
 
-       u_val = sin(x_p(1)) * cos(x_p(2))
-       v_val = -cos(x_p(1)) * sin(x_p(2))
-       w_val = 0.0_ccs_real
-       p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+      u_val = sin(x_p(1)) * cos(x_p(2))
+      v_val = -cos(x_p(1)) * sin(x_p(2))
+      w_val = 0.0_ccs_real
+      p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
 
-       call set_row(global_index_p, u_vals)
-       call set_entry(u_val, u_vals)
-       call set_row(global_index_p, v_vals)
-       call set_entry(v_val, v_vals)
-       call set_row(global_index_p, w_vals)
-       call set_entry(w_val, w_vals)
-       call set_row(global_index_p, p_vals)
-       call set_entry(p_val, p_vals)
+      call set_row(global_index_p, u_vals)
+      call set_entry(u_val, u_vals)
+      call set_row(global_index_p, v_vals)
+      call set_entry(v_val, v_vals)
+      call set_row(global_index_p, w_vals)
+      call set_entry(w_val, w_vals)
+      call set_row(global_index_p, p_vals)
+      call set_entry(p_val, p_vals)
     end do
 
     call set_values(u_vals, u%values)
@@ -413,17 +422,17 @@ contains
     ! Loop over local cells and faces
     do index_p = 1, n_local
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
 
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then ! XXX: abstract this test
 
-          call set_face_location(mesh, index_p, j, loc_f)
+          call create_face_locator(mesh, index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)
@@ -454,7 +463,7 @@ contains
 
     use vec, only: get_vector_data, restore_vector_data
 
-    use meshing, only: get_centre, set_cell_location, get_local_num_cells
+    use meshing, only: get_centre, create_cell_locator, get_local_num_cells
 
     use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
@@ -485,6 +494,8 @@ contains
     real(ccs_real) :: time
     integer(ccs_int) :: step
 
+    integer(ccs_int) :: global_num_cells
+
     integer :: io_unit
 
     integer :: ierr
@@ -506,7 +517,7 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_centre(loc_p, x_p)
 
       ! Compute analytical solution
@@ -528,7 +539,6 @@ contains
       !error_Linf_local(3) = max(error_Linf_local(3), abs(w_an - w_data(index_p)))
       error_Linf_local(3) = max(error_Linf_local(3), abs(p_an - p_data(index_p)))
 
-
     end do
     call restore_vector_data(u%values, u_data)
     call restore_vector_data(v%values, v_data)
@@ -542,7 +552,9 @@ contains
     class default
       call error_abort("ERROR: Unknown type")
     end select
-    error_L2(:) = sqrt(error_L2(:) / mesh%topo%global_num_cells)
+
+    call get_global_num_cells(mesh, global_num_cells)
+    error_L2(:) = sqrt(error_L2(:) / global_num_cells)
 
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
@@ -551,7 +563,7 @@ contains
       else
         open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
       end if
-      fmt = '(I0,' // str(2*size(error_L2)) // '(1x,e12.4))'
+      fmt = '(I0,' // str(2 * size(error_L2)) // '(1x,e12.4))'
       write (io_unit, fmt) step, error_L2, error_Linf
       close (io_unit)
     end if
