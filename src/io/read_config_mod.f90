@@ -28,11 +28,13 @@ module read_config
   public :: get_bc_variables
   public :: get_bc_field
   public :: get_boundary_count
+  public :: get_store_residuals
 
   interface get_value
     module procedure get_integer_value
     module procedure get_real_value
     module procedure get_string_value
+    module procedure get_logical_value
   end interface
 
   interface
@@ -60,6 +62,15 @@ module read_config
       class(*), pointer, intent(in) :: dict                       !< The dictionary
       character(len=*), intent(in) :: keyword                     !< The key
       character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
+      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+    end subroutine
+
+    !> Gets the logical (boolean) associated with the keyword from dict
+    module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
+      class(*), pointer, intent(in) :: dict                       !< The dictionary
+      character(len=*), intent(in) :: keyword                     !< The key
+      logical, intent(inout) :: logical_val !< The corresponding value
       logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
       logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
@@ -223,6 +234,12 @@ module read_config
     module subroutine get_boundary_count(filename, n_boundaries)
       character(len=*), intent(in) :: filename      !< name of the config file
       integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
+    end subroutine
+
+    !> Gets wether residuals should be stored or not
+    module subroutine get_store_residuals(filename, store_residuals)
+      character(len=*), intent(in) :: filename
+      logical, intent(out) :: store_residuals
     end subroutine
   end interface
 end module read_config
