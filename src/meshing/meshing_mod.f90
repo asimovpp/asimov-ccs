@@ -64,6 +64,7 @@ module meshing
 
   interface set_global_index
     module procedure set_face_global_index
+    module procedure set_cell_global_index
   end interface set_global_index
 
   interface set_natural_index
@@ -237,6 +238,12 @@ module meshing
       type(cell_locator), intent(in) :: loc_p         !< the cell locator object.
       integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
     end subroutine get_cell_global_index
+
+    !> Sets the global index of a cell
+    module subroutine set_cell_global_index(global_index_p, loc_p)
+      integer(ccs_int), intent(in) :: global_index_p !< the global index of the cell.
+      type(cell_locator), intent(inout) :: loc_p     !< the cell locator object.
+    end subroutine set_cell_global_index
 
     !v Returns the natural index of a cell
     !

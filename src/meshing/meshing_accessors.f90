@@ -524,6 +524,17 @@ contains
     end associate
   end subroutine get_cell_global_index
 
+  !> Sets the global index of a cell
+  module subroutine set_cell_global_index(global_index_p, loc_p)
+    integer(ccs_int), intent(in) :: global_index_p !< the global index of the cell.
+    type(cell_locator), intent(inout) :: loc_p     !< the cell locator object.
+    
+    associate (mesh => loc_p%mesh, &
+         cell => loc_p%index_p)
+      mesh%topo%global_indices(cell) = global_index_p
+    end associate
+  end subroutine set_cell_global_index
+
   !v Returns the natural index of a cell
   !
   ! @note@ The natural index is the original global index, whereas the global index indicates the
@@ -546,19 +557,19 @@ contains
     end associate
   end subroutine get_cell_natural_index
 
-    !v Sets the natural index of a cell
-    !
-    ! @note@ The natural index is the original global index, whereas the global index indicates the
-    !        indexing in the current ordering.
-    module subroutine set_cell_natural_index(natural_index_p, loc_p)
-      integer(ccs_int), intent(in) :: natural_index_p !< the natural index of the cell.
-      type(cell_locator), intent(inout) :: loc_p      !< the cell locator object.
-
-      associate (mesh => loc_p%mesh, &
-           cell => loc_p%index_p)
-        mesh%topo%natural_indices(cell) = natural_index_p
-      end associate
-    end subroutine set_cell_natural_index
+  !v Sets the natural index of a cell
+  !
+  ! @note@ The natural index is the original global index, whereas the global index indicates the
+  !        indexing in the current ordering.
+  module subroutine set_cell_natural_index(natural_index_p, loc_p)
+    integer(ccs_int), intent(in) :: natural_index_p !< the natural index of the cell.
+    type(cell_locator), intent(inout) :: loc_p      !< the cell locator object.
+    
+    associate (mesh => loc_p%mesh, &
+         cell => loc_p%index_p)
+      mesh%topo%natural_indices(cell) = natural_index_p
+    end associate
+  end subroutine set_cell_natural_index
 
   !> Returns the global index of a neighbouring cell
   module subroutine get_neighbour_global_index(loc_nb, global_index_nb)

@@ -6,9 +6,12 @@ submodule(reordering) reordering_common
   use types, only: cell_locator, neighbour_locator
   use parallel_types, only: parallel_environment
   use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
-                     get_local_index, create_neighbour_locator, get_local_status, &
+                     get_local_index, create_neighbour_locator, &
+                     get_boundary_status, get_local_status, &
                      get_centre, set_centre, &
-                     get_global_index, get_natural_index, &
+                     get_global_index, set_global_index, &
+                     get_natural_index, &
+                     get_global_num_cells, &
                      set_natural_index, &
                      get_total_num_cells, &
                      get_vert_per_cell
@@ -105,37 +108,46 @@ contains
 
     integer(ccs_int) :: i
     integer(ccs_int) :: idxg
+    integer(ccs_int) :: idxn
     integer(ccs_int) :: offset
     
     integer(ccs_int), dimension(:), allocatable :: global_indices
 
     integer(ccs_err) :: ierr
 
+    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: total_num_cells
     type(cell_locator) :: loc_p
-    
+
+    call get_total_num_cells(mesh, total_num_cells)
     if (allocated(mesh%topo%global_indices)) then
       deallocate(mesh%topo%global_indices)
     end if
-    allocate(mesh%topo%global_indices(mesh%topo%total_num_cells))
+    allocate(mesh%topo%global_indices(total_num_cells))
 
     ! Compute the global offset, this should start from 1.
     call get_global_offset(mesh, par_env, offset)
 
     ! Apply local (contiguous) global numbering
-    do i = 1, mesh%topo%local_num_cells
-      mesh%topo%global_indices(i) = i + (offset - 1)
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+      call set_global_index(i + (offset - 1), loc_p)
     end do
     
     ! Determine the new global index of halo cells.
     ! The easiest way to do this is a global array with the new global indices in original ordering, i.e. to(from).
-    allocate(global_indices(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    allocate(global_indices(global_num_cells))
 
     global_indices(:) = 0
 
-    do i = 1, mesh%topo%local_num_cells
+    do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
-      call get_natural_index(loc_p, idxg) ! where the cell was in the original ordering
-      global_indices(idxg) = mesh%topo%global_indices(i)
+      call get_natural_index(loc_p, idxn) ! where the cell was in the original ordering
+      call get_global_index(loc_p, idxg)
+      global_indices(idxn) = idxg
     end do
 
     select type(par_env)
@@ -147,10 +159,11 @@ contains
     end select
 
 
-    do i = mesh%topo%local_num_cells + 1, mesh%topo%total_num_cells
+    do i = local_num_cells + 1, total_num_cells
       call create_cell_locator(mesh, i, loc_p)
-      call get_natural_index(loc_p, idxg)
-      mesh%topo%global_indices(i) = global_indices(idxg)
+      call get_natural_index(loc_p, idxn)
+      idxg = global_indices(idxn)
+      call set_global_index(idxg, loc_p)
     end do
     
     deallocate(global_indices)
@@ -220,6 +233,10 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: nnb
+
+    type(neighbour_locator) :: loc_nb
+    logical :: is_boundary
+    logical :: is_local
     
     call get_local_num_cells(mesh, local_num_cells)
 
@@ -233,8 +250,11 @@ contains
       ! Get new /local/ index of neighbours, note only local cells are reordered, the local
       ! index of halo cells remains unchanged.
       do j = 1, nnb
-        idx_tmp = mesh%topo%nb_indices(j, i)
-        if ((idx_tmp > 0) .and. (idx_tmp <= local_num_cells)) then
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        call get_local_status(loc_nb, is_local)
+        if ((.not. is_boundary) .and. is_local) then
+          call get_local_index(loc_nb, idx_tmp)
           idx_new = new_indices(idx_tmp)
           idx_tmp = new_indices(i)
           idx_nb(j, idx_tmp) = idx_new
@@ -355,6 +375,8 @@ contains
     integer(ccs_int) :: par_idx
     integer(ccs_int), dimension(:), allocatable :: cell_counts
 
+    integer(ccs_int) :: local_num_cells
+    
     integer(ccs_int) :: i
     integer(ccs_err) :: ierr
 
@@ -368,8 +390,9 @@ contains
 
     allocate(cell_counts(nproc))
 
+    call get_local_num_cells(mesh, local_num_cells)
     cell_counts(:) = 0
-    cell_counts(par_idx) = mesh%topo%local_num_cells
+    cell_counts(par_idx) = local_num_cells
 
     select type(par_env)
     type is (parallel_environment_mpi)
