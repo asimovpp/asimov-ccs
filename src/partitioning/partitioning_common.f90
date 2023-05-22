@@ -280,7 +280,6 @@ contains
     integer(ccs_int), dimension(:), allocatable :: tmp_1d
 
     type(cell_locator) :: loc_p
-    type(vertex_neighbour_locator) :: loc_nb
     integer(ccs_int) :: nvnb
 
     integer(ccs_int) :: total_num_cells
@@ -323,15 +322,16 @@ contains
     end do
     deallocate(tmp_2d)
     
+    ! Convert global->local indices
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       
-      ! Convert global->local indices
-      call get_count_vertex_neighbours(loc_p, nvnb)
+      !call get_count_vertex_neighbours(loc_p, nvnb)
+      nvnb = mesh%topo%num_vert_nb(i)
       do j = 1, nvnb
-        call create_neighbour_locator(loc_p, j, loc_nb)
-        call get_local_index(loc_nb, global_idx) ! XXX: This is deliberate, at this point it is a global index
-
+        ! We can't use the neighbour index because currently we have global indices and this breaks the error checking.
+        global_idx = mesh%topo%vert_nb_indices(j, i)
+        
         if (global_idx > 0) then
           local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
           if (local_idx == 0) then
@@ -357,7 +357,8 @@ contains
             local_idx = total_num_cells
           end if
 
-          call set_local_index(local_idx, loc_nb)
+          ! As above, can't use vertex neighbour locators as currently have global indices in the arrays.
+          mesh%topo%vert_nb_indices(j, i) = local_idx
         end if
       end do
     end do
