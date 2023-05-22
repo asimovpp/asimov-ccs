@@ -234,7 +234,8 @@ contains
     sel2_count(1) = vert_per_cell
 
     call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
-
+    call build_vertex_neighbours(par_env, mesh)
+    
     ! Create and populate the vtxdist array based on the total number of cells
     ! and the total number of ranks in the parallel environment
     allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
@@ -254,6 +255,60 @@ contains
 
   end subroutine read_topology
 
+  !v Build the vertex neighbours from the cell-vertex connectivity.
+  !
+  !  @note@ This will be quadratic - do we REALLY need it?
+  !  @note@ This won't find boundary vertex "neighbours" hopefully they aren't needed...
+  subroutine build_vertex_neighbours(par_env, mesh)
+
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(inout) :: mesh
+
+    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: vert_nb_per_cell
+    integer(ccs_int) :: vert_per_cell
+
+    integer(ccs_int) :: i, j, k
+
+    if (par_env%proc_id == par_env%root) then
+      print *, "Building vertex neighbours, this may take a while..."
+    end if
+    
+    call get_global_num_cells(mesh, global_num_cells)
+    call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
+    call get_vert_per_cell(mesh, vert_per_cell)
+    
+    allocate(mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
+    mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
+
+    ! Yes, quadratic...
+    do i = 1, global_num_cells
+      mesh%topo%num_vert_nb(i) = 0
+      do j = 1, global_num_cells
+        if (j /= i) then
+          if (any(mesh%topo%global_face_indices(:, i) == j)) then
+            ! Face neighbour, ignore
+            continue
+          else
+            do k = 1, vert_per_cell
+              if (any(mesh%topo%global_vertex_indices(:, j) == mesh%topo%global_vertex_indices(k, i))) then
+                mesh%topo%num_vert_nb(i) = mesh%topo%num_vert_nb(i) + 1
+                mesh%topo%vert_nb_indices(mesh%topo%num_vert_nb(i), i) = j
+                exit
+              end if
+            end do
+          end if
+        end if
+
+        !! Found all the vertex neighbours we're expecting
+        if (mesh%topo%num_vert_nb(i) == vert_per_cell) then
+          exit
+        end if
+      end do
+    end do
+    
+  end subroutine build_vertex_neighbours
+  
   !v Read the geometry data from an input (HDF5) file
   subroutine read_geometry(geo_reader, mesh)
 
