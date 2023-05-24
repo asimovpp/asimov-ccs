@@ -284,6 +284,8 @@ contains
 
     integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: halo_num_cells
+
+    integer(ccs_int) :: global_num_cells
     
     if (.not. allocated(mesh%topo%global_vertex_indices)) then
       call error_abort("The global vertex indices array was deallocated prematurely!")
@@ -293,6 +295,7 @@ contains
       end if
     end if
 
+    call get_global_num_cells(mesh, global_num_cells)
     call get_local_num_cells(mesh, local_num_cells)
 
     max_vert_nb = maxval(mesh%topo%num_vert_nb)
@@ -309,6 +312,11 @@ contains
     end if
     allocate(mesh%topo%num_vert_nb(local_num_cells))
 
+    ! Check vertex neighbours as input
+    if (any(mesh%topo%vert_nb_indices > global_num_cells)) then
+       call error_abort("Global vertex neighbour indices > global_num_cells")
+    end if
+    
     ! Copy vertex neighbour indices from global array
     allocate(tmp_2d, source=mesh%topo%vert_nb_indices)
     deallocate(mesh%topo%vert_nb_indices)
