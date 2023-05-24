@@ -71,7 +71,7 @@ module meshing
   interface set_natural_index
     module procedure set_cell_natural_index
   end interface set_natural_index
-    
+
   interface get_local_index
     module procedure get_cell_local_index
     module procedure get_neighbour_local_index

@@ -133,10 +133,10 @@ contains
       end do
     end if
 
-    if(allocated(data)) then
-      deallocate(data)
+    if (allocated(data)) then
+      deallocate (data)
     end if
-    
+
     ! End step
     call end_step(sol_writer)
 

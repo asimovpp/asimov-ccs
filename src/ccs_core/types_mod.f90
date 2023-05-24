@@ -96,14 +96,14 @@ module types
     integer(ccs_int) :: num_faces                                           !< Local number of faces
     integer(ccs_int) :: max_faces                                           !< Maximum number of faces per cell
     integer(ccs_int), dimension(:), allocatable :: natural_indices          !< The global index of cells in the original ordering (local + halo)
-                                                                            !<   natural_icell = natural_indices(local_icell)
-    integer(ccs_int), dimension(:), allocatable :: global_indices           !< The global index of cells (local + halo) 
-                                                                            !<   global_icell = global_indices(local_icell)
-    integer(ccs_int), dimension(:, :), allocatable :: global_face_indices   !< Global list of faces indices        
-                                                                 !<   global_iface = global_face_indices(cell_iface, global_icell)
-                                                                            !<   (no special treatment for halo or boundary faces)
-    integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices 
-                                                                    !<   global_ivert = global_vertex_indices(ivert, global_icell) 
+    !<   natural_icell = natural_indices(local_icell)
+    integer(ccs_int), dimension(:), allocatable :: global_indices           !< The global index of cells (local + halo)
+    !<   global_icell = global_indices(local_icell)
+    integer(ccs_int), dimension(:, :), allocatable :: global_face_indices   !< Global list of faces indices
+    !<   global_iface = global_face_indices(cell_iface, global_icell)
+    !<   (no special treatment for halo or boundary faces)
+    integer(ccs_int), dimension(:, :), allocatable :: global_vertex_indices !< Global list of vertex indices
+    !<   global_ivert = global_vertex_indices(ivert, global_icell)
     integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell)
     !<   iface = global_face_indices(cell_iface, icell)
     !<   (no special treatment for halo or boundary faces)

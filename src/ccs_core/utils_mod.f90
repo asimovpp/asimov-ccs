@@ -56,7 +56,7 @@ module utils
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
   public :: get_natural_data
-  
+
   !> Generic interface to set values on an object.
   interface set_values
     module procedure set_vector_values
@@ -159,7 +159,7 @@ module utils
   interface get_natural_data
     module procedure get_natural_data_vec
   end interface get_natural_data
-  
+
   integer(ccs_int), save :: outputlist_counter = 0
 
 contains

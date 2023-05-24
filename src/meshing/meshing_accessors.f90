@@ -295,7 +295,7 @@ contains
     integer(ccs_int) :: total_num_cells
 
     character(len=:), allocatable :: msg
-    
+
     loc_p%mesh => mesh
     loc_p%index_p = index_p
 
@@ -303,7 +303,7 @@ contains
     call get_total_num_cells(mesh, total_num_cells)
     if (index_p > total_num_cells) then
       call get_local_num_cells(mesh, local_num_cells)
-      msg = "ERROR: trying to access cell I don't have access to." // str(index_p) // " " // &
+      msg = "ERROR: trying to access cell I don't have access to." // str(index_p) // " " //  &
             str(local_num_cells) // " " // str(total_num_cells)
       call error_abort(msg)
     end if
@@ -528,9 +528,9 @@ contains
   module subroutine set_cell_global_index(global_index_p, loc_p)
     integer(ccs_int), intent(in) :: global_index_p !< the global index of the cell.
     type(cell_locator), intent(inout) :: loc_p     !< the cell locator object.
-    
+
     associate (mesh => loc_p%mesh, &
-         cell => loc_p%index_p)
+               cell => loc_p%index_p)
       mesh%topo%global_indices(cell) = global_index_p
     end associate
   end subroutine set_cell_global_index
@@ -564,9 +564,9 @@ contains
   module subroutine set_cell_natural_index(natural_index_p, loc_p)
     integer(ccs_int), intent(in) :: natural_index_p !< the natural index of the cell.
     type(cell_locator), intent(inout) :: loc_p      !< the cell locator object.
-    
+
     associate (mesh => loc_p%mesh, &
-         cell => loc_p%index_p)
+               cell => loc_p%index_p)
       mesh%topo%natural_indices(cell) = natural_index_p
     end associate
   end subroutine set_cell_natural_index

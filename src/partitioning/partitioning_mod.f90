@@ -38,7 +38,7 @@ module partitioning
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
     end subroutine compute_connectivity_get_local_cells
-    
+
   end interface
 
 end module partitioning

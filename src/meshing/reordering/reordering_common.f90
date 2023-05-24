@@ -94,7 +94,7 @@ contains
     call reorder_faces(new_indices, mesh)
     call dprint("         CELL VERTICES")
     call reorder_vertices(mesh)
-    
+
   end subroutine apply_reordering
 
   subroutine set_global_indices(par_env, mesh)
@@ -110,7 +110,7 @@ contains
     integer(ccs_int) :: idxg
     integer(ccs_int) :: idxn
     integer(ccs_int) :: offset
-    
+
     integer(ccs_int), dimension(:), allocatable :: global_indices
 
     integer(ccs_err) :: ierr
@@ -122,9 +122,9 @@ contains
 
     call get_total_num_cells(mesh, total_num_cells)
     if (allocated(mesh%topo%global_indices)) then
-      deallocate(mesh%topo%global_indices)
+      deallocate (mesh%topo%global_indices)
     end if
-    allocate(mesh%topo%global_indices(total_num_cells))
+    allocate (mesh%topo%global_indices(total_num_cells))
 
     ! Compute the global offset, this should start from 1.
     call get_global_offset(mesh, par_env, offset)
@@ -135,11 +135,11 @@ contains
       call create_cell_locator(mesh, i, loc_p)
       call set_global_index(i + (offset - 1), loc_p)
     end do
-    
+
     ! Determine the new global index of halo cells.
     ! The easiest way to do this is a global array with the new global indices in original ordering, i.e. to(from).
     call get_global_num_cells(mesh, global_num_cells)
-    allocate(global_indices(global_num_cells))
+    allocate (global_indices(global_num_cells))
 
     global_indices(:) = 0
 
@@ -150,7 +150,7 @@ contains
       global_indices(idxn) = idxg
     end do
 
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, global_indices, mesh%topo%global_num_cells, &
                          MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -164,9 +164,9 @@ contains
       idxg = global_indices(idxn)
       call set_global_index(idxg, loc_p)
     end do
-    
-    deallocate(global_indices)
-    
+
+    deallocate (global_indices)
+
   end subroutine set_global_indices
 
   !v Store the natural indices of the problem in the new ordering.
@@ -175,7 +175,7 @@ contains
   !  be replaced by the global indexing of the linear system.
   !
   !  Halo cells are left in place, therefore only the natural indices of local cells need to be
-  !  reordered. Note, however, that the global (linear system) index of halo cells does need to be 
+  !  reordered. Note, however, that the global (linear system) index of halo cells does need to be
   !  updated by the call to set_global_indices.
   subroutine reorder_natural_indices(new_indices, par_env, mesh)
 
@@ -189,18 +189,18 @@ contains
     integer(ccs_int) :: idx_new
     integer(ccs_int) :: idxg
     type(cell_locator) :: loc_p
-    
+
     ! Only need to order local cells
     call get_local_num_cells(mesh, local_num_cells)
     call get_total_num_cells(mesh, total_num_cells)
-    allocate(mesh%topo%natural_indices(total_num_cells))
+    allocate (mesh%topo%natural_indices(total_num_cells))
     mesh%topo%natural_indices(:) = 0 ! For checking
-    
+
     ! Apply reordering on the local natural indices
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, idxg)
-      
+
       idx_new = new_indices(i)
       call create_cell_locator(mesh, idx_new, loc_p)
       call set_natural_index(idxg, loc_p)
@@ -215,7 +215,7 @@ contains
 
     ! Set global indices to linear system
     call set_global_indices(par_env, mesh)
-    
+
   end subroutine reorder_natural_indices
 
   subroutine reorder_neighbours(new_indices, mesh)
@@ -224,11 +224,11 @@ contains
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     integer(ccs_int) :: local_num_cells
-    
+
     integer(ccs_int) :: i, j
     integer(ccs_int) :: idx_tmp
     integer(ccs_int) :: idx_new
-    
+
     integer(ccs_int), dimension(:, :), allocatable :: idx_nb
 
     type(cell_locator) :: loc_p
@@ -237,7 +237,7 @@ contains
     type(neighbour_locator) :: loc_nb
     logical :: is_boundary
     logical :: is_local
-    
+
     call get_local_num_cells(mesh, local_num_cells)
 
     allocate (idx_nb, mold=mesh%topo%nb_indices)
@@ -297,10 +297,10 @@ contains
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: natural_index
-    
+
     call get_vert_per_cell(mesh, vert_per_cell)
     call get_local_num_cells(mesh, local_num_cells)
-    allocate(tmp_2d(vert_per_cell, local_num_cells))
+    allocate (tmp_2d(vert_per_cell, local_num_cells))
 
     ! Extract vertex indices of local cells from the global array
     do i = 1, local_num_cells
@@ -308,14 +308,14 @@ contains
       call get_natural_index(loc_p, natural_index)
       tmp_2d(:, i) = mesh%topo%global_vertex_indices(:, natural_index)
     end do
-    
-    deallocate(mesh%topo%global_vertex_indices)
-    allocate(mesh%topo%global_vertex_indices, source=tmp_2d)
-    
-    deallocate(tmp_2d)
-    
+
+    deallocate (mesh%topo%global_vertex_indices)
+    allocate (mesh%topo%global_vertex_indices, source=tmp_2d)
+
+    deallocate (tmp_2d)
+
   end subroutine
-  
+
   module subroutine bandwidth(mesh)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh to evaluate
@@ -362,7 +362,7 @@ contains
 
   ! Get the cell distribution across all processors in rank order, and compute my offset.
   subroutine get_global_offset(mesh, par_env, offset)
-    
+
     use mpi
 
     use parallel_types_mpi, only: parallel_environment_mpi
@@ -376,11 +376,11 @@ contains
     integer(ccs_int), dimension(:), allocatable :: cell_counts
 
     integer(ccs_int) :: local_num_cells
-    
+
     integer(ccs_int) :: i
     integer(ccs_err) :: ierr
 
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       nproc = par_env%num_procs
       par_idx = par_env%proc_id + 1 ! MPI is C-indexed
@@ -388,13 +388,13 @@ contains
       call error_abort("Unsupported parallel environment!")
     end select
 
-    allocate(cell_counts(nproc))
+    allocate (cell_counts(nproc))
 
     call get_local_num_cells(mesh, local_num_cells)
     cell_counts(:) = 0
     cell_counts(par_idx) = local_num_cells
 
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, cell_counts, nproc, &
                          MPI_INTEGER, MPI_SUM, par_env%comm, &
@@ -408,7 +408,7 @@ contains
       offset = offset + cell_counts(i)
     end do
 
-    deallocate(cell_counts)
+    deallocate (cell_counts)
 
   end subroutine
 

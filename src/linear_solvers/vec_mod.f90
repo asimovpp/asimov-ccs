@@ -35,7 +35,7 @@ module vec
   public :: mult_vec_vec
   public :: scale_vec
   public :: get_natural_data_vec
-  
+
   interface
 
     !> Interface to create a new vector object.
@@ -189,12 +189,12 @@ module vec
       type(ccs_mesh), intent(in) :: mesh
       class(ccs_vector), intent(inout) :: v
       real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
-                                                                     !< natural ordering. Note the use
-                                                                     !< of allocatable + intent(out),
-                                                                     !< this ensures it will be
-                                                                     !< de/reallocated by this subroutine.
+      !< natural ordering. Note the use
+      !< of allocatable + intent(out),
+      !< this ensures it will be
+      !< de/reallocated by this subroutine.
     end subroutine get_natural_data_vec
-    
+
   end interface
 
 end module vec
