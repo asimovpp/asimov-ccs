@@ -325,7 +325,8 @@ contains
       call create_cell_locator(mesh, local_idx, loc_p)
       call get_global_index(loc_p, global_idx)
 
-      mesh%topo%vert_nb_indices(:, local_idx) = tmp_2d(:, global_idx)
+      mesh%topo%vert_nb_indices(:, local_idx) = 0 ! Initialise
+      mesh%topo%vert_nb_indices(:, local_idx) = pack(tmp_2d(:, global_idx), tmp_2d(:, global_idx) /= 0)
       mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
     end do
     deallocate(tmp_2d)
