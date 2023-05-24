@@ -158,7 +158,6 @@ contains
       call error_abort("Unsupported parallel environment!")
     end select
 
-
     do i = local_num_cells + 1, total_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call get_natural_index(loc_p, idxn)

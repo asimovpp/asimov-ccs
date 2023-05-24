@@ -277,7 +277,8 @@ contains
     integer(ccs_int) :: vert_per_cell
 
     integer(ccs_int) :: i, j, k
-
+    integer(ccs_int) :: global_vert_index
+    
     if (par_env%proc_id == par_env%root) then
       print *, "Building vertex neighbours, this may take a while..."
     end if
@@ -299,7 +300,8 @@ contains
             continue
           else
             do k = 1, vert_per_cell
-              if (any(mesh%topo%global_vertex_indices(:, j) == mesh%topo%global_vertex_indices(k, i))) then
+              global_vert_index = mesh%topo%global_vertex_indices(k, i)
+              if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
                 mesh%topo%num_vert_nb(i) = mesh%topo%num_vert_nb(i) + 1
                 mesh%topo%vert_nb_indices(mesh%topo%num_vert_nb(i), i) = j
                 exit
