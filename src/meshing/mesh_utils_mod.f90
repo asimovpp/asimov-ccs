@@ -138,6 +138,10 @@ contains
 
     call compute_connectivity(par_env, mesh)
 
+    call bandwidth(mesh)
+    call reorder_cells(par_env, mesh)
+    call bandwidth(mesh)
+
     call read_geometry(geo_reader, mesh)
 
     ! Close the file and ADIOS2 engine
