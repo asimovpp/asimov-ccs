@@ -150,6 +150,7 @@ module types
     integer(ccs_int), dimension(:), allocatable :: ids
     integer(ccs_int), dimension(:), allocatable :: bc_types
     real(ccs_real), dimension(:), allocatable :: values
+    real(ccs_real), dimension(:,:), allocatable :: profile
   end type bc_config
 
   !v Wrapper class for ccs_vector

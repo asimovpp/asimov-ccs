@@ -64,6 +64,8 @@ contains
       bcs%bc_types(boundary_index) = bc_type_extrapolate
     case ("wall")
       bcs%bc_types(boundary_index) = bc_type_wall
+    case ("from_file")
+      bcs%bc_types(boundary_index) = bc_type_from_file
     case default
       call error_abort("invalid string. received " // bc_type)
     end select

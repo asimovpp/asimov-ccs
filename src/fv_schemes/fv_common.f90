@@ -277,12 +277,14 @@ contains
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: i
     real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real), dimension(ndim) :: x
     real(ccs_real), dimension(ndim) :: parallel_component_map
     real(ccs_real), dimension(ndim) :: phi_face_parallel_component
     real(ccs_real) :: phi_face_parallel_component_norm
     real(ccs_real) :: phi_face_parallel_component_portion
     real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
+    real(ccs_real) :: bc_value
 
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
@@ -331,6 +333,12 @@ contains
 
       a = 1.0_ccs_real
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
+    case (bc_type_from_file)
+      call get_centre(loc_f, x)
+      call get_value_from_BC_profile(x(phi%bcs%BC_profile_component), phi%bcs%BC_profile, bc_value)
+
+      a = -1.0_ccs_real
+      b = 2.0_ccs_real * bc_value
     case default
       ! Set coefficients to cause divergence
       ! Prevents "unused variable" compiler errors
@@ -339,6 +347,32 @@ contains
 
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
     end select
+
+  end subroutine
+
+  !> Linear interpolate of BC profile 
+  subroutine get_value_from_BC_profile(x, profile, bc_value)
+    real(ccs_real), intent(in) :: x
+    real(ccs_real), dimension(:,:), intent(in) :: profile
+    real(ccs_real), intent(out) :: bc_value
+    integer(ccs_int) :: n, i
+    real(ccs_real) :: coeff
+
+    n = size(profile, dim=1)
+
+    bc_value = profile(n, 2)
+    if (x .le. profile(1, 1)) then
+      bc_value = profile(1, 2)
+      return
+    end if
+
+    do i=1, n-1
+      if (x .lt. profile(i+1, 1)) then
+        coeff = (x - profile(i, 1)) / (profile(i+1, 1) - profile(i, 1))
+        bc_value = (1-coeff) * profile(i, 2) + coeff * profile(i+1, 2)
+        return
+      end if
+    end do
 
   end subroutine
 
