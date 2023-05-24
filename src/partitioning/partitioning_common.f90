@@ -238,7 +238,9 @@ contains
         call error_abort("Unsupported parallel environment!")
       end select
 
-      deallocate(mesh%topo%vert_nb_indices)
+      if (allocated(mesh%topo%vert_nb_indices)) then
+        deallocate(mesh%topo%vert_nb_indices)
+      end if
       allocate(mesh%topo%vert_nb_indices(max_vert_nb, global_num_cells))
       mesh%topo%vert_nb_indices(:, :) = 0
       do i = 1, global_num_cells
