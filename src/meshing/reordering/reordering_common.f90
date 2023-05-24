@@ -194,7 +194,8 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
     call get_total_num_cells(mesh, total_num_cells)
     allocate(mesh%topo%natural_indices(total_num_cells))
-
+    mesh%topo%natural_indices(:) = 0 ! For checking
+    
     ! Apply reordering on the local natural indices
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
