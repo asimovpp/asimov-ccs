@@ -1855,7 +1855,8 @@ contains
     integer(ccs_int), intent(in) :: index_p                   !< Global index of cell whose neighbours we're assembling
     integer(ccs_int), intent(in) :: nb_counter                !< the cell-relative index neighbour index
     integer(ccs_int), intent(in) :: index_counter             !< local index of cell whose neighbours we're assembling
-    integer(ccs_int), dimension(:), intent(in) :: direction   !< Array containing the direction of the neighbour relative to the cell
+    integer(ccs_int), dimension(:), intent(in) :: direction   !< Array containing the direction of the neighbour
+                                                              !< relative to the cell
     integer(ccs_int), intent(in) :: nx                        !< Mesh size in x direction
     integer(ccs_int), intent(in) :: ny                        !< Mesh size in y direction
     integer(ccs_int), intent(in) :: nz                        !< Mesh size in z direction
@@ -2352,7 +2353,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%face_areas)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%geo%face_areas(1:nb_elem / 2, i)
+        print *, par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+                 mesh%geo%face_areas(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "face_areas             : UNALLOCATED"
@@ -2370,7 +2372,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%x_f)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%geo%x_f(2, 1:nb_elem / 2, i)
+        print *, par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+                 mesh%geo%x_f(2, 1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "x_f                    : UNALLOCATED"
@@ -2379,7 +2382,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%face_normals)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "face_normals(2, 1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%geo%face_normals(2, 1:nb_elem/2,i)
+         print *, par_env%proc_id, "face_normals(2, 1:" // str(nb_elem/2) // ", " // str(i) // ")", &
+                  mesh%geo%face_normals(2, 1:nb_elem/2,i)
       end do
     else
       print *, par_env%proc_id, "face_normals          : UNALLOCATED"
@@ -2388,7 +2392,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%vert_coords)) then
       do i = 1, nb_elem
- print *, par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%geo%vert_coords(2, 1:nb_elem / 2, i)
+        print *, par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+                 mesh%geo%vert_coords(2, 1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "vert_coords           : UNALLOCATED"
