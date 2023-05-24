@@ -251,7 +251,11 @@ contains
       end do
       
       deallocate(tmp_arr)
-    end if
+   else
+      if (par_env%proc_id == par_env%root) then
+         print *, "Continuing without constructing global vertex neighbours"
+      end if
+   end if
     
   end subroutine store_global_vertex_connectivity
   
