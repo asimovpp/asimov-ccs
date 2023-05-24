@@ -44,6 +44,7 @@ module meshing
   public :: get_count_vertex_neighbours
   public :: get_face_interpolation
   public :: set_face_interpolation
+  public :: get_mesh_generated, set_mesh_generated
 
   interface get_centre
     module procedure get_cell_centre
@@ -556,6 +557,19 @@ module meshing
       type(face_locator), intent(in) :: loc_f        !< the face locator object
       real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
     end subroutine get_face_interpolation
+
+    !> Query whether mesh was generated or read
+    module subroutine get_mesh_generated(mesh, is_generated)
+      type(ccs_mesh), intent(in) :: mesh   !< The mesh object
+      logical, intent(out) :: is_generated !< The generated/read (true/false) status
+    end subroutine
+
+    !> Set whether a mesh was generated or read
+    module subroutine set_mesh_generated(is_generated, mesh)
+      logical, intent(in) :: is_generated
+      type(ccs_mesh), intent(inout) :: mesh
+    end subroutine
+
   end interface
 
 end module meshing

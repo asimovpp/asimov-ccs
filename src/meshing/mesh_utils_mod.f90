@@ -32,7 +32,8 @@ module mesh_utils
                      get_global_num_vertices, set_global_num_vertices, &
                      set_face_interpolation, &
                      set_local_index, &
-                     set_global_index
+                     set_global_index, &
+                     get_mesh_generated, set_mesh_generated
   use bc_constants
   use reordering, only: reorder_cells, bandwidth
 
@@ -112,6 +113,8 @@ contains
 
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
+
+    call set_mesh_generated(.false., mesh)
 
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
@@ -477,6 +480,15 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_writer
 
+    logical :: is_generated
+
+    call get_mesh_generated(mesh, is_generated)
+
+    if (.not. is_generated) then
+      ! Mesh was read, no need to write again!
+      return
+    end if
+
     ! Set ADIOS2 config file name
     adios2_file = case_name // adiosconfig
 
@@ -652,6 +664,8 @@ contains
     real(ccs_real), intent(in) :: side_length          !< The length of the side.
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
+
+    call set_mesh_generated(.true., mesh)
 
     call build_square_topology(par_env, cps, mesh)
 
@@ -1149,6 +1163,8 @@ contains
     real(ccs_real), intent(in) :: side_length          !< The length of the side.
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
+
+    call set_mesh_generated(.true., mesh)
 
     if (.not. (nx .eq. ny .and. ny .eq. nz)) then !< @note Must be a cube (for now) @endnote
       call error_abort("Only supporting cubes for now - nx, ny and nz must be the same!")

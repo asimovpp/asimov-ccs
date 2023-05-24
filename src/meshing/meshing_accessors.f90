@@ -873,4 +873,20 @@ contains
     end associate
   end subroutine get_count_vertex_neighbours
 
+  !> Query whether mesh was generated or read
+  module subroutine get_mesh_generated(mesh, is_generated)
+    type(ccs_mesh), intent(in) :: mesh   !< The mesh object
+    logical, intent(out) :: is_generated !< The generated/read (true/false) status
+
+    is_generated = mesh%generated
+  end subroutine
+
+  !> Set whether a mesh was generated or read
+  module subroutine set_mesh_generated(is_generated, mesh)
+    logical, intent(in) :: is_generated   !< Flag indicating generated/read (true/false) status
+    type(ccs_mesh), intent(inout) :: mesh !< The mesh object
+
+    mesh%generated = is_generated
+  end subroutine
+
 end submodule meshing_accessors
