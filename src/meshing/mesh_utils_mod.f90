@@ -101,7 +101,8 @@ contains
   !v Read mesh from file
   subroutine read_mesh(par_env, case_name, mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
+    use partitioning, only: partition_kway, compute_connectivity, &
+                            compute_connectivity_get_local_cells, compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
@@ -127,9 +128,13 @@ contains
     call read_topology(par_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, mesh)
-
-    !call partition_kway(par_env, mesh)
-    call partition_stride(par_env, mesh)
+    call compute_connectivity_get_local_cells(par_env, mesh)
+    
+    if (par_env%num_procs > 1) then
+      call partition_kway(par_env, mesh)
+    else
+      call partition_stride(par_env, mesh)
+    end if
 
     call compute_connectivity(par_env, mesh)
 

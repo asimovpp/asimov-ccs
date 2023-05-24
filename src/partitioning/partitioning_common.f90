@@ -32,7 +32,6 @@ contains
     ! Local variables
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
-    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i
     
     irank = par_env%proc_id
@@ -41,11 +40,6 @@ contains
     ! Prepare global data needed later
     call store_global_vertex_connectivity(par_env, mesh)
     
-    ! Count the new number of local cells per rank
-    local_num_cells = count(mesh%topo%global_partition == irank)
-    call set_local_num_cells(local_num_cells, mesh)
-    call get_local_num_cells(mesh, local_num_cells) ! Ensure using value set within mesh
-    call dprint("Number of local cells after partitioning: " // str(local_num_cells))
 
     ! Get global indices of local cells
     call compute_connectivity_get_local_cells(par_env, mesh)
@@ -365,21 +359,33 @@ contains
     
   end subroutine compute_vertex_connectivity
   
-  subroutine compute_connectivity_get_local_cells(par_env, mesh)
+  module subroutine compute_connectivity_get_local_cells(par_env, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
+    integer(ccs_int) :: irank
     integer :: i
     integer :: ctr
     integer :: local_num_cells
     integer(ccs_int) :: global_num_cells
+
+    irank = par_env%proc_id
+    
+    ! Count the new number of local cells per rank
+    local_num_cells = count(mesh%topo%global_partition == irank)
+    call set_local_num_cells(local_num_cells, mesh)
+    call get_local_num_cells(mesh, local_num_cells) ! Ensure using value set within mesh
+    call dprint("Number of local cells after partitioning: " // str(local_num_cells))
 
     ! Allocate and then compute global indices
     if (allocated(mesh%topo%global_indices)) then
       deallocate (mesh%topo%global_indices)
     end if
     call get_local_num_cells(mesh, local_num_cells)
+    if (allocated(mesh%topo%global_indices)) then
+       deallocate(mesh%topo%global_indices)
+    end if
     allocate (mesh%topo%global_indices(local_num_cells))
     mesh%topo%global_indices(:) = -1 ! This will allow us to check later
 
