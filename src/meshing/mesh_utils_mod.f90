@@ -203,7 +203,8 @@ contains
 
     call get_max_faces(mesh, max_faces)
     if (max_faces == 6) then ! if cell are hexes
-      call set_vert_per_cell(8, mesh) ! 8 vertices per cell
+       call set_vert_per_cell(8, mesh) ! 8 vertices per cell
+       call set_vert_nb_per_cell(20, mesh)
     else
       call error_abort("Currently only supporting hex cells.")
     end if
@@ -294,6 +295,7 @@ contains
     allocate(mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
     mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
 
+    allocate(mesh%topo%num_vert_nb(global_num_cells)) ! XXX: Will have to shrink this later...
     ! Yes, quadratic...
     do i = 1, global_num_cells
       mesh%topo%num_vert_nb(i) = 0
