@@ -330,8 +330,15 @@ contains
       mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
     end do
     deallocate(tmp_2d)
+
+    ! Check localised vertex neighbours
+    if (any(mesh%topo%vert_nb_indices > global_num_cells)) then
+       call error_abort("Local vertex neighbour indices > global_num_cells")
+    end if
+    
     
     ! Convert global->local indices
+    call get_global_num_cells(mesh, global_num_cells)
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       
@@ -342,6 +349,11 @@ contains
         global_idx = mesh%topo%vert_nb_indices(j, i)
         
         if (global_idx > 0) then
+          if (global_idx > global_num_cells) then
+             print *, "Global index exceeds global cell count", global_idx, global_num_cells
+             call error_abort("Global index exceeds global cell count")
+          end if
+          
           local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
           if (local_idx == 0) then
             ! New global index
@@ -480,6 +492,7 @@ contains
     integer :: ctr
     integer, dimension(1) :: local_idx
 
+    integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: max_faces
@@ -586,6 +599,14 @@ contains
     deallocate (tmp1)
     deallocate (tmp2)
 
+    call get_global_num_cells(mesh, global_num_cells)
+    if (minval(mesh%topo%global_indices) < 1) then
+       print *, "ERROR: global index < 0!", minval(mesh%topo%global_indices)
+    end if
+    if (maxval(mesh%topo%global_indices) > global_num_cells) then
+       print *, "ERROR: global index >", global_num_cells, "!", maxval(mesh%topo%global_indices)
+    end if
+    
   end subroutine
 
 end submodule
