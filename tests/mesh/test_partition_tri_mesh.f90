@@ -281,7 +281,7 @@ contains
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: vert_per_cell
-    
+
     ! Create a tri mesh
     !
     ! Sample graph - adapted from ParMETIS manual to use 1-indexing with added triangular connections.
@@ -336,7 +336,7 @@ contains
 
     mesh%topo%halo_num_cells = 0
     mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
-    
+
     ! Assign corresponding mesh values to the topology object
 
     allocate (mesh%topo%global_indices(local_num_cells))
@@ -347,9 +347,9 @@ contains
     ! Dummy vertex connectivity
     call set_vert_per_cell(6, mesh) ! Interior cells are hexagonal
     call get_vert_per_cell(mesh, vert_per_cell)
-    allocate(mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
-    allocate(mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
-    allocate(mesh%topo%num_vert_nb(local_num_cells))
+    allocate (mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
+    allocate (mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
+    allocate (mesh%topo%num_vert_nb(local_num_cells))
     mesh%topo%num_vert_nb(:) = 0
 
     call set_halo_num_cells(0, mesh)
@@ -379,10 +379,10 @@ contains
     end if
 
     if (allocated(mesh%topo%vert_nb_indices)) then
-      deallocate(mesh%topo%vert_nb_indices)
+      deallocate (mesh%topo%vert_nb_indices)
     end if
     if (allocated(mesh%topo%num_vert_nb)) then
-      deallocate(mesh%topo%num_vert_nb)
+      deallocate (mesh%topo%num_vert_nb)
     end if
   end subroutine
 

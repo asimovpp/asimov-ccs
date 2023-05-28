@@ -17,7 +17,7 @@ program test_square_mesh_point_distribution
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
 
-  integer(ccs_int), dimension(7) :: m = (/ 4, 8, 16, 20, 40, 80, 100 /)
+  integer(ccs_int), dimension(7) :: m = (/4, 8, 16, 20, 40, 80, 100/)
   integer(ccs_int) :: mctr
 
   integer(ccs_int) :: global_num_cells

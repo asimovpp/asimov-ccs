@@ -28,7 +28,7 @@ program test_mesh_square_mesh_closed
 
   real(ccs_real) :: A_expected
 
-  integer(ccs_int), dimension(7) :: m = (/ 4, 8, 16, 20, 40, 80, 100 /)
+  integer(ccs_int), dimension(7) :: m = (/4, 8, 16, 20, 40, 80, 100/)
   integer(ccs_int) :: mctr
 
   call init()

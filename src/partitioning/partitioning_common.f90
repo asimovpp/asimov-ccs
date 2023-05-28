@@ -382,7 +382,7 @@ contains
     integer(ccs_int), dimension(:), allocatable :: tmp_global_indices
 
     call get_total_num_cells(mesh, total_num_cells)
-    
+
     allocate (tmp_global_indices(total_num_cells + 1))
     tmp_global_indices(1:total_num_cells) = mesh%topo%global_indices(1:total_num_cells)
     tmp_global_indices(total_num_cells + 1) = global_index

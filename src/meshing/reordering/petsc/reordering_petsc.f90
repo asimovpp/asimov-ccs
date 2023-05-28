@@ -31,8 +31,8 @@ contains
 
     integer(ccs_int) :: i, j
     integer(ccs_int) :: ctr, nnb, max_nb
-    integer(ccs_int), allocatable, dimension(:) :: idx 
-    real(ccs_real), allocatable, dimension(:) :: row   
+    integer(ccs_int), allocatable, dimension(:) :: idx
+    real(ccs_real), allocatable, dimension(:) :: row
     logical :: cell_local
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
@@ -40,7 +40,7 @@ contains
     integer(ccs_int) :: idx_new
 
     call get_local_num_cells(mesh, local_num_cells)
-    
+
     max_nb = 0
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
@@ -48,8 +48,8 @@ contains
       max_nb = max(max_nb, nnb)
     end do
 
-    allocate(idx(max_nb))
-    allocate(row(max_nb))
+    allocate (idx(max_nb))
+    allocate (row(max_nb))
 
     ! First build adjacency matrix for local cells
     call MatCreate(MPI_COMM_SELF, M, ierr)
@@ -83,8 +83,8 @@ contains
     call MatAssemblyBegin(M, MAT_FINAL_ASSEMBLY, ierr)
     call MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY, ierr)
 
-    deallocate(idx)
-    deallocate(row)
+    deallocate (idx)
+    deallocate (row)
 
     ! Get index sets for reordering
     call MatGetOrdering(M, MATORDERINGRCM, rperm, cperm, ierr)
