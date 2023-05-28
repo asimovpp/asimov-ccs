@@ -546,8 +546,8 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
-    integer(ccs_int), dimension(:), allocatable :: tmp_1d
-    integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
+    integer(ccs_int), dimension(:), allocatable :: natural_vertices_1d
+    integer(ccs_int), dimension(:, :), allocatable :: natural_vertices_2d
     integer(ccs_err) ierr
 
     integer(ccs_int) :: i, j, idx
@@ -572,30 +572,31 @@ contains
     sel2_count(2) = local_num_cells
 
     ! Get global vertex indices in cell natural order
-    allocate (tmp_1d(vert_per_cell * global_num_cells))
-    tmp_1d(:) = 0
+    allocate (natural_vertices_1d(vert_per_cell * global_num_cells))
+    natural_vertices_1d(:) = 0
     do i = 1, local_num_cells
       idx = vert_per_cell * (mesh%topo%natural_indices(i) - 1)
       do j = 1, vert_per_cell
-        tmp_1d(idx + j) = mesh%topo%global_vertex_indices(j, i)
+        natural_vertices_1d(idx + j) = mesh%topo%global_vertex_indices(j, i)
       end do
     end do
-    call MPI_Allreduce(MPI_IN_PLACE, tmp_1d, size(tmp_1d), MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, natural_vertices_1d, size(natural_vertices_1d), &
+                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-    allocate (tmp_2d(vert_per_cell, local_num_cells))
+    allocate (natural_vertices_2d(vert_per_cell, local_num_cells))
     do i = 1, local_num_cells
       idx = vert_per_cell * (mesh%topo%global_indices(i) - 1)
       do j = 1, vert_per_cell
-        tmp_2d(j, i) = tmp_1d(idx + j)
+        natural_vertices_2d(j, i) = natural_vertices_1d(idx + j)
       end do
     end do
 
-    deallocate (tmp_1d)
+    deallocate (natural_vertices_1d)
 
     call write_array(geo_writer, "/cell/vertices", sel2_shape, sel2_start, sel2_count, &
-                     tmp_2d)
+                     natural_vertices_2d)
 
-    deallocate (tmp_2d)
+    deallocate (natural_vertices_2d)
 
   end subroutine write_topology
 
