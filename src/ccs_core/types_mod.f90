@@ -153,7 +153,7 @@ module types
   type, public :: ccs_mesh
     type(topology) :: topo
     type(geometry) :: geo
-    logical :: generated    !< Indicates whether mesh was generated (true) or read (false)
+    logical :: is_generated    !< Indicates whether mesh was generated (true) or read (false)
   end type ccs_mesh
 
   !> BC data type
