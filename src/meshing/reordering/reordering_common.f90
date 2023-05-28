@@ -240,9 +240,8 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
 
-    allocate (idx_nb, mold=mesh%topo%nb_indices)
+    allocate (idx_nb, source=mesh%topo%nb_indices)
 
-    idx_nb(:, :) = mesh%topo%nb_indices(:, :)
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
