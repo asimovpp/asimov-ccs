@@ -2,6 +2,10 @@ submodule(reordering) reordering_petsc
 
   use kinds, only: ccs_real, ccs_err
   use types, only: cell_locator, neighbour_locator
+  use meshing, only: create_cell_locator, create_neighbour_locator, &
+                     count_neighbours, &
+                     get_local_status, get_local_index, &
+                     get_local_num_cells
 
   implicit none
 
@@ -26,22 +30,33 @@ contains
     integer(ccs_int) :: local_num_cells
 
     integer(ccs_int) :: i, j
-    integer(ccs_int) :: ctr, nnb
-    integer(ccs_int), dimension(7) :: idx ! Hardcoded to 7-point stencil
-    real(ccs_real), dimension(7) :: row   ! Hardcoded to 7-point stencil
+    integer(ccs_int) :: ctr, nnb, max_nb
+    integer(ccs_int), allocatable, dimension(:) :: idx 
+    real(ccs_real), allocatable, dimension(:) :: row   
     logical :: cell_local
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: idx_new
 
+    call get_local_num_cells(mesh, local_num_cells)
+    
+    max_nb = 0
+    do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+      call count_neighbours(loc_p, nnb)
+      max_nb = max(max_nb, nnb)
+    end do
+
+    allocate(idx(max_nb))
+    allocate(row(max_nb))
+
     ! First build adjacency matrix for local cells
     call MatCreate(MPI_COMM_SELF, M, ierr)
     call MatSetFromOptions(M, ierr)
-    call get_local_num_cells(mesh, local_num_cells)
     call MatSetSizes(M, local_num_cells, local_num_cells, &
                      PETSC_DETERMINE, PETSC_DETERMINE, ierr)
-    call MatSeqAIJSetPreallocation(M, 7, PETSC_NULL_INTEGER, ierr)
+    call MatSeqAIJSetPreallocation(M, max_nb, PETSC_NULL_INTEGER, ierr)
     do i = 1, local_num_cells
       row(:) = 0.0
       idx(:) = 0
@@ -51,10 +66,10 @@ contains
       idx(ctr) = i
       ctr = ctr + 1
 
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_status(loc_nb, cell_local)
         if (cell_local) then
           call get_local_index(loc_nb, idx(ctr))
@@ -63,10 +78,13 @@ contains
         end if
       end do
       idx = idx - 1 ! F->C
-      call MatSetValues(M, 1, i - 1, 7, idx, row, INSERT_VALUES, ierr)
+      call MatSetValues(M, 1, i - 1, max_nb, idx, row, INSERT_VALUES, ierr)
     end do
     call MatAssemblyBegin(M, MAT_FINAL_ASSEMBLY, ierr)
     call MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY, ierr)
+
+    deallocate(idx)
+    deallocate(row)
 
     ! Get index sets for reordering
     call MatGetOrdering(M, MATORDERINGRCM, rperm, cperm, ierr)
