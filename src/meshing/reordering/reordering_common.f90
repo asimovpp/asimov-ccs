@@ -153,7 +153,7 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, global_indices, mesh%topo%global_num_cells, &
-                         MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+                         MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
     class default
       call error_abort("Unsupported parallel environment!")
     end select
