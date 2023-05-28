@@ -444,19 +444,16 @@ contains
     end associate
 
     if (ctr /= (local_num_cells + 1)) then
-      print *, "ERROR: didn't find all my cells!"
-      stop
+      call error_abort("Didn't find all my cells!")
     end if
 
     if (minval(mesh%topo%global_indices) < 1) then
-      print *, "ERROR: didn't register all cells properly!"
-      stop
+      call error_abort("Didn't register all cells properly!")
     end if
 
     call get_global_num_cells(mesh, global_num_cells)
     if (maxval(mesh%topo%global_indices) > global_num_cells) then
-      print *, "ERROR: global index exceeds range!"
-      stop
+      call error_abort("Global index exceeds range!")
     end if
 
   end subroutine
@@ -475,12 +472,7 @@ contains
 
     local_index = findloc(mesh%topo%global_indices, face_nb1)
     if (local_index(1) <= 0) then
-      print *, "ERROR: failed to find face neighbour in global indices, findloc: "
-      print *, "- ANY: ", any(mesh%topo%global_indices == face_nb1)
-      print *, "- local_index: ", local_index
-      print *, "- Face neighbour index: ", face_nb1
-      print *, "- Global indices: ", mesh%topo%global_indices
-      stop
+      call error_abort("Failed to find face neighbour in global indices")
     end if
 
     call get_max_faces(mesh, max_faces)
@@ -616,10 +608,10 @@ contains
 
     call get_global_num_cells(mesh, global_num_cells)
     if (minval(mesh%topo%global_indices) < 1) then
-      print *, "ERROR: global index < 0!", minval(mesh%topo%global_indices)
+      call error_abort("Global index < 0! " // str(minval(mesh%topo%global_indices)))
     end if
     if (maxval(mesh%topo%global_indices) > global_num_cells) then
-      print *, "ERROR: global index >", global_num_cells, "!", maxval(mesh%topo%global_indices)
+      call error_abort("Global index > " // str(global_num_cells) // "! " // str(maxval(mesh%topo%global_indices)))
     end if
 
   end subroutine
