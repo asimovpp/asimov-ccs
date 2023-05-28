@@ -90,7 +90,7 @@ contains
           ! Prepare message in case of failure
           msg = "FAIL: neighbour natural index doesn't match reference at ", str(j), &
                 " ", str(natural_index_p)
-          assert_eq(natural_index_nb, global_neighbours_ref(j, natural_index_p), msg)
+          call assert_eq(natural_index_nb, global_neighbours_ref(j, natural_index_p), msg)
         end if
       end do
     end do
