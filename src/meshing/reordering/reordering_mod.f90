@@ -11,7 +11,7 @@ module reordering
 
   private
   public :: reorder_cells
-  public :: bandwidth
+  public :: compute_bandwidth
   public :: disable_reordering
 
   interface
@@ -30,7 +30,7 @@ module reordering
     end subroutine
 
     !> Calculate and print the bandwidth of a mesh
-    module subroutine bandwidth(mesh)
+    module subroutine compute_bandwidth(mesh)
       type(ccs_mesh), intent(in) :: mesh
     end subroutine
 

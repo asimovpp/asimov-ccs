@@ -315,7 +315,7 @@ contains
 
   end subroutine
 
-  module subroutine bandwidth(mesh)
+  module subroutine compute_bandwidth(mesh)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh to evaluate
 
@@ -357,7 +357,7 @@ contains
       print *, "Bandwidth: ", bw_max, bw_avg
     end if
 
-  end subroutine bandwidth
+  end subroutine compute_bandwidth
 
   ! Get the cell distribution across all processors in rank order, and compute my offset.
   subroutine get_global_offset(mesh, par_env, offset)

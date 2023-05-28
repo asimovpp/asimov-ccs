@@ -35,7 +35,7 @@ module mesh_utils
                      set_global_index, &
                      get_mesh_generated, set_mesh_generated
   use bc_constants
-  use reordering, only: reorder_cells, bandwidth
+  use reordering, only: reorder_cells, compute_bandwidth
 
   implicit none
 
@@ -138,9 +138,9 @@ contains
 
     call compute_connectivity(par_env, mesh)
 
-    call bandwidth(mesh)
+    call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
-    call bandwidth(mesh)
+    call compute_bandwidth(mesh)
 
     call read_geometry(geo_reader, mesh)
 
@@ -691,9 +691,9 @@ contains
     end if
     call compute_connectivity(par_env, mesh)
 
-    call bandwidth(mesh)
+    call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
-    call bandwidth(mesh)
+    call compute_bandwidth(mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
@@ -1195,9 +1195,9 @@ contains
 
     call compute_connectivity(par_env, mesh)
 
-    call bandwidth(mesh)
+    call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
-    call bandwidth(mesh)
+    call compute_bandwidth(mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
