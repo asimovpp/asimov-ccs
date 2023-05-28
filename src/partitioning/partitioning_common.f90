@@ -355,24 +355,8 @@ contains
           local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
           if (local_idx == 0) then
             ! New global index
+            call add_new_global_index(global_idx, mesh)
             call get_total_num_cells(mesh, total_num_cells)
-
-            allocate (tmp_1d(total_num_cells + 1))
-            tmp_1d(1:total_num_cells) = mesh%topo%global_indices(1:total_num_cells)
-            tmp_1d(total_num_cells + 1) = global_idx
-
-            ! Update total and halo cell counts
-            call set_total_num_cells(total_num_cells + 1, mesh)
-            call get_total_num_cells(mesh, total_num_cells)
-            call get_halo_num_cells(mesh, halo_num_cells)
-            call set_halo_num_cells(halo_num_cells + 1, mesh)
-
-            ! Copy extended global indices back into mesh object
-            deallocate (mesh%topo%global_indices)
-            allocate (mesh%topo%global_indices(total_num_cells))
-            mesh%topo%global_indices(:) = tmp_1d(:)
-            deallocate (tmp_1d)
-
             local_idx = total_num_cells
           end if
 
@@ -383,6 +367,39 @@ contains
     end do
 
   end subroutine compute_vertex_connectivity
+
+  !v Adds a new global index
+  !
+  !  Reallocates the global index array, updating the total and halo counts in the mesh.
+  subroutine add_new_global_index(global_index, mesh)
+
+    integer(ccs_int), intent(in) :: global_index
+    type(ccs_mesh), intent(inout) :: mesh
+
+    integer(ccs_int) :: total_num_cells
+    integer(ccs_int) :: halo_num_cells
+
+    integer(ccs_int), dimension(:), allocatable :: tmp_global_indices
+
+    call get_total_num_cells(mesh, total_num_cells)
+    
+    allocate (tmp_global_indices(total_num_cells + 1))
+    tmp_global_indices(1:total_num_cells) = mesh%topo%global_indices(1:total_num_cells)
+    tmp_global_indices(total_num_cells + 1) = global_index
+
+    ! Update total and halo cell counts
+    call set_total_num_cells(total_num_cells + 1, mesh)
+    call get_total_num_cells(mesh, total_num_cells)
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call set_halo_num_cells(halo_num_cells + 1, mesh)
+
+    ! Copy extended global indices back into mesh object
+    deallocate (mesh%topo%global_indices)
+    allocate (mesh%topo%global_indices(total_num_cells))
+    mesh%topo%global_indices(:) = tmp_global_indices(:)
+    deallocate (tmp_global_indices)
+
+  end subroutine
 
   module subroutine compute_connectivity_get_local_cells(par_env, mesh)
 
