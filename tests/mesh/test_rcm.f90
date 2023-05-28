@@ -74,6 +74,8 @@ contains
     type(neighbour_locator) :: loc_nb
     logical :: is_boundary
     
+    character(len=:), allocatable :: msg
+
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call get_natural_index(loc_p, natural_index_p)
@@ -85,11 +87,10 @@ contains
         if (.not. is_boundary) then
           call get_natural_index(loc_nb, natural_index_nb)
 
-          if (natural_index_nb /= global_neighbours_ref(j, natural_index_p)) then
-            write(message, *) "FAIL: neighbour natural index doesn't match reference at ", j, &
-                 " ", natural_index_p
-            call stop_test(message)
-          end if
+          ! Prepare message in case of failure
+          msg = "FAIL: neighbour natural index doesn't match reference at ", str(j), &
+                " ", str(natural_index_p)
+          assert_eq(natural_index_nb, global_neighbours_ref(j, natural_index_p), msg)
         end if
       end do
     end do
