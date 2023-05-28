@@ -514,7 +514,7 @@ contains
     call open_file(geo_file, "write", geo_writer)
 
     ! Write mesh
-    call write_topology(geo_writer, mesh)
+    call write_topology(par_env, geo_writer, mesh)
     call write_geometry(par_env, geo_writer, mesh)
 
     ! Close the file and ADIOS2 engine
@@ -526,13 +526,14 @@ contains
   end subroutine write_mesh
 
   !v Write the mesh topology data to file
-  subroutine write_topology(geo_writer, mesh)
+  subroutine write_topology(par_env, geo_writer, mesh)
 
     use mpi
 
     ! Arguments
-    class(io_process), allocatable, target, intent(in) :: geo_writer        !< The IO process for writing the mesh ("geo") file
-    type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
+    class(parallel_environment), intent(in) :: par_env               !< The parallel environment
+    class(io_process), allocatable, target, intent(in) :: geo_writer !< The IO process for writing the mesh ("geo") file
+    type(ccs_mesh), intent(in) :: mesh                               !< The mesh
 
     ! Local variables
     integer(ccs_long), dimension(2) :: sel2_shape
@@ -580,8 +581,13 @@ contains
         natural_vertices_1d(idx + j) = mesh%topo%global_vertex_indices(j, i)
       end do
     end do
-    call MPI_Allreduce(MPI_IN_PLACE, natural_vertices_1d, size(natural_vertices_1d), &
-                       MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    select type(par_env)
+    type is(parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, natural_vertices_1d, size(natural_vertices_1d), &
+                         MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+    class default
+      call error_abort("Unknown parallel environment")
+    end select
 
     allocate (natural_vertices_2d(vert_per_cell, local_num_cells))
     do i = 1, local_num_cells
