@@ -61,6 +61,7 @@ viscocity : 1.0e-3
 #  variables: [u, v, w, p]
 
 variables:
+  store_residuals: false
   n_variables: 5
   variable_1:
     name: u

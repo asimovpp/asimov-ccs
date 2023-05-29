@@ -168,6 +168,7 @@ module types
   !> Scalar field type
   type, public :: field
     class(ccs_vector), allocatable :: values                      !< Vector representing the field
+    class(ccs_vector), allocatable :: residuals                   !< Vector representing the field's residuals
     type(ccs_vector_ptr), dimension(:), allocatable :: old_values !< Vector representing the old fields
     class(ccs_vector), allocatable :: x_gradients                 !< Vector representing the x gradient
     class(ccs_vector), allocatable :: y_gradients                 !< Vector representing the y gradient
@@ -189,6 +190,7 @@ module types
     integer :: field_type                            !< Flag to identify which type of field to create
     character(len=:), allocatable :: field_name      !< The name of the field
     integer(ccs_int) :: n_boundaries                 !< The number of boundaries involved...
+    logical :: store_residuals = .false.             !< Wether or not residuals should be stored for this field
   end type field_spec
 
   !> Type for storing pointer to a field

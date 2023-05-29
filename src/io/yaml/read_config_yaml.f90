@@ -122,6 +122,43 @@ contains
     end if
   end subroutine
 
+module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
+    class(*), pointer, intent(in) :: dict                       !< The dictionary
+    character(len=*), intent(in) :: keyword                     !< The key
+    logical, intent(inout) :: logical_val !< The corresponding value
+    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+
+    type(type_error), allocatable :: io_err
+
+    select type (dict)
+    type is (type_dictionary)
+
+      logical_val = dict%get_logical(keyword, error=io_err)
+      if (present(value_present)) then
+        if (allocated(io_err)) then
+          value_present = .false.
+        else
+          value_present = .true.
+        end if
+      end if
+      if (present(required)) then
+        if (required .eqv. .true.) then
+          !call error_handler(io_err)
+        end if
+      end if
+
+    class default
+      call error_abort("Unknown type")
+    end select
+
+    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
+      if (required .eqv. .true.) then
+        call error_abort("Error reading " // keyword)
+      end if
+    end if
+  end subroutine
+ 
   subroutine error_handler(io_err)
     type(type_error), pointer, intent(inout) :: io_err
 
@@ -630,6 +667,37 @@ contains
       call error_abort("type unhandled")
     end select
   end subroutine get_boundary_count
+
+
+  module subroutine get_store_residuals(filename, store_residuals)
+    character(len=*), intent(in) :: filename
+    logical, intent(out) :: store_residuals
+
+    class(*), pointer :: config_file
+    class(*), pointer :: dict
+    character(:), allocatable :: error
+    type(type_error), allocatable :: io_err
+    logical :: value_present
+
+    config_file => parse(filename, error)
+    if (allocated(error)) then
+      call error_abort(trim(error))
+    end if
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("variables", required=.true., error=io_err)
+      !call error_handler(io_err)
+
+      call get_value(dict, "store_residuals", store_residuals, value_present)
+      ! do not store residuals by default
+      if (.not. value_present) then
+        store_residuals = .false.
+      end if
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_store_residuals
 
   module subroutine get_bc_variables(filename, variables)
     character(len=*), intent(in) :: filename

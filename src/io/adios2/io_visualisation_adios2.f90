@@ -108,6 +108,15 @@ contains
       data_name = "/" // trim(output_list(i)%name)
       call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
       call restore_vector_data(output_list(i)%ptr%values, data)
+
+      ! Store residuals if available
+      if (allocated(output_list(i)%ptr%residuals)) then
+        call get_vector_data(output_list(i)%ptr%residuals, data)
+        data_name = "/" // trim(output_list(i)%name // "_res")
+        call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
+        call restore_vector_data(output_list(i)%ptr%residuals, data)
+      end if
+
     end do
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)

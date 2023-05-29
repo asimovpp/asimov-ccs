@@ -253,6 +253,16 @@ contains
         write (ioxdmf, '(a,a)') l4, '</Attribute>'
       end if
 
+      ! Residuals
+      do i = 1, size(output_list)
+        if (allocated(output_list(i)%ptr%residuals)) then
+          write (ioxdmf, '(a,a)') l4, '<Attribute Name = "residuals_' // trim(output_list(i)%name) // '" AttributeType = "Scalar" Center = "Cell">'
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
+            step_counter, '/' // trim(output_list(i)%name) // '_res</DataItem>'
+          write (ioxdmf, '(a,a)') l4, '</Attribute>'
+        end if
+      end do
+
       write (ioxdmf, '(a,a)') l3, '</Grid>'
 
       flush (ioxdmf)
