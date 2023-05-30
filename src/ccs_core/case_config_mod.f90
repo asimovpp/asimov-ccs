@@ -42,4 +42,7 @@ module case_config
 
   logical, public :: write_gradients = .false.
 
+  ! Logical to toggle whether the vertex neighbours are build or not
+  logical, public :: vertex_neighbours = .true.
+
 end module case_config
