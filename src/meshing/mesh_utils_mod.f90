@@ -696,6 +696,14 @@ contains
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
+    character(:), allocatable :: error_message
+
+    if (cps * cps < par_env%num_procs) then
+      error_message = "ERROR: Global number of cells < number of ranks. &
+                      &Increase the mesh size or reduce the number of ranks."
+      call error_abort(error_message)
+    end if
+    
     call set_mesh_generated(.true., mesh)
 
     call build_square_topology(par_env, cps, mesh)
