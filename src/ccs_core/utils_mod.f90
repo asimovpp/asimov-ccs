@@ -20,8 +20,7 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, fluid, fluid_solver_selector, ccs_mesh, field_ptr
-  use parallel_types, only: parallel_environment
+  use types, only: field, fluid, fluid_solver_selector
   use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf
 
   implicit none
