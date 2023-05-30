@@ -177,6 +177,8 @@ contains
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: vert_per_cell
 
+    character(:), allocatable :: error_message
+
     ! Zero scalar topology values to have known initial state
     call set_global_num_cells(0_ccs_int, mesh)
     call set_global_num_faces(0_ccs_int, mesh)
@@ -191,6 +193,14 @@ contains
 
     ! Read attribute "ncel" - the total number of cells
     call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
+
+    ! Abort the execution if there a fewer global cells than MPI ranks
+    if (mesh%topo%global_num_cells < par_env%num_procs) then
+      error_message = "ERROR: Global number of cells < number of ranks. &
+                      &Reduce the number of MPI ranks or use a bigger mesh."
+      call error_abort(error_message)
+    end if
+
     ! Read attribute "nfac" - the total number of faces
     call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
     ! Read attribute "maxfaces" - the maximum number of faces per cell
@@ -696,6 +706,14 @@ contains
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
+    character(:), allocatable :: error_message
+
+    if (cps * cps < par_env%num_procs) then
+      error_message = "ERROR: Global number of cells < number of ranks. &
+                      &Increase the mesh size or reduce the number of MPI ranks."
+      call error_abort(error_message)
+    end if
+    
     call set_mesh_generated(.true., mesh)
 
     call build_square_topology(par_env, cps, mesh)
@@ -769,6 +787,12 @@ contains
         local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
         call set_local_num_cells(local_num_cells, mesh)
         call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+
+        ! Abort the execution if any rank has 0 local cells
+        if (local_num_cells <= 0) then
+          call error_abort("ERROR: Zero local cells found.")
+        end if
+
         call set_total_num_cells(local_num_cells, mesh) ! Set initial value
         end_global = start_global + (local_num_cells - 1)
 
@@ -1195,10 +1219,18 @@ contains
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
+    character(:), allocatable :: error_message
     call set_mesh_generated(.true., mesh)
 
     if (.not. (nx .eq. ny .and. ny .eq. nz)) then !< @note Must be a cube (for now) @endnote
-      call error_abort("Only supporting cubes for now - nx, ny and nz must be the same!")
+      error_message = "Only supporting cubes for now - nx, ny and nz must be the same!"
+      call error_abort(error_message)
+    end if
+
+    if (nx * ny * nz < par_env%num_procs) then
+      error_message = "ERROR: Global number of cells < number of ranks. &
+                      &Increase the mesh size or reduce the number of MPI ranks."
+      call error_abort(error_message)
     end if
 
     call build_topology(par_env, nx, ny, nz, mesh)
@@ -1272,6 +1304,12 @@ contains
       local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
       call set_local_num_cells(local_num_cells, mesh)
       call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+
+      ! Abort the execution if any rank has 0 local cells
+      if (local_num_cells <= 0) then
+        call error_abort("ERROR: Zero local cells found.")
+      end if
+
       call set_total_num_cells(local_num_cells, mesh) ! Setting initial value
       end_global = start_global + (local_num_cells - 1)
 

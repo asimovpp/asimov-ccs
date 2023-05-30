@@ -352,10 +352,8 @@ contains
       end do
       bw_avg = bw_avg + bw_rowmax
     end do
-    if (local_num_cells > 0) then
-      bw_avg = bw_avg / local_num_cells
-      print *, "Bandwidth: ", bw_max, bw_avg
-    end if
+    bw_avg = bw_avg / local_num_cells
+    print *, "Bandwidth: ", bw_max, bw_avg
 
   end subroutine compute_bandwidth
 

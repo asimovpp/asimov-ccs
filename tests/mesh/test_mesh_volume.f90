@@ -30,9 +30,9 @@ program test_mesh_volume
 
   call init()
 
-  nx = 2
-  ny = 2
-  nz = 2
+  nx = 4
+  ny = 4
+  nz = 4
 
   l = parallel_random(par_env)
   mesh = build_mesh(par_env, nx, ny, nz, l)

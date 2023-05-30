@@ -32,13 +32,13 @@ program test_mesh_centres
 
   integer :: dim
 
-  integer(ccs_int), dimension(5) :: m = (/2, 4, 8, 16, 20/)
+  integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
   integer(ccs_int) :: mctr
 
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
-  do mctr = 1, size(m)
+  do mctr = 2, size(m)
     n = m(mctr)
 
     nx = n

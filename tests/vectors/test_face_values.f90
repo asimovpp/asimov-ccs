@@ -19,7 +19,7 @@ program test_face_values
   type(ccs_mesh) :: mesh
 
   ! integer(ccs_int) :: nfaces
-  integer(ccs_int) :: cps = 3 !< Cells per side of the mesh
+  integer(ccs_int) :: cps = 5 !< Cells per side of the mesh
 
   call init()
 

@@ -414,9 +414,15 @@ contains
 
     ! Count the new number of local cells per rank
     local_num_cells = count(mesh%topo%global_partition == irank)
+
     call set_local_num_cells(local_num_cells, mesh)
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using value set within mesh
+    ! Abort the execution if any rank has 0 local cells
+    ! caused by partitioner error
     call dprint("Number of local cells after partitioning: " // str(local_num_cells))
+    if (local_num_cells <= 0) then
+      call error_abort("ERROR: Zero local cells found.")
+    end if
 
     ! Allocate and then compute global indices
     if (allocated(mesh%topo%global_indices)) then

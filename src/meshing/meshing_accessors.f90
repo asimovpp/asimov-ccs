@@ -514,13 +514,9 @@ contains
 
     associate (mesh => loc_p%mesh)
       call get_local_num_cells(mesh, local_num_cells)
-      if (local_num_cells > 0) then ! XXX: Potentially expensive...
-        associate (cell => loc_p%index_p)
-          global_index_p = mesh%topo%global_indices(cell)
-        end associate
-      else
-        global_index_p = -1 ! XXX: What should we do in case of too many processors for a given mesh?
-      end if
+      associate (cell => loc_p%index_p)
+        global_index_p = mesh%topo%global_indices(cell)
+      end associate
     end associate
   end subroutine get_cell_global_index
 
@@ -547,13 +543,9 @@ contains
 
     associate (mesh => loc_p%mesh)
       call get_local_num_cells(mesh, local_num_cells)
-      if (local_num_cells > 0) then ! XXX: Potentially expensive...
-        associate (cell => loc_p%index_p)
-          natural_index_p = mesh%topo%natural_indices(cell)
-        end associate
-      else
-        natural_index_p = -1 ! XXX: What should we do in case of too many processors for a given mesh?
-      end if
+      associate (cell => loc_p%index_p)
+        natural_index_p = mesh%topo%natural_indices(cell)
+      end associate
     end associate
   end subroutine get_cell_natural_index
 
