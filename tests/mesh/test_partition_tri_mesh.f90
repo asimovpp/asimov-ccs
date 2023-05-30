@@ -19,6 +19,7 @@ program test_partition_tri_mesh
                      set_total_num_cells, set_halo_num_cells, &
                      get_global_num_faces, set_global_num_faces, &
                      get_max_faces, set_max_faces, &
+                     get_vert_per_cell, set_vert_per_cell, &
                      create_cell_locator, get_global_index
   use utils, only: debug_print
 
@@ -279,6 +280,7 @@ contains
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
+    integer(ccs_int) :: vert_per_cell
 
     ! Create a tri mesh
     !
@@ -332,12 +334,23 @@ contains
     call set_local_num_cells(local_num_cells, mesh)
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
 
+    mesh%topo%halo_num_cells = 0
+    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
+
     ! Assign corresponding mesh values to the topology object
 
     allocate (mesh%topo%global_indices(local_num_cells))
     do i = 1, local_num_cells
       mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
+
+    ! Dummy vertex connectivity
+    call set_vert_per_cell(6, mesh) ! Interior cells are hexagonal
+    call get_vert_per_cell(mesh, vert_per_cell)
+    allocate (mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
+    allocate (mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
+    allocate (mesh%topo%num_vert_nb(local_num_cells))
+    mesh%topo%num_vert_nb(:) = 0
 
     call set_halo_num_cells(0, mesh)
     call set_total_num_cells(local_num_cells, mesh)
@@ -363,6 +376,13 @@ contains
 
     if (allocated(mesh%topo%vtxdist)) then
       deallocate (mesh%topo%vtxdist)
+    end if
+
+    if (allocated(mesh%topo%vert_nb_indices)) then
+      deallocate (mesh%topo%vert_nb_indices)
+    end if
+    if (allocated(mesh%topo%num_vert_nb)) then
+      deallocate (mesh%topo%num_vert_nb)
     end if
   end subroutine
 

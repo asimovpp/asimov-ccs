@@ -294,6 +294,8 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: total_num_cells
 
+    character(len=:), allocatable :: msg
+
     loc_p%mesh => mesh
     loc_p%index_p = index_p
 
@@ -301,7 +303,9 @@ contains
     call get_total_num_cells(mesh, total_num_cells)
     if (index_p > total_num_cells) then
       call get_local_num_cells(mesh, local_num_cells)
-      call error_abort("ERROR: trying to access cell I don't have access to."    //    str(index_p)    //    " "    //    str(local_num_cells)    //    " "    //    str(total_num_cells))
+      msg = "ERROR: trying to access cell I don't have access to." // str(index_p) // " " //  &
+            str(local_num_cells) // " " // str(total_num_cells)
+      call error_abort(msg)
     end if
   end subroutine create_cell_locator
 
@@ -520,6 +524,53 @@ contains
     end associate
   end subroutine get_cell_global_index
 
+  !> Sets the global index of a cell
+  module subroutine set_cell_global_index(global_index_p, loc_p)
+    integer(ccs_int), intent(in) :: global_index_p !< the global index of the cell.
+    type(cell_locator), intent(inout) :: loc_p     !< the cell locator object.
+
+    associate (mesh => loc_p%mesh, &
+               cell => loc_p%index_p)
+      mesh%topo%global_indices(cell) = global_index_p
+    end associate
+  end subroutine set_cell_global_index
+
+  !v Returns the natural index of a cell
+  !
+  ! @note@ The natural index is the original global index, whereas the global index indicates the
+  !        indexing in the current ordering.
+  module subroutine get_cell_natural_index(loc_p, natural_index_p)
+    type(cell_locator), intent(in) :: loc_p         !< the cell locator object.
+    integer(ccs_int), intent(out) :: natural_index_p !< the natural index of the cell.
+
+    integer(ccs_int) :: local_num_cells
+
+    associate (mesh => loc_p%mesh)
+      call get_local_num_cells(mesh, local_num_cells)
+      if (local_num_cells > 0) then ! XXX: Potentially expensive...
+        associate (cell => loc_p%index_p)
+          natural_index_p = mesh%topo%natural_indices(cell)
+        end associate
+      else
+        natural_index_p = -1 ! XXX: What should we do in case of too many processors for a given mesh?
+      end if
+    end associate
+  end subroutine get_cell_natural_index
+
+  !v Sets the natural index of a cell
+  !
+  ! @note@ The natural index is the original global index, whereas the global index indicates the
+  !        indexing in the current ordering.
+  module subroutine set_cell_natural_index(natural_index_p, loc_p)
+    integer(ccs_int), intent(in) :: natural_index_p !< the natural index of the cell.
+    type(cell_locator), intent(inout) :: loc_p      !< the cell locator object.
+
+    associate (mesh => loc_p%mesh, &
+               cell => loc_p%index_p)
+      mesh%topo%natural_indices(cell) = natural_index_p
+    end associate
+  end subroutine set_cell_natural_index
+
   !> Returns the global index of a neighbouring cell
   module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
     type(neighbour_locator), intent(in) :: loc_nb    !< the neighbour locator object.
@@ -529,6 +580,16 @@ contains
     call get_neighbour_cell_locator(loc_nb, cell_loc_nb)
     call get_global_index(cell_loc_nb, global_index_nb)
   end subroutine get_neighbour_global_index
+
+  !> Returns the natural index of a neighbouring cell
+  module subroutine get_neighbour_natural_index(loc_nb, natural_index_nb)
+    type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
+    integer(ccs_int), intent(out) :: natural_index_nb !< the natural index of the neighbour cell.
+
+    type(cell_locator) :: cell_loc_nb
+    call get_neighbour_cell_locator(loc_nb, cell_loc_nb)
+    call get_natural_index(cell_loc_nb, natural_index_nb)
+  end subroutine get_neighbour_natural_index
 
   !> Sets the global index of a face
   module subroutine set_face_global_index(global_index_f, loc_f)
@@ -700,6 +761,18 @@ contains
     end associate
   end subroutine get_vertex_neighbour_local_index
 
+  !> Sets the local index of a vertex-neighbouring cell
+  module subroutine set_vertex_neighbour_local_index(index_nb, loc_nb)
+    integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+    type(vertex_neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+
+    associate (mesh => loc_nb%mesh, &
+               i => loc_nb%index_p, &
+               j => loc_nb%vert_nb_counter)
+      mesh%topo%vert_nb_indices(j, i) = index_nb
+    end associate
+  end subroutine set_vertex_neighbour_local_index
+
   !> Returns the local index of a face
   module subroutine get_face_local_index(loc_f, index_f)
     type(face_locator), intent(in) :: loc_f  !< the face locator object.
@@ -799,5 +872,21 @@ contains
       nvnb = mesh%topo%num_vert_nb(cell)
     end associate
   end subroutine get_count_vertex_neighbours
+
+  !> Query whether mesh was generated or read
+  module subroutine get_mesh_generated(mesh, is_generated)
+    type(ccs_mesh), intent(in) :: mesh   !< The mesh object
+    logical, intent(out) :: is_generated !< The generated/read (true/false) status
+
+    is_generated = mesh%is_generated
+  end subroutine
+
+  !> Set whether a mesh was generated or read
+  module subroutine set_mesh_generated(is_generated, mesh)
+    logical, intent(in) :: is_generated   !< Flag indicating generated/read (true/false) status
+    type(ccs_mesh), intent(inout) :: mesh !< The mesh object
+
+    mesh%is_generated = is_generated
+  end subroutine
 
 end submodule meshing_accessors

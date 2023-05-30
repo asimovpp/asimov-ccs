@@ -12,7 +12,8 @@ module utils
                  initialise_vector, set_vector_size, &
                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
                  clear_vector_values_entries, &
-                 mult_vec_vec, scale_vec, zero_vector
+                 mult_vec_vec, scale_vec, zero_vector, &
+                 get_natural_data_vec
   use mat, only: set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                  initialise_matrix, finalise_matrix, set_matrix_size, &
                  set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, set_matrix_values_entry, &
@@ -53,6 +54,7 @@ module utils
   public :: set_fluid_solver_selector
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
+  public :: get_natural_data
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -151,6 +153,11 @@ module utils
     module procedure debug_print_actual
     module procedure noop
   end interface debug_print
+
+  !> Generic interface to get data in natural ordering
+  interface get_natural_data
+    module procedure get_natural_data_vec
+  end interface get_natural_data
 
   integer(ccs_int), save :: outputlist_counter = 0
 

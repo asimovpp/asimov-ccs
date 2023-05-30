@@ -49,7 +49,7 @@ contains
   module subroutine write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
 
     use case_config, only: write_gradients
-    use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices
+    use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices, get_mesh_generated
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
@@ -80,6 +80,9 @@ contains
     integer(ccs_int) :: ncel
     integer(ccs_int) :: vert_per_cell
     integer(ccs_int) :: nvrt
+
+    logical :: is_generated
+    character(len=:), allocatable :: mesh_data_root ! Where in the mesh data path is topology/geometry stored?
 
     xdmf_file = case_name // '.sol.xmf'
     sol_file = case_name // '.sol.h5'
@@ -122,6 +125,14 @@ contains
         write (ioxdmf, '(a,a,f10.7,a)') l4, '<Time Value = "', step * dt, '" />'
       end if
 
+      ! Check whether mesh was read or generated and set data path root appropriately
+      call get_mesh_generated(mesh, is_generated)
+      if (is_generated) then
+        mesh_data_root = "/Step0"
+      else
+        mesh_data_root = ""
+      end if
+
       ! Topology
       if (vert_per_cell == 4) then
         write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Quadrilateral" NumberOfElements = "', ncel, '" BaseOffset = "1">'
@@ -131,13 +142,13 @@ contains
 
       fmt = '(a,a,i0,1x,i0,3(a))'
       write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, vert_per_cell, '" Format = "HDF">', &
-        trim(geo_file), ':/Step0/cell/vertices</DataItem>'
+        trim(geo_file), ':' // mesh_data_root // '/cell/vertices</DataItem>'
       write (ioxdmf, '(a,a)') l4, '</Topology>'
 
       ! Geometry
       write (ioxdmf, '(a,a)') l4, '<Geometry Type = "XYZ">'
       write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', nvrt, ndim, '" Format = "HDF">', trim(geo_file), &
-        ':/Step0/vert</DataItem>'
+        ':' // mesh_data_root // '/vert</DataItem>'
       write (ioxdmf, '(a,a)') l4, '</Geometry>'
 
       ! Velocity vector

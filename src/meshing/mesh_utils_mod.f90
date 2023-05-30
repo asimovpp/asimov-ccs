@@ -3,7 +3,7 @@ module mesh_utils
 
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print, str
-  use kinds, only: ccs_int, ccs_long, ccs_real
+  use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
                    face_locator, cell_locator, neighbour_locator, vert_locator
@@ -14,7 +14,7 @@ module mesh_utils
   use parallel, only: read_command_line_arguments
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: get_global_index, get_local_index, count_neighbours, &
+  use meshing, only: get_global_index, get_natural_index, get_local_index, count_neighbours, &
                      create_cell_locator, create_neighbour_locator, create_face_locator, create_vert_locator, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_local_num_cells, set_local_num_cells, &
@@ -32,8 +32,10 @@ module mesh_utils
                      get_global_num_vertices, set_global_num_vertices, &
                      set_face_interpolation, &
                      set_local_index, &
-                     set_global_index
+                     set_global_index, &
+                     get_mesh_generated, set_mesh_generated
   use bc_constants
+  use reordering, only: reorder_cells, compute_bandwidth
 
   implicit none
 
@@ -99,7 +101,8 @@ contains
   !v Read mesh from file
   subroutine read_mesh(par_env, case_name, mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
+    use partitioning, only: partition_kway, compute_connectivity, &
+                            compute_connectivity_get_local_cells, compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
@@ -112,6 +115,8 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
+    call set_mesh_generated(.false., mesh)
+
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
 
@@ -123,12 +128,19 @@ contains
     call read_topology(par_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, mesh)
-    call partition_kway(par_env, mesh)
+    call compute_connectivity_get_local_cells(par_env, mesh)
 
-    !call partition_kway(par_env, mesh)
-    call partition_stride(par_env, mesh)
+    if (par_env%num_procs > 1) then
+      call partition_kway(par_env, mesh)
+    else
+      call partition_stride(par_env, mesh)
+    end if
 
     call compute_connectivity(par_env, mesh)
+
+    call compute_bandwidth(mesh)
+    call reorder_cells(par_env, mesh)
+    call compute_bandwidth(mesh)
 
     call read_geometry(geo_reader, mesh)
 
@@ -192,6 +204,7 @@ contains
     call get_max_faces(mesh, max_faces)
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8, mesh) ! 8 vertices per cell
+      call set_vert_nb_per_cell(20, mesh)
     else
       call error_abort("Currently only supporting hex cells.")
     end if
@@ -234,6 +247,7 @@ contains
     sel2_count(1) = vert_per_cell
 
     call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
+    call build_vertex_neighbours(par_env, mesh)
 
     ! Create and populate the vtxdist array based on the total number of cells
     ! and the total number of ranks in the parallel environment
@@ -253,6 +267,74 @@ contains
     end do
 
   end subroutine read_topology
+
+  !v Build the vertex neighbours from the cell-vertex connectivity.
+  !
+  !  @note@ This will be quadratic - do we REALLY need it?
+  !  @note@ This won't find boundary vertex "neighbours" hopefully they aren't needed...
+  subroutine build_vertex_neighbours(par_env, mesh)
+
+    use case_config, only: vertex_neighbours
+
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(inout) :: mesh
+
+    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: vert_nb_per_cell
+    integer(ccs_int) :: vert_per_cell
+
+    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: global_vert_index
+
+    if(vertex_neighbours .eqv. .true.) then
+    
+      if (par_env%proc_id == par_env%root) then
+        print *, "Building vertex neighbours, this may take a while..."
+      end if
+
+      call get_global_num_cells(mesh, global_num_cells)
+      call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
+      call get_vert_per_cell(mesh, vert_per_cell)
+
+      allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
+      mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
+
+      allocate (mesh%topo%num_vert_nb(global_num_cells)) ! XXX: Will have to shrink this later...
+      ! Yes, quadratic...
+      do i = 1, global_num_cells
+        mesh%topo%num_vert_nb(i) = 0
+        do j = 1, global_num_cells
+          if (j /= i) then
+            if (any(mesh%topo%global_face_indices(:, i) == j)) then
+              ! Face neighbour, ignore
+              continue
+            else
+              do k = 1, vert_per_cell
+                global_vert_index = mesh%topo%global_vertex_indices(k, i)
+                if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
+                  mesh%topo%num_vert_nb(i) = mesh%topo%num_vert_nb(i) + 1
+                  mesh%topo%vert_nb_indices(mesh%topo%num_vert_nb(i), i) = j
+                  exit
+                end if
+              end do
+            end if
+          end if
+
+          !! Found all the vertex neighbours we're expecting
+          if (mesh%topo%num_vert_nb(i) == vert_per_cell) then
+            exit
+          end if
+        end do
+      end do
+
+    else
+      if (par_env%proc_id == par_env%root) then
+        print *, "Not building vertex neighbours!"
+    end if
+
+  end if
+
+  end subroutine build_vertex_neighbours
 
   !v Read the geometry data from an input (HDF5) file
   subroutine read_geometry(geo_reader, mesh)
@@ -315,7 +397,7 @@ contains
 
     ! Read variable "/cell/vol"
     call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
-    mesh%geo%volumes(:) = temp_vol_c(mesh%topo%global_indices(:))
+    mesh%geo%volumes(:) = temp_vol_c(mesh%topo%natural_indices(:))
 
     ! Starting point for reading chunk of data
     x_p_start = (/0, 0/)
@@ -329,7 +411,7 @@ contains
 
     ! Read variable "/cell/x"
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
-    mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%global_indices(:))
+    mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%natural_indices(:))
 
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     call get_global_num_faces(mesh, global_num_faces)
@@ -370,7 +452,7 @@ contains
     !    do k = start, end ! loop over cells owned by current process
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
       call create_cell_locator(mesh, local_icell, loc_p)
-      call get_global_index(loc_p, global_icell)
+      call get_natural_index(loc_p, global_icell)
 
       do j = 1, max_faces ! loop over all faces for each cell
         call create_face_locator(mesh, local_icell, j, loc_f)
@@ -389,7 +471,7 @@ contains
       do j = 1, vert_per_cell ! loop over all vertices for each cell
         call create_vert_locator(mesh, local_icell, j, loc_v)
 
-        n = mesh%topo%global_vertex_indices(j, global_icell)
+        n = mesh%topo%global_vertex_indices(j, local_icell)
         call set_centre(loc_v, temp_x_v(:, n))
       end do
 
@@ -422,6 +504,15 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_writer
 
+    logical :: is_generated
+
+    call get_mesh_generated(mesh, is_generated)
+
+    if (.not. is_generated) then
+      ! Mesh was read, no need to write again!
+      return
+    end if
+
     ! Set ADIOS2 config file name
     adios2_file = case_name // adiosconfig
 
@@ -434,7 +525,7 @@ contains
     call open_file(geo_file, "write", geo_writer)
 
     ! Write mesh
-    call write_topology(geo_writer, mesh)
+    call write_topology(par_env, geo_writer, mesh)
     call write_geometry(par_env, geo_writer, mesh)
 
     ! Close the file and ADIOS2 engine
@@ -446,11 +537,14 @@ contains
   end subroutine write_mesh
 
   !v Write the mesh topology data to file
-  subroutine write_topology(geo_writer, mesh)
+  subroutine write_topology(par_env, geo_writer, mesh)
+
+    use mpi
 
     ! Arguments
-    class(io_process), allocatable, target, intent(in) :: geo_writer        !< The IO process for writing the mesh ("geo") file
-    type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
+    class(parallel_environment), intent(in) :: par_env               !< The parallel environment
+    class(io_process), allocatable, target, intent(in) :: geo_writer !< The IO process for writing the mesh ("geo") file
+    type(ccs_mesh), intent(in) :: mesh                               !< The mesh
 
     ! Local variables
     integer(ccs_long), dimension(2) :: sel2_shape
@@ -458,11 +552,19 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: vert_per_cell
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
+    integer(ccs_int), dimension(:), allocatable :: natural_vertices_1d
+    integer(ccs_int), dimension(:, :), allocatable :: natural_vertices_2d
+    integer(ccs_err) ierr
+
+    integer(ccs_int) :: i, j, idx
+
+    call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
     call get_vert_per_cell(mesh, vert_per_cell)
 
@@ -479,9 +581,39 @@ contains
     sel2_start(1) = 0
     sel2_start(2) = index_global - 1
     sel2_count(1) = vert_per_cell
-    call get_local_num_cells(mesh, sel2_count(2))
+    sel2_count(2) = local_num_cells
 
-    call write_array(geo_writer, "/cell/vertices", sel2_shape, sel2_start, sel2_count, mesh%topo%global_vertex_indices)
+    ! Get global vertex indices in cell natural order
+    allocate (natural_vertices_1d(vert_per_cell * global_num_cells))
+    natural_vertices_1d(:) = 0
+    do i = 1, local_num_cells
+      idx = vert_per_cell * (mesh%topo%natural_indices(i) - 1)
+      do j = 1, vert_per_cell
+        natural_vertices_1d(idx + j) = mesh%topo%global_vertex_indices(j, i)
+      end do
+    end do
+    select type(par_env)
+    type is(parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, natural_vertices_1d, size(natural_vertices_1d), &
+                         MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+    class default
+      call error_abort("Unknown parallel environment")
+    end select
+
+    allocate (natural_vertices_2d(vert_per_cell, local_num_cells))
+    do i = 1, local_num_cells
+      idx = vert_per_cell * (mesh%topo%global_indices(i) - 1)
+      do j = 1, vert_per_cell
+        natural_vertices_2d(j, i) = natural_vertices_1d(idx + j)
+      end do
+    end do
+
+    deallocate (natural_vertices_1d)
+
+    call write_array(geo_writer, "/cell/vertices", sel2_shape, sel2_start, sel2_count, &
+                     natural_vertices_2d)
+
+    deallocate (natural_vertices_2d)
 
   end subroutine write_topology
 
@@ -564,14 +696,22 @@ contains
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
+    call set_mesh_generated(.true., mesh)
+
     call build_square_topology(par_env, cps, mesh)
 
     call compute_partitioner_input(par_env, mesh)
 
-    !call partition_kway(par_env, mesh)
-    call partition_stride(par_env, mesh)
-
+    if (par_env%num_procs > 1) then
+      call partition_kway(par_env, mesh)
+    else
+      call partition_stride(par_env, mesh)
+    end if
     call compute_connectivity(par_env, mesh)
+
+    call compute_bandwidth(mesh)
+    call reorder_cells(par_env, mesh)
+    call compute_bandwidth(mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
@@ -846,6 +986,23 @@ contains
       k = int(real(nglobal) / par_env%num_procs)
       j = 1
 
+      if (allocated(mesh%topo%global_vertex_indices)) then
+        deallocate (mesh%topo%global_vertex_indices)
+      end if
+      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
+
+      ! Global vertex numbering
+      do i = 1, mesh%topo%global_num_cells
+        ii = i
+        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+
+          global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
+          global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
+          global_vert_index(front_top_left) = global_vert_index(front_bottom_left) + (cps + 1)
+          global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
+        end associate
+      end do
+
       do i = 1, par_env%num_procs
         mesh%topo%vtxdist(i) = j
         j = j + k
@@ -899,24 +1056,6 @@ contains
       call get_local_num_cells(mesh, local_num_cells)
       call get_vert_per_cell(mesh, vert_per_cell)
 
-      if (allocated(mesh%topo%global_vertex_indices)) then
-        deallocate (mesh%topo%global_vertex_indices)
-      end if
-      allocate (mesh%topo%global_vertex_indices(vert_per_cell, local_num_cells))
-
-      ! Global vertex numbering
-      do i = 1, local_num_cells
-        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          call create_cell_locator(mesh, i, loc_p)
-          call get_global_index(loc_p, ii)
-
-          global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
-          global_vert_index(front_bottom_right) = ii + (ii - 1) / cps + 1
-          global_vert_index(front_top_left) = ii + cps + (ii + cps - 1) / cps
-          global_vert_index(front_top_right) = ii + cps + (ii + cps - 1) / cps + 1
-        end associate
-      end do
-
       call get_total_num_cells(mesh, total_num_cells)
       call get_max_faces(mesh, max_faces)
       allocate (mesh%geo%x_p(ndim, total_num_cells))
@@ -938,7 +1077,7 @@ contains
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
           call create_cell_locator(mesh, i, loc_p)
-          call get_global_index(loc_p, ii)
+          call get_natural_index(loc_p, ii)
 
           x_p(1) = (modulo(ii - 1, cps) + 0.5_ccs_real) * h
           x_p(2) = ((ii - 1) / cps + 0.5_ccs_real) * h
@@ -1056,6 +1195,8 @@ contains
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
+    call set_mesh_generated(.true., mesh)
+
     if (.not. (nx .eq. ny .and. ny .eq. nz)) then !< @note Must be a cube (for now) @endnote
       call error_abort("Only supporting cubes for now - nx, ny and nz must be the same!")
     end if
@@ -1064,10 +1205,17 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
 
-    !call partition_kway(par_env, mesh)
-    call partition_stride(par_env, mesh)
+    if (par_env%num_procs > 1) then
+      call partition_kway(par_env, mesh)
+    else
+      call partition_stride(par_env, mesh)
+    end if
 
     call compute_connectivity(par_env, mesh)
+
+    call compute_bandwidth(mesh)
+    call reorder_cells(par_env, mesh)
+    call compute_bandwidth(mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
@@ -1093,6 +1241,7 @@ contains
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: face_index_counter    ! global face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
+    integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     integer(ccs_int) :: global_index_nb ! The global index of a neighbour cell
     integer(ccs_int) :: local_num_cells
@@ -1452,6 +1601,32 @@ contains
 
       call set_cell_face_indices(mesh)
 
+      if (allocated(mesh%topo%global_vertex_indices)) then
+        deallocate (mesh%topo%global_vertex_indices)
+      end if
+      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
+
+      ! Global vertex numbering
+      do i = 1, mesh%topo%global_num_cells
+        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+          ii = i
+          a = modulo(ii - 1, nx * ny) + 1
+          b = (a - 1) / nx
+          c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
+          d = (a + nx - 1) / nx
+          e = (nx + 1) * (ny + 1)
+
+          global_vert_index(front_bottom_left) = a + b + c
+          global_vert_index(front_bottom_right) = a + b + c + 1
+          global_vert_index(front_top_left) = a + c + d + nx
+          global_vert_index(front_top_right) = a + c + d + nx + 1
+          global_vert_index(back_bottom_left) = a + b + c + e
+          global_vert_index(back_bottom_right) = a + b + c + e + 1
+          global_vert_index(back_top_left) = a + c + d + e + nx
+          global_vert_index(back_top_right) = a + c + d + e + nx + 1
+        end associate
+      end do
+
       ! Create and populate the vtxdist array based on the total number of cells
       ! and the total number of ranks in the parallel environment
       allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
@@ -1493,7 +1668,6 @@ contains
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: face_counter    ! Cell-local face counter
     integer(ccs_int) :: vertex_counter  ! Cell-local vertex counter
-    integer(ccs_int) :: a, b, c, d, e       ! Temporary variables
 
     logical :: is_boundary
 
@@ -1516,41 +1690,14 @@ contains
     real(ccs_real), dimension(3) :: x_v ! Vertex centre array
     type(vert_locator) :: loc_v         ! Vertex locator object
 
-    e = nz ! silence dummy argument unused warning
+    associate (foo => nz) ! Silence unused dummy argument
+    end associate
 
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
     call get_vert_per_cell(mesh, vert_per_cell)
 
     select type (par_env)
     type is (parallel_environment_mpi)
-
-      if (allocated(mesh%topo%global_vertex_indices)) then
-        deallocate (mesh%topo%global_vertex_indices)
-      end if
-      allocate (mesh%topo%global_vertex_indices(vert_per_cell, local_num_cells))
-
-      ! Global vertex numbering
-      do i = 1, local_num_cells
-        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          call create_cell_locator(mesh, i, loc_p)
-          call get_global_index(loc_p, ii)
-
-          a = modulo(ii - 1, nx * ny) + 1
-          b = (a - 1) / nx
-          c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
-          d = (a + nx - 1) / nx
-          e = (nx + 1) * (ny + 1)
-
-          global_vert_index(front_bottom_left) = a + b + c
-          global_vert_index(front_bottom_right) = a + b + c + 1
-          global_vert_index(front_top_left) = a + c + d + nx
-          global_vert_index(front_top_right) = a + c + d + nx + 1
-          global_vert_index(back_bottom_left) = a + b + c + e
-          global_vert_index(back_bottom_right) = a + b + c + e + 1
-          global_vert_index(back_top_left) = a + c + d + e + nx
-          global_vert_index(back_top_right) = a + c + d + e + nx + 1
-        end associate
-      end do
 
       call get_total_num_cells(mesh, total_num_cells)
       call get_max_faces(mesh, max_faces)
@@ -1573,7 +1720,7 @@ contains
       associate (h => mesh%geo%h)
         do i = 1_ccs_int, total_num_cells
           call create_cell_locator(mesh, i, loc_p)
-          call get_global_index(loc_p, ii)
+          call get_natural_index(loc_p, ii)
 
           x_p(1) = (modulo(ii - 1, nx) + 0.5_ccs_real) * h
           x_p(2) = (modulo((ii - 1) / nx, ny) + 0.5_ccs_real) * h
@@ -1726,7 +1873,8 @@ contains
     integer(ccs_int), intent(in) :: index_p                   !< Global index of cell whose neighbours we're assembling
     integer(ccs_int), intent(in) :: nb_counter                !< the cell-relative index neighbour index
     integer(ccs_int), intent(in) :: index_counter             !< local index of cell whose neighbours we're assembling
-    integer(ccs_int), dimension(:), intent(in) :: direction   !< Array containing the direction of the neighbour relative to the cell
+    integer(ccs_int), dimension(:), intent(in) :: direction   !< Array containing the direction of the neighbour
+    !< relative to the cell
     integer(ccs_int), intent(in) :: nx                        !< Mesh size in x direction
     integer(ccs_int), intent(in) :: ny                        !< Mesh size in y direction
     integer(ccs_int), intent(in) :: nz                        !< Mesh size in z direction
@@ -2223,7 +2371,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%face_areas)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%geo%face_areas(1:nb_elem / 2, i)
+        print *, par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          mesh%geo%face_areas(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "face_areas             : UNALLOCATED"
@@ -2241,7 +2390,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%x_f)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%geo%x_f(2, 1:nb_elem / 2, i)
+        print *, par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          mesh%geo%x_f(2, 1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "x_f                    : UNALLOCATED"
@@ -2250,7 +2400,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%face_normals)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "face_normals(2, 1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%geo%face_normals(2, 1:nb_elem/2,i)
+        print *, par_env%proc_id, "face_normals(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          mesh%geo%face_normals(2, 1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "face_normals          : UNALLOCATED"
@@ -2259,7 +2410,8 @@ contains
     print *, ""
     if (allocated(mesh%geo%vert_coords)) then
       do i = 1, nb_elem
- print *, par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%geo%vert_coords(2, 1:nb_elem / 2, i)
+        print *, par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          mesh%geo%vert_coords(2, 1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "vert_coords           : UNALLOCATED"
