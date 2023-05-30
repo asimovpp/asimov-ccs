@@ -23,6 +23,7 @@ module fields
   public :: set_field_config_file
   public :: set_field_vector_properties
   public :: set_field_n_boundaries
+  public :: set_field_store_residuals
   public :: set_field_name
   public :: set_field_type
 
@@ -42,8 +43,9 @@ contains
                vec_properties => field_properties%vec_properties, &
                field_type => field_properties%field_type, &
                field_name => field_properties%field_name, &
-               n_boundaries => field_properties%n_boundaries)
-      call allocate_field(vec_properties, field_type, n_boundaries, phi)
+               n_boundaries => field_properties%n_boundaries, &
+               store_residuals => field_properties%store_residuals)
+      call allocate_field(vec_properties, field_type, n_boundaries, store_residuals, phi)
 
       ! XXX: ccs_config_file is host-associated from program scope.
       call read_bc_config(ccs_config_file, field_name, phi)
@@ -51,6 +53,11 @@ contains
       !! --- Ensure data is updated/parallel-constructed ---
       ! XXX: Potential abstraction --- see update(vec), etc.
       call update(phi%values)
+
+      if (store_residuals) then
+        call update(phi%residuals)
+      end if
+
       if (field_type /= face_centred) then
         ! Current design only computes/stores gradients at cell centres
         call update(phi%x_gradients)
@@ -65,7 +72,7 @@ contains
   end subroutine create_field
 
   !> Allocate a field variable
-  subroutine allocate_field(vec_properties, field_type, n_boundaries, phi)
+  subroutine allocate_field(vec_properties, field_type, n_boundaries, store_residuals, phi)
 
     use utils, only: debug_print
 
@@ -75,6 +82,7 @@ contains
     type(vector_spec), intent(in) :: vec_properties !< Vector descriptor for vectors wrapped by field
     integer, intent(in) :: field_type               !< Identifier for what kind of field
     integer(ccs_int), intent(in) :: n_boundaries    !< Mesh boundary count
+    logical, intent(in) :: store_residuals          !< Wether or not residual field needs to be stored (and allocated)
     class(field), allocatable, intent(out) :: phi   !< The field being constructed
 
     if (field_type == face_centred) then
@@ -90,6 +98,11 @@ contains
 
     call dprint("Create field values vector")
     call create_vector(vec_properties, phi%values)
+
+    if (store_residuals) then
+      call dprint("Create residuals field vector")
+      call create_vector(vec_properties, phi%residuals)
+    end if
 
     if (field_type /= face_centred) then
       ! Current design only computes/stores gradients at cell centres
@@ -136,6 +149,16 @@ contains
     field_properties%n_boundaries = n_boundaries
 
   end subroutine set_field_n_boundaries
+
+  !> Set wether or not residuals should be stored
+  subroutine set_field_store_residuals(store_residuals, field_properties)
+
+    logical, intent(in) :: store_residuals
+    type(field_spec), intent(inout) :: field_properties
+
+    field_properties%store_residuals = store_residuals
+
+  end subroutine set_field_store_residuals
 
   !> Set the name of a field to be created
   subroutine set_field_name(name, field_properties)
