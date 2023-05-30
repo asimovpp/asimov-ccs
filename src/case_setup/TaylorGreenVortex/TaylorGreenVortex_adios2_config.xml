@@ -6,4 +6,10 @@
     </engine>
 
   </io>
+  <io name="geo_writer">
+
+    <engine type="HDF5">
+    </engine>
+
+  </io>
 </adios-config>
