@@ -274,6 +274,8 @@ contains
   !  @note@ This won't find boundary vertex "neighbours" hopefully they aren't needed...
   subroutine build_vertex_neighbours(par_env, mesh)
 
+    use case_config, only: vertex_neighbours
+
     class(parallel_environment), intent(in) :: par_env
     type(ccs_mesh), intent(inout) :: mesh
 
@@ -284,44 +286,53 @@ contains
     integer(ccs_int) :: i, j, k
     integer(ccs_int) :: global_vert_index
 
-    if (par_env%proc_id == par_env%root) then
-      print *, "Building vertex neighbours, this may take a while..."
+    if(vertex_neighbours .eqv. .true.) then
+    
+      if (par_env%proc_id == par_env%root) then
+        print *, "Building vertex neighbours, this may take a while..."
+      end if
+
+      call get_global_num_cells(mesh, global_num_cells)
+      call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
+      call get_vert_per_cell(mesh, vert_per_cell)
+
+      allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
+      mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
+
+      allocate (mesh%topo%num_vert_nb(global_num_cells)) ! XXX: Will have to shrink this later...
+      ! Yes, quadratic...
+      do i = 1, global_num_cells
+        mesh%topo%num_vert_nb(i) = 0
+        do j = 1, global_num_cells
+          if (j /= i) then
+            if (any(mesh%topo%global_face_indices(:, i) == j)) then
+              ! Face neighbour, ignore
+              continue
+            else
+              do k = 1, vert_per_cell
+                global_vert_index = mesh%topo%global_vertex_indices(k, i)
+                if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
+                  mesh%topo%num_vert_nb(i) = mesh%topo%num_vert_nb(i) + 1
+                  mesh%topo%vert_nb_indices(mesh%topo%num_vert_nb(i), i) = j
+                  exit
+                end if
+              end do
+            end if
+          end if
+
+          !! Found all the vertex neighbours we're expecting
+          if (mesh%topo%num_vert_nb(i) == vert_per_cell) then
+            exit
+          end if
+        end do
+      end do
+
+    else
+      if (par_env%proc_id == par_env%root) then
+        print *, "Not building vertex neighbours!"
     end if
 
-    call get_global_num_cells(mesh, global_num_cells)
-    call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
-    call get_vert_per_cell(mesh, vert_per_cell)
-
-    allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
-    mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
-
-    allocate (mesh%topo%num_vert_nb(global_num_cells)) ! XXX: Will have to shrink this later...
-    ! Yes, quadratic...
-    do i = 1, global_num_cells
-      mesh%topo%num_vert_nb(i) = 0
-      do j = 1, global_num_cells
-        if (j /= i) then
-          if (any(mesh%topo%global_face_indices(:, i) == j)) then
-            ! Face neighbour, ignore
-            continue
-          else
-            do k = 1, vert_per_cell
-              global_vert_index = mesh%topo%global_vertex_indices(k, i)
-              if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
-                mesh%topo%num_vert_nb(i) = mesh%topo%num_vert_nb(i) + 1
-                mesh%topo%vert_nb_indices(mesh%topo%num_vert_nb(i), i) = j
-                exit
-              end if
-            end do
-          end if
-        end if
-
-        !! Found all the vertex neighbours we're expecting
-        if (mesh%topo%num_vert_nb(i) == vert_per_cell) then
-          exit
-        end if
-      end do
-    end do
+  end if
 
   end subroutine build_vertex_neighbours
 
