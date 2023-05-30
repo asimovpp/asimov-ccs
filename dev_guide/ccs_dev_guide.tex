@@ -10,6 +10,8 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{amsmath}
+\usepackage{tabularx}
+\usepackage{appendix}
 \usepackage[svgnames]{xcolor}
   \definecolor{diffstart}{named}{Grey}
   \definecolor{diffincl}{named}{Green}
@@ -824,6 +826,56 @@ scheme:
 
 Please refer to the readme at \texttt{src/build\_tools/build\_system\_readme.md}. 
 
+\appendix
+
+\chapter{Glossary}
+
+\section{Common variables}
+  \begin{tabular}[h]{|l|l|}
+    \hline
+    \textbf{Description}                       & \textbf{Name}   \\
+    \hline
+    \hline
+    Neighbour suffix                  & \texttt{\_nb}   \\
+  Face suffix                       & \texttt{\_f}    \\
+  Cell suffix                       & \texttt{\_p}    \\
+  Location of current cell          & \texttt{loc\_p} \\
+  Location of face                  & \texttt{loc\_f} \\
+  Location of neighbour             & \texttt{loc\_nb} \\
+  Location of neighbour's neighbour & \texttt{loc\_nb\_nb} \\
+  Cell index                        & \texttt{index\_p} \\
+  Face index                        & \texttt{index\_f} \\
+  Neighbour index                   & \texttt{index\_nb} \\
+  Neighbour neighbour's index       & \texttt{index\_nb\_nb} \\
+  Number of neighbours              & \texttt{nnb}           \\
+  Mesh                              & \texttt{mesh}          \\
+  Pressure correction               & \texttt{p\_prime}      \\
+  Vector specification              & \texttt{vec\_properties} \\
+  Matrix specification              & \texttt{mat\_properties} \\
+  Gradient                          & \texttt{d\{p\}d\{x,y,z\}} \\
+  Global                            & \texttt{global\_}         \\
+  \hline 
+\end{tabular}
+
+\section{Types}
+
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+  \textbf{Description}                       & \textbf{Name}   \\
+  \hline
+  \hline
+  Vector               & \texttt{ccs\_vector}                                                                             \\
+  Matrix               & \texttt{ccs\_matrix}                                                                                    \\
+  Mesh                 & \texttt{ccs\_mesh}                                                                                      \\
+  Vector specification & \texttt{vector\_spec} with components \texttt{par\_env}, \texttt{mesh}, \texttt{storage\_location}                           \\
+  Matrix specification & \texttt{matrix\_spec} with components \texttt{par\_env}, \texttt{mesh}, \texttt{nnz}                                         \\
+  Vector values        & \texttt{vector\_values} with components \texttt{global\_indices}, \texttt{values}, \texttt{setter\_mode}                     \\
+  Matrix values        & \texttt{matrix\_values} with components \texttt{global\_row\_indices}, \texttt{global\_col\_indices}, \texttt{values}, \texttt{setter\_mode} \\
+  Equation system      & \texttt{equation\_system} with components \texttt{solution}, \texttt{rhs}, \texttt{matrix}                                           \\
+  Linear solver        & \texttt{linear\_solver} with component \texttt{linear\_system}                                                     \\
+  Field                & \texttt{field} with components \texttt{values}, \texttt{x\_gradients}, \texttt{y\_gradients}, \texttt{z\_gradients}                          \\
+  \hline
+  \end{tabularx}
 
 \end{document}
 
