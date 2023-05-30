@@ -276,13 +276,11 @@ contains
     integer(ccs_err) :: ierr
 
     integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
-    integer(ccs_int), dimension(:), allocatable :: tmp_1d
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: nvnb
 
     integer(ccs_int) :: total_num_cells
-    integer(ccs_int) :: halo_num_cells
 
     integer(ccs_int) :: global_num_cells
 
