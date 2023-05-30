@@ -4,7 +4,8 @@ submodule(partitioning) partitioning_parhip
   use kinds, only: ccs_int, ccs_real, ccs_long
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
+                     get_max_faces
 
   implicit none
 
@@ -65,6 +66,8 @@ contains
     integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
+    integer(ccs_int) :: global_num_cells
+
     ! Values hardcoded for now
     imbalance = 0.03  ! Desired balance - 0.03 = 3%
     seed = 2022       ! "Random" seed
@@ -72,7 +75,8 @@ contains
     suppress = 0      ! Do not suppress the output
     edgecuts = -1     ! XXX: silence unused variable warning
 
-    allocate (tmp_partition(mesh%topo%global_num_cells)) ! Temporary partition array
+    call get_global_num_cells(mesh, global_num_cells)
+    allocate (tmp_partition(global_num_cells)) ! Temporary partition array
     tmp_partition = 0
 
     irank = par_env%proc_id ! Current rank
@@ -112,7 +116,8 @@ contains
         tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
 
-      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
+      call get_global_num_cells(mesh, global_num_cells)
+      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
                          MPI_LONG, MPI_SUM, par_env%comm, ierr)
 
     class default

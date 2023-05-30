@@ -17,7 +17,7 @@ program test_compute_fluxes
   use constants, only: add_mode, face
   use bc_constants
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
-                     set_cell_location, set_neighbour_location, count_neighbours, get_local_num_cells
+                     create_cell_locator, create_neighbour_locator, count_neighbours, get_local_num_cells
   use boundary_conditions, only: allocate_bc_arrays
 
   implicit none
@@ -183,11 +183,11 @@ contains
     do index_p = 1, local_num_cells
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (.not. is_boundary) then
           dx = 1.0_ccs_real / cps
@@ -274,11 +274,11 @@ contains
 
         adv_coeff_total = 0.0_ccs_real
         diff_coeff_total = 0.0_ccs_real
-        call set_cell_location(mesh, index_p, loc_p)
+        call create_cell_locator(mesh, index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
         call count_neighbours(loc_p, nnb)
         do j = 1, nnb
-          call set_neighbour_location(loc_p, j, loc_nb)
+          call create_neighbour_locator(loc_p, j, loc_nb)
           call get_boundary_status(loc_nb, is_boundary)
           if (.not. is_boundary) then
             ! Deferred correction advection

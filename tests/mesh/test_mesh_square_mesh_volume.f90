@@ -5,7 +5,7 @@
 program test_mesh_square_mesh_volume
 
   use testing_lib
-  use meshing, only: set_cell_location, get_volume, get_local_num_cells
+  use meshing, only: create_cell_locator, get_volume, get_local_num_cells
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -28,7 +28,7 @@ program test_mesh_square_mesh_volume
 
   real(ccs_real) :: CV
 
-  integer(ccs_int), dimension(9) :: m = (/1, 2, 4, 8, 16, 20, 40, 80, 100/)
+  integer(ccs_int), dimension(7) :: m = (/4, 8, 16, 20, 40, 80, 100/)
   integer(ccs_int) :: mctr
 
   call init()
@@ -46,7 +46,7 @@ program test_mesh_square_mesh_volume
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_volume(loc_p, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1

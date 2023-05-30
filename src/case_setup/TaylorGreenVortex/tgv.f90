@@ -8,7 +8,7 @@ program tgv
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+                         pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
@@ -17,7 +17,7 @@ program tgv
                    vector_spec, ccs_vector, io_environment, io_process, &
                    field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -32,7 +32,7 @@ program tgv
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count, get_case_name
+  use read_config, only: get_bc_variables, get_boundary_count, get_case_name, get_store_residuals
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
@@ -65,12 +65,15 @@ program tgv
   integer(ccs_int) :: isize ! Size of MPI world
 
   double precision :: start_time
+  double precision :: init_time
   double precision :: end_time
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
   logical :: w_sol = .true.
   logical :: p_sol = .true.
+
+  logical :: store_residuals
 
   integer(ccs_int) :: t          ! Timestep counter
 
@@ -110,6 +113,9 @@ program tgv
   it_start = 1
   it_end = num_iters
 
+  ! Hard coding to whether or not vertex neighbours are built
+  vertex_neighbours = .true. ! set to .false. to avoid building
+
   ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...
   if (cps /= huge(0)) then
@@ -131,6 +137,7 @@ program tgv
   if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
   call get_bc_variables(ccs_config_file, variable_names)
+  call get_store_residuals(ccs_config_file, store_residuals)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -141,6 +148,7 @@ program tgv
 
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
+  call set_field_store_residuals(store_residuals, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
@@ -171,16 +179,19 @@ program tgv
   call add_field_to_outputlist(w, "w", output_list)
   call add_field_to_outputlist(p, "p", output_list)
 
+  call activate_timestepping()
+  call set_timestep(dt)
+
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(mesh, u, v, w, p, mf)
-  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
-  call calc_enstrophy(par_env, mesh, 0, u, v, w)
+  call calc_kinetic_energy(par_env, mesh, u, v, w)
+  call calc_enstrophy(par_env, mesh, u, v, w)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
-  call calc_kinetic_energy(par_env, mesh, 0, u, v, w)
-  call calc_enstrophy(par_env, mesh, 0, u, v, w)
+  call calc_kinetic_energy(par_env, mesh, u, v, w)
+  call calc_enstrophy(par_env, mesh, u, v, w)
 
   ! Write out mesh to file
   call write_mesh(par_env, case_path, mesh)
@@ -189,9 +200,6 @@ program tgv
   if (irank == par_env%root) then
     call print_configuration()
   end if
-
-  call activate_timestepping()
-  call set_timestep(dt)
 
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
@@ -206,14 +214,16 @@ program tgv
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
 
+  call timer(init_time)
+
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields, t)
-    call calc_kinetic_energy(par_env, mesh, t, u, v, w)
+                         fluid_sol, flow_fields)
+    call calc_kinetic_energy(par_env, mesh, u, v, w)
     call update_gradient(mesh, u)
     call update_gradient(mesh, v)
     call update_gradient(mesh, w)
-    call calc_enstrophy(par_env, mesh, t, u, v, w)
+    call calc_enstrophy(par_env, mesh, u, v, w)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
     end if
@@ -234,6 +244,7 @@ program tgv
   call timer(end_time)
 
   if (irank == par_env%root) then
+    print *, "Init time: ", init_time - start_time
     print *, "Elapsed time: ", end_time - start_time
   end if
 
@@ -305,6 +316,12 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
+    use meshing, only: get_global_num_cells
+
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
     print *, "******************************************************************************"
@@ -321,7 +338,7 @@ contains
       print *, "* Cells per side: ", cps
       write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
     end if
-    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "* Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
@@ -334,8 +351,8 @@ contains
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
-    use meshing, only: set_cell_location, get_global_index, count_neighbours, set_neighbour_location, &
-                       get_local_index, set_face_location, get_local_index, get_face_normal, get_centre, &
+    use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
+                       get_local_index, create_face_locator, get_local_index, get_face_normal, get_centre, &
                        get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
@@ -376,7 +393,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_centre(loc_p, x_p)
@@ -419,17 +436,17 @@ contains
     call get_local_num_cells(mesh, n_local)
     do index_p = 1, n_local
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
 
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then ! XXX: abstract this test
 
-          call set_face_location(mesh, index_p, j, loc_f)
+          call create_face_locator(mesh, index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)

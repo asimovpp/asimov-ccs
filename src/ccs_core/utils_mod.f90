@@ -12,7 +12,8 @@ module utils
                  initialise_vector, set_vector_size, &
                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
                  clear_vector_values_entries, &
-                 mult_vec_vec, scale_vec, zero_vector
+                 mult_vec_vec, scale_vec, zero_vector, &
+                 get_natural_data_vec
   use mat, only: set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                  initialise_matrix, finalise_matrix, set_matrix_size, &
                  set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, set_matrix_values_entry, &
@@ -53,6 +54,7 @@ module utils
   public :: set_fluid_solver_selector
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
+  public :: get_natural_data
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -152,6 +154,10 @@ module utils
     module procedure noop
   end interface debug_print
 
+  !> Generic interface to get data in natural ordering
+  interface get_natural_data
+    module procedure get_natural_data_vec
+  end interface get_natural_data
 
   integer(ccs_int), save :: outputlist_counter = 0
 
@@ -246,21 +252,21 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate kinetic energy over density
-  subroutine calc_kinetic_energy(par_env, mesh, t, u, v, w)
+  subroutine calc_kinetic_energy(par_env, mesh, u, v, w)
 
     use mpi
 
     use constants, only: ndim, ccs_string_len
-    use types, only: field, ccs_mesh
+    use types, only: field, ccs_mesh, cell_locator
     use vec, only: get_vector_data, restore_vector_data
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use meshing, only: get_local_num_cells
+    use meshing, only: get_local_num_cells, create_cell_locator, get_volume
+    use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: t !< timestep
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
@@ -272,10 +278,15 @@ contains
     integer(ccs_int) :: index_p
     character(len=ccs_string_len) :: fmt
     integer(ccs_int) :: ierr
+    integer(ccs_int) :: step !< timestep
 
     logical, save :: first_time = .true.
     integer :: io_unit
 
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: volume
+
+    call get_current_step(step)
     rho = 1.0_ccs_real
 
     ek_local = 0.0_ccs_real
@@ -289,12 +300,13 @@ contains
 
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
+      call create_cell_locator(mesh, index_p, loc_p)
+      call get_volume(loc_p, volume)
 
-      ek_local = ek_local + 0.5 * rho * mesh%geo%volumes(index_p) * &
+      ek_local = ek_local + 0.5 * rho * volume * &
                  (u_data(index_p)**2 + v_data(index_p)**2 + w_data(index_p)**2)
 
-      volume_local = volume_local + mesh%geo%volumes(index_p)
-
+      volume_local = volume_local + volume
     end do
 
     call restore_vector_data(u%values, u_data)
@@ -321,7 +333,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ek.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) t, ek_global
+      write (io_unit, fmt) step, ek_global
       close (io_unit)
     end if
 
@@ -329,7 +341,7 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate enstrophy
-  subroutine calc_enstrophy(par_env, mesh, t, u, v, w)
+  subroutine calc_enstrophy(par_env, mesh, u, v, w)
 
     use mpi
 
@@ -340,10 +352,10 @@ contains
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells
+    use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: t !< timestep
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
@@ -354,10 +366,12 @@ contains
     integer(ccs_int) :: index_p
     character(len=ccs_string_len) :: fmt
     integer(ccs_int) :: ierr
+    integer(ccs_int) :: step !< timestep
 
     logical, save :: first_time = .true.
     integer :: io_unit
 
+    call get_current_step(step)
     ens_local = 0.0_ccs_real
     ens_global = 0.0_ccs_real
 
@@ -401,7 +415,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) t, ens_global
+      write (io_unit, fmt) step, ens_global
       close (io_unit)
     end if
 

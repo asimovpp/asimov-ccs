@@ -13,7 +13,7 @@ module partitioning
   private
   public :: partition_kway
   public :: compute_partitioner_input
-  public :: compute_connectivity
+  public :: compute_connectivity, compute_connectivity_get_local_cells
 
   interface
 
