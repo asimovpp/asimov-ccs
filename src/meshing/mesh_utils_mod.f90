@@ -787,6 +787,12 @@ contains
         local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
         call set_local_num_cells(local_num_cells, mesh)
         call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+
+        ! Abort the execution if any rank has 0 local cells
+        if (local_num_cells <= 0) then
+          call error_abort("ERROR: Zero local cells found.")
+        end if
+
         call set_total_num_cells(local_num_cells, mesh) ! Set initial value
         end_global = start_global + (local_num_cells - 1)
 
@@ -1298,6 +1304,12 @@ contains
       local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
       call set_local_num_cells(local_num_cells, mesh)
       call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+
+      ! Abort the execution if any rank has 0 local cells
+      if (local_num_cells <= 0) then
+        call error_abort("ERROR: Zero local cells found.")
+      end if
+
       call set_total_num_cells(local_num_cells, mesh) ! Setting initial value
       end_global = start_global + (local_num_cells - 1)
 
