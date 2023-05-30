@@ -710,7 +710,7 @@ contains
 
     if (cps * cps < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
-                      &Increase the mesh size or reduce the number of ranks."
+                      &Increase the mesh size or reduce the number of MPI ranks."
       call error_abort(error_message)
     end if
     
@@ -1223,7 +1223,7 @@ contains
 
     if (nx * ny * ny < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
-                      &Increase the mesh size or reduce the number of ranks."
+                      &Increase the mesh size or reduce the number of MPI ranks."
       call error_abort(error_message)
     end if
 
