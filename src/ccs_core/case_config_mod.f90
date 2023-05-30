@@ -40,9 +40,9 @@ module case_config
   character(len=:), allocatable, save, public :: pressure_solver_method_name
   character(len=:), allocatable, save, public :: pressure_solver_precon_name
 
-  logical, public :: write_gradients = .false.
+  logical, save, public :: write_gradients = .false.
 
   ! Logical to toggle whether the vertex neighbours are build or not
-  logical, public :: vertex_neighbours = .true.
+  logical, save, public :: vertex_neighbours = .true.
 
 end module case_config
