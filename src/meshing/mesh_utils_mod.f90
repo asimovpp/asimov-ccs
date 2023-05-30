@@ -1056,8 +1056,17 @@ contains
 
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
+    character(:), allocatable :: error_message
+
     if (.not. (nx .eq. ny .and. ny .eq. nz)) then !< @note Must be a cube (for now) @endnote
-      call error_abort("Only supporting cubes for now - nx, ny and nz must be the same!")
+      error_message = "Only supporting cubes for now - nx, ny and nz must be the same!"
+      call error_abort(error_message)
+    end if
+
+    if (nx * ny * ny < par_env%num_procs) then
+      error_message = "ERROR: Global number of cells < number of ranks. &
+                      &Increase the mesh size or reduce the number of ranks."
+      call error_abort(error_message)
     end if
 
     call build_topology(par_env, nx, ny, nz, mesh)
