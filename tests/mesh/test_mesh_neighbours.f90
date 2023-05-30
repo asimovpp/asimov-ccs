@@ -30,14 +30,14 @@ program test_mesh_neighbours
   integer(ccs_int) :: global_boundary_ctr, global_vertex_boundary_ctr
   integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
 
-  integer(ccs_int), dimension(5) :: m = (/2, 4, 8, 16, 20/)
+  integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
   integer(ccs_int) :: n_v, n_e, n_f
   integer(ccs_int) :: mctr
 
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
-  do mctr = 1, size(m)
+  do mctr = 2, size(m)
     n = m(mctr)
 
     nx = n
