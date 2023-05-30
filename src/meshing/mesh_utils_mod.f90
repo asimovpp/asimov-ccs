@@ -177,6 +177,8 @@ contains
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: vert_per_cell
 
+    character(:), allocatable :: error_message
+
     ! Zero scalar topology values to have known initial state
     call set_global_num_cells(0_ccs_int, mesh)
     call set_global_num_faces(0_ccs_int, mesh)
@@ -191,6 +193,14 @@ contains
 
     ! Read attribute "ncel" - the total number of cells
     call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
+
+    ! Abort the execution if there a fewer global cells than MPI ranks
+    if (mesh%topo%global_num_cells < par_env%num_procs) then
+      error_message = "ERROR: Global number of cells < number of ranks. &
+                      &Reduce the number of MPI ranks or use a bigger mesh."
+      call error_abort(error_message)
+    end if
+
     ! Read attribute "nfac" - the total number of faces
     call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
     ! Read attribute "maxfaces" - the maximum number of faces per cell
