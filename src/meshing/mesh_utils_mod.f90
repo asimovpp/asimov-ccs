@@ -1221,7 +1221,7 @@ contains
       call error_abort(error_message)
     end if
 
-    if (nx * ny * ny < par_env%num_procs) then
+    if (nx * ny * nz < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
                       &Increase the mesh size or reduce the number of MPI ranks."
       call error_abort(error_message)
