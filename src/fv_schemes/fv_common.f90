@@ -5,7 +5,7 @@
 submodule(fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode
-  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator
+  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
@@ -15,7 +15,7 @@ submodule(fv) fv_common
                      get_local_index, get_global_index, get_volume, get_distance, &
                      create_face_locator, get_face_area, get_face_normal, create_cell_locator, &
                      get_local_num_cells, get_face_interpolation, &
-                     get_max_faces
+                     get_max_faces, get_centre
   use boundary_conditions, only: get_bc_index
   use bc_constants
 
@@ -333,9 +333,9 @@ contains
 
       a = 1.0_ccs_real
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
-    case (bc_type_from_file)
+    case (bc_type_profile)
       call get_centre(loc_f, x)
-      call get_value_from_BC_profile(x(phi%bcs%BC_profile_component), phi%bcs%BC_profile, bc_value)
+      call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
 
       a = -1.0_ccs_real
       b = 2.0_ccs_real * bc_value
@@ -351,25 +351,28 @@ contains
   end subroutine
 
   !> Linear interpolate of BC profile 
-  subroutine get_value_from_BC_profile(x, profile, bc_value)
-    real(ccs_real), intent(in) :: x
-    real(ccs_real), dimension(:,:), intent(in) :: profile
+  subroutine get_value_from_bc_profile(x, profile, bc_value)
+    real(ccs_real), dimension(:), intent(in) :: x
+    type(bc_profile), intent(in) :: profile
     real(ccs_real), intent(out) :: bc_value
     integer(ccs_int) :: n, i
+    real(ccs_real) :: r
     real(ccs_real) :: coeff
 
-    n = size(profile, dim=1)
+    r = norm2(x(:) - profile%centre(:))
 
-    bc_value = profile(n, 2)
-    if (x .le. profile(1, 1)) then
-      bc_value = profile(1, 2)
+    n = size(profile%coordinates)
+
+    bc_value = profile%values(n)
+    if (r .le. profile%coordinates(1)) then
+      bc_value = profile%values(1)
       return
     end if
 
     do i=1, n-1
-      if (x .lt. profile(i+1, 1)) then
-        coeff = (x - profile(i, 1)) / (profile(i+1, 1) - profile(i, 1))
-        bc_value = (1-coeff) * profile(i, 2) + coeff * profile(i+1, 2)
+      if (r .lt. profile%coordinates(i+1)) then
+        coeff = (r - profile%coordinates(i)) / (profile%coordinates(i+1) - profile%coordinates(i))
+        bc_value = (1-coeff) * profile%values(i) + coeff * profile%values(i+1)
         return
       end if
     end do

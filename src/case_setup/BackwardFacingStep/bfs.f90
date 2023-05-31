@@ -15,7 +15,7 @@ program bfs
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector
+                   field_ptr, fluid, fluid_solver_selector, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
        set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
@@ -30,7 +30,7 @@ program bfs
                    add_field_to_outputlist, get_field, set_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
+  use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
   use read_config, only: get_bc_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, write_mesh
@@ -75,6 +75,7 @@ program bfs
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
+  type(bc_profile), allocatable :: profile
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -138,6 +139,10 @@ program bfs
   call set_field_type(cell_centred_upwind, field_properties)
   call set_field_name("u", field_properties)
   call create_field(field_properties, u)
+
+  call read_bc_profile('filename', 1, profile)
+  call set_bc_profile(u, profile, 3)
+
   call set_field_name("v", field_properties)
   call create_field(field_properties, v)
   call set_field_name("w", field_properties)
@@ -425,5 +430,59 @@ contains
     call update(mf%values)
 
   end subroutine initialise_flow
+
+  subroutine read_bc_profile(filename, variable_id, profile)
+    
+    character(len=*), intent(in) :: filename
+    integer(ccs_int), intent(in) :: variable_id
+    type(bc_profile), allocatable, intent(out) :: profile
+
+    real(ccs_real), allocatable, dimension(:) :: tmp_values
+    real(ccs_real) :: tmp_coord
+    character(len=128) :: header_string, tmp
+    integer(ccs_int) :: num_field, i
+    integer :: io_err, unit_io
+
+    
+    allocate(profile)
+
+    allocate(profile%centre(3))
+    allocate(profile%values(0))
+    allocate(profile%coordinates(0))
+
+    print *, "Read bc file"
+
+    open(newunit=unit_io, file=trim(filename), status='old', action='read')
+
+    read(unit_io, *)                      ! ignore profile type
+    read(unit_io, *) tmp, profile%centre ! read centre
+    read(unit_io, *)                      ! ignore tolerance
+    read(unit_io, *)                      ! ignore scaling
+    read(unit_io, '(A)') header_string
+
+    ! Count the number of fields in file
+    num_field = -1
+    do i=1, len(header_string)
+      if (header_string(i:i) == ',') then
+        num_field = num_field + 1
+      end if
+    end do
+
+    allocate(tmp_values(num_field))
+
+    ! Read file profile table
+    do while (.true.)
+
+      read(unit_io, *, iostat=io_err) tmp_coord, tmp_values
+      if (io_err /= 0) then
+        exit
+      end if
+
+      profile%values = (/ profile%values, tmp_values(variable_id) /)
+      profile%coordinates = (/ profile%coordinates, tmp_coord /)
+    end do
+
+
+  end subroutine read_bc_profile
 
 end program bfs

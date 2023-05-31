@@ -14,6 +14,6 @@ module bc_constants
   integer(ccs_int), parameter :: bc_type_neumann = 4
   integer(ccs_int), parameter :: bc_type_extrapolate = 5
   integer(ccs_int), parameter :: bc_type_wall = 7
-  integer(ccs_int), parameter :: bc_type_from_file = 8
+  integer(ccs_int), parameter :: bc_type_profile = 8
 
 end module bc_constants
