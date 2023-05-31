@@ -19,13 +19,14 @@ program ldc
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
+  use meshing, only: get_global_num_cells
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
@@ -33,7 +34,7 @@ program ldc
                    get_field, set_field, get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count
+  use read_config, only: get_bc_variables, get_boundary_count, get_store_residuals
   use io_visualisation, only: write_solution
 
   implicit none
@@ -59,12 +60,15 @@ program ldc
   integer(ccs_int) :: isize ! Size of MPI world
 
   double precision :: start_time
+  double precision :: init_time
   double precision :: end_time
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
   logical :: w_sol = .true.
   logical :: p_sol = .true.
+
+  logical :: store_residuals
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
@@ -117,12 +121,14 @@ program ldc
   call initialise(vec_properties)
   call get_boundary_count(ccs_config_file, n_boundaries)
   call get_bc_variables(ccs_config_file, variable_names)
+  call get_store_residuals(ccs_config_file, store_residuals)
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
 
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
+  call set_field_store_residuals(store_residuals, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
@@ -178,6 +184,7 @@ program ldc
     call print_configuration()
   end if
 
+  call timer(init_time)
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -199,6 +206,7 @@ program ldc
   call timer(end_time)
 
   if (irank == par_env%root) then
+    print *, "Init time: ", init_time - start_time
     print *, "Elapsed time: ", end_time - start_time
   end if
 
@@ -254,6 +262,10 @@ contains
   ! Print test case configuration
   subroutine print_configuration()
 
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
     print *, "******************************************************************************"
@@ -267,7 +279,7 @@ contains
     print *, "* MESH SIZE"
     print *, "* Cells per side: ", cps
     write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
-    print *, "* Global number of cells is ", mesh%topo%global_num_cells
+    print *, "* Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
     write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
@@ -280,7 +292,7 @@ contains
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
-    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
+    use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -309,7 +321,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call calc_cell_coords(global_index_p, cps, row, col)
 

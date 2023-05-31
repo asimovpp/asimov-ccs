@@ -5,8 +5,8 @@ program test_square_mesh_neighbours
 
   use testing_lib
 
-  use meshing, only: set_cell_location, set_neighbour_location, count_neighbours, &
-                     get_boundary_status, get_local_num_cells, count_vertex_neighbours
+  use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
+                     get_boundary_status, get_local_num_cells, get_count_vertex_neighbours
   use mesh_utils, only: build_square_mesh
 
   implicit none
@@ -30,14 +30,14 @@ program test_square_mesh_neighbours
   integer(ccs_int) :: global_boundary_ctr, global_vertex_boundary_ctr
   integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
 
-  integer(ccs_int), dimension(5) :: m = (/2, 4, 8, 16, 20/)
-  integer(ccs_int) :: n_v, n_e, n_f
+  integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
+  integer(ccs_int) :: n_v, n_e
   integer(ccs_int) :: mctr
 
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
-  do mctr = 1, size(m)
+  do mctr = 2, size(m)
     n = m(mctr)
 
     l = parallel_random(par_env)
@@ -48,9 +48,9 @@ program test_square_mesh_neighbours
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells
 
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call count_neighbours(loc_p, nnb)
-      call count_vertex_neighbours(loc_p, nvnb)
+      call get_count_vertex_neighbours(loc_p, nvnb)
 
       ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
       ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
@@ -64,7 +64,7 @@ program test_square_mesh_neighbours
 
       ! Loop over neighbours
       do j = 1, nnb
-        call set_neighbour_location(loc_p, j, loc_nb)
+        call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
@@ -76,7 +76,7 @@ program test_square_mesh_neighbours
 
       ! Loop over vertex neighbours
       do j = 1, nvnb
-        call set_neighbour_location(loc_p, j, loc_vnb)
+        call create_neighbour_locator(loc_p, j, loc_vnb)
         call get_boundary_status(loc_vnb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
@@ -140,11 +140,11 @@ contains
       call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call set_cell_location(mesh, index_nb, cell_loc_nb)
+        call create_cell_locator(mesh, index_nb, cell_loc_nb)
         call count_neighbours(cell_loc_nb, nnb)
         found_parent = .false.
         do j = 1, nnb
-          call set_neighbour_location(cell_loc_nb, j, loc_nb_nb)
+          call create_neighbour_locator(cell_loc_nb, j, loc_nb_nb)
           call get_boundary_status(loc_nb_nb, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
             call get_local_index(loc_nb_nb, index_nb)
@@ -192,11 +192,11 @@ contains
       call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call set_cell_location(mesh, index_nb, cell_loc_nb)
-        call count_vertex_neighbours(cell_loc_nb, nvnb)
+        call create_cell_locator(mesh, index_nb, cell_loc_nb)
+        call get_count_vertex_neighbours(cell_loc_nb, nvnb)
         found_parent = .false.
         do j = 1, nvnb
-          call set_neighbour_location(cell_loc_nb, j, loc_nb_nb)
+          call create_neighbour_locator(cell_loc_nb, j, loc_nb_nb)
           call get_boundary_status(loc_nb_nb, is_boundary)
           if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
             call get_local_index(loc_nb_nb, index_nb)

@@ -11,7 +11,7 @@ program test_advection_coeff
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, get_vector_data, restore_vector_data
   use fv, only: calc_advection_coeff, calc_cell_coords
-  use meshing, only: set_cell_location, set_face_location, set_neighbour_location, &
+  use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal, &
                      get_local_num_cells
   use utils, only: update, initialise, &
@@ -34,6 +34,7 @@ program test_advection_coeff
   real(ccs_real), dimension(:), pointer :: u_data, v_data
 
   integer(ccs_int) :: local_num_cells
+  type(face_locator) :: loc_f
 
   call init()
 
@@ -70,8 +71,8 @@ program test_advection_coeff
         call get_vector_data(v_vec, v_data)
 
         do nb = 1, 4
-          call get_cell_parameters(index_test, nb, index_p, index_nb, face_area, normal)
-          call run_advection_coeff_test(scalar, u_data, v_data, index_p, index_nb, face_area, normal)
+          call get_cell_parameters(index_test, nb, index_p, index_nb, face_area, normal, loc_f)
+          call run_advection_coeff_test(scalar, u_data, v_data, index_p, index_nb, face_area, normal, loc_f)
         end do
 
         call restore_vector_data(u_vec, u_data)
@@ -88,25 +89,25 @@ contains
 
   !v For a given cell and neighbour computes the local cell and neighbour indices, corresponding face
   !  area, and normal
-  subroutine get_cell_parameters(index, nb, index_p, index_nb, face_area, normal)
+  subroutine get_cell_parameters(index, nb, index_p, index_nb, face_area, normal, loc_f)
     integer(ccs_int), intent(in) :: index                  !< The cell's local index
     integer(ccs_int), intent(in) :: nb                     !< The neighbour we're interested in (range 1-4)
     integer(ccs_int), intent(out) :: index_p               !< The cell's local index
     integer(ccs_int), intent(out) :: index_nb              !< The neighbour's local index
     real(ccs_real), intent(out) :: face_area               !< The surface area of the face between the cell and its neighbour
     real(ccs_real), intent(out), dimension(ndim) :: normal !< The face normal between the cell and its neighbour
+    type(face_locator), intent(out) :: loc_f               !< Face locator
 
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(face_locator) :: loc_f
 
-    call set_cell_location(mesh, index, loc_p)
+    call create_cell_locator(mesh, index, loc_p)
     call get_local_index(loc_p, index_p)
 
-    call set_neighbour_location(loc_p, nb, loc_nb)
+    call create_neighbour_locator(loc_p, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
-    call set_face_location(mesh, index, nb, loc_f)
+    call create_face_locator(mesh, index, nb, loc_f)
     call get_face_area(loc_f, face_area)
 
     call get_face_normal(loc_f, normal)
@@ -136,7 +137,7 @@ contains
 
     ! Set IC velocity fields
     do index_p = 1, n_local
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       if (direction == x_dir) then
@@ -178,13 +179,14 @@ contains
   end subroutine tidy_velocity_fields
 
   !v Checks whether advection coefficient is correct for given velocity fields, cell and neighbour
-  subroutine run_advection_coeff_test(phi, u, v, index_p, index_nb, face_area, face_normal)
+  subroutine run_advection_coeff_test(phi, u, v, index_p, index_nb, face_area, face_normal, loc_f)
     class(field), intent(in) :: phi                            !< The scalar field structure
     real(ccs_real), dimension(:), intent(in) :: u, v           !< Arrays containing the velocity fields
     integer(ccs_int), intent(in) :: index_p                    !< The given cell's local index
     integer(ccs_int), intent(in) :: index_nb                   !< The neighbour's local index
     real(ccs_real), intent(in) :: face_area                    !< The surface area of the face between the cell and neighbour
     real(ccs_real), dimension(ndim), intent(in) :: face_normal !< The normal to the face between the cell and neighbour
+    type(face_locator), intent(in) :: loc_f                    !< face locator
 
     real(ccs_real) :: coeff
     real(ccs_real) :: mf
@@ -196,9 +198,9 @@ contains
 
     select type (phi)
     type is (central_field)
-      call calc_advection_coeff(phi, mf, 0_ccs_int, coeff)
+      call calc_advection_coeff(phi, loc_f, mf, 0_ccs_int, coeff)
     type is (upwind_field)
-      call calc_advection_coeff(phi, mf, 0_ccs_int, coeff)
+      call calc_advection_coeff(phi, loc_f, mf, 0_ccs_int, coeff)
     class default
       write (message, *) "FAIL: incorrect velocity field discretisation"
       call stop_test(message)

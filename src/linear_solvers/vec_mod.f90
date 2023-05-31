@@ -34,6 +34,7 @@ module vec
   public :: zero_vector
   public :: mult_vec_vec
   public :: scale_vec
+  public :: get_natural_data_vec
 
   interface
 
@@ -181,6 +182,18 @@ module vec
       real(ccs_real), intent(in) :: alpha
       class(ccs_vector), intent(inout) :: v
     end subroutine scale_vec
+
+    !> Interface to return the vector data in natural ordering
+    module subroutine get_natural_data_vec(par_env, mesh, v, data)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_mesh), intent(in) :: mesh
+      class(ccs_vector), intent(inout) :: v
+      real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
+      !< natural ordering. Note the use
+      !< of allocatable + intent(out),
+      !< this ensures it will be
+      !< de/reallocated by this subroutine.
+    end subroutine get_natural_data_vec
 
   end interface
 

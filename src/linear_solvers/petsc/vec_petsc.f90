@@ -25,7 +25,7 @@ contains
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                         VecCreate
 
-    use meshing, only: get_local_num_cells
+    use meshing, only: get_local_num_cells, get_halo_num_cells, get_num_faces
 
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
     class(ccs_vector), allocatable, intent(out) :: v    !< the vector specialised to type vector_petsc.
@@ -33,7 +33,8 @@ contains
 
     integer(ccs_int), dimension(:), allocatable :: global_halo_indices
     integer(ccs_int) :: i
-    integer(ccs_int) :: nlocal
+    integer(ccs_int) :: nlocal, nhalo
+    integer(ccs_int) :: num_faces
     integer(ccs_err) :: ierr ! Error code
 
     allocate (vector_petsc :: v)
@@ -53,8 +54,8 @@ contains
           select case (vec_properties%storage_location)
           case (cell)
             call get_local_num_cells(mesh, nlocal)
-            associate (nhalo => mesh%topo%halo_num_cells, &
-                       idx_global => mesh%topo%global_indices)
+            call get_halo_num_cells(mesh, nhalo)
+            associate (idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo
                 global_halo_indices(i) = idx_global(i + nlocal) - 1_ccs_int
@@ -68,8 +69,10 @@ contains
             ! Vector has ghost points, store this information
             v%ghosted = .true.
           case (face)
+            call get_num_faces(mesh, num_faces)
+
             call VecCreate(par_env%comm, v%v, ierr)
-            call VecSetSizes(v%v, mesh%topo%num_faces, PETSC_DECIDE, ierr)
+            call VecSetSizes(v%v, num_faces, PETSC_DECIDE, ierr)
 
             ! Vector doesn't have ghost points, store this information
             v%ghosted = .false.
@@ -538,6 +541,68 @@ contains
     end select
 
   end subroutine
+
+  !> PETSc implementation to get vector data in natural ordering
+  module subroutine get_natural_data_vec(par_env, mesh, v, data)
+
+    use petsc, only: PETSC_DECIDE
+    use petscvec, only: tVec, &
+                        VecCreate, VecSetSizes, VecSetFromOptions, &
+                        VecSetValues, VecAssemblyBegin, VecAssemblyEnd, &
+                        VecGetArrayReadF90, VecRestoreArrayReadF90, &
+                        VecDestroy
+
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(in) :: mesh
+    class(ccs_vector), intent(inout) :: v
+    real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
+    !< natural ordering. Note the use
+    !< of allocatable + intent(out),
+    !< this ensures it will be
+    !< de/reallocated by this subroutine.
+
+    real(ccs_real), dimension(:), pointer :: vec_data ! The data stored in the vector
+
+    type(tVec) :: vec_tmp
+
+    integer(ccs_err) :: ierr
+
+    associate (topo => mesh%topo, &
+               local_num_cells => mesh%topo%local_num_cells)
+
+      ! Create temporary vector to hold the shuffled data
+      select type (par_env)
+      type is (parallel_environment_mpi)
+        call VecCreate(par_env%comm, vec_tmp, ierr)
+      class default
+        call error_abort("Only MPI parallel environments currently supported!")
+      end select
+      call VecSetSizes(vec_tmp, local_num_cells, PETSC_DECIDE, ierr)
+      call VecSetFromOptions(vec_tmp, ierr)
+
+      ! Copy local data into temporary vector, inserting values at natural index locations
+      call get_vector_data(v, vec_data)
+      call VecSetValues(vec_tmp, local_num_cells, topo%natural_indices(1:local_num_cells) - 1, &
+                        vec_data(1:local_num_cells), INSERT_VALUES, ierr)
+      call VecAssemblyBegin(vec_tmp, ierr)
+      call VecAssemblyEnd(vec_tmp, ierr)
+      call restore_vector_data(v, vec_data)
+
+      ! Extract natural-indexed data into data array and return
+      call VecGetArrayReadF90(vec_tmp, vec_data, ierr)
+      if (allocated(data)) then ! Really shouldn't happen
+        deallocate (data)
+      end if
+      allocate (data(local_num_cells))
+      data(1:local_num_cells) = vec_data(1:local_num_cells)
+      call VecRestoreArrayReadF90(vec_tmp, vec_data, ierr)
+
+      ! Clean up
+      call VecDestroy(vec_tmp, ierr)
+
+    end associate
+
+  end subroutine get_natural_data_vec
 
 !   module subroutine vec_view(vec_properties, vec)
 

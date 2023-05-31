@@ -1,0 +1,8 @@
+# RUN: %build_test %s %t1 test_mesh_partitioning.f90
+# RUN: %mpirun -n 3 %t1
+
+main: test_mesh_partitioning
+base: mpi
+options: 
+  partitioning: partitioning_parmetis
+extra: parmetis

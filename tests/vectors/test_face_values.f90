@@ -7,7 +7,7 @@ program test_face_values
   use types, only: vector_spec, ccs_mesh, field, face_field
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location
-  use meshing, only: set_neighbour_location, &
+  use meshing, only: create_neighbour_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
   use utils, only: initialise, set_size
 
@@ -19,7 +19,7 @@ program test_face_values
   type(ccs_mesh) :: mesh
 
   ! integer(ccs_int) :: nfaces
-  integer(ccs_int) :: cps = 3 !< Cells per side of the mesh
+  integer(ccs_int) :: cps = 5 !< Cells per side of the mesh
 
   call init()
 

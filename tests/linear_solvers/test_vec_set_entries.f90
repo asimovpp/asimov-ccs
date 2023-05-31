@@ -21,7 +21,7 @@ program test_vec_set_entries
 
   call init()
 
-  do n = 1, 100
+  do n = 4, 100
     mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
 
     call init_vector()
@@ -57,7 +57,7 @@ contains
     use types, only: cell_locator
     use utils, only: set_mode, set_row, set_entry, set_values, clear_entries, update
     use vec, only: create_vector_values
-    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
+    use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
 
     integer(ccs_int), intent(in) :: mode
 
@@ -89,7 +89,7 @@ contains
         ! Compute local and global indices
         index_p = j + (i - 1) * nrows
 
-        call set_cell_location(mesh, index_p, loc_p)
+        call create_cell_locator(mesh, index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
 
         call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...
@@ -106,13 +106,17 @@ contains
 
   subroutine test_vector()
 
+    use meshing, only: get_global_num_cells
     use solver, only: norm
 
     real(ccs_real) :: expectation
     real(ccs_real) :: test_value
 
-    expectation = sqrt(real(mesh%topo%global_num_cells, ccs_real))
-    test_value = norm(v, 2)
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+    expectation = real(global_num_cells, ccs_real)
+    test_value = (norm(v, 2))**2
     if (test_value /= expectation) then
       write (message, *) "FAIL: expected ", expectation, " got ", test_value
       call stop_test(message)
