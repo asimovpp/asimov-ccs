@@ -1,5 +1,5 @@
 main: tgv
 base: mpi_petsc
-#options:
-  #component: opt_2
+options: 
+  partitioning: partitioning_parhip
 extra: parhip

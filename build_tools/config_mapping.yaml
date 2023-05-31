@@ -31,6 +31,7 @@ bases:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc]
       poisson_discretisation: [poisson_discretisation_ref]
+      partitioning: [partitioning_parhip, partitioning_parmetis]
   mpi:
     defaults:
       mat_common: mat_common
@@ -63,3 +64,4 @@ bases:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc]
       poisson_discretisation: [poisson_discretisation_ref]
+      partitioning: [partitioning_parhip, partitioning_parmetis]

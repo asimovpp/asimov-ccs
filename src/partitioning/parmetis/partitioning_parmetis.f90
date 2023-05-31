@@ -1,18 +1,18 @@
-submodule(partitioning) partitioning_parhip
+submodule(partitioning) partitioning_parmetis
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_real, ccs_long
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
-                     get_max_faces
+  use meshing, only: set_local_num_cells, get_local_num_cells
 
   implicit none
 
   interface
-    subroutine partition_parhipkway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
-                                    num_procs, imbalance, suppress, &
-                                    seed, mode, edgecuts, local_partition, comm) bind(c)
+    subroutine partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
+                                      wgtflag, numflag, ncon, num_procs, &
+                                      tpwgts, ubvec, options, &
+                                      edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
       integer(c_long), dimension(*) :: vtxdist
@@ -20,12 +20,14 @@ submodule(partitioning) partitioning_parhip
       integer(c_long), dimension(*) :: adjncy
       integer(c_long), dimension(*) :: vwgt
       integer(c_long), dimension(*) :: adjwgt
-      integer(c_int) :: num_procs
-      real(c_double) :: imbalance
-      integer(c_int) :: suppress
-      integer(c_int) :: seed
-      integer(c_int) :: mode
-      integer(c_int) :: edgecuts
+      integer(c_long) :: wgtflag ! Set to 0 for "no weights"
+      integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
+      integer(c_long) :: ncon
+      integer(c_long) :: num_procs
+      real(c_float), dimension(*) :: tpwgts
+      real(c_float), dimension(*) :: ubvec
+      integer(c_long), dimension(*) :: options
+      integer(c_long) :: edgecuts
       integer(c_long), dimension(*) :: local_partition
       integer(c_int) :: comm
     end subroutine
@@ -35,7 +37,7 @@ contains
 
   !v Partition the mesh
   !
-  ! Use ParHIP library to compute a k-way vertex separator given a k-way partition of the graph.
+  ! Use Parmetis library to compute a k-way vertex separator given a k-way partition of the graph.
   ! The graph can be weighted or unweighted.
   module subroutine partition_kway(par_env, mesh)
 
@@ -57,32 +59,40 @@ contains
     integer(c_long), dimension(:), allocatable :: adjncy
     integer(c_long), dimension(:), allocatable :: vwgt
     integer(c_long), dimension(:), allocatable :: adjwgt
-    integer(c_int) :: num_procs
-    real(c_double) :: imbalance
-    integer(c_int) :: suppress
-    integer(c_int) :: seed
-    integer(c_int) :: mode
-    integer(c_int) :: edgecuts
+    integer(c_long) :: wgtflag ! Set to 0 for "no weights"
+    integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
+    integer(c_long) :: ncon
+    integer(c_long) :: num_procs
+    real(c_float), dimension(:), allocatable :: tpwgts
+    real(c_float), dimension(:), allocatable :: ubvec
+    integer(c_long), dimension(:), allocatable :: options
+    integer(c_long) :: edgecuts
     integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
-    integer(ccs_int) :: global_num_cells
+    ! Values mostly hardcoded for now
+    wgtflag = 0 ! No weights
+    numflag = 0 ! Use C-style indexing for now
+    ncon = 3
+    num_procs = par_env%num_procs
+    edgecuts = -1
 
-    ! Values hardcoded for now
-    imbalance = 0.03  ! Desired balance - 0.03 = 3%
-    seed = 2022       ! "Random" seed
-    mode = 4          ! FASTSOCIAL
-    suppress = 0      ! Do not suppress the output
-    edgecuts = -1     ! XXX: silence unused variable warning
+    allocate (ubvec(ncon))
+    allocate (tpwgts(ncon * num_procs))
+    allocate (options(0:2))
 
-    call get_global_num_cells(mesh, global_num_cells)
-    allocate (tmp_partition(global_num_cells)) ! Temporary partition array
+    options(0) = 0 ! 0 = default values, 1 = values specified in (1) and (2)
+    options(1) = 1 ! Output verbosity - 1 gives timing information
+    options(2) = 2023 ! Random number seed
+
+    ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
+    tpwgts(:) = 1.0 / real(num_procs, c_float) ! Sum of tpwgts(:) should be 1. Check this is correct
+
+    allocate (tmp_partition(mesh%topo%global_num_cells)) ! Temporary partition array
     tmp_partition = 0
 
     irank = par_env%proc_id ! Current rank
-    num_procs = par_env%num_procs
 
-    ! ParHIP needs 0-indexing - shift array contents by -1
     vtxdist = mesh%topo%vtxdist - 1
     xadj = mesh%topo%xadj - 1
     adjncy = mesh%topo%adjncy - 1
@@ -106,9 +116,10 @@ contains
 
       comm = par_env%comm
 
-      call partition_parhipkway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
-                                num_procs, imbalance, suppress, &
-                                seed, mode, edgecuts, local_partition, comm)
+      call partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
+                                  wgtflag, numflag, ncon, num_procs, &
+                                  tpwgts, ubvec, options, &
+                                  edgecuts, local_partition, comm)
 
       mesh%topo%local_partition(:) = local_partition(:)
 
@@ -116,15 +127,14 @@ contains
         tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
 
-      call get_global_num_cells(mesh, global_num_cells)
-      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
+      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
                          MPI_LONG, MPI_SUM, par_env%comm, ierr)
 
     class default
-      print *, "ERROR: Unknown parallel environment!"
+      print *, "ERROR: Unknown parallel environment! "
     end select
 
-    call dprint("Number of edgecuts: " // str(edgecuts))
+    call dprint("Number of edgecuts: " // str(int(edgecuts)))
 
     deallocate (tmp_partition)
 
@@ -132,7 +142,7 @@ contains
 
   !v Compute the input arrays for the partitioner
   !
-  ! Using the topology object, compute the input arrays for the ParHIP partitioner
+  ! Using the topology object, compute the input arrays for the Parmetis partitioner
   ! Input arrays for the partitioner are: vtxdist, xadj and adjncy
   module subroutine compute_partitioner_input(par_env, mesh)
 
