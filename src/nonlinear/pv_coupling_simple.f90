@@ -1009,7 +1009,7 @@ contains
     ! Local variables
     integer :: io_unit
     integer(ccs_int) :: step                            !< The current time-step
-    real(ccs_real) :: time                              !< The current time-step
+    real(ccs_real) :: time                              !< The current time
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
     integer(ccs_int) :: i
     character(len=60) :: fmt              ! Format string for writing out residuals
