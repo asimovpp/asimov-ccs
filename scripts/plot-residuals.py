@@ -232,9 +232,9 @@ def format_tick_labels(x, pos):
     #idx = (np.abs(residuals[:,0] - x)).argmin()
     try:
         timestep = int(residuals[int(x),0])
+        return "$ {} $\n$({})$".format(int(x), timestep)
     except:
-        timestep = 0
-    return "$" + str(int(x))+"$\n$("+str(timestep)+")$"
+        return "$ {} $".format(int(x))
 
 
 # Axis label and titles
