@@ -210,9 +210,6 @@ nightly_gnu:
   script:
     - HOME=${CI_HOME} RUNTESTS=nightly CMP=gnu make tests
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
-    - cd asimov-ccs-nightly-data
-    - git switch new-datastructure
-    - cd ..
     - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
     - cd asimov-ccs-nightly-data
     - git add performance_results.json
@@ -240,9 +237,6 @@ nightly_wiki_update:
   script:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
-    - cd asimov-ccs-nightly-data
-    - git switch new-datastructure
-    - cd ..
     - cd asimov-ccs.wiki
     - ../asimov-ccs-nightly-data/plot_performance.py ../asimov-ccs-nightly-data/performance_results.json img/ci-performance-graph
     - git add img/ci-performance-graph*
