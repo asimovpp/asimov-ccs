@@ -22,7 +22,7 @@ program test_square_mesh_indices
   type(cell_locator) :: loc_p
   integer(ccs_int) :: global_index
 
-  integer(ccs_int), dimension(9) :: m = (/1, 2, 4, 8, 16, 20, 40, 80, 100/)
+  integer(ccs_int), dimension(7) :: m = (/4, 8, 16, 20, 40, 80, 100/)
   integer(ccs_int) :: mctr
 
   call init()

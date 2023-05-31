@@ -28,7 +28,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
                      get_max_faces
-  use timestepping, only: update_old_values, finalise_timestep, get_current_step
+  use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
 
   implicit none
 
@@ -273,7 +273,7 @@ contains
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, res, residuals)
+  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
@@ -288,9 +288,10 @@ contains
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
-    class(field), intent(inout) :: u
+    class(field), target, intent(inout) :: u
     class(ccs_vector), intent(inout) :: invAu
-    class(ccs_vector), intent(inout) :: res
+    class(ccs_vector), target, intent(inout) :: input_res
+    class(ccs_vector), pointer :: res
     real(ccs_real), dimension(:), intent(inout) :: residuals
 
     ! Local variables
@@ -301,6 +302,13 @@ contains
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
+
+    ! Select either field residuals or reuse 'input_res'
+    if (allocated(u%residuals)) then
+      res => u%residuals
+    else
+      res => input_res
+    end if
 
     ! Zero residual vector
     call zero(res)
@@ -648,7 +656,7 @@ contains
   end subroutine calculate_pressure_correction
 
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, b, residuals)
+  subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, input_b, residuals)
 
     type(ccs_mesh), intent(in) :: mesh      !< The mesh object
     class(ccs_vector), intent(inout) :: invAu  !< The inverse x momentum equation diagonal coefficient
@@ -656,9 +664,10 @@ contains
     class(ccs_vector), intent(inout) :: invAw  !< The inverse z momentum equation diagonal coefficient
     integer(ccs_int), intent(inout) :: ivar !< Counter for flow variables
     type(fluid), intent(inout) :: flow
-    class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
+    class(ccs_vector), target, intent(inout) :: input_b   !< The per-cell mass imbalance
     real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
+    class(ccs_vector), pointer :: b   !< The per-cell mass imbalance
     type(vector_values) :: vec_values
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i   ! Cell counter
@@ -715,6 +724,12 @@ contains
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
+
+    if (allocated(p%residuals)) then
+      b => p%residuals
+    else
+      b => input_b
+    end if
 
     ! First zero RHS
     call zero(b)
@@ -995,10 +1010,13 @@ contains
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
     ! Local variables
+    integer :: io_unit
     integer(ccs_int) :: step                            !< The current time-step
+    real(ccs_real) :: time                              !< The current time
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
     integer(ccs_int) :: i
-    character(len=30) :: fmt              ! Format string for writing out residuals
+    character(len=60) :: fmt              ! Format string for writing out residuals
+    character(len=60) :: prefix           ! prefix for residual norms
     logical, save :: first_time = .true.  ! Whether first time this subroutine is called
 
     logical :: u_sol                                    !< Is x-velocity being solved (true/false)
@@ -1011,6 +1029,7 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
     call get_current_step(step)
+    call get_current_time(time)
 
     nvar = int(size(residuals) / 2_ccs_int)
 
@@ -1018,11 +1037,17 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
         ! Write header
+        open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
+
         write (*, *)
         if (step >= 0) then
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
+
+          write (io_unit, '(a6, 1x, a12, 1x, a6)', advance='no') '#step', 'time', 'iter'
         else
           write (*, '(a6)', advance='no') 'Iter'
+
+          write (io_unit, '(a6)', advance='no') '#iter'
         end if
         do i = 1, 2
           if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
@@ -1030,19 +1055,39 @@ contains
           if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
           if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
           if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
+
+          if (i == 1) then
+            prefix = "L2_"
+          else
+            prefix = "Linf_"
+          end if
+          if (u_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'u'
+          if (v_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'v'
+          if (w_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'w'
+          if (p_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'p'
+          if (p_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'div(u)'
         end do
         write (*, *)
+        write (io_unit, *) 
         first_time = .false.
+      else
+        open (newunit=io_unit, file="residuals.log", status="old", form="formatted", position="append")
       end if
 
       ! Write step, iteration and residuals
       if (step >= 0) then
         fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) step, itr, residuals(1:2 * nvar)
+
+        fmt = '(i6,1x,e12.4,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
+        write (io_unit, fmt) step, time, itr, residuals(1:2 * nvar)
       else
         fmt = '(i6,' // str(2 * nvar) // '(1x,e12.4))'
         write (*, fmt) itr, residuals(1:2 * nvar)
+
+        write (io_unit, fmt) itr, residuals(1:2 * nvar)
       end if
+      close (io_unit)
     end if
 
     ! checks if RMS of residuals is below target

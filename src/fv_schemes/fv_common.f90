@@ -134,9 +134,9 @@ contains
           end if
           select type (phi)
           type is (central_field)
-            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeff)
           type is (upwind_field)
-            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeff)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
@@ -185,9 +185,9 @@ contains
 
           select type (phi)
           type is (central_field)
-            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeff)
           type is (upwind_field)
-            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeff)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
