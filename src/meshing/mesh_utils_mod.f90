@@ -101,10 +101,8 @@ contains
   !v Read mesh from file
   subroutine read_mesh(par_env, case_name, mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, &
-                            compute_connectivity_get_local_cells, & 
-                            compute_partitioner_input, &
-                            cleanup_partitioner_data
+    use partitioning, only: compute_connectivity_get_local_cells, & 
+                            compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
@@ -692,8 +690,7 @@ contains
   !  Builds a Cartesian grid of nx*ny cells.
   function build_square_mesh(par_env, cps, side_length) result(mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, &
-                            compute_partitioner_input, cleanup_partitioner_data
+    use partitioning, only: compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
@@ -1196,6 +1193,8 @@ contains
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
   function build_mesh(par_env, nx, ny, nz, side_length) result(mesh)
+
+    use partitioning, only: compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
