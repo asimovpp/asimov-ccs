@@ -2609,7 +2609,7 @@ contains
 
   end subroutine print_topo
 
-  module subroutine cleanup_topo(mesh)
+  subroutine cleanup_topo(mesh)
 
     type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
 
