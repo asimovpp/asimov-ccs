@@ -816,7 +816,7 @@ contains
         call get_vert_per_cell(mesh, vert_per_cell)
         call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
 
-        ! Allocate mesh arrays
+        ! Allocate mesh topolgy arrays
         allocate (mesh%topo%global_indices(local_num_cells))
         allocate (mesh%topo%num_nb(local_num_cells))
         allocate (mesh%topo%num_vert_nb(local_num_cells))
