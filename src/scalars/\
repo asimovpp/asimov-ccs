@@ -1,0 +1,18 @@
+!v Module file scalars.mod
+!
+!  Defines the scalar transport subroutines.
+
+module scalars
+
+  implicit none
+  
+  private
+
+  public :: calculate_scalars
+  
+contains
+  
+  module subroutine calculate_scalars(a)
+  end subroutine calculate_scalars
+
+end module scalars
