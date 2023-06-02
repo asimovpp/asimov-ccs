@@ -1258,6 +1258,8 @@ contains
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
+    deallocate(mesh%topo%bnd_rid)
+
   end function build_mesh
 
   !v Utility constructor to build a 3D mesh with hex cells.
