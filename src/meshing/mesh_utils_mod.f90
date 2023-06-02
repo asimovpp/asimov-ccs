@@ -2,7 +2,7 @@ module mesh_utils
 #include "ccs_macros.inc"
 
   use constants, only: ndim, geoext, adiosconfig
-  use utils, only: exit_print, str
+  use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
@@ -102,7 +102,9 @@ contains
   subroutine read_mesh(par_env, case_name, mesh)
 
     use partitioning, only: partition_kway, compute_connectivity, &
-                            compute_connectivity_get_local_cells, compute_partitioner_input
+                            compute_connectivity_get_local_cells, & 
+                            compute_partitioner_input, &
+                            cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
@@ -140,6 +142,7 @@ contains
 
     call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
+    call cleanup_partitioner_data(mesh)
     call compute_bandwidth(mesh)
 
     call read_geometry(geo_reader, mesh)
@@ -149,6 +152,8 @@ contains
 
     ! Finalise the ADIOS2 IO environment
     call cleanup_io(io_env)
+
+    call cleanup_topo(mesh)
 
   end subroutine read_mesh
 
@@ -698,7 +703,8 @@ contains
   !  Builds a Cartesian grid of nx*ny cells.
   function build_square_mesh(par_env, cps, side_length) result(mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
+    use partitioning, only: partition_kway, compute_connectivity, &
+                            compute_partitioner_input, cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
@@ -729,9 +735,12 @@ contains
 
     call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
+    call cleanup_partitioner_data(mesh)
     call compute_bandwidth(mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
+
+    call cleanup_topo(mesh)
 
   end function build_square_mesh
 
@@ -807,7 +816,7 @@ contains
         call get_vert_per_cell(mesh, vert_per_cell)
         call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
 
-        ! Allocate mesh arrays
+        ! Allocate mesh topolgy arrays
         allocate (mesh%topo%global_indices(local_num_cells))
         allocate (mesh%topo%num_nb(local_num_cells))
         allocate (mesh%topo%num_vert_nb(local_num_cells))
@@ -1209,7 +1218,8 @@ contains
   !  Builds a Cartesian grid of nx*ny*nz cells.
   function build_mesh(par_env, nx, ny, nz, side_length) result(mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
+    use partitioning, only: partition_kway, compute_connectivity, &
+                            compute_partitioner_input, cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
@@ -1247,9 +1257,12 @@ contains
 
     call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
+    call cleanup_partitioner_data(mesh)
     call compute_bandwidth(mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
+
+    call cleanup_topo(mesh)
 
   end function build_mesh
 
@@ -2595,5 +2608,36 @@ contains
     print *, par_env%proc_id, "############################# End Print Topology ########################################"
 
   end subroutine print_topo
+
+  subroutine cleanup_topo(mesh)
+
+    type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
+
+    if (allocated(mesh%topo%bnd_rid)) then
+      deallocate(mesh%topo%bnd_rid)
+      call dprint("mesh%topo%bnd_rid deallocated.")
+    end if
+
+    if (allocated(mesh%topo%face_cell1)) then
+      deallocate(mesh%topo%face_cell1)
+      call dprint("mesh%topo%face_cell1 deallocated.")
+    end if
+
+    if (allocated(mesh%topo%face_cell2)) then
+      deallocate(mesh%topo%face_cell2)
+      call dprint("mesh%topo%face_cell2 deallocated.")
+    end if
+
+    if (allocated(mesh%topo%global_face_indices)) then
+      deallocate(mesh%topo%global_face_indices)
+      call dprint("mesh%topo%global_face_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%global_boundaries)) then
+      deallocate(mesh%topo%global_boundaries)
+      call dprint("mesh%topo%global_boundaries deallocated.")
+    end if
+
+  end subroutine cleanup_topo
 
 end module mesh_utils
