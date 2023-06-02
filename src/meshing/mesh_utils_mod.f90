@@ -132,18 +132,7 @@ contains
     call compute_partitioner_input(par_env, mesh)
     call compute_connectivity_get_local_cells(par_env, mesh)
 
-    if (par_env%num_procs > 1) then
-      call partition_kway(par_env, mesh)
-    else
-      call partition_stride(par_env, mesh)
-    end if
-
-    call compute_connectivity(par_env, mesh)
-
-    call compute_bandwidth(mesh)
-    call reorder_cells(par_env, mesh)
-    call cleanup_partitioner_data(mesh)
-    call compute_bandwidth(mesh)
+    call mesh_partition_reorder(par_env, mesh)
 
     call read_geometry(geo_reader, mesh)
 
@@ -726,17 +715,7 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
 
-    if (par_env%num_procs > 1) then
-      call partition_kway(par_env, mesh)
-    else
-      call partition_stride(par_env, mesh)
-    end if
-    call compute_connectivity(par_env, mesh)
-
-    call compute_bandwidth(mesh)
-    call reorder_cells(par_env, mesh)
-    call cleanup_partitioner_data(mesh)
-    call compute_bandwidth(mesh)
+    call mesh_partition_reorder(par_env, mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
@@ -1218,9 +1197,6 @@ contains
   !  Builds a Cartesian grid of nx*ny*nz cells.
   function build_mesh(par_env, nx, ny, nz, side_length) result(mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, &
-                            compute_partitioner_input, cleanup_partitioner_data
-
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
     integer(ccs_int), intent(in) :: ny                 !< Number of cells in the y direction.
@@ -1247,18 +1223,7 @@ contains
 
     call compute_partitioner_input(par_env, mesh)
 
-    if (par_env%num_procs > 1) then
-      call partition_kway(par_env, mesh)
-    else
-      call partition_stride(par_env, mesh)
-    end if
-
-    call compute_connectivity(par_env, mesh)
-
-    call compute_bandwidth(mesh)
-    call reorder_cells(par_env, mesh)
-    call cleanup_partitioner_data(mesh)
-    call compute_bandwidth(mesh)
+    call mesh_partition_reorder(par_env, mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
@@ -2639,5 +2604,30 @@ contains
     end if
 
   end subroutine cleanup_topo
+
+  subroutine mesh_partition_reorder(par_env, mesh)
+
+    use partitioning, only: partition_kway, &
+                            compute_connectivity, &
+                            compute_partitioner_input, &
+                            cleanup_partitioner_data
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
+
+    if (par_env%num_procs > 1) then
+      call partition_kway(par_env, mesh)
+    else
+      call partition_stride(par_env, mesh)
+    end if
+
+    call compute_connectivity(par_env, mesh)
+
+    call compute_bandwidth(mesh)
+    call reorder_cells(par_env, mesh)
+    call cleanup_partitioner_data(mesh)
+    call compute_bandwidth(mesh)
+
+  end subroutine
 
 end module mesh_utils
