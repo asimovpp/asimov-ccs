@@ -16,7 +16,7 @@ program test_asserts
   character(len=1024) :: outmsg
   integer :: i
 
-  integer, parameter :: n_tests = 14
+  integer, parameter :: n_tests = 18
 
   logical, dimension(n_tests) :: res
 
@@ -51,6 +51,12 @@ program test_asserts
   call assert_neq(rvec_a(1), 12.0_ccs_real, "reals should not be equal", res(13))
   call assert_neq("cat", "dog", "strings should not be equal", res(14))
 
+  call assert_le(vec_a(2), 23, "int value too large", res(15))
+  call assert_le(rvec_a(2), 23.0_ccs_real, "real value too large", res(16))
+
+  call assert_ge(vec_a(3), 23, "int value too small", res(17))
+  call assert_ge(rvec_a(3), 23.0_ccs_real, "real value too small", res(18))
+
   if (.not. all(res)) then
     outmsg = ""
     do i = 1, n_tests
@@ -80,6 +86,12 @@ program test_asserts
   call assert_neq(vec_a(1), 11, "ints should not be equal", res(12))
   call assert_neq(rvec_a(1), 11.1_ccs_real, "reals should not be equal", res(13))
   call assert_neq("cat", "cat", "strings should not be equal", res(14))
+
+  call assert_le(vec_a(3), 23, "int value too large", res(15))
+  call assert_le(rvec_a(3), 23.0_ccs_real, "real value too large", res(16))
+
+  call assert_ge(vec_a(2), 23, "int value too small", res(17))
+  call assert_ge(rvec_a(2), 23.0_ccs_real, "real value too small", res(18))
 
   if (.not. all(.not. res)) then
     outmsg = ""
