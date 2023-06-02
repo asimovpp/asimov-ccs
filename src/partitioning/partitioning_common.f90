@@ -745,4 +745,46 @@ contains
   end subroutine compute_partitioner_input_generic
 
 
+  !v Deallocate partitioner data structures associated with the mesh
+  module subroutine cleanup_partitioner_data(mesh)
+    
+    type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
+
+    if (allocated(mesh%topo%vtxdist)) then 
+      deallocate(mesh%topo%vtxdist)
+      call dprint("mesh%topo%vtxdist deallocated.")
+    end if
+
+    if (allocated(mesh%topo%xadj)) then 
+      deallocate(mesh%topo%xadj)
+      call dprint("mesh%topo%xadj deallocated.")
+    end if
+    
+    if (allocated(mesh%topo%adjncy)) then 
+      deallocate(mesh%topo%adjncy)
+      call dprint("mesh%topo%adjncy deallocated.")
+    end if
+
+    if (allocated(mesh%topo%local_partition)) then 
+      deallocate(mesh%topo%local_partition)
+      call dprint("mesh%topo%local_partition deallocated.")
+    end if
+
+    if (allocated(mesh%topo%adjwgt)) then 
+      deallocate(mesh%topo%adjwgt)
+      call dprint("mesh%topo%adjwgt deallocated.")
+    end if
+
+    if (allocated(mesh%topo%vwgt)) then 
+      deallocate(mesh%topo%vwgt)
+      call dprint("mesh%topo%vwgt deallocated.")
+    end if
+
+    if (allocated(mesh%topo%global_partition)) then 
+      deallocate(mesh%topo%global_partition)
+      call dprint("mesh%topo%global_partition deallocated.")
+    end if
+
+  end subroutine cleanup_partitioner_data
+
 end submodule

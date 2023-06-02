@@ -102,7 +102,9 @@ contains
   subroutine read_mesh(par_env, case_name, mesh)
 
     use partitioning, only: partition_kway, compute_connectivity, &
-                            compute_connectivity_get_local_cells, compute_partitioner_input
+                            compute_connectivity_get_local_cells, & 
+                            compute_partitioner_input, &
+                            cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable :: case_name
@@ -140,6 +142,7 @@ contains
 
     call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
+    call cleanup_partitioner_data(mesh)
     call compute_bandwidth(mesh)
 
     call read_geometry(geo_reader, mesh)
