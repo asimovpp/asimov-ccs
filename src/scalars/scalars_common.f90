@@ -3,7 +3,7 @@
 !  Implementation of the scalar transport subroutines
 
 submodule(scalars) scalars_common
-
+#include "ccs_macros.inc"
   use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf
 
   use kinds, only: ccs_int
@@ -19,7 +19,7 @@ submodule(scalars) scalars_common
   use solver, only: create_solver, solve, set_equation_system
 
   use meshing, only: get_max_faces
-  use utils, only: get_field, update, initialise, finalise, set_size
+  use utils, only: get_field, update, initialise, finalise, set_size, debug_print
   
   logical, save :: first_call = .true.
   integer(ccs_int), save :: previous_step = -1
@@ -44,6 +44,7 @@ contains
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
+    integer(ccs_int) :: field_id ! The field's numeric identifier
     class(field), pointer :: phi ! The scalar field
 
     logical :: do_update
@@ -55,18 +56,23 @@ contains
     integer(ccs_int) :: max_faces
     
     ! Initialise equation system (reused across scalars)
+    call dprint("SCALAR: init")
     call initialise(vec_properties)
     call initialise(mat_properties)
+
+    call dprint("SCALAR: setup matrix")
     call get_max_faces(mesh, max_faces)
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
 
+    call dprint("SCALAR: setup RHS")
     call set_size(par_env, mesh, vec_properties)
     call create_vector(vec_properties, rhs)
     call create_vector(vec_properties, D)
 
     ! Check whether we need to update the old values
+    call dprint("SCALAR: check new timestep")
     do_update = .false.
     
     call get_current_step(current_step)
@@ -83,11 +89,13 @@ contains
     ! Transport the scalars
     call count_fields(flow, nfields)
     do s = 1, nfields
-       if (any(skip_fields == s)) then
-          continue
+       call get_field_id(flow, s, field_id)
+       if (any(skip_fields == field_id)) then
+          ! Not a scalar to solve
+          cycle
        end if
 
-       call get_field(flow, s, phi)
+       call get_field(flow, field_id, phi)
        if (do_update) then
           call update_old_values(phi)
        end if
@@ -115,10 +123,12 @@ contains
 
     call update_gradient(mesh, phi)
 
+    call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
     call compute_fluxes(phi, mf, mesh, 0, M, rhs)
     call apply_timestep(mesh, phi, D, M, rhs)
 
+    call dprint("SCALAR: assemble linear system")
     call update(M)
     call update(rhs)
     call finalise(M)
@@ -129,6 +139,7 @@ contains
        call set_equation_system(par_env, rhs, phi%values, M, lin_system)
     end if
        
+    call dprint("SCALAR: solve linear system")
     call create_solver(lin_system, lin_solver)
     call solve(lin_solver)
     deallocate(lin_solver)
@@ -144,5 +155,16 @@ contains
     nfields = size(flow%field_names)
     
   end subroutine count_fields
+
+  !> Get the numeric ID of the i'th field
+  subroutine get_field_id(flow, s, field_id)
+
+    type(fluid), intent(in) :: flow           !< The flowfield
+    integer(ccs_int), intent(in) :: s         !< The field counter
+    integer(ccs_int), intent(out) :: field_id !< The field ID
+
+    field_id = flow%field_names(s)
+
+  end subroutine get_field_id
   
 end submodule scalars_common
