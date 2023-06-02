@@ -13,7 +13,7 @@ module testing_lib
 
   implicit none
 
-  public :: assert_eq, assert_neq, assert_lt, assert_gt, assert_bool
+  public :: assert_eq, assert_neq, assert_lt, assert_gt, assert_bool, assert_le, assert_ge
 
   !> Assert equality
   interface assert_eq
@@ -30,10 +30,22 @@ module testing_lib
     procedure assert_lt_real
   end interface
 
+  !> Assert first argument is less than or equal to the second argument
+  interface assert_le
+    procedure assert_le_integer
+    procedure assert_le_real
+  end interface
+
   !> Assert first argument is greater than the second argument
   interface assert_gt
     procedure assert_gt_integer
     procedure assert_gt_real
+  end interface
+
+  !> Assert first argument is greater than or equal to the second argument
+  interface assert_ge
+    procedure assert_ge_integer
+    procedure assert_ge_real
   end interface
 
   !> Assert that input is True
@@ -345,6 +357,36 @@ contains
   end subroutine assert_lt_real
 !==========================
 
+!==========================Less-than-or-equal
+  !> Integer comparison
+  subroutine assert_le_integer(received, upper_limit, message, outval)
+
+    integer(ccs_int), intent(in) :: received    !< Test value
+    integer(ccs_int), intent(in) :: upper_limit !< Reference value
+    character(*), intent(in) :: message         !< Error message
+    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
+
+    call return_or_stop(received <= upper_limit, &
+                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_le_integer
+
+  !> Real comparison
+  subroutine assert_le_real(received, upper_limit, message, outval)
+
+    real(ccs_real), intent(in) :: received    !< Test value
+    real(ccs_real), intent(in) :: upper_limit !< Reference value
+    character(*), intent(in) :: message       !< Error message
+    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
+
+    call return_or_stop(received <= upper_limit, &
+                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_le_real
+!==========================
+
 !==========================Greater-than
   !> Integer comparison
   subroutine assert_gt_integer(received, lower_limit, message, outval)
@@ -373,6 +415,36 @@ contains
                         outval)
 
   end subroutine assert_gt_real
+!==========================
+
+!==========================Greater-than-or-equal
+  !> Integer comparison
+  subroutine assert_ge_integer(received, lower_limit, message, outval)
+
+    integer(ccs_int), intent(in) :: received    !< Test value
+    integer(ccs_int), intent(in) :: lower_limit !< Reference value
+    character(*), intent(in) :: message         !< Error message
+    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
+
+    call return_or_stop(received >= lower_limit, &
+                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_ge_integer
+
+  !> Real comparison
+  subroutine assert_ge_real(received, lower_limit, message, outval)
+
+    real(ccs_real), intent(in) :: received    !< Test value
+    real(ccs_real), intent(in) :: lower_limit !< Reference value
+    character(*), intent(in) :: message       !< Error message
+    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
+
+    call return_or_stop(received >= lower_limit, &
+                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_ge_real
 !==========================
 
 !==========================Bool tests
