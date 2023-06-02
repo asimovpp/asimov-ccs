@@ -46,10 +46,7 @@ program test_diffusion_coeff
   end if
   expected_coeff = -D * (A / dx)
 
-  if (abs(coeff - expected_coeff) .ge. 10 * epsilon(coeff) * abs(expected_coeff)) then
-    write (message, *) "FAIL: incorrect diffusion coefficient computed. Expected ", expected_coeff, " computed ", coeff
-    call stop_test(message)
-  end if
+  call assert_eq(coeff, expected_coeff, "Incorrect diffusion coefficient computed")
 
   call fin()
 
