@@ -1,6 +1,4 @@
-!v Test that the flux matrix has been computed correctly
-!
-!  Compares the matrix and RHS calculated for a specified mass flux using the upwind differencing scheme to the expected solution
+!v Test that the advection flux coefficients behave as expected for upwind schemes.
 program test_compute_fluxes
 #include "ccs_macros.inc"
 
@@ -86,7 +84,7 @@ contains
     call update(mf%values)
   end subroutine set_mass_flux
 
-  !> Compares the matrix computed for a given velocity field and discretisation to the known solution
+  !> Tests that the flux coefficients are in a sensible range
   subroutine run_compute_fluxes_test(scalar, mf, mf_value, mesh, cps)
     class(field), intent(inout) :: scalar   !< The scalar field structure
     class(field), intent(inout) :: mf       !< The mass flux field
