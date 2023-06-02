@@ -701,7 +701,8 @@ contains
   !  Builds a Cartesian grid of nx*ny cells.
   function build_square_mesh(par_env, cps, side_length) result(mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
+    use partitioning, only: partition_kway, compute_connectivity, &
+                            compute_partitioner_input, cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
@@ -732,6 +733,7 @@ contains
 
     call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
+    call cleanup_partitioner_data(mesh)
     call compute_bandwidth(mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
@@ -1212,7 +1214,8 @@ contains
   !  Builds a Cartesian grid of nx*ny*nz cells.
   function build_mesh(par_env, nx, ny, nz, side_length) result(mesh)
 
-    use partitioning, only: partition_kway, compute_connectivity, compute_partitioner_input
+    use partitioning, only: partition_kway, compute_connectivity, &
+                            compute_partitioner_input, cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
@@ -1250,6 +1253,7 @@ contains
 
     call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
+    call cleanup_partitioner_data(mesh)
     call compute_bandwidth(mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
