@@ -132,11 +132,8 @@ contains
             end if
             call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), 0, adv_coeff)
 
-            if (adv_coeff < 0.0_ccs_real) then
-              call stop_test("Central advection coefficient should be >= 0")
-            else if (adv_coeff > 1.0_ccs_real) then
-              call stop_test("Central advection coefficient should be <= 1")
-            end if
+            call assert_ge(adv_coeff, 0.0_ccs_real, "Central advection coefficient should be >= 0")
+            call assert_le(adv_coeff, 1.0_ccs_real, "Central advection coefficient should be <= 1")
           else
             sgn = 1.0_ccs_real
             call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), index_nb, adv_coeff)

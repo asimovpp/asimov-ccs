@@ -135,21 +135,14 @@ contains
             call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), 0, adv_coeff)
 
             ! Check that coefficient is interpolatory (0 <= c <= 1)
-            if (adv_coeff < 0.0_ccs_real) then
-              call stop_test("Upwind advection coefficient should be >= 0")
-            else if (adv_coeff > 1.0_ccs_real) then
-              call stop_test("Upwind advection coefficient should be <= 1")
-            end if
+            call assert_ge(adv_coeff, 0.0_ccs_real, "Upwind advection coefficient should be >= 0")
+            call assert_le(adv_coeff, 1.0_ccs_real, "Upwind advection coefficient should be <= 1")
 
             ! Upwind coefficient should give positive central coeff, -ve off-diagonal
             aF = adv_coeff * (sgn * mf_data(index_f))
             aP = 1.0_ccs_real - aF
-            if (aF > 0.0_ccs_real) then
-              call stop_test("Upwind advection off-diagonal should be -ve")
-            end if
-            if (aP < 0.0_ccs_real) then
-              call stop_test("Upwind advection off-diagonal should be +ve")
-            end if
+            call assert_ge(aP, 0.0_ccs_real, "Upwind advection diagonal should be +ve")
+            call assert_le(aF, 0.0_ccs_real, "Upwind advection off-diagonal should be +ve")
           else
             sgn = 1.0_ccs_real
             call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), index_nb, adv_coeff)
