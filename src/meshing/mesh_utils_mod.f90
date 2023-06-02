@@ -2633,6 +2633,11 @@ contains
       call dprint("mesh%topo%global_face_indices deallocated.")
     end if
 
+    if (allocated(mesh%topo%global_boundaries)) then
+      deallocate(mesh%topo%global_boundaries)
+      call dprint("mesh%topo%global_boundaries deallocated.")
+    end if
+
   end subroutine cleanup_topo
 
 end module mesh_utils
