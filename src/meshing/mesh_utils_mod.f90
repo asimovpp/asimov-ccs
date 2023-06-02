@@ -2,7 +2,7 @@ module mesh_utils
 #include "ccs_macros.inc"
 
   use constants, only: ndim, geoext, adiosconfig
-  use utils, only: exit_print, str
+  use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
@@ -152,6 +152,8 @@ contains
 
     ! Finalise the ADIOS2 IO environment
     call cleanup_io(io_env)
+
+    call cleanup_topo(mesh)
 
   end subroutine read_mesh
 
@@ -738,6 +740,8 @@ contains
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
+    call cleanup_topo(mesh)
+
   end function build_square_mesh
 
   !v Utility constructor to build a square mesh.
@@ -1258,7 +1262,7 @@ contains
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
-    deallocate(mesh%topo%bnd_rid)
+    call cleanup_topo(mesh)
 
   end function build_mesh
 
@@ -2604,5 +2608,31 @@ contains
     print *, par_env%proc_id, "############################# End Print Topology ########################################"
 
   end subroutine print_topo
+
+  module subroutine cleanup_topo(mesh)
+
+    type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
+
+    if (allocated(mesh%topo%bnd_rid)) then
+      deallocate(mesh%topo%bnd_rid)
+      call dprint("mesh%topo%bnd_rid deallocated.")
+    end if
+
+    if (allocated(mesh%topo%face_cell1)) then
+      deallocate(mesh%topo%face_cell1)
+      call dprint("mesh%topo%face_cell1 deallocated.")
+    end if
+
+    if (allocated(mesh%topo%face_cell2)) then
+      deallocate(mesh%topo%face_cell2)
+      call dprint("mesh%topo%face_cell2 deallocated.")
+    end if
+
+    if (allocated(mesh%topo%global_face_indices)) then
+      deallocate(mesh%topo%global_face_indices)
+      call dprint("mesh%topo%global_face_indices deallocated.")
+    end if
+
+  end subroutine cleanup_topo
 
 end module mesh_utils
