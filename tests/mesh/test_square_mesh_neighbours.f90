@@ -24,7 +24,7 @@ program test_square_mesh_neighbours
   integer(ccs_int) :: nnb, nvnb
   integer(ccs_int) :: j
 
-  integer(ccs_int) :: index_vnb
+  integer(ccs_int) :: index_nb, index_vnb
   
   type(neighbour_locator) :: loc_nb
   type(vertex_neighbour_locator) :: loc_vnb
@@ -68,6 +68,12 @@ program test_square_mesh_neighbours
       ! Loop over neighbours
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
+
+        ! Check for zero neighbour index. This indicates a cell was not linked as a neighbour. For
+        ! the build mesh case we should always be able to fill our neighbours.
+        call get_local_index(loc_nb, index_nb)
+        call assert_neq(index_nb, 0, "All neighbours should be filled!")
+        
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
