@@ -60,15 +60,19 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
+    logical, save :: initial_step = .true.
+    
     sol_file = case_name // '.sol.h5'
     adios2_file = case_name // adiosconfig
 
     if (present(step)) then
       ! Unsteady case
-      if (step == 1) then
+      if (initial_step) then
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_writer", sol_writer)
         call open_file(sol_file, "write", sol_writer)
+
+        initial_step = .false.
       end if
     else
       ! Steady case

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<adios-config>
+  <io name="sol_writer">
+
+    <engine type="HDF5">
+    </engine>
+
+  </io>
+  <io name="geo_writer">
+
+    <engine type="HDF5">
+    </engine>
+
+  </io>
+</adios-config>
