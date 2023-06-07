@@ -39,7 +39,7 @@ program scalar_transport
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_bc_variables, get_boundary_count, get_store_residuals
   use io_visualisation, only: write_solution
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
+  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, finalise_timestep
 
   implicit none
 
@@ -201,6 +201,9 @@ program scalar_transport
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
       call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
     end if
+
+    call finalise_timestep()
+   
   end do
 
   ! Clean-up
