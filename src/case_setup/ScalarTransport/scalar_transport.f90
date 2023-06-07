@@ -315,7 +315,7 @@ contains
 
   subroutine initialise_case(mesh, whisky, water, mf)
 
-    use constants, only: add_mode
+    use constants, only: insert_mode
     use types, only: vector_values, cell_locator, neighbour_locator, face_locator
     use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
@@ -349,8 +349,8 @@ contains
 
     call create_vector_values(n_local, whisky_vals)
     call create_vector_values(n_local, water_vals)
-    call set_mode(add_mode, whisky_vals)
-    call set_mode(add_mode, water_vals)
+    call set_mode(insert_mode, whisky_vals)
+    call set_mode(insert_mode, water_vals)
 
     call get_vector_data(mf%values, mf_data)
     
@@ -364,7 +364,7 @@ contains
 
       ! Get domain centre offset
       call get_centre(loc_p, x)
-      r = c - x
+      r = x - c
 
       if (any(r <= 0.0_ccs_real)) then
         whisky_val = 1.0_ccs_real
@@ -394,20 +394,33 @@ contains
                call get_centre(loc_f, x)
 
                ! Create a rotating field that decays to zero on the boundaries
-               r = c - x
+               r = x - c
                rmag = sqrt(sum(r(1:2)**2))
-               theta = asin(r(1) / rmag)
+               theta = asin(abs(r(2)) / rmag)
+               if (r(1) >= 0) then
+                  if (r(2) >= 0) then
+                     theta = theta + 0 * 3.1415926 / 2
+                  else
+                     theta = 4 * 3.1415926 / 2 - theta
+                  end if
+               else
+                  if (r(2) >= 0) then
+                     theta = 2 * 3.1415926 / 2 - theta
+                  else
+                     theta = theta + 2 * 3.1415926 / 2
+                  endif
+               end if
 
                v(1) = -sin(theta)
                v(2) = cos(theta)
                v(3) = 0.0_ccs_real
                
                mf_data(index_f) = sum(v * face_normal)
-               mf_data(index_f) = 0.0 
             end if
          else
             mf_data(index_f) = 0.0_ccs_real
          end if
+
       end do
       
     end do
