@@ -19,7 +19,8 @@ submodule(scalars) scalars_common
   use solver, only: create_solver, solve, set_equation_system
 
   use meshing, only: get_max_faces
-  use utils, only: get_field, update, initialise, finalise, set_size, debug_print
+  use utils, only: get_field, update, initialise, finalise, set_size, debug_print, &
+       zero
   
   logical, save :: first_call = .true.
   integer(ccs_int), save :: previous_step = -1
@@ -118,8 +119,10 @@ contains
     class(field), pointer :: mf  ! The advecting velocity field
     class(linear_solver), allocatable :: lin_solver
     type(equation_system) :: lin_system
-
+    
     call initialise(lin_system)
+    call zero(rhs)
+    call zero(M)
 
     call update_gradient(mesh, phi)
 
