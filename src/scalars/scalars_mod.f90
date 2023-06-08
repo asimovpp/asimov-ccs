@@ -11,15 +11,15 @@ module scalars
 
   private
 
-  public :: calculate_scalars
+  public :: update_scalars
 
   interface
     !> Subroutine to perform scalar transport for all scalar fields.
-    module subroutine calculate_scalars(par_env, mesh, flow)
+    module subroutine update_scalars(par_env, mesh, flow)
       class(parallel_environment), allocatable, intent(in) :: par_env   !< parallel environment
       type(ccs_mesh), intent(in) :: mesh                                !< the mesh
       type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
-    end subroutine calculate_scalars
+    end subroutine update_scalars
   end interface
 
 end module scalars

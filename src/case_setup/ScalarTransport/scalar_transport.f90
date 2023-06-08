@@ -28,7 +28,7 @@ program scalar_transport
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_local_index, get_boundary_status, get_face_normal
   use vec, only: create_vector, set_vector_location
-  use scalars, only: calculate_scalars
+  use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
                    get_field, set_field, &
                    allocate_fluid_fields, dealloc_fluid_fields, &
@@ -195,7 +195,7 @@ program scalar_transport
   call write_mesh(par_env, case_path, mesh)
   call write_solution(par_env, case_path, mesh, output_list, 0, num_steps, dt)
   do t = 1, num_steps
-    call calculate_scalars(par_env, mesh, flow_fields)
+    call update_scalars(par_env, mesh, flow_fields)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t, " / ", num_steps
     end if

@@ -28,7 +28,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
                      get_max_faces
-  use scalars, only: calculate_scalars
+  use scalars, only: update_scalars
   use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
 
   implicit none
@@ -168,7 +168,7 @@ contains
       ! Transport scalars
       ! XXX: Should we distinguish active scalars (update in non-linear loop) and passive scalars
       !      (single update per timestep)?
-      call calculate_scalars(par_env, mesh, flow)
+      call update_scalars(par_env, mesh, flow)
 
       call check_convergence(par_env, i, residuals, res_target, &
                              flow_solver_selector, converged)
