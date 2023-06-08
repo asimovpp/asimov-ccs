@@ -25,7 +25,8 @@ module read_config
   public :: get_relaxation_factors
   public :: get_plot_format
   public :: get_output_type
-  public :: get_bc_variables
+  public :: get_variables
+  public :: get_variable_types
   public :: get_bc_field
   public :: get_boundary_count
   public :: get_store_residuals
@@ -224,10 +225,15 @@ module read_config
       logical, optional, intent(in) :: required     !< flag indicating whether field is required
     end subroutine
 
-    !> Gets variables that bcs are defined for
-    module subroutine get_bc_variables(filename, variables)
-      character(len=*), intent(in) :: filename                                            !< name of the config file
-      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables  !< string array indicating variables used in BCs
+    !> Gets variable name definitions
+    module subroutine get_variables(config_file, variables)
+      class(*), pointer, intent(in) :: config_file                                       !< pointer to configuration file
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables
+    end subroutine
+    !> Gets variable type specifications
+    module subroutine get_variable_types(config_file, variable_types)
+      class(*), pointer, intent(in) :: config_file                               !< pointer to configuration file
+      integer(ccs_int), dimension(:), allocatable, intent(out) :: variable_types !< string array indicating variable types
     end subroutine
 
     !> Gets the number of boundaries

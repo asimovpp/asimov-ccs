@@ -31,7 +31,7 @@ module tgv2d_core
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count, get_store_residuals
+  use read_config, only: get_variables, get_boundary_count, get_store_residuals
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
@@ -53,7 +53,6 @@ contains
     character(len=:), allocatable :: input_path  ! Path to input directory
     character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
     character(len=:), allocatable :: ccs_config_file ! Config file for CCS
-    character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
     type(ccs_mesh) :: mesh
     type(vector_spec) :: vec_properties
@@ -138,7 +137,6 @@ contains
     ! Create and initialise field vectors
     call initialise(vec_properties)
     call get_boundary_count(ccs_config_file, n_boundaries)
-    call get_bc_variables(ccs_config_file, variable_names)
     call get_store_residuals(ccs_config_file, store_residuals)
 
     call set_vector_location(cell, vec_properties)
@@ -262,10 +260,14 @@ contains
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
 
+    character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
+
     config_file => parse(config_filename, error)
     if (allocated(error)) then
       call error_abort(trim(error))
     end if
+
+    call get_variables(config_file, variable_names)
 
     call get_value(config_file, 'steps', num_steps)
     if (num_steps == huge(0)) then

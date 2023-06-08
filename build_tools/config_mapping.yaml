@@ -27,6 +27,7 @@ bases:
       reordering: reordering_rcm
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
+      scalars_common: scalars_common
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc]
@@ -60,6 +61,7 @@ bases:
       reordering: reordering_rcm
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
+      scalars_common: scalars_common
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc]

@@ -28,7 +28,7 @@ program ldc
   use utils, only: set_size, initialise, update, exit_print, str, get_field, set_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count
+  use read_config, only: get_variables, get_boundary_count
   use timestepping, only: set_timestep, get_timestep, update_old_values, activate_timestepping, initialise_old_values
 
   implicit none
@@ -109,7 +109,6 @@ program ldc
 
   ! Read boundary conditions
   call get_boundary_count(ccs_config_file, n_boundaries)
-  call get_bc_variables(ccs_config_file, variable_names)
   call allocate_bc_arrays(n_boundaries, u%bcs)
   call allocate_bc_arrays(n_boundaries, v%bcs)
   call allocate_bc_arrays(n_boundaries, w%bcs)
@@ -236,6 +235,8 @@ contains
     if (allocated(error)) then
       call error_abort(trim(error))
     end if
+
+    call get_variables(config_file_pointer, variable_names)
 
     call get_value(config_file_pointer, 'iterations', num_iters)
     if (num_iters == huge(0)) then
