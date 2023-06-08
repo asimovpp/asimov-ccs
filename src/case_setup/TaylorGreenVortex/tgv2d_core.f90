@@ -53,7 +53,6 @@ contains
     character(len=:), allocatable :: input_path  ! Path to input directory
     character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
     character(len=:), allocatable :: ccs_config_file ! Config file for CCS
-    character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
     type(ccs_mesh) :: mesh
     type(vector_spec) :: vec_properties
@@ -260,6 +259,8 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
+
+    character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
     config_file => parse(config_filename, error)
     if (allocated(error)) then
