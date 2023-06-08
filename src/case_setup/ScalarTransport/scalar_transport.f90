@@ -9,32 +9,28 @@ program scalar_transport
   use petscsys
 
   use case_config, only: num_steps, num_iters, cps, domain_size, case_name, &
-                         velocity_relax, pressure_relax, res_target, &
-                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name, &
-                         dt, write_frequency
+                         res_target, write_gradients, dt, write_frequency
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf, &
-                       cell_centred_central, cell_centred_upwind, face_centred
+                       face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, field_elt, fluid, fluid_solver_selector
+                   vector_spec, ccs_vector, field_ptr, field_elt, fluid
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync
+                      read_command_line_arguments
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
+  use mesh_utils, only: build_mesh, write_mesh
   use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_local_index, get_boundary_status, get_face_normal
   use vec, only: create_vector, set_vector_location
-  use petsctypes, only: vector_petsc
   use scalars, only: calculate_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
-                   get_field, set_field, get_fluid_solver_selector, set_fluid_solver_selector, &
+                   get_field, set_field, &
                    allocate_fluid_fields, dealloc_fluid_fields, &
                    get_scheme_name
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
@@ -79,7 +75,6 @@ program scalar_transport
   logical :: store_residuals
 
   type(fluid) :: flow_fields
-  type(fluid_solver_selector) :: fluid_sol
 
   real(ccs_real) :: L
   integer(ccs_int) :: t
@@ -110,12 +105,6 @@ program scalar_transport
   call read_configuration(ccs_config_file)
 
   if (irank == par_env%root) print *, "Starting ", case_name, " case!"
-
-  ! set solver and preconditioner info
-  velocity_solver_method_name = "gmres"
-  velocity_solver_precon_name = "bjacobi"
-  pressure_solver_method_name = "cg"
-  pressure_solver_precon_name = "gamg"
 
   ! Set start and end iteration numbers (read from input file)
   it_start = 1
@@ -243,7 +232,7 @@ contains
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_value, get_relaxation_factors
+    use read_config, only: get_value
 
     character(len=*), intent(in) :: config_filename
 
@@ -309,11 +298,6 @@ contains
       call error_abort("No value assigned to target residual.")
     end if
 
-    call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
-    if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
-      call error_abort("No values assigned to velocity and pressure underrelaxation.")
-    end if
-
   end subroutine
 
   ! Print test case configuration
@@ -339,8 +323,6 @@ contains
     print *, "* Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
-    write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
-    write (*, '(1x,a,e10.3)') "* pressure: ", pressure_relax
     print *, "******************************************************************************"
 
   end subroutine
