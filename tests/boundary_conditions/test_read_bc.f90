@@ -7,9 +7,11 @@ program bc_test
   use types, only: field, central_field
   use utils, only: debug_print, exit_print, str
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count
+  use read_config, only: get_variables, get_boundary_count
   use constants, only: ccs_string_len
   use bc_constants
+
+  use fortran_yaml_c_interface, only: parse
 
   implicit none
 
@@ -23,7 +25,10 @@ program bc_test
   integer(ccs_int), dimension(:), allocatable :: bc_names, bc_ids, bc_types
   real(ccs_real), dimension(:), allocatable :: bc_values
 
-  call init()
+  class(*), pointer :: parsed_config_file
+    character(:), allocatable :: error
+
+    call init()
 
   ! Init velocities and scalar
   allocate (central_field :: u)
@@ -33,8 +38,12 @@ program bc_test
 
   ! Read bc configuration
   ! First get the number of boundaries and variables
+  parsed_config_file => parse(config_file, error)
+  if (allocated(error)) then
+     call error_abort(trim(error))
+  end if
   call get_boundary_count(config_file, n_boundaries)
-  call get_bc_variables(config_file, variable_names)
+  call get_variables(parsed_config_file, variable_names)
   allocate (phi(size(variable_names) - 4))
 
   ! Check that the number of boundaries and the variables are read in correctly
