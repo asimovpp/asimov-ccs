@@ -711,7 +711,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     integer(ccs_int) :: n_var
     character(len=25) :: key
     character(len=:), allocatable :: variable
-    character(:), allocatable :: error
 
     select type (config_file)
     type is (type_dictionary)
@@ -750,7 +749,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     integer(ccs_int) :: n_var
     character(len=25) :: key
     character(len=:), allocatable :: scheme
-    character(:), allocatable :: error
 
     select type (config_file)
     type is (type_dictionary)
