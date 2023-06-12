@@ -219,7 +219,7 @@ nightly_gnu_performance:
 
 nightly_gnu_verification:
   needs:
-    - job: nightly_gnu_preformance
+    - job: nightly_gnu_performance
   extends: [.setup_nightly, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu make
