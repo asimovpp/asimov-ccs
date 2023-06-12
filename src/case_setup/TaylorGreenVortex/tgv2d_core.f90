@@ -33,7 +33,7 @@ module tgv2d_core
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_variables, get_boundary_count, get_store_residuals
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
-  use io_visualisation, only: write_solution
+  use io_visualisation, only: write_solution, reset_io_visualisation
   use fv, only: update_gradient
 
   implicit none
@@ -240,6 +240,7 @@ contains
 
     call reset_timestepping()
     call reset_outputlist_counter()
+    call reset_io_visualisation()
 
     call timer(end_time)
 

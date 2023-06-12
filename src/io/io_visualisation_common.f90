@@ -18,7 +18,17 @@ submodule(io_visualisation) io_visualisation_common
        (/ "u", "v", "w", &
           "p" /)
 
+  logical, save :: initial_step = .true.
+    
+
 contains
+
+  module subroutine reset_io_visualisation
+
+    initial_step = .true.
+    call reset_io_visualisation_module()
+
+  end subroutine
 
   !> Write the flow solution for the current time-step to file
   module subroutine write_solution(par_env, case_name, mesh, output_list, step, maxstep, dt)
@@ -91,8 +101,6 @@ contains
     logical :: is_generated
     character(len=:), allocatable :: mesh_data_root ! Where in the mesh data path is topology/geometry stored?
 
-    logical, save :: initial_step = .true.
-    
     xdmf_file = case_name // '.sol.xmf'
     sol_file = case_name // '.sol.h5'
     geo_file = case_name // '.geo'

@@ -12,7 +12,15 @@ submodule(io_visualisation) io_visualisation_adios2
 
   implicit none
 
+  logical, save :: initial_step = .true.
+
 contains
+
+  module subroutine reset_io_visualisation_module()
+
+    initial_step = .true.
+
+  end subroutine
 
   !> Write the field data to file
   module subroutine write_fields(par_env, case_name, mesh, output_list, step, maxstep)
@@ -60,8 +68,6 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
-    logical, save :: initial_step = .true.
-    
     sol_file = case_name // '.sol.h5'
     adios2_file = case_name // adiosconfig
 
