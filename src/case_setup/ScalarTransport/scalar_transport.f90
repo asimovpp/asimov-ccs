@@ -67,11 +67,6 @@ program scalar_transport
   double precision :: init_time
   double precision :: end_time
 
-  logical :: u_sol = .true.  ! Default equations to solve for LDC case
-  logical :: v_sol = .true.
-  logical :: w_sol = .true.
-  logical :: p_sol = .true.
-
   logical :: store_residuals
 
   type(fluid) :: flow_fields
@@ -342,7 +337,6 @@ contains
     class(field), intent(inout) :: mf
 
     ! Local variables
-    integer(ccs_int) :: row, col
     integer(ccs_int) :: index_p, global_index_p, n_local
     real(ccs_real) :: whisky_val, water_val
     type(cell_locator) :: loc_p
