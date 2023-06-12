@@ -205,10 +205,11 @@ profile_intel:
   dependencies: []
   allow_failure: true
 
-nightly_gnu:
+nightly_gnu_performance:
   extends: [.setup_nightly, .setup_gnu]
   script:
-    - HOME=${CI_HOME} RUNTESTS=nightly CMP=gnu make tests
+    - HOME=${CI_HOME} CMP=gnu make
+    - HOME=${CI_HOME} RUNTESTS=nightly/performance CMP=gnu make tests
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
     - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
     - cd asimov-ccs-nightly-data
@@ -216,9 +217,17 @@ nightly_gnu:
     - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
     - git push
 
+nightly_gnu_verification:
+  needs:
+    - job: nightly_gnu_preformance
+  extends: [.setup_nightly, .setup_gnu]
+  script:
+    - HOME=${CI_HOME} CMP=gnu make
+    - HOME=${CI_HOME} RUNTESTS=nightly/verification CMP=gnu make tests
+
 nightly_dummy:
   needs:
-    - job: nightly_gnu
+    - job: nightly_gnu_verification
   extends: [.setup_nightly, .setup_intel]
   script:
     - echo "just a test"
