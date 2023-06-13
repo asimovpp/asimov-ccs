@@ -25,6 +25,7 @@ contains
     use meshing, only: get_local_num_cells, get_global_num_cells, &
                        create_cell_locator, &
                        get_global_index
+    use utils, only: get_natural_data
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
@@ -50,7 +51,7 @@ contains
     integer(ccs_long), dimension(2) :: sel2_start
     integer(ccs_long), dimension(2) :: sel2_count
 
-    real(ccs_real), dimension(:), pointer :: data
+    real(ccs_real), dimension(:), allocatable :: data
 
     integer(ccs_int) :: i
 
@@ -104,17 +105,15 @@ contains
       ! Check whether pointer is associated with a field
       if (.not. associated(output_list(i)%ptr)) exit
 
-      call get_vector_data(output_list(i)%ptr%values, data)
+      call get_natural_data(par_env, mesh, output_list(i)%ptr%values, data)
       data_name = "/" // trim(output_list(i)%name)
       call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-      call restore_vector_data(output_list(i)%ptr%values, data)
 
       ! Store residuals if available
       if (allocated(output_list(i)%ptr%residuals)) then
-        call get_vector_data(output_list(i)%ptr%residuals, data)
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%residuals, data)
         data_name = "/" // trim(output_list(i)%name // "_res")
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_list(i)%ptr%residuals, data)
       end if
 
     end do
@@ -126,23 +125,24 @@ contains
         if (.not. associated(output_list(i)%ptr)) exit
 
         ! x-gradient
-        call get_vector_data(output_list(i)%ptr%x_gradients, data)
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dx"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_list(i)%ptr%x_gradients, data)
 
         ! y-gradient
-        call get_vector_data(output_list(i)%ptr%y_gradients, data)
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dy"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_list(i)%ptr%y_gradients, data)
 
         ! z-gradient
-        call get_vector_data(output_list(i)%ptr%z_gradients, data)
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dz"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_list(i)%ptr%z_gradients, data)
       end do
+    end if
+
+    if (allocated(data)) then
+      deallocate (data)
     end if
 
     ! End step

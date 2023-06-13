@@ -12,7 +12,7 @@ void partition_parhipkway(idxtype *vtxdist, idxtype *xadj, idxtype *adjncy,
                             int *seed, int *mode, int *edgecut, idxtype *part, 
                             MPI_Fint *ccomm)
 {
-    int mype, npes, i;
+    int mype, npes;
     MPI_Comm comm;
 
     comm=MPI_Comm_f2c(*ccomm);

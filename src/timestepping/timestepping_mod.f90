@@ -57,12 +57,12 @@ module timestepping
     end function
 
     !> Get the current (time)step, i.e. an integer
-    module subroutine get_current_step(step) 
+    module subroutine get_current_step(step)
       integer(ccs_int), intent(out) :: step
     end subroutine
 
     !> Get the current time
-    module subroutine get_current_time(time) 
+    module subroutine get_current_time(time)
       real(ccs_real), intent(out) :: time
     end subroutine
 

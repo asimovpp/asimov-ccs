@@ -8,7 +8,7 @@ program bfs
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+                         pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
@@ -109,6 +109,9 @@ program bfs
   ! Set start and end iteration numbers (read from input file)
   it_start = 1
   it_end = num_iters
+
+  ! Hard coding to whether or not vertex neighbours are built
+  vertex_neighbours = .false. ! set to .false. to avoid building
 
   ! Read mesh from .geo file
   if (irank == par_env%root) print *, "Reading mesh file"

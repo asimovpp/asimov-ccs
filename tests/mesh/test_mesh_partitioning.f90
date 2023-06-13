@@ -1,4 +1,4 @@
-!v Test that partitions a very simple graph using ParHIP
+!v Test that partitions a very simple graph
 !
 !  Sample graph - adapted from ParMETIS manual to use 1-indexing
 !
@@ -8,7 +8,7 @@
 !  |    |    |    |    |
 !  11 --12 --13 --14 --15
 
-program test_mesh_partitioning_parhip
+program test_mesh_partitioning
 
   use MPI
 

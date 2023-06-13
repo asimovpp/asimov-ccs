@@ -57,7 +57,7 @@ contains
 
   end function
 
-  module subroutine get_current_step(step) 
+  module subroutine get_current_step(step)
 
     integer(ccs_int), intent(out) :: step
 
@@ -69,7 +69,7 @@ contains
 
   end subroutine
 
-  module subroutine get_current_time(time) 
+  module subroutine get_current_time(time)
 
     real(ccs_real), intent(out) :: time
 

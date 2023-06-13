@@ -22,6 +22,7 @@ module meshing
   public :: get_centre
   public :: get_volume
   public :: get_global_index, set_global_index
+  public :: get_natural_index, set_natural_index
   public :: get_local_index, set_local_index
   public :: get_boundary_status
   public :: get_local_status
@@ -43,6 +44,7 @@ module meshing
   public :: get_count_vertex_neighbours
   public :: get_face_interpolation
   public :: set_face_interpolation
+  public :: get_mesh_generated, set_mesh_generated
 
   interface get_centre
     module procedure get_cell_centre
@@ -56,9 +58,19 @@ module meshing
     module procedure get_neighbour_global_index
   end interface get_global_index
 
+  interface get_natural_index
+    module procedure get_cell_natural_index
+    module procedure get_neighbour_natural_index
+  end interface get_natural_index
+
   interface set_global_index
     module procedure set_face_global_index
+    module procedure set_cell_global_index
   end interface set_global_index
+
+  interface set_natural_index
+    module procedure set_cell_natural_index
+  end interface set_natural_index
 
   interface get_local_index
     module procedure get_cell_local_index
@@ -69,6 +81,7 @@ module meshing
 
   interface set_local_index
     module procedure set_neighbour_local_index
+    module procedure set_vertex_neighbour_local_index
   end interface set_local_index
 
   interface count_neighbours
@@ -228,11 +241,41 @@ module meshing
       integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
     end subroutine get_cell_global_index
 
+    !> Sets the global index of a cell
+    module subroutine set_cell_global_index(global_index_p, loc_p)
+      integer(ccs_int), intent(in) :: global_index_p !< the global index of the cell.
+      type(cell_locator), intent(inout) :: loc_p     !< the cell locator object.
+    end subroutine set_cell_global_index
+
+    !v Returns the natural index of a cell
+    !
+    ! @note@ The natural index is the original global index, whereas the global index indicates the
+    !        indexing in the current ordering.
+    module subroutine get_cell_natural_index(loc_p, natural_index_p)
+      type(cell_locator), intent(in) :: loc_p          !< the cell locator object.
+      integer(ccs_int), intent(out) :: natural_index_p !< the natural index of the cell.
+    end subroutine get_cell_natural_index
+
+    !v Sets the natural index of a cell
+    !
+    ! @note@ The natural index is the original global index, whereas the global index indicates the
+    !        indexing in the current ordering.
+    module subroutine set_cell_natural_index(natural_index_p, loc_p)
+      integer(ccs_int), intent(in) :: natural_index_p !< the natural index of the cell.
+      type(cell_locator), intent(inout) :: loc_p      !< the cell locator object.
+    end subroutine set_cell_natural_index
+
     !> Returns the global index of a neighbouring cell
     module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
       type(neighbour_locator), intent(in) :: loc_nb    !< the neighbour locator object.
       integer(ccs_int), intent(out) :: global_index_nb !< the global index of the neighbour cell.
     end subroutine get_neighbour_global_index
+
+    !> Returns the natural index of a neighbouring cell
+    module subroutine get_neighbour_natural_index(loc_nb, natural_index_nb)
+      type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
+      integer(ccs_int), intent(out) :: natural_index_nb !< the natural index of the neighbour cell.
+    end subroutine get_neighbour_natural_index
 
     !> Sets the global index of a face
     module subroutine set_face_global_index(global_index_f, loc_f)
@@ -305,6 +348,12 @@ module meshing
       integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
       type(neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
     end subroutine set_neighbour_local_index
+
+    !> Sets the local index of a vertex-neighbouring cell
+    module subroutine set_vertex_neighbour_local_index(index_nb, loc_nb)
+      integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+      type(vertex_neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+    end subroutine set_vertex_neighbour_local_index
 
     !> Returns the local index of a vertex neighbouring cell
     module subroutine get_vertex_neighbour_local_index(loc_nb, index_nb)
@@ -508,6 +557,19 @@ module meshing
       type(face_locator), intent(in) :: loc_f        !< the face locator object
       real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
     end subroutine get_face_interpolation
+
+    !> Query whether mesh was generated or read
+    module subroutine get_mesh_generated(mesh, is_generated)
+      type(ccs_mesh), intent(in) :: mesh   !< The mesh object
+      logical, intent(out) :: is_generated !< The generated/read (true/false) status
+    end subroutine
+
+    !> Set whether a mesh was generated or read
+    module subroutine set_mesh_generated(is_generated, mesh)
+      logical, intent(in) :: is_generated
+      type(ccs_mesh), intent(inout) :: mesh
+    end subroutine
+
   end interface
 
 end module meshing
