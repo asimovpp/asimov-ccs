@@ -13,6 +13,7 @@ module mat
 
   public :: create_matrix
   public :: finalise_matrix
+  public :: get_info_matrix
   public :: set_matrix_values
   public :: clear_matrix_values_entries
   public :: set_matrix_values_entry
@@ -47,6 +48,10 @@ module mat
     end subroutine
 
     module subroutine finalise_matrix(M)
+      class(ccs_matrix), intent(inout) :: M
+    end subroutine
+
+    module subroutine get_info_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine
 

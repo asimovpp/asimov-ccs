@@ -98,6 +98,28 @@ contains
 
   end subroutine finalise_matrix
 
+
+  module subroutine get_info_matrix(M)
+
+    use petscmat, only: MAT_INFO_SIZE, MatGetInfo, MAT_INFO_MEMORY, MAT_INFO_NZ_ALLOCATED, MAT_LOCAL, &
+       MAT_INFO_NZ_USED, MAT_INFO_NZ_UNNEEDED
+
+    class(ccs_matrix), intent(inout) :: M
+    double precision, dimension(MAT_INFO_SIZE) :: info
+
+    integer(ccs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+      print *, "---"
+      print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
+      print *, "nnz used: ", info(MAT_INFO_NZ_USED)
+      print *, "nnz unneded: ", info(MAT_INFO_NZ_UNNEEDED)
+    end select
+
+  end subroutine get_info_matrix
+
   !> Perform a parallel update of a PETSc matrix.
   module subroutine update_matrix(M)
 
