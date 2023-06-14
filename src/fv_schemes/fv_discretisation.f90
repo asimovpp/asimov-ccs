@@ -6,7 +6,7 @@
 
 submodule(fv) fv_discretisation
 
-use vec, only: get_vector_data
+use vec, only: get_vector_data, restore_vector_data
 use meshing, only: get_local_index
 use types, only: neighbour_locator
 use meshing, only: get_distance, get_centre
@@ -57,20 +57,19 @@ contains
   end subroutine calc_advection_coeff_uds
 
   !> Calculates advection coefficient for neighbouring cell using gamma discretisation
-  module subroutine calc_advection_coeff_gamma(phi, mf, bc, coeff)
-    type(gamma_field), intent(inout) :: phi !< scalar field
-    real(ccs_real), intent(in) :: mf      !< mass flux at the face
-    integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
-    real(ccs_real), intent(out) :: coeff  !< advection coefficient to be calculated
+  module subroutine calc_advection_coeff_gamma(phi, mf, bc, loc_p, loc_nb, coeff)
+    type(gamma_field), intent(inout) :: phi       !< scalar field
+    real(ccs_real), intent(in) :: mf              !< mass flux at the face
+    integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
+    type(cell_locator), intent(in) :: loc_p       !< current cell locator
+    type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
+    real(ccs_real), intent(out) :: coeff          !< advection coefficient to be calculated
 
     real(ccs_real),dimension(:),pointer:: phi_data 
     real(ccs_real),dimension(:),pointer:: dphidx,dphidy,dphidz
-    real(ccs_real),dimension(:),pointer:: dphiF, dphiP, d
-    type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
+    real(ccs_real),dimension(3) :: dphiF, dphiP, d
     real(ccs_real)::phiF, phiP, dphi, ddphi, phiPt, phiCDS, gamma_m, beta_m
     
-
     integer(ccs_int) :: index_p, index_nb
 
     print*,"store values of phi filed in phi_data array"
@@ -169,6 +168,13 @@ contains
       end if 
 
     end if
+
+    ! Restore vectors
+    print*,"Restoring vector data"
+    call restore_vector_data(phi%values,phi_data)
+    call restore_vector_data(phi%x_gradients,dphidx)
+    call restore_vector_data(phi%y_gradients,dphidy)
+    call restore_vector_data(phi%z_gradients,dphidz)
 
     !print*,"stopping code1"
     !stop

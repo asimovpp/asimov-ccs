@@ -5,7 +5,8 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, gamma_field, bc_config, face_locator, cell_locator
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, gamma_field, bc_config, &
+                   face_locator, cell_locator, neighbour_locator
   use constants, only: ndim
 
   implicit none
@@ -50,10 +51,12 @@ module fv
     end subroutine calc_advection_coeff_uds
 
     !> Calculates advection coefficient for neighbouring cell using gamma discretisation
-    module subroutine calc_advection_coeff_gamma(phi, mf, bc, coeff)
+    module subroutine calc_advection_coeff_gamma(phi, mf, bc, loc_p, loc_nb, coeff)
       type(gamma_field), intent(inout) :: phi  !< scalar (gamma) field
       real(ccs_real), intent(in) :: mf      !< mass flux at the face
       integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p !< current cell locator
+      type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
       real(ccs_real), intent(out) :: coeff  !< advection coefficient to be calculated
     end subroutine calc_advection_coeff_gamma
 

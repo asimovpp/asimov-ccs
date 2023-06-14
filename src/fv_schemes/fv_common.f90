@@ -137,7 +137,7 @@ contains
           type is (upwind_field)
             call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
           type is (gamma_field)
-            call calc_advection_coeff(phi, sgn * mf(index_f), 0, adv_coeff)
+            call calc_advection_coeff(phi, sgn * mf(index_f), 0, loc_p, loc_nb, adv_coeff)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
@@ -191,7 +191,7 @@ contains
             call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
           type is (gamma_field)
           print*,"gamma scheme selection"
-            call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
+            call calc_advection_coeff(phi, mf(index_f), index_nb, loc_p, loc_nb, adv_coeff)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
