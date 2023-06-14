@@ -89,6 +89,7 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
 
+    print*,"inside solve_nonlinear"
     ! Check whether 'step' has been passed into this subroutine (i.e. unsteady run)
     if (present(step)) then
       t = step
@@ -143,7 +144,7 @@ contains
     call update_gradient(mesh, p)
 
     outerloop: do i = it_start, it_end
-
+      print*,"interation=",i,"---------------------------------"
       call dprint("NONLINEAR: iteration " // str(i))
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
@@ -241,6 +242,7 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
 
+    print*,"inside calculate_velocity"
     ! Set flow variable identifiers (for residuals)
     if (first_time) then
       if (u_sol) then
@@ -302,6 +304,7 @@ contains
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
 
+    print*, "inside calculate_velocity_component"
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)

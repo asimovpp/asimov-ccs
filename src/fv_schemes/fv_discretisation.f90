@@ -6,10 +6,14 @@
 
 submodule(fv) fv_discretisation
 
+use vec, only: get_vector_data
+use meshing, only: get_local_index
+use types, only: neighbour_locator
+use meshing, only: get_distance, get_centre
+
   implicit none
 
 contains
-
   !> Calculates advection coefficient for neighbouring cell using CDS discretisation
   module subroutine calc_advection_coeff_cds(phi, mf, bc, coeff)
     type(central_field), intent(in) :: phi !< scalar field
@@ -54,20 +58,121 @@ contains
 
   !> Calculates advection coefficient for neighbouring cell using gamma discretisation
   module subroutine calc_advection_coeff_gamma(phi, mf, bc, coeff)
-    type(gamma_field), intent(in) :: phi !< scalar field
+    type(gamma_field), intent(inout) :: phi !< scalar field
     real(ccs_real), intent(in) :: mf      !< mass flux at the face
     integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
     real(ccs_real), intent(out) :: coeff  !< advection coefficient to be calculated
 
-    ! Dummy usage to prevent unused argument.
+    real(ccs_real),dimension(:),pointer:: phi_data 
+    real(ccs_real),dimension(:),pointer:: dphidx,dphidy,dphidz
+    real(ccs_real),dimension(:),pointer:: dphiF, dphiP, d
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    real(ccs_real)::phiF, phiP, dphi, ddphi, phiPt, phiCDS, gamma_m, beta_m
+    
+
+    integer(ccs_int) :: index_p, index_nb
+
+    print*,"store values of phi filed in phi_data array"
+    call get_vector_data(phi%values,phi_data)
+    
+    print*,"store x-gradients of phi in dphidx array"
+    call get_vector_data(phi%x_gradients,dphidx)
+
+    print*,"store y-gradients of phi in dphidx array"
+    call get_vector_data(phi%y_gradients,dphidy)
+
+    print*,"store z-gradients of phi in dphidx array"
+    call get_vector_data(phi%z_gradients,dphidz)
+
+    print*,"get the local index of current cell and neighbouring cell"
+    call get_local_index(loc_p, index_p)
+    call get_local_index(loc_nb, index_nb)
+
+    print*,"Dummy usage to prevent unused argument."
     associate (scalar => phi, foo => bc)
     end associate
 
     if (mf < 0.0) then
-      coeff = 1.0_ccs_real
+      print*,"gamma mf<0"
+      phiP=phi_data(index_nb)
+      phiF=phi_data(index_p)
+
+      !Gradient of phi at cell center (current cell)
+      dphiP(1)=dphidx(index_nb)
+      dphiP(2)=dphidy(index_nb)
+      dphiP(3)=dphidz(index_nb)
+
+      !Gradient of phi at cell center (neighbouring cell)
+      dphiF(1)=dphidx(index_p)
+      dphiF(2)=dphidy(index_p)
+      dphiF(3)=dphidy(index_p)
+
+      !Gradient phi at cell face
+      dphi=phiF-phiP
+
+      !Get the distance between present and neighbouring cell centers and store it in d
+      call get_distance(loc_p, loc_nb, d)
+      
+
+      !calculate the normalized phi
+      ddphi=2.0*dot_product(dphiP,d) 
+      phiPt=1.0-(dphi/ddphi)
+
+      beta_m=0.1 !value can be varied between 0.1 and 0.5
+
+      if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
+        coeff=1.0_ccs_real
+      else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
+        coeff=0.5_ccs_real 
+      else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
+        gamma_m=phiPt/beta_m
+        phiCDS=0.5*(phiP+phiF)
+        coeff=(gamma_m*phiCDS)+((1-gamma_m)*phiP)
+      end if 
+
     else
-      coeff = 0.0_ccs_real
+      print*,"gamma mf>=0"
+      phiP=phi_data(index_p)
+      phiF=phi_data(index_nb)
+
+      !Gradient of phi at cell center (current cell)
+      dphiP(1)=dphidx(index_p)
+      dphiP(2)=dphidy(index_p)
+      dphiP(3)=dphidz(index_p)
+
+      !Gradient of phi at cell center (neighbouring cell)
+      dphiF(1)=dphidx(index_nb)
+      dphiF(2)=dphidy(index_nb)
+      dphiF(3)=dphidy(index_nb)
+
+      !Gradient phi at cell face
+      dphi=phiF-phiP
+
+      !Get the distance between present and neighbouring cell centers and store it in d
+      call get_distance(loc_p, loc_nb, d)
+
+      !calculate the normalized phi
+      ddphi=2.0*dot_product(dphiP,d)
+      phiPt=1.0-(dphi/ddphi)
+
+      beta_m=0.1 !value can be varied between 0.1 and 0.5
+
+      if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
+        coeff=1.0_ccs_real
+      else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
+        coeff=0.5_ccs_real 
+      else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
+        gamma_m=phiPt/beta_m
+        phiCDS=0.5*(phiP+phiF)
+        coeff=(gamma_m*phiCDS)+((1-gamma_m)*phiP)
+      end if 
+
     end if
+
+    !print*,"stopping code1"
+    !stop
+    !print*,"stopping code2"
 
   end subroutine calc_advection_coeff_gamma
 
