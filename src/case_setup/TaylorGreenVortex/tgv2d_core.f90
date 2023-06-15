@@ -554,8 +554,8 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
-      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), MPI_DOUBLE, MPI_MAX, par_env%comm, ierr)
+      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
     class default
       call error_abort("ERROR: Unknown type")
     end select
