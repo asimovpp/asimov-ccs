@@ -669,4 +669,35 @@ contains
 
   end subroutine update_gradient_component
 
+  !> Adds a fixed source term to the righthand side of the equation
+  module subroutine add_fixed_source(mesh, S, rhs)
+
+    type(ccs_mesh), intent(in) :: mesh     !< The mesh
+    type(ccs_vector), intent(inout) :: S      !< The source field
+    type(ccs_vector), intent(inout) :: rhs !< The righthand side vector
+
+    real(ccs_real), dimension(:), pointer :: S_data
+    real(ccs_real), dimension(:), pointer :: rhs_data
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: index_p
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: V_p
+    
+    call get_vector_data(S, S_data)
+    call get_vector_data(rhs, rhs_data)
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
+       call create_cell_locator(mesh, index_p, loc_p)
+       call get_volume(loc_p, V_p)
+
+       rhs_data(index_p) = rhs_data(index_p) + S_data(index_p) * V_p
+    end do
+    call restore_vector_data(S, S_data)
+    call restore_vector_data(rhs, rhs_data)
+
+    call update(rhs)
+    
+  end subroutine add_fixed_source
+
 end submodule fv_common
