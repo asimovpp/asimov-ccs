@@ -299,7 +299,11 @@ contains
       call get_distance(loc_p, loc_f, dx)
 
       a = 1.0_ccs_real
-      b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
+      if (present(x_gradients)) then
+        b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
+      else 
+        b = 0.0_ccs_real
+      end if
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
