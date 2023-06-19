@@ -37,7 +37,7 @@ program bfs
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
-  use fv, only: update_gradient
+  use fv, only: update_gradient, get_value_from_bc_profile
   use utils, only: str
 
   implicit none
@@ -76,6 +76,9 @@ program bfs
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
   type(bc_profile), allocatable :: profile
+  real(ccs_real) :: bc_value
+  real(ccs_real), dimension(3) :: x
+  integer(ccs_int) :: i
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -142,10 +145,6 @@ program bfs
   call set_field_type(cell_centred_upwind, field_properties)
   call set_field_name("u", field_properties)
   call create_field(field_properties, u)
-
-  call read_bc_profile('filename', 1, profile)
-  call set_bc_profile(u, profile, 3)
-
   call set_field_name("v", field_properties)
   call create_field(field_properties, v)
   call set_field_name("w", field_properties)
@@ -163,6 +162,16 @@ program bfs
   call set_field_type(face_centred, field_properties)
   call set_field_name("mf", field_properties)
   call create_field(field_properties, mf)
+
+
+  ! Read and set BC profiles
+  ! Read u componemt (1st column)
+  call read_bc_profile('BC_blasius', 1, profile)
+  profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
+  profile%centre(:) = (/ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real /) 
+
+  ! Set to 3rd boundary condition (inlet)
+  call set_bc_profile(u, profile, 3)
 
   ! Add fields to output list
   allocate (output_list(4))
@@ -446,19 +455,16 @@ contains
     integer(ccs_int) :: num_field, i
     integer :: io_err, unit_io
 
-    
     allocate(profile)
 
     allocate(profile%centre(3))
     allocate(profile%values(0))
     allocate(profile%coordinates(0))
 
-    print *, "Read bc file"
-
     open(newunit=unit_io, file=trim(filename), status='old', action='read')
 
     read(unit_io, *)                      ! ignore profile type
-    read(unit_io, *) tmp, profile%centre ! read centre
+    read(unit_io, *) tmp, profile%centre  ! read centre
     read(unit_io, *)                      ! ignore tolerance
     read(unit_io, *)                      ! ignore scaling
     read(unit_io, '(A)') header_string
@@ -484,7 +490,6 @@ contains
       profile%values = (/ profile%values, tmp_values(variable_id) /)
       profile%coordinates = (/ profile%coordinates, tmp_coord /)
     end do
-
 
   end subroutine read_bc_profile
 

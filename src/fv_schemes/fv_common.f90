@@ -335,7 +335,11 @@ contains
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
     case (bc_type_profile)
       call get_centre(loc_f, x)
-      call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
+      if (allocated(phi%bcs%profiles(index_bc)%centre)) then
+        call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
+      else
+        bc_value = 0.0_ccs_real
+      end if
 
       a = -1.0_ccs_real
       b = 2.0_ccs_real * bc_value
@@ -351,7 +355,7 @@ contains
   end subroutine
 
   !> Linear interpolate of BC profile 
-  subroutine get_value_from_bc_profile(x, profile, bc_value)
+  module subroutine get_value_from_bc_profile(x, profile, bc_value)
     real(ccs_real), dimension(:), intent(in) :: x
     type(bc_profile), intent(in) :: profile
     real(ccs_real), intent(out) :: bc_value
