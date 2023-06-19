@@ -72,28 +72,30 @@ contains
     
     integer(ccs_int) :: index_p, index_nb
 
-    print*,"store values of phi filed in phi_data array"
+    !store values of phi filed in phi_data array
     call get_vector_data(phi%values,phi_data)
     
-    print*,"store x-gradients of phi in dphidx array"
+    !store x-gradients of phi in dphidx array
     call get_vector_data(phi%x_gradients,dphidx)
 
-    print*,"store y-gradients of phi in dphidx array"
+    !store y-gradients of phi in dphidx array
     call get_vector_data(phi%y_gradients,dphidy)
 
-    print*,"store z-gradients of phi in dphidx array"
+    !store z-gradients of phi in dphidx array
     call get_vector_data(phi%z_gradients,dphidz)
 
-    print*,"get the local index of current cell and neighbouring cell"
+    !get the local index of current cell and neighbouring cell
     call get_local_index(loc_p, index_p)
     call get_local_index(loc_nb, index_nb)
 
-    print*,"Dummy usage to prevent unused argument."
+    !Dummy usage to prevent unused argument.
     associate (scalar => phi, foo => bc)
     end associate
 
+    beta_m=0.1 !value can be varied between 0.1 and 0.5
+
     if (mf < 0.0) then
-      print*,"gamma mf<0"
+      !print*,"gamma mf<0"
       phiP=phi_data(index_nb)
       phiF=phi_data(index_p)
 
@@ -113,12 +115,9 @@ contains
       !Get the distance between present and neighbouring cell centers and store it in d
       call get_distance(loc_p, loc_nb, d)
       
-
       !calculate the normalized phi
       ddphi=2.0*dot_product(dphiP,d) 
       phiPt=1.0-(dphi/ddphi)
-
-      beta_m=0.1 !value can be varied between 0.1 and 0.5
 
       if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
         coeff=1.0_ccs_real
@@ -127,11 +126,11 @@ contains
       else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
         gamma_m=phiPt/beta_m
         phiCDS=0.5*(phiP+phiF)
-        coeff=(gamma_m*phiCDS)+((1-gamma_m)*phiP)
+        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/mf
       end if 
 
     else
-      print*,"gamma mf>=0"
+      !print*,"gamma mf>=0"
       phiP=phi_data(index_p)
       phiF=phi_data(index_nb)
 
@@ -155,8 +154,6 @@ contains
       ddphi=2.0*dot_product(dphiP,d)
       phiPt=1.0-(dphi/ddphi)
 
-      beta_m=0.1 !value can be varied between 0.1 and 0.5
-
       if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
         coeff=1.0_ccs_real
       else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
@@ -164,13 +161,13 @@ contains
       else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
         gamma_m=phiPt/beta_m
         phiCDS=0.5*(phiP+phiF)
-        coeff=(gamma_m*phiCDS)+((1-gamma_m)*phiP)
+        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/mf
       end if 
 
     end if
 
     ! Restore vectors
-    print*,"Restoring vector data"
+    !print*,"Restoring vector data"
     call restore_vector_data(phi%values,phi_data)
     call restore_vector_data(phi%x_gradients,dphidx)
     call restore_vector_data(phi%y_gradients,dphidy)

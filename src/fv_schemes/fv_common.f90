@@ -34,7 +34,7 @@ contains
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data
 
-    print*,"inside compute_fluxes"
+    !print*,"inside compute_fluxes"
     associate (mf_values => mf%values)
       call dprint("CF: get mf")
       call get_vector_data(mf_values, mf_data)
@@ -84,7 +84,7 @@ contains
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
 
-    print*,"inside compute_coeffs"
+    !print*,"inside compute_coeffs"
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
@@ -190,7 +190,7 @@ contains
           type is (upwind_field)
             call calc_advection_coeff(phi, mf(index_f), index_nb, adv_coeff)
           type is (gamma_field)
-          print*,"gamma scheme selection"
+          !print*,"gamma scheme selection"
             call calc_advection_coeff(phi, mf(index_f), index_nb, loc_p, loc_nb, adv_coeff)
           class default
             call error_abort("Invalid velocity field discretisation.")
