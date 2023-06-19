@@ -7,11 +7,28 @@
 submodule(io_visualisation) io_visualisation_common
 #include "ccs_macros.inc"
 
-  use constants, only: ndim
+  use constants, only: ndim, &
+                       field_u, field_v, field_w, &
+                       field_p, field_p_prime, &
+                       field_mf
 
   implicit none
 
+  character(len=1), dimension(4), parameter :: skip_fields = &
+       (/ "u", "v", "w", &
+          "p" /)
+
+  logical, save :: initial_step = .true.
+    
+
 contains
+
+  module subroutine reset_io_visualisation
+
+    initial_step = .true.
+    call reset_io_visualisation_module()
+
+  end subroutine
 
   !> Write the flow solution for the current time-step to file
   module subroutine write_solution(par_env, case_name, mesh, output_list, step, maxstep, dt)
@@ -92,7 +109,7 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (present(step)) then
         ! Unsteady case
-        if (step == 1) then
+        if (initial_step) then
           ! Open file
           open (newunit=ioxdmf, file=xdmf_file, status='unknown')
 
@@ -102,6 +119,8 @@ contains
           write (ioxdmf, '(a)') '<Xdmf Version = "2.0">'
           write (ioxdmf, '(a,a)') l1, '<Domain>'
           write (ioxdmf, '(a,a)') l2, '<Grid Name = "Unsteady" GridType = "Collection" CollectionType = "Temporal">'
+
+          initial_step = .false.
         end if
       else
         ! Steady case
@@ -195,6 +214,7 @@ contains
       end if
 
       ! Pressure
+      fmt = '(a,a,i0,3(a),i0,a)'
       do i = 1, size(output_list)
         if (trim(output_list(i)%name) == 'p') then
           write (ioxdmf, '(a,a)') l4, '<Attribute Name = "pressure" AttributeType = "Scalar" Center = "Cell">'
@@ -202,6 +222,17 @@ contains
             step_counter, '/p</DataItem>'
           write (ioxdmf, '(a,a)') l4, '</Attribute>'
         end if
+      end do
+
+      ! Scalars
+      fmt = '(a,a,i0,3(a),i0,a)'
+      do i = 1, size(output_list)
+         if (.not. any(skip_fields == trim(output_list(i)%name))) then
+          write (ioxdmf, '(a,a)') l4, '<Attribute Name = "'//output_list(i)%name//'" AttributeType = "Scalar" Center = "Cell">'
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
+            step_counter, '/'//output_list(i)%name//'</DataItem>'
+          write (ioxdmf, '(a,a)') l4, '</Attribute>'
+         end if
       end do
 
       ! Kinetic Energy

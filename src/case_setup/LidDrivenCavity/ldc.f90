@@ -34,7 +34,7 @@ program ldc
                    get_field, set_field, get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count, get_store_residuals
+  use read_config, only: get_variables, get_boundary_count, get_store_residuals
   use io_visualisation, only: write_solution
 
   implicit none
@@ -120,7 +120,6 @@ program ldc
   ! Create and initialise field vectors
   call initialise(vec_properties)
   call get_boundary_count(ccs_config_file, n_boundaries)
-  call get_bc_variables(ccs_config_file, variable_names)
   call get_store_residuals(ccs_config_file, store_residuals)
 
   call set_vector_location(cell, vec_properties)
@@ -229,6 +228,8 @@ contains
     if (allocated(error)) then
       call error_abort(trim(error))
     end if
+
+    call get_variables(config_file, variable_names)
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then

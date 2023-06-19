@@ -6,7 +6,8 @@ program test_mesh_neighbours
   use testing_lib
 
   use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
-                     get_boundary_status, get_local_num_cells, get_count_vertex_neighbours
+                     get_boundary_status, get_local_num_cells, get_count_vertex_neighbours, &
+                     get_local_index
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -22,6 +23,8 @@ program test_mesh_neighbours
 
   integer(ccs_int) :: nnb, nvnb
   integer(ccs_int) :: j
+
+  integer(ccs_int) :: index_nb, index_vnb
 
   type(neighbour_locator) :: loc_nb
   type(vertex_neighbour_locator) :: loc_vnb
@@ -69,6 +72,12 @@ program test_mesh_neighbours
       ! Loop over neighbours
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
+
+        ! Check for zero neighbour index. This indicates a cell was not linked as a neighbour. For
+        ! the build mesh case we should always be able to fill our neighbours.
+        call get_local_index(loc_nb, index_nb)
+        call assert_neq(index_nb, 0, "All neighbours should be filled!")
+        
         call get_boundary_status(loc_nb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face
@@ -81,6 +90,12 @@ program test_mesh_neighbours
       ! Loop over vertex neighbours
       do j = 1, nvnb
         call create_neighbour_locator(loc_p, j, loc_vnb)
+
+        ! Check for zero vertex neighbour index. This indicates a cell was not linked as a vertex
+        ! neighbour. For the build mesh case we should always be able to fill our vertex neighbours
+        call get_local_index(loc_vnb, index_vnb)
+        call assert_neq(index_vnb, 0, "All vertex neighbours should be filled!")
+        
         call get_boundary_status(loc_vnb, is_boundary)
         if (is_boundary) then
           ! Boundary neighbour/face

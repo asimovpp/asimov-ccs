@@ -21,7 +21,8 @@ module utils
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
   use types, only: field, fluid, fluid_solver_selector
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       cell_centred_central, cell_centred_upwind
 
   implicit none
 
@@ -55,6 +56,8 @@ module utils
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
   public :: get_natural_data
+  public :: get_scheme_name
+  public :: get_scheme_id
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -315,9 +318,9 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
-      call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
@@ -401,7 +404,7 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
@@ -525,4 +528,39 @@ contains
     deallocate (flow%field_names)
   end subroutine dealloc_fluid_fields
 
+  !> Convert advection scheme name -> ID.
+  integer(ccs_int) function get_scheme_id(scheme_name)
+
+    character(len=*), intent(in) :: scheme_name
+    integer(ccs_int) :: id
+    character(len=:), allocatable :: scheme
+
+    scheme = trim(scheme_name)
+    if (scheme == "central") then
+       id = cell_centred_central
+    else if (scheme == "upwind") then
+       id = cell_centred_upwind
+    else
+       call error_abort("Uknown scheme "//scheme)
+    end if
+
+    get_scheme_id = id
+  end function get_scheme_id
+
+  !> Convert advection scheme ID -> name.
+  function get_scheme_name(scheme_id) result(scheme_name)
+
+    integer(ccs_int), intent(in) :: scheme_id
+    character(len=:), allocatable :: scheme_name
+
+    if (scheme_id == cell_centred_central) then
+       scheme_name = "central"
+    else if (scheme_id == cell_centred_upwind) then
+       scheme_name = "upwind"
+    else
+       call error_abort("Uknown scheme ID")
+    end if
+
+  end function get_scheme_name
+    
 end module utils

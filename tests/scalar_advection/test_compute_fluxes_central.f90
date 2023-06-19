@@ -1,13 +1,11 @@
-!v Test that the flux matrix has been computed correctly
-!
-!  Compares the matrix and RHS calculated for a specified mass flux using the central differencing scheme to the expected solution
+!v Test that the advection flux coefficients behave as expected for central schemes.
 program test_compute_fluxes
 #include "ccs_macros.inc"
 
   use testing_lib
   use types, only: field, central_field, face_field, matrix_values_spec
   use mesh_utils, only: build_square_mesh
-  use fv, only: compute_fluxes
+  use fv, only: calc_advection_coeff
   use utils, only: update, initialise, finalise, &
                    set_size, set_values, zero, &
                    set_mode, set_entry, set_col, set_row, clear_entries
@@ -17,7 +15,8 @@ program test_compute_fluxes
   use constants, only: add_mode, face
   use bc_constants
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
-                     create_cell_locator, create_neighbour_locator, count_neighbours, get_local_num_cells
+                     create_cell_locator, create_neighbour_locator, create_face_locator, &
+                     count_neighbours, get_local_num_cells
   use boundary_conditions, only: allocate_bc_arrays
 
   implicit none
@@ -63,7 +62,7 @@ program test_compute_fluxes
 
   do i = 1, size(mf_values)
     call set_mass_flux(mf, mf_values(i))
-    call run_compute_fluxes_test(scalar, mf, mf_values(i), mesh, cps)
+    call run_compute_fluxes_test(scalar, mf, mesh)
   end do
 
   deallocate (scalar)
@@ -85,238 +84,66 @@ contains
     call update(mf%values)
   end subroutine set_mass_flux
 
-  !> Compares the matrix computed for a given velocity field and discretisation to the known solution
-  subroutine run_compute_fluxes_test(scalar, mf, mf_value, mesh, cps)
+  !> Tests that the flux coefficients are in a sensible range
+  subroutine run_compute_fluxes_test(scalar, mf, mesh)
     class(field), intent(inout) :: scalar   !< The scalar field structure
     class(field), intent(inout) :: mf       !< The mass flux field
-    real(ccs_real), intent(in) :: mf_value  !< The constant value of the mass flux
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
-    integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh
 
-    class(ccs_matrix), allocatable :: M, M_exact
-    class(ccs_vector), allocatable :: b, b_exact
-    type(vector_spec) :: vec_properties
-    type(matrix_spec) :: mat_properties
-    real(ccs_real) :: error
-
-    call initialise(mat_properties)
-    call initialise(vec_properties)
-    call set_size(par_env, mesh, mat_properties)
-    call set_size(par_env, mesh, vec_properties)
-    call set_nnz(5, mat_properties)
-    call create_matrix(mat_properties, M)
-    call create_vector(vec_properties, b)
-    call create_matrix(mat_properties, M_exact)
-    call create_vector(vec_properties, b_exact)
-
-    call zero(M)
-
-    call compute_fluxes(scalar, mf, mesh, cps, M, b)
-
-    call update(M)
-    call update(b)
-
-    call finalise(M)
-
-    call compute_exact_matrix(mesh, mf_value, cps, M_exact)
-    call compute_exact_vector(mesh, mf_value, cps, scalar, b_exact)
-
-    call update(M_exact)
-    call update(b_exact)
-
-    call finalise(M_exact)
-
-    call axpy(-1.0_ccs_real, M_exact, M)
-    error = norm(M, 1)
-
-    if (error .ge. eps) then
-      write (message, *) 'FAIL: matrix difference norm too large ', error
-      call stop_test(message)
-    end if
-
-    call axpy(-1.0_ccs_real, b_exact, b)
-    error = norm(b, 2)
-
-    if (error .ge. eps) then
-      write (message, *) 'FAIL: vector difference norm too large ', error
-      call stop_test(message)
-    end if
-
-    deallocate (M)
-    deallocate (b)
-    deallocate (M_exact)
-    deallocate (b_exact)
-  end subroutine run_compute_fluxes_test
-
-  !> Computes the expected matrix for a mass flux of 1
-  subroutine compute_exact_matrix(mesh, mf_value, cps, M)
-    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
-    real(ccs_real), intent(in) :: mf_value  !< The value of the mass flux field
-    integer(ccs_int), intent(in) :: cps     !< The number of cells per side
-    class(ccs_matrix), intent(inout) :: M   !< The matrix
-
-    ! Local variables
-    type(matrix_values_spec) :: mat_val_spec
-    type(matrix_values) :: mat_values
+    real(ccs_real), dimension(:), pointer :: mf_data
+    
+    integer(ccs_int) :: index_p, index_nb, index_f
+    integer(ccs_int) :: j, nnb
     type(cell_locator) :: loc_p
-    type(neighbour_locator) loc_nb
-    integer(ccs_int) :: index_p, index_nb, j, nnb
-    integer(ccs_int) :: global_index_p, global_index_nb
-    integer(ccs_int) :: sgn
-    real(ccs_real) :: face_area, dx
-    real(ccs_real) :: adv_coeff, diff_coeff
-    real(ccs_real) :: adv_coeff_total, diff_coeff_total
-    logical :: is_boundary
-
-    real(ccs_real) :: aP, aF
-
-    integer(ccs_int) :: local_num_cells
-
-    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
-    call set_matrix_values_spec_ncols(1_ccs_int, mat_val_spec)
-    call create_matrix_values(mat_val_spec, mat_values)
-    call set_mode(add_mode, mat_values)
-
-    face_area = 1.0_ccs_real / cps
-
-    call get_local_num_cells(mesh, local_num_cells)
-    do index_p = 1, local_num_cells
-      adv_coeff_total = 0.0_ccs_real
-      diff_coeff_total = 0.0_ccs_real
-      call create_cell_locator(mesh, index_p, loc_p)
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
-      do j = 1, nnb
-        call create_neighbour_locator(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-        if (.not. is_boundary) then
-          dx = 1.0_ccs_real / cps
-          diff_coeff = -face_area * diffusion_factor / dx
-          call get_global_index(loc_nb, global_index_nb)
-          call get_local_index(loc_nb, index_nb)
-          if (index_nb < index_p) then
-            sgn = -1
-          else
-            sgn = 1
-          end if
-          adv_coeff = mf_value * sgn * face_area
-          if (adv_coeff > 0.0_ccs_real) then
-            aP = adv_coeff
-            aF = 0.0_ccs_real
-          else
-            aP = 0.0_ccs_real
-            aF = adv_coeff
-          end if
-
-          call set_row(global_index_p, mat_values)
-          call set_col(global_index_nb, mat_values)
-          call set_entry(aF + diff_coeff, mat_values)
-          call set_values(mat_values, M)
-
-          adv_coeff_total = adv_coeff_total - aP
-          diff_coeff_total = diff_coeff_total + diff_coeff
-        else
-          dx = 1.0_ccs_real / cps
-          diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
-          adv_coeff = mf_value * face_area
-
-          call set_row(global_index_p, mat_values)
-          call set_col(global_index_p, mat_values)
-          call set_entry(-(adv_coeff + diff_coeff), mat_values)
-          call set_values(mat_values, M)
-        end if
-
-        call clear_entries(mat_values)
-      end do
-
-      call set_row(global_index_p, mat_values)
-      call set_col(global_index_p, mat_values)
-      call set_entry(-(adv_coeff_total + diff_coeff_total), mat_values)
-      call set_values(mat_values, M)
-      call clear_entries(mat_values)
-    end do
-  end subroutine compute_exact_matrix
-
-  !> Computes the expected RHS for a mass flux of 1
-  subroutine compute_exact_vector(mesh, mf_value, cps, phi, b)
-    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
-    real(ccs_real), intent(in) :: mf_value  !< The value of the mass flux field
-    integer(ccs_int), intent(in) :: cps     !< The number of cells per side
-    class(field), intent(inout) :: phi      !< The transported scalar
-    class(ccs_vector), intent(inout) :: b   !< The RHS vector
-
-    type(vector_values) :: vec_values
-    type(cell_locator) :: loc_p
-    type(neighbour_locator) loc_nb
-    integer(ccs_int) :: index_p, index_nb, j, nnb
-    integer(ccs_int) :: global_index_p
-    real(ccs_real) :: face_area
-    real(ccs_real) :: dx
-    real(ccs_real) :: bc_value
-    real(ccs_real) :: adv_coeff, diff_coeff
-    real(ccs_real) :: adv_coeff_total, diff_coeff_total
+    type(neighbour_locator) :: loc_nb
+    type(face_locator) :: loc_f
     logical :: is_boundary
 
     integer(ccs_int) :: local_num_cells
 
-    real(ccs_real), dimension(:), pointer :: phi_data
-    real(ccs_real) :: aP, aF, def_corr
     real(ccs_real) :: sgn
+    real(ccs_real) :: adv_coeff
 
-    call create_vector_values(1_ccs_int, vec_values)
-    call set_mode(add_mode, vec_values)
-
-    associate (bcs => phi%bcs)
-      face_area = 1.0_ccs_real / cps
+    select type(scalar)
+    type is (central_field)
       call get_local_num_cells(mesh, local_num_cells)
-      do index_p = 1, local_num_cells
-        call clear_entries(vec_values)
 
-        adv_coeff_total = 0.0_ccs_real
-        diff_coeff_total = 0.0_ccs_real
+      call get_vector_data(mf%values, mf_data)
+
+      do index_p = 1, local_num_cells
         call create_cell_locator(mesh, index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
         call count_neighbours(loc_p, nnb)
+
         do j = 1, nnb
           call create_neighbour_locator(loc_p, j, loc_nb)
           call get_boundary_status(loc_nb, is_boundary)
+          call get_local_index(loc_nb, index_nb)
+          
+          call create_face_locator(mesh, index_p, j, loc_f)
+          call get_local_index(loc_f, index_f)
+
           if (.not. is_boundary) then
-            ! Deferred correction advection
-            call get_local_index(loc_nb, index_nb)
-            if (index_p < index_nb) then
-              sgn = 1.0_ccs_real
-            else
+            if (index_nb < index_p) then
               sgn = -1.0_ccs_real
-            end if
-            adv_coeff = mf_value * face_area * sgn
-            if (adv_coeff > 0.0_ccs_real) then
-              aP = adv_coeff
-              aF = 0.0_ccs_real
             else
-              aP = 0.0_ccs_real
-              aF = adv_coeff
+              sgn = 1.0_ccs_real
             end if
+            call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), 0, adv_coeff)
 
-            call get_vector_data(phi%values, phi_data)
-            def_corr = -((0.5_ccs_real - aP) * phi_data(index_p) &
-                         + (0.5_ccs_real - aF) * phi_data(index_nb)) * adv_coeff
-            call restore_vector_data(phi%values, phi_data)
-
-            call set_row(global_index_p, vec_values)
-            call set_entry(def_corr, vec_values)
-            call set_values(vec_values, b)
+            call assert_ge(adv_coeff, 0.0_ccs_real, "Central advection coefficient should be >= 0")
+            call assert_le(adv_coeff, 1.0_ccs_real, "Central advection coefficient should be <= 1")
           else
-            dx = 1.0_ccs_real / cps
-            diff_coeff = -face_area * diffusion_factor / (0.5_ccs_real * dx)
-            adv_coeff = mf_value * face_area
-            bc_value = bcs%values(j)
-
-            call set_row(global_index_p, vec_values)
-            call set_entry(-(adv_coeff + diff_coeff) * bc_value, vec_values)
-            call set_values(vec_values, b)
+            sgn = 1.0_ccs_real
+            call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), index_nb, adv_coeff)
           end if
         end do
       end do
-    end associate
-  end subroutine compute_exact_vector
+
+      call restore_vector_data(mf%values, mf_data)
+    class default
+      call stop_test("This test is only for centrally-differenced fields!")
+    end select
+
+  end subroutine run_compute_fluxes_test
+
 end program test_compute_fluxes

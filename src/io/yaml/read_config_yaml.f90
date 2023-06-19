@@ -6,7 +6,8 @@
 submodule(read_config) read_config_utils
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, debug_print, str
+  use constants, only: cell_centred_central, cell_centred_upwind
+  use utils, only: exit_print, debug_print, str, get_scheme_id
   use fortran_yaml_c_interface, only: parse
   use fortran_yaml_c, only: type_dictionary, &
                             type_error, &
@@ -699,11 +700,10 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     end select
   end subroutine get_store_residuals
 
-  module subroutine get_bc_variables(filename, variables)
-    character(len=*), intent(in) :: filename
+  module subroutine get_variables(config_file, variables)
+    class(*), pointer, intent(in) :: config_file
     character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables
 
-    class(*), pointer :: config_file
     class(*), pointer :: dict
     class(*), pointer :: dict_var
     type(type_error), allocatable :: io_err
@@ -711,12 +711,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     integer(ccs_int) :: n_var
     character(len=25) :: key
     character(len=:), allocatable :: variable
-    character(:), allocatable :: error
-
-    config_file => parse(filename, error)
-    if (allocated(error)) then
-      call error_abort(trim(error))
-    end if
 
     select type (config_file)
     type is (type_dictionary)
@@ -741,7 +735,46 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     class default
       call error_abort("type unhandled")
     end select
-  end subroutine get_bc_variables
+  end subroutine get_variables
+
+  module subroutine get_variable_types(config_file, variable_types)
+    class(*), pointer, intent(in) :: config_file
+    integer(ccs_int), dimension(:), allocatable, intent(out) :: variable_types
+
+    ! class(*), pointer :: config_file
+    class(*), pointer :: dict
+    class(*), pointer :: dict_var
+    type(type_error), allocatable :: io_err
+    integer(ccs_int) :: i
+    integer(ccs_int) :: n_var
+    character(len=25) :: key
+    character(len=:), allocatable :: scheme
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("variables", required=.true., error=io_err)
+      ! call error_handler(io_err)
+
+      call get_value(dict, "n_variables", n_var)
+      allocate (variable_types(n_var))
+
+      do i = 1, n_var
+        write (key, '(A, I0)') "variable_", i
+        select type (dict)
+        type is (type_dictionary)
+          dict_var => dict%get_dictionary(key, required=.true., error=io_err)
+          ! call error_handler(io_err)
+          call get_value(dict_var, "type", scheme)
+          scheme = trim(scheme)
+          variable_types(i) = get_scheme_id(scheme)
+        class default
+          call error_abort("type unhandled")
+        end select
+      end do
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_variable_types
 
   module subroutine get_bc_field(config_file, bc_field, phi, required)
     class(*), pointer, intent(in) :: config_file
@@ -759,7 +792,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     character(len=25) :: boundary_index
 
     class(*), pointer :: variable_dict
-    character(len=25) :: variable
+    character(len=128) :: variable
     character(len=:), allocatable :: bc_type
     real(ccs_real) :: bc_value
     logical :: field_exists
@@ -796,8 +829,8 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           case default
             select type (dict2)
             type is (type_dictionary)
-              write (variable, '(A, A)') "variable_", bc_field
-              variable_dict => dict2%get_dictionary(variable, required=.false., error=io_err)
+              write (variable, '(A, A)') "variable_", trim(bc_field)
+              variable_dict => dict2%get_dictionary(trim(variable), required=.false., error=io_err)
               ! call error_handler(io_err)
 
               if (associated(variable_dict)) then

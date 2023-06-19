@@ -12,7 +12,15 @@ submodule(io_visualisation) io_visualisation_adios2
 
   implicit none
 
+  logical, save :: initial_step = .true.
+
 contains
+
+  module subroutine reset_io_visualisation_module()
+
+    initial_step = .true.
+
+  end subroutine
 
   !> Write the field data to file
   module subroutine write_fields(par_env, case_name, mesh, output_list, step, maxstep)
@@ -65,10 +73,12 @@ contains
 
     if (present(step)) then
       ! Unsteady case
-      if (step == 1) then
+      if (initial_step) then
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_writer", sol_writer)
         call open_file(sol_file, "write", sol_writer)
+
+        initial_step = .false.
       end if
     else
       ! Steady case
