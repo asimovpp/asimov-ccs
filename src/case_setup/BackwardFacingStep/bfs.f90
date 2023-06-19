@@ -37,7 +37,7 @@ program bfs
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
-  use fv, only: update_gradient, get_value_from_bc_profile
+  use fv, only: update_gradient
   use utils, only: str
 
   implicit none
@@ -76,9 +76,6 @@ program bfs
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
   type(bc_profile), allocatable :: profile
-  real(ccs_real) :: bc_value
-  real(ccs_real), dimension(3) :: x
-  integer(ccs_int) :: i
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -163,10 +160,9 @@ program bfs
   call set_field_name("mf", field_properties)
   call create_field(field_properties, mf)
 
-
   ! Read and set BC profiles
   ! Read u componemt (1st column)
-  call read_bc_profile('BC_blasius', 1, profile)
+  call read_bc_profile(case_path // '.blasius.prf', 1, profile)
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
   profile%centre(:) = (/ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real /) 
 
