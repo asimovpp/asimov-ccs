@@ -146,10 +146,11 @@ contains
     index_bc = index_tmp(1)
   end subroutine get_bc_index
 
+  !> Set boundary condition profile to the index_bc boundary
   subroutine set_bc_profile(phi, profile, index_bc)
-    class(field), intent(inout) :: phi           !< The field whose bc we're getting
-    type(bc_profile), intent(in) :: profile
-    integer(ccs_int), intent(in) :: index_bc !< The index of the appropriate boundary in the bc struct
+    class(field), intent(inout) :: phi           !< The field whose profile we are setting
+    type(bc_profile), intent(in) :: profile      !< BC profile
+    integer(ccs_int), intent(in) :: index_bc     !< The index of the appropriate boundary in the bc struct
 
     phi%bcs%profiles(index_bc) = profile
 
