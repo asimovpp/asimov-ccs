@@ -5,7 +5,7 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, bc_config, face_locator, cell_locator
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, bc_config, face_locator, cell_locator, bc_profile
   use constants, only: ndim
 
   implicit none
@@ -20,6 +20,7 @@ module fv
   public :: update_gradient
   public :: compute_boundary_values
   public :: compute_boundary_coeffs
+  public :: get_value_from_bc_profile
 
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
@@ -139,6 +140,14 @@ module fv
       real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
       real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
     end subroutine
+
+    !> Linear interpolate of BC profile 
+    module subroutine get_value_from_bc_profile(x, profile, bc_value)
+        real(ccs_real), dimension(:), intent(in) :: x !> Location of the interpolation
+        type(bc_profile), intent(in) :: profile       !> boundary condition profile
+        real(ccs_real), intent(out) :: bc_value       !> Interpolated value
+    end subroutine get_value_from_bc_profile
+
 
   end interface
 

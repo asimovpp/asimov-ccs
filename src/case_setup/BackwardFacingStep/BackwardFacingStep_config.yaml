@@ -2,11 +2,11 @@
 title: BackwardFacingStep
 
 #  number of timesteps
-steps: 50
+steps: 100
 #  number of iterations
 iterations: 5
 # time step size
-dt: 5.0e-1
+dt: 8.0e-1
 
 # Square/cubic mesh generation parameters
 # cells per side
@@ -99,7 +99,7 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_u:
-      type: dirichlet
+      type: profile
       value: 1
     variable_v:
       type: dirichlet
