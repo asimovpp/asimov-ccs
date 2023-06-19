@@ -130,8 +130,8 @@ module fv
     !> Adds a fixed source term to the righthand side of the equation
     module subroutine add_fixed_source(mesh, S, rhs)
       type(ccs_mesh), intent(in) :: mesh     !< The mesh
-      type(ccs_vector), intent(inout) :: S   !< The source field
-      type(ccs_vector), intent(inout) :: rhs !< The righthand side vector
+      class(ccs_vector), intent(inout) :: S   !< The source field
+      class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
     end subroutine add_fixed_source
     
   end interface

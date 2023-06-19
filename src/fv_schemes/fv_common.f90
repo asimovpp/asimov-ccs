@@ -673,8 +673,8 @@ contains
   module subroutine add_fixed_source(mesh, S, rhs)
 
     type(ccs_mesh), intent(in) :: mesh     !< The mesh
-    type(ccs_vector), intent(inout) :: S      !< The source field
-    type(ccs_vector), intent(inout) :: rhs !< The righthand side vector
+    class(ccs_vector), intent(inout) :: S      !< The source field
+    class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
 
     real(ccs_real), dimension(:), pointer :: S_data
     real(ccs_real), dimension(:), pointer :: rhs_data
