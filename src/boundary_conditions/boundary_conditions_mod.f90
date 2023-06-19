@@ -6,7 +6,7 @@ module boundary_conditions
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, debug_print, str
-  use types, only: bc_config, field
+  use types, only: bc_config, field, bc_profile
   use kinds, only: ccs_int, ccs_real
   use fortran_yaml_c_interface, only: parse
   use read_config, only: get_bc_field
@@ -21,6 +21,7 @@ module boundary_conditions
   public :: set_bc_real_value
   public :: set_bc_type
   public :: set_bc_id
+  public :: set_bc_profile
 
 contains
 
@@ -64,6 +65,8 @@ contains
       bcs%bc_types(boundary_index) = bc_type_extrapolate
     case ("wall")
       bcs%bc_types(boundary_index) = bc_type_wall
+    case ("profile")
+      bcs%bc_types(boundary_index) = bc_type_profile
     case default
       call error_abort("invalid string. received " // bc_type)
     end select
@@ -122,6 +125,9 @@ contains
     if (.not. allocated(bcs%values)) then
       allocate (bcs%values(n_boundaries))
     end if
+    if (.not. allocated(bcs%profiles)) then
+      allocate (bcs%profiles(n_boundaries))
+    end if
   end subroutine allocate_bc_arrays
 
   !> Gets the index of the given boundary condition within the bc struct arrays
@@ -139,4 +145,15 @@ contains
     end if
     index_bc = index_tmp(1)
   end subroutine get_bc_index
+
+  !> Set boundary condition profile to the index_bc boundary
+  subroutine set_bc_profile(phi, profile, index_bc)
+    class(field), intent(inout) :: phi           !< The field whose profile we are setting
+    type(bc_profile), intent(in) :: profile      !< BC profile
+    integer(ccs_int), intent(in) :: index_bc     !< The index of the appropriate boundary in the bc struct
+
+    phi%bcs%profiles(index_bc) = profile
+
+  end subroutine
+
 end module boundary_conditions

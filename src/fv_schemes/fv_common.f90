@@ -5,7 +5,7 @@
 submodule(fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode
-  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator
+  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
@@ -15,7 +15,7 @@ submodule(fv) fv_common
                      get_local_index, get_global_index, get_volume, get_distance, &
                      create_face_locator, get_face_area, get_face_normal, create_cell_locator, &
                      get_local_num_cells, get_face_interpolation, &
-                     get_max_faces
+                     get_max_faces, get_centre
   use boundary_conditions, only: get_bc_index
   use bc_constants
 
@@ -277,12 +277,14 @@ contains
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: i
     real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real), dimension(ndim) :: x
     real(ccs_real), dimension(ndim) :: parallel_component_map
     real(ccs_real), dimension(ndim) :: phi_face_parallel_component
     real(ccs_real) :: phi_face_parallel_component_norm
     real(ccs_real) :: phi_face_parallel_component_portion
     real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
+    real(ccs_real) :: bc_value
 
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
@@ -331,6 +333,16 @@ contains
 
       a = 1.0_ccs_real
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
+    case (bc_type_profile)
+      call get_centre(loc_f, x)
+      if (allocated(phi%bcs%profiles(index_bc)%centre)) then
+        call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
+      else
+        bc_value = 0.0_ccs_real
+      end if
+
+      a = -1.0_ccs_real
+      b = 2.0_ccs_real * bc_value
     case default
       ! Set coefficients to cause divergence
       ! Prevents "unused variable" compiler errors
@@ -339,6 +351,35 @@ contains
 
       call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
     end select
+
+  end subroutine
+
+  !> Linear interpolate of BC profile 
+  module subroutine get_value_from_bc_profile(x, profile, bc_value)
+    real(ccs_real), dimension(:), intent(in) :: x
+    type(bc_profile), intent(in) :: profile
+    real(ccs_real), intent(out) :: bc_value
+    integer(ccs_int) :: n, i
+    real(ccs_real) :: r
+    real(ccs_real) :: coeff
+
+    r = norm2(x(:) - profile%centre(:))
+
+    n = size(profile%coordinates)
+
+    bc_value = profile%values(n)
+    if (r .le. profile%coordinates(1)) then
+      bc_value = profile%values(1)
+      return
+    end if
+
+    do i=1, n-1
+      if (r .lt. profile%coordinates(i+1)) then
+        coeff = (r - profile%coordinates(i)) / (profile%coordinates(i+1) - profile%coordinates(i))
+        bc_value = (1-coeff) * profile%values(i) + coeff * profile%values(i+1)
+        return
+      end if
+    end do
 
   end subroutine
 
