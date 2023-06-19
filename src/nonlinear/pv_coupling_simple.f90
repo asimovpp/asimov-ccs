@@ -495,6 +495,8 @@ contains
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
 
+    integer(ccs_int) :: global_num_cells
+
     ! First zero matrix
     call zero(M)
 
@@ -601,7 +603,8 @@ contains
       !      Row is the global index - should be unique
       !      Locate approximate centre of mesh (assuming a square)
       if (.not. any(p_prime%bcs%bc_types(:) == bc_type_dirichlet)) then
-        cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
+        call get_global_num_cells(mesh, global_num_cells)
+        cps = int(sqrt(real(global_num_cells)), ccs_int)
         rcrit = (cps / 2) * (1 + cps)
         if (row == rcrit) then
           coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).

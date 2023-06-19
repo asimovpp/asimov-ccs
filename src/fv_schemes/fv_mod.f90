@@ -143,9 +143,9 @@ module fv
 
     !> Linear interpolate of BC profile 
     module subroutine get_value_from_bc_profile(x, profile, bc_value)
-        real(ccs_real), dimension(:), intent(in) :: x !> Location of the interpolation
-        type(bc_profile), intent(in) :: profile       !> boundary condition profile
-        real(ccs_real), intent(out) :: bc_value       !> Interpolated value
+        real(ccs_real), dimension(:), intent(in) :: x !< Location of the interpolation
+        type(bc_profile), intent(in) :: profile       !< boundary condition profile
+        real(ccs_real), intent(out) :: bc_value       !< Interpolated value
     end subroutine get_value_from_bc_profile
 
 
