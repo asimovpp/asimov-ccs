@@ -29,6 +29,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_global_num_cells, &
                      get_max_faces
   use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
+  use bc_constants, only: bc_type_dirichlet
 
   implicit none
 
@@ -478,8 +479,8 @@ contains
 
     integer(ccs_int) :: index_nb
 
-    !integer(ccs_int) :: cps   ! Cells per side
-    !integer(ccs_int) :: rcrit ! Global index of approximate central cell
+    integer(ccs_int) :: cps   ! Cells per side
+    integer(ccs_int) :: rcrit ! Global index of approximate central cell
 
     ! Specify block size (how many elements to set at once?)
     integer(ccs_int) :: block_nrows
@@ -596,15 +597,17 @@ contains
 
       end do
 
-      !!! ! XXX: Need to fix pressure somewhere
-      !!! !      Row is the global index - should be unique
-      !!! !      Locate approximate centre of mesh (assuming a square)
-      !!! cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
-      !!! rcrit = (cps / 2) * (1 + cps)
-      !!! if (row == rcrit) then
-      !!!   coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-      !!!   call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
-      !!! end if
+      ! XXX: Need to fix pressure somewhere
+      !      Row is the global index - should be unique
+      !      Locate approximate centre of mesh (assuming a square)
+      if (.not. any(p_prime%bcs%bc_types(:) == bc_type_dirichlet)) then
+        cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
+        rcrit = (cps / 2) * (1 + cps)
+        if (row == rcrit) then
+          coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
+          call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
+        end if
+      end if
 
       ! Add the diagonal entry
       col = row
