@@ -32,7 +32,7 @@ program poisseuille
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_bc_variables, get_boundary_count, get_case_name
+  use read_config, only: get_variables, get_boundary_count, get_case_name
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, build_square_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
@@ -130,7 +130,6 @@ program poisseuille
   ! Read boundary conditions
   if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
-  call get_bc_variables(ccs_config_file, variable_names)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -257,6 +256,8 @@ contains
     if (allocated(error)) then
       call error_abort(trim(error))
     end if
+
+    call get_variables(config_file, variable_names)
 
     call get_value(config_file, 'steps', num_steps)
     if (num_steps == huge(0)) then
