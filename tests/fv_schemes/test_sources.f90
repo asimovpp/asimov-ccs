@@ -75,9 +75,10 @@ contains
   !v Creates the system matrix and vectors, setting them to some initial values.
   subroutine init_case()
 
+    use constants, only: cell
     use types, only: matrix_spec, vector_spec
 
-    use vec, only: create_vector
+    use vec, only: create_vector, set_vector_location
     use mat, only: create_matrix
     
     use utils, only: set_size, initialise, update
@@ -99,6 +100,7 @@ contains
 
     ! Initialise vectors
     call initialise(vec_sizes)
+    call set_vector_location(cell, vec_sizes)
     call set_size(par_env, mesh, vec_sizes)
 
     call create_vector(vec_sizes, rhs)
@@ -109,6 +111,10 @@ contains
     call zero(x)
     call zero(S)
 
+    call update(rhs)
+    call update(x)
+    call update(S)
+    
     call get_vector_data(x, x_data)
     call get_vector_data(S, S_data)
     call get_local_num_cells(mesh, local_num_cells)
