@@ -20,6 +20,7 @@ module fv
   public :: update_gradient
   public :: compute_boundary_values
   public :: add_fixed_source
+  public :: add_linear_source
   
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
@@ -133,6 +134,13 @@ module fv
       class(ccs_vector), intent(inout) :: S   !< The source field
       class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
     end subroutine add_fixed_source
+
+    !> Adds a linear source term to the system matrix
+    module subroutine add_linear_source(mesh, S, M)
+      type(ccs_mesh), intent(in) :: mesh    !< The mesh
+      class(ccs_vector), intent(inout) :: S !< The source field
+      class(ccs_matrix), intent(inout) :: M !< The system
+    end subroutine add_linear_source
     
   end interface
 
