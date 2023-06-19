@@ -62,7 +62,7 @@ program test_compute_fluxes
 
   do i = 1, size(mf_values)
     call set_mass_flux(mf, mf_values(i))
-    call run_compute_fluxes_test(scalar, mf, mf_values(i), mesh, cps)
+    call run_compute_fluxes_test(scalar, mf, mesh)
   end do
 
   deallocate (scalar)
@@ -85,12 +85,10 @@ contains
   end subroutine set_mass_flux
 
   !> Tests that the flux coefficients are in a sensible range
-  subroutine run_compute_fluxes_test(scalar, mf, mf_value, mesh, cps)
+  subroutine run_compute_fluxes_test(scalar, mf, mesh)
     class(field), intent(inout) :: scalar   !< The scalar field structure
     class(field), intent(inout) :: mf       !< The mass flux field
-    real(ccs_real), intent(in) :: mf_value  !< The constant value of the mass flux
     type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
-    integer(ccs_int), intent(in) :: cps     !< The number of cells per side in the (square) mesh
 
     real(ccs_real), dimension(:), pointer :: mf_data
     

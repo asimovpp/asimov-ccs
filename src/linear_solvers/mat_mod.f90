@@ -34,6 +34,7 @@ module mat
   public :: mat_vec_product
   public :: get_matrix_diagonal
   public :: set_matrix_diagonal
+  public :: add_matrix_diagonal
   public :: zero_matrix
 
   interface
@@ -207,6 +208,12 @@ module mat
       class(ccs_matrix), intent(inout) :: M
     end subroutine set_matrix_diagonal
 
+    !> Add a vector to the matrix diagonal
+    module subroutine add_matrix_diagonal(D, M)
+      class(ccs_vector), intent(in) :: D      !< the vector containing matrix diagonal elements
+      class(ccs_matrix), intent(inout) :: M   !< the matrix
+    end subroutine add_matrix_diagonal
+    
     module subroutine zero_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix
