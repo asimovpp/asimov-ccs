@@ -3,6 +3,7 @@ CFLAGS = -O3
 
 FC = ftn
 FFLAGS = -ef -eF -M969
+FFLAGS +=  -hipa0
 ifeq ($(VERBOSE),yes)
   FFLAGS += -DVERBOSE
 endif

@@ -57,13 +57,14 @@ contains
   end subroutine calc_advection_coeff_uds
 
   !> Calculates advection coefficient for neighbouring cell using gamma discretisation
-  module subroutine calc_advection_coeff_gamma(phi, mf, bc, loc_p, loc_nb, coeff)
+  module subroutine calc_advection_coeff_gamma(phi, mf, bc, loc_p, loc_nb, face_area, coeff)
     type(gamma_field), intent(inout) :: phi       !< scalar field
     real(ccs_real), intent(in) :: mf              !< mass flux at the face
     integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
     type(cell_locator), intent(in) :: loc_p       !< current cell locator
     type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
     real(ccs_real), intent(out) :: coeff          !< advection coefficient to be calculated
+    real(ccs_real) :: face_area                   !< area of the face
 
     real(ccs_real),dimension(:),pointer:: phi_data 
     real(ccs_real),dimension(:),pointer:: dphidx,dphidy,dphidz
@@ -92,7 +93,7 @@ contains
     associate (scalar => phi, foo => bc)
     end associate
 
-    beta_m=0.1 !value can be varied between 0.1 and 0.5
+    beta_m=0.5 !value can be varied between 0.1 and 0.5
 
     if (mf < 0.0) then
       !print*,"gamma mf<0"
@@ -126,7 +127,8 @@ contains
       else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
         gamma_m=phiPt/beta_m
         phiCDS=0.5*(phiP+phiF)
-        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/mf
+        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
+        print*,"gamma <0, coeff=",coeff
       end if 
 
     else
@@ -155,15 +157,15 @@ contains
       phiPt=1.0-(dphi/ddphi)
 
       if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
-        coeff=1.0_ccs_real
+        coeff=0.0_ccs_real
       else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
         coeff=0.5_ccs_real 
       else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
         gamma_m=phiPt/beta_m
         phiCDS=0.5*(phiP+phiF)
-        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/mf
+        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
+        print*,"gamma>=0, coeff=",coeff
       end if 
-
     end if
 
     ! Restore vectors
