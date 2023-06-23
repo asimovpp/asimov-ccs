@@ -93,7 +93,7 @@ contains
     associate (scalar => phi, foo => bc)
     end associate
 
-    beta_m=0.5 !value can be varied between 0.1 and 0.5
+    beta_m=0.35_ccs_real !value can be varied between 0.1 and 0.5
 
     if (mf < 0.0) then
       !print*,"gamma mf<0"
@@ -108,29 +108,31 @@ contains
       !Gradient of phi at cell center (neighbouring cell)
       dphiF(1)=dphidx(index_p)
       dphiF(2)=dphidy(index_p)
-      dphiF(3)=dphidy(index_p)
+      dphiF(3)=dphidz(index_p)
 
       !Gradient phi at cell face
       dphi=phiF-phiP
 
       !Get the distance between present and neighbouring cell centers and store it in d
       call get_distance(loc_p, loc_nb, d)
+      d = -1.0_ccs_real * d
       
       !calculate the normalized phi
-      ddphi=2.0*dot_product(dphiP,d) 
-      phiPt=1.0-(dphi/ddphi)
+      ddphi=2.0_ccs_real * dot_product(dphiP,d) 
+      phiPt=1.0_ccs_real - (dphi/ddphi)
 
-      if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
-        print*,"gamma<0:UD"
+      if (phiPt<=0.0_ccs_real .or. phiPt>=1.0_ccs_real) then !UD
+        !print*,"gamma<0:UD"
         coeff=1.0_ccs_real
-      else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
-        print*,"gamma<0:CDS"
+      else if (phiPt>beta_m.and.phiPt<1.0_ccs_real) then !CDS
+        !print*,"gamma<0:CDS"
         coeff=0.5_ccs_real 
-      else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
-        print*,"gamma<0:CDS+UD"
+      else if (phiPt>0.0_ccs_real.and.phiPt<=beta_m) then !Gamma
+        !print*,"gamma<0:CDS+UD"
         gamma_m=phiPt/beta_m
-        phiCDS=0.5*(phiP+phiF)
-        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
+        !phiCDS=0.5*(phiP+phiF)
+        !coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
+        coeff = 1.0_ccs_real - 0.5_ccs_real*gamma_m
         !print*,"gamma <0, coeff=",coeff
       end if 
 
@@ -147,7 +149,7 @@ contains
       !Gradient of phi at cell center (neighbouring cell)
       dphiF(1)=dphidx(index_nb)
       dphiF(2)=dphidy(index_nb)
-      dphiF(3)=dphidy(index_nb)
+      dphiF(3)=dphidz(index_nb)
 
       !Gradient phi at cell face
       dphi=phiF-phiP
@@ -156,20 +158,21 @@ contains
       call get_distance(loc_p, loc_nb, d)
 
       !calculate the normalized phi
-      ddphi=2.0*dot_product(dphiP,d)
-      phiPt=1.0-(dphi/ddphi)
+      ddphi=2.0_ccs_real * dot_product(dphiP,d)
+      phiPt=1.0_ccs_real - (dphi/ddphi)
 
-      if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
-        print*,"gamma>=0:UD"
+      if (phiPt<=0.0_ccs_real .or. phiPt>=1.0_ccs_real) then !UD
+        !print*,"gamma>=0:UD"
         coeff=0.0_ccs_real
-      else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
-        print*,"gamma>=0:CDS"
+      else if (phiPt>beta_m.and.phiPt<1.0_ccs_real) then !CDS
+        !print*,"gamma>=0:CDS"
         coeff=0.5_ccs_real 
-      else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
-        print*,"gamma>=0:CDS+UD"
+      else if (phiPt>0.0_ccs_real.and.phiPt<=beta_m) then !Gamma
+        !print*,"gamma>=0:CDS+UD"
         gamma_m=phiPt/beta_m
-        phiCDS=0.5*(phiP+phiF)
-        coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
+        !phiCDS=0.5*(phiP+phiF)
+        !coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
+        coeff = 0.5_ccs_real*gamma_m
         !print*,"gamma>=0, coeff=",coeff
       end if 
     end if
