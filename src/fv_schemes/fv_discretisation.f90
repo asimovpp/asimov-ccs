@@ -121,14 +121,17 @@ contains
       phiPt=1.0-(dphi/ddphi)
 
       if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
+        print*,"gamma<0:UD"
         coeff=1.0_ccs_real
       else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
+        print*,"gamma<0:CDS"
         coeff=0.5_ccs_real 
       else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
+        print*,"gamma<0:CDS+UD"
         gamma_m=phiPt/beta_m
         phiCDS=0.5*(phiP+phiF)
         coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
-        print*,"gamma <0, coeff=",coeff
+        !print*,"gamma <0, coeff=",coeff
       end if 
 
     else
@@ -157,14 +160,17 @@ contains
       phiPt=1.0-(dphi/ddphi)
 
       if (phiPt<=0.0 .or. phiPt>=1.0) then !UD
+        print*,"gamma>=0:UD"
         coeff=0.0_ccs_real
       else if (phiPt>=beta_m.and.phiPt<1.0) then !CDS
+        print*,"gamma>=0:CDS"
         coeff=0.5_ccs_real 
       else if (phiPt>0.0.and.phiPt<beta_m) then !Gamma
+        print*,"gamma>=0:CDS+UD"
         gamma_m=phiPt/beta_m
         phiCDS=0.5*(phiP+phiF)
         coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
-        print*,"gamma>=0, coeff=",coeff
+        !print*,"gamma>=0, coeff=",coeff
       end if 
     end if
 
