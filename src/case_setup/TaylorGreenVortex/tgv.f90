@@ -21,7 +21,7 @@ program tgv
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync
+                      read_command_line_arguments, sync, query_stop_run
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
@@ -39,7 +39,7 @@ program tgv
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
-  use utils, only: str
+  use utils, only: str, debug_print
 
   implicit none
 
@@ -227,9 +227,18 @@ program tgv
       print *, "TIME = ", t
     end if
 
+    ! If a STOP file exist, write solution and exit the main simulation loop
+    if (query_stop_run(par_env) .eqv. .true.) then
+      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call dprint("STOP file found. Writing output and ending simulation.")
+      exit
+    end if
+
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
       call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
     end if
+
+
   end do
 
   ! Clean-up
