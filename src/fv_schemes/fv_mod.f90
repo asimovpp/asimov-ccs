@@ -51,7 +51,7 @@ module fv
     end subroutine calc_advection_coeff_uds
 
     !> Calculates advection coefficient for neighbouring cell using gamma discretisation
-    module subroutine calc_advection_coeff_gamma(phi, mf, bc, loc_p, loc_nb, face_area, coeff)
+    module subroutine calc_advection_coeff_gamma(phi, mf, bc, loc_p, loc_nb, coeff)
       type(gamma_field), intent(inout) :: phi  !< scalar (gamma) field
       real(ccs_real), intent(in) :: mf      !< mass flux at the face
       integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
