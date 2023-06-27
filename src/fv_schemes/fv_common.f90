@@ -93,8 +93,11 @@ contains
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    ! Update gradients
-    call update_gradient(mesh, phi)
+    ! Update gradients, if gamma field
+    select type (phi)
+    type is (gamma_field)
+      call update_gradient(mesh, phi)
+    end select
     
     call get_local_num_cells(mesh, local_num_cells) 
     do index_p = 1, local_num_cells
