@@ -64,7 +64,6 @@ contains
     type(cell_locator), intent(in) :: loc_p       !< current cell locator
     type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
     real(ccs_real), intent(out) :: coeff          !< advection coefficient to be calculated
-    real(ccs_real) :: face_area                   !< area of the face
 
     real(ccs_real),dimension(:),pointer:: phi_data 
     real(ccs_real),dimension(:),pointer:: dphidx,dphidy,dphidz
