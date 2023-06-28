@@ -275,14 +275,14 @@ program tgv
   call timer(end_time)
 
   if (irank == par_env%root) then
-    write(*,'(A25, F10.4, A)') "Init time: ", init_time - start_time, " s"
-    write(*,'(A25, F10.4, A)') "Solver time inc I/O: ", solver_time - init_time, " s"
-    write(*,'(A25, F10.4, A)') "Solver time no I/O: ", solver_time - init_time - io_sol_total, " s"
-    write(*,'(A25, F10.4, A)') "Average time/step (no I/O): ", (solver_time - init_time - io_sol_total) / num_steps, " s"
-    write(*,'(A25, F10.4, A)') "Mesh build/read time: ", mesh_init_total, " s"
-    write(*,'(A25, F10.4, A)') "I/O time for mesh: ", io_init_total, " s"
-    write(*,'(A25, F10.4, A)') "I/O time for solution: ", io_sol_total, " s"
-    write(*,'(A25, F10.4, A)') "Elapsed time: ", end_time - start_time, " s"
+    write(*,'(A30, F10.4, A)') "Elapsed time: ", end_time - start_time, " s"
+    write(*,'(A30, F10.4, A)') "Init time: ", init_time - start_time, " s"
+    write(*,'(A30, F10.4, A)') "Mesh build/read time: ", mesh_init_total, " s"
+    write(*,'(A30, F10.4, A)') "I/O time for mesh: ", io_init_total, " s"
+    write(*,'(A30, F10.4, A)') "Solver time inc I/O: ", solver_time - init_time, " s"
+    write(*,'(A30, F10.4, A)') "Solver time no I/O: ", solver_time - init_time - io_sol_total, " s"
+    write(*,'(A30, F10.4, A)') "Average time/step (no I/O): ", (solver_time - init_time - io_sol_total) / num_steps, " s"
+    write(*,'(A30, F10.4, A)') "I/O time for solution: ", io_sol_total, " s"
   end if
 
   ! Finalise MPI

@@ -199,8 +199,8 @@ contains
 
     if(step == maxstep) then
       if (par_env%proc_id == par_env%root) then
-        write(*,'(A25, F10.4, A)') "Get natural data time: ", nat_data_total, " s"
-        write(*,'(A25, F10.4, A)') "Write gradients time: ", grad_total, " s"
+        write(*,'(A30, F10.4, A)') "Get natural data time: ", nat_data_total, " s"
+        write(*,'(A30, F10.4, A)') "Write gradients time: ", grad_total, " s"
       end if
     end if
 

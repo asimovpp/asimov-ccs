@@ -84,8 +84,8 @@ contains
 
     if(step == maxstep) then
       if (par_env%proc_id == par_env%root) then
-        write(*,'(A25, F10.4, A)') "Write fields time: ", write_fields_total, " s"
-        write(*,'(A25, F10.4, A)') "Write xdmf time: ", write_xdmf_total, " s"
+        write(*,'(A30, F10.4, A)') "Write fields time: ", write_fields_total, " s"
+        write(*,'(A30, F10.4, A)') "Write xdmf time: ", write_xdmf_total, " s"
       end if
     end if
 
