@@ -34,6 +34,7 @@ contains
                        create_cell_locator, &
                        get_global_index
     use utils, only: get_natural_data
+    use parallel, only: timer
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
@@ -60,6 +61,13 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     real(ccs_real), dimension(:), allocatable :: data
+
+    double precision :: nat_data_start
+    double precision :: nat_data_end
+    double precision, save :: nat_data_total
+    double precision :: grad_start
+    double precision :: grad_end
+    double precision, save :: grad_total
 
     integer(ccs_int) :: i
 
@@ -115,13 +123,19 @@ contains
       ! Check whether pointer is associated with a field
       if (.not. associated(output_list(i)%ptr)) exit
 
+      call timer(nat_data_start)
       call get_natural_data(par_env, mesh, output_list(i)%ptr%values, data)
+      call timer(nat_data_end)
+      nat_data_total = nat_data_total + nat_data_end - nat_data_start
       data_name = "/" // trim(output_list(i)%name)
       call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
       ! Store residuals if available
       if (allocated(output_list(i)%ptr%residuals)) then
+        call timer(nat_data_start)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%residuals, data)
+        call timer(nat_data_end)
+        nat_data_total = nat_data_total + nat_data_end - nat_data_start
         data_name = "/" // trim(output_list(i)%name // "_res")
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
       end if
@@ -130,25 +144,37 @@ contains
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
     if (write_gradients) then
+      call timer(grad_start)
       do i = 1, size(output_list)
         ! Check whether pointer is associated with a field
         if (.not. associated(output_list(i)%ptr)) exit
 
         ! x-gradient
+        call timer(nat_data_start)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
+        call timer(nat_data_end)
+        nat_data_total = nat_data_total + nat_data_end - nat_data_start
         data_name = "/d" // trim(output_list(i)%name) // "dx"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
         ! y-gradient
+        call timer(nat_data_start)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
+        call timer(nat_data_end)
+        nat_data_total = nat_data_total + nat_data_end - nat_data_start
         data_name = "/d" // trim(output_list(i)%name) // "dy"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
         ! z-gradient
+        call timer(nat_data_start)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
+        call timer(nat_data_end)
+        nat_data_total = nat_data_total + nat_data_end - nat_data_start
         data_name = "/d" // trim(output_list(i)%name) // "dz"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
       end do
+      call timer(grad_end)
+      grad_total = grad_total + grad_end - grad_start
     end if
 
     if (allocated(data)) then
@@ -169,6 +195,13 @@ contains
       ! Steady case
       call close_file(sol_writer)
       call cleanup_io(io_env)
+    end if
+
+    if(step == maxstep) then
+      if (par_env%proc_id == par_env%root) then
+        write(*,'(A25, F10.4, A)') "Get natural data time: ", nat_data_total, " s"
+        write(*,'(A25, F10.4, A)') "Write gradients time: ", grad_total, " s"
+      end if
     end if
 
   end subroutine write_fields

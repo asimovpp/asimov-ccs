@@ -33,6 +33,8 @@ contains
   !> Write the flow solution for the current time-step to file
   module subroutine write_solution(par_env, case_name, mesh, output_list, step, maxstep, dt)
 
+    use parallel, only: timer
+
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
@@ -42,22 +44,49 @@ contains
     integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
     real(ccs_real), optional, intent(in) :: dt                               !< The time-step size
 
+    double precision :: write_fields_start
+    double precision :: write_fields_end
+    double precision, save :: write_fields_total
+
+    double precision :: write_xdmf_start
+    double precision :: write_xdmf_end
+    double precision, save :: write_xdmf_total
+
     ! Write the required fields ('heavy' data)
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
+      call timer(write_fields_start)
       call write_fields(par_env, case_name, mesh, output_list, step, maxstep)
+      call timer(write_fields_end)
+      write_fields_total = write_fields_total + write_fields_end - write_fields_start
     else
       ! Steady case
+      call timer(write_fields_start)
       call write_fields(par_env, case_name, mesh, output_list)
+      call timer(write_fields_end)
+      write_fields_total = write_fields_total + write_fields_end - write_fields_start
     end if
 
     ! Write the XML descriptor ('light' data)
     if (present(step) .and. present(maxstep) .and. present(dt)) then
       ! Unsteady case
+      call timer(write_xdmf_start)
       call write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
+      call timer(write_xdmf_end)
+      write_xdmf_total = write_xdmf_total + write_xdmf_end - write_xdmf_start
     else
       ! Steady case
+      call timer(write_xdmf_start)
       call write_xdmf(par_env, case_name, mesh, output_list)
+      call timer(write_xdmf_end)
+      write_xdmf_total = write_xdmf_total + write_xdmf_end - write_xdmf_start
+    end if
+
+    if(step == maxstep) then
+      if (par_env%proc_id == par_env%root) then
+        write(*,'(A25, F10.4, A)') "Write fields time: ", write_fields_total, " s"
+        write(*,'(A25, F10.4, A)') "Write xdmf time: ", write_xdmf_total, " s"
+      end if
     end if
 
   end subroutine
