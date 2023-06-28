@@ -2,9 +2,10 @@
 program tgv
 #include "ccs_macros.inc"
 
-  use petscvec
   use petscsys
+  use petscvec
 
+  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
@@ -12,34 +13,32 @@ program tgv
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
-  use kinds, only: ccs_real, ccs_int, ccs_long
-  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
+  use fv, only: update_gradient
+  use io_visualisation, only: write_solution
+  use kinds, only: ccs_real, ccs_int, ccs_long
+  use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, query_stop_run
   use parallel_types, only: parallel_environment
-  use vec, only: create_vector, set_vector_location
+  use partitioning, only: compute_partitioner_input, &
+                          partition_kway, compute_connectivity
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals
+  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
+  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
+                   vector_spec, ccs_vector, io_environment, io_process, &
+                   field_ptr, fluid, fluid_solver_selector
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, set_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
-                   allocate_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh, build_mesh, write_mesh
-  use partitioning, only: compute_partitioner_input, &
-                          partition_kway, compute_connectivity
-  use io_visualisation, only: write_solution
-  use fv, only: update_gradient
-  use utils, only: str, debug_print
+                   allocate_fluid_fields, str, debug_print
+  use vec, only: create_vector, set_vector_location
 
   implicit none
 
@@ -66,7 +65,18 @@ program tgv
 
   double precision :: start_time
   double precision :: init_time
+  double precision :: solver_time
   double precision :: end_time
+  double precision :: mesh_init_start
+  double precision :: mesh_init_end
+  double precision :: mesh_init_total
+  double precision :: io_init_start
+  double precision :: io_init_end
+  double precision :: io_init_total
+  double precision :: io_sol_start
+  double precision :: io_sol_end
+  double precision :: io_sol_total
+  double precision :: io_total
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
@@ -118,6 +128,7 @@ program tgv
 
   ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...
+  call timer(mesh_init_start)
   if (cps /= huge(0)) then
     ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
@@ -126,6 +137,8 @@ program tgv
     if (irank == par_env%root) print *, "Reading mesh file"
     call read_mesh(par_env, case_name, mesh)
   end if
+  call timer(mesh_init_end)
+  mesh_init_total = mesh_init_end - mesh_init_start
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -193,7 +206,10 @@ program tgv
   call calc_enstrophy(par_env, mesh, u, v, w)
 
   ! Write out mesh to file
+  call timer(io_init_start)
   call write_mesh(par_env, case_path, mesh)
+  call timer(io_init_end)
+  io_init_total = io_init_end - io_init_start
 
   ! Print the run configuration
   if (irank == par_env%root) then
@@ -229,17 +245,24 @@ program tgv
 
     ! If a STOP file exist, write solution and exit the main simulation loop
     if (query_stop_run(par_env) .eqv. .true.) then
+      call timer(io_sol_start)
       call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call timer(io_sol_end)
+      io_sol_total = io_sol_total + io_sol_end - io_sol_start
       call dprint("STOP file found. Writing output and ending simulation.")
       exit
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
+      call timer(io_sol_start)
       call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call timer(io_sol_end)
+      io_sol_total = io_sol_total + io_sol_end - io_sol_start
     end if
 
-
   end do
+
+  call timer(solver_time)
 
   ! Clean-up
   deallocate (u)
@@ -252,8 +275,13 @@ program tgv
   call timer(end_time)
 
   if (irank == par_env%root) then
-    print *, "Init time: ", init_time - start_time
-    print *, "Elapsed time: ", end_time - start_time
+    write(*,'(A25, F10.4, A)') "Init time: ", init_time - start_time, "s"
+    write(*,'(A25, F10.4, A)') "Solver time: ", solver_time - init_time, " s"
+    write(*,'(A25, F10.4, A)') "Average time/step: ", (solver_time - init_time) / num_steps, " s"
+    write(*,'(A25, F10.4, A)') "Mesh build/read time: ", mesh_init_total, " s"
+    write(*,'(A25, F10.4, A)') "I/O time for mesh: ", io_init_total, " s"
+    write(*,'(A25, F10.4, A)') "I/O time for solution: ", io_sol_total, " s"
+    write(*,'(A25, F10.4, A)') "Elapsed time: ", end_time - start_time, " s"
   end if
 
   ! Finalise MPI
