@@ -82,10 +82,12 @@ contains
       write_xdmf_total = write_xdmf_total + write_xdmf_end - write_xdmf_start
     end if
 
-    if(step == maxstep) then
-      if (par_env%proc_id == par_env%root) then
-        write(*,'(A30, F10.4, A)') "Write fields time: ", write_fields_total, " s"
-        write(*,'(A30, F10.4, A)') "Write xdmf time: ", write_xdmf_total, " s"
+    if (present(step)) then
+      if(step == maxstep) then
+        if (par_env%proc_id == par_env%root) then
+          write(*,'(A30, F10.4, A)') "Write fields time: ", write_fields_total, " s"
+          write(*,'(A30, F10.4, A)') "Write xdmf time: ", write_xdmf_total, " s"
+        end if
       end if
     end if
 

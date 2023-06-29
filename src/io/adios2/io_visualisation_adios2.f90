@@ -207,12 +207,14 @@ contains
       call cleanup_io(io_env)
     end if
 
-    if(step == maxstep) then
-      if (par_env%proc_id == par_env%root) then
-        write(*,'(A30, F10.4, A)') "Get natural data (output): ", nat_data_output_total, " s"
-        write(*,'(A30, F10.4, A)') "Get natural data (grads): ", nat_data_total, " s"
-        write(*,'(A30, F10.4, A)') "Write output time: ", output_total, " s"
-        write(*,'(A30, F10.4, A)') "Write gradients time: ", grad_total, " s"
+    if (present(step)) then
+      if(step == maxstep) then
+        if (par_env%proc_id == par_env%root) then
+          write(*,'(A30, F10.4, A)') "Get natural data (output): ", nat_data_output_total, " s"
+          write(*,'(A30, F10.4, A)') "Get natural data (grads): ", nat_data_total, " s"
+          write(*,'(A30, F10.4, A)') "Write output time: ", output_total, " s"
+          write(*,'(A30, F10.4, A)') "Write gradients time: ", grad_total, " s"
+        end if
       end if
     end if
 
