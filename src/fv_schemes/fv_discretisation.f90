@@ -95,7 +95,6 @@ contains
     beta_m=0.35_ccs_real !value can be varied between 0.1 and 0.5
 
     if (mf < 0.0) then
-      !print*,"gamma mf<0"
       phiP=phi_data(index_nb)
       phiF=phi_data(index_p)
 
@@ -121,22 +120,14 @@ contains
       phiPt=1.0_ccs_real - (dphi/ddphi)
 
       if (phiPt<=0.0_ccs_real .or. phiPt>=1.0_ccs_real) then !UD
-        !print*,"gamma<0:UD"
         coeff=1.0_ccs_real
       else if (phiPt>beta_m.and.phiPt<1.0_ccs_real) then !CDS
-        !print*,"gamma<0:CDS"
         coeff=0.5_ccs_real 
       else if (phiPt>0.0_ccs_real.and.phiPt<=beta_m) then !Gamma
-        !print*,"gamma<0:CDS+UD"
         gamma_m=phiPt/beta_m
-        !phiCDS=0.5*(phiP+phiF)
-        !coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
         coeff = 1.0_ccs_real - 0.5_ccs_real*gamma_m
-        !print*,"gamma <0, coeff=",coeff
       end if 
-
     else
-      !print*,"gamma mf>=0"
       phiP=phi_data(index_p)
       phiF=phi_data(index_nb)
 
@@ -161,32 +152,20 @@ contains
       phiPt=1.0_ccs_real - (dphi/ddphi)
 
       if (phiPt<=0.0_ccs_real .or. phiPt>=1.0_ccs_real) then !UD
-        !print*,"gamma>=0:UD"
         coeff=0.0_ccs_real
       else if (phiPt>beta_m.and.phiPt<1.0_ccs_real) then !CDS
-        !print*,"gamma>=0:CDS"
         coeff=0.5_ccs_real 
       else if (phiPt>0.0_ccs_real.and.phiPt<=beta_m) then !Gamma
-        !print*,"gamma>=0:CDS+UD"
         gamma_m=phiPt/beta_m
-        !phiCDS=0.5*(phiP+phiF)
-        !coeff=((gamma_m*phiCDS)+((1-gamma_m)*phiP))/(mf*face_area)
         coeff = 0.5_ccs_real*gamma_m
-        !print*,"gamma>=0, coeff=",coeff
       end if 
     end if
 
     ! Restore vectors
-    !print*,"Restoring vector data"
     call restore_vector_data(phi%values,phi_data)
     call restore_vector_data(phi%x_gradients,dphidx)
     call restore_vector_data(phi%y_gradients,dphidy)
     call restore_vector_data(phi%z_gradients,dphidz)
 
-    !print*,"stopping code1"
-    !stop
-    !print*,"stopping code2"
-
   end subroutine calc_advection_coeff_gamma
-
 end submodule fv_discretisation

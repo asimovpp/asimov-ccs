@@ -80,7 +80,6 @@ program ldc
   end if
 
   ccs_config_file = case_path // ccsconfig
-  !print*,ccs_config_file
  
   call timer(start_time)
 
@@ -220,10 +219,10 @@ program ldc
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                        fluid_sol, flow_fields)
-  !print*,"writing mesh"
+  
   ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
-  !print*,"writing solution"
+  
   call write_solution(par_env, case_path, mesh, output_list)
 
   ! Clean-up
