@@ -12,4 +12,12 @@
     </engine>
 
   </io>
+
+  <io name="sol_writer">
+
+    <engine type="BP5">
+    </engine>
+
+  </io>
+
 </adios-config>
