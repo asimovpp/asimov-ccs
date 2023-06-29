@@ -76,7 +76,6 @@ program tgv
   double precision :: io_sol_start
   double precision :: io_sol_end
   double precision :: io_sol_total
-  double precision :: io_total
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
