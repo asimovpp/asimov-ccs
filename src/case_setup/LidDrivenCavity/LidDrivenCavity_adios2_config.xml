@@ -2,7 +2,7 @@
 <adios-config>
   <io name="sol_writer">
 
-    <engine type="HDF5">
+    <engine type="BP5">
     </engine>
 
   </io>
