@@ -93,7 +93,7 @@ contains
     call get_local_index(loc_nb, index_nb)
 
     !Dummy usage to prevent unused argument.
-    associate (scalar => phi, foo => bc)
+    associate (scalar => phi, foo => bc, bar => loc_f)
     end associate
 
     beta_m = 0.35_ccs_real !value can be varied between 0.1 and 0.5
