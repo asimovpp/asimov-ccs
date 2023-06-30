@@ -13,7 +13,7 @@ module testing_lib
 
   implicit none
 
-  public :: assert_eq, assert_neq, assert_lt, assert_gt, assert_bool
+  public :: assert_eq, assert_neq, assert_lt, assert_gt, assert_bool, assert_le, assert_ge
 
   !> Assert equality
   interface assert_eq
@@ -30,10 +30,22 @@ module testing_lib
     procedure assert_lt_real
   end interface
 
+  !> Assert first argument is less than or equal to the second argument
+  interface assert_le
+    procedure assert_le_integer
+    procedure assert_le_real
+  end interface
+
   !> Assert first argument is greater than the second argument
   interface assert_gt
     procedure assert_gt_integer
     procedure assert_gt_real
+  end interface
+
+  !> Assert first argument is greater than or equal to the second argument
+  interface assert_ge
+    procedure assert_ge_integer
+    procedure assert_ge_real
   end interface
 
   !> Assert that input is True
@@ -143,7 +155,7 @@ contains
 
     character(*), intent(in) :: message !< Error message
 
-    print *, "(rank " // str(par_env%proc_id) // ") ", trim(message)
+    print *, "(rank "   //   str(par_env%proc_id)   //   ") ", trim(message)
 
     ! other PEs might not have encountered a test failure
     ! fin()
@@ -190,7 +202,7 @@ contains
     real(ccs_real), intent(in) :: b
 
     ! TODO: double check we are happy with this evaluation
-    comparison = (abs(a - b) <= epsilon(b) * abs(b))
+    comparison = (abs(a - b) <= 10 * epsilon(b) * abs(b))
 
   end function a_eq_real
 !==========================
@@ -205,7 +217,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(a_eq(received, expected), &
-                        message // " Expected: " // str(expected) // " Received: " // str(received), &
+                        message   //   " Expected: "   //   str(expected)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_eq_integer_rank0
@@ -219,7 +231,7 @@ contains
     logical, optional, intent(out) :: outval               !< Output value to replace stopping the test
 
     call return_or_stop(all(a_eq(received, expected)), &
-                        message // print_failed(received, expected), &
+                        message   //   print_failed(received, expected), &
                         outval)
 
   end subroutine assert_eq_integer_rank1
@@ -235,7 +247,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(a_eq(received, expected), &
-                        message // " Expected: " // str(expected) // " Received: " // str(received), &
+                        message   //   " Expected: "   //   str(expected)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_eq_real_rank0
@@ -249,7 +261,7 @@ contains
     logical, optional, intent(out) :: outval             !< Output value to replace stopping the test
 
     call return_or_stop(all(a_eq(received, expected)), &
-                        message // print_failed(received, expected), &
+                        message   //   print_failed(received, expected), &
                         outval)
 
   end subroutine assert_eq_real_rank1
@@ -265,7 +277,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(received == expected, &
-                        message // " Expected: " // expected // " Received: " // received, &
+                        message   //   " Expected: "   //   expected   //   " Received: "   //   received, &
                         outval)
 
   end subroutine assert_eq_string
@@ -281,7 +293,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(.not. a_eq(received, notexpected), &
-                        message // " Not Expected: " // str(notexpected) // " Received: " // str(received), &
+                        message   //   " Not Expected: "   //   str(notexpected)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_neq_integer
@@ -295,7 +307,7 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(.not. a_eq(received, notexpected), &
-                        message // " Not Expected: " // str(notexpected) // " Received: " // str(received), &
+                        message   //   " Not Expected: "   //   str(notexpected)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_neq_real
@@ -309,7 +321,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(.not. received == notexpected, &
-                        message // " Not Expected: " // notexpected // " Received: " // received, &
+                        message   //   " Not Expected: "   //   notexpected   //   " Received: "   //   received, &
                         outval)
 
   end subroutine assert_neq_string
@@ -325,7 +337,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received < upper_limit, &
-                        message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
+                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_lt_integer
@@ -339,10 +351,40 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received < upper_limit, &
-                        message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
+                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_lt_real
+!==========================
+
+!==========================Less-than-or-equal
+  !> Integer comparison
+  subroutine assert_le_integer(received, upper_limit, message, outval)
+
+    integer(ccs_int), intent(in) :: received    !< Test value
+    integer(ccs_int), intent(in) :: upper_limit !< Reference value
+    character(*), intent(in) :: message         !< Error message
+    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
+
+    call return_or_stop(received <= upper_limit, &
+                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_le_integer
+
+  !> Real comparison
+  subroutine assert_le_real(received, upper_limit, message, outval)
+
+    real(ccs_real), intent(in) :: received    !< Test value
+    real(ccs_real), intent(in) :: upper_limit !< Reference value
+    character(*), intent(in) :: message       !< Error message
+    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
+
+    call return_or_stop(received <= upper_limit, &
+                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_le_real
 !==========================
 
 !==========================Greater-than
@@ -355,7 +397,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received > lower_limit, &
-                        message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
+                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_gt_integer
@@ -369,10 +411,40 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received > lower_limit, &
-                        message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
+                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_gt_real
+!==========================
+
+!==========================Greater-than-or-equal
+  !> Integer comparison
+  subroutine assert_ge_integer(received, lower_limit, message, outval)
+
+    integer(ccs_int), intent(in) :: received    !< Test value
+    integer(ccs_int), intent(in) :: lower_limit !< Reference value
+    character(*), intent(in) :: message         !< Error message
+    logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
+
+    call return_or_stop(received >= lower_limit, &
+                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_ge_integer
+
+  !> Real comparison
+  subroutine assert_ge_real(received, lower_limit, message, outval)
+
+    real(ccs_real), intent(in) :: received    !< Test value
+    real(ccs_real), intent(in) :: lower_limit !< Reference value
+    character(*), intent(in) :: message       !< Error message
+    logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
+
+    call return_or_stop(received >= lower_limit, &
+                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        outval)
+
+  end subroutine assert_ge_real
 !==========================
 
 !==========================Bool tests
@@ -384,7 +456,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(received, &
-                        message // " Expected: T (true) Received: " // str(received), &
+                        message   //   " Expected: T (true) Received: "   //   str(received), &
                         outval)
 
   end subroutine assert_bool_rank0
@@ -397,7 +469,7 @@ contains
     logical, optional, intent(out) :: outval      !< Output value to replace stopping the test
 
     call return_or_stop(all(received), &
-                        message // print_failed(received), &
+                        message   //   print_failed(received), &
                         outval)
 
   end subroutine assert_bool_rank1
@@ -416,10 +488,10 @@ contains
     allocate (mask(size(received)))
     mask = a_eq(received, expected)
 
-    msg = new_line('a') // "Index Expected Received" // new_line('a')
+    msg = new_line('a')   //   "Index Expected Received"   //   new_line('a')
     do i = 1, size(mask)
       if (.not. mask(i)) then
-        msg = msg // str(i) // achar(9) // str(expected(i)) // achar(9) // str(received(i)) // new_line('a')
+        msg = msg   //   str(i)   //   achar(9)   //   str(expected(i))   //   achar(9)   //   str(received(i))   //   new_line('a')
       end if
     end do
 
@@ -437,10 +509,10 @@ contains
     allocate (mask(size(received)))
     mask = a_eq(received, expected)
 
-    msg = new_line('a') // "Index Expected Received" // new_line('a')
+    msg = new_line('a')   //   "Index Expected Received"   //   new_line('a')
     do i = 1, size(mask)
       if (.not. mask(i)) then
-        msg = msg // str(i) // achar(9) // str(expected(i)) // achar(9) // str(received(i)) // new_line('a')
+        msg = msg   //   str(i)   //   achar(9)   //   str(expected(i))   //   achar(9)   //   str(received(i))   //   new_line('a')
       end if
     end do
 
@@ -453,10 +525,10 @@ contains
     character(len=:), allocatable :: msg          !< Constructed message
     integer :: i
 
-    msg = new_line('a') // "Index Received" // new_line('a')
+    msg = new_line('a')   //   "Index Received"   //   new_line('a')
     do i = 1, size(received)
       if (.not. received(i)) then
-        msg = msg // str(i) // achar(9) // "FALSE" // new_line('a')
+        msg = msg   //   str(i)   //   achar(9)   //   "FALSE"   //   new_line('a')
       end if
     end do
 

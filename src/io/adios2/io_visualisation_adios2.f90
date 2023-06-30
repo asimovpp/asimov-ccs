@@ -12,7 +12,15 @@ submodule(io_visualisation) io_visualisation_adios2
 
   implicit none
 
+  logical, save :: initial_step = .true.
+
 contains
+
+  module subroutine reset_io_visualisation_module()
+
+    initial_step = .true.
+
+  end subroutine
 
   !> Write the field data to file
   module subroutine write_fields(par_env, case_name, mesh, output_list, step, maxstep)
@@ -20,10 +28,13 @@ contains
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
     use vec, only: get_vector_data, restore_vector_data
-    use types, only: field_ptr
+    use types, only: field_ptr, cell_locator
     use case_config, only: write_gradients
-    use meshing, only: get_local_num_cells
-    
+    use meshing, only: get_local_num_cells, get_global_num_cells, &
+                       create_cell_locator, &
+                       get_global_index
+    use utils, only: get_natural_data
+
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
@@ -48,19 +59,26 @@ contains
     integer(ccs_long), dimension(2) :: sel2_start
     integer(ccs_long), dimension(2) :: sel2_count
 
-    real(ccs_real), dimension(:), pointer :: data
+    real(ccs_real), dimension(:), allocatable :: data
 
     integer(ccs_int) :: i
+
+    integer(ccs_int) :: global_num_cells
+
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: index_global
 
     sol_file = case_name // '.sol.h5'
     adios2_file = case_name // adiosconfig
 
     if (present(step)) then
       ! Unsteady case
-      if (step == 1) then
+      if (initial_step) then
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_writer", sol_writer)
         call open_file(sol_file, "write", sol_writer)
+
+        initial_step = .false.
       end if
     else
       ! Steady case
@@ -69,19 +87,26 @@ contains
       call open_file(sol_file, "write", sol_writer)
     end if
 
+    call get_global_num_cells(mesh, global_num_cells)
+
+    ! Need to get data relating to first cell
+    call create_cell_locator(mesh, 1, loc_p)
+
+    call get_global_index(loc_p, index_global)
+
     ! 1D data
-    sel_shape(1) = mesh%topo%global_num_cells
-    sel_start(1) = mesh%topo%global_indices(1) - 1
+    sel_shape(1) = global_num_cells
+    sel_start(1) = index_global - 1
     call get_local_num_cells(mesh, sel_count(1))
 
     ! 2D data
     sel2_shape(1) = ndim
-    sel2_shape(2) = mesh%topo%global_num_cells
+    sel2_shape(2) = global_num_cells
     sel2_start(1) = 0
-    sel2_start(2) = mesh%topo%global_indices(1) - 1
+    sel2_start(2) = index_global - 1
     sel2_count(1) = ndim
     call get_local_num_cells(mesh, sel2_count(2))
-    
+
     ! Begin step
     call begin_step(sol_writer)
 
@@ -90,10 +115,17 @@ contains
       ! Check whether pointer is associated with a field
       if (.not. associated(output_list(i)%ptr)) exit
 
-      call get_vector_data(output_list(i)%ptr%values, data)
+      call get_natural_data(par_env, mesh, output_list(i)%ptr%values, data)
       data_name = "/" // trim(output_list(i)%name)
       call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-      call restore_vector_data(output_list(i)%ptr%values, data)
+
+      ! Store residuals if available
+      if (allocated(output_list(i)%ptr%residuals)) then
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%residuals, data)
+        data_name = "/" // trim(output_list(i)%name // "_res")
+        call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
+      end if
+
     end do
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
@@ -103,23 +135,24 @@ contains
         if (.not. associated(output_list(i)%ptr)) exit
 
         ! x-gradient
-        call get_vector_data(output_list(i)%ptr%x_gradients, data)
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dx"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_list(i)%ptr%x_gradients, data)
 
         ! y-gradient
-        call get_vector_data(output_list(i)%ptr%y_gradients, data)
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dy"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_list(i)%ptr%y_gradients, data)
 
         ! z-gradient
-        call get_vector_data(output_list(i)%ptr%z_gradients, data)
+        call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
         data_name = "/d" // trim(output_list(i)%name) // "dz"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
-        call restore_vector_data(output_list(i)%ptr%z_gradients, data)
       end do
+    end if
+
+    if (allocated(data)) then
+      deallocate (data)
     end if
 
     ! End step

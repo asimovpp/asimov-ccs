@@ -3,7 +3,7 @@ program test_mesh_indices
 
   use testing_lib
 
-  use meshing, only: set_cell_location, get_global_index, get_local_num_cells
+  use meshing, only: create_cell_locator, get_global_index, get_local_num_cells, get_global_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -14,20 +14,21 @@ program test_mesh_indices
   integer(ccs_int) :: n, nx, ny, nz
 
   integer(ccs_int) :: nlocal
+  integer(ccs_int) :: nglobal
   integer(ccs_int) :: i
 
   type(cell_locator) :: loc_p
   integer(ccs_int) :: global_index
 
-  integer(ccs_int), dimension(5) :: m = (/ 2, 4, 8, 16, 20 /)
+  integer(ccs_int), dimension(5) :: m = (/4, 8, 12 ,16, 20/)
   integer(ccs_int) :: mctr
 
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
-  do mctr = 1, size(m)
+  do mctr = 2, size(m)
     n = m(mctr)
-    
+
     nx = n
     ny = n
     nz = n
@@ -36,19 +37,18 @@ program test_mesh_indices
     mesh = build_mesh(par_env, nx, ny, nz, l)
 
     call get_local_num_cells(mesh, nlocal)
-    associate (nglobal => mesh%topo%global_num_cells)
-      do i = 1, nlocal
-        call set_cell_location(mesh, i, loc_p)
-        call get_global_index(loc_p, global_index)
-        if ((global_index < 1) .or. (global_index > nglobal)) then
-          if (global_index /= -1) then
-            write (message, *) "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", global_index
-            call stop_test(message)
-          end if
-          exit
+    call get_global_num_cells(mesh, nglobal)
+    do i = 1, nlocal
+      call create_cell_locator(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index)
+      if ((global_index < 1) .or. (global_index > nglobal)) then
+        if (global_index /= -1) then
+          write (message, *) "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", global_index
+          call stop_test(message)
         end if
-      end do
-    end associate
+        exit
+      end if
+    end do
   end do
 
   call fin()

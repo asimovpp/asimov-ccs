@@ -5,7 +5,7 @@
 program test_mesh_volume
 
   use testing_lib
-  use meshing, only: set_cell_location, get_volume, get_local_num_cells
+  use meshing, only: create_cell_locator, get_volume, get_local_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -30,9 +30,9 @@ program test_mesh_volume
 
   call init()
 
-  nx = 2
-  ny = 2
-  nz = 2
+  nx = 4
+  ny = 4
+  nz = 4
 
   l = parallel_random(par_env)
   mesh = build_mesh(par_env, nx, ny, nz, l)
@@ -44,7 +44,7 @@ program test_mesh_volume
   nneg_vol = 0
   call get_local_num_cells(mesh, local_num_cells)
   do i = 1, local_num_cells
-    call set_cell_location(mesh, i, loc_p)
+    call create_cell_locator(mesh, i, loc_p)
     call get_volume(loc_p, V)
     if (V <= 0) then
       nneg_vol = nneg_vol + 1

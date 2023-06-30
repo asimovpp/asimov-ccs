@@ -22,13 +22,13 @@ contains
                         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
 
     use meshing, only: get_local_num_cells
-    
+
     type(matrix_spec), intent(in) :: mat_properties   !< contains information about how the matrix should be allocated
     class(ccs_matrix), allocatable, intent(out) :: M  !< the matrix object
     character(len=*), optional, intent(in) :: name    !< name of the matrix object
 
     integer(ccs_int) :: local_num_cells
-    
+
     integer(ccs_err) :: ierr  ! Error code
 
     allocate (matrix_petsc :: M)
@@ -55,8 +55,8 @@ contains
         end if
 
         if (present(name)) then
-          call MatSetOptionsPrefix(M%M, M%name//':', ierr)
-        endif
+          call MatSetOptionsPrefix(M%M, M%name // ':', ierr)
+        end if
         call MatSetFromOptions(M%M, ierr)
 
         if (mat_properties%nnz < 1) then
@@ -444,6 +444,32 @@ contains
     end select
 
   end subroutine set_matrix_diagonal
+
+  !> Add a vector to the matrix diagonal
+  module subroutine add_matrix_diagonal(D, M)
+    use petscmat, only: MatDiagonalSet
+
+    class(ccs_vector), intent(in) :: D      !< the PETSc vector containing matrix diagonal elements
+    class(ccs_matrix), intent(inout) :: M   !< the PETSc matrix
+
+    integer(ccs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+
+      select type (D)
+      type is (vector_petsc)
+        call MatDiagonalSet(M%M, D%v, ADD_VALUES, ierr)
+
+      class default
+        call error_abort("Unknown vector type.")
+      end select
+
+    class default
+      call error_abort("Unknown matrix type.")
+    end select
+
+  end subroutine add_matrix_diagonal
 
   !> Overwite a matrix with zeros.
   module subroutine zero_matrix(M)

@@ -20,7 +20,9 @@ module fv
   public :: calc_cell_coords
   public :: update_gradient
   public :: compute_boundary_values
-
+  public :: add_fixed_source
+  public :: add_linear_source
+  
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
     module procedure calc_advection_coeff_uds
@@ -35,16 +37,18 @@ module fv
   interface
 
     !> Calculates advection coefficient for neighbouring cell using CDS discretisation
-    module subroutine calc_advection_coeff_cds(phi, mf, bc, coeff)
+    module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeff)
       type(central_field), intent(in) :: phi !< scalar (central) field
+      type(face_locator), intent(in) :: loc_f !< face locator
       real(ccs_real), intent(in) :: mf       !< mass flux at the face
       integer(ccs_int), intent(in) :: bc     !< flag indicating whether cell is on boundary
       real(ccs_real), intent(out) :: coeff   !< advection coefficient to be calculated
     end subroutine calc_advection_coeff_cds
 
     !> Calculates advection coefficient for neighbouring cell using UDS discretisation
-    module subroutine calc_advection_coeff_uds(phi, mf, bc, coeff)
+    module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeff)
       type(upwind_field), intent(in) :: phi !< scalar (upwind) field
+      type(face_locator), intent(in) :: loc_f !< face locator
       real(ccs_real), intent(in) :: mf      !< mass flux at the face
       integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
       real(ccs_real), intent(out) :: coeff  !< advection coefficient to be calculated
@@ -137,6 +141,20 @@ module fv
       real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
     end subroutine
 
+    !> Adds a fixed source term to the righthand side of the equation
+    module subroutine add_fixed_source(mesh, S, rhs)
+      type(ccs_mesh), intent(in) :: mesh     !< The mesh
+      class(ccs_vector), intent(inout) :: S   !< The source field
+      class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
+    end subroutine add_fixed_source
+
+    !> Adds a linear source term to the system matrix
+    module subroutine add_linear_source(mesh, S, M)
+      type(ccs_mesh), intent(in) :: mesh    !< The mesh
+      class(ccs_vector), intent(inout) :: S !< The source field
+      class(ccs_matrix), intent(inout) :: M !< The system
+    end subroutine add_linear_source
+    
   end interface
 
 end module fv

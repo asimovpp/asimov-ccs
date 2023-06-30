@@ -117,7 +117,7 @@ contains
   subroutine set_advection_velocity(mesh, mf)
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
-    use meshing, only: set_cell_location, get_global_index, get_local_num_cells
+    use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: set_row, set_entry, set_values
 
@@ -140,18 +140,18 @@ contains
 
     ! Set IC velocity and scalar fields
     do index_p = 1, n_local
-       call set_cell_location(mesh, index_p, loc_p)
-       call get_global_index(loc_p, global_index_p)
-       call calc_cell_coords(global_index_p, cps, row, col)
+      call create_cell_locator(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call calc_cell_coords(global_index_p, cps, row, col)
 
-       ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
-       u = real(col, ccs_real) / real(cps, ccs_real)
-       v = -real(row, ccs_real) / real(cps, ccs_real)
+      ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
+      u = real(col, ccs_real) / real(cps, ccs_real)
+      v = -real(row, ccs_real) / real(cps, ccs_real)
 
-       mf_val = u + v
+      mf_val = u + v
 
-       call set_row(global_index_p, mf_vals)
-       call set_entry(mf_val, mf_vals)
+      call set_row(global_index_p, mf_vals)
+      call set_entry(mf_val, mf_vals)
     end do
     call set_values(mf_vals, mf%values)
 

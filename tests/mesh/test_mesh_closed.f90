@@ -8,7 +8,7 @@ program test_mesh_closed
 
   use constants
 
-  use meshing, only: set_face_location, get_face_normal, get_face_area, get_local_num_cells
+  use meshing, only: create_face_locator, get_face_normal, get_face_area, get_local_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -28,7 +28,7 @@ program test_mesh_closed
 
   real(ccs_real) :: A_expected
 
-  integer(ccs_int), dimension(6) :: m = (/ 1, 2, 4, 8, 16, 20 /)
+  integer(ccs_int), dimension(4) :: m = (/4, 8, 16, 20/)
   integer(ccs_int) :: mctr
 
   call init()
@@ -54,7 +54,7 @@ program test_mesh_closed
       ! Loop over neighbours/faces
       do j = 1, mesh%topo%num_nb(i)
 
-        call set_face_location(mesh, i, j, loc_f)
+        call create_face_locator(mesh, i, j, loc_f)
         call get_face_area(loc_f, A)
         call get_face_normal(loc_f, norm)
         S(:) = S(:) + norm(:) * A

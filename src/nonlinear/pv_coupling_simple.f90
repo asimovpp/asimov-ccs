@@ -23,10 +23,13 @@ submodule(pv_coupling) pv_coupling_simple
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
-                     get_boundary_status, get_face_normal, set_neighbour_location, set_face_location, &
-                     set_cell_location, get_volume, get_distance, &
-                     get_local_num_cells, get_face_interpolation
-  use timestepping, only: update_old_values, finalise_timestep
+                     get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
+                     create_cell_locator, get_volume, get_distance, &
+                     get_local_num_cells, get_face_interpolation, &
+                     get_global_num_cells, &
+                     get_max_faces
+  use scalars, only: update_scalars
+  use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
 
   implicit none
 
@@ -36,7 +39,7 @@ contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
   module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    flow_solver_selector, flow, step)
+                                    flow_solver_selector, flow)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env   !< parallel environment
@@ -46,7 +49,6 @@ contains
     real(ccs_real), intent(in) :: res_target                          !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector   !< determines which fluid fields need to be solved for
     type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
-    integer(ccs_int), optional, intent(in) :: step                    !< The current time-step
 
     ! Local variables
     integer(ccs_int) :: i
@@ -55,7 +57,7 @@ contains
     class(ccs_vector), allocatable :: invAu, invAv, invAw
     class(ccs_vector), allocatable :: res
     real(ccs_real), dimension(:), allocatable :: residuals
-    integer(ccs_int) :: t  ! Current time-step (dummy variable)
+    integer(ccs_int) :: max_faces ! The maximum number of faces per cell
 
     type(vector_spec) :: vec_properties
     type(matrix_spec) :: mat_properties
@@ -66,7 +68,7 @@ contains
 
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: ivar ! Counter for flow variables
-    
+
     logical :: u_sol !< solve u velocity field
     logical :: v_sol !< solve v velocity field
     logical :: w_sol !< solve w velocity field
@@ -89,13 +91,6 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
 
-    ! Check whether 'step' has been passed into this subroutine (i.e. unsteady run)
-    if (present(step)) then
-      t = step
-    else
-      t = -1 ! Dummy value
-    end if
-
     ! Initialising SIMPLE solver
     nvar = 0
     ivar = 0
@@ -113,8 +108,9 @@ contains
 
     ! Create coefficient matrix
     call dprint("NONLINEAR: setup matrix")
+    call get_max_faces(mesh, max_faces)
     call set_size(par_env, mesh, mat_properties)
-    call set_nnz(mesh%topo%max_faces + 1, mat_properties)
+    call set_nnz(max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
 
     ! Create RHS vector
@@ -135,7 +131,7 @@ contains
     if (v_sol) nvar = nvar + 1
     if (w_sol) nvar = nvar + 1
     if (p_sol) nvar = nvar + 2 ! (Pressure residual & mass imbalance)
-    allocate (residuals(2*nvar))
+    allocate (residuals(2 * nvar))
     residuals(:) = 0.0_ccs_real
 
     ! Get pressure gradient
@@ -168,11 +164,13 @@ contains
       call dprint("NONLINEAR: compute gradp")
       call update_gradient(mesh, p)
 
-      ! Todo:
-      !call calculate_scalars()
+      ! Transport scalars
+      ! XXX: Should we distinguish active scalars (update in non-linear loop) and passive scalars
+      !      (single update per timestep)?
+      call update_scalars(par_env, mesh, flow)
 
       call check_convergence(par_env, i, residuals, res_target, &
-                             flow_solver_selector, t, converged)
+                             flow_solver_selector, converged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
@@ -230,7 +228,7 @@ contains
     class(field), pointer :: w
     class(field), pointer :: mf
     class(field), pointer :: p
-    
+
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
@@ -277,7 +275,7 @@ contains
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, res, residuals)
+  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
@@ -292,18 +290,27 @@ contains
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
-    class(field), intent(inout) :: u
+    class(field), target, intent(inout) :: u
     class(ccs_vector), intent(inout) :: invAu
-    class(ccs_vector), intent(inout) :: res
+    class(ccs_vector), target, intent(inout) :: input_res
+    class(ccs_vector), pointer :: res
     real(ccs_real), dimension(:), intent(inout) :: residuals
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
+    integer(ccs_int) :: global_num_cells
 
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
+
+    ! Select either field residuals or reuse 'input_res'
+    if (allocated(u%residuals)) then
+      res => u%residuals
+    else
+      res => input_res
+    end if
 
     ! Zero residual vector
     call zero(res)
@@ -352,7 +359,8 @@ contains
     call mat_vec_product(M, u%values, res)
     call vec_aypx(vec, -1.0_ccs_real, res)
     ! Stores RMS of residuals
-    residuals(ivar) = norm(res, 2) / sqrt(real(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    residuals(ivar) = norm(res, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(ivar + nvar) = norm(res, 0)
@@ -362,7 +370,7 @@ contains
       call set_equation_system(par_env, vec, u%values, M, lin_sys, u%values%name)
     else
       call set_equation_system(par_env, vec, u%values, M, lin_sys)
-    endif
+    end if
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -406,7 +414,7 @@ contains
     do index_p = 1, local_num_cells
       call clear_entries(vec_values)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_volume(loc_p, V)
@@ -485,6 +493,8 @@ contains
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
 
+    integer(ccs_int) :: global_num_cells
+
     ! First zero matrix
     call zero(M)
 
@@ -514,7 +524,7 @@ contains
     do index_p = 1, local_num_cells
       call clear_entries(vec_values)
 
-      call set_cell_location(mesh, index_p, loc_p)
+      call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -538,7 +548,7 @@ contains
 
       ! Loop over faces
       do j = 1, nnb
-        call set_face_location(mesh, index_p, j, loc_f)
+        call create_face_locator(mesh, index_p, j, loc_f)
         call get_face_area(loc_f, face_area)
         call get_face_normal(loc_f, face_normal)
 
@@ -546,7 +556,7 @@ contains
 
         if (.not. is_boundary) then
           ! Interior face
-          call set_neighbour_location(loc_p, j, loc_nb)
+          call create_neighbour_locator(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
           call get_face_interpolation(loc_f, interpol_factor)
@@ -591,7 +601,8 @@ contains
       ! XXX: Need to fix pressure somewhere
       !      Row is the global index - should be unique
       !      Locate approximate centre of mesh (assuming a square)
-      cps = int(sqrt(real(mesh%topo%global_num_cells)), ccs_int)
+      call get_global_num_cells(mesh, global_num_cells)
+      cps = int(sqrt(real(global_num_cells)), ccs_int)
       rcrit = (cps / 2) * (1 + cps)
       if (row == rcrit) then
         coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
@@ -634,7 +645,7 @@ contains
       call set_equation_system(par_env, vec, p_prime%values, M, lin_sys, p_prime%values%name)
     else
       call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
-    endif
+    end if
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -648,7 +659,7 @@ contains
   end subroutine calculate_pressure_correction
 
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, b, residuals)
+  subroutine compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, input_b, residuals)
 
     type(ccs_mesh), intent(in) :: mesh      !< The mesh object
     class(ccs_vector), intent(inout) :: invAu  !< The inverse x momentum equation diagonal coefficient
@@ -656,9 +667,10 @@ contains
     class(ccs_vector), intent(inout) :: invAw  !< The inverse z momentum equation diagonal coefficient
     integer(ccs_int), intent(inout) :: ivar !< Counter for flow variables
     type(fluid), intent(inout) :: flow
-    class(ccs_vector), intent(inout) :: b   !< The per-cell mass imbalance
+    class(ccs_vector), target, intent(inout) :: input_b   !< The per-cell mass imbalance
     real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
+    class(ccs_vector), pointer :: b   !< The per-cell mass imbalance
     type(vector_values) :: vec_values
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i   ! Cell counter
@@ -692,12 +704,14 @@ contains
     integer(ccs_int) :: nvar ! Number of flow variables to solve
 
     logical, save :: first_time = .true.
-    
+
     class(field), pointer :: u        !< The x velocity component
     class(field), pointer :: v        !< The y velocity component
     class(field), pointer :: w        !< The z velocity component
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
+
+    integer(ccs_int) :: global_num_cells
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
@@ -714,6 +728,12 @@ contains
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
+
+    if (allocated(p%residuals)) then
+      b => p%residuals
+    else
+      b => input_b
+    end if
 
     ! First zero RHS
     call zero(b)
@@ -739,21 +759,21 @@ contains
     do i = 1, local_num_cells
       call clear_entries(vec_values)
 
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
       mib = 0.0_ccs_real
 
       do j = 1, nnb
-        call set_face_location(mesh, i, j, loc_f)
+        call create_face_locator(mesh, i, j, loc_f)
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, index_f)
 
         ! Check face orientation
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
-          call set_neighbour_location(loc_p, j, loc_nb)
+          call create_neighbour_locator(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (index_nb < i) then
             face_area = -face_area
@@ -796,7 +816,8 @@ contains
 
     ! Pressure residual
     ! Stores RMS of residuals
-    residuals(varp) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    residuals(varp) = norm(b, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(varp + nvar) = norm(b, 0)
@@ -899,6 +920,8 @@ contains
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     type(vector_values) :: vec_values
 
+    integer(ccs_int) :: global_num_cells
+
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
     call zero(b)
@@ -920,16 +943,16 @@ contains
       call clear_entries(vec_values)
       mib = 0.0_ccs_real
 
-      call set_cell_location(mesh, i, loc_p)
+      call create_cell_locator(mesh, i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-        call set_face_location(mesh, i, j, loc_f)
+        call create_face_locator(mesh, i, j, loc_f)
         call get_local_index(loc_f, index_f)
         call get_face_area(loc_f, face_area)
         call get_boundary_status(loc_f, is_boundary)
         if (.not. is_boundary) then
-          call set_neighbour_location(loc_p, j, loc_nb)
+          call create_neighbour_locator(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
             mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
@@ -965,7 +988,8 @@ contains
     call update(b)
 
     ! Stores RMS of residuals
-    residuals(varp + 1) = norm(b, 2) / sqrt(real(mesh%topo%global_num_cells))
+    call get_global_num_cells(mesh, global_num_cells)
+    residuals(varp + 1) = norm(b, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
     residuals(varp + 1 + nvar) = norm(b, 0)
@@ -973,7 +997,7 @@ contains
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
-                               flow_solver_selector, step, converged)
+                               flow_solver_selector, converged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
@@ -981,13 +1005,16 @@ contains
     real(ccs_real), dimension(:), intent(in) :: residuals           !< RMS and Linf of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector
-    integer(ccs_int), intent(in) :: step                            !< The current time-step
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
 
     ! Local variables
+    integer :: io_unit
+    integer(ccs_int) :: step                            !< The current time-step
+    real(ccs_real) :: time                              !< The current time
     integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
     integer(ccs_int) :: i
-    character(len=30) :: fmt              ! Format string for writing out residuals
+    character(len=60) :: fmt              ! Format string for writing out residuals
+    character(len=60) :: prefix           ! prefix for residual norms
     logical, save :: first_time = .true.  ! Whether first time this subroutine is called
 
     logical :: u_sol                                    !< Is x-velocity being solved (true/false)
@@ -999,6 +1026,8 @@ contains
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
+    call get_current_step(step)
+    call get_current_time(time)
 
     nvar = int(size(residuals) / 2_ccs_int)
 
@@ -1006,31 +1035,57 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
         ! Write header
+        open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
+
         write (*, *)
-        if (step > 0) then
+        if (step >= 0) then
           write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
+
+          write (io_unit, '(a6, 1x, a12, 1x, a6)', advance='no') '#step', 'time', 'iter'
         else
           write (*, '(a6)', advance='no') 'Iter'
+
+          write (io_unit, '(a6)', advance='no') '#iter'
         end if
-        do i=1, 2
+        do i = 1, 2
           if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
           if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
           if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
           if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
           if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
+
+          if (i == 1) then
+            prefix = "L2_"
+          else
+            prefix = "Linf_"
+          end if
+          if (u_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'u'
+          if (v_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'v'
+          if (w_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'w'
+          if (p_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'p'
+          if (p_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'div(u)'
         end do
         write (*, *)
+        write (io_unit, *)
         first_time = .false.
+      else
+        open (newunit=io_unit, file="residuals.log", status="old", form="formatted", position="append")
       end if
 
       ! Write step, iteration and residuals
-      if (step > 0) then
-        fmt = '(i6,1x,i6,' // str(2*nvar) // '(1x,e12.4))'
-        write (*, fmt) step, itr, residuals(1:2*nvar)
+      if (step >= 0) then
+        fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
+        write (*, fmt) step, itr, residuals(1:2 * nvar)
+
+        fmt = '(i6,1x,e12.4,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
+        write (io_unit, fmt) step, time, itr, residuals(1:2 * nvar)
       else
-        fmt = '(i6,' // str(2*nvar) // '(1x,e12.4))'
-        write (*, fmt) itr, residuals(1:2*nvar)
+        fmt = '(i6,' // str(2 * nvar) // '(1x,e12.4))'
+        write (*, fmt) itr, residuals(1:2 * nvar)
+
+        write (io_unit, fmt) itr, residuals(1:2 * nvar)
       end if
+      close (io_unit)
     end if
 
     ! checks if RMS of residuals is below target

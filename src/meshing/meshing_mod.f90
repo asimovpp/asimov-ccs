@@ -6,33 +6,46 @@ module meshing
 
   use constants, only: ndim
   use kinds, only: ccs_int, ccs_real, ccs_long
-  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator, vert_locator
+  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator, &
+                   vert_locator, vertex_neighbour_locator
 
   implicit none
 
   private
-  public :: set_face_location
-  public :: set_cell_location
-  public :: set_neighbour_location
-  public :: set_vert_location
+  public :: create_face_locator
+  public :: create_cell_locator
+  public :: create_neighbour_locator
+  public :: create_vert_locator
   public :: set_face_index
   public :: get_face_normal
   public :: get_face_area
   public :: get_centre
   public :: get_volume
-  public :: get_global_index
-  public :: get_local_index
+  public :: get_global_index, set_global_index
+  public :: get_natural_index, set_natural_index
+  public :: get_local_index, set_local_index
   public :: get_boundary_status
   public :: get_local_status
   public :: count_neighbours
   public :: get_distance
   public :: get_local_num_cells, set_local_num_cells
+  public :: get_total_num_cells, set_total_num_cells
+  public :: get_global_num_cells, set_global_num_cells
+  public :: get_halo_num_cells, set_halo_num_cells
+  public :: get_global_num_faces, set_global_num_faces
+  public :: get_num_faces, set_num_faces
+  public :: get_max_faces, set_max_faces
+  public :: get_global_num_vertices, set_global_num_vertices
+  public :: get_vert_per_cell, set_vert_per_cell
+  public :: get_vert_nb_per_cell, set_vert_nb_per_cell
   public :: set_centre
   public :: set_area
   public :: set_normal
+  public :: get_count_vertex_neighbours
   public :: get_face_interpolation
   public :: set_face_interpolation
-  
+  public :: get_mesh_generated, set_mesh_generated
+
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
@@ -45,18 +58,39 @@ module meshing
     module procedure get_neighbour_global_index
   end interface get_global_index
 
+  interface get_natural_index
+    module procedure get_cell_natural_index
+    module procedure get_neighbour_natural_index
+  end interface get_natural_index
+
+  interface set_global_index
+    module procedure set_face_global_index
+    module procedure set_cell_global_index
+  end interface set_global_index
+
+  interface set_natural_index
+    module procedure set_cell_natural_index
+  end interface set_natural_index
+
   interface get_local_index
     module procedure get_cell_local_index
     module procedure get_neighbour_local_index
+    module procedure get_vertex_neighbour_local_index
     module procedure get_face_local_index
   end interface get_local_index
 
+  interface set_local_index
+    module procedure set_neighbour_local_index
+    module procedure set_vertex_neighbour_local_index
+  end interface set_local_index
+
   interface count_neighbours
-    module procedure cell_count_neighbours
+    module procedure get_cell_count_neighbours
   end interface count_neighbours
 
   interface get_boundary_status
     module procedure get_neighbour_boundary_status
+    module procedure get_vertex_neighbour_boundary_status
     module procedure get_face_boundary_status
   end interface get_boundary_status
 
@@ -76,54 +110,74 @@ module meshing
   end interface get_local_num_cells
 
   interface set_centre
-     module procedure set_cell_centre
-     module procedure set_face_centre
-     module procedure set_vert_centre
+    module procedure set_cell_centre
+    module procedure set_face_centre
+    module procedure set_vert_centre
   end interface set_centre
-  
+
+  interface create_neighbour_locator
+    module procedure create_face_neighbour_locator
+    module procedure create_vertex_neighbour_locator
+  end interface create_neighbour_locator
+
+  interface get_local_status
+    module procedure get_neighbour_local_status
+    module procedure get_vertex_neighbour_local_status
+  end interface get_local_status
+
   interface
 
     !v Constructs a cell locator object.
     !
     !  Creates the association between a mesh and cell index, storing it in the
     !  returned cell locator object.
-    module subroutine set_cell_location(mesh, index_p, loc_p)
+    module subroutine create_cell_locator(mesh, index_p, loc_p)
       type(ccs_mesh), target, intent(in) :: mesh !< the mesh object being referred to.
       integer(ccs_int), intent(in) :: index_p    !< the cell index.
       type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with teh mesh.
-    end subroutine set_cell_location
+    end subroutine create_cell_locator
 
     !v Constructs a face locator object.
     !
     !  Creates the association between a face relative to a cell, i.e. to access the
     !  nth face of cell i.
-    module subroutine set_face_location(mesh, index_p, cell_face_ctr, loc_f)
+    module subroutine create_face_locator(mesh, index_p, cell_face_ctr, loc_f)
       type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
       integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose face is being accessed.
       integer(ccs_int), intent(in) :: cell_face_ctr !< the cell-local index of the face.
       type(face_locator), intent(out) :: loc_f      !< the face locator object linking a cell-relative index with the mesh.
-    end subroutine set_face_location
+    end subroutine create_face_locator
 
     !v Constructs a neighbour locator object.
     !
     !  Creates the association between a neighbour cell F relative to cell P, i.e. to
     !  access the nth neighbour of cell i.
-    module subroutine set_neighbour_location(loc_p, nb_counter, loc_nb)
+    module subroutine create_face_neighbour_locator(loc_p, nb_counter, loc_nb)
       type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell whose neighbour is being accessed.
       integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
       type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a cell-relative index with the mesh.
-    end subroutine set_neighbour_location
+    end subroutine create_face_neighbour_locator
+
+    !v Constructs a neighbour locator object.
+    !
+    !  Creates the association between a neighbour cell F relative to cell P via a specified vertex, i.e. to
+    !  access the nth vertex neighbour of cell i.
+    module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
+      type(cell_locator), intent(in) :: loc_p           !< the cell locator object of the cell whose neighbour is being accessed.
+      integer(ccs_int), intent(in) :: vert_nb_counter   !< the cell-local index of the neighbour.
+      type(vertex_neighbour_locator), intent(out) :: loc_nb    !< the neighbour locator object linking a cell-relative index with the mesh.
+    end subroutine create_vertex_neighbour_locator
 
     !v Constructs a vertex locator object.
     !
     !  Creates the association between a vertex relative to a cell, i.e. to access the
     !  nth vertex of cell i.
-    module subroutine set_vert_location(mesh, index_p, cell_vert_ctr, loc_v)
+    module subroutine create_vert_locator(mesh, index_p, cell_vert_ctr, loc_v)
       type(ccs_mesh), target, intent(in) :: mesh    !< the mesh object being referred to.
       integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose vertex is being accessed.
       integer(ccs_int), intent(in) :: cell_vert_ctr !< the cell-local index of the vertex.
       type(vert_locator), intent(out) :: loc_v      !< the vertex locator object linking a cell-relative index with the mesh.
-    end subroutine set_vert_location
+    end subroutine create_vert_locator
 
     !> Set face index
     module subroutine set_face_index(index_p, cell_face_ctr, index_f, mesh)
@@ -150,7 +204,7 @@ module meshing
       type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
       real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
     end subroutine get_cell_centre
-    
+
     !> Returns the centre of a neighbour cell
     module subroutine get_neighbour_centre(loc_nb, x)
       type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
@@ -187,23 +241,65 @@ module meshing
       integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
     end subroutine get_cell_global_index
 
+    !> Sets the global index of a cell
+    module subroutine set_cell_global_index(global_index_p, loc_p)
+      integer(ccs_int), intent(in) :: global_index_p !< the global index of the cell.
+      type(cell_locator), intent(inout) :: loc_p     !< the cell locator object.
+    end subroutine set_cell_global_index
+
+    !v Returns the natural index of a cell
+    !
+    ! @note@ The natural index is the original global index, whereas the global index indicates the
+    !        indexing in the current ordering.
+    module subroutine get_cell_natural_index(loc_p, natural_index_p)
+      type(cell_locator), intent(in) :: loc_p          !< the cell locator object.
+      integer(ccs_int), intent(out) :: natural_index_p !< the natural index of the cell.
+    end subroutine get_cell_natural_index
+
+    !v Sets the natural index of a cell
+    !
+    ! @note@ The natural index is the original global index, whereas the global index indicates the
+    !        indexing in the current ordering.
+    module subroutine set_cell_natural_index(natural_index_p, loc_p)
+      integer(ccs_int), intent(in) :: natural_index_p !< the natural index of the cell.
+      type(cell_locator), intent(inout) :: loc_p      !< the cell locator object.
+    end subroutine set_cell_natural_index
+
     !> Returns the global index of a neighbouring cell
     module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
       type(neighbour_locator), intent(in) :: loc_nb    !< the neighbour locator object.
       integer(ccs_int), intent(out) :: global_index_nb !< the global index of the neighbour cell.
     end subroutine get_neighbour_global_index
 
+    !> Returns the natural index of a neighbouring cell
+    module subroutine get_neighbour_natural_index(loc_nb, natural_index_nb)
+      type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
+      integer(ccs_int), intent(out) :: natural_index_nb !< the natural index of the neighbour cell.
+    end subroutine get_neighbour_natural_index
+
+    !> Sets the global index of a face
+    module subroutine set_face_global_index(global_index_f, loc_f)
+      integer(ccs_int), intent(in) :: global_index_f !< The global index of the face.
+      type(face_locator), intent(inout) :: loc_f     !< The face locator object.
+    end subroutine set_face_global_index
+
     !> Returns the neighbour count of a cell (including boundary neighbours)
-    module subroutine cell_count_neighbours(loc_p, nnb)
+    module subroutine get_cell_count_neighbours(loc_p, nnb)
       type(cell_locator), intent(in) :: loc_p !< the cell locator object.
       integer(ccs_int), intent(out) :: nnb    !< the neighbour count of the cell.
-    end subroutine cell_count_neighbours
+    end subroutine get_cell_count_neighbours
 
     !> Returns the boundary status of a neighbouring cell
     module subroutine get_neighbour_boundary_status(loc_nb, is_boundary)
       type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
       logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
     end subroutine get_neighbour_boundary_status
+
+    !> Returns the boundary status of a vertex neighbouring cell
+    module subroutine get_vertex_neighbour_boundary_status(loc_vnb, is_boundary)
+      type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the neighbour locator object.
+      logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
+    end subroutine get_vertex_neighbour_boundary_status
 
     !> Returns the boundary status of a face
     module subroutine get_face_boundary_status(loc_f, is_boundary)
@@ -216,10 +312,20 @@ module meshing
     !  Given a distributed mesh, a processor needs both the cells within its partition
     !  and cells from the surrounding halo - this subroutine get_indicates whether a
     !  cell's neighbour is within the local partition or the halo.
-    module subroutine get_local_status(loc_nb, is_local)
+    module subroutine get_neighbour_local_status(loc_nb, is_local)
       type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
       logical, intent(out) :: is_local !< the local status of the neighbour.
-    end subroutine get_local_status
+    end subroutine get_neighbour_local_status
+
+    !v Returns the local distribution status of a vertex neighbouring cell
+    !
+    !  Given a distributed mesh, a processor needs both the cells within its partition
+    !  and cells from the surrounding halo - this subroutine get_indicates whether a
+    !  cell's vertex neighbour is within the local partition or the halo.
+    module subroutine get_vertex_neighbour_local_status(loc_vnb, is_local)
+      type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the vertex neighbour locator object.
+      logical, intent(out) :: is_local !< the local status of the neighbour.
+    end subroutine get_vertex_neighbour_local_status
 
     !v Returns the local index of a cell
     !
@@ -236,6 +342,24 @@ module meshing
       type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
       integer(ccs_int), intent(out) :: index_nb     !< the local index of the neighbour cell.
     end subroutine get_neighbour_local_index
+
+    !> Sets the local index of a neighbouring cell
+    module subroutine set_neighbour_local_index(index_nb, loc_nb)
+      integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+      type(neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+    end subroutine set_neighbour_local_index
+
+    !> Sets the local index of a vertex-neighbouring cell
+    module subroutine set_vertex_neighbour_local_index(index_nb, loc_nb)
+      integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+      type(vertex_neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+    end subroutine set_vertex_neighbour_local_index
+
+    !> Returns the local index of a vertex neighbouring cell
+    module subroutine get_vertex_neighbour_local_index(loc_nb, index_nb)
+      type(vertex_neighbour_locator), intent(in) :: loc_nb !< the vertex neighbour locator object.
+      integer(ccs_int), intent(out) :: index_nb            !< the local index of the neighbour cell.
+    end subroutine get_vertex_neighbour_local_index
 
     !> Returns the local index of a face
     module subroutine get_face_local_index(loc_f, index_f)
@@ -276,6 +400,114 @@ module meshing
       integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
     end subroutine get_local_num_cells_long
 
+    !> Sets the mesh total cell count.
+    module subroutine set_total_num_cells(total_num_cells, mesh)
+      integer(ccs_int), intent(in) :: total_num_cells !< The total cell count
+      type(ccs_mesh), intent(inout) :: mesh           !< The mesh
+    end subroutine set_total_num_cells
+
+    !> Gets the mesh total cell count.
+    module subroutine get_total_num_cells(mesh, total_num_cells)
+      type(ccs_mesh), intent(in) :: mesh               !< The mesh
+      integer(ccs_int), intent(out) :: total_num_cells !< The total cell count
+    end subroutine get_total_num_cells
+
+    !> Sets the mesh global cell count.
+    module subroutine set_global_num_cells(global_num_cells, mesh)
+      integer(ccs_int), intent(in) :: global_num_cells !< The global cell count
+      type(ccs_mesh), intent(inout) :: mesh            !< The mesh
+    end subroutine set_global_num_cells
+
+    !> Gets the mesh global cell count.
+    module subroutine get_global_num_cells(mesh, global_num_cells)
+      type(ccs_mesh), intent(in) :: mesh                !< The mesh
+      integer(ccs_int), intent(out) :: global_num_cells !< The global cell count
+    end subroutine get_global_num_cells
+
+    !> Sets the mesh halo cell count.
+    module subroutine set_halo_num_cells(halo_num_cells, mesh)
+      integer(ccs_int), intent(in) :: halo_num_cells !< The halo cell count
+      type(ccs_mesh), intent(inout) :: mesh          !< The mesh
+    end subroutine set_halo_num_cells
+
+    !> Gets the mesh halo cell count.
+    module subroutine get_halo_num_cells(mesh, halo_num_cells)
+      type(ccs_mesh), intent(in) :: mesh              !< The mesh
+      integer(ccs_int), intent(out) :: halo_num_cells !< The halo cell count
+    end subroutine get_halo_num_cells
+
+    !> Sets the mesh global face count.
+    module subroutine set_global_num_faces(global_num_faces, mesh)
+      integer(ccs_int), intent(in) :: global_num_faces !< The global face count
+      type(ccs_mesh), intent(inout) :: mesh            !< The mesh
+    end subroutine set_global_num_faces
+
+    !> Gets the mesh global face count.
+    module subroutine get_global_num_faces(mesh, global_num_faces)
+      type(ccs_mesh), intent(in) :: mesh                !< The mesh
+      integer(ccs_int), intent(out) :: global_num_faces !< The global face count
+    end subroutine get_global_num_faces
+
+    !> Sets the mesh  face count.
+    module subroutine set_num_faces(num_faces, mesh)
+      integer(ccs_int), intent(in) :: num_faces !< The face count
+      type(ccs_mesh), intent(inout) :: mesh     !< The mesh
+    end subroutine set_num_faces
+
+    !> Gets the mesh face count.
+    module subroutine get_num_faces(mesh, num_faces)
+      type(ccs_mesh), intent(in) :: mesh         !< The mesh
+      integer(ccs_int), intent(out) :: num_faces !< The face count
+    end subroutine get_num_faces
+
+    !> Sets the mesh  face count.
+    module subroutine set_max_faces(max_faces, mesh)
+      integer(ccs_int), intent(in) :: max_faces !< The face count
+      type(ccs_mesh), intent(inout) :: mesh     !< The mesh
+    end subroutine set_max_faces
+
+    !> Gets the mesh face count.
+    module subroutine get_max_faces(mesh, max_faces)
+      type(ccs_mesh), intent(in) :: mesh         !< The mesh
+      integer(ccs_int), intent(out) :: max_faces !< The face count
+    end subroutine get_max_faces
+
+    !> Sets the global number of vertices.
+    module subroutine set_global_num_vertices(global_num_vertices, mesh)
+      integer(ccs_int), intent(in) :: global_num_vertices !< The global number of vertices
+      type(ccs_mesh), intent(inout) :: mesh               !< The mesh
+    end subroutine set_global_num_vertices
+
+    !> Gets the global number of vertices.
+    module subroutine get_global_num_vertices(mesh, global_num_vertices)
+      type(ccs_mesh), intent(in) :: mesh                   !< The mesh
+      integer(ccs_int), intent(out) :: global_num_vertices !< The global number of vertices
+    end subroutine get_global_num_vertices
+
+    !> Sets the number of vertices per cell.
+    module subroutine set_vert_per_cell(vert_per_cell, mesh)
+      integer(ccs_int), intent(in) :: vert_per_cell !< The number of vertices per cell
+      type(ccs_mesh), intent(inout) :: mesh         !< The mesh
+    end subroutine set_vert_per_cell
+
+    !> Gets the number of vertices per cell.
+    module subroutine get_vert_per_cell(mesh, vert_per_cell)
+      type(ccs_mesh), intent(in) :: mesh             !< The mesh
+      integer(ccs_int), intent(out) :: vert_per_cell !< The number of vertices per cell
+    end subroutine get_vert_per_cell
+
+    !> Sets the number of neighbours via vertices per cell.
+    module subroutine set_vert_nb_per_cell(vert_nb_per_cell, mesh)
+      integer(ccs_int), intent(in) :: vert_nb_per_cell !< The number of neighbours via vertices per cell
+      type(ccs_mesh), intent(inout) :: mesh         !< The mesh
+    end subroutine set_vert_nb_per_cell
+
+    !> Gets the number of neighbours via vertices per cell.
+    module subroutine get_vert_nb_per_cell(mesh, vert_nb_per_cell)
+      type(ccs_mesh), intent(in) :: mesh             !< The mesh
+      integer(ccs_int), intent(out) :: vert_nb_per_cell !< The number of neighbours via vertices per cell
+    end subroutine get_vert_nb_per_cell
+
     !> Set the cell centre of specified cell
     module subroutine set_cell_centre(loc_p, x_p)
       type(cell_locator), intent(in) :: loc_p         !< The cell locator object.
@@ -308,18 +540,36 @@ module meshing
       real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
     end subroutine set_normal
 
+    !> Counts the number of neighbours via vertices of a given cell
+    module subroutine get_count_vertex_neighbours(loc_p, nvnb)
+      type(cell_locator), intent(in) :: loc_p   !< The cell locator object
+      integer(ccs_int), intent(out) :: nvnb     !< The number of vertex neighbours of a cell
+    end subroutine get_count_vertex_neighbours
+
     !v Set face interpolation from cell and its local face id
     module subroutine set_face_interpolation(interpol_factor, loc_f)
       real(ccs_real), intent(in) :: interpol_factor  !< the interpolation factor to be used for loc_p
       type(face_locator), intent(inout) :: loc_f        !< the face locator object linking a cell-relative
     end subroutine set_face_interpolation
 
-
     !v Retrieves face interpolation from a face locator
     module subroutine get_face_interpolation(loc_f, interpol_factor)
       type(face_locator), intent(in) :: loc_f        !< the face locator object
       real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
     end subroutine get_face_interpolation
+
+    !> Query whether mesh was generated or read
+    module subroutine get_mesh_generated(mesh, is_generated)
+      type(ccs_mesh), intent(in) :: mesh   !< The mesh object
+      logical, intent(out) :: is_generated !< The generated/read (true/false) status
+    end subroutine
+
+    !> Set whether a mesh was generated or read
+    module subroutine set_mesh_generated(is_generated, mesh)
+      logical, intent(in) :: is_generated
+      type(ccs_mesh), intent(inout) :: mesh
+    end subroutine
+
   end interface
 
 end module meshing
