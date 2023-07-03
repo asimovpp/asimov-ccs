@@ -492,7 +492,7 @@ contains
         call get_face_normal(loc_f, face_normal)
         call get_centre(loc_f, x_f)
         
-        if (dot_product(face_normal(:), x_f - x_p) .lt. 0.0_ccs_real) then
+        if (dot_product(face_normal(:), x_f - x_p) < 0.0_ccs_real) then
           face_normal = - face_normal
         end if
 
@@ -2322,8 +2322,8 @@ contains
       end do  ! End loop over current cell's neighbours
     end do    ! End loop over local cells
 
-    if (minval(mesh%geo%face_interpol) .lt. 0.0_ccs_real .or. &
-        maxval(mesh%geo%face_interpol) .gt. 1.0_ccs_real) then
+    if (minval(mesh%geo%face_interpol) < 0.0_ccs_real .or. &
+        maxval(mesh%geo%face_interpol) > 1.0_ccs_real) then
       call error_abort("Face interpolation out of bound.")
     end if
 
