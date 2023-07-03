@@ -52,6 +52,7 @@ module mat
       class(ccs_matrix), intent(inout) :: M
     end subroutine
 
+    !> Returns information about matrix storage (number of nonzeros, memory, etc.)
     module subroutine get_info_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine

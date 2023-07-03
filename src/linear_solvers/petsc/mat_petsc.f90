@@ -98,7 +98,8 @@ contains
 
   end subroutine finalise_matrix
 
-
+  !> Returns information about matrix storage (number of nonzeros, memory, etc.) 
+  ! see https://petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
   module subroutine get_info_matrix(M)
 
     use petscmat, only: MAT_INFO_SIZE, MatGetInfo, MAT_INFO_MEMORY, MAT_INFO_NZ_ALLOCATED, MAT_LOCAL, &
@@ -115,7 +116,7 @@ contains
       print *, "---"
       print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
       print *, "nnz used: ", info(MAT_INFO_NZ_USED)
-      print *, "nnz unneded: ", info(MAT_INFO_NZ_UNNEEDED)
+      print *, "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
     end select
 
   end subroutine get_info_matrix
