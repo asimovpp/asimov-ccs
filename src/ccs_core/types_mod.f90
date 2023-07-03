@@ -164,10 +164,11 @@ module types
     type(bc_profile), dimension(:), allocatable :: profiles
   end type bc_config
 
+  !> Boundary condition profile
   type, public :: bc_profile
     real(ccs_real), dimension(:), allocatable :: centre      ! reference location for the coordinates
-    real(ccs_real), dimension(:), allocatable :: coordinates ! coordinates at which a value is defined
-    real(ccs_real), dimension(:), allocatable :: values      ! boundary condition values assiciated to each coordinate
+    real(ccs_real), dimension(:), allocatable :: coordinates ! coordinates at which a value is defined, this is the distance to the centre reference location
+    real(ccs_real), dimension(:), allocatable :: values      ! boundary condition values associated to each coordinate
   end type bc_profile
 
   !v Wrapper class for ccs_vector
