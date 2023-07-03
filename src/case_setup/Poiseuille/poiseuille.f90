@@ -1,5 +1,5 @@
-!> Program file for TaylorGreenVortex case
-program poisseuille
+!> Program file for Poiseuille case
+program poiseuille
 #include "ccs_macros.inc"
 
   use petscvec
@@ -452,4 +452,4 @@ contains
 
   end subroutine initialise_flow
 
-end program poisseuille
+end program poiseuille
