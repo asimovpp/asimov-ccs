@@ -2,7 +2,7 @@
 <adios-config>
   <io name="geo_reader">
 
-    <engine type="HDF5">
+    <engine type="BP5">
     </engine>
 
   </io>
