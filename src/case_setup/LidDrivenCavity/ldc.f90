@@ -61,6 +61,7 @@ program ldc
 
   double precision :: start_time
   double precision :: init_time
+  double precision :: solver_time
   double precision :: end_time
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
@@ -193,6 +194,8 @@ program ldc
   call write_mesh(par_env, case_path, mesh)
   call write_solution(par_env, case_path, mesh, output_list)
 
+  call timer(solver_time)
+
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
   deallocate (u)
@@ -205,8 +208,9 @@ program ldc
   call timer(end_time)
 
   if (irank == par_env%root) then
-    print *, "Init time: ", init_time - start_time
-    print *, "Elapsed time: ", end_time - start_time
+    write(*,'(A30, F10.4, A)') "Elapsed time: ", end_time - start_time, " s"
+    write(*,'(A30, F10.4, A)') "Init time: ", init_time - start_time, " s"
+    write(*,'(A30, F10.4, A)') "Solver time inc I/O: ", solver_time - init_time, " s"
   end if
 
   ! Finalise MPI

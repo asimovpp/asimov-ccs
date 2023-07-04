@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <adios-config>
-  <io name="sol_writer">
+  <io name="geo_reader">
 
     <engine type="HDF5">
     </engine>
@@ -9,6 +9,12 @@
   <io name="geo_writer">
 
     <engine type="HDF5">
+    </engine>
+
+  </io>
+  <io name="sol_writer">
+
+    <engine type="BP4">
     </engine>
 
   </io>
