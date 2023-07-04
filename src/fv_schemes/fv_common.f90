@@ -294,6 +294,10 @@ contains
     case (bc_type_extrapolate)
       call get_distance(loc_p, loc_f, dx)
 
+      call update(phi%x_gradients)
+      call update(phi%y_gradients)
+      call update(phi%z_gradients)
+
       call get_vector_data(phi%x_gradients, x_gradients_data)
       call get_vector_data(phi%y_gradients, y_gradients_data)
       call get_vector_data(phi%z_gradients, z_gradients_data)

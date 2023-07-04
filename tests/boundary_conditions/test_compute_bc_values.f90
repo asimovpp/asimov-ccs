@@ -186,12 +186,11 @@ contains
       expected_bc_value = extrapolated_field_data(index_p) - 0.5_ccs_real / cps * y_gradient_data(index_p)
       call restore_vector_data(extrapolated_field%values, extrapolated_field_data)
 
-      call compute_boundary_values(extrapolated_field, component, loc_p, loc_f, face_norm, bc_val, &
-                                   x_gradient_data, y_gradient_data, z_gradient_data)
-
       call restore_vector_data(extrapolated_field%x_gradients, x_gradient_data)
       call restore_vector_data(extrapolated_field%y_gradients, y_gradient_data)
       call restore_vector_data(extrapolated_field%z_gradients, z_gradient_data)
+
+      call compute_boundary_values(extrapolated_field, component, loc_p, loc_f, face_norm, bc_val)
 
       call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
       call dprint("done extrapolated test")
