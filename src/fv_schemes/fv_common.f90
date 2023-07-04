@@ -229,8 +229,7 @@ contains
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary
-  module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
-                                            x_gradients, y_gradients, z_gradients)
+  module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
 
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
@@ -238,16 +237,13 @@ contains
     type(face_locator), intent(in) :: loc_f                 !< location of face
     real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
     real(ccs_real), intent(out) :: bc_value                 !< the boundary value
-    real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
 
     real(ccs_real) :: a !< The diagonal coeff (implicit component)
     real(ccs_real) :: b !< The RHS value (explicit component)
     integer(ccs_int) :: index_p
     real(ccs_real), dimension(:), pointer :: phi_data
 
-    call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
-                                 a, b, &
-                                 x_gradients, y_gradients, z_gradients)
+    call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     call get_local_index(loc_p, index_p)
     call get_vector_data(phi%values, phi_data)
@@ -257,9 +253,7 @@ contains
   end subroutine compute_boundary_values
 
   !> Compute the coefficients of the boundary condition
-  module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, &
-                                     a, b, &
-                                     x_gradients, y_gradients, z_gradients)
+  module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
@@ -268,7 +262,6 @@ contains
     real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
     real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
     real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
-    real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
 
     ! local variables
     integer(ccs_int) :: index_bc
@@ -285,6 +278,9 @@ contains
     real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
     real(ccs_real) :: bc_value
+    real(ccs_real), dimension(:), pointer :: x_gradients_data    ! Data array for x gradient
+    real(ccs_real), dimension(:), pointer :: y_gradients_data    ! Data array for y gradient
+    real(ccs_real), dimension(:), pointer :: z_gradients_data    ! Data array for z gradient
 
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
@@ -298,12 +294,17 @@ contains
     case (bc_type_extrapolate)
       call get_distance(loc_p, loc_f, dx)
 
+      call get_vector_data(phi%x_gradients, x_gradients_data)
+      call get_vector_data(phi%y_gradients, y_gradients_data)
+      call get_vector_data(phi%z_gradients, z_gradients_data)
+
       a = 1.0_ccs_real
-      if (present(x_gradients)) then
-        b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
-      else 
-        b = 0.0_ccs_real
-      end if
+      b = 2.0_ccs_real * (x_gradients_data(index_p) * dx(1) + y_gradients_data(index_p) * dx(2) + z_gradients_data(index_p) * dx(3))
+
+      call restore_vector_data(phi%x_gradients, x_gradients_data)
+      call restore_vector_data(phi%y_gradients, y_gradients_data)
+      call restore_vector_data(phi%z_gradients, z_gradients_data)
+
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
@@ -592,55 +593,24 @@ contains
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
 
-    real(ccs_real), dimension(:), pointer :: x_gradients_data, y_gradients_data, z_gradients_data
-    real(ccs_real), dimension(:), allocatable :: x_gradients_old, y_gradients_old, z_gradients_old
-
-    integer(ccs_int) :: i
-    integer(ccs_int) :: ntotal
-
-    call get_vector_data(phi%x_gradients, x_gradients_data)
-    call get_vector_data(phi%y_gradients, y_gradients_data)
-    call get_vector_data(phi%z_gradients, z_gradients_data)
-
-    call get_total_num_cells(mesh, ntotal)
-    allocate (x_gradients_old(ntotal))
-    allocate (y_gradients_old(ntotal))
-    allocate (z_gradients_old(ntotal))
-    do i = 1, ntotal
-      x_gradients_old(i) = x_gradients_data(i)
-      y_gradients_old(i) = y_gradients_data(i)
-      z_gradients_old(i) = z_gradients_data(i)
-    end do
-
-    call restore_vector_data(phi%x_gradients, x_gradients_data)
-    call restore_vector_data(phi%y_gradients, y_gradients_data)
-    call restore_vector_data(phi%z_gradients, z_gradients_data)
-
     call dprint("Compute x gradient")
-    call update_gradient_component(mesh, 1, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%x_gradients)
+    call update_gradient_component(mesh, 1, phi, phi%x_gradients)
     call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
     call dprint("Compute y gradient")
-    call update_gradient_component(mesh, 2, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%y_gradients)
+    call update_gradient_component(mesh, 2, phi, phi%y_gradients)
     call update(phi%y_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
     call dprint("Compute z gradient")
-    call update_gradient_component(mesh, 3, phi, x_gradients_old, y_gradients_old, z_gradients_old, phi%z_gradients)
+    call update_gradient_component(mesh, 3, phi, phi%z_gradients)
     call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
-
-    deallocate (x_gradients_old)
-    deallocate (y_gradients_old)
-    deallocate (z_gradients_old)
 
   end subroutine update_gradient
 
   !> Helper subroutine to calculate a gradient component at a time.
-  subroutine update_gradient_component(mesh, component, phi, x_gradients_old, y_gradients_old, z_gradients_old, gradients)
+  subroutine update_gradient_component(mesh, component, phi, gradients)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
     class(field), intent(inout) :: phi !< the field whose gradient we want to compute
-    real(ccs_real), dimension(:), intent(in) :: x_gradients_old
-    real(ccs_real), dimension(:), intent(in) :: y_gradients_old
-    real(ccs_real), dimension(:), intent(in) :: z_gradients_old
     class(ccs_vector), intent(inout) :: gradients !< a cell-centred array of the gradient
 
     type(vector_values) :: grad_values
@@ -693,8 +663,7 @@ contains
           phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
           call restore_vector_data(phi%values, phi_data)
         else
-          call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif, &
-                                       x_gradients_old, y_gradients_old, z_gradients_old)
+          call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif)
         end if
 
         grad = grad + phif * (face_area * face_norm(component))
