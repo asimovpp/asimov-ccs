@@ -410,11 +410,17 @@ contains
   end subroutine set_vector_values_row
 
   !> Gets the data in a given vector
-  module subroutine get_vector_data(vec, array)
+  module subroutine get_vector_data(vec, array, force_access)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
+    logical, optional, intent(in) :: force_access !< allow array access without prior update
+    logical :: my_force_access = .false.
     integer :: ierr
+
+    if (present(force_access)) then
+      my_force_access = force_access
+    end if
 
     select type (vec)
     type is (vector_petsc)
@@ -422,7 +428,7 @@ contains
         call error_abort("ERROR: trying to access already checked-out vector")
       end if
 
-      if (vec%modeset) then
+      if (vec%modeset .and. (.not. my_force_access)) then
         call error_abort("WARNING: trying to access vector without updating")
       end if
 

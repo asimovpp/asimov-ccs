@@ -147,9 +147,10 @@ module vec
     end subroutine set_vector_size
 
     !> Gets the data in a given vector
-    module subroutine get_vector_data(vec, array)
+    module subroutine get_vector_data(vec, array, force_access)
       class(ccs_vector), intent(inout) :: vec                        !< the vector to get data from
       real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
+      logical, optional, intent(in) :: force_access
     end subroutine get_vector_data
 
     !> Resets the vector data if required for further processing
