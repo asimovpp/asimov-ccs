@@ -6,7 +6,9 @@ submodule(fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode
   use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile
-  use vec, only: get_vector_data, restore_vector_data, create_vector_values
+  use vec, only: get_vector_data, restore_vector_data, &
+                 get_vector_data_readonly, restore_vector_data_readonly, &
+                 create_vector_values
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
@@ -141,7 +143,7 @@ contains
             call error_abort("Invalid velocity field discretisation.")
           end select
 
-          call get_vector_data(phi%values, phi_data)
+          call get_vector_data_readonly(phi%values, phi_data)
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
@@ -175,7 +177,7 @@ contains
           adv_coeff_total = adv_coeff_total + aP
           diff_coeff_total = diff_coeff_total - diff_coeff
 
-          call restore_vector_data(phi%values, phi_data)
+          call restore_vector_data_readonly(phi%values, phi_data)
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
@@ -196,7 +198,7 @@ contains
           aP = aP * (mf(index_f) * face_area)
           aF = aF * (mf(index_f) * face_area)
           aP = aP - mf(index_f) * face_area
-          call get_vector_data(phi%values, phi_data)
+          call get_vector_data_readonly(phi%values, phi_data)
           call set_entry(-(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP)), b_coeffs)
           if (mf(index_f) > 0.0_ccs_real) then
             aP = mf(index_f) * face_area
@@ -208,7 +210,7 @@ contains
           aP = aP - mf(index_f) * face_area
 
           call set_entry(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP), b_coeffs)
-          call restore_vector_data(phi%values, phi_data)
+          call restore_vector_data_readonly(phi%values, phi_data)
 
           call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
 
@@ -246,9 +248,9 @@ contains
     call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     call get_local_index(loc_p, index_p)
-    call get_vector_data(phi%values, phi_data)
+    call get_vector_data_readonly(phi%values, phi_data)
     bc_value = 0.5_ccs_real * (phi_data(index_p) + (b + a * phi_data(index_p)))
-    call restore_vector_data(phi%values, phi_data)
+    call restore_vector_data_readonly(phi%values, phi_data)
 
   end subroutine compute_boundary_values
 
@@ -294,16 +296,16 @@ contains
     case (bc_type_extrapolate)
       call get_distance(loc_p, loc_f, dx)
 
-      call get_vector_data(phi%x_gradients, x_gradients_data, force_access=.true.)
-      call get_vector_data(phi%y_gradients, y_gradients_data, force_access=.true.)
-      call get_vector_data(phi%z_gradients, z_gradients_data, force_access=.true.)
+      call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
+      call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
+      call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
 
       a = 1.0_ccs_real
       b = 2.0_ccs_real * (x_gradients_data(index_p) * dx(1) + y_gradients_data(index_p) * dx(2) + z_gradients_data(index_p) * dx(3))
 
-      call restore_vector_data(phi%x_gradients, x_gradients_data)
-      call restore_vector_data(phi%y_gradients, y_gradients_data)
-      call restore_vector_data(phi%z_gradients, z_gradients_data)
+      call restore_vector_data_readonly(phi%x_gradients, x_gradients_data)
+      call restore_vector_data_readonly(phi%y_gradients, y_gradients_data)
+      call restore_vector_data_readonly(phi%z_gradients, z_gradients_data)
 
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
@@ -458,9 +460,9 @@ contains
       if (.not. is_boundary) then
 
         ! XXX: this is likely expensive inside a loop...
-        call get_vector_data(u_field%values, u_data)
-        call get_vector_data(v_field%values, v_data)
-        call get_vector_data(w_field%values, w_data)
+        call get_vector_data_readonly(u_field%values, u_data)
+        call get_vector_data_readonly(v_field%values, v_data)
+        call get_vector_data_readonly(w_field%values, w_data)
 
         call get_face_interpolation(loc_f, interpol_factor)
 
@@ -468,9 +470,9 @@ contains
               + (interpol_factor * v_data(index_p) + (1.0_ccs_real - interpol_factor) * v_data(index_nb)) * face_normal(y_direction) &
               + (interpol_factor * w_data(index_p) + (1.0_ccs_real - interpol_factor) * w_data(index_nb)) * face_normal(z_direction))
 
-        call restore_vector_data(u_field%values, u_data)
-        call restore_vector_data(v_field%values, v_data)
-        call restore_vector_data(w_field%values, w_data)
+        call restore_vector_data_readonly(u_field%values, u_data)
+        call restore_vector_data_readonly(v_field%values, v_data)
+        call restore_vector_data_readonly(w_field%values, w_data)
 
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
@@ -658,10 +660,10 @@ contains
         call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
-          call get_vector_data(phi%values, phi_data)
+          call get_vector_data_readonly(phi%values, phi_data)
           call get_face_interpolation(loc_f, interpol_factor)
           phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
-          call restore_vector_data(phi%values, phi_data)
+          call restore_vector_data_readonly(phi%values, phi_data)
         else
           call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif)
         end if
@@ -698,7 +700,7 @@ contains
     type(cell_locator) :: loc_p
     real(ccs_real) :: V_p
     
-    call get_vector_data(S, S_data)
+    call get_vector_data_readonly(S, S_data)
     call get_vector_data(rhs, rhs_data)
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
@@ -707,7 +709,7 @@ contains
 
        rhs_data(index_p) = rhs_data(index_p) + S_data(index_p) * V_p
     end do
-    call restore_vector_data(S, S_data)
+    call restore_vector_data_readonly(S, S_data)
     call restore_vector_data(rhs, rhs_data)
 
     call update(rhs)
