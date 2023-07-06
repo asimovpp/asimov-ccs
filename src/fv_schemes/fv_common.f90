@@ -153,6 +153,37 @@ contains
           aF = (sgn * mf(index_f) * face_area) * aF
           aP = aP - sgn * mf(index_f) * face_area
           hoe = aP * phi_data(index_p) + aF * phi_data(index_nb)
+
+
+          ! Excentricity correction (convective term)
+
+          call get_vector_data(phi%x_gradients, x_gradients_data)
+          call get_vector_data(phi%y_gradients, y_gradients_data)
+          call get_vector_data(phi%z_gradients, z_gradients_data)
+
+          call get_centre(loc_p, x_p)
+          call get_centre(loc_nb, x_nb)
+          call get_centre(loc_f, rk)
+
+          rk_prime = x_p*interpol_factor + (1-interpol_factor) * x_nb
+          grad_phi_k_prime = (/ interpol_factor * x_gradients_data(index_p) + (1.0_ccs_real - interpol_factor)* x_gradients_data(index_nb), &
+                                interpol_factor * y_gradients_data(index_p) + (1.0_ccs_real - interpol_factor)* y_gradients_data(index_nb), &
+                                interpol_factor * z_gradients_data(index_p) + (1.0_ccs_real - interpol_factor)* z_gradients_data(index_nb) /)
+          hoe = hoe + dot_product(grad_phi_k_prime, rk - rk_prime) * (sgn * mf(index_f) * face_area)
+
+
+          ! Non orthogonality correction (diffusive flux)
+
+          a = min(dot_product(rk - x_p, n), dot_product(x_nb - rk, n))
+          rnb_k_prime = rk + a*n
+          rp_prime = rk - a*n
+          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb)/)
+          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p)/)
+          
+          hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
+          ! todo fix diff_coeff? divide by mag |rnk_prime - rp_prime|
+
+
           call set_entry(-hoe, b_coeffs)
 
           ! Low-order
