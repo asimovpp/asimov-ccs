@@ -30,6 +30,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_max_faces
   use scalars, only: update_scalars
   use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
+  use bc_constants, only: bc_type_dirichlet
 
   implicit none
 
@@ -438,6 +439,8 @@ contains
   !  Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, vec, lin_sys, p_prime, lin_solver)
 
+    use fv, only: compute_boundary_coeffs
+
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     class(ccs_mesh), intent(in) :: mesh                             !< the mesh
@@ -463,6 +466,7 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: r
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
+    real(ccs_real) :: aPb, bP
     logical :: is_boundary
 
     real(ccs_real), dimension(:), pointer :: invAu_data
@@ -577,18 +581,17 @@ contains
           coeff_nb = coeff_f
           col = global_index_nb
         else
-          ! XXX: Fixed velocity BC - no pressure correction
-          col = -1
-          coeff_nb = 0.0_ccs_real
-          coeff_f = 0.0_ccs_real
+          call get_distance(loc_p, loc_f, dx)
+          dxmag = sqrt(sum(dx**2))
 
-          ! coeff_f = -(Vp * invA_p) * coeff_f
+          coeff_f = (1.0 / (2 * dxmag)) * face_area
+          coeff_f = -(Vp * invA_p) * coeff_f
 
-          ! ! Zero gradient
-          ! !
-          ! ! (p_F - p_P) / dx = 0
-          ! coeff_nb = coeff_f
-          ! coeff_p = coeff_p + coeff_nb
+          call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
+          coeff_p = coeff_p + coeff_f * aPb
+          r = r - coeff_f * bP
+          col = -1 ! Don't attempt to set neighbour coefficients
+          coeff_nb = 0.0
         end if
         coeff_p = coeff_p - coeff_f
 
@@ -602,12 +605,14 @@ contains
       ! XXX: Need to fix pressure somewhere
       !      Row is the global index - should be unique
       !      Locate approximate centre of mesh (assuming a square)
-      call get_global_num_cells(mesh, global_num_cells)
-      cps = int(sqrt(real(global_num_cells)), ccs_int)
-      rcrit = (cps / 2) * (1 + cps)
-      if (row == rcrit) then
-        coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-        call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
+      if (.not. any(p_prime%bcs%bc_types(:) == bc_type_dirichlet)) then
+        call get_global_num_cells(mesh, global_num_cells)
+        cps = int(sqrt(real(global_num_cells)), ccs_int)
+        rcrit = (cps / 2) * (1 + cps)
+        if (row == rcrit) then
+          coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
+          call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
+        end if
       end if
 
       ! Add the diagonal entry
@@ -703,6 +708,7 @@ contains
 
     real(ccs_real) :: mib ! Cell mass imbalance
     integer(ccs_int) :: nvar ! Number of flow variables to solve
+    integer(ccs_int) :: global_num_cells
 
     logical, save :: first_time = .true.
 
@@ -711,8 +717,6 @@ contains
     class(field), pointer :: w        !< The z velocity component
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
-
-    integer(ccs_int) :: global_num_cells
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
@@ -785,6 +789,12 @@ contains
                                               invAu_data, invAv_data, invAw_data, &
                                               loc_f)
           end if
+        else
+          ! Compute mass flux through face
+          mf_data(index_f) = calc_mass_flux(u, v, w, &
+                                            p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                            invAu_data, invAv_data, invAw_data, &
+                                            loc_f)
         end if
 
         mib = mib + mf_data(index_f) * face_area
