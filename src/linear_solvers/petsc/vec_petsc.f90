@@ -409,7 +409,7 @@ contains
 
   end subroutine set_vector_values_row
 
-  !> Gets the data in a given vector
+  !> Gets the data in a given vector with possibility to overwrite the data.
   module subroutine get_vector_data(vec, array)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
@@ -467,6 +467,48 @@ contains
       call error_abort('Invalid vector type.')
     end select
   end subroutine restore_vector_data
+
+  !> Gets the data in a given vector with readonly access.
+  module subroutine get_vector_data_readonly(vec, array)
+    use petscvec, only: VecGhostGetLocalForm, VecGetArrayReadF90
+    class(ccs_vector), intent(inout) :: vec !< the vector to get data from
+    real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
+    integer :: ierr
+
+    select type (vec)
+    type is (vector_petsc)
+      if (vec%ghosted) then
+        call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
+        call VecGetArrayReadF90(vec%v_local, array, ierr)
+      else
+        call VecGetArrayReadF90(vec%v, array, ierr)
+      end if
+    class default
+      call error_abort('Invalid vector type.')
+    end select
+  end subroutine get_vector_data_readonly
+
+  !> Resets the vector data with readonly access.
+  module subroutine restore_vector_data_readonly(vec, array)
+    use petscvec, only: VecRestoreArrayReadF90, VecGhostRestoreLocalForm
+
+    class(ccs_vector), intent(inout) :: vec !< the vector to reset
+    real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
+
+    integer :: ierr
+
+    select type (vec)
+    type is (vector_petsc)
+      if (vec%ghosted) then
+        call VecRestoreArrayReadF90(vec%v_local, array, ierr)
+        call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
+      else
+        call VecRestoreArrayReadF90(vec%v, array, ierr)
+      end if
+    class default
+      call error_abort('Invalid vector type.')
+    end select
+  end subroutine restore_vector_data_readonly
 
   module subroutine zero_vector(vec)
     use petscvec, only: VecZeroEntries
