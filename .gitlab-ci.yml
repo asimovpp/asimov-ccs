@@ -165,7 +165,6 @@ test_cray_A2:
     - job: ARCHER2_trigger
   extends: [.general_setup, .setup_cray_A2, .test_common]
   script:
-    - exit 17
     - CMP=cray make tests
 
 #-----------------------------------------------------------------------------#
