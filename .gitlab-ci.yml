@@ -136,14 +136,24 @@ test_intelx:
 
 #-----------------------------------------------------------------------------#
 
+manual_trigger_A2:
+  when: 
+    - manual
+  script:
+    - echo "Manual trigger" 
+
 debug_build_cray_A2:
   extends: [.general_setup, .setup_cray_A2]
+  needs:
+    - job: manual_trigger_A2
   script:
     - CMP=cray BUILD=debug make all
   allow_failure: true
 
 build_cray_A2:
   extends: [.general_setup, .setup_cray_A2]
+  needs:
+    - job: manual_trigger_A2
   script:
     - CMP=cray make obj
   artifacts:
