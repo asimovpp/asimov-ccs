@@ -137,6 +137,9 @@ test_intelx:
 #-----------------------------------------------------------------------------#
 
 ARCHER2_trigger:
+  extends: [.general_setup, .setup_cray_A2]
+  variables:
+    ON_COMPUTE: "FALSE"
   when: manual
   script:
     - echo "Manual trigger" 
