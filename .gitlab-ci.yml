@@ -18,6 +18,20 @@
   before_script:
     - source setup_gitlab_runner_env
 
+.setup_cray_A2:
+  tags:
+    - ARCHER2
+  variables:
+    ON_COMPUTE: "TRUE"
+    SLURM_job_name: gitlab-ci-job
+    SLURM_account: i246
+    SLURM_partition: serial
+    SLURM_qos: serial
+    SLURM_time: "00:05:00"
+    SLURM_ntasks: 5
+  before_script:
+    - source ${CRAY_SETUP}
+
 .test_common:
   artifacts:
     when: always
@@ -119,6 +133,29 @@ test_intelx:
     - cray_run_command "slurmctld -vv"
     - cray_run_command "slurmd -vv"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
+
+#-----------------------------------------------------------------------------#
+
+debug_build_cray_A2:
+  extends: [.general_setup, .setup_cray_A2]
+  script:
+    - CMP=cray BUILD=debug make all
+  allow_failure: true
+
+build_cray_A2:
+  extends: [.general_setup, .setup_cray_A2]
+  script:
+    - CMP=cray make obj
+  artifacts:
+    paths: [obj/]
+
+test_cray_A2:
+  needs: 
+    - job: build_cray_A2
+      artifacts: true
+  extends: [.general_setup, .setup_cray_A2, .test_common]
+  script:
+    - CMP=cray make tests
 
 #-----------------------------------------------------------------------------#
 
