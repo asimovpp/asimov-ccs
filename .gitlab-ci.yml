@@ -137,9 +137,7 @@ test_intelx:
 #-----------------------------------------------------------------------------#
 
 manual_trigger_A2:
-  when: 
-    - manual
-  allow_failure: false
+  when: manual
   script:
     - echo "Manual trigger" 
 
