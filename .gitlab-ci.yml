@@ -141,7 +141,6 @@ ARCHER2_trigger:
   variables:
     ON_COMPUTE: "FALSE"
   when: manual
-  allow_failure: false
   script:
     - echo "Manual trigger" 
 
