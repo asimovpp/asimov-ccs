@@ -56,10 +56,11 @@ module fv
 
     !> Sets the diffusion coefficient
     ! XXX: why is this a function when the equivalent advection ones are subroutines?
-    module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+    module function calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections) result(coeff)
       integer(ccs_int), intent(in) :: index_p  !< the local cell index
       integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
       type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
+      logical, intent(in) :: enable_cell_corrections !< whether or not cell corrections shouls be used
       real(ccs_real) :: coeff                  !< the diffusion coefficient
     end function calc_diffusion_coeff
 

@@ -192,6 +192,7 @@ module types
     class(ccs_vector), allocatable :: y_gradients                 !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients                 !< Vector representing the z gradient
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
+    logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -209,6 +210,7 @@ module types
     character(len=:), allocatable :: field_name      !< The name of the field
     integer(ccs_int) :: n_boundaries                 !< The number of boundaries involved...
     logical :: store_residuals = .false.             !< Whether or not residuals should be stored for this field
+    logical :: enable_cell_corrections = .true.      !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
   end type field_spec
 
   !> Type for storing pointer to a field

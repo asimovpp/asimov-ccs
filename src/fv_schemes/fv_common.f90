@@ -139,7 +139,7 @@ contains
         call get_local_index(loc_f, index_f)
 
         if (.not. is_boundary) then
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, phi%enable_cell_corrections)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -172,29 +172,31 @@ contains
           hoe = aP * phi_data(index_p) + aF * phi_data(index_nb)
 
 
-          ! Excentricity correction (convective term)
-          call get_face_normal(loc_f, n)
-          call get_centre(loc_p, x_p)
-          call get_centre(loc_nb, x_nb)
-          call get_centre(loc_f, x_f)
+          if (phi%enable_cell_corrections) then
+            ! Excentricity correction (convective term) (sec 9.7.1)
+            call get_face_normal(loc_f, n)
+            call get_centre(loc_p, x_p)
+            call get_centre(loc_nb, x_nb)
+            call get_centre(loc_f, x_f)
 
-          call get_face_interpolation(loc_f, interpol_factor)
+            call get_face_interpolation(loc_f, interpol_factor)
 
-          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
-          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+            grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
+            grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
 
-          x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
-          grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
+            x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
+            grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
 
-          hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
+            hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
 
 
-          ! Non-orthogonality correction (diffusive flux)
-          a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-          x_nb_prime = x_f + a*n
-          x_p_prime = x_f - a*n
-          
-          hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
+            ! Non-orthogonality correction (diffusive flux) (sec 9.7.2)
+            a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+            x_nb_prime = x_f + a*n
+            x_p_prime = x_f - a*n
+            
+            hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
+          end if
 
           call set_entry(-hoe, b_coeffs)
 
@@ -222,7 +224,7 @@ contains
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, .false.)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
 
@@ -436,10 +438,11 @@ contains
   end subroutine
 
   !> Sets the diffusion coefficient
-  module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+  module function calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections) result(coeff)
     integer(ccs_int), intent(in) :: index_p  !< the local cell index
     integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
     type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
+    logical, intent(in) :: enable_cell_corrections !< Whether or not cell shape corrections are used
     real(ccs_real) :: coeff                  !< the diffusion coefficient
 
     type(face_locator) :: loc_f
@@ -463,19 +466,24 @@ contains
     call create_cell_locator(mesh, index_p, loc_p)
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
-      call get_distance(loc_p, loc_nb, dx)
-      call get_face_normal(loc_f, n)
 
-      call get_centre(loc_p, x_p)
-      call get_centre(loc_nb, x_nb)
-      call get_centre(loc_f, x_f)
+      if (enable_cell_corrections) then
+        call get_face_normal(loc_f, n)
 
-      a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-      !rnb_k_prime = x_f + a*n
-      !rp_prime = x_f - a*n
-      !dx = rnb_k_prime - rp_prime 
-      !dxmag = norm2(dx)
-      dxmag = abs(2.0_ccs_real * a)
+        call get_centre(loc_p, x_p)
+        call get_centre(loc_nb, x_nb)
+        call get_centre(loc_f, x_f)
+
+        a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        !rnb_k_prime = x_f + a*n
+        !rp_prime = x_f - a*n
+        !dx = rnb_k_prime - rp_prime 
+        !dxmag = norm2(dx)
+        dxmag = abs(2.0_ccs_real * a)
+      else
+        call get_distance(loc_p, loc_nb, dx)
+        dxmag = norm2(dx)
+      end if
     else
       call get_distance(loc_p, loc_f, dx)
       dxmag = norm2(dx)

@@ -669,7 +669,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     end select
   end subroutine get_boundary_count
 
-
   module subroutine get_store_residuals(filename, store_residuals)
     character(len=*), intent(in) :: filename
     logical, intent(out) :: store_residuals
@@ -699,6 +698,36 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       call error_abort("type unhandled")
     end select
   end subroutine get_store_residuals
+
+  module subroutine get_enable_cell_corrections(filename, enable_cell_corrections)
+    character(len=*), intent(in) :: filename
+    logical, intent(out) :: enable_cell_corrections
+
+    class(*), pointer :: config_file
+    class(*), pointer :: dict
+    character(:), allocatable :: error
+    type(type_error), allocatable :: io_err
+    logical :: value_present
+
+    config_file => parse(filename, error)
+    if (allocated(error)) then
+      call error_abort(trim(error))
+    end if
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("variables", required=.true., error=io_err)
+      !call error_handler(io_err)
+
+      call get_value(dict, "enable_cell_corrections", enable_cell_corrections, value_present)
+      ! do not store residuals by default
+      if (.not. value_present) then
+        enable_cell_corrections = .true.
+      end if
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_enable_cell_corrections
 
   module subroutine get_variables(config_file, variables)
     class(*), pointer, intent(in) :: config_file
