@@ -70,6 +70,9 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
+    real(ccs_real), dimension(:), pointer :: x_gradients_data    ! Data array for x gradient
+    real(ccs_real), dimension(:), pointer :: y_gradients_data    ! Data array for y gradient
+    real(ccs_real), dimension(:), pointer :: z_gradients_data    ! Data array for z gradient
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
@@ -78,6 +81,13 @@ contains
     real(ccs_real) :: diff_coeff, diff_coeff_total
     real(ccs_real) :: adv_coeff, adv_coeff_total
     real(ccs_real), dimension(ndim) :: face_normal
+    real(ccs_real), dimension(ndim) :: grad_phi_p 
+    real(ccs_real), dimension(ndim) :: grad_phi_k_prime
+    real(ccs_real), dimension(ndim) :: grad_phi_nb
+    real(ccs_real) :: interpol_factor
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime, x_f_prime
+    real(ccs_real), dimension(ndim) :: n
+
     logical :: is_boundary
 
     integer(ccs_int) :: index_f
@@ -87,6 +97,11 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
+    real(ccs_real) :: a
+
+    call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
+    call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
+    call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
@@ -158,33 +173,28 @@ contains
 
 
           ! Excentricity correction (convective term)
-
-          call get_vector_data(phi%x_gradients, x_gradients_data)
-          call get_vector_data(phi%y_gradients, y_gradients_data)
-          call get_vector_data(phi%z_gradients, z_gradients_data)
-
+          call get_face_normal(loc_f, n)
           call get_centre(loc_p, x_p)
           call get_centre(loc_nb, x_nb)
-          call get_centre(loc_f, rk)
+          call get_centre(loc_f, x_f)
 
-          rk_prime = x_p*interpol_factor + (1-interpol_factor) * x_nb
-          grad_phi_k_prime = (/ interpol_factor * x_gradients_data(index_p) + (1.0_ccs_real - interpol_factor)* x_gradients_data(index_nb), &
-                                interpol_factor * y_gradients_data(index_p) + (1.0_ccs_real - interpol_factor)* y_gradients_data(index_nb), &
-                                interpol_factor * z_gradients_data(index_p) + (1.0_ccs_real - interpol_factor)* z_gradients_data(index_nb) /)
-          hoe = hoe + dot_product(grad_phi_k_prime, rk - rk_prime) * (sgn * mf(index_f) * face_area)
+          call get_face_interpolation(loc_f, interpol_factor)
+
+          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
+          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+
+          x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
+          grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
+
+          hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
 
 
-          ! Non orthogonality correction (diffusive flux)
-
-          a = min(dot_product(rk - x_p, n), dot_product(x_nb - rk, n))
-          rnb_k_prime = rk + a*n
-          rp_prime = rk - a*n
-          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb)/)
-          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p)/)
+          ! Non-orthogonality correction (diffusive flux)
+          a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+          x_nb_prime = x_f + a*n
+          x_p_prime = x_f - a*n
           
-          hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
-          ! todo fix diff_coeff? divide by mag |rnk_prime - rp_prime|
-
+          hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
 
           call set_entry(-hoe, b_coeffs)
 
@@ -255,6 +265,10 @@ contains
       call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
       call set_values(mat_coeffs, M)
     end do
+
+    call restore_vector_data_readonly(phi%x_gradients, x_gradients_data)
+    call restore_vector_data_readonly(phi%y_gradients, y_gradients_data)
+    call restore_vector_data_readonly(phi%z_gradients, z_gradients_data)
 
     deallocate (mat_coeffs%global_row_indices)
     deallocate (mat_coeffs%global_col_indices)
@@ -433,7 +447,12 @@ contains
     real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
     real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real), dimension(ndim) :: n
+    real(ccs_real), dimension(ndim) :: x_p
+    real(ccs_real), dimension(ndim) :: x_nb
+    real(ccs_real), dimension(ndim) :: x_f
     real(ccs_real) :: dxmag
+    real(ccs_real) :: a
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
@@ -445,10 +464,22 @@ contains
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
+      call get_face_normal(loc_f, n)
+
+      call get_centre(loc_p, x_p)
+      call get_centre(loc_nb, x_nb)
+      call get_centre(loc_f, x_f)
+
+      a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+      !rnb_k_prime = x_f + a*n
+      !rp_prime = x_f - a*n
+      !dx = rnb_k_prime - rp_prime 
+      !dxmag = norm2(dx)
+      dxmag = abs(2.0_ccs_real * a)
     else
       call get_distance(loc_p, loc_f, dx)
+      dxmag = norm2(dx)
     end if
-    dxmag = sqrt(sum(dx**2))
 
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
