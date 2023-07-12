@@ -74,7 +74,7 @@ contains
     real(ccs_real), dimension(3) :: dphiF, dphiP, d
     real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m
 
-    integer(ccs_int) :: index_p, index_nb
+    integer(ccs_int) :: index_p, index_nb, index_bc
 
     !store values of phi filed in phi_data array
     call get_vector_data(phi%values, phi_data)
@@ -98,72 +98,72 @@ contains
 
     beta_m = 0.35_ccs_real !value can be varied between 0.1 and 0.5
 
-    if (mf < 0.0) then
-      phiP = phi_data(index_nb)
-      phiF = phi_data(index_p)
+    if (bc == 0) then
+      ! Interior face
+      ! -------------
+      if (mf < 0.0) then
+        phiP = phi_data(index_nb)
+        phiF = phi_data(index_p)
 
-      !Gradient of phi at cell center (current cell)
-      dphiP(1) = dphidx(index_nb)
-      dphiP(2) = dphidy(index_nb)
-      dphiP(3) = dphidz(index_nb)
+        !Gradient of phi at cell center (current cell)
+        dphiP(1) = dphidx(index_nb)
+        dphiP(2) = dphidy(index_nb)
+        dphiP(3) = dphidz(index_nb)
 
-      !Gradient of phi at cell center (neighbouring cell)
-      dphiF(1) = dphidx(index_p)
-      dphiF(2) = dphidy(index_p)
-      dphiF(3) = dphidz(index_p)
+        !Gradient phi at cell face
+        dphi = phiF - phiP
 
-      !Gradient phi at cell face
-      dphi = phiF - phiP
+        !Get the distance between present and neighbouring cell centers and store it in d
+        call get_distance(loc_p, loc_nb, d)
+        d = -1.0_ccs_real * d
 
-      !Get the distance between present and neighbouring cell centers and store it in d
-      call get_distance(loc_p, loc_nb, d)
-      d = -1.0_ccs_real * d
+        !calculate the normalized phi
+        ddphi = 2.0_ccs_real * dot_product(dphiP, d)
+        phiPt = 1.0_ccs_real - (dphi / ddphi)
 
-      !calculate the normalized phi
-      ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-      phiPt = 1.0_ccs_real - (dphi / ddphi)
+        if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
+          coeff = 1.0_ccs_real
+        else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
+          coeff = 0.5_ccs_real
+        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+          gamma_m = phiPt / beta_m
+          coeff = 1.0_ccs_real - 0.5_ccs_real * gamma_m
+        end if
+      else
+        phiP = phi_data(index_p)
+        phiF = phi_data(index_nb)
 
-      if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
-        coeff = 1.0_ccs_real
-      else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
-        coeff = 0.5_ccs_real
-      else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
-        gamma_m = phiPt / beta_m
-        coeff = 1.0_ccs_real - 0.5_ccs_real * gamma_m
+        !Gradient of phi at cell center (current cell)
+        dphiP(1) = dphidx(index_p)
+        dphiP(2) = dphidy(index_p)
+        dphiP(3) = dphidz(index_p)
+
+        !Gradient phi at cell face
+        dphi = phiF - phiP
+
+        !Get the distance between present and neighbouring cell centers and store it in d
+        call get_distance(loc_p, loc_nb, d)
+
+        !calculate the normalized phi
+        ddphi = 2.0_ccs_real * dot_product(dphiP, d)
+        phiPt = 1.0_ccs_real - (dphi / ddphi)
+
+        if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
+          coeff = 0.0_ccs_real
+        else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
+          coeff = 0.5_ccs_real
+        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+          gamma_m = phiPt / beta_m
+          coeff = 0.5_ccs_real * gamma_m
+        end if
       end if
+
     else
-      phiP = phi_data(index_p)
-      phiF = phi_data(index_nb)
-
-      !Gradient of phi at cell center (current cell)
-      dphiP(1) = dphidx(index_p)
-      dphiP(2) = dphidy(index_p)
-      dphiP(3) = dphidz(index_p)
-
-      !Gradient of phi at cell center (neighbouring cell)
-      dphiF(1) = dphidx(index_nb)
-      dphiF(2) = dphidy(index_nb)
-      dphiF(3) = dphidz(index_nb)
-
-      !Gradient phi at cell face
-      dphi = phiF - phiP
-
-      !Get the distance between present and neighbouring cell centers and store it in d
-      call get_distance(loc_p, loc_nb, d)
-
-      !calculate the normalized phi
-      ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-      phiPt = 1.0_ccs_real - (dphi / ddphi)
-
-      if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
-        coeff = 0.0_ccs_real
-      else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
-        coeff = 0.5_ccs_real
-      else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
-        gamma_m = phiPt / beta_m
-        coeff = 0.5_ccs_real * gamma_m
-      end if
-    end if
+      ! Boundary face
+      ! -------------
+      ! (Assume CDS - is this correct?)
+      coeff = 0.5_ccs_real
+    endif
 
     ! Restore vectors
     call restore_vector_data(phi%values, phi_data)
