@@ -71,10 +71,10 @@ contains
 
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
-    real(ccs_real), dimension(3) :: dphiF, dphiP, d
+    real(ccs_real), dimension(3) :: dphiP, d
     real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m
 
-    integer(ccs_int) :: index_p, index_nb, index_bc
+    integer(ccs_int) :: index_p, index_nb
 
     !store values of phi filed in phi_data array
     call get_vector_data(phi%values, phi_data)
