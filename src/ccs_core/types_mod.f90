@@ -161,7 +161,15 @@ module types
     integer(ccs_int), dimension(:), allocatable :: ids
     integer(ccs_int), dimension(:), allocatable :: bc_types
     real(ccs_real), dimension(:), allocatable :: values
+    type(bc_profile), dimension(:), allocatable :: profiles
   end type bc_config
+
+  !> Boundary condition profile
+  type, public :: bc_profile
+    real(ccs_real), dimension(:), allocatable :: centre      ! reference location for the coordinates
+    real(ccs_real), dimension(:), allocatable :: coordinates ! coordinates at which a value is defined, this is the distance to the centre reference location
+    real(ccs_real), dimension(:), allocatable :: values      ! boundary condition values associated to each coordinate
+  end type bc_profile
 
   !v Wrapper class for ccs_vector
   !
@@ -202,7 +210,7 @@ module types
     integer :: field_type                            !< Flag to identify which type of field to create
     character(len=:), allocatable :: field_name      !< The name of the field
     integer(ccs_int) :: n_boundaries                 !< The number of boundaries involved...
-    logical :: store_residuals = .false.             !< Wether or not residuals should be stored for this field
+    logical :: store_residuals = .false.             !< Whether or not residuals should be stored for this field
   end type field_spec
 
   !> Type for storing pointer to a field

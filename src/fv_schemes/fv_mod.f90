@@ -6,7 +6,7 @@ module fv
 
   use kinds, only: ccs_real, ccs_int
   use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, gamma_field, bc_config, &
-                   face_locator, cell_locator, neighbour_locator
+                   face_locator, cell_locator, neighbour_locator, bc_profile
   use constants, only: ndim
 
   implicit none
@@ -20,6 +20,8 @@ module fv
   public :: calc_cell_coords
   public :: update_gradient
   public :: compute_boundary_values
+  public :: compute_boundary_coeffs
+  public :: get_value_from_bc_profile
   public :: add_fixed_source
   public :: add_linear_source
   
@@ -131,16 +133,32 @@ module fv
     end subroutine update_gradient
 
     !> Computes the value of the scalar field on the boundary
-    module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
-                                              x_gradients, y_gradients, z_gradients)
+    module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
       class(field), intent(inout) :: phi                         !< the field for which boundary values are being computed
       integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
       type(cell_locator), intent(in) :: loc_p                 !< location of cell
       type(face_locator), intent(in) :: loc_f                 !< location of face
       real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
       real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
-      real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
     end subroutine
+  
+    module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
+      class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
+      integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
+      type(cell_locator), intent(in) :: loc_p                 !< location of cell
+      type(face_locator), intent(in) :: loc_f                 !< location of face
+      real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
+      real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
+      real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
+    end subroutine
+
+    !> Linear interpolate of BC profile 
+    module subroutine get_value_from_bc_profile(x, profile, bc_value)
+        real(ccs_real), dimension(:), intent(in) :: x !< Location of the interpolation
+        type(bc_profile), intent(in) :: profile       !< boundary condition profile
+        real(ccs_real), intent(out) :: bc_value       !< Interpolated value
+    end subroutine get_value_from_bc_profile
+
 
     !> Adds a fixed source term to the righthand side of the equation
     module subroutine add_fixed_source(mesh, S, rhs)

@@ -27,8 +27,8 @@ module vec
   public :: vec_norm
   public :: initialise_vector
   public :: set_vector_size
-  public :: get_vector_data
-  public :: restore_vector_data
+  public :: get_vector_data, get_vector_data_readonly
+  public :: restore_vector_data, restore_vector_data_readonly
   public :: set_vector_location
   public :: vec_reciprocal
   public :: zero_vector
@@ -146,7 +146,7 @@ module vec
       type(vector_spec), intent(inout) :: vec_properties !< the vector data object
     end subroutine set_vector_size
 
-    !> Gets the data in a given vector
+    !> Gets the data in a given vector with possibility to overwrite the data.
     module subroutine get_vector_data(vec, array)
       class(ccs_vector), intent(inout) :: vec                        !< the vector to get data from
       real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
@@ -158,6 +158,18 @@ module vec
       real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
     end subroutine restore_vector_data
 
+    !> Gets the data in a given vector with readonly access.
+    module subroutine get_vector_data_readonly(vec, array)
+      class(ccs_vector), intent(inout) :: vec                        !< the vector to get data from
+      real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
+    end subroutine get_vector_data_readonly
+
+    !> Restores the vector data with readonly access.
+    module subroutine restore_vector_data_readonly(vec, array)
+      class(ccs_vector), intent(inout) :: vec                       !< the vector to reset
+      real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
+    end subroutine restore_vector_data_readonly
+    
     !> Set vector values to be located at either cell-centre or face
     module subroutine set_vector_location(loc, vec_properties)
       integer(ccs_int), intent(in) :: loc

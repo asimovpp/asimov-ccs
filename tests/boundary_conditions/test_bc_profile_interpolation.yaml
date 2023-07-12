@@ -1,0 +1,5 @@
+# RUN: %build_test %s %t1 test_bc_profile_interpolation.f90
+# RUN: %mpirun -n 1 %t1
+
+main: test_bc_profile_interpolation
+base: mpi_petsc

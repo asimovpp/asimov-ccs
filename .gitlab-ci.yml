@@ -18,6 +18,20 @@
   before_script:
     - source setup_gitlab_runner_env
 
+.setup_cray_A2:
+  tags:
+    - ARCHER2
+  variables:
+    ON_COMPUTE: "TRUE"
+    SLURM_job_name: gitlab-ci-job
+    SLURM_account: i246
+    SLURM_partition: serial
+    SLURM_qos: serial
+    SLURM_time: "00:10:00"
+    SLURM_ntasks: 5
+  before_script:
+    - source ${CRAY_SETUP}
+
 .test_common:
   artifacts:
     when: always
@@ -96,13 +110,13 @@ test_intelx:
 
 #-----------------------------------------------------------------------------#
 
-debug_build_cray:
+.debug_build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
   allow_failure: true
 
-build_cray:
+.build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"
@@ -119,6 +133,42 @@ build_cray:
     - cray_run_command "slurmctld -vv"
     - cray_run_command "slurmd -vv"
     - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
+
+#-----------------------------------------------------------------------------#
+
+ARCHER2_trigger:
+  extends: [.general_setup, .setup_cray_A2]
+  variables:
+    ON_COMPUTE: "FALSE"
+  when: manual
+  script:
+    - echo "Manual trigger" 
+
+debug_build_cray_A2:
+  extends: [.general_setup, .setup_cray_A2]
+  needs:
+    - job: ARCHER2_trigger
+  script:
+    - CMP=cray BUILD=debug make all
+  allow_failure: true
+
+build_cray_A2:
+  extends: [.general_setup, .setup_cray_A2]
+  needs:
+    - job: ARCHER2_trigger
+  script:
+    - CMP=cray make obj
+  artifacts:
+    paths: [obj/]
+
+test_cray_A2:
+  needs: 
+    - job: build_cray_A2
+      artifacts: true
+    - job: ARCHER2_trigger
+  extends: [.general_setup, .setup_cray_A2, .test_common]
+  script:
+    - CMP=cray make tests
 
 #-----------------------------------------------------------------------------#
 
