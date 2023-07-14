@@ -194,6 +194,8 @@ module types
   end type
   type, public, extends(field) :: gamma_field
   end type
+  type, public, extends(field) :: lupwind_field
+  end type
 
   !> Field specification type, used for defining new fields.
   type, public :: field_spec
