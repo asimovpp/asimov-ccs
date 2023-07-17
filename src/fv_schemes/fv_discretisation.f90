@@ -248,100 +248,87 @@ contains
     associate (scalar => phi, foo => bc, bar => loc_f)
     end associate
 
-    if (mf < 0.0) then
-      phiP = phi_data(index_nb)
-      phiF = phi_data(index_p)
+    if (bc == 0) then
+      ! Internal face
+      ! -------------
+      if (mf < 0.0) then
+        phiP = phi_data(index_nb)
+        phiF = phi_data(index_p)
 
-      !Gradient of phi at cell center (current cell)
-      dphiP(1) = dphidx(index_nb)
-      dphiP(2) = dphidy(index_nb)
-      dphiP(3) = dphidz(index_nb)
+        !Gradient of phi at cell center (current cell)
+        dphiP(1) = dphidx(index_nb)
+        dphiP(2) = dphidy(index_nb)
+        dphiP(3) = dphidz(index_nb)
 
-      !Gradient of phi at cell center (neighbouring cell)
-      dphiF(1) = dphidx(index_p)
-      dphiF(2) = dphidy(index_p)
-      dphiF(3) = dphidz(index_p)
+        !Gradient of phi at cell center (neighbouring cell)
+        dphiF(1) = dphidx(index_p)
+        dphiF(2) = dphidy(index_p)
+        dphiF(3) = dphidz(index_p)
 
-      !Gradient phi at cell face
-      dphi = phiF - phiP
+        !Gradient phi at cell face
+        dphi = phiF - phiP
 
-      !Get the distance between present and neighbouring cell centers and store it in d
-      call get_distance(loc_p, loc_nb, d)
-      d = -1.0_ccs_real * d
+        !Get the distance between present and neighbouring cell centers and store it in d
+        call get_distance(loc_p, loc_nb, d)
+        d = -1.0_ccs_real * d
 
-      !calculate the normalized phi
-      ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-      phiPt = 1.0_ccs_real - (dphi / ddphi)
+        !calculate the normalized phi
+        ddphi = 2.0_ccs_real * dot_product(dphiP, d)
+        phiPt = 1.0_ccs_real - (dphi / ddphi)
 
-      if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
-        coeffaF = 1.0_ccs_real
-      else !LUDS
-          call get_centre(loc_f,face_center)
-          call get_centre(loc_p, cell_center)
-          d = face_center - cell_center
-          !coeffaF =1.0_ccs_real-(1.0_ccs_real + (dot_product(dphiP,d))/phiF)
-          !coeffaF = 1.0_ccs_real + ((dot_product(dphiP,d))/phiF) !correct trend
-          !coeffaF = -((dot_product(dphiP,d))/phiP)
-          coeffaF =1.0_ccs_real + ((dot_product(dphiP,d))/phiP)
-          !print*,"mf<0, coeff=",coeffaF
-          !print*,"mf<0, d=",d
-          !coeffaF = (phiP + dot_product(dphiP,d))/(face_area*mf)
-          !print*,"coeff=",coeff,"mf=",mf
-          !coeff = 1.0_ccs_real + ((dot_product(dphiP,d))/phiP)
-          !print*,"mf<0, dot pro=",dot_product(dphiP,d),"phiP=",phiP
-          !print*,"coeff=",coeff,"phiP=",phiP
-          !print*,"mf<0, coeff=",coeff
-          !coeff = (1.0_ccs_real - coeff)           
-      end if 
-      !coeff = 1.0_ccs_real
-      coeffaP = 0.0_ccs_real
+        if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
+          coeffaF = 1.0_ccs_real
+          coeffaP = 0.0_ccs_real
+        else !LUDS
+          call get_distance(loc_nb, loc_f, d)
+          coeffaF = 1.0_ccs_real
+          if (dabs(phiP) > 0.0_ccs_real) then
+            coeffaF = coeffaF + (dot_product(dphiP,d) / phiP)
+          endif
+          coeffaP = 0.0_ccs_real
+        end if
+      else
+        phiP = phi_data(index_p)
+        phiF = phi_data(index_nb)
+
+        !Gradient of phi at cell center (current cell)
+        dphiP(1) = dphidx(index_p)
+        dphiP(2) = dphidy(index_p)
+        dphiP(3) = dphidz(index_p)
+
+        !Gradient of phi at cell center (neighbouring cell)
+        dphiF(1) = dphidx(index_nb)
+        dphiF(2) = dphidy(index_nb)
+        dphiF(3) = dphidz(index_nb)
+
+        !Gradient phi at cell face
+        dphi = phiF - phiP
+
+        !Get the distance between present and neighbouring cell centers and store it in d
+        call get_distance(loc_p, loc_nb, d)
+
+        !calculate the normalized phi
+        ddphi = 2.0_ccs_real * dot_product(dphiP, d)
+        phiPt = 1.0_ccs_real - (dphi / ddphi)
+
+        if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
+          coeffaF = 0.0_ccs_real
+          coeffaP = 1.0_ccs_real
+        else !LUDS
+          call get_distance(loc_p, loc_f, d)
+          coeffaP = 1.0_ccs_real
+          if (dabs(phiP) > 0.0_ccs_real) then
+            coeffaP = coeffaP + (dot_product(dphiP,d) / phiP)
+          endif
+          coeffaF = 0.0_ccs_real
+        end if
+      endif
     else
-      phiP = phi_data(index_p)
-      phiF = phi_data(index_nb)
-
-      !Gradient of phi at cell center (current cell)
-      dphiP(1) = dphidx(index_p)
-      dphiP(2) = dphidy(index_p)
-      dphiP(3) = dphidz(index_p)
-
-      !Gradient of phi at cell center (neighbouring cell)
-      dphiF(1) = dphidx(index_nb)
-      dphiF(2) = dphidy(index_nb)
-      dphiF(3) = dphidz(index_nb)
-
-      !Gradient phi at cell face
-      dphi = phiF - phiP
-
-      !Get the distance between present and neighbouring cell centers and store it in d
-      call get_distance(loc_p, loc_nb, d)
-
-      !calculate the normalized phi
-      ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-      phiPt = 1.0_ccs_real - (dphi / ddphi)
-
-      if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
-        coeffaF = 0.0_ccs_real
-      else !LUDS
-          call get_centre(loc_f,face_center)
-          call get_centre(loc_p, cell_center)
-          d = face_center - cell_center
-          !coeffaF = 1.0_ccs_real + ((dot_product(dphiP,d))/phiF) !correct trend
-          !coeffaF = -((dot_product(dphiP,d))/phiP)
-          coeffaP =1.0_ccs_real + ((dot_product(dphiP,d))/phiP)
-          !print*,"mf>0, coeff=",coeffaF
-          !print*,"mf<0, d=",d
-          !coeffaF = (phiP + dot_product(dphiP,d))/(face_area*mf)
-          !print*,"coeff=",coeff,"mf=",mf
-          !coeff = 1.0_ccs_real + ((dot_product(dphiP,d))/phiP)
-          !print*,"mf<0, dot pro=",dot_product(dphiP,d),"phiP=",phiP
-          !print*,"coeff=",coeff,"phiP=",phiP
-          !print*,"mf<0, coeff=",coeff
-          !coeff = (1.0_ccs_real - coeff)      
-
-      end if 
-      coeffaF = 0.0_ccs_real
-      !coeff = 0.0_ccs_real
-    end if
+      ! Boundary face
+      ! -------------
+      coeffaF = 0.5_ccs_real
+      coeffaP = 0.5_ccs_real
+    endif
 
     ! Restore vectors
     call restore_vector_data(phi%values, phi_data)
