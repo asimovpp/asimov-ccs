@@ -22,6 +22,7 @@ module parallel
   public :: query_stop_run
   public :: create_shared_array
   public :: is_root
+  public :: set_mpi_parameters
 
   interface
 
@@ -83,6 +84,11 @@ module parallel
       logical :: stop_run
     end function
 
+    !> Sets mpi parameters inside a parallel environment
+    module subroutine set_mpi_parameters(par_env)
+      class(parallel_environment), intent(inout) :: par_env !< The parallel environment being updated
+    end subroutine set_mpi_parameters
+
     !> Create an MPI shared memory array
     module subroutine create_shared_array_int_1D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
@@ -96,6 +102,13 @@ module parallel
       class(parallel_environment), intent(in) :: par_env
       logical :: isroot
     end function
+  
+    !> Sets the colour for splitting the parallel environment based on the split value provided
+    module subroutine set_colour_from_split(par_env, split_type, colour)
+      class(parallel_environment), intent(in) :: par_env    !< The parallel environment
+      integer, intent(in) :: split_type                     !< Split value provided
+      integer, intent(out) :: colour                        !< The resulting colour
+    end subroutine
 
   end interface
 
