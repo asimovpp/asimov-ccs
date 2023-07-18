@@ -52,10 +52,10 @@ contains
 
   !v Creates a new parallel environment by splitting the existing one, splitting
   !  based on provided MPI constants or a provided colouring
-  module subroutine create_new_par_env(parent_par_env, split, split_type_flag, par_env)
+  module subroutine create_new_par_env(parent_par_env, split, use_mpi_splitting, par_env)
     class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
     integer, intent(in) :: split                                      !< The value indicating which type of split is being performed, or the user provided colour
-    logical, intent(in) :: split_type_flag                            !< Flag indicating whether to use mpi_comm_split_type
+    logical, intent(in) :: use_mpi_splitting                          !< Flag indicating whether to use mpi_comm_split_type
     class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
 
     integer :: newcomm
@@ -63,7 +63,7 @@ contains
 
     select type (parent_par_env)
     type is (parallel_environment_mpi)
-      if (split_type_flag) then
+      if (use_mpi_splitting) then
         call mpi_comm_split_type(parent_par_env%comm, split, 0, MPI_INFO_NULL, newcomm, ierr) 
       else 
         call mpi_comm_split(parent_par_env%comm, split, 0, newcomm, ierr) 
