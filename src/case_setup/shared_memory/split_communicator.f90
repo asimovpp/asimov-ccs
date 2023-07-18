@@ -29,7 +29,6 @@ program split_communicator
     call error_abort("Unsupported parallel environment")
   end select
 
-  !call cleanup_parallel_environment(par_env_L3)
   call cleanup_parallel_environment(par_env)
 
 end program split_communicator
