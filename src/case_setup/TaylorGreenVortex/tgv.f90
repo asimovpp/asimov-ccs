@@ -110,7 +110,6 @@ program tgv
   ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
 
-  !if (irank == par_env%root) print *, "Starting ", case_name, " case!"
   if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
