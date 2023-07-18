@@ -12,6 +12,7 @@ module parallel
   private
 
   public :: initialise_parallel_environment
+  public :: create_new_par_env
   public :: cleanup_parallel_environment
   public :: sync
   public :: read_command_line_arguments
@@ -24,6 +25,12 @@ module parallel
 
     !> Create the parallel environment
     module subroutine initialise_parallel_environment(par_env)
+      class(parallel_environment), allocatable, intent(out) :: par_env
+    end subroutine
+
+    module subroutine create_new_par_env(parent_par_env, split_type, par_env)
+      class(parallel_environment), intent(in) :: parent_par_env
+      integer, intent(in) :: split_type
       class(parallel_environment), allocatable, intent(out) :: par_env
     end subroutine
 
