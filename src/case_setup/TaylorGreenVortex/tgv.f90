@@ -22,7 +22,7 @@ program tgv
   use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, query_stop_run
+                      read_command_line_arguments, sync, query_stop_run, is_root
   use parallel_types, only: parallel_environment
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
@@ -110,7 +110,8 @@ program tgv
   ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+  !if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
