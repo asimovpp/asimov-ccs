@@ -20,6 +20,7 @@ module parallel
   public :: error_handling !TODO: consider if this should be public (used with "raw" MPI calls in some places)
   public :: query_stop_run
   public :: create_shared_array
+  public :: is_root
 
   interface
 
@@ -79,6 +80,12 @@ module parallel
       integer(ccs_int), pointer, dimension(:), intent(out) :: array
       integer, intent(out) :: window
     end subroutine
+
+    !> Test whether current rank is root of communicator
+    module function is_root(par_env) result(isroot)
+      class(parallel_environment), intent(in) :: par_env
+      logical :: isroot
+    end function
 
   end interface
 

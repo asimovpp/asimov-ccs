@@ -188,4 +188,24 @@ contains
 
   end function
 
+  !> Check whether current process is root process in communicator
+  module function is_root(par_env) result(isroot)
+    class(parallel_environment), intent(in) :: par_env !< parallel environment
+    logical :: isroot
+
+    isroot = .false.
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      if (par_env%proc_id == par_env%root) then
+        isroot = .true.
+      end if
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end function is_root
+
 end submodule parallel_utils_mpi
