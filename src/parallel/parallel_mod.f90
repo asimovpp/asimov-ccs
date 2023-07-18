@@ -19,6 +19,7 @@ module parallel
   public :: allreduce
   public :: error_handling !TODO: consider if this should be public (used with "raw" MPI calls in some places)
   public :: query_stop_run
+  public :: create_shared_array
 
   interface
 
@@ -71,6 +72,18 @@ module parallel
       logical :: stop_run
     end function
 
+    !> Create an MPI shared memory array
+    module subroutine create_shared_array_int_1D(shared_env, length, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), intent(in) :: length
+      integer(ccs_int), pointer, dimension(:), intent(out) :: array
+      integer, intent(out) :: window
+    end subroutine
+
+  end interface
+
+  interface create_shared_array
+    module procedure create_shared_array_int_1D
   end interface
 
   interface allreduce
