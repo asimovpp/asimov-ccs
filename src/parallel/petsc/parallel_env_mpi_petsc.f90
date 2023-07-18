@@ -69,7 +69,15 @@ contains
         call mpi_comm_split(parent_par_env%comm, split, 0, newcomm, ierr) 
       end if
       call error_handling(ierr, "mpi", parent_par_env)
-      call create_parallel_environment_from_comm(newcomm, par_env)
+
+      allocate(parallel_environment_mpi :: par_env)
+      select type (par_env)
+      type is (parallel_environment_mpi)
+        call create_parallel_environment_from_comm(newcomm, par_env)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+
     class default
       call error_abort("Unsupported parallel environment")
     end select
@@ -78,40 +86,20 @@ contains
   !> Creates a parallel environment based on the provided communicator
   subroutine create_parallel_environment_from_comm(comm, par_env)
     integer, intent(in) :: comm                                          !< The communicator with which to make the parallel environment
-    class(parallel_environment), allocatable, intent(out) :: par_env   !< The resulting parallel environment
+    type(parallel_environment_mpi), intent(inout) :: par_env   !< The resulting parallel environment
 
-    allocate(parallel_environment_mpi :: par_env)
-    select type (par_env)
-    type is (parallel_environment_mpi)   
-      par_env%comm = comm
-      call parallel_environment_set_rank_size(par_env)
-    class default
-      call error_abort("Unsupported parallel environment")
-    end select
-  end subroutine create_parallel_environment_from_comm
-
-    !> Set parallel environment ranks and communicator size
-  subroutine parallel_environment_set_rank_size(par_env)
-    class(parallel_environment), intent(inout) :: par_env   !< The parallel environment
-
-    ! Local variables
     integer :: ierr
 
-    select type(par_env)
-    type is(parallel_environment_mpi)
-      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-      call error_handling(ierr, "mpi", par_env)
+    par_env%comm = comm
+    call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
+    call error_handling(ierr, "mpi", par_env)
 
-      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-      call error_handling(ierr, "mpi", par_env)
+    call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
+    call error_handling(ierr, "mpi", par_env)
 
-      call par_env%set_rop()
-      
-      par_env%root=0
-    class default
-      call error_abort("Unsupported parallel environment")
-    end select
-  end subroutine parallel_environment_set_rank_size
+    call par_env%set_rop()
+    par_env%root=0
+  end subroutine create_parallel_environment_from_comm
 
   !> Cleanup the PETSc and MPI parallel environments
   module subroutine cleanup_parallel_environment(par_env)
