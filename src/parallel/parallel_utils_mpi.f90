@@ -19,7 +19,7 @@ contains
 
   !> Sets mpi parameters inside a parallel environment
   module subroutine set_mpi_parameters(par_env)
-    class(parallel_environment_mpi), intent(inout) :: par_env !< The parallel environment being updated
+    class(parallel_environment), intent(inout) :: par_env !< The parallel environment being updated
 
     integer :: ierr
 
