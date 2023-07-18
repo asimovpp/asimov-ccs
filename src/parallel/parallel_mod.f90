@@ -28,10 +28,13 @@ module parallel
       class(parallel_environment), allocatable, intent(out) :: par_env
     end subroutine
 
-    module subroutine create_new_par_env(parent_par_env, split_type, par_env)
-      class(parallel_environment), intent(in) :: parent_par_env
-      integer, intent(in) :: split_type
-      class(parallel_environment), allocatable, intent(out) :: par_env
+    !v Creates a new parallel environment by splitting the existing one, splitting
+    !  based on provided MPI constants or a provided colouring
+    module subroutine create_new_par_env(parent_par_env, split, split_type_flag, par_env)
+      class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
+      integer, intent(in) :: split                                      !< The value indicating which type of split is being performed, or the user provided colour
+      logical, intent(in) :: split_type_flag                            !< Flag indicating whether to use mpi_comm_split_type
+      class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
     end subroutine
 
     !> Cleanup the parallel environment

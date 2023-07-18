@@ -52,18 +52,18 @@ contains
 
   !v Creates a new parallel environment by splitting the existing one, splitting
   !  based on provided MPI constants or a provided colouring
-  module subroutine create_new_par_env(parent_par_env, split, split_type, par_env)
-    class(parallel_environment), intent(in) :: parent_par_env   !< The parent parallel environment
-    integer, intent(in) :: split                                !< The value indicating which type of split is being performed, or the user provided colour
-    logical, intent(in) :: split_type                           !< Flag indicating whether to use mpi_comm_split_type
-    class(parallel_environment), allocatable, intent(out) :: par_env !< The resulting parallel environment
+  module subroutine create_new_par_env(parent_par_env, split, split_type_flag, par_env)
+    class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
+    integer, intent(in) :: split                                      !< The value indicating which type of split is being performed, or the user provided colour
+    logical, intent(in) :: split_type_flag                            !< Flag indicating whether to use mpi_comm_split_type
+    class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
 
     integer :: newcomm
     integer :: ierr
 
     select type (parent_par_env)
     type is (parallel_environment_mpi)
-      if (split_type) then
+      if (split_type_flag) then
         call mpi_comm_split_type(parent_par_env%comm, split, 0, MPI_INFO_NULL, newcomm, ierr) 
       else 
         call mpi_comm_split(parent_par_env%comm, split, 0, newcomm, ierr) 
@@ -77,8 +77,8 @@ contains
 	
   !> Creates a parallel environment based on the provided communicator
   subroutine create_parallel_environment_from_comm(comm, par_env)
-    integer, intent(in) :: comm
-    class(parallel_environment), allocatable, intent(inout) :: par_env
+    integer, intent(in) :: comm                                          !< The communicator with which to make the parallel environment
+    class(parallel_environment), allocatable, intent(out) :: par_env   !< The resulting parallel environment
 
     allocate(parallel_environment_mpi :: par_env)
     select type (par_env)

@@ -11,9 +11,11 @@ program split_communicator
 
   class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: par_env_shared
+  logical :: split_flag
   call initialise_parallel_environment(par_env)
 
-  call create_new_par_env(par_env, MPI_COMM_TYPE_SHARED, par_env_shared)
+  split_flag = .true.
+  call create_new_par_env(par_env, MPI_COMM_TYPE_SHARED, split_flag, par_env_shared)
 
   select type (par_env)
   type is (parallel_environment_mpi)
