@@ -73,9 +73,10 @@ contains
     integer(mpi_address_kind) :: base_ptr, byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_int)
+    byte_size = length(1) * length(2) * disp_unit
 
     if (isroot(shared_env)) then
-      allocate_byte_size = length(1) * length(2) * disp_unit
+      allocate_byte_size = byte_size
     else
       allocate_byte_size = 0
     end if
