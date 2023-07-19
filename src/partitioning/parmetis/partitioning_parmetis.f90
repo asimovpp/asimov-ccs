@@ -134,7 +134,7 @@ contains
 
       if (isroot(shared_env)) then
         call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
-                          MPI_LONG, MPI_SUM, par_env%comm, ierr)
+                          MPI_LONG, MPI_SUM, partition_env%comm, ierr)
       end if
 
     class default
