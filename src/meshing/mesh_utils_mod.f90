@@ -415,12 +415,14 @@ contains
     ! Allocate memory for cell volumes array on each MPI rank
     call get_total_num_cells(mesh, total_num_cells)
     allocate (mesh%geo%volumes(total_num_cells))
-    allocate (temp_vol_c(global_num_cells))
 
     ! Read variable "/cell/vol"
+    call create_shared_array(shared_env, global_num_cells, temp_vol_c, &
+         temp_window)
     call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
     mesh%geo%volumes(:) = temp_vol_c(mesh%topo%natural_indices(:))
-
+    call destroy_shared_array(temp_window)
+    
     ! Starting point for reading chunk of data
     x_p_start = (/0, 0/)
 
@@ -429,20 +431,28 @@ contains
 
     ! Allocate memory for cell centre coordinates array on each MPI rank
     allocate (mesh%geo%x_p(ndim, total_num_cells))
-    allocate (temp_x_p(ndim, global_num_cells))
 
     ! Read variable "/cell/x"
+    allocate (temp_x_p(ndim, global_num_cells))
+    call create_shared_array(shared_env, (/ ndim, global_num_cells /), temp_x_p, &
+         temp_window)
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
     mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%natural_indices(:))
-
+    call destroy_shared_array(temp_window)
+    
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     call get_global_num_faces(mesh, global_num_faces)
-    call get_global_num_vertices(mesh, global_num_vertices)
     allocate (temp_x_f(ndim, global_num_faces))
     allocate (temp_n_f(ndim, global_num_faces))
-    allocate (temp_x_v(ndim, global_num_vertices))
     allocate (temp_a_f(global_num_faces))
 
+    call create_shared_array(shared_env, (/ ndim, global_num_faces /), temp_x_f, &
+         temp_x_f_window)
+    call create_shared_array(shared_env, (/ ndim, global_num_faces /), temp_n_f, &
+         temp_n_f_window)
+    call create_shared_array(shared_env, global_num_faces, temp_a_f, &
+         temp_a_f_window)
+    
     f_xn_start = 0
     f_xn_count(1) = ndim
     f_xn_count(2) = global_num_faces
@@ -452,17 +462,20 @@ contains
     ! Read variable "/face/n"
     call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
 
-    f_xn_count(1) = ndim
-    f_xn_count(2) = global_num_vertices
-
-    ! Read variable "/vert"
-    call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
-
     f_a_start = 0
     f_a_count(1) = global_num_faces
 
     ! Read variable "/face/area"
     call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
+
+
+    ! Read variable "/vert"
+    call get_global_num_vertices(mesh, global_num_vertices)
+    call create_shared_array(shared_env, (/ ndim, global_num_vertices /), temp_x_v, &
+         temp_x_v_window)
+    f_xn_count(1) = ndim
+    f_xn_count(2) = global_num_vertices
+    call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
 
     ! Allocate arrays for face centres, face normals, face areas arrand vertex coordinates
     call get_local_num_cells(mesh, local_num_cells)
@@ -471,7 +484,8 @@ contains
     allocate (mesh%geo%face_areas(max_faces, local_num_cells))
     allocate (mesh%geo%vert_coords(ndim, vert_per_cell, local_num_cells))
 
-    !    do k = start, end ! loop over cells owned by current process
+    ! Procs fill local data
+    call MPI_Barrier(shared_env%comm, ierr)
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
       call create_cell_locator(mesh, local_icell, loc_p)
       call get_natural_index(loc_p, global_icell)
@@ -523,12 +537,10 @@ contains
     end do
 
     ! Delete temp arrays
-    deallocate (temp_vol_c)
-    deallocate (temp_x_f)
-    deallocate (temp_x_v)
-    deallocate (temp_x_p)
-    deallocate (temp_n_f)
-    deallocate (temp_a_f)
+    call destroy_shared_array(temp_x_f_window)
+    call destroy_shared_array(temp_x_v_window)
+    call destroy_shared_array(temp_n_f_window)
+    call destroy_shared_array(temp_a_f_window)
 
     call compute_face_interpolation(mesh)
 
