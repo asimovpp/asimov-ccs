@@ -659,6 +659,7 @@ contains
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells_shared_size
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -668,12 +669,22 @@ contains
 
     ! Allocate global partition array
     allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
+    if (isroot(shared_env)) then
+      global_num_cells_shared_size = mesh%topo%global_num_cells
+    else 
+      global_num_cells_shared_size = 0
+    end if
+
+    call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%global_partition, mesh%topo%global_partition_window)
 
     ! Initial global partition
-    do i = 1, size(mesh%topo%vtxdist) - 1
-      j = i - 1
-      mesh%topo%global_partition(mesh%topo%vtxdist(i):mesh%topo%vtxdist(i + 1) - 1) = j
-    end do
+    if (isroot(shared_env)) then
+      do i = 1, size(mesh%topo%vtxdist) - 1
+        j = i - 1
+        mesh%topo%global_partition(mesh%topo%vtxdist(i):mesh%topo%vtxdist(i + 1) - 1) = j
+      end do
+    end if
+
 
     ! Count the number of local cells per rank
     local_num_cells = count(mesh%topo%global_partition == irank)
