@@ -6,7 +6,7 @@ program split_communicator
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
-                      cleanup_parallel_environment, create_shared_roots_comm &
+                      cleanup_parallel_environment, create_shared_roots_comm, &
                       is_valid
   use utils, only: debug_print, str, exit_print
   
@@ -23,8 +23,15 @@ program split_communicator
   select type (par_env)
   type is (parallel_environment_mpi)
     split_flag = .false.
-    call create_new_par_env(par_env, ccs_split_type_shared, split_flag, shared_env)
+    call create_new_par_env(par_env, ccs_split_type_low_high, split_flag, shared_env)
     call create_shared_roots_comm(par_env, shared_env, roots_env)
+    
+    select type (roots_env)
+    type is (parallel_environment_mpi)
+      print *, "parallel env mpi"
+    class default
+      print *, "something else"
+    end select
 
     select type (shared_env)
     type is (parallel_environment_mpi)
