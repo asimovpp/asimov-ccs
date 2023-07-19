@@ -12,6 +12,7 @@ module parallel
   private
 
   public :: initialise_parallel_environment
+  public :: create_new_par_env
   public :: cleanup_parallel_environment
   public :: sync
   public :: read_command_line_arguments
@@ -28,6 +29,16 @@ module parallel
     module subroutine initialise_parallel_environment(par_env)
       class(parallel_environment), allocatable, intent(out) :: par_env
     end subroutine
+
+    !> Creates a new parallel environment by splitting the existing one, splitting
+    !  based on provided MPI constants or a provided colouring
+    module subroutine create_new_par_env(parent_par_env, split, use_mpi_splitting, par_env)
+      class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
+      integer, intent(in) :: split                                      !< The value indicating which type of split is being performed, or the user provided colour
+      logical, intent(in) :: use_mpi_splitting                          !< Flag indicating whether to use mpi_comm_split_type
+      class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
+    end subroutine
+
 
     !> Cleanup the parallel environment
     module subroutine cleanup_parallel_environment(par_env)
@@ -73,11 +84,19 @@ module parallel
       logical :: stop_run
     end function
 
-    !> Create an MPI shared memory array
+    !> Create an integer 1D MPI shared memory array
     module subroutine create_shared_array_int_1D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
       integer(ccs_int), intent(in) :: length
       integer(ccs_int), pointer, dimension(:), intent(out) :: array
+      integer, intent(out) :: window
+    end subroutine
+
+    !> Create an integer 2D MPI shared memory array
+    module subroutine create_shared_array_int_2D(shared_env, length, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), dimension(2), intent(in) :: length
+      integer(ccs_int), pointer, dimension(:,:), intent(out) :: array
       integer, intent(out) :: window
     end subroutine
 
@@ -91,6 +110,7 @@ module parallel
 
   interface create_shared_array
     module procedure create_shared_array_int_1D
+    module procedure create_shared_array_int_2D
   end interface
 
   interface allreduce

@@ -21,6 +21,7 @@ program tgv
   use kinds, only: ccs_real, ccs_int, ccs_long
   use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use parallel, only: initialise_parallel_environment, &
+                      create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, query_stop_run, is_root
   use parallel_types, only: parallel_environment
@@ -43,6 +44,7 @@ program tgv
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
@@ -89,11 +91,17 @@ program tgv
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
+  logical :: split_flag
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
   irank = par_env%proc_id
   isize = par_env%num_procs
+
+  ! Create shared memory communicator for each node
+  split_flag = .true.
+  call create_new_par_env(par_env, MPI_COMM_TYPE_SHARED, split_flag, shared_env)
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
 
@@ -131,7 +139,7 @@ program tgv
   if (cps /= huge(0)) then
     ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
-    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
+    mesh = build_mesh(par_env, shared_env, cps, cps, cps, domain_size)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
     call read_mesh(par_env, case_name, mesh)
