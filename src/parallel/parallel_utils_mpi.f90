@@ -264,9 +264,7 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      if (split_type == ccs_split_type_shared) then 
-        colour = MPI_COMM_TYPE_SHARED
-      else if (split_type == ccs_split_undefined) then 
+      if (split_type == ccs_split_undefined) then 
         colour = MPI_UNDEFINED
       else if (split_type == ccs_split_type_low_high) then
         colour = 0
@@ -300,6 +298,12 @@ contains
     split_flag = .false.
 
     call create_new_par_env(par_env, colour, split_flag, roots_env)
+    select type (roots_env)
+    type is (parallel_environment_mpi)
+      print *, "1 parallel env mpi"
+    class default
+      print *, "1 something else"
+    end select
   end subroutine create_shared_roots_comm
 
 end submodule parallel_utils_mpi
