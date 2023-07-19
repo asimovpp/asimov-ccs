@@ -59,6 +59,7 @@ contains
     class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
 
     integer :: newcomm
+    integer :: colour
     integer :: ierr
 
     select type (parent_par_env)
@@ -66,7 +67,8 @@ contains
       if (use_mpi_splitting) then
         call mpi_comm_split_type(parent_par_env%comm, split, 0, MPI_INFO_NULL, newcomm, ierr) 
       else 
-        call mpi_comm_split(parent_par_env%comm, split, 0, newcomm, ierr) 
+        call set_colour_from_split(parent_par_env, split, colour)
+        call mpi_comm_split(parent_par_env%comm, colour, 0, newcomm, ierr) 
       end if
       call error_handling(ierr, "mpi", parent_par_env)
 
@@ -91,14 +93,7 @@ contains
     integer :: ierr
 
     par_env%comm = comm
-    call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-    call error_handling(ierr, "mpi", par_env)
-
-    call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-    call error_handling(ierr, "mpi", par_env)
-
-    call par_env%set_rop()
-    par_env%root=0
+    call set_mpi_parameters(par_env)
   end subroutine create_parallel_environment_from_comm
 
   !> Cleanup the PETSc and MPI parallel environments
