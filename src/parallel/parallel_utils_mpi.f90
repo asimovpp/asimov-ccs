@@ -253,4 +253,24 @@ contains
     end select
   end subroutine set_colour_from_split
 
+  !> Creates communicator of roots of specified shared environments
+  module subroutine create_shared_roots_comm(par_env, shared_env, roots_env)
+    use constants
+    class(parallel_environment), intent(in) :: par_env      !< The parent parallel environment of the shared_envs
+    class(parallel_environment), intent(in) :: shared_env   !< The shared environments whose roots we want in the root environment
+    class(parallel_environment), allocatable, intent(out) :: roots_env   !< The resulting root environment
+
+    integer :: colour
+    logical :: split_flag
+    
+    if (is_root(shared_env)) then
+      colour = 0
+    else 
+      colour = ccs_split_undefined
+    end if
+
+    split_flag = .false.
+    call create_new_par_env(par_env, colour, split_flag, roots_env)
+  end subroutine create_shared_roots_comm
+
 end submodule parallel_utils_mpi

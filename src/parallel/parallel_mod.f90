@@ -23,6 +23,7 @@ module parallel
   public :: create_shared_array
   public :: is_root
   public :: set_mpi_parameters
+  public :: create_shared_roots_comm
 
   interface
 
@@ -109,6 +110,14 @@ module parallel
       integer, intent(in) :: split_type                     !< Split value provided
       integer, intent(out) :: colour                        !< The resulting colour
     end subroutine
+
+    !> Creates communicator of roots of specified shared environments
+    module subroutine create_shared_roots_comm(par_env, shared_env, roots_env)
+      use constants
+      class(parallel_environment), intent(in) :: par_env      !< The parent parallel environment of the shared_envs
+      class(parallel_environment), intent(in) :: shared_env   !< The shared environments whose roots we want in the root environment
+      class(parallel_environment), intent(out) :: roots_env   !< The resulting root environment
+    end subroutine 
 
   end interface
 
