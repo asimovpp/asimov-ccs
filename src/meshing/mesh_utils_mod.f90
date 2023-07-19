@@ -211,45 +211,59 @@ contains
     end if
 
     call get_global_num_faces(mesh, global_num_faces)
-    allocate (mesh%topo%face_cell1(global_num_faces))
-    allocate (mesh%topo%face_cell2(global_num_faces))
-    allocate (mesh%topo%bnd_rid(global_num_faces))
-    allocate (bnd_rid(num_bnd))
-    allocate (bnd_face(num_bnd))
-
-    call get_global_num_cells(mesh, global_num_cells)
-    call get_vert_per_cell(mesh, vert_per_cell)
-
-    allocate (mesh%topo%global_face_indices(max_faces, global_num_cells))
-    allocate (mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
-
-    sel_start(1) = 0 ! Global index to start reading from
-    sel_count(1) = global_num_faces ! How many elements to read in total
 
     ! Read arrays face/cell1 and face/cell2
-    call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
-    call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
+    call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, &
+         mesh%topo%face_cell1_window)
+    call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, &
+         mesh%topo%face_cell2_window)
 
-    sel_start(1) = 0 ! Global index to start reading from
-    sel_count(1) = num_bnd ! How many elements to read in total
-    call read_array(geo_reader, "/bnd/rid", sel_start, sel_count, bnd_rid)
-    call read_array(geo_reader, "/bnd/face", sel_start, sel_count, bnd_face)
+    if (is_valid(reader_env)) then
+       sel_start(1) = 0 ! Global index to start reading from
+       sel_count(1) = global_num_faces ! How many elements to read in total
+       call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
+       call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
+    end if
+    
+    ! Read bnd data
+    call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, &
+         mesh%topo%bnd_rid_window)
 
-    ! make sure inside faces=0 and boundary faces are negative
-    mesh%topo%bnd_rid(:) = 0_ccs_int
-    mesh%topo%bnd_rid(bnd_face(:)) = -(bnd_rid(:) + 1_ccs_int)
+    if (is_valid(reader_env)) then
+       allocate (bnd_rid(num_bnd))
+       allocate (bnd_face(num_bnd))
 
-    sel2_start = 0
-    sel2_count(1) = max_faces! topo%global_num_cells
-    sel2_count(2) = global_num_cells
+       sel_start(1) = 0 ! Global index to start reading from
+       sel_count(1) = num_bnd ! How many elements to read in total
+       call read_array(geo_reader, "/bnd/rid", sel_start, sel_count, bnd_rid)
+       call read_array(geo_reader, "/bnd/face", sel_start, sel_count, bnd_face)
 
-    call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
+       ! make sure inside faces=0 and boundary faces are negative
+       mesh%topo%bnd_rid(:) = 0_ccs_int
+       mesh%topo%bnd_rid(bnd_face(:)) = -(bnd_rid(:) + 1_ccs_int)
+    end if
 
-    sel2_count(1) = vert_per_cell
+    ! Read global face and vertex indices
+    call get_global_num_cells(mesh, global_num_cells)
+    call get_vert_per_cell(mesh, vert_per_cell)
+    call create_shared_array(shared_env, (/ max_faces, global_num_cells /), mesh%topo%global_face_indices, &
+         mesh%topo%global_face_indices_window)
+    call create_shared_array(shared_env, (/ vert_per_cell, global_num_cells /), mesh%topo%global_vertex_indices, &
+         mesh%topo%global_vertex_indices_window)
 
-    call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
-    call build_vertex_neighbours(par_env, mesh)
+    if (is_valid(reader_env)) then
+       sel2_start = 0
+       sel2_count(1) = max_faces! topo%global_num_cells
+       sel2_count(2) = global_num_cells
 
+       call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
+
+       sel2_count(1) = vert_per_cell
+
+       call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
+       call build_vertex_neighbours(par_env, mesh)
+    end if
+    
     ! Create and populate the vtxdist array based on the total number of cells
     ! and the total number of ranks in the parallel environment
     allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
