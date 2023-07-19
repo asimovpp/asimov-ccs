@@ -31,16 +31,7 @@ contains
       call error_handling(ierr, "mpi", par_env)
 
       par_env%comm = MPI_COMM_WORLD
-
-      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-      call error_handling(ierr, "mpi", par_env)
-
-      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-      call error_handling(ierr, "mpi", par_env)
-
-      call par_env%set_rop()
-
-      par_env%root = 0
+      call set_mpi_parameters(par_env)
 
     class default
       call error_abort("Unsupported parallel environment")

@@ -4,6 +4,7 @@
 
 module constants
 
+  use mpi
   use kinds, only: ccs_int
 
   implicit none
@@ -42,6 +43,11 @@ module constants
   integer(ccs_int), public, parameter :: field_p = 3
   integer(ccs_int), public, parameter :: field_p_prime = 4
   integer(ccs_int), public, parameter :: field_mf = 5
+
+  ! Constants for splitting mpi communicator
+  integer, public, parameter :: ccs_split_type_shared = MPI_COMM_TYPE_SHARED
+  integer, public, parameter :: ccs_split_undefined = -1 ! Our own splits need to be negative so as to not conflict with any possible colouring used
+  integer, public, parameter :: ccs_split_type_low_high = -2 
 
   integer(ccs_int), public, parameter :: ccs_string_len = 128
 
