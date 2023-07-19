@@ -90,8 +90,6 @@ contains
     integer, intent(in) :: comm                                          !< The communicator with which to make the parallel environment
     type(parallel_environment_mpi), intent(inout) :: par_env   !< The resulting parallel environment
 
-    integer :: ierr
-
     par_env%comm = comm
     call set_mpi_parameters(par_env)
   end subroutine create_parallel_environment_from_comm
