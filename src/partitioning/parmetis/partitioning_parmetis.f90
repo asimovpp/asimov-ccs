@@ -49,6 +49,7 @@ contains
 
     ! Local variables
     integer(ccs_long), dimension(:), allocatable :: tmp_partition
+    integer(ccs_int) :: tmp_partition_window
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank
     integer(ccs_int) :: ierr
@@ -88,9 +89,6 @@ contains
     ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
     tpwgts(:) = 1.0 / real(num_procs, c_float) ! Sum of tpwgts(:) should be 1. Check this is correct
 
-    allocate (tmp_partition(mesh%topo%global_num_cells)) ! Temporary partition array
-    tmp_partition = 0
-
     irank = par_env%proc_id ! Current rank
 
     vtxdist = mesh%topo%vtxdist - 1
@@ -123,12 +121,21 @@ contains
 
       mesh%topo%local_partition(:) = local_partition(:)
 
+      if (isroot(shared_env)) then
+        call create_shared_array(shared_env, mesh%topo%global_num_cells, tmp_partition, tmp_partition_window)
+        tmp_partition(:) = 0
+      else
+        call create_shared_array(shared_env, 0, tmp_partition, tmp_partition_window)
+      end if
+
       do i = 1, local_part_size
         tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
 
-      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
-                         MPI_LONG, MPI_SUM, par_env%comm, ierr)
+      if (isroot(shared_env)) then
+        call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
+                          MPI_LONG, MPI_SUM, par_env%comm, ierr)
+      end if
 
     class default
       print *, "ERROR: Unknown parallel environment! "

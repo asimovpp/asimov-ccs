@@ -104,13 +104,18 @@ contains
     ! Allocate new adjacency index array xadj based on new vtxdist
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
 
-    if (allocated(mesh%topo%global_boundaries) .eqv. .false.) then
+    if (associated(mesh%topo%global_boundaries) .eqv. .false.) then
       call get_global_num_cells(mesh, global_num_cells)
-      allocate (mesh%topo%global_boundaries(global_num_cells))
+      if (isroot(shared_env)) then
+        call create_shared_array(shared_env, global_num_cells, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
+
+        ! Reset global_boundaries array
+        mesh%topo%global_boundaries(:) = 0
+      else
+        call create_shared_array(shared_env, 0, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
+      end if
     end if
 
-    ! Reset global_boundaries array
-    mesh%topo%global_boundaries = 0
 
     call get_max_faces(mesh, max_faces)
 
@@ -148,7 +153,10 @@ contains
 
       ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
       if (any(mesh%topo%global_indices == face_nb1) .and. (face_nb2 .eq. 0)) then
+
+        call MPI_Win_lock(MPI_LOCK_EXCLUSIVE, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
         mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
+        call MPI_Win_unlock(shared_env%proc_id, mesh%topo%global_boundaries_window, ierr)
 
         ! read the boundary id from bnd_rid
         face_nb2 = mesh%topo%bnd_rid(i)
@@ -166,6 +174,7 @@ contains
       deallocate (mesh%topo%adjncy)
     end if
 
+    ! XXX: is adjncy still needed? why is it allocated?
     allocate (mesh%topo%adjncy(num_connections))
 
     if (allocated(mesh%topo%face_indices)) then
