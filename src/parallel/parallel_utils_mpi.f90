@@ -311,4 +311,26 @@ contains
 
   end function is_root
 
+  !> Check whether current process is root process in communicator
+  module function is_valid(par_env) result(isvalid)
+    class(parallel_environment), intent(in) :: par_env !< parallel environment
+    logical :: isvalid
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      if (par_env%comm == MPI_COMM_NULL) then
+        isvalid = .false.
+      else if (par_env%comm /= MPI_COMM_NULL) then
+        isvalid = .true. 
+      else 
+        call error_abort("communicator not initialised")
+      end if
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end function is_valid
+
 end submodule parallel_utils_mpi
