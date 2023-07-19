@@ -228,6 +228,30 @@ contains
 
   end function is_root
 
+  !> Check whether current process is root process in communicator
+  module function is_valid(par_env) result(isvalid)
+    class(parallel_environment), intent(in) :: par_env !< parallel environment
+    logical :: isvalid
+
+    isvalid = .false.
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      if (par_env%comm == MPI_COMM_NULL) then
+        isvalid = .false.
+      else if (par_env%comm /= MPI_COMM_NULL) then
+        isvalid = .true. 
+      else 
+        call error_abort("communicator not initialised")
+      end if
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end function is_valid
+
   !> Sets the colour for splitting the parallel environment based on the split value provided
   module subroutine set_colour_from_split(par_env, split_type, colour)
     use constants

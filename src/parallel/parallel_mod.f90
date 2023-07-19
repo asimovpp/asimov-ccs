@@ -22,6 +22,7 @@ module parallel
   public :: query_stop_run
   public :: create_shared_array
   public :: is_root
+  public :: is_valid
   public :: set_mpi_parameters
   public :: create_shared_roots_comm
 
@@ -104,6 +105,12 @@ module parallel
       logical :: isroot
     end function
   
+    !> Check whether current process is root process in communicator
+    module function is_valid(par_env) result(isvalid)
+      class(parallel_environment), intent(in) :: par_env !< parallel environment
+      logical :: isvalid
+    end function is_valid
+
     !> Sets the colour for splitting the parallel environment based on the split value provided
     module subroutine set_colour_from_split(par_env, split_type, colour)
       class(parallel_environment), intent(in) :: par_env    !< The parallel environment
