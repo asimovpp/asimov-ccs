@@ -62,6 +62,8 @@ contains
     integer :: colour
     integer :: ierr
 
+    allocate(parallel_environment_mpi :: par_env)
+
     select type (parent_par_env)
     type is (parallel_environment_mpi)
       if (use_mpi_splitting) then
@@ -72,7 +74,6 @@ contains
       end if
       call error_handling(ierr, "mpi", parent_par_env)
 
-      allocate(parallel_environment_mpi :: par_env)
       select type (par_env)
       type is (parallel_environment_mpi)
         call create_parallel_environment_from_comm(newcomm, par_env)

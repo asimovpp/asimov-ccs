@@ -23,19 +23,21 @@ contains
 
     integer :: ierr
 
-    select type (par_env)
-    type is (parallel_environment_mpi)
-      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
-      call error_handling(ierr, "mpi", par_env)
+    if (is_valid(par_env)) then
+      select type (par_env)
+      type is (parallel_environment_mpi)
+        call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
-      call error_handling(ierr, "mpi", par_env)
+        call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
+        call error_handling(ierr, "mpi", par_env)
 
-      call par_env%set_rop()
-      par_env%root=0
-    class default
-      call error_abort("Unsupported parallel environment")
-    end select
+        call par_env%set_rop()
+        par_env%root=0
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+    end if
   end subroutine set_mpi_parameters
 
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
@@ -288,12 +290,13 @@ contains
     logical :: split_flag
     
     if (is_root(shared_env)) then
-      colour = 0
+      colour = 1
     else 
       colour = ccs_split_undefined
     end if
 
     split_flag = .false.
+
     call create_new_par_env(par_env, colour, split_flag, roots_env)
   end subroutine create_shared_roots_comm
 
