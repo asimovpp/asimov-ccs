@@ -19,7 +19,13 @@ program split_communicator
 
   select type (par_env)
   type is (parallel_environment_mpi)
-    colour = modulo(par_env%proc_id, 2) * 2 - 1
+    ! Testing user split functionality with MPI_COMM_NULL communicator for even ranks.
+    if (modulo(par_env%proc_id, 2) == 1) then
+      colour = 1
+    else
+      colour = -1
+    end if
+
     split_flag = .false.
     call create_new_par_env(par_env, colour, split_flag, par_env_shared)
 
