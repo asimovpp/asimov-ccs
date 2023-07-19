@@ -4,7 +4,7 @@
 
 module constants
 
-  use mpi
+  use mpi_f08
   use kinds, only: ccs_int
 
   implicit none
