@@ -11,7 +11,7 @@ module mesh_utils
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
-  use parallel, only: read_command_line_arguments, create_shared_array
+  use parallel, only: read_command_line_arguments, create_shared_array, is_root
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_natural_index, get_local_index, count_neighbours, &
@@ -711,11 +711,12 @@ contains
   !v Utility constructor to build a 2D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny cells.
-  function build_square_mesh(par_env, cps, side_length) result(mesh)
+  function build_square_mesh(par_env, shared_env, cps, side_length) result(mesh)
 
     use partitioning, only: compute_partitioner_input
 
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
     real(ccs_real), intent(in) :: side_length          !< The length of the side.
 
@@ -731,7 +732,7 @@ contains
     
     call set_mesh_generated(.true., mesh)
 
-    call build_square_topology(par_env, cps, mesh)
+    call build_square_topology(par_env, shared_env, cps, mesh)
 
     call compute_partitioner_input(par_env, mesh)
 
@@ -746,9 +747,10 @@ contains
   !v Utility constructor to build a square mesh.
   !
   !  Builds a Cartesian grid of NxN cells on the domain LxL.
-  subroutine build_square_topology(par_env, cps, mesh)
+  subroutine build_square_topology(par_env, shared_env, cps, mesh)
 
-    class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
+    class(parallel_environment), intent(in) :: par_env    !< The parallel environment to construct the mesh.
+    class(parallel_environment), intent(in) :: shared_env !< The shared memory environment
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
 
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
@@ -777,7 +779,12 @@ contains
 
     type(face_locator) :: loc_f
 
+    integer(ccs_int), dimension(2) :: length
+
     select type (par_env)
+    type is (parallel_environment_mpi)
+
+    select type (shared_env)
     type is (parallel_environment_mpi)
 
       ! Set the global mesh parameters
@@ -822,7 +829,6 @@ contains
         allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
         allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
         allocate (mesh%topo%face_indices(max_faces, local_num_cells))
-        allocate (mesh%topo%global_vertex_indices(vert_per_cell, local_num_cells))
 
         ! Initialise mesh arrays
         mesh%topo%num_nb(:) = max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
@@ -902,15 +908,33 @@ contains
 
       call set_global_num_faces((cps + 1) * cps + cps * (cps + 1), mesh)
       call get_global_num_faces(mesh, global_num_faces)
-      allocate (mesh%topo%face_cell1(global_num_faces))
-      allocate (mesh%topo%face_cell2(global_num_faces))
-      allocate (mesh%topo%global_face_indices(max_faces, nglobal))
-      allocate (mesh%topo%bnd_rid(global_num_faces))
 
-      mesh%topo%face_cell1(:) = 0_ccs_int
-      mesh%topo%face_cell2(:) = 0_ccs_int
-      mesh%topo%global_face_indices(:, :) = 0_ccs_int
-      mesh%topo%bnd_rid(:) = 0_ccs_int
+      ! Create shared memory global arrays
+      if (is_root(shared_env)) then
+        length(1) = global_num_faces
+      else
+        length(1) = 0
+      endif
+      call create_shared_array(shared_env, length(1), mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+      call create_shared_array(shared_env, length(1), mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+      call create_shared_array(shared_env, length(1), mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+
+      if (is_root(shared_env)) then
+        length(1) = max_faces
+        length(2) = nglobal
+      else
+        length(1) = 0
+        length(2) = 0
+      endif
+      call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
+
+      ! Initialise shared memory global arrays
+      if (is_root(shared_env)) then
+        mesh%topo%face_cell1(:) = 0_ccs_int
+        mesh%topo%face_cell2(:) = 0_ccs_int
+        mesh%topo%global_face_indices(:, :) = 0_ccs_int
+        mesh%topo%bnd_rid(:) = 0_ccs_int
+      endif
 
       ! Construct face_cell1 and face_cell2 following:
       !  - face_cell1 < face_cell2
@@ -1018,27 +1042,38 @@ contains
       k = int(real(nglobal) / par_env%num_procs)
       j = 1
 
-      if (allocated(mesh%topo%global_vertex_indices)) then
-        deallocate (mesh%topo%global_vertex_indices)
-      end if
-      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
+      if (is_root(shared_env)) then
+        length(1) = mesh%topo%vert_per_cell
+        length(2) = mesh%topo%global_num_cells
+      else
+        length(1) = 0
+        length(2) = 0
+      endif
+      call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
       ! Global vertex numbering
-      do i = 1, mesh%topo%global_num_cells
-        ii = i
-        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+      if (is_root(shared_env)) then
+        do i = 1, mesh%topo%global_num_cells
+          ii = i
+          associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
 
-          global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
-          global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
-          global_vert_index(front_top_left) = global_vert_index(front_bottom_left) + (cps + 1)
-          global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
-        end associate
-      end do
+            global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
+            global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
+            global_vert_index(front_top_left) = global_vert_index(front_bottom_left) + (cps + 1)
+            global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
+          end associate
+        end do
+      endif
 
       do i = 1, par_env%num_procs
         mesh%topo%vtxdist(i) = j
         j = j + k
       end do
+
+    class default
+      call error_abort("Unknown parallel environment type.")
+
+    end select
 
     class default
       call error_abort("Unknown parallel environment type.")
@@ -1215,11 +1250,12 @@ contains
   !v Utility constructor to build a 3D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
-  function build_mesh(par_env, nx, ny, nz, side_length) result(mesh)
+  function build_mesh(par_env, shared_env, nx, ny, nz, side_length) result(mesh)
 
     use partitioning, only: compute_partitioner_input
 
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
     integer(ccs_int), intent(in) :: ny                 !< Number of cells in the y direction.
     integer(ccs_int), intent(in) :: nz                 !< Number of cells in the z direction.
@@ -1241,7 +1277,7 @@ contains
       call error_abort(error_message)
     end if
 
-    call build_topology(par_env, nx, ny, nz, mesh)
+    call build_topology(par_env, shared_env, nx, ny, nz, mesh)
 
     call compute_partitioner_input(par_env, mesh)
 
@@ -1256,9 +1292,10 @@ contains
   !v Utility constructor to build a 3D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
-  subroutine build_topology(par_env, nx, ny, nz, mesh)
+  subroutine build_topology(par_env, shared_env, nx, ny, nz, mesh)
 
-    class(parallel_environment), intent(in) :: par_env !< The parallel environment to construct the mesh.
+    class(parallel_environment), intent(in) :: par_env    !< The parallel environment to construct the mesh.
+    class(parallel_environment), intent(in) :: shared_env !< The shared memory environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
     integer(ccs_int), intent(in) :: ny                 !< Number of cells in the y direction.
     integer(ccs_int), intent(in) :: nz                 !< Number of cells in the z direction.
@@ -1289,7 +1326,12 @@ contains
 
     type(face_locator) :: loc_f
 
+    integer(ccs_int), dimension(2) :: length
+
     select type (par_env)
+    type is (parallel_environment_mpi)
+
+    select type (shared_env)
     type is (parallel_environment_mpi)
 
       ! Set the global mesh parameters
@@ -1333,7 +1375,6 @@ contains
       allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
       allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
       allocate (mesh%topo%face_indices(max_faces, local_num_cells))
-      allocate (mesh%topo%global_vertex_indices(vert_per_cell, local_num_cells))
 
       ! Initialise mesh arrays
       mesh%topo%num_nb(:) = max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
@@ -1494,15 +1535,33 @@ contains
       call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
       call get_global_num_faces(mesh, global_num_faces)
       call get_max_faces(mesh, max_faces)
-      allocate (mesh%topo%face_cell1(global_num_faces))
-      allocate (mesh%topo%face_cell2(global_num_faces))
-      allocate (mesh%topo%global_face_indices(max_faces, nglobal))
-      allocate (mesh%topo%bnd_rid(global_num_faces))
 
-      mesh%topo%face_cell1(:) = 0_ccs_int
-      mesh%topo%face_cell2(:) = 0_ccs_int
-      mesh%topo%global_face_indices(:, :) = 0_ccs_int
-      mesh%topo%bnd_rid(:) = 0_ccs_int
+      ! Create shared memory global arrays
+      if (is_root(shared_env)) then
+        length(1) = global_num_faces
+      else
+        length(1) = 0
+      endif
+      call create_shared_array(shared_env, length(1), mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+      call create_shared_array(shared_env, length(1), mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+      call create_shared_array(shared_env, length(1), mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+
+      if (is_root(shared_env)) then
+        length(1) = max_faces
+        length(2) = nglobal
+      else
+        length(1) = 0
+        length(2) = 0
+      endif
+      call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
+
+      ! Initialise shared memory global arrays
+      if (is_root(shared_env)) then
+        mesh%topo%face_cell1(:) = 0_ccs_int
+        mesh%topo%face_cell2(:) = 0_ccs_int
+        mesh%topo%global_face_indices(:, :) = 0_ccs_int
+        mesh%topo%bnd_rid(:) = 0_ccs_int
+      endif
 
       ! Construct face_cell1 and face_cell2 following:
       !  - face_cell1 < face_cell2
@@ -1639,31 +1698,37 @@ contains
 
       call set_cell_face_indices(mesh)
 
-      if (allocated(mesh%topo%global_vertex_indices)) then
-        deallocate (mesh%topo%global_vertex_indices)
-      end if
-      allocate (mesh%topo%global_vertex_indices(mesh%topo%vert_per_cell, mesh%topo%global_num_cells))
+      if (is_root(shared_env)) then
+        length(1) = mesh%topo%vert_per_cell
+        length(2) = mesh%topo%global_num_cells
+      else
+        length(1) = 0
+        length(2) = 0
+      endif
+      call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
       ! Global vertex numbering
-      do i = 1, mesh%topo%global_num_cells
-        associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-          ii = i
-          a = modulo(ii - 1, nx * ny) + 1
-          b = (a - 1) / nx
-          c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
-          d = (a + nx - 1) / nx
-          e = (nx + 1) * (ny + 1)
+      if (is_root(shared_env)) then
+        do i = 1, mesh%topo%global_num_cells
+          associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+            ii = i
+            a = modulo(ii - 1, nx * ny) + 1
+            b = (a - 1) / nx
+            c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
+            d = (a + nx - 1) / nx
+            e = (nx + 1) * (ny + 1)
 
-          global_vert_index(front_bottom_left) = a + b + c
-          global_vert_index(front_bottom_right) = a + b + c + 1
-          global_vert_index(front_top_left) = a + c + d + nx
-          global_vert_index(front_top_right) = a + c + d + nx + 1
-          global_vert_index(back_bottom_left) = a + b + c + e
-          global_vert_index(back_bottom_right) = a + b + c + e + 1
-          global_vert_index(back_top_left) = a + c + d + e + nx
-          global_vert_index(back_top_right) = a + c + d + e + nx + 1
-        end associate
-      end do
+            global_vert_index(front_bottom_left) = a + b + c
+            global_vert_index(front_bottom_right) = a + b + c + 1
+            global_vert_index(front_top_left) = a + c + d + nx
+            global_vert_index(front_top_right) = a + c + d + nx + 1
+            global_vert_index(back_bottom_left) = a + b + c + e
+            global_vert_index(back_bottom_right) = a + b + c + e + 1
+            global_vert_index(back_top_left) = a + c + d + e + nx
+            global_vert_index(back_top_right) = a + c + d + e + nx + 1
+          end associate
+        end do
+      endif
 
       ! Create and populate the vtxdist array based on the total number of cells
       ! and the total number of ranks in the parallel environment
@@ -1681,6 +1746,11 @@ contains
         mesh%topo%vtxdist(i) = j
         j = j + k
       end do
+
+    class default
+      call error_abort("Unknown parallel environment type.")
+
+    end select
 
     class default
       call error_abort("Unknown parallel environment type.")
@@ -2508,25 +2578,25 @@ contains
       print *, par_env%proc_id, "num_nb             : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%global_boundaries)) then
+    if (associated(mesh%topo%global_boundaries)) then
       print *, par_env%proc_id, "global_boundaries : ", mesh%topo%global_boundaries(1:nb_elem)
     else
       print *, par_env%proc_id, "global_boundaries : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%face_cell1)) then
+    if (associated(mesh%topo%face_cell1)) then
       print *, par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
     else
       print *, par_env%proc_id, "face_cell1        : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%face_cell2)) then
+    if (associated(mesh%topo%face_cell2)) then
       print *, par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
     else
       print *, par_env%proc_id, "face_cell2        : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%bnd_rid)) then
+    if (associated(mesh%topo%bnd_rid)) then
       print *, par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
     else
       print *, par_env%proc_id, "bnd_rid           : UNALLOCATED"
@@ -2550,14 +2620,14 @@ contains
       print *, par_env%proc_id, "local_partition   : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%global_partition)) then
+    if (associated(mesh%topo%global_partition)) then
       print *, par_env%proc_id, "global_partition  : ", mesh%topo%global_partition(1:nb_elem)
     else
       print *, par_env%proc_id, "global_partition  : UNALLOCATED"
     end if
 
     print *, ""
-    if (allocated(mesh%topo%global_face_indices)) then
+    if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
         print *, par_env%proc_id, "global_face_indices(1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%topo%global_face_indices(1:nb_elem/2,i)
       end do
@@ -2566,7 +2636,7 @@ contains
     end if
 
     print *, ""
-    if (allocated(mesh%topo%global_vertex_indices)) then
+    if (associated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
         print *, par_env%proc_id, "global_vertex_indices(1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%topo%global_vertex_indices(1:nb_elem/2,i)
       end do
@@ -2600,28 +2670,30 @@ contains
 
     type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
 
-    if (allocated(mesh%topo%bnd_rid)) then
-      deallocate(mesh%topo%bnd_rid)
+    integer :: ierr
+
+    if (associated(mesh%topo%bnd_rid)) then
+      call mpi_win_free(mesh%topo%bnd_rid_window, ierr)
       call dprint("mesh%topo%bnd_rid deallocated.")
     end if
 
-    if (allocated(mesh%topo%face_cell1)) then
-      deallocate(mesh%topo%face_cell1)
+    if (associated(mesh%topo%face_cell1)) then
+      call mpi_win_free(mesh%topo%face_cell1_window, ierr)
       call dprint("mesh%topo%face_cell1 deallocated.")
     end if
 
-    if (allocated(mesh%topo%face_cell2)) then
-      deallocate(mesh%topo%face_cell2)
+    if (associated(mesh%topo%face_cell2)) then
+      call mpi_win_free(mesh%topo%face_cell2_window, ierr)
       call dprint("mesh%topo%face_cell2 deallocated.")
     end if
 
-    if (allocated(mesh%topo%global_face_indices)) then
-      deallocate(mesh%topo%global_face_indices)
+    if (associated(mesh%topo%global_face_indices)) then
+      call mpi_win_free(mesh%topo%global_face_indices_window, ierr)
       call dprint("mesh%topo%global_face_indices deallocated.")
     end if
 
-    if (allocated(mesh%topo%global_boundaries)) then
-      deallocate(mesh%topo%global_boundaries)
+    if (associated(mesh%topo%global_boundaries)) then
+      call mpi_win_free(mesh%topo%global_boundaries_window, ierr)
       call dprint("mesh%topo%global_boundaries deallocated.")
     end if
 
