@@ -233,7 +233,7 @@ contains
     class(parallel_environment), intent(in) :: par_env !< parallel environment
     logical :: isvalid
 
-    is_valid = .false.
+    isvalid = .false.
 
     select type (par_env)
     type is (parallel_environment_mpi)
