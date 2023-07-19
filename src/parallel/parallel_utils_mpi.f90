@@ -262,7 +262,9 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      if (split_type == ccs_split_undefined) then 
+      if (split_type == ccs_split_type_shared) then 
+        colour = MPI_COMM_TYPE_SHARED
+      else if (split_type == ccs_split_undefined) then 
         colour = MPI_UNDEFINED
       else if (split_type == ccs_split_type_low_high) then
         colour = 0

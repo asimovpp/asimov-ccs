@@ -64,10 +64,10 @@ contains
 
     select type (parent_par_env)
     type is (parallel_environment_mpi)
+      call set_colour_from_split(parent_par_env, split, colour)
       if (use_mpi_splitting) then
-        call mpi_comm_split_type(parent_par_env%comm, split, 0, MPI_INFO_NULL, newcomm, ierr) 
+        call mpi_comm_split_type(parent_par_env%comm, colour, 0, MPI_INFO_NULL, newcomm, ierr) 
       else 
-        call set_colour_from_split(parent_par_env, split, colour)
         call mpi_comm_split(parent_par_env%comm, colour, 0, newcomm, ierr) 
       end if
       call error_handling(ierr, "mpi", parent_par_env)
@@ -89,8 +89,6 @@ contains
   subroutine create_parallel_environment_from_comm(comm, par_env)
     integer, intent(in) :: comm                                          !< The communicator with which to make the parallel environment
     type(parallel_environment_mpi), intent(inout) :: par_env   !< The resulting parallel environment
-
-    integer :: ierr
 
     par_env%comm = comm
     call set_mpi_parameters(par_env)
