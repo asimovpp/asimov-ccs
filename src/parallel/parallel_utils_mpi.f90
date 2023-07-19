@@ -30,14 +30,20 @@ contains
     integer(ccs_int) :: dummy_int = 1_ccs_int
     integer(ccs_err) :: ierr
     integer :: disp_unit
-    integer(mpi_address_kind) :: base_ptr, byte_size
+    integer(mpi_address_kind) :: base_ptr, byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_int)
     byte_size = length * disp_unit
 
+    if (isroot(shared_env)) then
+      allocate_byte_size = byte_size
+    else
+      allocate_byte_size = 0
+    end if
+
     select type (shared_env)
     type is (parallel_environment_mpi)
-      call mpi_win_allocate_shared(byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
@@ -64,14 +70,19 @@ contains
     integer(ccs_int) :: dummy_int = 1_ccs_int
     integer(ccs_err) :: ierr
     integer :: disp_unit
-    integer(mpi_address_kind) :: base_ptr, byte_size
+    integer(mpi_address_kind) :: base_ptr, byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_int)
-    byte_size = length(1) * length(2) * disp_unit
+
+    if (isroot(shared_env)) then
+      allocate_byte_size = length(1) * length(2) * disp_unit
+    else
+      allocate_byte_size = 0
+    end if
 
     select type (shared_env)
     type is (parallel_environment_mpi)
-      call mpi_win_allocate_shared(byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
