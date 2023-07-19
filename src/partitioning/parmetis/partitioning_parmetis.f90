@@ -121,11 +121,10 @@ contains
 
       mesh%topo%local_partition(:) = local_partition(:)
 
+      call create_shared_array(shared_env, mesh%topo%global_num_cells, tmp_partition, tmp_partition_window)
+
       if (isroot(shared_env)) then
-        call create_shared_array(shared_env, mesh%topo%global_num_cells, tmp_partition, tmp_partition_window)
         tmp_partition(:) = 0
-      else
-        call create_shared_array(shared_env, 0, tmp_partition, tmp_partition_window)
       end if
 
       do i = 1, local_part_size

@@ -106,13 +106,11 @@ contains
 
     if (associated(mesh%topo%global_boundaries) .eqv. .false.) then
       call get_global_num_cells(mesh, global_num_cells)
-      if (isroot(shared_env)) then
-        call create_shared_array(shared_env, global_num_cells, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
+      call create_shared_array(shared_env, global_num_cells, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
 
-        ! Reset global_boundaries array
+      ! Reset global_boundaries array
+      if (isroot(shared_env)) then
         mesh%topo%global_boundaries(:) = 0
-      else
-        call create_shared_array(shared_env, 0, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
       end if
     end if
 
@@ -213,6 +211,7 @@ contains
     integer(ccs_int) :: vert_nb_idx
 
     integer(ccs_err) :: ierr
+    integer(ccs_err) :: tmp_arr_window
 
     global_num_cells = mesh%topo%global_num_cells
 
@@ -227,8 +226,12 @@ contains
         call error_abort("Unsupported parallel environment!")
       end select
 
-      allocate (tmp_arr(max_vert_nb * global_num_cells))
-      tmp_arr(:) = 0
+      !allocate (tmp_arr(max_vert_nb * global_num_cells))
+      call create_shared_array(shared_env, max_vert_nb * global_num_cells, tmp_arr, tmp_arr_window)
+
+      if (isroot(shared_env)) then
+        tmp_arr(:) = 0
+      end if
 
       ! XXX: cannot read local_num_cells - arrays haven't been resized!
       local_num_cells = size(mesh%topo%num_vert_nb)
@@ -246,17 +249,22 @@ contains
         end do
       end do
 
-      select type (par_env)
-      type is (parallel_environment_mpi)
-        call MPI_Allreduce(MPI_IN_PLACE, tmp_arr, max_vert_nb * global_num_cells, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
-      class default
-        call error_abort("Unsupported parallel environment!")
-      end select
-
-      if (allocated(mesh%topo%vert_nb_indices)) then
-        deallocate (mesh%topo%vert_nb_indices)
+      if (isvalid(partition_env)) then
+        select type (partition_env)
+        type is (parallel_environment_mpi)
+          call MPI_Allreduce(MPI_IN_PLACE, tmp_arr, max_vert_nb * global_num_cells, MPI_INTEGER, MPI_SUM, partition_env%comm, ierr)
+        class default
+          call error_abort("Unsupported parallel environment!")
+        end select
       end if
-      allocate (mesh%topo%vert_nb_indices(max_vert_nb, global_num_cells))
+
+      !if (allocated(mesh%topo%vert_nb_indices)) then
+      !  deallocate (mesh%topo%vert_nb_indices)
+      !end if
+      !allocate (mesh%topo%vert_nb_indices(max_vert_nb, global_num_cells))
+
+      call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+
       mesh%topo%vert_nb_indices(:, :) = 0
       do i = 1, global_num_cells
         do j = 1, max_vert_nb

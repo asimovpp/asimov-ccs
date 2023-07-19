@@ -910,22 +910,12 @@ contains
       call get_global_num_faces(mesh, global_num_faces)
 
       ! Create shared memory global arrays
-      if (is_root(shared_env)) then
-        length(1) = global_num_faces
-      else
-        length(1) = 0
-      endif
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell2, mesh%topo%face_cell2_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
 
-      if (is_root(shared_env)) then
-        length(1) = max_faces
-        length(2) = nglobal
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = max_faces
+      length(2) = nglobal
       call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
 
       ! Initialise shared memory global arrays
@@ -1042,13 +1032,8 @@ contains
       k = int(real(nglobal) / par_env%num_procs)
       j = 1
 
-      if (is_root(shared_env)) then
-        length(1) = mesh%topo%vert_per_cell
-        length(2) = mesh%topo%global_num_cells
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = mesh%topo%vert_per_cell
+      length(2) = mesh%topo%global_num_cells
       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
       ! Global vertex numbering
@@ -1537,22 +1522,12 @@ contains
       call get_max_faces(mesh, max_faces)
 
       ! Create shared memory global arrays
-      if (is_root(shared_env)) then
-        length(1) = global_num_faces
-      else
-        length(1) = 0
-      endif
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell2, mesh%topo%face_cell2_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
 
-      if (is_root(shared_env)) then
-        length(1) = max_faces
-        length(2) = nglobal
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = max_faces
+      length(2) = nglobal
       call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
 
       ! Initialise shared memory global arrays
@@ -1698,13 +1673,8 @@ contains
 
       call set_cell_face_indices(mesh)
 
-      if (is_root(shared_env)) then
-        length(1) = mesh%topo%vert_per_cell
-        length(2) = mesh%topo%global_num_cells
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = mesh%topo%vert_per_cell
+      length(2) = mesh%topo%global_num_cells
       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
       ! Global vertex numbering
