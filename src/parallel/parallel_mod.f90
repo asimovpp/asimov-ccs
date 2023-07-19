@@ -22,6 +22,7 @@ module parallel
   public :: query_stop_run
   public :: create_shared_array
   public :: is_root
+  public :: is_valid
 
   interface
 
@@ -96,6 +97,12 @@ module parallel
       class(parallel_environment), intent(in) :: par_env
       logical :: isroot
     end function
+  
+    !> Check whether current process is root process in communicator
+    module function is_valid(par_env) result(isvalid)
+      class(parallel_environment), intent(in) :: par_env !< parallel environment
+      logical :: isvalid
+    end function is_valid
 
   end interface
 
