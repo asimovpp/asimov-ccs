@@ -11,7 +11,6 @@ program test_communicator_validity
 
   class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: par_env_shared
-  class(parallel_environment), allocatable, target :: par_env_uninitialised
   logical :: split_flag
   integer :: colour
   call initialise_parallel_environment(par_env)
