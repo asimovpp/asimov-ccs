@@ -46,7 +46,8 @@ contains
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
     ! Local variables
-    integer(ccs_long), dimension(:), allocatable :: tmp_partition
+    integer(ccs_long), dimension(:), pointer :: tmp_partition
+    integer(ccs_int) :: tmp_partition_window
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank
     integer(ccs_int) :: ierr
@@ -76,8 +77,6 @@ contains
     edgecuts = -1     ! XXX: silence unused variable warning
 
     call get_global_num_cells(mesh, global_num_cells)
-    allocate (tmp_partition(global_num_cells)) ! Temporary partition array
-    tmp_partition = 0
 
     irank = par_env%proc_id ! Current rank
     num_procs = par_env%num_procs
@@ -112,13 +111,21 @@ contains
 
       mesh%topo%local_partition(:) = local_partition(:)
 
+      if (isroot(shared_env)) then
+        call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
+        tmp_partition(:) = 0
+      else
+        call create_shared_array(shared_env, 0, tmp_partition, tmp_partition_window)
+      end if
+
       do i = 1, local_part_size
         tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
 
-      call get_global_num_cells(mesh, global_num_cells)
-      call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
-                         MPI_LONG, MPI_SUM, par_env%comm, ierr)
+      if (isroot(shared_env)) then
+        call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
+                          MPI_LONG, MPI_SUM, partition_env%comm, ierr)
+      end if
 
     class default
       print *, "ERROR: Unknown parallel environment!"

@@ -104,13 +104,18 @@ contains
     ! Allocate new adjacency index array xadj based on new vtxdist
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
 
-    if (allocated(mesh%topo%global_boundaries) .eqv. .false.) then
+    if (associated(mesh%topo%global_boundaries) .eqv. .false.) then
       call get_global_num_cells(mesh, global_num_cells)
-      allocate (mesh%topo%global_boundaries(global_num_cells))
+      if (isroot(shared_env)) then
+        call create_shared_array(shared_env, global_num_cells, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
+
+        ! Reset global_boundaries array
+        mesh%topo%global_boundaries(:) = 0
+      else
+        call create_shared_array(shared_env, 0, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
+      end if
     end if
 
-    ! Reset global_boundaries array
-    mesh%topo%global_boundaries = 0
 
     call get_max_faces(mesh, max_faces)
 
@@ -148,7 +153,10 @@ contains
 
       ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
       if (any(mesh%topo%global_indices == face_nb1) .and. (face_nb2 .eq. 0)) then
+
+        call MPI_Win_lock(MPI_LOCK_EXCLUSIVE, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
         mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
+        call MPI_Win_unlock(shared_env%proc_id, mesh%topo%global_boundaries_window, ierr)
 
         ! read the boundary id from bnd_rid
         face_nb2 = mesh%topo%bnd_rid(i)
@@ -166,6 +174,7 @@ contains
       deallocate (mesh%topo%adjncy)
     end if
 
+    ! XXX: is adjncy still needed? why is it allocated?
     allocate (mesh%topo%adjncy(num_connections))
 
     if (allocated(mesh%topo%face_indices)) then
@@ -650,6 +659,7 @@ contains
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells_shared_size
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -659,12 +669,22 @@ contains
 
     ! Allocate global partition array
     allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
+    if (isroot(shared_env)) then
+      global_num_cells_shared_size = mesh%topo%global_num_cells
+    else 
+      global_num_cells_shared_size = 0
+    end if
+
+    call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%global_partition, mesh%topo%global_partition_window)
 
     ! Initial global partition
-    do i = 1, size(mesh%topo%vtxdist) - 1
-      j = i - 1
-      mesh%topo%global_partition(mesh%topo%vtxdist(i):mesh%topo%vtxdist(i + 1) - 1) = j
-    end do
+    if (isroot(shared_env)) then
+      do i = 1, size(mesh%topo%vtxdist) - 1
+        j = i - 1
+        mesh%topo%global_partition(mesh%topo%vtxdist(i):mesh%topo%vtxdist(i + 1) - 1) = j
+      end do
+    end if
+
 
     ! Count the number of local cells per rank
     local_num_cells = count(mesh%topo%global_partition == irank)
