@@ -17,6 +17,26 @@ submodule(parallel) parallel_utils_mpi
 
 contains
 
+  !> Sets mpi parameters inside a parallel environment
+  module subroutine set_mpi_parameters(par_env)
+    class(parallel_environment), intent(inout) :: par_env !< The parallel environment being updated
+
+    integer :: ierr
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
+      call error_handling(ierr, "mpi", par_env)
+
+      call mpi_comm_size(par_env%comm, par_env%num_procs, ierr)
+      call error_handling(ierr, "mpi", par_env)
+
+      call par_env%set_rop()
+      par_env%root=0
+    class default
+      call error_abort("Unsupported parallel environment")
+    end select
+  end subroutine set_mpi_parameters
 
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
 
@@ -288,5 +308,56 @@ contains
     end select
 
   end function is_root
+
+  !> Check whether current process is root process in communicator
+  module function is_valid(par_env) result(isvalid)
+    class(parallel_environment), intent(in) :: par_env !< parallel environment
+    logical :: isvalid
+
+    isvalid = .false.
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      if (par_env%comm == MPI_COMM_NULL) then
+        isvalid = .false.
+      else if (par_env%comm /= MPI_COMM_NULL) then
+        isvalid = .true. 
+      else 
+        call error_abort("communicator not initialised")
+      end if
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end function is_valid
+
+  !> Sets the colour for splitting the parallel environment based on the split value provided
+  module subroutine set_colour_from_split(par_env, split_type, colour)
+    use constants
+
+    class(parallel_environment), intent(in) :: par_env    !< The parallel environment
+    integer, intent(in) :: split_type                     !< Split value provided
+    integer, intent(out) :: colour                        !< The resulting colour
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      if (split_type == ccs_split_type_shared) then 
+        colour = MPI_COMM_TYPE_SHARED
+      else if (split_type == ccs_split_undefined) then 
+        colour = MPI_UNDEFINED
+      else if (split_type == ccs_split_type_low_high) then
+        colour = 0
+        if (par_env%proc_id >= par_env%num_procs/2) then
+          colour = 1
+        end if
+      else if (split_type >= 0) then
+        colour = split_type
+      end if
+    class default
+      call error_abort("Unsupported parallel environment")
+    end select
+  end subroutine set_colour_from_split
 
 end submodule parallel_utils_mpi
