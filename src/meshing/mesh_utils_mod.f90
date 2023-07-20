@@ -1,6 +1,8 @@
 module mesh_utils
 #include "ccs_macros.inc"
 
+  use mpi
+  
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
@@ -111,6 +113,7 @@ contains
     character(len=:), allocatable :: geo_file    ! Geo file name
     character(len=:), allocatable :: adios2_file ! ADIOS2 config file name
 
+    class(parallel_environment), allocatable, target :: reader_env !< The reader parallel environment
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
@@ -119,19 +122,21 @@ contains
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
 
-    call initialise_io(par_env, adios2_file, io_env)
+    ! TODO: Create reader_env
+    
+    call initialise_io(reader_env, adios2_file, io_env)
     call configure_io(io_env, "geo_reader", geo_reader)
 
     call open_file(geo_file, "read", geo_reader)
 
-    call read_topology(par_env, geo_reader, mesh)
+    call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, mesh)
     call compute_connectivity_get_local_cells(par_env, mesh)
 
     call mesh_partition_reorder(par_env, mesh)
 
-    call read_geometry(geo_reader, mesh)
+    call read_geometry(shared_env, reader_env, geo_reader, mesh)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -139,6 +144,8 @@ contains
     ! Finalise the ADIOS2 IO environment
     call cleanup_io(io_env)
 
+    ! TODO: Destroy reader_env
+    
     call cleanup_topo(mesh)
 
   end subroutine read_mesh
@@ -149,8 +156,10 @@ contains
   ! "nfac" - the total number of faces
   ! "maxfaces" - the maximum number of faces per cell
   ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
-  subroutine read_topology(par_env, geo_reader, mesh)
+  subroutine read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
 
@@ -170,6 +179,17 @@ contains
 
     character(:), allocatable :: error_message
 
+    integer(ccs_err) :: ierr
+    integer :: shared_comm
+
+    select type(shared_env)
+    type is (parallel_environment_mpi)
+       shared_comm = shared_env%comm
+    class default
+       shared_comm = -42
+       call error_abort("Unsupported shared environment!")
+    end select
+
     ! Zero scalar topology values to have known initial state
     call set_global_num_cells(0_ccs_int, mesh)
     call set_global_num_faces(0_ccs_int, mesh)
@@ -183,8 +203,11 @@ contains
     call set_global_num_vertices(0_ccs_int, mesh)
 
     ! Read attribute "ncel" - the total number of cells
-    call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
-
+    if (is_valid(reader_env)) then
+       call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
+    end if
+    call MPI_Bcast(mesh%topo%global_num_cells, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    
     ! Abort the execution if there a fewer global cells than MPI ranks
     if (mesh%topo%global_num_cells < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
@@ -192,16 +215,22 @@ contains
       call error_abort(error_message)
     end if
 
-    ! Read attribute "nfac" - the total number of faces
-    call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
-    ! Read attribute "maxfaces" - the maximum number of faces per cell
-    call read_scalar(geo_reader, "maxfaces", mesh%topo%max_faces)
-    ! Read attribute "nvrt" - the total number of vertices
-    call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
+    if (is_valid(reader_env)) then
+       ! Read attribute "nfac" - the total number of faces
+       call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
+       ! Read attribute "maxfaces" - the maximum number of faces per cell
+       call read_scalar(geo_reader, "maxfaces", mesh%topo%max_faces)
+       ! Read attribute "nvrt" - the total number of vertices
+       call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
 
-    ! Read attribute "nbnd" - the total number of boundary faces
-    call read_scalar(geo_reader, "nbnd", num_bnd)
-
+       ! Read attribute "nbnd" - the total number of boundary faces
+       call read_scalar(geo_reader, "nbnd", num_bnd)
+    end if
+    call MPI_Bcast(mesh%topo%global_num_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(mesh%topo%max_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(mesh%topo%global_num_vertices, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(num_bnd, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    
     call get_max_faces(mesh, max_faces)
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8, mesh) ! 8 vertices per cell
@@ -261,7 +290,7 @@ contains
        sel2_count(1) = vert_per_cell
 
        call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
-       call build_vertex_neighbours(par_env, mesh)
+       call build_vertex_neighbours(par_env, shared_env, mesh)
     end if
     
     ! Create and populate the vtxdist array based on the total number of cells
@@ -287,11 +316,12 @@ contains
   !
   !  @note@ This will be quadratic - do we REALLY need it?
   !  @note@ This won't find boundary vertex "neighbours" hopefully they aren't needed...
-  subroutine build_vertex_neighbours(par_env, mesh)
+  subroutine build_vertex_neighbours(par_env, shared_env, mesh)
 
     use case_config, only: vertex_neighbours
 
     class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), intent(in) :: shared_env
     type(ccs_mesh), intent(inout) :: mesh
 
     integer(ccs_int) :: global_num_cells
@@ -358,8 +388,10 @@ contains
   end subroutine build_vertex_neighbours
 
   !v Read the geometry data from an input (HDF5) file
-  subroutine read_geometry(geo_reader, mesh)
+  subroutine read_geometry(shared_env, reader_env, geo_reader, mesh)
 
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
@@ -393,6 +425,19 @@ contains
     type(face_locator) :: loc_f ! Face locator object
     type(vert_locator) :: loc_v ! Vertex locator object
 
+    integer(ccs_err) :: ierr
+    integer :: shared_comm
+
+    integer :: temp_a_f_window, temp_n_f_window, temp_window, temp_x_f_window, temp_x_v_window
+    
+    select type(shared_env)
+    type is (parallel_environment_mpi)
+       shared_comm = shared_env%comm
+    class default
+       shared_comm = -42
+       call error_abort("Unsupported shared environment!")
+    end select
+    
     call get_max_faces(mesh, max_faces)
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8, mesh) ! 8 vertices per cell
@@ -403,8 +448,11 @@ contains
     call get_vert_per_cell(mesh, vert_per_cell)
 
     ! Read attribute "scalefactor"
-    call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
-
+    if (is_valid(reader_env)) then
+       call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
+    end if
+    call MPI_Bcast(mesh%geo%scalefactor, 1, MPI_DOUBLE_PRECISION, 0, shared_comm, ierr)
+    
     ! Starting point for reading chunk of data
     vol_p_start = 0
 
@@ -485,7 +533,7 @@ contains
     allocate (mesh%geo%vert_coords(ndim, vert_per_cell, local_num_cells))
 
     ! Procs fill local data
-    call MPI_Barrier(shared_env%comm, ierr)
+    call MPI_Barrier(shared_comm, ierr)
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
       call create_cell_locator(mesh, local_icell, loc_p)
       call get_natural_index(loc_p, global_icell)
