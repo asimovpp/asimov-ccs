@@ -13,7 +13,7 @@ module mesh_utils
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
-  use parallel, only: read_command_line_arguments, create_shared_array, is_root
+  use parallel, only: read_command_line_arguments, create_shared_array, is_root, is_valid
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_natural_index, get_local_index, count_neighbours, &
