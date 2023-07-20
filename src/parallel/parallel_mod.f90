@@ -22,6 +22,8 @@ module parallel
   public :: query_stop_run
   public :: create_shared_array
   public :: is_root
+  public :: is_valid
+  public :: set_mpi_parameters
 
   interface
 
@@ -30,7 +32,7 @@ module parallel
       class(parallel_environment), allocatable, intent(out) :: par_env
     end subroutine
 
-    !> Creates a new parallel environment by splitting the existing one, splitting
+    !v Creates a new parallel environment by splitting the existing one, splitting
     !  based on provided MPI constants or a provided colouring
     module subroutine create_new_par_env(parent_par_env, split, use_mpi_splitting, par_env)
       class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
@@ -38,7 +40,6 @@ module parallel
       logical, intent(in) :: use_mpi_splitting                          !< Flag indicating whether to use mpi_comm_split_type
       class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
     end subroutine
-
 
     !> Cleanup the parallel environment
     module subroutine cleanup_parallel_environment(par_env)
@@ -84,6 +85,11 @@ module parallel
       logical :: stop_run
     end function
 
+    !> Sets mpi parameters inside a parallel environment
+    module subroutine set_mpi_parameters(par_env)
+      class(parallel_environment), intent(inout) :: par_env !< The parallel environment being updated
+    end subroutine set_mpi_parameters
+
     !> Create an integer 1D MPI shared memory array
     module subroutine create_shared_array_int_1D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
@@ -119,6 +125,19 @@ module parallel
       class(parallel_environment), intent(in) :: par_env
       logical :: isroot
     end function
+  
+    !> Check whether current process is root process in communicator
+    module function is_valid(par_env) result(isvalid)
+      class(parallel_environment), intent(in) :: par_env !< parallel environment
+      logical :: isvalid
+    end function is_valid
+
+    !> Sets the colour for splitting the parallel environment based on the split value provided
+    module subroutine set_colour_from_split(par_env, split_type, colour)
+      class(parallel_environment), intent(in) :: par_env    !< The parallel environment
+      integer, intent(in) :: split_type                     !< Split value provided
+      integer, intent(out) :: colour                        !< The resulting colour
+    end subroutine
 
   end interface
 
