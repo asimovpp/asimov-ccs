@@ -258,11 +258,9 @@ contains
         end select
       end if
 
-      !if (allocated(mesh%topo%vert_nb_indices)) then
-      !  deallocate (mesh%topo%vert_nb_indices)
-      !end if
-      !allocate (mesh%topo%vert_nb_indices(max_vert_nb, global_num_cells))
-
+      if (associated(mesh%topo%vert_nb_indices)) then
+        call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+      end if
       call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
 
       mesh%topo%vert_nb_indices(:, :) = 0
