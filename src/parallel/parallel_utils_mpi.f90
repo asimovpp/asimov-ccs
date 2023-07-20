@@ -105,16 +105,14 @@ contains
     integer, intent(inout) :: window
     integer(ccs_err) :: ierr
 
+    ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
+    associate(foo => shared_env)
+    end associate
 
-    select type (shared_env)
-    type is (parallel_environment_mpi)
-      call mpi_win_free(window, ierr)
+    call mpi_win_free(window, ierr)
 
-      nullify(array)
+    nullify(array)
 
-    class default
-      call error_abort("Unsupported parallel environment")
-    end select
   end subroutine
 
 
@@ -124,20 +122,14 @@ contains
     integer, intent(inout) :: window
     integer(ccs_err) :: ierr
 
+    ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
+    associate(foo => shared_env)
+    end associate
 
-    select type (shared_env)
-    type is (parallel_environment_mpi)
-      call mpi_win_free(window, ierr)
+    call mpi_win_free(window, ierr)
 
-      if (is_root(shared_env)) then
-        deallocate(array)
-      end if
+    nullify(array)
 
-      nullify(array)
-
-    class default
-      call error_abort("Unsupported parallel environment")
-    end select
   end subroutine
 
 
