@@ -110,10 +110,6 @@ contains
     type is (parallel_environment_mpi)
       call mpi_win_free(window, ierr)
 
-      if (is_root(shared_env)) then
-        deallocate(array)
-      end if
-
       nullify(array)
 
     class default
