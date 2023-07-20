@@ -68,7 +68,7 @@ module fv
     end subroutine calc_advection_coeff_gamma
 
     !> Calculates advection coefficient for neighbouring cell using LUDS discretisation
-    module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, face_area, coeffaP, coeffaF)
+    module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
       type(lupwind_field), intent(inout) :: phi  !< scalar (gamma) field
       type(face_locator), intent(in) :: loc_f !< face locator
       real(ccs_real), intent(in) :: mf      !< mass flux at the face
@@ -76,7 +76,6 @@ module fv
       type(cell_locator), intent(in) :: loc_p !< current cell locator
       type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
       real(ccs_real), intent(out) :: coeffaP, coeffaF  !< advection coefficient to be calculated
-      real(ccs_real) :: face_area                   !< area of the face
     end subroutine calc_advection_coeff_luds
 
     !> Sets the diffusion coefficient

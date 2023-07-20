@@ -148,7 +148,7 @@ contains
           type is (gamma_field)
             call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           type is (lupwind_field)
-            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, loc_p, loc_nb, face_area, adv_coeffaP, adv_coeffaF)
+            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
@@ -161,7 +161,6 @@ contains
           ! High-order, explicit
           aF = adv_coeffaF
           aP = adv_coeffaP
-          !aP = 1.0_ccs_real - aF
           aP = (sgn * mf(index_f) * face_area) * aP
           aF = (sgn * mf(index_f) * face_area) * aF
           aP = aP - sgn * mf(index_f) * face_area
@@ -204,13 +203,12 @@ contains
           type is (gamma_field)
             call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           type is  (lupwind_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, face_area, adv_coeffaP, adv_coeffaF )
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF )
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
           aF = adv_coeffaF
           aP = adv_coeffaP
-          !aP = 1.0_ccs_real - aF
           aP = aP * (mf(index_f) * face_area)
           aF = aF * (mf(index_f) * face_area)
           aP = aP - mf(index_f) * face_area

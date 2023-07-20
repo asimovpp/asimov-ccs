@@ -212,7 +212,7 @@ contains
   end subroutine calc_advection_coeff_gamma
 
   !> Calculates advection coefficient for neighbouring cell using UDS discretisation
-  module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, face_area, coeffaP, coeffaF)
+  module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
     type(lupwind_field), intent(inout) :: phi       !< scalar field
     type(face_locator), intent(in) :: loc_f       !< face locator
     real(ccs_real), intent(in) :: mf              !< mass flux at the face
@@ -224,7 +224,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
     real(ccs_real), dimension(3) :: dphiF, dphiP, d,  face_center, cell_center
-    real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m, face_area
+    real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m
 
     integer(ccs_int) :: index_p, index_nb
 
