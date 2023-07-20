@@ -85,7 +85,7 @@ contains
     type is (parallel_environment_mpi)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
 
-      call c_f_pointer(c_array_ptr, array, shape=[length])
+      call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
 
