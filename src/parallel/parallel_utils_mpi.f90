@@ -8,7 +8,7 @@
 submodule(parallel) parallel_utils_mpi
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print
+  use utils, only: exit_print, debug_print, str
   use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
   use kinds, only: ccs_err
@@ -284,7 +284,7 @@ contains
     use constants
     class(parallel_environment), intent(in) :: par_env      !< The parent parallel environment of the shared_envs
     class(parallel_environment), intent(in) :: shared_env   !< The shared environments whose roots we want in the root environment
-    class(parallel_environment), allocatable, intent(out) :: roots_env   !< The resulting root environment
+    class(parallel_environment), allocatable, intent(inout) :: roots_env   !< The resulting root environment
 
     integer :: colour
     logical :: split_flag
@@ -298,11 +298,45 @@ contains
     split_flag = .false.
 
     call create_new_par_env(par_env, colour, split_flag, roots_env)
+
     select type (roots_env)
     type is (parallel_environment_mpi)
-      print *, "1 parallel env mpi"
+          call dprint("parallel env mpi")
+    type is (parallel_environment)
+          call dprint("parallel env")
     class default
-      print *, "1 something else"
+          call dprint("something else")
+    end select
+  
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+          call dprint("parallel env mpi")
+    type is (parallel_environment)
+          call dprint("parallel env")
+    class default
+          call dprint("something else")
+    end select
+  
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      select type (shared_env)
+      type is (parallel_environment_mpi)
+        select type (roots_env)
+        type is (parallel_environment_mpi)
+          if (is_valid(roots_env)) then
+            call dprint("global rank " // str(par_env%proc_id) // " shared rank " // str(shared_env%proc_id) // " roots rank " // str(roots_env%proc_id)  // " size " // str(roots_env%num_procs))
+          end if
+
+        class default
+          call error_abort("Unsupported parallel environment")
+        end select
+
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+
+    class default
+      call error_abort("Unsupported parallel environment")
     end select
   end subroutine create_shared_roots_comm
 

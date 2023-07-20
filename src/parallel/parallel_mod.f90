@@ -123,7 +123,7 @@ module parallel
       use constants
       class(parallel_environment), intent(in) :: par_env      !< The parent parallel environment of the shared_envs
       class(parallel_environment), intent(in) :: shared_env   !< The shared environments whose roots we want in the root environment
-      class(parallel_environment), intent(out) :: roots_env   !< The resulting root environment
+      class(parallel_environment), intent(inout) :: roots_env   !< The resulting root environment
     end subroutine 
 
   end interface
