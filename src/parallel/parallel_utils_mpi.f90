@@ -35,7 +35,7 @@ contains
     disp_unit = c_sizeof(dummy_int)
     byte_size = length * disp_unit
 
-    if (isroot(shared_env)) then
+    if (is_root(shared_env)) then
       allocate_byte_size = byte_size
     else
       allocate_byte_size = 0
@@ -75,7 +75,7 @@ contains
     disp_unit = c_sizeof(dummy_int)
     byte_size = length(1) * length(2) * disp_unit
 
-    if (isroot(shared_env)) then
+    if (is_root(shared_env)) then
       allocate_byte_size = byte_size
     else
       allocate_byte_size = 0
@@ -97,6 +97,53 @@ contains
     end select
 
   end subroutine
+
+
+  module subroutine destroy_shared_array_int_1D(shared_env, array, window)
+    class(parallel_environment), intent(in) :: shared_env
+    integer(ccs_int), pointer, dimension(:), intent(inout) :: array
+    integer, intent(inout) :: window
+    integer(ccs_err) :: ierr
+
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      call mpi_win_free(window, ierr)
+
+      if (is_root(shared_env)) then
+        deallocate(array)
+      end if
+
+      nullify(array)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+    end select
+  end subroutine
+
+
+  module subroutine destroy_shared_array_int_2D(shared_env, array, window)
+    class(parallel_environment), intent(in) :: shared_env
+    integer(ccs_int), pointer, dimension(:,:), intent(inout) :: array
+    integer, intent(inout) :: window
+    integer(ccs_err) :: ierr
+
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      call mpi_win_free(window, ierr)
+
+      if (is_root(shared_env)) then
+        deallocate(array)
+      end if
+
+      nullify(array)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+    end select
+  end subroutine
+
 
   !> Synchronise the parallel environment
   module subroutine sync(par_env)
