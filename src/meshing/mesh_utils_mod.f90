@@ -407,12 +407,12 @@ contains
     integer(ccs_long), dimension(1) :: f_a_start
     integer(ccs_long), dimension(1) :: f_a_count
 
-    real(ccs_real), dimension(:), allocatable :: temp_vol_c ! Temp array for cell volumes
-    real(ccs_real), dimension(:, :), allocatable :: temp_x_p ! Temp array for cell centres
-    real(ccs_real), dimension(:, :), allocatable :: temp_x_f ! Temp array for face centres
-    real(ccs_real), dimension(:, :), allocatable :: temp_n_f ! Temp array for face normals
-    real(ccs_real), dimension(:, :), allocatable :: temp_x_v ! Temp array for vertex coordinates
-    real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
+    real(ccs_real), dimension(:), pointer :: temp_vol_c ! Temp array for cell volumes
+    real(ccs_real), dimension(:, :), pointer :: temp_x_p ! Temp array for cell centres
+    real(ccs_real), dimension(:, :), pointer :: temp_x_f ! Temp array for face centres
+    real(ccs_real), dimension(:, :), pointer :: temp_n_f ! Temp array for face normals
+    real(ccs_real), dimension(:, :), pointer :: temp_x_v ! Temp array for vertex coordinates
+    real(ccs_real), dimension(:), pointer :: temp_a_f ! Temp array for face areas
 
     real(ccs_real), dimension(3) :: face_normal, x_p, x_f
     integer(ccs_int) :: local_num_cells, index_p, nnb

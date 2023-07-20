@@ -17,7 +17,6 @@ submodule(parallel) parallel_utils_mpi
 
 contains
 
-
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
 
     use iso_c_binding
@@ -67,6 +66,76 @@ contains
     integer(mpi_address_kind) :: base_ptr, byte_size
 
     disp_unit = c_sizeof(dummy_int)
+    byte_size = length(1) * length(2) * disp_unit
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      call mpi_win_allocate_shared(byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+
+      call c_f_pointer(c_array_ptr, array, shape=[length])
+
+      call mpi_barrier(shared_env%comm, ierr)
+
+      call mpi_win_shared_query(window, 0, byte_size, disp_unit, base_ptr, ierr)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end subroutine
+
+  module subroutine create_shared_array_real_1D(shared_env, length, array, window)
+
+    use iso_c_binding
+
+    class(parallel_environment), intent(in) :: shared_env
+    integer(ccs_int), intent(in) :: length
+    real(ccs_real), pointer, dimension(:), intent(out) :: array
+    integer, intent(out) :: window
+
+    type(c_ptr) :: c_array_ptr
+    real(ccs_int) :: dummy_real = 1_ccs_real
+    integer(ccs_err) :: ierr
+    integer :: disp_unit
+    integer(mpi_address_kind) :: base_ptr, byte_size
+
+    disp_unit = c_sizeof(dummy_real)
+    byte_size = length * disp_unit
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      call mpi_win_allocate_shared(byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+
+      call c_f_pointer(c_array_ptr, array, shape=[length])
+
+      call mpi_barrier(shared_env%comm, ierr)
+
+      call mpi_win_shared_query(window, 0, byte_size, disp_unit, base_ptr, ierr)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end subroutine
+
+  module subroutine create_shared_array_real_2D(shared_env, length, array, window)
+
+    use iso_c_binding
+
+    class(parallel_environment), intent(in) :: shared_env
+    integer(ccs_int), dimension(2), intent(in) :: length
+    real(ccs_real), pointer, dimension(:,:), intent(out) :: array
+    integer, intent(out) :: window
+
+    type(c_ptr) :: c_array_ptr
+    integer(ccs_int) :: dummy_real = 1_ccs_real
+    integer(ccs_err) :: ierr
+    integer :: disp_unit
+    integer(mpi_address_kind) :: base_ptr, byte_size
+
+    disp_unit = c_sizeof(dummy_real)
     byte_size = length(1) * length(2) * disp_unit
 
     select type (shared_env)

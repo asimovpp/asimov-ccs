@@ -5,7 +5,7 @@
 module parallel
 
   use parallel_types
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_real
 
   implicit none
 
@@ -100,6 +100,22 @@ module parallel
       integer, intent(out) :: window
     end subroutine
 
+    !> Create an real 1D MPI shared memory array
+    module subroutine create_shared_array_real_1D(shared_env, length, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), intent(in) :: length
+      real(ccs_real), pointer, dimension(:), intent(out) :: array
+      integer, intent(out) :: window
+    end subroutine
+
+    !> Create an real 2D MPI shared memory array
+    module subroutine create_shared_array_real_2D(shared_env, length, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), dimension(2), intent(in) :: length
+      real(ccs_real), pointer, dimension(:,:), intent(out) :: array
+      integer, intent(out) :: window
+    end subroutine
+
     !> Test whether current rank is root of communicator
     module function is_root(par_env) result(isroot)
       class(parallel_environment), intent(in) :: par_env
@@ -111,6 +127,8 @@ module parallel
   interface create_shared_array
     module procedure create_shared_array_int_1D
     module procedure create_shared_array_int_2D
+    module procedure create_shared_array_real_1D
+    module procedure create_shared_array_real_2D
   end interface
 
   interface allreduce
