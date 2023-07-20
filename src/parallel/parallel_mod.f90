@@ -100,6 +100,20 @@ module parallel
       integer, intent(out) :: window
     end subroutine
 
+    !> Destroy an integer 1D MPI shared memory array
+    module subroutine destroy_shared_array_int_1D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), pointer, dimension(:), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
+
+    !> Destroy an integer 2D MPI shared memory array
+    module subroutine destroy_shared_array_int_2D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), pointer, dimension(:,:), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
+
     !> Test whether current rank is root of communicator
     module function is_root(par_env) result(isroot)
       class(parallel_environment), intent(in) :: par_env
@@ -111,6 +125,11 @@ module parallel
   interface create_shared_array
     module procedure create_shared_array_int_1D
     module procedure create_shared_array_int_2D
+  end interface
+
+  interface destroy_shared_array
+    module procedure destroy_shared_array_int_1D
+    module procedure destroy_shared_array_int_2D
   end interface
 
   interface allreduce
