@@ -144,7 +144,7 @@ contains
         gamma_m = phiPt / beta_m
         if (bc == 0) then
           call get_face_interpolation(loc_f, interpolation_factor)
-          coeffaF = 1.0_ccs_real + (gamma_m*(interpolation_factor - 1.0_ccs_real))
+          coeffaF = 1.0_ccs_real + (gamma_m * (interpolation_factor - 1.0_ccs_real))
         else
           interpolation_factor = 0.5_ccs_real !1.0_ccs_real
           coeffaF = interpolation_factor
@@ -193,7 +193,7 @@ contains
         gamma_m = phiPt / beta_m
         if (bc == 0) then
           call get_face_interpolation(loc_f, interpolation_factor)
-          coeffaF = gamma_m*( 1.0_ccs_real - interpolation_factor)
+          coeffaF = gamma_m * (1.0_ccs_real - interpolation_factor)
         else
           interpolation_factor = 0.5_ccs_real !1.0_ccs_real
           coeffaF = interpolation_factor
@@ -223,7 +223,7 @@ contains
 
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
-    real(ccs_real), dimension(3) :: dphiF, dphiP, d,  face_center, cell_center
+    real(ccs_real), dimension(3) :: dphiF, dphiP, d, face_center, cell_center
     real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m
 
     integer(ccs_int) :: index_p, index_nb
@@ -283,8 +283,8 @@ contains
           call get_distance(loc_nb, loc_f, d)
           coeffaF = 1.0_ccs_real
           if (dabs(phiP) > 0.0_ccs_real) then
-            coeffaF = coeffaF + (dot_product(dphiP,d) / phiP)
-          endif
+            coeffaF = coeffaF + (dot_product(dphiP, d) / phiP)
+          end if
           coeffaP = 0.0_ccs_real
         end if
       else
@@ -318,17 +318,17 @@ contains
           call get_distance(loc_p, loc_f, d)
           coeffaP = 1.0_ccs_real
           if (dabs(phiP) > 0.0_ccs_real) then
-            coeffaP = coeffaP + (dot_product(dphiP,d) / phiP)
-          endif
+            coeffaP = coeffaP + (dot_product(dphiP, d) / phiP)
+          end if
           coeffaF = 0.0_ccs_real
         end if
-      endif
+      end if
     else
       ! Boundary face
       ! -------------
       coeffaF = 0.5_ccs_real
       coeffaP = 0.5_ccs_real
-    endif
+    end if
 
     ! Restore vectors
     call restore_vector_data(phi%values, phi_data)
