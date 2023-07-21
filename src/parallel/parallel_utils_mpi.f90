@@ -8,7 +8,7 @@
 submodule(parallel) parallel_utils_mpi
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, debug_print, str
+  use utils, only: exit_print
   use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
   use kinds, only: ccs_err
