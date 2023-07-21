@@ -36,7 +36,7 @@ program test_ghost_cells
   proc_id = par_env%proc_id
   num_procs = par_env%num_procs
 
-  mesh = build_square_mesh(par_env, 11, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, 11, 1.0_ccs_real)
   call get_local_num_cells(mesh, local_num_cells)
 
   ! Specify vector size based on the mesh

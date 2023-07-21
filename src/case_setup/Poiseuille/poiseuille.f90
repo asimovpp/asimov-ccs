@@ -20,7 +20,7 @@ program poiseuille
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
        set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
-  use parallel, only: initialise_parallel_environment, create_new_par_env &
+  use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment

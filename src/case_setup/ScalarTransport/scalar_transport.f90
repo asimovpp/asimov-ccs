@@ -19,7 +19,7 @@ program scalar_transport
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
-  use parallel, only: initialise_parallel_environment, create_new_par_env &
+  use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments
   use parallel_types, only: parallel_environment

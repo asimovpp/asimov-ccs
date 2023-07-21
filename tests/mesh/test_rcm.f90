@@ -39,10 +39,10 @@ program test_rcm
     l = parallel_random(par_env)
 
     ! Build topology
-    call build_square_topology(par_env, n, mesh)
-    call compute_partitioner_input(par_env, mesh)
-    call partition_stride(par_env, mesh)
-    call compute_connectivity(par_env, mesh)
+    call build_square_topology(par_env, shared_env, n, mesh)
+    call compute_partitioner_input(par_env, shared_env, mesh)
+    call partition_stride(par_env, shared_env, mesh)
+    call compute_connectivity(par_env, shared_env, mesh)
 
     call get_local_num_cells(mesh, local_num_cells)
 

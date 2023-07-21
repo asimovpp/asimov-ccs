@@ -16,7 +16,7 @@ program scalar_advection
   use utils, only: update, initialise, set_size
   use mesh_utils, only: build_square_mesh
   use parallel_types, only: parallel_environment
-  use parallel, only: initialise_parallel_environment, create_new_par_env &
+  use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments
   use fv, only: compute_fluxes

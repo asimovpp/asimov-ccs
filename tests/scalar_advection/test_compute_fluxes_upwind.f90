@@ -33,7 +33,7 @@ program test_compute_fluxes
 
   call init()
 
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   allocate (upwind_field :: scalar)
   allocate (face_field :: mf)
