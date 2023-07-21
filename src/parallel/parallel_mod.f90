@@ -25,6 +25,7 @@ module parallel
   public :: is_valid
   public :: set_mpi_parameters
   public :: create_shared_roots_comm
+  public :: create_new_par_env_wrapper
 
   interface
 
@@ -123,8 +124,16 @@ module parallel
       use constants
       class(parallel_environment), intent(in) :: par_env      !< The parent parallel environment of the shared_envs
       class(parallel_environment), intent(in) :: shared_env   !< The shared environments whose roots we want in the root environment
-      class(parallel_environment), intent(inout) :: roots_env   !< The resulting root environment
+      class(parallel_environment), allocatable, intent(inout) :: roots_env   !< The resulting root environment
     end subroutine 
+    
+    !v Debugging
+    module subroutine create_new_par_env_wrapper(parent_par_env, split, use_mpi_splitting, par_env)
+      class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
+      integer, intent(in) :: split                                      !< The value indicating which type of split is being performed, or the user provided colour
+      logical, intent(in) :: use_mpi_splitting                          !< Flag indicating whether to use mpi_comm_split_type
+      class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
+    end subroutine
 
   end interface
 

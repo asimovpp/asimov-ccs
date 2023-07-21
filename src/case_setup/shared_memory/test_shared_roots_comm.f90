@@ -5,7 +5,7 @@ program split_communicator
   use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
-  use parallel, only: initialise_parallel_environment, create_new_par_env, &
+  use parallel, only: initialise_parallel_environment, create_new_par_env, create_new_par_env_wrapper, &
                       cleanup_parallel_environment, create_shared_roots_comm, &
                       is_valid, is_root
   use utils, only: debug_print, str, exit_print
@@ -57,7 +57,8 @@ program split_communicator
   !end select
   
   split_flag = .false.
-  call create_new_par_env(par_env, ccs_split_type_low_high, split_flag, shared_env)
+  !call create_new_par_env(par_env, ccs_split_type_low_high, split_flag, shared_env)
+  call create_new_par_env_wrapper(par_env, ccs_split_type_low_high, split_flag, shared_env)
   call create_shared_roots_comm(par_env, shared_env, roots_env)
   !if (is_root(shared_env)) then
   !  colour = 1
