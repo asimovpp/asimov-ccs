@@ -223,8 +223,8 @@ contains
 
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
-    real(ccs_real), dimension(3) :: dphiF, dphiP, d, face_center, cell_center
-    real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m
+    real(ccs_real), dimension(3) :: dphiF, dphiP, d
+    real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, beta_m
 
     integer(ccs_int) :: index_p, index_nb
 
