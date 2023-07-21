@@ -9,6 +9,7 @@ program scalar_advection
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, &
                    field, upwind_field, central_field, bc_config
+  use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system
@@ -24,6 +25,7 @@ program scalar_advection
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
+  class(parallel_environment), allocatable, target :: shared_env
   class(ccs_vector), allocatable, target :: source
   class(ccs_vector), allocatable :: solution
   class(ccs_matrix), allocatable, target :: M
@@ -42,8 +44,11 @@ program scalar_advection
 
   double precision :: start_time
   double precision :: end_time
+  logical :: use_mpi_splitting
 
   call initialise_parallel_environment(par_env)
+  use_mpi_splitting = .false.
+  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -55,7 +60,7 @@ program scalar_advection
   call timer(start_time)
 
   ! Set up the square mesh
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   ! Init velocities and scalar
   allocate (central_field :: mf)

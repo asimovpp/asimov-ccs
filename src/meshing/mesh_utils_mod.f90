@@ -11,7 +11,7 @@ module mesh_utils
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
-  use parallel, only: read_command_line_arguments, create_shared_array, is_root
+  use parallel, only: read_command_line_arguments, create_shared_array, is_root, create_shared_roots_comm
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_natural_index, get_local_index, count_neighbours, &
@@ -98,12 +98,13 @@ module mesh_utils
 contains
 
   !v Read mesh from file
-  subroutine read_mesh(par_env, case_name, mesh)
+  subroutine read_mesh(par_env, shared_env, case_name, mesh)
 
     use partitioning, only: compute_connectivity_get_local_cells, & 
                             compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     character(len=:), allocatable :: case_name
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
@@ -126,10 +127,10 @@ contains
 
     call read_topology(par_env, geo_reader, mesh)
 
-    call compute_partitioner_input(par_env, mesh)
+    call compute_partitioner_input(par_env, shared_env, mesh)
     call compute_connectivity_get_local_cells(par_env, mesh)
 
-    call mesh_partition_reorder(par_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call read_geometry(geo_reader, mesh)
 
@@ -734,9 +735,9 @@ contains
 
     call build_square_topology(par_env, shared_env, cps, mesh)
 
-    call compute_partitioner_input(par_env, mesh)
+    call compute_partitioner_input(par_env, shared_env, mesh)
 
-    call mesh_partition_reorder(par_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
@@ -1264,9 +1265,9 @@ contains
 
     call build_topology(par_env, shared_env, nx, ny, nz, mesh)
 
-    call compute_partitioner_input(par_env, mesh)
+    call compute_partitioner_input(par_env, shared_env, mesh)
 
-    call mesh_partition_reorder(par_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
@@ -2370,20 +2371,27 @@ contains
   end subroutine
 
   ! Populate mesh%topo%global_partition with a split of cells in stride using global_start and local_count
-  subroutine partition_stride(par_env, mesh)
+  subroutine partition_stride(par_env, shared_env, roots_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
 
     integer(ccs_int) :: iproc, start, end
     integer(ccs_int) :: global_num_cells
 
+    associate(foo => roots_env)
+    end associate
+
     call get_global_num_cells(mesh, global_num_cells)
 
-    do iproc = 0, par_env%num_procs - 1
-      start = global_start(global_num_cells, iproc, par_env%num_procs)
-      end = start + local_count(global_num_cells, iproc, par_env%num_procs) - 1
-      mesh%topo%global_partition(start:end) = iproc
-    end do
+    if (is_root(shared_env)) then
+      do iproc = 0, par_env%num_procs - 1
+        start = global_start(global_num_cells, iproc, par_env%num_procs)
+        end = start + local_count(global_num_cells, iproc, par_env%num_procs) - 1
+        mesh%topo%global_partition(start:end) = iproc
+      end do
+    end if
 
   end subroutine partition_stride
 
@@ -2669,7 +2677,7 @@ contains
 
   end subroutine cleanup_topo
 
-  subroutine mesh_partition_reorder(par_env, mesh)
+  subroutine mesh_partition_reorder(par_env, shared_env, mesh)
 
     use partitioning, only: partition_kway, &
                             compute_connectivity, &
@@ -2677,19 +2685,23 @@ contains
                             cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
+    call create_shared_roots_comm(par_env, shared_env, roots_env)
+
     if (par_env%num_procs > 1) then
-      call partition_kway(par_env, mesh)
+      call partition_kway(par_env, shared_env, roots_env, mesh)
     else
-      call partition_stride(par_env, mesh)
+      call partition_stride(par_env, shared_env, roots_env, mesh)
     end if
 
-    call compute_connectivity(par_env, mesh)
+    call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
     call compute_bandwidth(mesh)
     call reorder_cells(par_env, mesh)
-    call cleanup_partitioner_data(mesh)
+    call cleanup_partitioner_data(shared_env, mesh)
     call compute_bandwidth(mesh)
 
   end subroutine

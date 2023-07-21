@@ -142,7 +142,7 @@ module types
     integer(ccs_long), dimension(:), allocatable :: adjwgt                  !< Weights on edges - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: local_partition         !< Local partition array
     integer(ccs_long), dimension(:), pointer :: global_partition            !< Global partition array
-    integer(ccs_long) :: global_partition_window                            !< Associated shared window
+    integer(ccs_int) :: global_partition_window                            !< Associated shared window
   end type topology
 
   !> Geometry type

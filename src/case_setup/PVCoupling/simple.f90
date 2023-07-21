@@ -8,7 +8,8 @@ program simple
   use petscvec
   use petscsys
 
-  use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf
+  use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, fluid, fluid_solver_selector
@@ -27,8 +28,10 @@ program simple
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
+  class(parallel_environment), allocatable, target :: shared_env
   type(ccs_mesh) :: square_mesh
   type(vector_spec) :: vec_sizes
+  logical :: use_mpi_splitting
 
   class(field), allocatable :: u, v, w, p, pp, mf
 
@@ -55,6 +58,10 @@ program simple
 
   print *, "Starting SIMPLE demo"
   call initialise_parallel_environment(par_env)
+
+  use_mpi_splitting = .false.
+  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
+
   call read_command_line_arguments(par_env)
 
   call sync(par_env)
@@ -62,7 +69,7 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  square_mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   print *, "Initialise fields"

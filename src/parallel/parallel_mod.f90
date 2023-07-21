@@ -5,7 +5,7 @@
 module parallel
 
   use parallel_types
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_long
 
   implicit none
 
@@ -21,6 +21,7 @@ module parallel
   public :: error_handling !TODO: consider if this should be public (used with "raw" MPI calls in some places)
   public :: query_stop_run
   public :: create_shared_array
+  public :: destroy_shared_array
   public :: is_root
   public :: is_valid
   public :: set_mpi_parameters
@@ -99,6 +100,14 @@ module parallel
       integer, intent(out) :: window
     end subroutine
 
+    !> Create an long integer 1D MPI shared memory array
+    module subroutine create_shared_array_long_1D(shared_env, length, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), intent(in) :: length
+      integer(ccs_long), pointer, dimension(:), intent(out) :: array
+      integer, intent(out) :: window
+    end subroutine
+
     !> Create an integer 2D MPI shared memory array
     module subroutine create_shared_array_int_2D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
@@ -111,6 +120,13 @@ module parallel
     module subroutine destroy_shared_array_int_1D(shared_env, array, window)
       class(parallel_environment), intent(in) :: shared_env
       integer(ccs_int), pointer, dimension(:), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
+
+    !> Destroy an integer 1D MPI shared memory array
+    module subroutine destroy_shared_array_long_1D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_long), pointer, dimension(:), intent(inout) :: array
       integer, intent(inout) :: window
     end subroutine
 
@@ -151,11 +167,13 @@ module parallel
 
   interface create_shared_array
     module procedure create_shared_array_int_1D
+    module procedure create_shared_array_long_1D
     module procedure create_shared_array_int_2D
   end interface
 
   interface destroy_shared_array
     module procedure destroy_shared_array_int_1D
+    module procedure destroy_shared_array_long_1D
     module procedure destroy_shared_array_int_2D
   end interface
 
