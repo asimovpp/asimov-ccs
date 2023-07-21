@@ -42,7 +42,7 @@ program test_mesh_closed
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, nx, nz, ny, l)
+    mesh = build_mesh(par_env, shared_env, nx, nz, ny, l)
 
     A_expected = (l / n)**2
 

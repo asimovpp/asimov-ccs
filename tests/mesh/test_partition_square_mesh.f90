@@ -30,7 +30,7 @@ program test_partition_square_mesh
   call init()
 
   print *, "Building mesh."
-  call build_square_topology(par_env, 4, mesh)
+  call build_square_topology(par_env, shared_env, 4, mesh)
 
   call compute_partitioner_input(par_env, mesh)
 

@@ -6,7 +6,8 @@ submodule(partitioning) partitioning_parhip
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
                      get_max_faces
-
+  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array
+ 
   implicit none
 
   interface
@@ -37,12 +38,14 @@ contains
   !
   ! Use ParHIP library to compute a k-way vertex separator given a k-way partition of the graph.
   ! The graph can be weighted or unweighted.
-  module subroutine partition_kway(par_env, mesh)
+  module subroutine partition_kway(par_env, shared_env, roots_env, mesh)
 
     use mpi
     use iso_c_binding
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
     ! Local variables
@@ -82,6 +85,7 @@ contains
     num_procs = par_env%num_procs
 
     ! ParHIP needs 0-indexing - shift array contents by -1
+    allocate(vtxdist, mold=mesh%topo%vtxdist)
     vtxdist = mesh%topo%vtxdist - 1
     xadj = mesh%topo%xadj - 1
     adjncy = mesh%topo%adjncy - 1
@@ -113,7 +117,7 @@ contains
 
       call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
 
-      if (isroot(shared_env)) then
+      if (is_root(shared_env)) then
         tmp_partition(:) = 0
       end if
 
@@ -121,9 +125,14 @@ contains
         tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
 
-      if (isroot(shared_env)) then
-        call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
-                          MPI_LONG, MPI_SUM, partition_env%comm, ierr)
+      if (is_valid(roots_env)) then
+        select type (roots_env)
+        type is (parallel_environment_mpi)
+            call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
+                              MPI_LONG, MPI_SUM, roots_env%comm, ierr)
+        class default
+          print *, "ERROR: Unknown parallel environment!"
+        end select
       end if
 
     class default
@@ -132,7 +141,7 @@ contains
 
     call dprint("Number of edgecuts: " // str(edgecuts))
 
-    deallocate (tmp_partition)
+    call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
 
   end subroutine partition_kway
 
@@ -140,12 +149,13 @@ contains
   !
   ! Using the topology object, compute the input arrays for the ParHIP partitioner
   ! Input arrays for the partitioner are: vtxdist, xadj and adjncy
-  module subroutine compute_partitioner_input(par_env, mesh)
+  module subroutine compute_partitioner_input(par_env, shared_env, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
-    call compute_partitioner_input_generic(par_env, mesh)
+    call compute_partitioner_input_generic(par_env, shared_env, mesh)
 
   end subroutine compute_partitioner_input
 

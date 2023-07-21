@@ -26,7 +26,7 @@ program test_square_mesh_point_distribution
 
   do mctr = 1, size(m)
     n = m(mctr)
-    mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
+    mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real)
 
     call get_local_num_cells(mesh, nlocal)
     if (nlocal < 0) then

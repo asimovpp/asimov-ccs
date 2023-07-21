@@ -13,6 +13,7 @@ program tgv
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
+  use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
@@ -91,7 +92,7 @@ program tgv
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
-  logical :: split_flag
+  logical :: use_mpi_splitting
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -100,8 +101,8 @@ program tgv
   isize = par_env%num_procs
 
   ! Create shared memory communicator for each node
-  split_flag = .true.
-  call create_new_par_env(par_env, MPI_COMM_TYPE_SHARED, split_flag, shared_env)
+  use_mpi_splitting = .true.
+  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
 
@@ -142,7 +143,7 @@ program tgv
     mesh = build_mesh(par_env, shared_env, cps, cps, cps, domain_size)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
-    call read_mesh(par_env, case_name, mesh)
+    call read_mesh(par_env, shared_env, case_name, mesh)
   end if
   call timer(mesh_init_end)
   mesh_init_total = mesh_init_end - mesh_init_start

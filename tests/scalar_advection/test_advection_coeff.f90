@@ -38,7 +38,7 @@ program test_advection_coeff
 
   call init()
 
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   call get_local_num_cells(mesh, local_num_cells)
 
