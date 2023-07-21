@@ -224,7 +224,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
     real(ccs_real), dimension(3) :: dphiF, dphiP, d
-    real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, beta_m
+    real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt
 
     integer(ccs_int) :: index_p, index_nb
 
