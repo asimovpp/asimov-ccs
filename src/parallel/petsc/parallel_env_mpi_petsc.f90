@@ -50,51 +50,6 @@ contains
 
   end subroutine
 
-  !v Creates a new parallel environment by splitting the existing one, splitting
-  !  based on provided MPI constants or a provided colouring
-  module subroutine create_new_par_env(parent_par_env, split, use_mpi_splitting, par_env)
-    class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
-    integer, intent(in) :: split                                      !< The value indicating which type of split is being performed, or the user provided colour
-    logical, intent(in) :: use_mpi_splitting                          !< Flag indicating whether to use mpi_comm_split_type
-    class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
-
-    integer :: newcomm
-    integer :: colour
-    integer :: ierr
-
-    allocate(parallel_environment_mpi :: par_env)
-
-    select type (parent_par_env)
-    type is (parallel_environment_mpi)
-      call set_colour_from_split(parent_par_env, split, colour)
-      if (use_mpi_splitting) then
-        call mpi_comm_split_type(parent_par_env%comm, colour, 0, MPI_INFO_NULL, newcomm, ierr) 
-      else 
-        call mpi_comm_split(parent_par_env%comm, colour, 0, newcomm, ierr) 
-      end if
-      call error_handling(ierr, "mpi", parent_par_env)
-
-      select type (par_env)
-      type is (parallel_environment_mpi)
-        call create_parallel_environment_from_comm(newcomm, par_env)
-      class default
-        call error_abort("Unsupported parallel environment")
-      end select
-
-    class default
-      call error_abort("Unsupported parallel environment")
-    end select
-  end subroutine create_new_par_env
-	
-  !> Creates a parallel environment based on the provided communicator
-  subroutine create_parallel_environment_from_comm(comm, par_env)
-    integer, intent(in) :: comm                                          !< The communicator with which to make the parallel environment
-    type(parallel_environment_mpi), intent(inout) :: par_env   !< The resulting parallel environment
-
-    par_env%comm = comm
-    call set_mpi_parameters(par_env)
-  end subroutine create_parallel_environment_from_comm
-
   !> Cleanup the PETSc and MPI parallel environments
   module subroutine cleanup_parallel_environment(par_env)
 
