@@ -282,8 +282,8 @@ contains
   !> Creates communicator of roots of specified shared environments
   module subroutine create_shared_roots_comm(par_env, shared_env, roots_env)
     use constants
-    class(parallel_environment), intent(in) :: par_env      !< The parent parallel environment of the shared_envs
-    class(parallel_environment), intent(in) :: shared_env   !< The shared environments whose roots we want in the root environment
+    class(parallel_environment), intent(in) :: par_env                     !< The parent parallel environment of the shared_envs
+    class(parallel_environment), intent(in) :: shared_env                  !< The shared environments whose roots we want in the root environment
     class(parallel_environment), allocatable, intent(inout) :: roots_env   !< The resulting root environment
 
     integer :: colour
@@ -299,54 +299,6 @@ contains
 
     call create_new_par_env(par_env, colour, split_flag, roots_env)
 
-    select type (roots_env)
-    type is (parallel_environment_mpi)
-          call dprint("parallel env mpi")
-    type is (parallel_environment)
-          call dprint("parallel env")
-    class default
-          call dprint("something else")
-    end select
-  
-    select type (shared_env)
-    type is (parallel_environment_mpi)
-          call dprint("parallel env mpi")
-    type is (parallel_environment)
-          call dprint("parallel env")
-    class default
-          call dprint("something else")
-    end select
-  
-    select type (par_env)
-    type is (parallel_environment_mpi)
-      select type (shared_env)
-      type is (parallel_environment_mpi)
-        select type (roots_env)
-        type is (parallel_environment_mpi)
-          if (is_valid(roots_env)) then
-            call dprint("global rank " // str(par_env%proc_id) // " shared rank " // str(shared_env%proc_id) // " roots rank " // str(roots_env%proc_id)  // " size " // str(roots_env%num_procs))
-          end if
-
-        class default
-          call error_abort("Unsupported parallel environment")
-        end select
-
-      class default
-        call error_abort("Unsupported parallel environment")
-      end select
-
-    class default
-      call error_abort("Unsupported parallel environment")
-    end select
   end subroutine create_shared_roots_comm
-
-  module subroutine create_new_par_env_wrapper(parent_par_env, split, use_mpi_splitting, par_env)
-    class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
-    integer, intent(in) :: split                                      !< The value indicating which type of split is being performed, or the user provided colour
-    logical, intent(in) :: use_mpi_splitting                          !< Flag indicating whether to use mpi_comm_split_type
-    class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
-
-    call create_new_par_env(parent_par_env, split, use_mpi_splitting, par_env)
-  end subroutine create_new_par_env_wrapper
 
 end submodule parallel_utils_mpi
