@@ -129,4 +129,27 @@ contains
 
   end subroutine
 
+    !> Query whether a STOP file exists and broadcast result to all processes
+  module function query_stop_run(par_env) result(stop_run)
+
+    class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
+    logical :: stop_run
+    integer(ccs_int) :: ierr
+
+    stop_run = .false.
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      if(par_env%proc_id == par_env%root) then 
+        inquire(file="STOP", EXIST=stop_run)
+      end if
+
+      call MPI_Bcast(stop_run, 1, MPI_LOGICAL, par_env%root, par_env%comm, ierr)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+    end select
+
+  end function
+
 end submodule parallel_utils_mpi

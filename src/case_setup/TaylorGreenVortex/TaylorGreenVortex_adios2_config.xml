@@ -12,7 +12,6 @@
     </engine>
 
   </io>
-
   <io name="sol_writer">
 
     <engine type="BP5">

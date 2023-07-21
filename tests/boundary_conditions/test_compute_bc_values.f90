@@ -148,9 +148,7 @@ contains
     type(vector_spec) :: vec_properties
     real(ccs_real) :: bc_val, expected_bc_value
     real(ccs_real), dimension(:), pointer :: extrapolated_field_data
-    real(ccs_real), dimension(:), pointer :: x_gradient_data
     real(ccs_real), dimension(:), pointer :: y_gradient_data
-    real(ccs_real), dimension(:), pointer :: z_gradient_data
     integer(ccs_int), parameter :: n_boundaries = 4
     real(ccs_real), dimension(ndim) :: face_norm
 
@@ -174,24 +172,17 @@ contains
       call get_face_normal(loc_f, face_norm)
 
       call get_vector_data(extrapolated_field%values, extrapolated_field_data)
-      call get_vector_data(extrapolated_field%x_gradients, x_gradient_data)
       call get_vector_data(extrapolated_field%y_gradients, y_gradient_data)
-      call get_vector_data(extrapolated_field%z_gradients, z_gradient_data)
-      x_gradient_data = 0
       y_gradient_data = 1.0_ccs_real / cps
-      z_gradient_data = 0
       do j = 1, local_num_cells
         extrapolated_field_data(j) = j / cps
       end do
       expected_bc_value = extrapolated_field_data(index_p) - 0.5_ccs_real / cps * y_gradient_data(index_p)
       call restore_vector_data(extrapolated_field%values, extrapolated_field_data)
 
-      call compute_boundary_values(extrapolated_field, component, loc_p, loc_f, face_norm, bc_val, &
-                                   x_gradient_data, y_gradient_data, z_gradient_data)
-
-      call restore_vector_data(extrapolated_field%x_gradients, x_gradient_data)
       call restore_vector_data(extrapolated_field%y_gradients, y_gradient_data)
-      call restore_vector_data(extrapolated_field%z_gradients, z_gradient_data)
+
+      call compute_boundary_values(extrapolated_field, component, loc_p, loc_f, face_norm, bc_val)
 
       call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
       call dprint("done extrapolated test")

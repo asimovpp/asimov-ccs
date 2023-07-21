@@ -18,6 +18,7 @@ module parallel
   public :: timer
   public :: allreduce
   public :: error_handling !TODO: consider if this should be public (used with "raw" MPI calls in some places)
+  public :: query_stop_run
 
   interface
 
@@ -63,6 +64,12 @@ module parallel
       character(len=*), intent(in) :: error_category
       class(parallel_environment), intent(in) :: par_env
     end subroutine
+
+    !> Query whether a STOP file exists
+    module function query_stop_run(par_env) result(stop_run)
+      class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
+      logical :: stop_run
+    end function
 
   end interface
 
