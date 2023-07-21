@@ -27,7 +27,7 @@ contains
 
     integer :: newcomm
     integer :: colour
-    integer :: ierr
+    integer(ccs_err) :: ierr
 
     allocate(parallel_environment_mpi :: par_env)
 
@@ -66,11 +66,11 @@ contains
   module subroutine set_mpi_parameters(par_env)
     class(parallel_environment), intent(inout) :: par_env !< The parallel environment being updated
 
-    integer :: ierr
+    integer(ccs_err) :: ierr
 
-    if (is_valid(par_env)) then
-      select type (par_env)
-      type is (parallel_environment_mpi)
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      if (is_valid(par_env)) then
         call mpi_comm_rank(par_env%comm, par_env%proc_id, ierr)
         call error_handling(ierr, "mpi", par_env)
 
@@ -79,10 +79,14 @@ contains
 
         call par_env%set_rop()
         par_env%root=0
-      class default
-        call error_abort("Unsupported parallel environment")
-      end select
-    end if
+      else
+        par_env%proc_id = -1
+        par_env%num_procs = 0
+        par_env%root=-1
+      end if
+    class default
+      call error_abort("Unsupported parallel environment")
+    end select
   end subroutine set_mpi_parameters
 
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
@@ -124,7 +128,7 @@ contains
 
     class(parallel_environment), intent(in) :: par_env
 
-    integer :: ierr ! Error code
+    integer(ccs_err) :: ierr ! Error code
 
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -332,7 +336,7 @@ contains
     class(parallel_environment), allocatable, intent(out) :: roots_env   !< The resulting root environment
 
     integer :: colour
-    logical :: split_flag
+    logical :: use_mpi_splitting
     
     if (is_root(shared_env)) then
       colour = 1
@@ -340,9 +344,9 @@ contains
       colour = ccs_split_undefined
     end if
 
-    split_flag = .false.
+    use_mpi_splitting = .false.
 
-    call create_new_par_env(par_env, colour, split_flag, roots_env)
+    call create_new_par_env(par_env, colour, use_mpi_splitting, roots_env)
 
   end subroutine create_shared_roots_comm
 

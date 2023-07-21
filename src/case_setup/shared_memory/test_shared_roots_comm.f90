@@ -15,14 +15,14 @@ program split_communicator
   class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: shared_env
   class(parallel_environment), allocatable, target :: roots_env
-  logical :: split_flag
+  logical :: use_mpi_splitting
 
   call initialise_parallel_environment(par_env)
 
   select type (par_env)
   type is (parallel_environment_mpi)
-    split_flag = .false.
-    call create_new_par_env(par_env, ccs_split_type_low_high, split_flag, shared_env)
+    use_mpi_splitting = .false.
+    call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
     call create_shared_roots_comm(par_env, shared_env, roots_env)
     
     select type (shared_env)
@@ -30,7 +30,7 @@ program split_communicator
       select type (roots_env)
       type is (parallel_environment_mpi)
         if (is_valid(roots_env)) then
-          print *, "global rank ", par_env%proc_id, " shared rank ", shared_env%proc_id, " roots rank ", roots_env%proc_id, " size ", roots_env%num_procs
+          call dprint("shared rank " // str(shared_env%proc_id) // " roots rank " // str(roots_env%proc_id) // " size " // str(roots_env%num_procs))
         end if
 
       class default
