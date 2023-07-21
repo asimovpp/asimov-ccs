@@ -16,7 +16,6 @@ program split_communicator
   class(parallel_environment), allocatable, target :: shared_env
   class(parallel_environment), allocatable, target :: roots_env
   logical :: split_flag
-  integer :: colour
 
   call initialise_parallel_environment(par_env)
 
