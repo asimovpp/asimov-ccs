@@ -2380,6 +2380,7 @@ contains
     integer(ccs_int) :: iproc, start, end
     integer(ccs_int) :: global_num_cells
 
+    ! roots_env kept as argument for consistency with partition_kway
     associate(foo => roots_env)
     end associate
 
