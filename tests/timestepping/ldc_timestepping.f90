@@ -67,7 +67,7 @@ program ldc
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-  logical :: use_mpi_splitting
+  use_mpi_splitting = .false.
   call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
 
   irank = par_env%proc_id
