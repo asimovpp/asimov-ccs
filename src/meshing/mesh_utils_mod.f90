@@ -2701,7 +2701,7 @@ contains
     call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
     call compute_bandwidth(mesh)
-    call reorder_cells(par_env, mesh)
+    call reorder_cells(par_env, shared_env, mesh)
     call cleanup_partitioner_data(shared_env, mesh)
     call compute_bandwidth(mesh)
 

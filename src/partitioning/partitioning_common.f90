@@ -17,7 +17,7 @@ submodule(partitioning) partitioning_common
                      get_local_index, set_local_index, &
                      get_count_vertex_neighbours
   use case_config, only: vertex_neighbours
-  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array
+  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
 
 
   implicit none
@@ -94,7 +94,7 @@ contains
     integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
-    integer(ccs_err) :: ierr
+    ! integer(ccs_err) :: ierr
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -160,12 +160,12 @@ contains
         select type (shared_env)
         type is (parallel_environment_mpi)
           ! XXX: DEBUG fix, to make it compile, TODO: understand why MPI_LOCK_EXCLUSIVE isn't available
-          call MPI_Win_lock(0, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
+          !call MPI_Win_lock(234, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
           !call MPI_Win_lock(MPI_LOCK_EXCLUSIVE, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
 
           mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
 
-          call MPI_Win_unlock(shared_env%proc_id, mesh%topo%global_boundaries_window, ierr)
+          !call MPI_Win_unlock(shared_env%proc_id, mesh%topo%global_boundaries_window, ierr)
         class default
           print *, "ERROR: Unknown parallel environment!"
         end select
@@ -355,8 +355,9 @@ contains
 
     ! Copy vertex neighbour indices from global array
     allocate (tmp_2d, source=mesh%topo%vert_nb_indices)
-    deallocate (mesh%topo%vert_nb_indices)
-    allocate (mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
+    call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+    call create_shared_array(shared_env, (/max_vert_nb, local_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+
     do local_idx = 1, local_num_cells
       call create_cell_locator(mesh, local_idx, loc_p)
       call get_global_index(loc_p, global_idx)
@@ -365,6 +366,7 @@ contains
       mesh%topo%vert_nb_indices(:, local_idx) = pack(tmp_2d(:, global_idx), tmp_2d(:, global_idx) /= 0)
       mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
     end do
+    call sync(shared_env)
     deallocate (tmp_2d)
 
     ! Check localised vertex neighbours
@@ -693,11 +695,7 @@ contains
 
     ! Allocate global partition array
     allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
-    if (is_root(shared_env)) then
-      global_num_cells_shared_size = mesh%topo%global_num_cells
-    else 
-      global_num_cells_shared_size = 0
-    end if
+    global_num_cells_shared_size = mesh%topo%global_num_cells
 
     call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%global_partition, mesh%topo%global_partition_window)
 
@@ -709,6 +707,7 @@ contains
       end do
     end if
 
+    call sync(shared_env)
 
     ! Count the number of local cells per rank
     local_num_cells = count(mesh%topo%global_partition == irank)

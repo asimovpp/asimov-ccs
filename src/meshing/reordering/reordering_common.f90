@@ -15,6 +15,7 @@ submodule(reordering) reordering_common
                      set_natural_index, &
                      get_total_num_cells, &
                      get_vert_per_cell
+  use parallel, only: create_shared_array, destroy_shared_array
 
   implicit none
 
@@ -31,9 +32,10 @@ contains
   !
   !  Performs a reordering of local cells and reassigns their global indices based on this new
   !  ordering.
-  module subroutine reorder_cells(par_env, mesh)
+  module subroutine reorder_cells(par_env, shared_env, mesh)
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh              !< the mesh to be reordered
 
     integer(ccs_int) :: i, wrunit
@@ -58,7 +60,7 @@ contains
     call dprint("*********BEGIN REORDERING*****************")
     call get_reordering(mesh, new_indices)
     call dprint("---------APPLY REORDERING-----------------")
-    call apply_reordering(new_indices, par_env, mesh)
+    call apply_reordering(new_indices, par_env, shared_env, mesh)
     deallocate (new_indices)
 
     ! System indices of local indices should be contiguous
@@ -80,10 +82,11 @@ contains
 
   end subroutine reorder_cells
 
-  module subroutine apply_reordering(new_indices, par_env, mesh)
+  module subroutine apply_reordering(new_indices, par_env, shared_env, mesh)
 
     integer(ccs_int), dimension(:), intent(in) :: new_indices !< new indices in "to(from)" format
     class(parallel_environment), intent(in) :: par_env        !< The parallel environment
+    class(parallel_environment), intent(in) :: shared_env        !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     call dprint("         NATURAL INDICES")
@@ -93,7 +96,7 @@ contains
     call dprint("         CELL FACES")
     call reorder_faces(new_indices, mesh)
     call dprint("         CELL VERTICES")
-    call reorder_vertices(mesh)
+    call reorder_vertices(shared_env, mesh)
 
   end subroutine apply_reordering
 
@@ -284,8 +287,9 @@ contains
   end subroutine
 
   !> Extract the vertex indices from the global data (restricting to local data)
-  subroutine reorder_vertices(mesh)
+  subroutine reorder_vertices(shared_env, mesh)
 
+    class(parallel_environment), intent(in) :: shared_env
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
     integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
@@ -308,8 +312,11 @@ contains
       tmp_2d(:, i) = mesh%topo%global_vertex_indices(:, natural_index)
     end do
 
-    deallocate (mesh%topo%global_vertex_indices)
-    allocate (mesh%topo%global_vertex_indices, source=tmp_2d)
+    ! TODO XXX: potential problem down the line, mesh%topo%global_vertex_indices starts as a global array, and is now local only
+    call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+    call create_shared_array(shared_env, (/vert_per_cell, local_num_cells/), mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+    !deallocate (mesh%topo%global_vertex_indices)
+    !allocate (mesh%topo%global_vertex_indices, source=tmp_2d)
 
     deallocate (tmp_2d)
 
