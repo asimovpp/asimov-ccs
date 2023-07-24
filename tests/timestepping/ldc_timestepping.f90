@@ -20,7 +20,7 @@ program ldc
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync
+                      read_command_line_arguments, sync, create_new_par_env
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
@@ -35,6 +35,7 @@ program ldc
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: case_name       ! Case name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
