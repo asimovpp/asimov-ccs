@@ -157,7 +157,7 @@ program poisson
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
                       read_command_line_arguments, &
-                      timer, sync
+                      timer, sync, create_new_par_env
 
   implicit none
 
