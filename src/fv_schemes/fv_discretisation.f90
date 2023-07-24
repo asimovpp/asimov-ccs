@@ -73,6 +73,7 @@ contains
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
     real(ccs_real), dimension(3) :: dphiP, d
     real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m
+    real(ccs_real) :: interpolation_factor
 
     integer(ccs_int) :: index_p, index_nb
 
@@ -124,10 +125,24 @@ contains
         if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
           coeff = 1.0_ccs_real
         else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
-          coeff = 0.5_ccs_real
+          !coeff = 0.5_ccs_real
+          if (bc == 0) then
+            call get_face_interpolation(loc_f, interpolation_factor)
+            interpolation_factor = 1.0_ccs_real - interpolation_factor
+          else
+            interpolation_factor = 0.5_ccs_real ! 1.0_ccs_real
+          end if
+          coeff = interpolation_factor  
         else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
           gamma_m = phiPt / beta_m
-          coeff = 1.0_ccs_real - 0.5_ccs_real * gamma_m
+          !coeff = 1.0_ccs_real - 0.5_ccs_real * gamma_m
+          if (bc == 0) then
+            call get_face_interpolation(loc_f, interpolation_factor)
+            coeff = 1.0_ccs_real + (gamma_m * (interpolation_factor - 1.0_ccs_real))
+          else
+            interpolation_factor = 0.5_ccs_real ! 1.0_ccs_real
+            coeff = interpolation_factor
+          end if
         end if
       else
         phiP = phi_data(index_p)
@@ -151,7 +166,14 @@ contains
         if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
           coeff = 0.0_ccs_real
         else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
-          coeff = 0.5_ccs_real
+          !coeff = 0.5_ccs_real
+          if (bc == 0) then
+            call get_face_interpolation(loc_f, interpolation_factor)
+            interpolation_factor = 1.0_ccs_real - interpolation_factor
+          else
+            interpolation_factor = 0.5_ccs_real ! 1.0_ccs_real
+          end if
+          coeff = interpolation_factor
         else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
           gamma_m = phiPt / beta_m
           coeff = 0.5_ccs_real * gamma_m
