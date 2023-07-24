@@ -22,12 +22,14 @@ program test_partition_tri_mesh
                      get_vert_per_cell, set_vert_per_cell, &
                      create_cell_locator, get_global_index
   use utils, only: debug_print
+  use parallel, only: destroy_shared_array
 
   implicit none
 
   ! type(topology) :: topo
   type(ccs_mesh), target :: mesh
   integer :: i
+  class(parallel_environment), allocatable :: roots_env
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
 
@@ -40,9 +42,10 @@ program test_partition_tri_mesh
   call init()
   call initialise_test()
 
+  call create_shared_roots_comm(par_env, shared_env, roots_env)
   !n = count(mesh%topo%nb_indices > 0)
   !print*,"Number of positive value neighbour indices: ", n
-  call compute_partitioner_input(par_env, mesh)
+  call compute_partitioner_input(par_env, shared_env, mesh)
 
   ! print *, "Adjacency arrays: ", mesh%topo%adjncy
   ! print *, "Adjacency index array: ", mesh%topo%xadj
@@ -50,7 +53,7 @@ program test_partition_tri_mesh
   ! Run test to check we agree
   call check_topology("mid")
 
-  call partition_kway(par_env, mesh)
+  call partition_kway(par_env, shared_env, roots_env, mesh)
 
   if (par_env%proc_id == 0) then
     print *, "Global partition after partitioning:"
@@ -61,7 +64,7 @@ program test_partition_tri_mesh
   end if
 
   ! Compute new connectivity after partitioning
-  call compute_connectivity(par_env, mesh)
+  call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
   call check_topology("post")
 
@@ -378,11 +381,11 @@ contains
       deallocate (mesh%topo%vtxdist)
     end if
 
-    if (allocated(mesh%topo%vert_nb_indices)) then
-      deallocate (mesh%topo%vert_nb_indices)
+    if (associated(mesh%topo%vert_nb_indices)) then
+      call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
     end if
-    if (allocated(mesh%topo%num_vert_nb)) then
-      deallocate (mesh%topo%num_vert_nb)
+    if (associated(mesh%topo%num_vert_nb)) then
+      call destroy_shared_array(shared_env, mesh%topo%num_vert_nb, mesh%topo%num_vert_nb_window)
     end if
   end subroutine
 
