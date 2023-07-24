@@ -29,7 +29,7 @@ program test_mesh_partitioning
   ! Partition
   call get_global_num_cells(mesh, global_num_cells)
   allocate (mesh%topo%global_partition(global_num_cells))
-  call partition_kway(par_env, mesh)
+  call partition_kway(par_env, shared_env, roots_env, mesh)
 
   if (par_env%proc_id == 0) then
     print *, mesh%topo%global_partition

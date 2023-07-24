@@ -29,7 +29,6 @@ program test_partition_tri_mesh
   ! type(topology) :: topo
   type(ccs_mesh), target :: mesh
   integer :: i
-  class(parallel_environment), allocatable :: roots_env
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
 
@@ -42,7 +41,6 @@ program test_partition_tri_mesh
   call init()
   call initialise_test()
 
-  call create_shared_roots_comm(par_env, shared_env, roots_env)
   !n = count(mesh%topo%nb_indices > 0)
   !print*,"Number of positive value neighbour indices: ", n
   call compute_partitioner_input(par_env, shared_env, mesh)

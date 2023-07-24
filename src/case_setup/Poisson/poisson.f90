@@ -17,6 +17,7 @@ module problem_setup
   use constants, only: ndim
   use kinds, only: ccs_int, ccs_real
   use types, only: ccs_mesh, cell_locator, face_locator
+  use parallel, only: create_new_par_env
 
   use meshing, only: create_face_locator, create_cell_locator, get_centre
 
