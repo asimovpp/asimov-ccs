@@ -11,7 +11,8 @@ module mesh_utils
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
-  use parallel, only: read_command_line_arguments, create_shared_array, is_root, create_shared_roots_comm
+  use parallel, only: read_command_line_arguments, create_shared_array, is_root, create_shared_roots_comm, &
+                      destroy_shared_array, sync
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_natural_index, get_local_index, count_neighbours, &
@@ -125,7 +126,7 @@ contains
 
     call open_file(geo_file, "read", geo_reader)
 
-    call read_topology(par_env, geo_reader, mesh)
+    call read_topology(par_env, shared_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, shared_env, mesh)
     call compute_connectivity_get_local_cells(par_env, mesh)
@@ -140,7 +141,7 @@ contains
     ! Finalise the ADIOS2 IO environment
     call cleanup_io(io_env)
 
-    call cleanup_topo(mesh)
+    call cleanup_topo(shared_env, mesh)
 
   end subroutine read_mesh
 
@@ -150,8 +151,9 @@ contains
   ! "nfac" - the total number of faces
   ! "maxfaces" - the maximum number of faces per cell
   ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
-  subroutine read_topology(par_env, geo_reader, mesh)
+  subroutine read_topology(par_env, shared_env, geo_reader, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
 
@@ -249,7 +251,7 @@ contains
     sel2_count(1) = vert_per_cell
 
     call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
-    call build_vertex_neighbours(par_env, mesh)
+    call build_vertex_neighbours(par_env, shared_env, mesh)
 
     ! Create and populate the vtxdist array based on the total number of cells
     ! and the total number of ranks in the parallel environment
@@ -274,11 +276,12 @@ contains
   !
   !  @note@ This will be quadratic - do we REALLY need it?
   !  @note@ This won't find boundary vertex "neighbours" hopefully they aren't needed...
-  subroutine build_vertex_neighbours(par_env, mesh)
+  subroutine build_vertex_neighbours(par_env, shared_env, mesh)
 
     use case_config, only: vertex_neighbours
 
     class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), intent(in) :: shared_env
     type(ccs_mesh), intent(inout) :: mesh
 
     integer(ccs_int) :: global_num_cells
@@ -298,10 +301,15 @@ contains
       call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
       call get_vert_per_cell(mesh, vert_per_cell)
 
-      allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
+      allocate(mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
+      !call create_shared_array(shared_env, (/vert_nb_per_cell, global_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+      !if (is_root(shared_env)) then
       mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
+      !end if
+      !call sync(shared_env)
 
-      allocate (mesh%topo%num_vert_nb(global_num_cells)) ! XXX: Will have to shrink this later...
+      !call create_shared_array(shared_env, global_num_cells, mesh%topo%num_vert_nb, mesh%topo%num_vert_nb_window) ! XXX: Will have to shrink this later...
+      allocate(mesh%topo%num_vert_nb(global_num_cells))
       ! Yes, quadratic...
       do i = 1, global_num_cells
         mesh%topo%num_vert_nb(i) = 0
@@ -741,7 +749,7 @@ contains
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
-    call cleanup_topo(mesh)
+    call cleanup_topo(shared_env, mesh)
 
   end function build_square_mesh
 
@@ -1271,7 +1279,7 @@ contains
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
-    call cleanup_topo(mesh)
+    call cleanup_topo(shared_env, mesh)
 
   end function build_mesh
 
@@ -2645,37 +2653,55 @@ contains
 
   end subroutine print_topo
 
-  subroutine cleanup_topo(mesh)
+  subroutine cleanup_topo(shared_env, mesh)
 
     type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
 
-    integer :: ierr
+    if (associated(mesh%topo%global_face_indices)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
+      call dprint("mesh%topo%global_face_indices deallocated.")
+    end if
 
-    if (associated(mesh%topo%bnd_rid)) then
-      call mpi_win_free(mesh%topo%bnd_rid_window, ierr)
-      call dprint("mesh%topo%bnd_rid deallocated.")
+    if (associated(mesh%topo%global_vertex_indices)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+      call dprint("mesh%topo%global_vertex_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%vert_nb_indices)) then
+      deallocate(mesh%topo%vert_nb_indices)
+      call dprint("mesh%topo%vert_nb_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%num_vert_nb)) then
+      deallocate(mesh%topo%num_vert_nb)
+      call dprint("mesh%topo%num_vert_nb deallocated.")
+    end if
+
+    if (associated(mesh%topo%global_boundaries)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
+      call dprint("mesh%topo%global_boundaries deallocated.")
     end if
 
     if (associated(mesh%topo%face_cell1)) then
-      call mpi_win_free(mesh%topo%face_cell1_window, ierr)
+      call destroy_shared_array(shared_env, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
       call dprint("mesh%topo%face_cell1 deallocated.")
     end if
 
     if (associated(mesh%topo%face_cell2)) then
-      call mpi_win_free(mesh%topo%face_cell2_window, ierr)
+      call destroy_shared_array(shared_env, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
       call dprint("mesh%topo%face_cell2 deallocated.")
     end if
 
-    if (associated(mesh%topo%global_face_indices)) then
-      call mpi_win_free(mesh%topo%global_face_indices_window, ierr)
-      call dprint("mesh%topo%global_face_indices deallocated.")
+    if (associated(mesh%topo%bnd_rid)) then
+      call destroy_shared_array(shared_env, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+      call dprint("mesh%topo%bnd_rid deallocated.")
     end if
 
-    if (associated(mesh%topo%global_boundaries)) then
-      call mpi_win_free(mesh%topo%global_boundaries_window, ierr)
-      call dprint("mesh%topo%global_boundaries deallocated.")
+    if (associated(mesh%topo%global_partition)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_partition, mesh%topo%global_partition_window)
+      call dprint("mesh%topo%global_partition deallocated.")
     end if
-
   end subroutine cleanup_topo
 
   subroutine mesh_partition_reorder(par_env, shared_env, mesh)

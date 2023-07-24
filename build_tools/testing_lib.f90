@@ -10,7 +10,7 @@ module testing_lib
   use parallel_types
   use parallel_types_mpi
   use utils, only: str, exit_print
-  use constants, only: ccs_split_type_low_high
+  use constants, only: ccs_split_type_low_high, ccs_split_type_shared
 
   implicit none
 
@@ -104,6 +104,7 @@ contains
     call initialise_parallel_environment(par_env)
     use_mpi_splitting = .false.
     call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
+    !call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
     call create_shared_roots_comm(par_env, shared_env, roots_env)
 
     ! XXX: This would be a good candidate for a testing library

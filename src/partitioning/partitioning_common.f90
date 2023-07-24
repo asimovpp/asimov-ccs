@@ -117,6 +117,7 @@ contains
       if (is_root(shared_env)) then
         mesh%topo%global_boundaries(:) = 0
       end if
+      call sync(shared_env)
     end if
 
 
@@ -227,7 +228,7 @@ contains
     integer(ccs_int) :: vert_nb_idx
 
     integer(ccs_err) :: ierr
-    integer(ccs_err) :: tmp_arr_window
+    integer :: tmp_arr_window = 0
 
     global_num_cells = mesh%topo%global_num_cells
 
@@ -248,6 +249,7 @@ contains
       if (is_root(shared_env)) then
         tmp_arr(:) = 0
       end if
+      call sync(shared_env)
 
       ! XXX: cannot read local_num_cells - arrays haven't been resized!
       local_num_cells = size(mesh%topo%num_vert_nb)
@@ -264,6 +266,7 @@ contains
           end if
         end do
       end do
+      call sync(shared_env)
 
       if (is_valid(roots_env)) then
         select type (roots_env)
@@ -273,11 +276,12 @@ contains
           call error_abort("Unsupported parallel environment!")
         end select
       end if
+      call sync(shared_env)
 
-      if (associated(mesh%topo%vert_nb_indices)) then
-        call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+      if (allocated(mesh%topo%vert_nb_indices)) then
+        deallocate(mesh%topo%vert_nb_indices)
       end if
-      call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+      allocate(mesh%topo%vert_nb_indices(max_vert_nb, global_num_cells))
 
       mesh%topo%vert_nb_indices(:, :) = 0
       do i = 1, global_num_cells
@@ -287,6 +291,7 @@ contains
         end do
       end do
 
+      call sync(shared_env)
       call destroy_shared_array(shared_env, tmp_arr, tmp_arr_window)
     else
       if (par_env%proc_id == par_env%root) then
@@ -343,8 +348,9 @@ contains
     end select
 
     !! XXX: Need to get the maximum number of vertex neighbours BEFORE deallocating
-    if (associated(mesh%topo%num_vert_nb)) then
-      call destroy_shared_array(shared_env, mesh%topo%num_vert_nb, mesh%topo%num_vert_nb_window)
+    if (allocated(mesh%topo%num_vert_nb)) then
+      deallocate(mesh%topo%num_vert_nb)
+      !call destroy_shared_array(shared_env, mesh%topo%num_vert_nb, mesh%topo%num_vert_nb_window)
     end if
     allocate (mesh%topo%num_vert_nb(local_num_cells))
 
@@ -355,8 +361,10 @@ contains
 
     ! Copy vertex neighbour indices from global array
     allocate (tmp_2d, source=mesh%topo%vert_nb_indices)
-    call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
-    call create_shared_array(shared_env, (/max_vert_nb, local_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+    deallocate(mesh%topo%vert_nb_indices)
+    allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
+    !call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+    !call create_shared_array(shared_env, (/max_vert_nb, local_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
 
     do local_idx = 1, local_num_cells
       call create_cell_locator(mesh, local_idx, loc_p)
@@ -723,7 +731,7 @@ contains
     tmp_int2d = 0
 
     ! Allocate global boundaries array
-    allocate (mesh%topo%global_boundaries(mesh%topo%global_num_cells))
+    call create_shared_array(shared_env, mesh%topo%global_num_cells, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
 
     ! All ranks loop over all the faces
     do i = 1, mesh%topo%global_num_faces
