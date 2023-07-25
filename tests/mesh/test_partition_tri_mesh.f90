@@ -379,11 +379,12 @@ contains
       deallocate (mesh%topo%vtxdist)
     end if
 
-    if (associated(mesh%topo%vert_nb_indices)) then
-      call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
+    if (allocated(mesh%topo%vert_nb_indices)) then
+      deallocate(mesh%topo%vert_nb_indices)
     end if
-    if (associated(mesh%topo%num_vert_nb)) then
-      call destroy_shared_array(shared_env, mesh%topo%num_vert_nb, mesh%topo%num_vert_nb_window)
+
+    if (allocated(mesh%topo%num_vert_nb)) then
+      deallocate(mesh%topo%num_vert_nb)
     end if
   end subroutine
 
