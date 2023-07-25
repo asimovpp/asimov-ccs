@@ -358,12 +358,12 @@ contains
     ! Copy vertex neighbour indices from global array
     deallocate(mesh%topo%vert_nb_indices)
     allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
+    mesh%topo%vert_nb_indices(:, :) = 0
 
     do local_idx = 1, local_num_cells
       call create_cell_locator(mesh, local_idx, loc_p)
       call get_global_index(loc_p, global_idx)
 
-      mesh%topo%vert_nb_indices(:, local_idx) = 0 ! Initialise
       mesh%topo%vert_nb_indices(:, local_idx) = pack(mesh%topo%global_vert_nb_indices(:, global_idx), mesh%topo%global_vert_nb_indices(:, global_idx) /= 0)
       mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
     end do
