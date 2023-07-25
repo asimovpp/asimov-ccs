@@ -230,72 +230,66 @@ contains
     integer(ccs_err) :: ierr
     integer :: tmp_arr_window = 0
 
+    ! Copies local vert_nb_indices to the global one
+
     global_num_cells = mesh%topo%global_num_cells
 
-    if (size(mesh%topo%vert_nb_indices, 2) /= global_num_cells) then
-      ! We only have a local view of vertex neighbours
+    max_vert_nb = maxval(mesh%topo%num_vert_nb)
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
 
-      max_vert_nb = maxval(mesh%topo%num_vert_nb)
-      select type (par_env)
+    call create_shared_array(shared_env, max_vert_nb * global_num_cells, tmp_arr, tmp_arr_window)
+
+    if (is_root(shared_env)) then
+      tmp_arr(:) = 0
+    end if
+    call sync(shared_env)
+
+    ! XXX: cannot read local_num_cells - arrays haven't been resized!
+    local_num_cells = size(mesh%topo%num_vert_nb)
+
+    do i = 1, local_num_cells
+      idx = max_vert_nb * (mesh%topo%global_indices(i) - 1)
+
+      do j = 1, mesh%topo%num_vert_nb(i)
+        vert_nb_idx = mesh%topo%vert_nb_indices(j, i)
+        if (vert_nb_idx > 0) then
+          tmp_arr(idx + j) = mesh%topo%global_indices(vert_nb_idx)
+        else
+          tmp_arr(idx + j) = vert_nb_idx
+        end if
+      end do
+    end do
+    call sync(shared_env)
+
+    if (is_valid(roots_env)) then
+      select type (roots_env)
       type is (parallel_environment_mpi)
-        call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, tmp_arr, max_vert_nb * global_num_cells, MPI_INTEGER, MPI_SUM, roots_env%comm, ierr)
       class default
         call error_abort("Unsupported parallel environment!")
       end select
+    end if
+    call sync(shared_env)
 
-      call create_shared_array(shared_env, max_vert_nb * global_num_cells, tmp_arr, tmp_arr_window)
-
-      if (is_root(shared_env)) then
-        tmp_arr(:) = 0
-      end if
-      call sync(shared_env)
-
-      ! XXX: cannot read local_num_cells - arrays haven't been resized!
-      local_num_cells = size(mesh%topo%num_vert_nb)
-
-      do i = 1, local_num_cells
-        idx = max_vert_nb * (mesh%topo%global_indices(i) - 1)
-
-        do j = 1, mesh%topo%num_vert_nb(i)
-          vert_nb_idx = mesh%topo%vert_nb_indices(j, i)
-          if (vert_nb_idx > 0) then
-            tmp_arr(idx + j) = mesh%topo%global_indices(vert_nb_idx)
-          else
-            tmp_arr(idx + j) = vert_nb_idx
-          end if
+    call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+    if (is_root(shared_env)) then
+      mesh%topo%global_vert_nb_indices(:, :) = 0
+      
+      do i = 1, global_num_cells
+        do j = 1, max_vert_nb
+          idx = max_vert_nb * (i - 1) + j
+          mesh%topo%global_vert_nb_indices(j, i) = tmp_arr(idx)
         end do
       end do
-      call sync(shared_env)
-
-      if (is_valid(roots_env)) then
-        select type (roots_env)
-        type is (parallel_environment_mpi)
-          call MPI_Allreduce(MPI_IN_PLACE, tmp_arr, max_vert_nb * global_num_cells, MPI_INTEGER, MPI_SUM, roots_env%comm, ierr)
-        class default
-          call error_abort("Unsupported parallel environment!")
-        end select
-      end if
-      call sync(shared_env)
-
-      call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
-      if (is_root(shared_env)) then
-         mesh%topo%global_vert_nb_indices(:, :) = 0
-        
-        do i = 1, global_num_cells
-          do j = 1, max_vert_nb
-            idx = max_vert_nb * (i - 1) + j
-            mesh%topo%global_vert_nb_indices(j, i) = tmp_arr(idx)
-          end do
-        end do
-      end if
-
-      call sync(shared_env)
-      call destroy_shared_array(shared_env, tmp_arr, tmp_arr_window)
-    else
-      if (par_env%proc_id == par_env%root) then
-        print *, "Continuing without constructing global vertex neighbours"
-      end if
     end if
+
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, tmp_arr, tmp_arr_window)
 
   end subroutine store_global_vertex_connectivity
 
