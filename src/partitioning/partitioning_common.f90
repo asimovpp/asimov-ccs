@@ -64,8 +64,11 @@ contains
 
     call compute_face_connectivity(par_env, shared_env, mesh)
 
+    print *, "aa", 3
     if (vertex_neighbours) then
+    print *, "aa", 4
       call compute_vertex_connectivity(par_env, shared_env, mesh)
+    print *, "aa", 5
     end if
 
   end subroutine compute_connectivity
@@ -243,7 +246,6 @@ contains
         call error_abort("Unsupported parallel environment!")
       end select
 
-      !allocate (tmp_arr(max_vert_nb * global_num_cells))
       call create_shared_array(shared_env, max_vert_nb * global_num_cells, tmp_arr, tmp_arr_window)
 
       if (is_root(shared_env)) then
@@ -278,18 +280,17 @@ contains
       end if
       call sync(shared_env)
 
-      if (allocated(mesh%topo%vert_nb_indices)) then
-        deallocate(mesh%topo%vert_nb_indices)
-      end if
-      allocate(mesh%topo%vert_nb_indices(max_vert_nb, global_num_cells))
-
-      mesh%topo%vert_nb_indices(:, :) = 0
-      do i = 1, global_num_cells
-        do j = 1, max_vert_nb
-          idx = max_vert_nb * (i - 1) + j
-          mesh%topo%vert_nb_indices(j, i) = tmp_arr(idx)
+      call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+      if (is_root(shared_env)) then
+         mesh%topo%global_vert_nb_indices(:, :) = 0
+        
+        do i = 1, global_num_cells
+          do j = 1, max_vert_nb
+            idx = max_vert_nb * (i - 1) + j
+            mesh%topo%global_vert_nb_indices(j, i) = tmp_arr(idx)
+          end do
         end do
-      end do
+      end if
 
       call sync(shared_env)
       call destroy_shared_array(shared_env, tmp_arr, tmp_arr_window)
@@ -318,8 +319,6 @@ contains
     integer(ccs_int) :: max_vert_nb
 
     integer(ccs_err) :: ierr
-
-    integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: nvnb
@@ -355,27 +354,24 @@ contains
     allocate (mesh%topo%num_vert_nb(local_num_cells))
 
     ! Check vertex neighbours as input
-    if (any(mesh%topo%vert_nb_indices > global_num_cells)) then
+    if (any(mesh%topo%global_vert_nb_indices > global_num_cells)) then
       call error_abort("Global vertex neighbour indices > global_num_cells")
     end if
 
     ! Copy vertex neighbour indices from global array
-    allocate (tmp_2d, source=mesh%topo%vert_nb_indices)
     deallocate(mesh%topo%vert_nb_indices)
     allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
-    !call destroy_shared_array(shared_env, mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
-    !call create_shared_array(shared_env, (/max_vert_nb, local_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
 
     do local_idx = 1, local_num_cells
       call create_cell_locator(mesh, local_idx, loc_p)
       call get_global_index(loc_p, global_idx)
 
       mesh%topo%vert_nb_indices(:, local_idx) = 0 ! Initialise
-      mesh%topo%vert_nb_indices(:, local_idx) = pack(tmp_2d(:, global_idx), tmp_2d(:, global_idx) /= 0)
+      mesh%topo%vert_nb_indices(:, local_idx) = pack(mesh%topo%global_vert_nb_indices(:, global_idx), mesh%topo%global_vert_nb_indices(:, global_idx) /= 0)
       mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
     end do
     call sync(shared_env)
-    deallocate (tmp_2d)
+    call destroy_shared_array(shared_env, mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
 
     ! Check localised vertex neighbours
     if (any(mesh%topo%vert_nb_indices > global_num_cells)) then

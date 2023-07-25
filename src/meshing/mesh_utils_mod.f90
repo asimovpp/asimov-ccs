@@ -284,6 +284,8 @@ contains
     class(parallel_environment), intent(in) :: shared_env
     type(ccs_mesh), intent(inout) :: mesh
 
+    integer(ccs_int), dimension(:), pointer :: global_num_vert_nb           !< The local number of vertex neighbours per cell
+    integer :: global_num_vert_nb_window                                    !< Associated shared window
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: vert_nb_per_cell
     integer(ccs_int) :: vert_per_cell
@@ -303,41 +305,42 @@ contains
       call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
       call get_vert_per_cell(mesh, vert_per_cell)
 
-      allocate(mesh%topo%vert_nb_indices(vert_nb_per_cell, global_num_cells))
-      !call create_shared_array(shared_env, (/vert_nb_per_cell, global_num_cells/), mesh%topo%vert_nb_indices, mesh%topo%vert_nb_indices_window)
-      !if (is_root(shared_env)) then
-      mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
-      !end if
-      !call sync(shared_env)
+      call create_shared_array(shared_env, (/vert_nb_per_cell, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+      call create_shared_array(shared_env, global_num_cells, global_num_vert_nb, global_num_vert_nb_window) ! XXX: Will have to shrink this later...
 
-      !call create_shared_array(shared_env, global_num_cells, mesh%topo%num_vert_nb, mesh%topo%num_vert_nb_window) ! XXX: Will have to shrink this later...
-      allocate(mesh%topo%num_vert_nb(global_num_cells))
-      ! Yes, quadratic...
-      do i = 1, global_num_cells
-        mesh%topo%num_vert_nb(i) = 0
-        do j = 1, global_num_cells
-          if (j /= i) then
-            if (any(mesh%topo%global_face_indices(:, i) == j)) then
-              ! Face neighbour, ignore
-              continue
-            else
-              do k = 1, vert_per_cell
-                global_vert_index = mesh%topo%global_vertex_indices(k, i)
-                if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
-                  mesh%topo%num_vert_nb(i) = mesh%topo%num_vert_nb(i) + 1
-                  mesh%topo%vert_nb_indices(mesh%topo%num_vert_nb(i), i) = j
-                  exit
-                end if
-              end do
+      if (is_root(shared_env)) then
+        mesh%topo%global_vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
+
+        ! Yes, quadratic...
+        do i = 1, global_num_cells
+          global_num_vert_nb(i) = 0
+          do j = 1, global_num_cells
+            if (j /= i) then
+              if (any(mesh%topo%global_face_indices(:, i) == j)) then
+                ! Face neighbour, ignore
+                continue
+              else
+                do k = 1, vert_per_cell
+                  global_vert_index = mesh%topo%global_vertex_indices(k, i)
+                  if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
+                    global_num_vert_nb(i) = global_num_vert_nb(i) + 1
+                    mesh%topo%global_vert_nb_indices(global_num_vert_nb(i), i) = j
+                    exit
+                  end if
+                end do
+              end if
             end if
-          end if
 
-          !! Found all the vertex neighbours we're expecting
-          if (mesh%topo%num_vert_nb(i) == vert_per_cell) then
-            exit
-          end if
+            !! Found all the vertex neighbours we're expecting
+            if (global_num_vert_nb(i) == vert_per_cell) then
+              exit
+            end if
+          end do
         end do
-      end do
+
+      end if
+      call sync(shared_env)
+      call destroy_shared_array(shared_env, global_num_vert_nb, global_num_vert_nb_window)
 
     else
       if (par_env%proc_id == par_env%root) then
