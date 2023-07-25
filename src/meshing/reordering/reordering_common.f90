@@ -292,7 +292,6 @@ contains
     class(parallel_environment), intent(in) :: shared_env
     type(ccs_mesh), intent(inout) :: mesh                     !< the mesh to be reordered
 
-    integer(ccs_int), dimension(:, :), allocatable :: tmp_2d
     integer(ccs_int) :: vert_per_cell
     integer(ccs_err) :: local_num_cells
 
@@ -303,22 +302,17 @@ contains
 
     call get_vert_per_cell(mesh, vert_per_cell)
     call get_local_num_cells(mesh, local_num_cells)
-    allocate (tmp_2d(vert_per_cell, local_num_cells))
+    allocate (mesh%topo%loc_global_vertex_indices(vert_per_cell, local_num_cells))
 
     ! Extract vertex indices of local cells from the global array
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
       call get_natural_index(loc_p, natural_index)
-      tmp_2d(:, i) = mesh%topo%global_vertex_indices(:, natural_index)
+      mesh%topo%loc_global_vertex_indices(:, i) = mesh%topo%global_vertex_indices(:, natural_index)
     end do
 
-    ! TODO XXX: potential problem down the line, mesh%topo%global_vertex_indices starts as a global array, and is now local only
     call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
-    call create_shared_array(shared_env, (/vert_per_cell, local_num_cells/), mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
-    !deallocate (mesh%topo%global_vertex_indices)
-    !allocate (mesh%topo%global_vertex_indices, source=tmp_2d)
 
-    deallocate (tmp_2d)
 
   end subroutine
 

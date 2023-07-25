@@ -628,7 +628,7 @@ contains
     do i = 1, local_num_cells
       idx = vert_per_cell * (mesh%topo%natural_indices(i) - 1)
       do j = 1, vert_per_cell
-        natural_vertices_1d(idx + j) = mesh%topo%global_vertex_indices(j, i)
+        natural_vertices_1d(idx + j) = mesh%topo%loc_global_vertex_indices(j, i)
       end do
     end do
     select type(par_env)
@@ -1063,6 +1063,7 @@ contains
           end associate
         end do
       endif
+      call sync(shared_env)
 
       do i = 1, par_env%num_procs
         mesh%topo%vtxdist(i) = j
@@ -1713,6 +1714,7 @@ contains
           end associate
         end do
       endif
+      call sync(shared_env)
 
       ! Create and populate the vtxdist array based on the total number of cells
       ! and the total number of ranks in the parallel environment
@@ -2668,10 +2670,10 @@ contains
       call dprint("mesh%topo%global_face_indices deallocated.")
     end if
 
-    !if (associated(mesh%topo%global_vertex_indices)) then
-    !  call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
-    !  call dprint("mesh%topo%global_vertex_indices deallocated.")
-    !end if
+    if (associated(mesh%topo%global_vertex_indices)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+      call dprint("mesh%topo%global_vertex_indices deallocated.")
+    end if
 
     if (associated(mesh%topo%global_boundaries)) then
       call destroy_shared_array(shared_env, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)

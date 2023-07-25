@@ -103,6 +103,8 @@ module types
                                                                             !<   global_iface = global_face_indices(cell_iface, global_icell)
                                                                             !<   (no special treatment for halo or boundary faces)
     integer :: global_face_indices_window                                   !< Associated shared window
+    integer(ccs_int), dimension(:, :), allocatable :: loc_global_vertex_indices     !< local version of the global list of vertex indices
+                                                                            !<   global_ivert = loc_global_vertex_indices(ivert, local_icell)
     integer(ccs_int), dimension(:, :), pointer :: global_vertex_indices     !< Global list of vertex indices
                                                                             !<   global_ivert = global_vertex_indices(ivert, global_icell)
     integer :: global_vertex_indices_window                                 !< Associated shared window
