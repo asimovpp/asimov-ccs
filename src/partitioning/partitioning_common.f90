@@ -372,6 +372,7 @@ contains
 
     ! Check localised vertex neighbours
     if (any(mesh%topo%vert_nb_indices > global_num_cells)) then
+      print *, mesh%topo%vert_nb_indices
       call error_abort("Local vertex neighbour indices > global_num_cells")
     end if
 
