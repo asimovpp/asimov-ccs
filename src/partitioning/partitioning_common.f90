@@ -64,11 +64,8 @@ contains
 
     call compute_face_connectivity(par_env, shared_env, mesh)
 
-    print *, "aa", 3
     if (vertex_neighbours) then
-    print *, "aa", 4
       call compute_vertex_connectivity(par_env, shared_env, mesh)
-    print *, "aa", 5
     end if
 
   end subroutine compute_connectivity
