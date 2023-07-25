@@ -2670,16 +2670,6 @@ contains
     !  call dprint("mesh%topo%global_vertex_indices deallocated.")
     !end if
 
-    if (allocated(mesh%topo%vert_nb_indices)) then
-      deallocate(mesh%topo%vert_nb_indices)
-      call dprint("mesh%topo%vert_nb_indices deallocated.")
-    end if
-
-    if (allocated(mesh%topo%num_vert_nb)) then
-      deallocate(mesh%topo%num_vert_nb)
-      call dprint("mesh%topo%num_vert_nb deallocated.")
-    end if
-
     if (associated(mesh%topo%global_boundaries)) then
       call destroy_shared_array(shared_env, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
       call dprint("mesh%topo%global_boundaries deallocated.")
