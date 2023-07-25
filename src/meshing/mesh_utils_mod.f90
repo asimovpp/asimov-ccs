@@ -291,6 +291,8 @@ contains
     integer(ccs_int) :: i, j, k
     integer(ccs_int) :: global_vert_index
 
+    associate(foo => shared_env)
+    end associate
     if(vertex_neighbours .eqv. .true.) then
     
       if (par_env%proc_id == par_env%root) then
@@ -2663,10 +2665,10 @@ contains
       call dprint("mesh%topo%global_face_indices deallocated.")
     end if
 
-    if (associated(mesh%topo%global_vertex_indices)) then
-      call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
-      call dprint("mesh%topo%global_vertex_indices deallocated.")
-    end if
+    !if (associated(mesh%topo%global_vertex_indices)) then
+    !  call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+    !  call dprint("mesh%topo%global_vertex_indices deallocated.")
+    !end if
 
     if (allocated(mesh%topo%vert_nb_indices)) then
       deallocate(mesh%topo%vert_nb_indices)
