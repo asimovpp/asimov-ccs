@@ -161,7 +161,7 @@ contains
           coeff = interpolation_factor
         else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
           gamma_m = phiPt / beta_m
-          coeff = 0.5_ccs_real * gamma_m
+          coeff = (1.0_ccs_real - interpolation_factor) * gamma_m
         end if
       end if
 
