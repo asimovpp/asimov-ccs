@@ -150,9 +150,10 @@ module parallel
     end function is_valid
 
     !> Sets the colour for splitting the parallel environment based on the split value provided
-    module subroutine set_colour_from_split(par_env, split_type, colour)
+    module subroutine set_colour_from_split(par_env, split_type, use_mpi_splitting, colour)
       class(parallel_environment), intent(in) :: par_env    !< The parallel environment
       integer, intent(in) :: split_type                     !< Split value provided
+      logical, intent(in) :: use_mpi_splitting              !< Flag indicating whether to use mpi_comm_split_type
       integer, intent(out) :: colour                        !< The resulting colour
     end subroutine
 
