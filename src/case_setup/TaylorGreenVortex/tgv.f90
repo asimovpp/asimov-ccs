@@ -39,7 +39,7 @@ program tgv
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, str, debug_print
   use vec, only: create_vector, set_vector_location
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
 
   implicit none
 
@@ -270,11 +270,7 @@ program tgv
 
   call timer_stop(timer_index_total)
 
-  call timer_print(par_env, timer_index_total)
-  call timer_print(par_env, timer_index_init)
-  call timer_print(par_env, timer_index_build)
-  call timer_print(par_env, timer_index_io_init)
-  call timer_print(par_env, timer_index_sol)
+  call timer_print_all(par_env)
 
   call timer_get_time(timer_index_sol, sol_time)
   call timer_get_time(timer_index_io_sol, io_time)
@@ -282,7 +278,6 @@ program tgv
     write(*,'(A30, F10.4, A)') "Solver time no I/O:", sol_time - io_time, " s"
     write(*,'(A30, F10.4, A)') "Average time/step (no I/O):", (sol_time - io_time)/num_steps, " s"
   end if
-  call timer_print(par_env, timer_index_io_sol)
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)

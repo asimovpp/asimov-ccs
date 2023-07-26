@@ -25,6 +25,7 @@ module timers
   public :: timer_start
   public :: timer_stop
   public :: timer_print
+  public :: timer_print_all
   public :: timer_get_time
 
 contains
@@ -56,10 +57,6 @@ contains
       end if
     end do
 
-    if (timer_index == -1) then
-      call error_abort("timer name not found")
-    end if
-
   end subroutine
 
   !> Register and start a timer
@@ -77,11 +74,14 @@ contains
     character(len=*), intent(in) :: timer_name
     integer(ccs_int), intent(out) :: timer_index
 
-    timer_index = size(ticks) + 1
-    timer_names = (/ timer_names, trim(timer_name) /)
-    ticks = (/ ticks, 0.d0 /)
-    tocks = (/ tocks, 0.d0 /)
-    has_started = (/ has_started, .false. /)
+    call timer_get_index(timer_name, timer_index)
+    if (timer_index == -1) then
+      timer_index = size(ticks) + 1
+      timer_names = (/ timer_names, trim(timer_name) /)
+      ticks = (/ ticks, 0.d0 /)
+      tocks = (/ tocks, 0.d0 /)
+      has_started = (/ has_started, .false. /)
+    end if
     
   end subroutine
 
@@ -125,6 +125,17 @@ contains
       ! repeat ' ' to right align
       write(*,'(A30, F10.4, A)')  repeat(' ', max(0, 29-len(trim(timer_names(timer_index))))) // trim(timer_names(timer_index)) // ":", time, " s"
     end if
+
+  end subroutine
+
+  !> Print all the timers
+  subroutine timer_print_all(par_env)
+    class(parallel_environment), intent(in) :: par_env
+    integer(ccs_int) :: timer_index
+
+    do timer_index=1, size(ticks)
+      call timer_print(par_env, timer_index)
+    end do
 
   end subroutine
 
