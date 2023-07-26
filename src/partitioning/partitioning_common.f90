@@ -134,24 +134,23 @@ contains
       face_nb1 = mesh%topo%face_cell1(i)
       face_nb2 = mesh%topo%face_cell2(i)
 
-      ! If face neighbour 1 is local to the current rank
-      ! and face neighbour 2 is not 0
       if (face_nb2 .ne. 0) then
+        ! If face neighbour 1 is local to the current rank
+        ! and face neighbour 2 is not 0
         if (any(mesh%topo%global_indices == face_nb1)) then
           call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
         end if
-      end if
 
-      ! If face neighbour 2 is local to the current rank
-      ! and face neighbour 1 is not 0
-      if (face_nb1 .ne. 0) then
-        if (any(mesh%topo%global_indices == face_nb2)) then
-          call compute_connectivity_add_connection(face_nb2, face_nb1, i, mesh, tmp_int2d)
+        ! If face neighbour 2 is local to the current rank
+        ! and face neighbour 1 is not 0
+        if (face_nb1 .ne. 0) then
+          if (any(mesh%topo%global_indices == face_nb2)) then
+            call compute_connectivity_add_connection(face_nb2, face_nb1, i, mesh, tmp_int2d)
+          end if
         end if
-      end if
 
-      ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
-      if (face_nb2 .eq. 0) then
+      else
+        ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
         if (any(mesh%topo%global_indices == face_nb1)) then
           mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
 
@@ -160,7 +159,6 @@ contains
           call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
         end if
       end if
-
     end do
 
     ! New number of local connections
