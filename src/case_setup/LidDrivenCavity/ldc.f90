@@ -76,7 +76,7 @@ program ldc
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
-  logical :: split_flag
+  logical :: use_mpi_splitting
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -85,8 +85,8 @@ program ldc
   isize = par_env%num_procs
 
   ! Create shared memory communicator for each node
-  split_flag = .true.
-  call create_new_par_env(par_env, MPI_COMM_TYPE_SHARED, split_flag, shared_env)
+  use_mpi_splitting = .true.
+  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
 
