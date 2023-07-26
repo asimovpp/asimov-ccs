@@ -15,7 +15,7 @@ module timers
 
   logical, dimension(:), allocatable :: has_started
   double precision, dimension(:), allocatable :: ticks
-  double precision, dimension(:), allocatable :: tacks
+  double precision, dimension(:), allocatable :: tocks
   character(len=64), dimension(:), allocatable :: timer_names
 
   public :: timer_init
@@ -35,7 +35,7 @@ contains
     if (.not. allocated(ticks)) then
       allocate(has_started(0))
       allocate(ticks(0))
-      allocate(tacks(0))
+      allocate(tocks(0))
       allocate(timer_names(0))
     end if
 
@@ -50,7 +50,7 @@ contains
     timer_index = -1
 
     do i=1, size(timer_names)
-      if (trim(timer_name) == timer_names(i)) then
+      if (trim(timer_name) == trim(timer_names(i))) then
         timer_index = i
         exit
       end if
@@ -80,7 +80,7 @@ contains
     timer_index = size(ticks) + 1
     timer_names = (/ timer_names, trim(timer_name) /)
     ticks = (/ ticks, 0.d0 /)
-    tacks = (/ tacks, 0.d0 /)
+    tocks = (/ tocks, 0.d0 /)
     has_started = (/ has_started, .false. /)
     
   end subroutine
@@ -109,7 +109,7 @@ contains
   subroutine timer_stop(timer_index)
     integer(ccs_int), intent(in) :: timer_index
 
-    call timer(tacks(timer_index))
+    call timer(tocks(timer_index))
 
   end subroutine
 
@@ -133,7 +133,7 @@ contains
     integer(ccs_int), intent(in) :: timer_index
     double precision :: time
 
-    time = tacks(timer_index) - ticks(timer_index)
+    time = tocks(timer_index) - ticks(timer_index)
 
   end subroutine
 
