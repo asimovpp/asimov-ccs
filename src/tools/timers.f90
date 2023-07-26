@@ -17,6 +17,7 @@ module timers
   double precision, dimension(:), allocatable :: ticks
   double precision, dimension(:), allocatable :: tocks
   character(len=64), dimension(:), allocatable :: timer_names
+  logical :: initialised = .false.
 
   public :: timer_init
   public :: timer_get_index
@@ -33,11 +34,12 @@ contains
   !> Initialise timer module
   subroutine timer_init()
 
-    if (.not. allocated(ticks)) then
+    if (.not. initialised) then
       allocate(has_started(0))
       allocate(ticks(0))
       allocate(tocks(0))
       allocate(timer_names(0))
+      initialised = .true.
     end if
 
   end subroutine
@@ -74,6 +76,7 @@ contains
     character(len=*), intent(in) :: timer_name
     integer(ccs_int), intent(out) :: timer_index
 
+    call timer_init()
     call timer_get_index(timer_name, timer_index)
     if (timer_index == -1) then
       timer_index = size(ticks) + 1
