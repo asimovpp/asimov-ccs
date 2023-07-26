@@ -110,13 +110,13 @@ test_intelx:
 
 #-----------------------------------------------------------------------------#
 
-.debug_build_cray:
+debug_build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
   allow_failure: true
 
-.build_cray:
+build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"
