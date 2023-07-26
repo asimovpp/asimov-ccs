@@ -160,6 +160,7 @@ contains
 
         select type (shared_env)
         type is (parallel_environment_mpi)
+          ! Lock to prevent race condition on global_boundaries edits. Unlikely but possible
           ! XXX: DEBUG fix, to make it compile, TODO: understand why MPI_LOCK_EXCLUSIVE isn't available
           !call MPI_Win_lock(234, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
           !call MPI_Win_lock(MPI_LOCK_EXCLUSIVE, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
@@ -340,7 +341,6 @@ contains
     !! XXX: Need to get the maximum number of vertex neighbours BEFORE deallocating
     if (allocated(mesh%topo%num_vert_nb)) then
       deallocate(mesh%topo%num_vert_nb)
-      !call destroy_shared_array(shared_env, mesh%topo%num_vert_nb, mesh%topo%num_vert_nb_window)
     end if
     allocate (mesh%topo%num_vert_nb(local_num_cells))
 

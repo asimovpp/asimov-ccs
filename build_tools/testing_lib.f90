@@ -104,7 +104,6 @@ contains
     call initialise_parallel_environment(par_env)
     use_mpi_splitting = .false.
     call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
-    !call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
     call create_shared_roots_comm(par_env, shared_env, roots_env)
 
     ! XXX: This would be a good candidate for a testing library
