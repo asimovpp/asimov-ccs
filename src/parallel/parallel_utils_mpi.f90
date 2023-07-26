@@ -33,7 +33,7 @@ contains
 
     select type (parent_par_env)
     type is (parallel_environment_mpi)
-      call set_colour_from_split(parent_par_env, split, colour)
+      call set_colour_from_split(parent_par_env, split, use_mpi_splitting, colour)
       if (use_mpi_splitting) then
         call mpi_comm_split_type(parent_par_env%comm, colour, 0, MPI_INFO_NULL, newcomm, ierr) 
       else 
@@ -441,24 +441,31 @@ contains
   end function is_valid
 
   !> Sets the colour for splitting the parallel environment based on the split value provided
-  module subroutine set_colour_from_split(par_env, split_type, colour)
+  module subroutine set_colour_from_split(par_env, split_type, use_mpi_splitting, colour)
     use constants
 
     class(parallel_environment), intent(in) :: par_env    !< The parallel environment
     integer, intent(in) :: split_type                     !< Split value provided
+    logical, intent(in) :: use_mpi_splitting              !< Split value provided
     integer, intent(out) :: colour                        !< The resulting colour
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      if (split_type == ccs_split_undefined) then 
-        colour = MPI_UNDEFINED
-      else if (split_type == ccs_split_type_low_high) then
-        colour = 0
-        if (par_env%proc_id >= par_env%num_procs/2) then
-          colour = 1
+      if (use_mpi_splitting) then
+        if (split_type == ccs_split_type_shared) then
+          colour = MPI_COMM_TYPE_SHARED
         end if
-      else if (split_type >= 0) then
-        colour = split_type
+      else
+        if (split_type == ccs_split_undefined) then 
+          colour = MPI_UNDEFINED
+        else if (split_type == ccs_split_type_low_high) then
+          colour = 0
+          if (par_env%proc_id >= par_env%num_procs/2) then
+            colour = 1
+          end if
+        else if (split_type >= 0) then
+          colour = split_type
+        end if
       end if
     class default
       call error_abort("Unsupported parallel environment")
