@@ -475,7 +475,7 @@ contains
          temp_window)
     call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
     mesh%geo%volumes(:) = temp_vol_c(mesh%topo%natural_indices(:))
-    call destroy_shared_array(temp_window)
+    call destroy_shared_array(shared_env, temp_vol_c, temp_window)
     
     ! Starting point for reading chunk of data
     x_p_start = (/0, 0/)
@@ -492,7 +492,7 @@ contains
          temp_window)
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
     mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%natural_indices(:))
-    call destroy_shared_array(temp_window)
+    call destroy_shared_array(shared_env, temp_x_p, temp_window)
     
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     call get_global_num_faces(mesh, global_num_faces)
@@ -591,10 +591,10 @@ contains
     end do
 
     ! Delete temp arrays
-    call destroy_shared_array(temp_x_f_window)
-    call destroy_shared_array(temp_x_v_window)
-    call destroy_shared_array(temp_n_f_window)
-    call destroy_shared_array(temp_a_f_window)
+    call destroy_shared_array(shared_env, temp_x_f, temp_x_f_window)
+    call destroy_shared_array(shared_env, temp_x_v, temp_x_v_window)
+    call destroy_shared_array(shared_env, temp_n_f, temp_n_f_window)
+    call destroy_shared_array(shared_env, temp_a_f, temp_a_f_window)
 
     call compute_face_interpolation(mesh)
 

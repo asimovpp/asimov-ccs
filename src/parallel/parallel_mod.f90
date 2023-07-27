@@ -145,11 +145,25 @@ module parallel
       integer(ccs_long), pointer, dimension(:), intent(inout) :: array
       integer, intent(inout) :: window
     end subroutine
+    
+    !> Destroy a real 1D MPI shared memory array
+    module subroutine destroy_shared_array_real_1D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      real(ccs_real), pointer, dimension(:), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
 
     !> Destroy an integer 2D MPI shared memory array
     module subroutine destroy_shared_array_int_2D(shared_env, array, window)
       class(parallel_environment), intent(in) :: shared_env
       integer(ccs_int), pointer, dimension(:,:), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
+
+    !> Destroy an real 2D MPI shared memory array
+    module subroutine destroy_shared_array_real_2D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      real(ccs_real), pointer, dimension(:,:), intent(inout) :: array
       integer, intent(inout) :: window
     end subroutine
 
@@ -193,7 +207,9 @@ module parallel
   interface destroy_shared_array
     module procedure destroy_shared_array_int_1D
     module procedure destroy_shared_array_long_1D
+    module procedure destroy_shared_array_real_1D
     module procedure destroy_shared_array_int_2D
+    module procedure destroy_shared_array_real_2D
   end interface
 
   interface allreduce
