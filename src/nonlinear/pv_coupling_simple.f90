@@ -140,7 +140,6 @@ contains
     call update_gradient(mesh, p)
 
     outerloop: do i = it_start, it_end
-
       call dprint("NONLINEAR: iteration " // str(i))
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)

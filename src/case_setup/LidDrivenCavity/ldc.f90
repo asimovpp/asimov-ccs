@@ -14,9 +14,9 @@ program ldc
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf, &
-                       cell_centred_central, cell_centred_upwind, face_centred
+                       cell_centred_central, cell_centred_upwind, cell_centred_gamma, face_centred
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
+  use types, only: field, field_spec, upwind_field, central_field, gamma_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
@@ -191,9 +191,10 @@ program ldc
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                        fluid_sol, flow_fields)
-
+  
   ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
+  
   call write_solution(par_env, case_path, mesh, output_list)
 
   call timer_stop(timer_index_sol)
