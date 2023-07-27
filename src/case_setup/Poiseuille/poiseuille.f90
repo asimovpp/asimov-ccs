@@ -9,6 +9,7 @@ program poiseuille
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
+  use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
@@ -19,7 +20,7 @@ program poiseuille
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
        set_field_type, set_field_vector_properties
   use fortran_yaml_c_interface, only: parse
-  use parallel, only: initialise_parallel_environment, &
+  use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
@@ -44,6 +45,7 @@ program poiseuille
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
@@ -73,12 +75,15 @@ program poiseuille
   logical :: p_sol = .true.
 
   integer(ccs_int) :: t          ! Timestep counter
+  logical :: use_mpi_splitting
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  use_mpi_splitting = .false.
+  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
 
   irank = par_env%proc_id
   isize = par_env%num_procs
@@ -115,10 +120,10 @@ program poiseuille
   if (cps /= huge(0)) then
     ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
-    mesh = build_square_mesh(par_env, cps, domain_size)
+    mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
-    call read_mesh(par_env, case_name, mesh)
+    call read_mesh(par_env, shared_env, case_name, mesh)
   end if
 
   ! Initialise fields

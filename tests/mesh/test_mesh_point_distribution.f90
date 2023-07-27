@@ -24,7 +24,7 @@ program test_mesh_point_distribution
   ny = 4
   nz = 4
 
-  mesh = build_mesh(par_env, nx, ny, nz, 1.0_ccs_real)
+  mesh = build_mesh(par_env, shared_env, nx, ny, nz, 1.0_ccs_real)
   call get_local_num_cells(mesh, nlocal)
   if (nlocal < 0) then
     ! XXX: Zero cells on a PE is not necessarily invalid...

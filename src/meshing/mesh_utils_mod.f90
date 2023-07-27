@@ -13,7 +13,8 @@ module mesh_utils
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
-  use parallel, only: read_command_line_arguments, create_shared_array, is_root, is_valid
+  use parallel, only: read_command_line_arguments, create_shared_array, is_root, is_valid, create_shared_roots_comm, &
+                      destroy_shared_array, sync
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_index, get_natural_index, get_local_index, count_neighbours, &
@@ -100,12 +101,13 @@ module mesh_utils
 contains
 
   !v Read mesh from file
-  subroutine read_mesh(par_env, case_name, mesh)
+  subroutine read_mesh(par_env, shared_env, case_name, mesh)
 
     use partitioning, only: compute_connectivity_get_local_cells, & 
                             compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     character(len=:), allocatable :: case_name
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
@@ -131,10 +133,10 @@ contains
 
     call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
 
-    call compute_partitioner_input(par_env, mesh)
+    call compute_partitioner_input(par_env, shared_env, mesh)
     call compute_connectivity_get_local_cells(par_env, mesh)
 
-    call mesh_partition_reorder(par_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call read_geometry(shared_env, reader_env, geo_reader, mesh)
 
@@ -146,7 +148,7 @@ contains
 
     ! TODO: Destroy reader_env
     
-    call cleanup_topo(mesh)
+    call cleanup_topo(shared_env, mesh)
 
   end subroutine read_mesh
 
@@ -324,6 +326,8 @@ contains
     class(parallel_environment), intent(in) :: shared_env
     type(ccs_mesh), intent(inout) :: mesh
 
+    integer(ccs_int), dimension(:), pointer :: global_num_vert_nb           !< The local number of vertex neighbours per cell
+    integer :: global_num_vert_nb_window                                    !< Associated shared window
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: vert_nb_per_cell
     integer(ccs_int) :: vert_per_cell
@@ -331,6 +335,8 @@ contains
     integer(ccs_int) :: i, j, k
     integer(ccs_int) :: global_vert_index
 
+    associate(foo => shared_env)
+    end associate
     if(vertex_neighbours .eqv. .true.) then
     
       if (par_env%proc_id == par_env%root) then
@@ -341,43 +347,43 @@ contains
       call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
       call get_vert_per_cell(mesh, vert_per_cell)
 
-      call create_shared_array(shared_env, (/ vert_nb_per_cell, global_num_cells /), mesh%topo%vert_nb_indices, &
-           mesh%topo%vert_nb_indices_window)
-      if (is_root(shared_env)) then
-         mesh%topo%vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
-      end if
-      
-      call create_shared_array(shared_env, global_num_cells, mesh%topo%num_vert_nb, &
-           mesh%topo%num_vert_nb_window)
-      
-      ! Yes, quadratic... (trivially parallelisable though)
-      if (is_root(shared_env)) then
-         do i = 1, global_num_cells
-            mesh%topo%num_vert_nb(i) = 0
-            do j = 1, global_num_cells
-               if (j /= i) then
-                  if (any(mesh%topo%global_face_indices(:, i) == j)) then
-                     ! Face neighbour, ignore
-                     continue
-                  else
-                     do k = 1, vert_per_cell
-                        global_vert_index = mesh%topo%global_vertex_indices(k, i)
-                        if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
-                           mesh%topo%num_vert_nb(i) = mesh%topo%num_vert_nb(i) + 1
-                           mesh%topo%vert_nb_indices(mesh%topo%num_vert_nb(i), i) = j
-                           exit
-                        end if
-                     end do
-                  end if
-               end if
+      call create_shared_array(shared_env, (/vert_nb_per_cell, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+      call create_shared_array(shared_env, global_num_cells, global_num_vert_nb, global_num_vert_nb_window) ! XXX: Will have to shrink this later...
 
-               !! Found all the vertex neighbours we're expecting
-               if (mesh%topo%num_vert_nb(i) == vert_per_cell) then
-                  exit
-               end if
-            end do
-         end do
+      if (is_root(shared_env)) then
+        mesh%topo%global_vert_nb_indices(:, :) = 0 ! Not an internal neighbour, not a boundary - will this work?
+
+        ! Yes, quadratic...
+        do i = 1, global_num_cells
+          global_num_vert_nb(i) = 0
+          do j = 1, global_num_cells
+            if (j /= i) then
+              if (any(mesh%topo%global_face_indices(:, i) == j)) then
+                ! Face neighbour, ignore
+                continue
+              else
+                do k = 1, vert_per_cell
+                  global_vert_index = mesh%topo%global_vertex_indices(k, i)
+                  if (any(mesh%topo%global_vertex_indices(:, j) == global_vert_index)) then
+                    global_num_vert_nb(i) = global_num_vert_nb(i) + 1
+                    mesh%topo%global_vert_nb_indices(global_num_vert_nb(i), i) = j
+                    exit
+                  end if
+                end do
+              end if
+            end if
+
+            !! Found all the vertex neighbours we're expecting
+            if (global_num_vert_nb(i) == vert_per_cell) then
+              exit
+            end if
+          end do
+        end do
+
       end if
+      call sync(shared_env)
+      call destroy_shared_array(shared_env, global_num_vert_nb, global_num_vert_nb_window)
+
     else
       if (par_env%proc_id == par_env%root) then
         print *, "Not building vertex neighbours!"
@@ -694,7 +700,7 @@ contains
     do i = 1, local_num_cells
       idx = vert_per_cell * (mesh%topo%natural_indices(i) - 1)
       do j = 1, vert_per_cell
-        natural_vertices_1d(idx + j) = mesh%topo%global_vertex_indices(j, i)
+        natural_vertices_1d(idx + j) = mesh%topo%loc_global_vertex_indices(j, i)
       end do
     end do
     select type(par_env)
@@ -814,13 +820,13 @@ contains
 
     call build_square_topology(par_env, shared_env, cps, mesh)
 
-    call compute_partitioner_input(par_env, mesh)
+    call compute_partitioner_input(par_env, shared_env, mesh)
 
-    call mesh_partition_reorder(par_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
-    call cleanup_topo(mesh)
+    call cleanup_topo(shared_env, mesh)
 
   end function build_square_mesh
 
@@ -990,22 +996,12 @@ contains
       call get_global_num_faces(mesh, global_num_faces)
 
       ! Create shared memory global arrays
-      if (is_root(shared_env)) then
-        length(1) = global_num_faces
-      else
-        length(1) = 0
-      endif
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell2, mesh%topo%face_cell2_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
 
-      if (is_root(shared_env)) then
-        length(1) = max_faces
-        length(2) = nglobal
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = max_faces
+      length(2) = nglobal
       call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
 
       ! Initialise shared memory global arrays
@@ -1122,13 +1118,8 @@ contains
       k = int(real(nglobal) / par_env%num_procs)
       j = 1
 
-      if (is_root(shared_env)) then
-        length(1) = mesh%topo%vert_per_cell
-        length(2) = mesh%topo%global_num_cells
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = mesh%topo%vert_per_cell
+      length(2) = mesh%topo%global_num_cells
       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
       ! Global vertex numbering
@@ -1144,6 +1135,7 @@ contains
           end associate
         end do
       endif
+      call sync(shared_env)
 
       do i = 1, par_env%num_procs
         mesh%topo%vtxdist(i) = j
@@ -1359,13 +1351,13 @@ contains
 
     call build_topology(par_env, shared_env, nx, ny, nz, mesh)
 
-    call compute_partitioner_input(par_env, mesh)
+    call compute_partitioner_input(par_env, shared_env, mesh)
 
-    call mesh_partition_reorder(par_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
 
-    call cleanup_topo(mesh)
+    call cleanup_topo(shared_env, mesh)
 
   end function build_mesh
 
@@ -1617,22 +1609,12 @@ contains
       call get_max_faces(mesh, max_faces)
 
       ! Create shared memory global arrays
-      if (is_root(shared_env)) then
-        length(1) = global_num_faces
-      else
-        length(1) = 0
-      endif
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%face_cell2, mesh%topo%face_cell2_window)
-      call create_shared_array(shared_env, length(1), mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+      call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
 
-      if (is_root(shared_env)) then
-        length(1) = max_faces
-        length(2) = nglobal
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = max_faces
+      length(2) = nglobal
       call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
 
       ! Initialise shared memory global arrays
@@ -1778,13 +1760,8 @@ contains
 
       call set_cell_face_indices(mesh)
 
-      if (is_root(shared_env)) then
-        length(1) = mesh%topo%vert_per_cell
-        length(2) = mesh%topo%global_num_cells
-      else
-        length(1) = 0
-        length(2) = 0
-      endif
+      length(1) = mesh%topo%vert_per_cell
+      length(2) = mesh%topo%global_num_cells
       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
       ! Global vertex numbering
@@ -1809,6 +1786,7 @@ contains
           end associate
         end do
       endif
+      call sync(shared_env)
 
       ! Create and populate the vtxdist array based on the total number of cells
       ! and the total number of ranks in the parallel environment
@@ -2480,20 +2458,28 @@ contains
   end subroutine
 
   ! Populate mesh%topo%global_partition with a split of cells in stride using global_start and local_count
-  subroutine partition_stride(par_env, mesh)
+  subroutine partition_stride(par_env, shared_env, roots_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
 
     integer(ccs_int) :: iproc, start, end
     integer(ccs_int) :: global_num_cells
 
+    ! roots_env kept as argument for consistency with partition_kway
+    associate(foo => roots_env)
+    end associate
+
     call get_global_num_cells(mesh, global_num_cells)
 
-    do iproc = 0, par_env%num_procs - 1
-      start = global_start(global_num_cells, iproc, par_env%num_procs)
-      end = start + local_count(global_num_cells, iproc, par_env%num_procs) - 1
-      mesh%topo%global_partition(start:end) = iproc
-    end do
+    if (is_root(shared_env)) then
+      do iproc = 0, par_env%num_procs - 1
+        start = global_start(global_num_cells, iproc, par_env%num_procs)
+        end = start + local_count(global_num_cells, iproc, par_env%num_procs) - 1
+        mesh%topo%global_partition(start:end) = iproc
+      end do
+    end if
 
   end subroutine partition_stride
 
@@ -2746,40 +2732,48 @@ contains
 
   end subroutine print_topo
 
-  subroutine cleanup_topo(mesh)
+  subroutine cleanup_topo(shared_env, mesh)
 
     type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
 
-    integer :: ierr
+    if (associated(mesh%topo%global_face_indices)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
+      call dprint("mesh%topo%global_face_indices deallocated.")
+    end if
 
-    if (associated(mesh%topo%bnd_rid)) then
-      call mpi_win_free(mesh%topo%bnd_rid_window, ierr)
-      call dprint("mesh%topo%bnd_rid deallocated.")
+    if (associated(mesh%topo%global_vertex_indices)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+      call dprint("mesh%topo%global_vertex_indices deallocated.")
+    end if
+
+    if (associated(mesh%topo%global_boundaries)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
+      call dprint("mesh%topo%global_boundaries deallocated.")
     end if
 
     if (associated(mesh%topo%face_cell1)) then
-      call mpi_win_free(mesh%topo%face_cell1_window, ierr)
+      call destroy_shared_array(shared_env, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
       call dprint("mesh%topo%face_cell1 deallocated.")
     end if
 
     if (associated(mesh%topo%face_cell2)) then
-      call mpi_win_free(mesh%topo%face_cell2_window, ierr)
+      call destroy_shared_array(shared_env, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
       call dprint("mesh%topo%face_cell2 deallocated.")
     end if
 
-    if (associated(mesh%topo%global_face_indices)) then
-      call mpi_win_free(mesh%topo%global_face_indices_window, ierr)
-      call dprint("mesh%topo%global_face_indices deallocated.")
+    if (associated(mesh%topo%bnd_rid)) then
+      call destroy_shared_array(shared_env, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+      call dprint("mesh%topo%bnd_rid deallocated.")
     end if
 
-    if (associated(mesh%topo%global_boundaries)) then
-      call mpi_win_free(mesh%topo%global_boundaries_window, ierr)
-      call dprint("mesh%topo%global_boundaries deallocated.")
+    if (associated(mesh%topo%global_partition)) then
+      call destroy_shared_array(shared_env, mesh%topo%global_partition, mesh%topo%global_partition_window)
+      call dprint("mesh%topo%global_partition deallocated.")
     end if
-
   end subroutine cleanup_topo
 
-  subroutine mesh_partition_reorder(par_env, mesh)
+  subroutine mesh_partition_reorder(par_env, shared_env, mesh)
 
     use partitioning, only: partition_kway, &
                             compute_connectivity, &
@@ -2787,19 +2781,23 @@ contains
                             cleanup_partitioner_data
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
+    call create_shared_roots_comm(par_env, shared_env, roots_env)
+
     if (par_env%num_procs > 1) then
-      call partition_kway(par_env, mesh)
+      call partition_kway(par_env, shared_env, roots_env, mesh)
     else
-      call partition_stride(par_env, mesh)
+      call partition_stride(par_env, shared_env, roots_env, mesh)
     end if
 
-    call compute_connectivity(par_env, mesh)
+    call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
     call compute_bandwidth(mesh)
-    call reorder_cells(par_env, mesh)
-    call cleanup_partitioner_data(mesh)
+    call reorder_cells(par_env, shared_env, mesh)
+    call cleanup_partitioner_data(shared_env, mesh)
     call compute_bandwidth(mesh)
 
   end subroutine

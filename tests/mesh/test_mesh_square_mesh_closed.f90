@@ -37,7 +37,7 @@ program test_mesh_square_mesh_closed
     n = m(mctr)
 
     l = parallel_random(par_env)
-    mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, shared_env, n, l)
 
     A_expected = l / n
 

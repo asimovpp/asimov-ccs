@@ -28,7 +28,7 @@ program test_diffusion_coeff
 
   call init()
 
-  mesh = build_square_mesh(par_env, cps, L)
+  mesh = build_square_mesh(par_env, shared_env, cps, L)
 
   index_p = 1
   j = 1

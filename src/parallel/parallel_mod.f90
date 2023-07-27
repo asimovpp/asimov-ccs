@@ -5,7 +5,7 @@
 module parallel
 
   use parallel_types
-  use kinds, only: ccs_int, ccs_real
+  use kinds, only: ccs_int, ccs_long, ccs_real
 
   implicit none
 
@@ -21,8 +21,11 @@ module parallel
   public :: error_handling !TODO: consider if this should be public (used with "raw" MPI calls in some places)
   public :: query_stop_run
   public :: create_shared_array
+  public :: destroy_shared_array
   public :: is_root
   public :: is_valid
+  public :: set_mpi_parameters
+  public :: create_shared_roots_comm
 
   interface
 
@@ -31,7 +34,7 @@ module parallel
       class(parallel_environment), allocatable, intent(out) :: par_env
     end subroutine
 
-    !> Creates a new parallel environment by splitting the existing one, splitting
+    !v Creates a new parallel environment by splitting the existing one, splitting
     !  based on provided MPI constants or a provided colouring
     module subroutine create_new_par_env(parent_par_env, split, use_mpi_splitting, par_env)
       class(parallel_environment), intent(in) :: parent_par_env         !< The parent parallel environment
@@ -39,7 +42,6 @@ module parallel
       logical, intent(in) :: use_mpi_splitting                          !< Flag indicating whether to use mpi_comm_split_type
       class(parallel_environment), allocatable, intent(out) :: par_env  !< The resulting parallel environment
     end subroutine
-
 
     !> Cleanup the parallel environment
     module subroutine cleanup_parallel_environment(par_env)
@@ -85,11 +87,24 @@ module parallel
       logical :: stop_run
     end function
 
+    !> Sets mpi parameters inside a parallel environment
+    module subroutine set_mpi_parameters(par_env)
+      class(parallel_environment), intent(inout) :: par_env !< The parallel environment being updated
+    end subroutine set_mpi_parameters
+
     !> Create an integer 1D MPI shared memory array
     module subroutine create_shared_array_int_1D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
       integer(ccs_int), intent(in) :: length
       integer(ccs_int), pointer, dimension(:), intent(out) :: array
+      integer, intent(out) :: window
+    end subroutine
+
+    !> Create an long integer 1D MPI shared memory array
+    module subroutine create_shared_array_long_1D(shared_env, length, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), intent(in) :: length
+      integer(ccs_long), pointer, dimension(:), intent(out) :: array
       integer, intent(out) :: window
     end subroutine
 
@@ -115,6 +130,27 @@ module parallel
       integer(ccs_int), dimension(2), intent(in) :: length
       real(ccs_real), pointer, dimension(:,:), intent(out) :: array
       integer, intent(out) :: window
+    end subroutine create_shared_array_real_2D
+    
+    !> Destroy an integer 1D MPI shared memory array
+    module subroutine destroy_shared_array_int_1D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), pointer, dimension(:), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
+
+    !> Destroy an integer 1D MPI shared memory array
+    module subroutine destroy_shared_array_long_1D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_long), pointer, dimension(:), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
+
+    !> Destroy an integer 2D MPI shared memory array
+    module subroutine destroy_shared_array_int_2D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), pointer, dimension(:,:), intent(inout) :: array
+      integer, intent(inout) :: window
     end subroutine
 
     !> Test whether current rank is root of communicator
@@ -129,13 +165,35 @@ module parallel
       logical :: isvalid
     end function is_valid
 
+    !> Sets the colour for splitting the parallel environment based on the split value provided
+    module subroutine set_colour_from_split(par_env, split_type, use_mpi_splitting, colour)
+      class(parallel_environment), intent(in) :: par_env    !< The parallel environment
+      integer, intent(in) :: split_type                     !< Split value provided
+      logical, intent(in) :: use_mpi_splitting              !< Flag indicating whether to use mpi_comm_split_type
+      integer, intent(out) :: colour                        !< The resulting colour
+    end subroutine
+
+    !> Creates communicator of roots of specified shared environments
+    module subroutine create_shared_roots_comm(par_env, shared_env, roots_env)
+      class(parallel_environment), intent(in) :: par_env                     !< The parent parallel environment of the shared_envs
+      class(parallel_environment), intent(in) :: shared_env                  !< The shared environments whose roots we want in the root environment
+      class(parallel_environment), allocatable, intent(out) :: roots_env   !< The resulting root environment
+    end subroutine 
+    
   end interface
 
   interface create_shared_array
     module procedure create_shared_array_int_1D
+    module procedure create_shared_array_long_1D
     module procedure create_shared_array_int_2D
     module procedure create_shared_array_real_1D
     module procedure create_shared_array_real_2D
+  end interface
+
+  interface destroy_shared_array
+    module procedure destroy_shared_array_int_1D
+    module procedure destroy_shared_array_long_1D
+    module procedure destroy_shared_array_int_2D
   end interface
 
   interface allreduce

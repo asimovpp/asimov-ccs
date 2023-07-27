@@ -13,13 +13,14 @@ program ldc
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, field_w, &
                        field_p, field_p_prime, field_mf
+  use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, fluid, fluid_solver_selector
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync
+                      read_command_line_arguments, sync, create_new_par_env
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
@@ -34,6 +35,7 @@ program ldc
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: case_name       ! Case name
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
@@ -62,9 +64,12 @@ program ldc
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
+  logical :: use_mpi_splitting
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  use_mpi_splitting = .false.
+  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
 
   irank = par_env%proc_id
   isize = par_env%num_procs
@@ -96,7 +101,7 @@ program ldc
   ! Create a square mesh
   print *, "Building mesh"
   cps = 5
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   print *, "Initialise fields"
