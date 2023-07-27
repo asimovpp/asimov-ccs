@@ -6,7 +6,7 @@ submodule(partitioning) partitioning_parhip
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
                      get_max_faces
-  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array
+  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
  
   implicit none
 
@@ -50,7 +50,7 @@ contains
 
     ! Local variables
     integer(ccs_long), dimension(:), pointer :: tmp_partition
-    integer(ccs_int) :: tmp_partition_window
+    integer :: tmp_partition_window
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank
     integer(ccs_int) :: ierr
@@ -94,8 +94,8 @@ contains
     vwgt = mesh%topo%vwgt
 
     ! Set weights to 1
-    adjwgt = 1
-    vwgt = 1
+    adjwgt = 1_ccs_long
+    vwgt = 1_ccs_long
 
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
@@ -120,10 +120,12 @@ contains
       if (is_root(shared_env)) then
         tmp_partition(:) = 0
       end if
+      call sync(shared_env)
 
       do i = 1, local_part_size
         tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
       end do
+      call sync(shared_env)
 
       if (is_valid(roots_env)) then
         select type (roots_env)
@@ -140,6 +142,8 @@ contains
     end select
 
     call dprint("Number of edgecuts: " // str(edgecuts))
+
+    call sync(shared_env)
 
     call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
 

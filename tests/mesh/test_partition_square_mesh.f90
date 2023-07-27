@@ -32,7 +32,7 @@ program test_partition_square_mesh
   print *, "Building mesh."
   call build_square_topology(par_env, shared_env, 4, mesh)
 
-  call compute_partitioner_input(par_env, mesh)
+  call compute_partitioner_input(par_env, shared_env, mesh)
 
   ! Run test to check we agree
   call check_topology("pre")
@@ -43,7 +43,7 @@ program test_partition_square_mesh
   print *, "Adjacency index array: ", mesh%topo%xadj
 
   !call partition_stride(par_env, mesh)
-  call partition_kway(par_env, mesh)
+  call partition_kway(par_env, shared_env, roots_env, mesh)
   call check_topology("mid")
 
   if (par_env%proc_id == 0) then
@@ -55,7 +55,7 @@ program test_partition_square_mesh
   end if
 
   ! Compute new connectivity after partitioning
-  call compute_connectivity(par_env, mesh)
+  call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
   call check_topology("post")
 

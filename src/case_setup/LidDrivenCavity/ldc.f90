@@ -15,6 +15,7 @@ program ldc
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
+  use constants, only: ccs_split_type_shared, ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
@@ -76,7 +77,7 @@ program ldc
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
-  logical :: split_flag
+  logical :: use_mpi_splitting
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -85,8 +86,8 @@ program ldc
   isize = par_env%num_procs
 
   ! Create shared memory communicator for each node
-  split_flag = .true.
-  call create_new_par_env(par_env, MPI_COMM_TYPE_SHARED, split_flag, shared_env)
+  use_mpi_splitting = .true.
+  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
 
