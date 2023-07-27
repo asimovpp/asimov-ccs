@@ -36,6 +36,7 @@ program ldc
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_variables, get_boundary_count, get_store_residuals
   use io_visualisation, only: write_solution
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
 
   implicit none
 
@@ -59,10 +60,8 @@ program ldc
   integer(ccs_int) :: irank ! MPI rank ID
   integer(ccs_int) :: isize ! Size of MPI world
 
-  double precision :: start_time
-  double precision :: init_time
-  double precision :: solver_time
-  double precision :: end_time
+  integer(ccs_int) :: timer_index_init, timer_index_total, timer_index_sol
+
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
@@ -76,6 +75,7 @@ program ldc
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  call timer_init()
 
   irank = par_env%proc_id
   isize = par_env%num_procs
@@ -89,8 +89,9 @@ program ldc
   end if
 
   ccs_config_file = case_path // ccsconfig
- 
-  call timer(start_time)
+
+  call timer_register_start("Elapsed time", timer_index_total)
+  call timer_register_start("Init time", timer_index_init)
 
   ! Read case name from configuration file
   call read_configuration(ccs_config_file)
@@ -184,7 +185,8 @@ program ldc
     call print_configuration()
   end if
 
-  call timer(init_time)
+  call timer_stop(timer_index_init)
+  call timer_register_start("Solver time inc I/O", timer_index_sol)
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -195,7 +197,7 @@ program ldc
   
   call write_solution(par_env, case_path, mesh, output_list)
 
-  call timer(solver_time)
+  call timer_stop(timer_index_sol)
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
@@ -206,13 +208,9 @@ program ldc
   deallocate (p_prime)
   deallocate (output_list)
 
-  call timer(end_time)
+  call timer_stop(timer_index_total)
 
-  if (irank == par_env%root) then
-    write(*,'(A30, F10.4, A)') "Elapsed time: ", end_time - start_time, " s"
-    write(*,'(A30, F10.4, A)') "Init time: ", init_time - start_time, " s"
-    write(*,'(A30, F10.4, A)') "Solver time inc I/O: ", solver_time - init_time, " s"
-  end if
+  call timer_print_all(par_env)
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
