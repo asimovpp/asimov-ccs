@@ -41,43 +41,46 @@ module fv
 
     !> Calculates advection coefficient for neighbouring cell using CDS discretisation
     module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
-      type(central_field), intent(in) :: phi !< scalar (central) field
+      type(central_field), intent(in) :: phi  !< scalar (central) field
       type(face_locator), intent(in) :: loc_f !< face locator
-      real(ccs_real), intent(in) :: mf       !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc     !< flag indicating whether cell is on boundary
-      real(ccs_real), intent(out) :: coeffaP, coeffaF   !< advection coefficient to be calculated
+      real(ccs_real), intent(in) :: mf        !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+      real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_cds
 
     !> Calculates advection coefficient for neighbouring cell using UDS discretisation
     module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
-      type(upwind_field), intent(in) :: phi !< scalar (upwind) field
+      type(upwind_field), intent(in) :: phi   !< scalar (upwind) field
       type(face_locator), intent(in) :: loc_f !< face locator
-      real(ccs_real), intent(in) :: mf      !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
-      real(ccs_real), intent(out) :: coeffaP, coeffaF !< advection coefficient to be calculated
+      real(ccs_real), intent(in) :: mf        !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+      real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_uds
 
     !> Calculates advection coefficient for neighbouring cell using gamma discretisation
     module subroutine calc_advection_coeff_gamma(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
-      type(gamma_field), intent(inout) :: phi  !< scalar (gamma) field
-      type(face_locator), intent(in) :: loc_f !< face locator
-      real(ccs_real), intent(in) :: mf      !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
-      type(cell_locator), intent(in) :: loc_p !< current cell locator
+      type(gamma_field), intent(inout) :: phi       !< scalar (gamma) field
+      type(face_locator), intent(in) :: loc_f       !< face locator
+      real(ccs_real), intent(in) :: mf              !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p       !< current cell locator
       type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
-      real(ccs_real), intent(out) :: coeffaF, coeffaP  !< advection coefficient to be calculated
-      real(ccs_real) :: face_area                   !< area of the face
+      real(ccs_real), intent(out) :: coeffaP        !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF        !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_gamma
 
     !> Calculates advection coefficient for neighbouring cell using LUDS discretisation
     module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
-      type(lupwind_field), intent(inout) :: phi  !< scalar (gamma) field
-      type(face_locator), intent(in) :: loc_f !< face locator
-      real(ccs_real), intent(in) :: mf      !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
-      type(cell_locator), intent(in) :: loc_p !< current cell locator
+      type(lupwind_field), intent(inout) :: phi     !< scalar (gamma) field
+      type(face_locator), intent(in) :: loc_f       !< face locator
+      real(ccs_real), intent(in) :: mf              !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p       !< current cell locator
       type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
-      real(ccs_real), intent(out) :: coeffaP, coeffaF  !< advection coefficient to be calculated
+      real(ccs_real), intent(out) :: coeffaP        !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF        !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_luds
 
     !> Sets the diffusion coefficient

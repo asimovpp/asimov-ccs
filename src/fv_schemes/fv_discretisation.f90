@@ -8,7 +8,6 @@ submodule(fv) fv_discretisation
 
   use vec, only: get_vector_data, restore_vector_data
   use meshing, only: get_face_interpolation, get_local_index
-  !use meshing_accessors, only: get_face_centre
   use types, only: neighbour_locator
   use meshing, only: get_distance, get_centre
 
@@ -17,11 +16,12 @@ submodule(fv) fv_discretisation
 contains
   !> Calculates advection coefficient for neighbouring cell using CDS discretisation
   module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
-    type(central_field), intent(in) :: phi !< scalar field
+    type(central_field), intent(in) :: phi  !< scalar field
     type(face_locator), intent(in) :: loc_f !< face locator
-    real(ccs_real), intent(in) :: mf       !< mass flux at the face
-    integer(ccs_int), intent(in) :: bc     !< flag indicating whether cell is on boundary
-    real(ccs_real), intent(out) :: coeffaP, coeffaF   !< advection coefficient to be calculated
+    real(ccs_real), intent(in) :: mf        !< mass flux at the face
+    integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+    real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+    real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
 
     real(ccs_real) :: interpolation_factor
 
@@ -43,11 +43,12 @@ contains
 
   !> Calculates advection coefficient for neighbouring cell using UDS discretisation
   module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
-    type(upwind_field), intent(in) :: phi !< scalar field
+    type(upwind_field), intent(in) :: phi   !< scalar field
     type(face_locator), intent(in) :: loc_f !< face locator
-    real(ccs_real), intent(in) :: mf      !< mass flux at the face
-    integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
-    real(ccs_real), intent(out) :: coeffaP, coeffaF  !< advection coefficient to be calculated
+    real(ccs_real), intent(in) :: mf        !< mass flux at the face
+    integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+    real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+    real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
 
     ! Dummy usage to prevent unused argument.
     associate (scalar => phi, foo => bc, bar => loc_f)
@@ -71,11 +72,12 @@ contains
     integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
     type(cell_locator), intent(in) :: loc_p       !< current cell locator
     type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
-    real(ccs_real), intent(out) :: coeffaF, coeffaP          !< advection coefficient to be calculated
+    real(ccs_real), intent(out) :: coeffaP        !< advection coefficient for current cell
+    real(ccs_real), intent(out) :: coeffaF        !< advection coefficient for neighbour cell
 
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
-    real(ccs_real), dimension(3) :: dphiF, dphiP, d
+    real(ccs_real), dimension(3) :: dphiP, d
     real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt, gamma_m, beta_m
     real(ccs_real) :: interpolation_factor
 
@@ -103,105 +105,79 @@ contains
 
     beta_m = 0.35_ccs_real ! value can be varied between 0.1 and 0.5
 
-    if (mf < 0.0) then
-      phiP = phi_data(index_nb)
-      phiF = phi_data(index_p)
+    if (bc == 0) then
+      ! Interior face
+      ! -------------
+      if (mf < 0.0) then
+        phiP = phi_data(index_nb)
+        phiF = phi_data(index_p)
 
-      ! Gradient of phi at cell center (current cell)
-      dphiP(1) = dphidx(index_nb)
-      dphiP(2) = dphidy(index_nb)
-      dphiP(3) = dphidz(index_nb)
+        !Gradient of phi at cell center (current cell)
+        dphiP(1) = dphidx(index_nb)
+        dphiP(2) = dphidy(index_nb)
+        dphiP(3) = dphidz(index_nb)
 
-      ! Gradient of phi at cell center (neighbouring cell)
-      dphiF(1) = dphidx(index_p)
-      dphiF(2) = dphidy(index_p)
-      dphiF(3) = dphidz(index_p)
+        !Gradient phi at cell face
+        dphi = phiF - phiP
 
-      ! Gradient phi at cell face
-      dphi = phiF - phiP
+        !Get the distance between present and neighbouring cell centers and store it in d
+        call get_distance(loc_p, loc_nb, d)
+        d = -1.0_ccs_real * d
 
-      ! Get the distance between present and neighbouring cell centers and store it in d
-      call get_distance(loc_p, loc_nb, d)
-      d = -1.0_ccs_real * d
+        !calculate the normalized phi
+        ddphi = 2.0_ccs_real * dot_product(dphiP, d)
+        phiPt = 1.0_ccs_real - (dphi / ddphi)
 
-      ! calculate the normalized phi
-      ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-      phiPt = 1.0_ccs_real - (dphi / ddphi)
-
-      if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then ! UD
-        coeffaF = 1.0_ccs_real
-        coeffaP = 1.0_ccs_real - coeffaF
-      else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then ! CDS
-        if (bc == 0) then
+        if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
+          coeffaF = 1.0_ccs_real
+        else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
           call get_face_interpolation(loc_f, interpolation_factor)
           interpolation_factor = 1.0_ccs_real - interpolation_factor
-        else
-          interpolation_factor = 0.5_ccs_real ! 1.0_ccs_real
-        end if
-        coeffaF = interpolation_factor
-        coeffaP = 1.0_ccs_real - coeffaF
-      else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then ! Gamma
-        gamma_m = phiPt / beta_m
-        if (bc == 0) then
+          coeffaF = interpolation_factor
+        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+          gamma_m = phiPt / beta_m
           call get_face_interpolation(loc_f, interpolation_factor)
           coeffaF = 1.0_ccs_real + (gamma_m * (interpolation_factor - 1.0_ccs_real))
-        else
-          interpolation_factor = 0.5_ccs_real ! 1.0_ccs_real
-          coeffaF = interpolation_factor
         end if
-        ! coeffaF = 1.0_ccs_real - 0.5_ccs_real * gamma_m
         coeffaP = 1.0_ccs_real - coeffaF
+      else
+        phiP = phi_data(index_p)
+        phiF = phi_data(index_nb)
 
-      end if
-    else
-      phiP = phi_data(index_p)
-      phiF = phi_data(index_nb)
+        !Gradient of phi at cell center (current cell)
+        dphiP(1) = dphidx(index_p)
+        dphiP(2) = dphidy(index_p)
+        dphiP(3) = dphidz(index_p)
 
-      ! Gradient of phi at cell center (current cell)
-      dphiP(1) = dphidx(index_p)
-      dphiP(2) = dphidy(index_p)
-      dphiP(3) = dphidz(index_p)
+        !Gradient phi at cell face
+        dphi = phiF - phiP
 
-      ! Gradient of phi at cell center (neighbouring cell)
-      dphiF(1) = dphidx(index_nb)
-      dphiF(2) = dphidy(index_nb)
-      dphiF(3) = dphidz(index_nb)
+        !Get the distance between present and neighbouring cell centers and store it in d
+        call get_distance(loc_p, loc_nb, d)
 
-      ! Gradient phi at cell face
-      dphi = phiF - phiP
+        !calculate the normalized phi
+        ddphi = 2.0_ccs_real * dot_product(dphiP, d)
+        phiPt = 1.0_ccs_real - (dphi / ddphi)
 
-      ! Get the distance between present and neighbouring cell centers and store it in d
-      call get_distance(loc_p, loc_nb, d)
-
-      ! calculate the normalized phi
-      ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-      phiPt = 1.0_ccs_real - (dphi / ddphi)
-
-      if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then ! UD
-        coeffaF = 0.0_ccs_real
-        coeffaP = 1.0_ccs_real - coeffaF
-      else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then ! CDS
-        if (bc == 0) then
+        if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then !UD
+          coeffaF = 0.0_ccs_real
+        else if (phiPt > beta_m .and. phiPt < 1.0_ccs_real) then !CDS
           call get_face_interpolation(loc_f, interpolation_factor)
           interpolation_factor = 1.0_ccs_real - interpolation_factor
-        else
-          interpolation_factor = 0.5_ccs_real ! 1.0_ccs_real
-        end if
-        coeffaF = interpolation_factor
-        coeffaP = 1.0_ccs_real - coeffaF
-      else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then ! Gamma
-        gamma_m = phiPt / beta_m
-        if (bc == 0) then
-          call get_face_interpolation(loc_f, interpolation_factor)
-          coeffaF = gamma_m * (1.0_ccs_real - interpolation_factor)
-        else
-          interpolation_factor = 0.5_ccs_real ! 1.0_ccs_real
           coeffaF = interpolation_factor
+        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+          gamma_m = phiPt / beta_m
+          coeffaF = (1.0_ccs_real - interpolation_factor) * gamma_m
         end if
-        ! coeffaF = 1.0_ccs_real - 0.5_ccs_real * gamma_m
         coeffaP = 1.0_ccs_real - coeffaF
       end if
-    end if
+
+    else
+      ! Boundary face
+      ! -------------
+      coeffaF = 0.5_ccs_real
+      coeffaP = 1.0_ccs_real - coeffaF
+    endif
 
     ! Restore vectors
     call restore_vector_data(phi%values, phi_data)
@@ -211,19 +187,20 @@ contains
 
   end subroutine calc_advection_coeff_gamma
 
-  !> Calculates advection coefficient for neighbouring cell using UDS discretisation
+  !> Calculates advection coefficient for neighbouring cell using Linear Upwind discretisation
   module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
-    type(lupwind_field), intent(inout) :: phi       !< scalar field
+    type(lupwind_field), intent(inout) :: phi     !< scalar field
     type(face_locator), intent(in) :: loc_f       !< face locator
     real(ccs_real), intent(in) :: mf              !< mass flux at the face
     integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
     type(cell_locator), intent(in) :: loc_p       !< current cell locator
     type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
-    real(ccs_real), intent(out) :: coeffaP, coeffaF        !< advection coefficient to be calculated
+    real(ccs_real), intent(out) :: coeffaP        !< advection coefficient for current cell
+    real(ccs_real), intent(out) :: coeffaF        !< advection coefficient for neighbour cell
 
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
-    real(ccs_real), dimension(3) :: dphiF, dphiP, d
+    real(ccs_real), dimension(3) :: dphiP, d
     real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt
 
     integer(ccs_int) :: index_p, index_nb
@@ -259,11 +236,6 @@ contains
         dphiP(1) = dphidx(index_nb)
         dphiP(2) = dphidy(index_nb)
         dphiP(3) = dphidz(index_nb)
- 
-        ! Gradient of phi at cell center (neighbouring cell)
-        dphiF(1) = dphidx(index_p)
-        dphiF(2) = dphidy(index_p)
-        dphiF(3) = dphidz(index_p)
 
         ! Gradient phi at cell face
         dphi = phiF - phiP
@@ -295,11 +267,6 @@ contains
         dphiP(1) = dphidx(index_p)
         dphiP(2) = dphidy(index_p)
         dphiP(3) = dphidz(index_p)
-
-        ! Gradient of phi at cell center (neighbouring cell)
-        dphiF(1) = dphidx(index_nb)
-        dphiF(2) = dphidy(index_nb)
-        dphiF(3) = dphidz(index_nb)
 
         ! Gradient phi at cell face
         dphi = phiF - phiP
