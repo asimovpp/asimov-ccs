@@ -104,8 +104,8 @@ contains
     
     call get_local_num_cells(mesh, local_num_cells) 
     do index_p = 1, local_num_cells
-      call clear_entries(mat_coeffs) !?
-      call clear_entries(b_coeffs)  !?
+      call clear_entries(mat_coeffs)
+      call clear_entries(b_coeffs)
 
       ! Calculate contribution from neighbours
       call create_cell_locator(mesh, index_p, loc_p)
