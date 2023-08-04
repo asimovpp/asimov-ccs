@@ -219,7 +219,7 @@ contains
     integer, intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
-    real(ccs_int) :: dummy_real = 1_ccs_real
+    real(ccs_real) :: dummy_real = 1.0_ccs_real
     integer(ccs_err) :: ierr
     integer :: disp_unit
     integer(mpi_address_kind) :: base_ptr, byte_size
@@ -254,7 +254,7 @@ contains
     integer, intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
-    integer(ccs_int) :: dummy_real = 1_ccs_real
+    real(ccs_real) :: dummy_real = 1.0_ccs_real
     integer(ccs_err) :: ierr
     integer :: disp_unit
     integer(mpi_address_kind) :: base_ptr, byte_size
