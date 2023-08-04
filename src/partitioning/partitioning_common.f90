@@ -462,9 +462,6 @@ contains
     end if
 
     ! Allocate and then compute global indices
-    if (allocated(mesh%topo%global_indices)) then
-      deallocate (mesh%topo%global_indices)
-    end if
     call get_local_num_cells(mesh, local_num_cells)
     if (allocated(mesh%topo%global_indices)) then
       deallocate (mesh%topo%global_indices)
