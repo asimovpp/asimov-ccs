@@ -687,7 +687,6 @@ contains
     end_index = int(mesh%topo%vtxdist(irank + 2), int32) - 1
 
     ! Allocate global partition array
-    allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
     global_num_cells_shared_size = mesh%topo%global_num_cells
 
     call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%global_partition, mesh%topo%global_partition_window)
