@@ -350,7 +350,9 @@ contains
     end if
 
     ! Copy vertex neighbour indices from global array
-    deallocate(mesh%topo%vert_nb_indices)
+    if (allocated(mesh%topo%vert_nb_indices)) then
+       deallocate(mesh%topo%vert_nb_indices)
+    end if
     allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
     mesh%topo%vert_nb_indices(:, :) = 0
 

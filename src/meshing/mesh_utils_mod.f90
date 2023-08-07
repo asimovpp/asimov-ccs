@@ -124,7 +124,7 @@ contains
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
 
-    ! TODO: Create reader_env
+    call create_shared_roots_comm(par_env, shared_env, reader_env)
     
     call initialise_io(reader_env, adios2_file, io_env)
     call configure_io(io_env, "geo_reader", geo_reader)
@@ -146,7 +146,7 @@ contains
     ! Finalise the ADIOS2 IO environment
     call cleanup_io(io_env)
 
-    ! TODO: Destroy reader_env
+    ! TODO: cleanup reader parallel environment
     
     call cleanup_topo(shared_env, mesh)
 
@@ -255,6 +255,7 @@ contains
        call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
        call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
     end if
+    call sync(shared_env)
     
     ! Read bnd data
     call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, &
@@ -273,6 +274,7 @@ contains
        mesh%topo%bnd_rid(:) = 0_ccs_int
        mesh%topo%bnd_rid(bnd_face(:)) = -(bnd_rid(:) + 1_ccs_int)
     end if
+    call sync(shared_env)
 
     ! Read global face and vertex indices
     call get_global_num_cells(mesh, global_num_cells)
@@ -292,7 +294,6 @@ contains
        sel2_count(1) = vert_per_cell
 
        call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
-       call build_vertex_neighbours(par_env, shared_env, mesh)
     end if
     
     ! Create and populate the vtxdist array based on the total number of cells
@@ -310,8 +311,18 @@ contains
     do i = 1, par_env%num_procs
       mesh%topo%vtxdist(i) = j
       j = j + k
-    end do
+   end do
 
+   associate(irank => par_env%proc_id)
+     mesh%topo%local_num_cells = int(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), ccs_int)
+     allocate(mesh%topo%global_indices(mesh%topo%local_num_cells))
+     do i = 1, mesh%topo%local_num_cells
+        mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(irank + 1), ccs_int) + (i - 1)
+     end do
+   end associate
+   
+   call build_vertex_neighbours(par_env, shared_env, mesh)
+    
   end subroutine read_topology
 
   !v Build the vertex neighbours from the cell-vertex connectivity.
@@ -329,6 +340,7 @@ contains
     integer(ccs_int), dimension(:), pointer :: global_num_vert_nb           !< The local number of vertex neighbours per cell
     integer :: global_num_vert_nb_window                                    !< Associated shared window
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: vert_nb_per_cell
     integer(ccs_int) :: vert_per_cell
 
@@ -382,6 +394,18 @@ contains
 
       end if
       call sync(shared_env)
+
+      !! Get local data
+      call get_local_num_cells(mesh, local_num_cells)
+      allocate(mesh%topo%num_vert_nb(local_num_cells))
+      allocate(mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
+      do i = 1, local_num_cells
+         associate(idxg => mesh%topo%global_indices(i))
+           mesh%topo%num_vert_nb(i) = global_num_vert_nb(idxg)
+           mesh%topo%vert_nb_indices(:, i) = mesh%topo%global_vert_nb_indices(:, idxg)
+         end associate
+      end do
+      
       call destroy_shared_array(shared_env, global_num_vert_nb, global_num_vert_nb_window)
 
     else
@@ -474,7 +498,9 @@ contains
     call create_shared_array(shared_env, global_num_cells, temp_vol_c, &
          temp_window)
     call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
+    call sync(shared_env)
     mesh%geo%volumes(:) = temp_vol_c(mesh%topo%natural_indices(:))
+    call sync(shared_env)
     call destroy_shared_array(shared_env, temp_vol_c, temp_window)
     
     ! Starting point for reading chunk of data
@@ -491,7 +517,9 @@ contains
     call create_shared_array(shared_env, (/ ndim, global_num_cells /), temp_x_p, &
          temp_window)
     call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
+    call sync(shared_env)
     mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%natural_indices(:))
+    call sync(shared_env)
     call destroy_shared_array(shared_env, temp_x_p, temp_window)
     
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
@@ -522,7 +550,6 @@ contains
     ! Read variable "/face/area"
     call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
 
-
     ! Read variable "/vert"
     call get_global_num_vertices(mesh, global_num_vertices)
     call create_shared_array(shared_env, (/ ndim, global_num_vertices /), temp_x_v, &
@@ -539,7 +566,7 @@ contains
     allocate (mesh%geo%vert_coords(ndim, vert_per_cell, local_num_cells))
 
     ! Procs fill local data
-    call MPI_Barrier(shared_comm, ierr)
+    call sync(shared_env)
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
       call create_cell_locator(mesh, local_icell, loc_p)
       call get_natural_index(loc_p, global_icell)
@@ -561,7 +588,7 @@ contains
       do j = 1, vert_per_cell ! loop over all vertices for each cell
         call create_vert_locator(mesh, local_icell, j, loc_v)
 
-        n = mesh%topo%global_vertex_indices(j, local_icell)
+        n = mesh%topo%loc_global_vertex_indices(j, local_icell)
         call set_centre(loc_v, temp_x_v(:, n))
       end do
 
@@ -591,6 +618,7 @@ contains
     end do
 
     ! Delete temp arrays
+    call sync(shared_env)
     call destroy_shared_array(shared_env, temp_x_f, temp_x_f_window)
     call destroy_shared_array(shared_env, temp_x_v, temp_x_v_window)
     call destroy_shared_array(shared_env, temp_n_f, temp_n_f_window)
