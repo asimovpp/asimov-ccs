@@ -2258,9 +2258,15 @@ contains
         ! Increment total cell count
         call get_total_num_cells(mesh, total_num_cells)
         call set_total_num_cells(total_num_cells + 1, mesh)
+
+        call get_total_num_cells(mesh, total_num_cells)
+        if (total_num_cells /= size(mesh%topo%global_indices)) then
+           print *, total_num_cells, size(mesh%topo%global_indices)
+           call error_abort("ERROR: Local total cell count and size of global indices not in agreement!")
+        end if
       end if
     end if
-
+    
   end subroutine build_local_mesh_add_neighbour
 
   !v @note Docs needed.
