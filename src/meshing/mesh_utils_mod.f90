@@ -425,6 +425,11 @@ contains
            end do
          end associate
       end do
+
+      call get_total_num_cells(mesh, total_num_cells)
+      if (any(mesh%topo%vert_nb_indices > total_num_cells)) then
+         call error_abort("ERROR: Vertex neighbour index outside total number of cells I can see!")
+      end if
       
       call destroy_shared_array(shared_env, global_num_vert_nb, global_num_vert_nb_window)
 
