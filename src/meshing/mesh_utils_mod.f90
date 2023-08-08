@@ -175,6 +175,7 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: vert_per_cell
@@ -314,11 +315,17 @@ contains
    end do
 
    associate(irank => par_env%proc_id)
-     mesh%topo%local_num_cells = int(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), ccs_int)
-     allocate(mesh%topo%global_indices(mesh%topo%local_num_cells))
+     local_num_cells = int(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), ccs_int)
+     call set_local_num_cells(local_num_cells, mesh)
+     call set_total_num_cells(local_num_cells, mesh)
+     
+     allocate(mesh%topo%global_indices(local_num_cells))
      do i = 1, mesh%topo%local_num_cells
         mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(irank + 1), ccs_int) + (i - 1)
      end do
+
+     allocate(mesh%topo%num_nb(local_num_cells))
+     mesh%topo%num_nb(:) = max_faces
    end associate
    
    call build_vertex_neighbours(par_env, shared_env, mesh)
