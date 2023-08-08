@@ -9,6 +9,7 @@ submodule(io_visualisation) io_visualisation_adios2
   use adios2
   use adios2_types, only: adios2_io_process
   use utils, only: exit_print
+  use timers, only: timer_register, timer_start, timer_stop
 
   implicit none
 
@@ -62,18 +63,10 @@ contains
 
     real(ccs_real), dimension(:), allocatable :: data
 
-    double precision :: nat_data_output_start
-    double precision :: nat_data_output_end
-    double precision, save :: nat_data_output_total
-    double precision :: output_start
-    double precision :: output_end
-    double precision, save :: output_total
-    double precision :: nat_data_start
-    double precision :: nat_data_end
-    double precision, save :: nat_data_total
-    double precision :: grad_start
-    double precision :: grad_end
-    double precision, save :: grad_total
+    integer(ccs_int) :: timer_index_nat_data_output
+    integer(ccs_int) :: timer_index_nat_data
+    integer(ccs_int) :: timer_index_output
+    integer(ccs_int) :: timer_index_grad
 
     integer(ccs_int) :: i
 
@@ -84,6 +77,11 @@ contains
 
     sol_file = case_name // '.sol.h5'
     adios2_file = case_name // adiosconfig
+
+    call timer_register("Get natural data (output)", timer_index_nat_data_output)
+    call timer_register("Get natural data (grads)", timer_index_nat_data)
+    call timer_register("Write output time", timer_index_output)
+    call timer_register("Write gradients time", timer_index_grad)
 
     if (present(step)) then
       ! Unsteady case
@@ -125,66 +123,59 @@ contains
     call begin_step(sol_writer)
 
     ! Loop over output list and write out
-    call timer(output_start)
+    call timer_start(timer_index_output)
     do i = 1, size(output_list)
       ! Check whether pointer is associated with a field
       if (.not. associated(output_list(i)%ptr)) exit
 
-      call timer(nat_data_output_start)
+      call timer_start(timer_index_nat_data_output)
       call get_natural_data(par_env, mesh, output_list(i)%ptr%values, data)
-      call timer(nat_data_output_end)
-      nat_data_output_total = nat_data_output_total + nat_data_output_end - nat_data_output_start
+      call timer_stop(timer_index_nat_data_output)
       data_name = "/" // trim(output_list(i)%name)
       call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
       ! Store residuals if available
       if (allocated(output_list(i)%ptr%residuals)) then
-        call timer(nat_data_output_start)
+        call timer_start(timer_index_nat_data_output)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%residuals, data)
-        call timer(nat_data_output_end)
-        nat_data_output_total = nat_data_output_total + nat_data_output_end - nat_data_output_start
+        call timer_stop(timer_index_nat_data_output)
         data_name = "/" // trim(output_list(i)%name // "_res")
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
       end if
       
     end do
-    call timer(output_end)
-    output_total = output_total + output_end - output_start
+    call timer_stop(timer_index_output)
    
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
     if (write_gradients) then
-      call timer(grad_start)
+      call timer_start(timer_index_grad)
       do i = 1, size(output_list)
         ! Check whether pointer is associated with a field
         if (.not. associated(output_list(i)%ptr)) exit
 
         ! x-gradient
-        call timer(nat_data_start)
+        call timer_start(timer_index_nat_data)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
-        call timer(nat_data_end)
-        nat_data_total = nat_data_total + nat_data_end - nat_data_start
+        call timer_stop(timer_index_nat_data)
         data_name = "/d" // trim(output_list(i)%name) // "dx"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
         ! y-gradient
-        call timer(nat_data_start)
+        call timer_start(timer_index_nat_data)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
-        call timer(nat_data_end)
-        nat_data_total = nat_data_total + nat_data_end - nat_data_start
+        call timer_stop(timer_index_nat_data)
         data_name = "/d" // trim(output_list(i)%name) // "dy"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
         ! z-gradient
-        call timer(nat_data_start)
+        call timer_start(timer_index_nat_data)
         call get_natural_data(par_env, mesh, output_list(i)%ptr%x_gradients, data)
-        call timer(nat_data_end)
-        nat_data_total = nat_data_total + nat_data_end - nat_data_start
+        call timer_stop(timer_index_nat_data)
         data_name = "/d" // trim(output_list(i)%name) // "dz"
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
       end do
-      call timer(grad_end)
-      grad_total = grad_total + grad_end - grad_start
+      call timer_stop(timer_index_grad)
     end if
 
     if (allocated(data)) then
@@ -205,17 +196,6 @@ contains
       ! Steady case
       call close_file(sol_writer)
       call cleanup_io(io_env)
-    end if
-
-    if (present(step)) then
-      if(step == maxstep) then
-        if (par_env%proc_id == par_env%root) then
-          write(*,'(A30, F10.4, A)') "Get natural data (output): ", nat_data_output_total, " s"
-          write(*,'(A30, F10.4, A)') "Get natural data (grads): ", nat_data_total, " s"
-          write(*,'(A30, F10.4, A)') "Write output time: ", output_total, " s"
-          write(*,'(A30, F10.4, A)') "Write gradients time: ", grad_total, " s"
-        end if
-      end if
     end if
 
   end subroutine write_fields
