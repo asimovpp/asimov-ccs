@@ -134,7 +134,6 @@ contains
     call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, shared_env, mesh)
-    call compute_connectivity_get_local_cells(par_env, mesh)
 
     call mesh_partition_reorder(par_env, shared_env, mesh)
 
