@@ -347,6 +347,9 @@ contains
     integer(ccs_int) :: i, j, k
     integer(ccs_int) :: global_vert_index
 
+    integer(ccs_int) :: idx_vnb
+    integer(ccs_int) :: total_num_cells
+    
     associate(foo => shared_env)
     end associate
     if(vertex_neighbours .eqv. .true.) then
@@ -403,6 +406,17 @@ contains
          associate(idxg => mesh%topo%global_indices(i))
            mesh%topo%num_vert_nb(i) = global_num_vert_nb(idxg)
            mesh%topo%vert_nb_indices(:, i) = mesh%topo%global_vert_nb_indices(:, idxg)
+           do j = 1, mesh%topo%num_vert_nb(i)
+              associate(idxg_vnb => mesh%topo%vert_nb_indices(j, i))
+                idx_vnb = findloc(mesh%topo%global_indices, idxg_vnb, dim=1)
+                if (idx_vnb > 0) then
+                   mesh%topo%vert_nb_indices(j, i) = idx_vnb
+                else
+                   call get_total_num_cells(mesh, total_num_cells)
+                   call build_local_mesh_add_neighbour(i, mesh%topo%num_nb(i) + j, total_num_cells + 1, idxg_vnb, mesh, .true.)
+                end if
+              end associate
+           end do
          end associate
       end do
       
