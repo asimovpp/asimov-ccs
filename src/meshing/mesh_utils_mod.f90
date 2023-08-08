@@ -355,6 +355,8 @@ contains
 
     integer(ccs_int) :: idx_vnb
     integer(ccs_int) :: total_num_cells
+
+    integer(ccs_int) :: vctr
     
     associate(foo => shared_env)
     end associate
@@ -409,17 +411,23 @@ contains
       allocate(mesh%topo%num_vert_nb(local_num_cells))
       allocate(mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
       do i = 1, local_num_cells
+         vctr = 1
          associate(idxg => mesh%topo%global_indices(i))
            mesh%topo%num_vert_nb(i) = global_num_vert_nb(idxg)
            mesh%topo%vert_nb_indices(:, i) = mesh%topo%global_vert_nb_indices(:, idxg)
            do j = 1, mesh%topo%num_vert_nb(i)
               associate(idxg_vnb => mesh%topo%vert_nb_indices(j, i))
-                idx_vnb = findloc(mesh%topo%global_indices, idxg_vnb, dim=1)
-                if (idx_vnb > 0) then
-                   mesh%topo%vert_nb_indices(j, i) = idx_vnb
-                else
-                   call get_total_num_cells(mesh, total_num_cells)
-                   call build_local_mesh_add_neighbour(i, mesh%topo%num_nb(i) + j, total_num_cells + 1, idxg_vnb, mesh, .true.)
+                if (idxg_vnb > 0) then
+                   idx_vnb = findloc(mesh%topo%global_indices, idxg_vnb, dim=1)
+
+                   if (idx_vnb > 0) then
+                      call build_local_mesh_add_neighbour(i, vctr, idx_vnb, idxg_vnb, mesh, .true.)
+                   else
+                      call get_total_num_cells(mesh, total_num_cells)
+                      call build_local_mesh_add_neighbour(i, vctr, total_num_cells + 1, idxg_vnb, mesh, .true.)
+                   end if
+
+                   vctr = vctr + 1
                 end if
               end associate
            end do
