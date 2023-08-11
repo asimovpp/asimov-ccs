@@ -192,6 +192,8 @@ module types
     class(ccs_vector), allocatable :: y_gradients                 !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients                 !< Vector representing the z gradient
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
+    real(ccs_real) :: Schmidt = 1.0                                         !< Schmidt Number
+    !real(ccs_real) :: Visco = 1.e-2_ccs_real                                !< Viscosity
   end type field
 
   type, public, extends(field) :: upwind_field

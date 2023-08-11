@@ -5,7 +5,7 @@
 submodule(fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode
-  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile
+  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile, field
   use vec, only: get_vector_data, restore_vector_data, &
                  get_vector_data_readonly, restore_vector_data_readonly, &
                  create_vector_values
@@ -418,7 +418,7 @@ contains
       call get_distance(loc_p, loc_f, dx)
     end if
     dxmag = sqrt(sum(dx**2))
-
+    
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 

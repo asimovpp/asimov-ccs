@@ -13,7 +13,7 @@ program ldc
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
-                       field_w, field_p, field_p_prime, field_mf, &
+                       field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
@@ -49,7 +49,7 @@ program ldc
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf
+  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity !viscosity
 
   type(field_ptr), allocatable :: output_list(:)
 
@@ -144,6 +144,9 @@ program ldc
   call create_field(field_properties, p)
   call set_field_name("p_prime", field_properties)
   call create_field(field_properties, p_prime)
+  call set_field_name("visosity", field_properties)
+  call create_field(field_properties, viscosity) !viscosity
+  !create a viscosity field
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -179,6 +182,7 @@ program ldc
   call set_field(4, field_p, p, flow_fields)
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
+  call set_field(7, field_viscosity, viscosity, flow_fields) !viscosity
 
   if (irank == par_env%root) then
     call print_configuration()
