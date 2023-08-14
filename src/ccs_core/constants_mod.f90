@@ -35,7 +35,7 @@ module constants
   integer, public, parameter :: cell_centred_upwind = 1  !< Indicates cell centred variable (upwind scheme)
   integer, public, parameter :: cell_centred_central = 2 !< Indicates cell centred variable (central scheme)
   integer, public, parameter :: cell_centred_gamma = 3 !< Indicates cell centred variable (gamma scheme)
-  integer, public, parameter :: cell_centred_lupwind = 4 !< Indicates cell centred variable (linear upwind scheme)
+  integer, public, parameter :: cell_centred_linear_upwind = 4 !< Indicates cell centred variable (linear upwind scheme)
 
   ! field names
   integer(ccs_int), public, parameter :: field_u = 0
