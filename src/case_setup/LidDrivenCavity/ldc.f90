@@ -14,7 +14,8 @@ program ldc
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf, &
-                       cell_centred_central, cell_centred_upwind, cell_centred_gamma, face_centred
+                       cell_centred_central, cell_centred_upwind, cell_centred_gamma, cell_centred_linear_upwind, &
+                       face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, gamma_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector

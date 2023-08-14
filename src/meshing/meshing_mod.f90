@@ -102,6 +102,7 @@ module meshing
   interface get_distance
     module procedure get_neighbour_distance
     module procedure get_face_distance
+    module procedure get_face_neighbour_distance
   end interface get_distance
 
   interface get_local_num_cells
@@ -380,6 +381,13 @@ module meshing
       type(face_locator), intent(in) :: loc_f            !< The face distance is measured to.
       real(ccs_real), dimension(ndim), intent(out) :: dx !< ndim-array of the distance
     end subroutine get_face_distance
+
+    !> Returns the distance from neighbour cell to face centres
+    module subroutine get_face_neighbour_distance(loc_nb, loc_f, dx)
+      type(neighbour_locator), intent(in) :: loc_nb      !< The cell distance is measured from.
+      type(face_locator), intent(in) :: loc_f            !< The face distance is measured to.
+      real(ccs_real), dimension(ndim), intent(out) :: dx !< ndim-array of the distance
+    end subroutine get_face_neighbour_distance
 
     !> Sets the mesh local cell count.
     module subroutine set_local_num_cells(local_num_cells, mesh)
