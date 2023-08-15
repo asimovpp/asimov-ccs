@@ -11,6 +11,7 @@ submodule(io_visualisation) io_visualisation_common
                        field_u, field_v, field_w, &
                        field_p, field_p_prime, &
                        field_mf
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
 
   implicit none
 
@@ -43,52 +44,36 @@ contains
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
     real(ccs_real), optional, intent(in) :: dt                               !< The time-step size
+    integer(ccs_int) :: timer_index_write_field
+    integer(ccs_int) :: timer_index_write_xdmf
 
-    double precision :: write_fields_start
-    double precision :: write_fields_end
-    double precision, save :: write_fields_total
-
-    double precision :: write_xdmf_start
-    double precision :: write_xdmf_end
-    double precision, save :: write_xdmf_total
+    call timer_register("Write fields time", timer_index_write_field)
+    call timer_register("Write xdmf time", timer_index_write_xdmf)
 
     ! Write the required fields ('heavy' data)
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
-      call timer(write_fields_start)
+      call timer_start(timer_index_write_field)
       call write_fields(par_env, case_name, mesh, output_list, step, maxstep)
-      call timer(write_fields_end)
-      write_fields_total = write_fields_total + write_fields_end - write_fields_start
+      call timer_stop(timer_index_write_field)
     else
       ! Steady case
-      call timer(write_fields_start)
+      call timer_start(timer_index_write_field)
       call write_fields(par_env, case_name, mesh, output_list)
-      call timer(write_fields_end)
-      write_fields_total = write_fields_total + write_fields_end - write_fields_start
+      call timer_stop(timer_index_write_field)
     end if
 
     ! Write the XML descriptor ('light' data)
     if (present(step) .and. present(maxstep) .and. present(dt)) then
       ! Unsteady case
-      call timer(write_xdmf_start)
+      call timer_start(timer_index_write_xdmf)
       call write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
-      call timer(write_xdmf_end)
-      write_xdmf_total = write_xdmf_total + write_xdmf_end - write_xdmf_start
+      call timer_stop(timer_index_write_xdmf)
     else
       ! Steady case
-      call timer(write_xdmf_start)
+      call timer_start(timer_index_write_xdmf)
       call write_xdmf(par_env, case_name, mesh, output_list)
-      call timer(write_xdmf_end)
-      write_xdmf_total = write_xdmf_total + write_xdmf_end - write_xdmf_start
-    end if
-
-    if (present(step)) then
-      if(step == maxstep) then
-        if (par_env%proc_id == par_env%root) then
-          write(*,'(A30, F10.4, A)') "Write fields time: ", write_fields_total, " s"
-          write(*,'(A30, F10.4, A)') "Write xdmf time: ", write_xdmf_total, " s"
-        end if
-      end if
+      call timer_stop(timer_index_write_xdmf)
     end if
 
   end subroutine

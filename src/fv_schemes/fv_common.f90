@@ -79,7 +79,7 @@ contains
     integer(ccs_int) :: nnb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
-    real(ccs_real) :: adv_coeff, adv_coeff_total
+    real(ccs_real) :: adv_coeff_total, adv_coeffaF, adv_coeffaP
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real), dimension(ndim) :: grad_phi_p 
     real(ccs_real), dimension(ndim) :: grad_phi_k_prime
@@ -111,7 +111,15 @@ contains
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    ! Update gradients, if gamma/linear upwind field
+    select type (phi)
+    type is (gamma_field)
+      call update_gradient(mesh, phi)
+    type is (linear_upwind_field)
+      call update_gradient(mesh, phi)
+    end select
+    
+    call get_local_num_cells(mesh, local_num_cells) 
     do index_p = 1, local_num_cells
       call clear_entries(mat_coeffs)
       call clear_entries(b_coeffs)
@@ -151,9 +159,13 @@ contains
           end if
           select type (phi)
           type is (central_field)
-            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeffaP, adv_coeffaF)
           type is (upwind_field)
-            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeffaP, adv_coeffaF)
+          type is (gamma_field)
+            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
+          type is (linear_upwind_field)
+            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
@@ -164,8 +176,8 @@ contains
           ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
 
           ! High-order, explicit
-          aF = adv_coeff
-          aP = 1.0_ccs_real - aF
+          aF = adv_coeffaF
+          aP = adv_coeffaP
           aP = (sgn * mf(index_f) * face_area) * aP
           aF = (sgn * mf(index_f) * face_area) * aF
           aP = aP - sgn * mf(index_f) * face_area
@@ -227,17 +239,21 @@ contains
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh, .false.)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
-
+          
           select type (phi)
           type is (central_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeffaP, adv_coeffaF)
           type is (upwind_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeff)
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeffaP, adv_coeffaF)
+          type is (gamma_field)
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
+          type is  (linear_upwind_field)
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF )
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
-          aF = adv_coeff
-          aP = 1.0_ccs_real - aF
+          aF = adv_coeffaF
+          aP = adv_coeffaP
           aP = aP * (mf(index_f) * face_area)
           aF = aF * (mf(index_f) * face_area)
           aP = aP - mf(index_f) * face_area

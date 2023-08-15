@@ -5,8 +5,8 @@
 module fields
 #include "ccs_macros.inc"
 
-  use constants, only: cell_centred_central, cell_centred_upwind, face_centred
-  use types, only: field, field_spec, vector_spec, face_field, central_field, upwind_field
+  use constants, only: cell_centred_central, cell_centred_upwind, cell_centred_gamma, cell_centred_linear_upwind, face_centred
+  use types, only: field, field_spec, vector_spec, face_field, central_field, upwind_field, gamma_field, linear_upwind_field
   use kinds, only: ccs_int
 
   use utils, only: update
@@ -95,6 +95,12 @@ contains
     else if (field_type == cell_centred_upwind) then
       call dprint("Create upwind field")
       allocate (upwind_field :: phi)
+    else if (field_type == cell_centred_gamma) then
+      call dprint("Create gamma field")
+      allocate (gamma_field :: phi)
+    else if (field_type == cell_centred_linear_upwind) then
+      call dprint("Create linear upwind field")
+      allocate (linear_upwind_field :: phi)
     else if (field_type == cell_centred_central) then
       call dprint("Create central field")
       allocate (central_field :: phi)
