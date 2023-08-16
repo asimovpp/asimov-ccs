@@ -222,20 +222,26 @@ contains
     real(ccs_real) :: dummy_real = 1.0_ccs_real
     integer(ccs_err) :: ierr
     integer :: disp_unit
-    integer(mpi_address_kind) :: base_ptr, byte_size
+    integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_real)
     byte_size = length * disp_unit
 
+    if (is_root(shared_env)) then
+      allocate_byte_size = byte_size
+    else
+      allocate_byte_size = 0
+    end if
+
     select type (shared_env)
     type is (parallel_environment_mpi)
-      call mpi_win_allocate_shared(byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+
+      call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
       call mpi_barrier(shared_env%comm, ierr)
-
-      call mpi_win_shared_query(window, 0, byte_size, disp_unit, base_ptr, ierr)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -257,20 +263,26 @@ contains
     real(ccs_real) :: dummy_real = 1.0_ccs_real
     integer(ccs_err) :: ierr
     integer :: disp_unit
-    integer(mpi_address_kind) :: base_ptr, byte_size
+    integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_real)
     byte_size = length(1) * length(2) * disp_unit
 
+    if (is_root(shared_env)) then
+      allocate_byte_size = byte_size
+    else
+      allocate_byte_size = 0
+    end if
+
     select type (shared_env)
     type is (parallel_environment_mpi)
-      call mpi_win_allocate_shared(byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+
+      call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
 
       call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
-
-      call mpi_win_shared_query(window, 0, byte_size, disp_unit, base_ptr, ierr)
 
     class default
       call error_abort("Unsupported parallel environment")
