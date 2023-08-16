@@ -209,6 +209,87 @@ contains
 
   end subroutine
 
+  module subroutine create_shared_array_real_1D(shared_env, length, array, window)
+
+    use iso_c_binding
+
+    class(parallel_environment), intent(in) :: shared_env
+    integer(ccs_int), intent(in) :: length
+    real(ccs_real), pointer, dimension(:), intent(out) :: array
+    integer, intent(out) :: window
+
+    type(c_ptr) :: c_array_ptr
+    real(ccs_real) :: dummy_real = 1.0_ccs_real
+    integer(ccs_err) :: ierr
+    integer :: disp_unit
+    integer(mpi_address_kind) :: byte_size, allocate_byte_size
+
+    disp_unit = c_sizeof(dummy_real)
+    byte_size = length * disp_unit
+
+    if (is_root(shared_env)) then
+      allocate_byte_size = byte_size
+    else
+      allocate_byte_size = 0
+    end if
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+
+      call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+
+      call c_f_pointer(c_array_ptr, array, shape=[length])
+
+      call mpi_barrier(shared_env%comm, ierr)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end subroutine
+
+  module subroutine create_shared_array_real_2D(shared_env, length, array, window)
+
+    use iso_c_binding
+
+    class(parallel_environment), intent(in) :: shared_env
+    integer(ccs_int), dimension(2), intent(in) :: length
+    real(ccs_real), pointer, dimension(:,:), intent(out) :: array
+    integer, intent(out) :: window
+
+    type(c_ptr) :: c_array_ptr
+    real(ccs_real) :: dummy_real = 1.0_ccs_real
+    integer(ccs_err) :: ierr
+    integer :: disp_unit
+    integer(mpi_address_kind) :: byte_size, allocate_byte_size
+
+    disp_unit = c_sizeof(dummy_real)
+    byte_size = length(1) * length(2) * disp_unit
+
+    if (is_root(shared_env)) then
+      allocate_byte_size = byte_size
+    else
+      allocate_byte_size = 0
+    end if
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+
+      call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+
+      call c_f_pointer(c_array_ptr, array, shape=length)
+
+      call mpi_barrier(shared_env%comm, ierr)
+
+    class default
+      call error_abort("Unsupported parallel environment")
+
+    end select
+
+  end subroutine
 
   module subroutine destroy_shared_array_int_1D(shared_env, array, window)
     class(parallel_environment), intent(in) :: shared_env
@@ -242,6 +323,23 @@ contains
 
   end subroutine
 
+  module subroutine destroy_shared_array_real_1D(shared_env, array, window)
+    class(parallel_environment), intent(in) :: shared_env
+    real(ccs_real), pointer, dimension(:), intent(inout) :: array
+    integer, intent(inout) :: window
+
+    integer(ccs_err) :: ierr
+
+    ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
+    associate(foo => shared_env)
+    end associate
+
+    call mpi_win_free(window, ierr)
+
+    nullify(array)
+
+  end subroutine
+
 
   module subroutine destroy_shared_array_int_2D(shared_env, array, window)
     class(parallel_environment), intent(in) :: shared_env
@@ -259,6 +357,21 @@ contains
 
   end subroutine
 
+  module subroutine destroy_shared_array_real_2D(shared_env, array, window)
+    class(parallel_environment), intent(in) :: shared_env
+    real(ccs_real), pointer, dimension(:,:), intent(inout) :: array
+    integer, intent(inout) :: window
+    integer(ccs_err) :: ierr
+
+    ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
+    associate(foo => shared_env)
+    end associate
+
+    call mpi_win_free(window, ierr)
+
+    nullify(array)
+
+  end subroutine
 
   !> Synchronise the parallel environment
   module subroutine sync(par_env)

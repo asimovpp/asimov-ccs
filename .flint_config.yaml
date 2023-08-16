@@ -250,9 +250,9 @@ regexp-rules:
     message: Stop statement not recommended
     regexp: ^\s*stop\s*\d*\s*$
 
-  not-recommended-use-exit:
-    message: exit is an extension and should be avoided
-    regexp: \bexit\b
+  # not-recommended-use-exit:
+  #   message: exit is an extension and should be avoided
+  #   regexp: \bexit\b
 
   not-recommended-use-goto:
     message: goto is hard to maintain, prone to spaghetti code.

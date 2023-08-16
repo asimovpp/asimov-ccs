@@ -353,7 +353,9 @@ contains
     end if
 
     ! Copy vertex neighbour indices from global array
-    deallocate(mesh%topo%vert_nb_indices)
+    if (allocated(mesh%topo%vert_nb_indices)) then
+       deallocate(mesh%topo%vert_nb_indices)
+    end if
     allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
     mesh%topo%vert_nb_indices(:, :) = 0
 
@@ -465,9 +467,6 @@ contains
     end if
 
     ! Allocate and then compute global indices
-    if (allocated(mesh%topo%global_indices)) then
-      deallocate (mesh%topo%global_indices)
-    end if
     call get_local_num_cells(mesh, local_num_cells)
     if (allocated(mesh%topo%global_indices)) then
       deallocate (mesh%topo%global_indices)
@@ -693,7 +692,6 @@ contains
     end_index = int(mesh%topo%vtxdist(irank + 2), int32) - 1
 
     ! Allocate global partition array
-    allocate (mesh%topo%global_partition(mesh%topo%global_num_cells))
     global_num_cells_shared_size = mesh%topo%global_num_cells
 
     call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%global_partition, mesh%topo%global_partition_window)

@@ -1,6 +1,8 @@
 module mesh_utils
 #include "ccs_macros.inc"
 
+  use mpi
+
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
@@ -11,7 +13,7 @@ module mesh_utils
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
-  use parallel, only: read_command_line_arguments, create_shared_array, is_root, create_shared_roots_comm, &
+  use parallel, only: read_command_line_arguments, create_shared_array, is_root, is_valid, create_shared_roots_comm, &
                       destroy_shared_array, sync
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
@@ -101,7 +103,7 @@ contains
   !v Read mesh from file
   subroutine read_mesh(par_env, shared_env, case_name, mesh)
 
-    use partitioning, only: compute_connectivity_get_local_cells, & 
+    use partitioning, only: compute_connectivity_get_local_cells, &
                             compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -113,6 +115,7 @@ contains
     character(len=:), allocatable :: geo_file    ! Geo file name
     character(len=:), allocatable :: adios2_file ! ADIOS2 config file name
 
+    class(parallel_environment), allocatable, target :: reader_env !< The reader parallel environment
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
@@ -121,25 +124,28 @@ contains
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
 
-    call initialise_io(par_env, adios2_file, io_env)
+    call create_shared_roots_comm(par_env, shared_env, reader_env)
+
+    call initialise_io(reader_env, adios2_file, io_env)
     call configure_io(io_env, "geo_reader", geo_reader)
 
     call open_file(geo_file, "read", geo_reader)
 
-    call read_topology(par_env, shared_env, geo_reader, mesh)
+    call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
 
     call compute_partitioner_input(par_env, shared_env, mesh)
-    call compute_connectivity_get_local_cells(par_env, mesh)
 
     call mesh_partition_reorder(par_env, shared_env, mesh)
 
-    call read_geometry(geo_reader, mesh)
+    call read_geometry(shared_env, reader_env, geo_reader, mesh)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
 
     ! Finalise the ADIOS2 IO environment
     call cleanup_io(io_env)
+
+    ! TODO: cleanup reader parallel environment
 
     call cleanup_topo(shared_env, mesh)
 
@@ -151,9 +157,10 @@ contains
   ! "nfac" - the total number of faces
   ! "maxfaces" - the maximum number of faces per cell
   ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
-  subroutine read_topology(par_env, shared_env, geo_reader, mesh)
+  subroutine read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
 
@@ -167,11 +174,23 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: vert_per_cell
 
     character(:), allocatable :: error_message
+
+    integer(ccs_err) :: ierr
+    integer :: shared_comm
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      shared_comm = shared_env%comm
+    class default
+      shared_comm = -42
+      call error_abort("Unsupported shared environment!")
+    end select
 
     ! Zero scalar topology values to have known initial state
     call set_global_num_cells(0_ccs_int, mesh)
@@ -186,7 +205,10 @@ contains
     call set_global_num_vertices(0_ccs_int, mesh)
 
     ! Read attribute "ncel" - the total number of cells
-    call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
+    if (is_valid(reader_env)) then
+      call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
+    end if
+    call MPI_Bcast(mesh%topo%global_num_cells, 1, MPI_INTEGER, 0, shared_comm, ierr)
 
     ! Abort the execution if there a fewer global cells than MPI ranks
     if (mesh%topo%global_num_cells < par_env%num_procs) then
@@ -195,15 +217,21 @@ contains
       call error_abort(error_message)
     end if
 
-    ! Read attribute "nfac" - the total number of faces
-    call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
-    ! Read attribute "maxfaces" - the maximum number of faces per cell
-    call read_scalar(geo_reader, "maxfaces", mesh%topo%max_faces)
-    ! Read attribute "nvrt" - the total number of vertices
-    call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
+    if (is_valid(reader_env)) then
+      ! Read attribute "nfac" - the total number of faces
+      call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
+      ! Read attribute "maxfaces" - the maximum number of faces per cell
+      call read_scalar(geo_reader, "maxfaces", mesh%topo%max_faces)
+      ! Read attribute "nvrt" - the total number of vertices
+      call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
 
-    ! Read attribute "nbnd" - the total number of boundary faces
-    call read_scalar(geo_reader, "nbnd", num_bnd)
+      ! Read attribute "nbnd" - the total number of boundary faces
+      call read_scalar(geo_reader, "nbnd", num_bnd)
+    end if
+    call MPI_Bcast(mesh%topo%global_num_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(mesh%topo%max_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(mesh%topo%global_num_vertices, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(num_bnd, 1, MPI_INTEGER, 0, shared_comm, ierr)
 
     call get_max_faces(mesh, max_faces)
     if (max_faces == 6) then ! if cell are hexes
@@ -214,44 +242,59 @@ contains
     end if
 
     call get_global_num_faces(mesh, global_num_faces)
-    allocate (mesh%topo%face_cell1(global_num_faces))
-    allocate (mesh%topo%face_cell2(global_num_faces))
-    allocate (mesh%topo%bnd_rid(global_num_faces))
-    allocate (bnd_rid(num_bnd))
-    allocate (bnd_face(num_bnd))
-
-    call get_global_num_cells(mesh, global_num_cells)
-    call get_vert_per_cell(mesh, vert_per_cell)
-
-    allocate (mesh%topo%global_face_indices(max_faces, global_num_cells))
-    allocate (mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
-
-    sel_start(1) = 0 ! Global index to start reading from
-    sel_count(1) = global_num_faces ! How many elements to read in total
 
     ! Read arrays face/cell1 and face/cell2
-    call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
-    call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
+    call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, &
+                             mesh%topo%face_cell1_window)
+    call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, &
+                             mesh%topo%face_cell2_window)
 
-    sel_start(1) = 0 ! Global index to start reading from
-    sel_count(1) = num_bnd ! How many elements to read in total
-    call read_array(geo_reader, "/bnd/rid", sel_start, sel_count, bnd_rid)
-    call read_array(geo_reader, "/bnd/face", sel_start, sel_count, bnd_face)
+    if (is_valid(reader_env)) then
+      sel_start(1) = 0 ! Global index to start reading from
+      sel_count(1) = global_num_faces ! How many elements to read in total
+      call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
+      call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
+    end if
+    call sync(shared_env)
 
-    ! make sure inside faces=0 and boundary faces are negative
-    mesh%topo%bnd_rid(:) = 0_ccs_int
-    mesh%topo%bnd_rid(bnd_face(:)) = -(bnd_rid(:) + 1_ccs_int)
+    ! Read bnd data
+    call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, &
+                             mesh%topo%bnd_rid_window)
 
-    sel2_start = 0
-    sel2_count(1) = max_faces! topo%global_num_cells
-    sel2_count(2) = global_num_cells
+    if (is_valid(reader_env)) then
+      allocate (bnd_rid(num_bnd))
+      allocate (bnd_face(num_bnd))
 
-    call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
+      sel_start(1) = 0 ! Global index to start reading from
+      sel_count(1) = num_bnd ! How many elements to read in total
+      call read_array(geo_reader, "/bnd/rid", sel_start, sel_count, bnd_rid)
+      call read_array(geo_reader, "/bnd/face", sel_start, sel_count, bnd_face)
 
-    sel2_count(1) = vert_per_cell
+      ! make sure inside faces=0 and boundary faces are negative
+      mesh%topo%bnd_rid(:) = 0_ccs_int
+      mesh%topo%bnd_rid(bnd_face(:)) = -(bnd_rid(:) + 1_ccs_int)
+    end if
+    call sync(shared_env)
 
-    call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
-    call build_vertex_neighbours(par_env, shared_env, mesh)
+    ! Read global face and vertex indices
+    call get_global_num_cells(mesh, global_num_cells)
+    call get_vert_per_cell(mesh, vert_per_cell)
+    call create_shared_array(shared_env, (/max_faces, global_num_cells/), mesh%topo%global_face_indices, &
+                             mesh%topo%global_face_indices_window)
+    call create_shared_array(shared_env, (/vert_per_cell, global_num_cells/), mesh%topo%global_vertex_indices, &
+                             mesh%topo%global_vertex_indices_window)
+
+    if (is_valid(reader_env)) then
+      sel2_start = 0
+      sel2_count(1) = max_faces ! topo%global_num_cells
+      sel2_count(2) = global_num_cells
+
+      call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
+
+      sel2_count(1) = vert_per_cell
+
+      call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
+    end if
 
     ! Create and populate the vtxdist array based on the total number of cells
     ! and the total number of ranks in the parallel environment
@@ -270,6 +313,22 @@ contains
       j = j + k
     end do
 
+    associate (irank => par_env%proc_id)
+      local_num_cells = int(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), ccs_int)
+      call set_local_num_cells(local_num_cells, mesh)
+      call set_total_num_cells(local_num_cells, mesh)
+
+      allocate (mesh%topo%global_indices(local_num_cells))
+      do i = 1, mesh%topo%local_num_cells
+        mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(irank + 1), ccs_int) + (i - 1)
+      end do
+
+      allocate (mesh%topo%num_nb(local_num_cells))
+      mesh%topo%num_nb(:) = max_faces
+    end associate
+
+    call build_vertex_neighbours(par_env, shared_env, mesh)
+
   end subroutine read_topology
 
   !v Build the vertex neighbours from the cell-vertex connectivity.
@@ -287,16 +346,22 @@ contains
     integer(ccs_int), dimension(:), pointer :: global_num_vert_nb           !< The local number of vertex neighbours per cell
     integer :: global_num_vert_nb_window                                    !< Associated shared window
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: vert_nb_per_cell
     integer(ccs_int) :: vert_per_cell
 
     integer(ccs_int) :: i, j, k
     integer(ccs_int) :: global_vert_index
 
-    associate(foo => shared_env)
+    integer(ccs_int) :: idx_vnb
+    integer(ccs_int) :: total_num_cells
+
+    integer(ccs_int) :: vctr
+
+    associate (foo => shared_env)
     end associate
-    if(vertex_neighbours .eqv. .true.) then
-    
+    if (vertex_neighbours .eqv. .true.) then
+
       if (par_env%proc_id == par_env%root) then
         print *, "Building vertex neighbours, this may take a while..."
       end if
@@ -331,7 +396,7 @@ contains
               end if
             end if
 
-            !! Found all the vertex neighbours we're expecting
+            ! Found all the vertex neighbours we're expecting
             if (global_num_vert_nb(i) == vert_per_cell) then
               exit
             end if
@@ -340,20 +405,56 @@ contains
 
       end if
       call sync(shared_env)
+
+      ! Get local data
+      call get_local_num_cells(mesh, local_num_cells)
+      allocate (mesh%topo%num_vert_nb(local_num_cells))
+      allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
+      do i = 1, local_num_cells
+        vctr = 1
+        associate (idxg => mesh%topo%global_indices(i))
+          mesh%topo%num_vert_nb(i) = global_num_vert_nb(idxg)
+          mesh%topo%vert_nb_indices(:, i) = mesh%topo%global_vert_nb_indices(:, idxg)
+          do j = 1, mesh%topo%num_vert_nb(i)
+            associate (idxg_vnb => mesh%topo%vert_nb_indices(j, i))
+              if (idxg_vnb > 0) then
+                idx_vnb = findloc(mesh%topo%global_indices, idxg_vnb, dim = 1)
+
+                if (idx_vnb > 0) then
+                  call build_local_mesh_add_neighbour(i, vctr, idx_vnb, idxg_vnb, mesh, .true.)
+                else
+                  call get_total_num_cells(mesh, total_num_cells)
+                  call build_local_mesh_add_neighbour(i, vctr, total_num_cells + 1, idxg_vnb, mesh, .true.)
+                end if
+
+                vctr = vctr + 1
+              end if
+            end associate
+          end do
+        end associate
+      end do
+
+      call get_total_num_cells(mesh, total_num_cells)
+      if (any(mesh%topo%vert_nb_indices > total_num_cells)) then
+        call error_abort("ERROR: Vertex neighbour index outside total number of cells I can see")
+      end if
+
       call destroy_shared_array(shared_env, global_num_vert_nb, global_num_vert_nb_window)
 
     else
       if (par_env%proc_id == par_env%root) then
-        print *, "Not building vertex neighbours!"
-    end if
+        print *, "Not building vertex neighbours"
+      end if
 
-  end if
+    end if
 
   end subroutine build_vertex_neighbours
 
   !v Read the geometry data from an input (HDF5) file
-  subroutine read_geometry(geo_reader, mesh)
+  subroutine read_geometry(shared_env, reader_env, geo_reader, mesh)
 
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
@@ -369,12 +470,12 @@ contains
     integer(ccs_long), dimension(1) :: f_a_start
     integer(ccs_long), dimension(1) :: f_a_count
 
-    real(ccs_real), dimension(:), allocatable :: temp_vol_c ! Temp array for cell volumes
-    real(ccs_real), dimension(:, :), allocatable :: temp_x_p ! Temp array for cell centres
-    real(ccs_real), dimension(:, :), allocatable :: temp_x_f ! Temp array for face centres
-    real(ccs_real), dimension(:, :), allocatable :: temp_n_f ! Temp array for face normals
-    real(ccs_real), dimension(:, :), allocatable :: temp_x_v ! Temp array for vertex coordinates
-    real(ccs_real), dimension(:), allocatable :: temp_a_f ! Temp array for face areas
+    real(ccs_real), dimension(:), pointer :: temp_vol_c ! Temp array for cell volumes
+    real(ccs_real), dimension(:, :), pointer :: temp_x_p ! Temp array for cell centres
+    real(ccs_real), dimension(:, :), pointer :: temp_x_f ! Temp array for face centres
+    real(ccs_real), dimension(:, :), pointer :: temp_n_f ! Temp array for face normals
+    real(ccs_real), dimension(:, :), pointer :: temp_x_v ! Temp array for vertex coordinates
+    real(ccs_real), dimension(:), pointer :: temp_a_f ! Temp array for face areas
 
     real(ccs_real), dimension(3) :: face_normal, x_p, x_f
     integer(ccs_int) :: local_num_cells, index_p, nnb
@@ -387,6 +488,19 @@ contains
     type(face_locator) :: loc_f ! Face locator object
     type(vert_locator) :: loc_v ! Vertex locator object
 
+    integer(ccs_err) :: ierr
+    integer :: shared_comm
+
+    integer :: temp_a_f_window, temp_n_f_window, temp_window, temp_x_f_window, temp_x_v_window
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      shared_comm = shared_env%comm
+    class default
+      shared_comm = -42
+      call error_abort("Unsupported shared environment")
+    end select
+
     call get_max_faces(mesh, max_faces)
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8, mesh) ! 8 vertices per cell
@@ -397,7 +511,10 @@ contains
     call get_vert_per_cell(mesh, vert_per_cell)
 
     ! Read attribute "scalefactor"
-    call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
+    if (is_valid(reader_env)) then
+      call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
+    end if
+    call MPI_Bcast(mesh%geo%scalefactor, 1, MPI_DOUBLE_PRECISION, 0, shared_comm, ierr)
 
     ! Starting point for reading chunk of data
     vol_p_start = 0
@@ -409,11 +526,17 @@ contains
     ! Allocate memory for cell volumes array on each MPI rank
     call get_total_num_cells(mesh, total_num_cells)
     allocate (mesh%geo%volumes(total_num_cells))
-    allocate (temp_vol_c(global_num_cells))
 
     ! Read variable "/cell/vol"
-    call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
+    call create_shared_array(shared_env, global_num_cells, temp_vol_c, &
+                             temp_window)
+    if (is_valid(reader_env)) then
+      call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
+    end if
+    call sync(shared_env)
     mesh%geo%volumes(:) = temp_vol_c(mesh%topo%natural_indices(:))
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, temp_vol_c, temp_window)
 
     ! Starting point for reading chunk of data
     x_p_start = (/0, 0/)
@@ -423,40 +546,58 @@ contains
 
     ! Allocate memory for cell centre coordinates array on each MPI rank
     allocate (mesh%geo%x_p(ndim, total_num_cells))
-    allocate (temp_x_p(ndim, global_num_cells))
 
     ! Read variable "/cell/x"
-    call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
+    call create_shared_array(shared_env, (/ndim, global_num_cells/), temp_x_p, &
+                             temp_window)
+    if (is_valid(reader_env)) then
+      call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
+    end if
+    call sync(shared_env)
     mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%natural_indices(:))
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, temp_x_p, temp_window)
 
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     call get_global_num_faces(mesh, global_num_faces)
-    call get_global_num_vertices(mesh, global_num_vertices)
-    allocate (temp_x_f(ndim, global_num_faces))
-    allocate (temp_n_f(ndim, global_num_faces))
-    allocate (temp_x_v(ndim, global_num_vertices))
-    allocate (temp_a_f(global_num_faces))
+
+    call create_shared_array(shared_env, (/ndim, global_num_faces/), temp_x_f, &
+                             temp_x_f_window)
+    call create_shared_array(shared_env, (/ndim, global_num_faces/), temp_n_f, &
+                             temp_n_f_window)
+    call create_shared_array(shared_env, global_num_faces, temp_a_f, &
+                             temp_a_f_window)
 
     f_xn_start = 0
     f_xn_count(1) = ndim
     f_xn_count(2) = global_num_faces
 
-    ! Read variable "/face/x"
-    call read_array(geo_reader, "/face/x", f_xn_start, f_xn_count, temp_x_f)
-    ! Read variable "/face/n"
-    call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
-
-    f_xn_count(1) = ndim
-    f_xn_count(2) = global_num_vertices
-
-    ! Read variable "/vert"
-    call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
+    if (is_valid(reader_env)) then
+      ! Read variable "/face/x"
+      call read_array(geo_reader, "/face/x", f_xn_start, f_xn_count, temp_x_f)
+      ! Read variable "/face/n"
+      call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
+    end if
 
     f_a_start = 0
     f_a_count(1) = global_num_faces
 
-    ! Read variable "/face/area"
-    call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
+    if (is_valid(reader_env)) then
+      ! Read variable "/face/area"
+      call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
+    end if
+    call sync(shared_env)
+
+    ! Read variable "/vert"
+    call get_global_num_vertices(mesh, global_num_vertices)
+    call create_shared_array(shared_env, (/ndim, global_num_vertices/), temp_x_v, &
+                             temp_x_v_window)
+    f_xn_count(1) = ndim
+    f_xn_count(2) = global_num_vertices
+    if (is_valid(reader_env)) then
+      call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
+    end if
+    call sync(shared_env)
 
     ! Allocate arrays for face centres, face normals, face areas arrand vertex coordinates
     call get_local_num_cells(mesh, local_num_cells)
@@ -465,7 +606,8 @@ contains
     allocate (mesh%geo%face_areas(max_faces, local_num_cells))
     allocate (mesh%geo%vert_coords(ndim, vert_per_cell, local_num_cells))
 
-    !    do k = start, end ! loop over cells owned by current process
+    ! Procs fill local data
+    call sync(shared_env)
     do local_icell = 1, local_num_cells ! loop over cells owned by current process
       call create_cell_locator(mesh, local_icell, loc_p)
       call get_natural_index(loc_p, global_icell)
@@ -487,7 +629,7 @@ contains
       do j = 1, vert_per_cell ! loop over all vertices for each cell
         call create_vert_locator(mesh, local_icell, j, loc_v)
 
-        n = mesh%topo%global_vertex_indices(j, local_icell)
+        n = mesh%topo%loc_global_vertex_indices(j, local_icell)
         call set_centre(loc_v, temp_x_v(:, n))
       end do
 
@@ -505,9 +647,9 @@ contains
         call create_face_locator(mesh, index_p, j, loc_f)
         call get_face_normal(loc_f, face_normal)
         call get_centre(loc_f, x_f)
-        
+
         if (dot_product(face_normal(:), x_f - x_p) < 0.0_ccs_real) then
-          face_normal = - face_normal
+          face_normal = -face_normal
         end if
 
         ! Normalise face normals too
@@ -517,12 +659,11 @@ contains
     end do
 
     ! Delete temp arrays
-    deallocate (temp_vol_c)
-    deallocate (temp_x_f)
-    deallocate (temp_x_v)
-    deallocate (temp_x_p)
-    deallocate (temp_n_f)
-    deallocate (temp_a_f)
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, temp_x_f, temp_x_f_window)
+    call destroy_shared_array(shared_env, temp_x_v, temp_x_v_window)
+    call destroy_shared_array(shared_env, temp_n_f, temp_n_f_window)
+    call destroy_shared_array(shared_env, temp_a_f, temp_a_f_window)
 
     call compute_face_interpolation(mesh)
 
@@ -548,7 +689,7 @@ contains
     call get_mesh_generated(mesh, is_generated)
 
     if (.not. is_generated) then
-      ! Mesh was read, no need to write again!
+      ! Mesh was read, no need to write again
       return
     end if
 
@@ -631,8 +772,8 @@ contains
         natural_vertices_1d(idx + j) = mesh%topo%loc_global_vertex_indices(j, i)
       end do
     end do
-    select type(par_env)
-    type is(parallel_environment_mpi)
+    select type (par_env)
+    type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, natural_vertices_1d, size(natural_vertices_1d), &
                          MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
     class default
@@ -743,7 +884,7 @@ contains
                       &Increase the mesh size or reduce the number of MPI ranks."
       call error_abort(error_message)
     end if
-    
+
     call set_mesh_generated(.true., mesh)
 
     call build_square_topology(par_env, shared_env, cps, mesh)
@@ -798,282 +939,282 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
 
-    select type (shared_env)
-    type is (parallel_environment_mpi)
+      select type (shared_env)
+      type is (parallel_environment_mpi)
 
-      ! Set the global mesh parameters
-      call set_global_num_cells(cps**2, mesh)
-      call set_global_num_vertices((cps + 1)**2, mesh)
+        ! Set the global mesh parameters
+        call set_global_num_cells(cps**2, mesh)
+        call set_global_num_vertices((cps + 1)**2, mesh)
 
-      call get_global_num_cells(mesh, nglobal)
-      call get_global_num_vertices(mesh, global_num_vertices)
+        call get_global_num_cells(mesh, nglobal)
+        call get_global_num_vertices(mesh, global_num_vertices)
 
-      ! Associate aliases to make code easier to read
-      associate (h => mesh%geo%h)
+        ! Associate aliases to make code easier to read
+        associate (h => mesh%geo%h)
 
-        ! Determine ownership range
-        start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
-        local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
-        call set_local_num_cells(local_num_cells, mesh)
-        call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+          ! Determine ownership range
+          start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
+          local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
+          call set_local_num_cells(local_num_cells, mesh)
+          call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
 
-        ! Abort the execution if any rank has 0 local cells
-        if (local_num_cells <= 0) then
-          call error_abort("ERROR: Zero local cells found.")
+          ! Abort the execution if any rank has 0 local cells
+          if (local_num_cells <= 0) then
+            call error_abort("ERROR: Zero local cells found.")
+          end if
+
+          call set_total_num_cells(local_num_cells, mesh) ! Set initial value
+          end_global = start_global + (local_num_cells - 1)
+
+          ! Set max faces per cell (constant, 4)
+          call set_max_faces(4_ccs_int, mesh)
+
+          ! Set number of vertices per cell
+          call set_vert_per_cell(4_ccs_int, mesh)
+          call set_vert_nb_per_cell(4_ccs_int, mesh)
+
+          call get_max_faces(mesh, max_faces)
+          call get_vert_per_cell(mesh, vert_per_cell)
+          call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
+
+          ! Allocate mesh topolgy arrays
+          allocate (mesh%topo%global_indices(local_num_cells))
+          allocate (mesh%topo%num_nb(local_num_cells))
+          allocate (mesh%topo%num_vert_nb(local_num_cells))
+          allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
+          allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
+          allocate (mesh%topo%face_indices(max_faces, local_num_cells))
+
+          ! Initialise mesh arrays
+          mesh%topo%num_nb(:) = max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
+          mesh%topo%num_vert_nb(:) = vert_nb_per_cell ! All cells have 4 vertex neighbours (possibly ghost/boundary cells)
+
+          ! Initialise neighbour indices
+          mesh%topo%nb_indices(:, :) = 0_ccs_int
+
+          ! First set the global index of local cells
+          index_counter = 1_ccs_int
+          do i = start_global, end_global
+            mesh%topo%global_indices(index_counter) = i
+            index_counter = index_counter + 1
+          end do
+
+          ! Assemble cells and faces
+          ! XXX: Negative neighbour indices are used to indicate boundaries using the same numbering
+          !      as cell-relative neighbour indexing, i.e.
+          !        -1 = left boundary
+          !        -2 = right boundary
+          !        -3 = bottom boundary
+          !        -4 = top boundary
+          index_counter = 1_ccs_int ! Set local indexing starting from 1...n
+          do i = start_global, end_global
+            ii = i - 1_ccs_int
+            nb_direction = 0_ccs_int
+            set_vert_nb = .false.
+
+            ! Construct left (1) face/neighbour
+            nb_direction(1) = left
+            face_counter = left
+            call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            ! Construct right (2) face/neighbour
+            nb_direction(1) = right
+            face_counter = right
+            call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            ! Construct bottom (3) face/neighbour
+            nb_direction(1) = bottom
+            face_counter = bottom
+            call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            ! Construct top (4) face/neighbour
+            nb_direction(1) = top
+            face_counter = top
+            call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            ! Now construct vertex neighbours
+            set_vert_nb = .true.
+            nb_direction = (/top, left/)
+            vertex_counter = front_top_left
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            ! Construct top right neighbour
+            nb_direction = (/top, right/)
+            vertex_counter = front_top_right
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            ! Construct bottom left neighbour
+            nb_direction = (/bottom, left/)
+            vertex_counter = front_bottom_left
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            ! Construct bottom right neighbour
+            nb_direction = (/bottom, right/)
+            vertex_counter = front_bottom_right
+            call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+
+            index_counter = index_counter + 1_ccs_int
+          end do
+        end associate
+
+        call set_total_num_cells(size(mesh%topo%global_indices), mesh)
+        call get_total_num_cells(mesh, total_num_cells)
+        call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
+
+        call set_global_num_faces((cps + 1) * cps + cps * (cps + 1), mesh)
+        call get_global_num_faces(mesh, global_num_faces)
+
+        ! Create shared memory global arrays
+        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+        call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+
+        length(1) = max_faces
+        length(2) = nglobal
+        call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
+
+        ! Initialise shared memory global arrays
+        if (is_root(shared_env)) then
+          mesh%topo%face_cell1(:) = 0_ccs_int
+          mesh%topo%face_cell2(:) = 0_ccs_int
+          mesh%topo%global_face_indices(:, :) = 0_ccs_int
+          mesh%topo%bnd_rid(:) = 0_ccs_int
         end if
 
-        call set_total_num_cells(local_num_cells, mesh) ! Set initial value
-        end_global = start_global + (local_num_cells - 1)
+        ! Construct face_cell1 and face_cell2 following:
+        !  - face_cell1 < face_cell2
+        !  - and if face is a boundary, then: face_cell1 = current_cell, face_cell2 = 0
+        face_index_counter = 1_ccs_int
+        do i = 1, nglobal
 
-        ! Set max faces per cell (constant, 4)
-        call set_max_faces(4_ccs_int, mesh)
-
-        ! Set number of vertices per cell
-        call set_vert_per_cell(4_ccs_int, mesh)
-        call set_vert_nb_per_cell(4_ccs_int, mesh)
-
-        call get_max_faces(mesh, max_faces)
-        call get_vert_per_cell(mesh, vert_per_cell)
-        call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
-
-        ! Allocate mesh topolgy arrays
-        allocate (mesh%topo%global_indices(local_num_cells))
-        allocate (mesh%topo%num_nb(local_num_cells))
-        allocate (mesh%topo%num_vert_nb(local_num_cells))
-        allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
-        allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
-        allocate (mesh%topo%face_indices(max_faces, local_num_cells))
-
-        ! Initialise mesh arrays
-        mesh%topo%num_nb(:) = max_faces ! All cells have 4 neighbours (possibly ghost/boundary cells)
-        mesh%topo%num_vert_nb(:) = vert_nb_per_cell ! All cells have 4 vertex neighbours (possibly ghost/boundary cells)
-
-        ! Initialise neighbour indices
-        mesh%topo%nb_indices(:, :) = 0_ccs_int
-
-        ! First set the global index of local cells
-        index_counter = 1_ccs_int
-        do i = start_global, end_global
-          mesh%topo%global_indices(index_counter) = i
-          index_counter = index_counter + 1
-        end do
-
-        ! Assemble cells and faces
-        ! XXX: Negative neighbour indices are used to indicate boundaries using the same numbering
-        !      as cell-relative neighbour indexing, i.e.
-        !        -1 = left boundary
-        !        -2 = right boundary
-        !        -3 = bottom boundary
-        !        -4 = top boundary
-        index_counter = 1_ccs_int ! Set local indexing starting from 1...n
-        do i = start_global, end_global
           ii = i - 1_ccs_int
-          nb_direction = 0_ccs_int
-          set_vert_nb = .false.
 
           ! Construct left (1) face/neighbour
-          nb_direction(1) = left
           face_counter = left
-          call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+          if (modulo(ii, cps) == 0_ccs_int) then
+            global_index_nb = -left
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+            face_index_counter = face_index_counter + 1_ccs_int
+          else
+            ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
+            !global_index_nb = i - 1_ccs_int
+            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            !mesh%topo%face_cell2(face_index_counter) = i
+          end if
 
           ! Construct right (2) face/neighbour
-          nb_direction(1) = right
           face_counter = right
-          call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+          if (modulo(ii, cps) == (cps - 1_ccs_int)) then
+            global_index_nb = -right
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+          else
+            global_index_nb = i + 1_ccs_int
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = global_index_nb
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            call create_face_locator(mesh, global_index_nb, left, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+          end if
+          face_index_counter = face_index_counter + 1_ccs_int
 
           ! Construct bottom (3) face/neighbour
-          nb_direction(1) = bottom
           face_counter = bottom
-          call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+          if (modulo(ii / cps, cps) == 0_ccs_int) then
+            global_index_nb = -bottom
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+            face_index_counter = face_index_counter + 1_ccs_int
+          else
+            ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
+            !global_index_nb = i - nx
+            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            !mesh%topo%face_cell2(face_index_counter) = i
+          end if
 
           ! Construct top (4) face/neighbour
-          nb_direction(1) = top
           face_counter = top
-          call add_neighbour(i, face_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+          if (modulo(ii / cps, cps) == (cps - 1_ccs_int)) then
+            global_index_nb = -top
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
 
-          ! Now construct vertex neighbours
-          set_vert_nb = .true.
-          nb_direction = (/top, left/)
-          vertex_counter = front_top_left
-          call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+          else
+            global_index_nb = i + cps
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
-          ! Construct top right neighbour
-          nb_direction = (/top, right/)
-          vertex_counter = front_top_right
-          call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
-
-          ! Construct bottom left neighbour
-          nb_direction = (/bottom, left/)
-          vertex_counter = front_bottom_left
-          call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
-
-          ! Construct bottom right neighbour
-          nb_direction = (/bottom, right/)
-          vertex_counter = front_bottom_right
-          call add_neighbour(i, vertex_counter, index_counter, nb_direction, cps, cps, cps, set_vert_nb, mesh)
-
-          index_counter = index_counter + 1_ccs_int
-        end do
-      end associate
-
-      call set_total_num_cells(size(mesh%topo%global_indices), mesh)
-      call get_total_num_cells(mesh, total_num_cells)
-      call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
-
-      call set_global_num_faces((cps + 1) * cps + cps * (cps + 1), mesh)
-      call get_global_num_faces(mesh, global_num_faces)
-
-      ! Create shared memory global arrays
-      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
-      call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
-
-      length(1) = max_faces
-      length(2) = nglobal
-      call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
-
-      ! Initialise shared memory global arrays
-      if (is_root(shared_env)) then
-        mesh%topo%face_cell1(:) = 0_ccs_int
-        mesh%topo%face_cell2(:) = 0_ccs_int
-        mesh%topo%global_face_indices(:, :) = 0_ccs_int
-        mesh%topo%bnd_rid(:) = 0_ccs_int
-      endif
-
-      ! Construct face_cell1 and face_cell2 following:
-      !  - face_cell1 < face_cell2
-      !  - and if face is a boundary, then: face_cell1 = current_cell, face_cell2 = 0
-      face_index_counter = 1_ccs_int
-      do i = 1, nglobal
-
-        ii = i - 1_ccs_int
-
-        ! Construct left (1) face/neighbour
-        face_counter = left
-        if (modulo(ii, cps) == 0_ccs_int) then
-          global_index_nb = -left
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            call create_face_locator(mesh, global_index_nb, bottom, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+          end if
           face_index_counter = face_index_counter + 1_ccs_int
-        else
-          ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
-          !global_index_nb = i - 1_ccs_int
-          !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-          !mesh%topo%face_cell2(face_index_counter) = i
-        end if
 
-        ! Construct right (2) face/neighbour
-        face_counter = right
-        if (modulo(ii, cps) == (cps - 1_ccs_int)) then
-          global_index_nb = -right
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-        else
-          global_index_nb = i + 1_ccs_int
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = global_index_nb
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, global_index_nb, left, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-        end if
-        face_index_counter = face_index_counter + 1_ccs_int
-
-        ! Construct bottom (3) face/neighbour
-        face_counter = bottom
-        if (modulo(ii / cps, cps) == 0_ccs_int) then
-          global_index_nb = -bottom
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-          face_index_counter = face_index_counter + 1_ccs_int
-        else
-          ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
-          !global_index_nb = i - nx
-          !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-          !mesh%topo%face_cell2(face_index_counter) = i
-        end if
-
-        ! Construct top (4) face/neighbour
-        face_counter = top
-        if (modulo(ii / cps, cps) == (cps - 1_ccs_int)) then
-          global_index_nb = -top
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-        else
-          global_index_nb = i + cps
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = global_index_nb
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, global_index_nb, bottom, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-        end if
-        face_index_counter = face_index_counter + 1_ccs_int
-
-      end do
-
-      call set_num_faces(count_mesh_faces(mesh), mesh)
-
-      call set_cell_face_indices(mesh)
-
-      ! Create and populate the vtxdist array based on the total number of cells
-      ! and the total number of ranks in the parallel environment
-      allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
-
-      mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
-      mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
-
-      ! Divide the total number of cells by the world size to
-      ! compute the chunk sizes
-      k = int(real(nglobal) / par_env%num_procs)
-      j = 1
-
-      length(1) = mesh%topo%vert_per_cell
-      length(2) = mesh%topo%global_num_cells
-      call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
-
-      ! Global vertex numbering
-      if (is_root(shared_env)) then
-        do i = 1, mesh%topo%global_num_cells
-          ii = i
-          associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-
-            global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
-            global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
-            global_vert_index(front_top_left) = global_vert_index(front_bottom_left) + (cps + 1)
-            global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
-          end associate
         end do
-      endif
-      call sync(shared_env)
 
-      do i = 1, par_env%num_procs
-        mesh%topo%vtxdist(i) = j
-        j = j + k
-      end do
+        call set_num_faces(count_mesh_faces(mesh), mesh)
 
-    class default
-      call error_abort("Unknown parallel environment type.")
+        call set_cell_face_indices(mesh)
 
-    end select
+        ! Create and populate the vtxdist array based on the total number of cells
+        ! and the total number of ranks in the parallel environment
+        allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+
+        mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
+        mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
+
+        ! Divide the total number of cells by the world size to
+        ! compute the chunk sizes
+        k = int(real(nglobal) / par_env%num_procs)
+        j = 1
+
+        length(1) = mesh%topo%vert_per_cell
+        length(2) = mesh%topo%global_num_cells
+       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+
+        ! Global vertex numbering
+        if (is_root(shared_env)) then
+          do i = 1, mesh%topo%global_num_cells
+            ii = i
+            associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+
+              global_vert_index(front_bottom_left) = ii + (ii - 1) / cps
+              global_vert_index(front_bottom_right) = global_vert_index(front_bottom_left) + 1
+              global_vert_index(front_top_left) = global_vert_index(front_bottom_left) + (cps + 1)
+              global_vert_index(front_top_right) = global_vert_index(front_top_left) + 1
+            end associate
+          end do
+        end if
+        call sync(shared_env)
+
+        do i = 1, par_env%num_procs
+          mesh%topo%vtxdist(i) = j
+          j = j + k
+        end do
+
+      class default
+        call error_abort("Unknown parallel environment type.")
+
+      end select
 
     class default
       call error_abort("Unknown parallel environment type.")
@@ -1331,412 +1472,412 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
 
-    select type (shared_env)
-    type is (parallel_environment_mpi)
+      select type (shared_env)
+      type is (parallel_environment_mpi)
 
-      ! Set the global mesh parameters
-      call set_global_num_cells(nx * ny * nz, mesh)
-      call set_global_num_vertices((nx + 1) * (ny + 1) * (nz + 1), mesh)
+        ! Set the global mesh parameters
+        call set_global_num_cells(nx * ny * nz, mesh)
+        call set_global_num_vertices((nx + 1) * (ny + 1) * (nz + 1), mesh)
 
-      call get_global_num_cells(mesh, nglobal)
-      call get_global_num_vertices(mesh, global_num_vertices)
+        call get_global_num_cells(mesh, nglobal)
+        call get_global_num_vertices(mesh, global_num_vertices)
 
-      ! Determine ownership range
-      start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
-      local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
-      call set_local_num_cells(local_num_cells, mesh)
-      call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+        ! Determine ownership range
+        start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
+        local_num_cells = local_count(nglobal, par_env%proc_id, par_env%num_procs)
+        call set_local_num_cells(local_num_cells, mesh)
+        call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
 
-      ! Abort the execution if any rank has 0 local cells
-      if (local_num_cells <= 0) then
-        call error_abort("ERROR: Zero local cells found.")
-      end if
-
-      call set_total_num_cells(local_num_cells, mesh) ! Setting initial value
-      end_global = start_global + (local_num_cells - 1)
-
-      ! Set max number of faces (constant, 6)
-      call set_max_faces(6_ccs_int, mesh)
-
-      ! Set number of vertices per cell (constant, 8)
-      call set_vert_per_cell(8, mesh)
-
-      ! Set number of neighbours via vertex per cell
-      call set_vert_nb_per_cell(20_ccs_int, mesh)
-
-      call get_max_faces(mesh, max_faces)
-      call get_vert_per_cell(mesh, vert_per_cell)
-      call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
-
-      ! Allocate mesh arrays
-      allocate (mesh%topo%global_indices(local_num_cells))
-      allocate (mesh%topo%num_nb(local_num_cells))
-      allocate (mesh%topo%num_vert_nb(local_num_cells))
-      allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
-      allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
-      allocate (mesh%topo%face_indices(max_faces, local_num_cells))
-
-      ! Initialise mesh arrays
-      mesh%topo%num_nb(:) = max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
-      mesh%topo%num_vert_nb(:) = vert_nb_per_cell
-
-      ! Initalise neighbour indices
-      mesh%topo%nb_indices(:, :) = 0_ccs_int
-      mesh%topo%vert_nb_indices(:, :) = 0_ccs_int
-
-      ! First set the global index of local cells
-      index_counter = 1_ccs_int
-      do i = start_global, end_global
-        mesh%topo%global_indices(index_counter) = i
-        index_counter = index_counter + 1
-      end do
-
-      ! Assemble cells and faces
-      ! XXX: Negative neighbour indices are used to indicate boundaries using the same numbering
-      !      as cell-relative neighbour indexing, i.e.
-      !        -1 = left boundary
-      !        -2 = right boundary
-      !        -3 = bottom boundary
-      !        -4 = top boundary
-      !        -5 = back_boundary
-      !        -6 = front_boundary
-      index_counter = 1_ccs_int ! Set local indexing starting from 1...n
-      do i = start_global, end_global
-
-        ii = i - 1_ccs_int
-        set_vert_nb = .false.
-        nb_direction(:) = 0_ccs_int
-
-        ! Construct left (1) face/neighbour
-        nb_direction(1) = left
-        face_counter = left
-        call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! Construct right (2) face/neighbour
-        nb_direction(1) = right
-        face_counter = right
-        call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! Construct bottom (3) face/neighbour
-        nb_direction(1) = bottom
-        face_counter = bottom
-        call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! Construct top (4) face/neighbour
-        nb_direction(1) = top
-        face_counter = top
-        call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! Construct back (5) face/neighbour
-        nb_direction(1) = back
-        face_counter = back
-        call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! Construct front (6) face/neighbour
-        nb_direction(1) = front
-        face_counter = front
-        call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! Now construct neighbours connected via vertex or edge.
-        ! There are 8 front neighbours, 4 middle neighbours and 8 back neighbours
-        set_vert_nb = .true.
-        nb_direction = (/front, top, left/)
-        vertex_counter = front_top_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/front, top, 0_ccs_int/)
-        vertex_counter = front_top
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/front, top, right/)
-        vertex_counter = front_top_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/front, right, 0_ccs_int/)
-        vertex_counter = front_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/front, bottom, right/)
-        vertex_counter = front_bottom_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/front, bottom, 0_ccs_int/)
-        vertex_counter = front_bottom
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/front, bottom, left/)
-        vertex_counter = front_bottom_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/front, left, 0_ccs_int/)
-        vertex_counter = front_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! Now do the middle layer
-        nb_direction = (/top, left, 0_ccs_int/)
-        vertex_counter = middle_top_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/top, right, 0_ccs_int/)
-        vertex_counter = middle_top_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/bottom, right, 0_ccs_int/)
-        vertex_counter = middle_bottom_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/bottom, left, 0_ccs_int/)
-        vertex_counter = middle_bottom_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        ! And finally the back layer, again start at top left
-        nb_direction = (/back, top, left/)
-        vertex_counter = back_top_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/back, top, 0_ccs_int/)
-        vertex_counter = back_top
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/back, top, right/)
-        vertex_counter = back_top_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/back, right, 0_ccs_int/)
-        vertex_counter = back_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/back, bottom, right/)
-        vertex_counter = back_bottom_right
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/back, bottom, 0_ccs_int/)
-        vertex_counter = back_bottom
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/back, bottom, left/)
-        vertex_counter = back_bottom_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        nb_direction = (/back, left, 0_ccs_int/)
-        vertex_counter = back_left
-        call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
-
-        index_counter = index_counter + 1_ccs_int
-
-      end do
-
-      ! print*,"Neighbour indices: ",mesh%neighbour_indices
-
-      call set_total_num_cells(size(mesh%topo%global_indices), mesh)
-      call get_total_num_cells(mesh, total_num_cells)
-      call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
-
-      call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
-      call get_global_num_faces(mesh, global_num_faces)
-      call get_max_faces(mesh, max_faces)
-
-      ! Create shared memory global arrays
-      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-      call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
-      call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
-
-      length(1) = max_faces
-      length(2) = nglobal
-      call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
-
-      ! Initialise shared memory global arrays
-      if (is_root(shared_env)) then
-        mesh%topo%face_cell1(:) = 0_ccs_int
-        mesh%topo%face_cell2(:) = 0_ccs_int
-        mesh%topo%global_face_indices(:, :) = 0_ccs_int
-        mesh%topo%bnd_rid(:) = 0_ccs_int
-      endif
-
-      ! Construct face_cell1 and face_cell2 following:
-      !  - face_cell1 < face_cell2
-      !  - and if face is a boundary, then: face_cell1 = current_cell, face_cell2 = 0
-      face_index_counter = 1_ccs_int
-
-      do i = 1, nglobal
-
-        ii = i - 1_ccs_int
-
-        ! Construct left (1) face/neighbour
-        face_counter = left
-        if (modulo(ii, nx) == 0_ccs_int) then
-          global_index_nb = -left
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-          face_index_counter = face_index_counter + 1_ccs_int
-        else
-          ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
-          !global_index_nb = i - 1_ccs_int
-          !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-          !mesh%topo%face_cell2(face_index_counter) = i
+        ! Abort the execution if any rank has 0 local cells
+        if (local_num_cells <= 0) then
+          call error_abort("ERROR: Zero local cells found.")
         end if
 
-        ! Construct right (2) face/neighbour
-        face_counter = right
-        if (modulo(ii, nx) == (nx - 1_ccs_int)) then
-          global_index_nb = -right
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
+        call set_total_num_cells(local_num_cells, mesh) ! Setting initial value
+        end_global = start_global + (local_num_cells - 1)
 
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-        else
-          global_index_nb = i + 1_ccs_int
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = global_index_nb
+        ! Set max number of faces (constant, 6)
+        call set_max_faces(6_ccs_int, mesh)
 
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, global_index_nb, left, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-        end if
-        face_index_counter = face_index_counter + 1_ccs_int
+        ! Set number of vertices per cell (constant, 8)
+        call set_vert_per_cell(8, mesh)
 
-        ! Construct bottom (3) face/neighbour
-        face_counter = bottom
-        if (modulo(ii / nx, ny) == 0_ccs_int) then
-          global_index_nb = -bottom
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
+        ! Set number of neighbours via vertex per cell
+        call set_vert_nb_per_cell(20_ccs_int, mesh)
 
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-          face_index_counter = face_index_counter + 1_ccs_int
-        else
-          ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
-          !global_index_nb = i - nx
-          !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-          !mesh%topo%face_cell2(face_index_counter) = i
-        end if
+        call get_max_faces(mesh, max_faces)
+        call get_vert_per_cell(mesh, vert_per_cell)
+        call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
 
-        ! Construct top (4) face/neighbour
-        face_counter = top
-        if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
-          global_index_nb = -top
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
+        ! Allocate mesh arrays
+        allocate (mesh%topo%global_indices(local_num_cells))
+        allocate (mesh%topo%num_nb(local_num_cells))
+        allocate (mesh%topo%num_vert_nb(local_num_cells))
+        allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
+        allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
+        allocate (mesh%topo%face_indices(max_faces, local_num_cells))
 
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-        else
-          global_index_nb = i + nx
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = global_index_nb
+        ! Initialise mesh arrays
+        mesh%topo%num_nb(:) = max_faces ! All cells have 6 neighbours (possibly ghost/boundary cells)
+        mesh%topo%num_vert_nb(:) = vert_nb_per_cell
 
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, global_index_nb, bottom, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-        end if
-        face_index_counter = face_index_counter + 1_ccs_int
+        ! Initalise neighbour indices
+        mesh%topo%nb_indices(:, :) = 0_ccs_int
+        mesh%topo%vert_nb_indices(:, :) = 0_ccs_int
 
-        ! Construct back (5) face/neighbour
-        face_counter = back
-        if ((ii / (nx * ny)) == 0_ccs_int) then
-          global_index_nb = -back
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-          face_index_counter = face_index_counter + 1_ccs_int
-        else
-          ! If internal back face, nothing to be done, the face will be linked as a front face from its neighbour
-          !global_index_nb = i - nx * ny
-          !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-          !mesh%topo%face_cell2(face_index_counter) = i
-        end if
-
-        ! Construct front (6) face/neighbour
-        face_counter = front
-        if ((ii / (nx * ny)) == nz - 1_ccs_int) then
-          global_index_nb = -front
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = 0
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          mesh%topo%bnd_rid(face_index_counter) = global_index_nb
-        else
-          global_index_nb = i + nx * ny
-          mesh%topo%face_cell1(face_index_counter) = i
-          mesh%topo%face_cell2(face_index_counter) = global_index_nb
-
-          call create_face_locator(mesh, i, face_counter, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-          call create_face_locator(mesh, global_index_nb, back, loc_f)
-          call set_global_index(face_index_counter, loc_f)
-        end if
-        face_index_counter = face_index_counter + 1_ccs_int
-
-      end do
-
-      call set_num_faces(count_mesh_faces(mesh), mesh)
-
-      call set_cell_face_indices(mesh)
-
-      length(1) = mesh%topo%vert_per_cell
-      length(2) = mesh%topo%global_num_cells
-      call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
-
-      ! Global vertex numbering
-      if (is_root(shared_env)) then
-        do i = 1, mesh%topo%global_num_cells
-          associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
-            ii = i
-            a = modulo(ii - 1, nx * ny) + 1
-            b = (a - 1) / nx
-            c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
-            d = (a + nx - 1) / nx
-            e = (nx + 1) * (ny + 1)
-
-            global_vert_index(front_bottom_left) = a + b + c
-            global_vert_index(front_bottom_right) = a + b + c + 1
-            global_vert_index(front_top_left) = a + c + d + nx
-            global_vert_index(front_top_right) = a + c + d + nx + 1
-            global_vert_index(back_bottom_left) = a + b + c + e
-            global_vert_index(back_bottom_right) = a + b + c + e + 1
-            global_vert_index(back_top_left) = a + c + d + e + nx
-            global_vert_index(back_top_right) = a + c + d + e + nx + 1
-          end associate
+        ! First set the global index of local cells
+        index_counter = 1_ccs_int
+        do i = start_global, end_global
+          mesh%topo%global_indices(index_counter) = i
+          index_counter = index_counter + 1
         end do
-      endif
-      call sync(shared_env)
 
-      ! Create and populate the vtxdist array based on the total number of cells
-      ! and the total number of ranks in the parallel environment
-      allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+        ! Assemble cells and faces
+        ! XXX: Negative neighbour indices are used to indicate boundaries using the same numbering
+        !      as cell-relative neighbour indexing, i.e.
+        !        -1 = left boundary
+        !        -2 = right boundary
+        !        -3 = bottom boundary
+        !        -4 = top boundary
+        !        -5 = back_boundary
+        !        -6 = front_boundary
+        index_counter = 1_ccs_int ! Set local indexing starting from 1...n
+        do i = start_global, end_global
 
-      mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
-      mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
+          ii = i - 1_ccs_int
+          set_vert_nb = .false.
+          nb_direction(:) = 0_ccs_int
 
-      ! Divide the total number of cells by the world size to
-      ! compute the chunk sizes
-      k = int(real(nglobal) / par_env%num_procs)
-      j = 1
+          ! Construct left (1) face/neighbour
+          nb_direction(1) = left
+          face_counter = left
+          call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
 
-      do i = 1, par_env%num_procs
-        mesh%topo%vtxdist(i) = j
-        j = j + k
-      end do
+          ! Construct right (2) face/neighbour
+          nb_direction(1) = right
+          face_counter = right
+          call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
 
-    class default
-      call error_abort("Unknown parallel environment type.")
+          ! Construct bottom (3) face/neighbour
+          nb_direction(1) = bottom
+          face_counter = bottom
+          call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
 
-    end select
+          ! Construct top (4) face/neighbour
+          nb_direction(1) = top
+          face_counter = top
+          call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          ! Construct back (5) face/neighbour
+          nb_direction(1) = back
+          face_counter = back
+          call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          ! Construct front (6) face/neighbour
+          nb_direction(1) = front
+          face_counter = front
+          call add_neighbour(i, face_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          ! Now construct neighbours connected via vertex or edge.
+          ! There are 8 front neighbours, 4 middle neighbours and 8 back neighbours
+          set_vert_nb = .true.
+          nb_direction = (/front, top, left/)
+          vertex_counter = front_top_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/front, top, 0_ccs_int/)
+          vertex_counter = front_top
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/front, top, right/)
+          vertex_counter = front_top_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/front, right, 0_ccs_int/)
+          vertex_counter = front_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/front, bottom, right/)
+          vertex_counter = front_bottom_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/front, bottom, 0_ccs_int/)
+          vertex_counter = front_bottom
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/front, bottom, left/)
+          vertex_counter = front_bottom_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/front, left, 0_ccs_int/)
+          vertex_counter = front_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          ! Now do the middle layer
+          nb_direction = (/top, left, 0_ccs_int/)
+          vertex_counter = middle_top_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/top, right, 0_ccs_int/)
+          vertex_counter = middle_top_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/bottom, right, 0_ccs_int/)
+          vertex_counter = middle_bottom_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/bottom, left, 0_ccs_int/)
+          vertex_counter = middle_bottom_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          ! And finally the back layer, again start at top left
+          nb_direction = (/back, top, left/)
+          vertex_counter = back_top_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/back, top, 0_ccs_int/)
+          vertex_counter = back_top
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/back, top, right/)
+          vertex_counter = back_top_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/back, right, 0_ccs_int/)
+          vertex_counter = back_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/back, bottom, right/)
+          vertex_counter = back_bottom_right
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/back, bottom, 0_ccs_int/)
+          vertex_counter = back_bottom
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/back, bottom, left/)
+          vertex_counter = back_bottom_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          nb_direction = (/back, left, 0_ccs_int/)
+          vertex_counter = back_left
+          call add_neighbour(i, vertex_counter, index_counter, nb_direction, nx, ny, nz, set_vert_nb, mesh)
+
+          index_counter = index_counter + 1_ccs_int
+
+        end do
+
+        ! print*,"Neighbour indices: ",mesh%neighbour_indices
+
+        call set_total_num_cells(size(mesh%topo%global_indices), mesh)
+        call get_total_num_cells(mesh, total_num_cells)
+        call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
+
+        call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
+        call get_global_num_faces(mesh, global_num_faces)
+        call get_max_faces(mesh, max_faces)
+
+        ! Create shared memory global arrays
+        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
+        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+        call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
+
+        length(1) = max_faces
+        length(2) = nglobal
+        call create_shared_array(shared_env, length(:), mesh%topo%global_face_indices, mesh%topo%global_face_indices_window)
+
+        ! Initialise shared memory global arrays
+        if (is_root(shared_env)) then
+          mesh%topo%face_cell1(:) = 0_ccs_int
+          mesh%topo%face_cell2(:) = 0_ccs_int
+          mesh%topo%global_face_indices(:, :) = 0_ccs_int
+          mesh%topo%bnd_rid(:) = 0_ccs_int
+        end if
+
+        ! Construct face_cell1 and face_cell2 following:
+        !  - face_cell1 < face_cell2
+        !  - and if face is a boundary, then: face_cell1 = current_cell, face_cell2 = 0
+        face_index_counter = 1_ccs_int
+
+        do i = 1, nglobal
+
+          ii = i - 1_ccs_int
+
+          ! Construct left (1) face/neighbour
+          face_counter = left
+          if (modulo(ii, nx) == 0_ccs_int) then
+            global_index_nb = -left
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+            face_index_counter = face_index_counter + 1_ccs_int
+          else
+            ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
+            !global_index_nb = i - 1_ccs_int
+            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            !mesh%topo%face_cell2(face_index_counter) = i
+          end if
+
+          ! Construct right (2) face/neighbour
+          face_counter = right
+          if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+            global_index_nb = -right
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+          else
+            global_index_nb = i + 1_ccs_int
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = global_index_nb
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            call create_face_locator(mesh, global_index_nb, left, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+          end if
+          face_index_counter = face_index_counter + 1_ccs_int
+
+          ! Construct bottom (3) face/neighbour
+          face_counter = bottom
+          if (modulo(ii / nx, ny) == 0_ccs_int) then
+            global_index_nb = -bottom
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+            face_index_counter = face_index_counter + 1_ccs_int
+          else
+            ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
+            !global_index_nb = i - nx
+            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            !mesh%topo%face_cell2(face_index_counter) = i
+          end if
+
+          ! Construct top (4) face/neighbour
+          face_counter = top
+          if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+            global_index_nb = -top
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+          else
+            global_index_nb = i + nx
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = global_index_nb
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            call create_face_locator(mesh, global_index_nb, bottom, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+          end if
+          face_index_counter = face_index_counter + 1_ccs_int
+
+          ! Construct back (5) face/neighbour
+          face_counter = back
+          if ((ii / (nx * ny)) == 0_ccs_int) then
+            global_index_nb = -back
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+            face_index_counter = face_index_counter + 1_ccs_int
+          else
+            ! If internal back face, nothing to be done, the face will be linked as a front face from its neighbour
+            !global_index_nb = i - nx * ny
+            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            !mesh%topo%face_cell2(face_index_counter) = i
+          end if
+
+          ! Construct front (6) face/neighbour
+          face_counter = front
+          if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+            global_index_nb = -front
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = 0
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            mesh%topo%bnd_rid(face_index_counter) = global_index_nb
+          else
+            global_index_nb = i + nx * ny
+            mesh%topo%face_cell1(face_index_counter) = i
+            mesh%topo%face_cell2(face_index_counter) = global_index_nb
+
+            call create_face_locator(mesh, i, face_counter, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+            call create_face_locator(mesh, global_index_nb, back, loc_f)
+            call set_global_index(face_index_counter, loc_f)
+          end if
+          face_index_counter = face_index_counter + 1_ccs_int
+
+        end do
+
+        call set_num_faces(count_mesh_faces(mesh), mesh)
+
+        call set_cell_face_indices(mesh)
+
+        length(1) = mesh%topo%vert_per_cell
+        length(2) = mesh%topo%global_num_cells
+       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+
+        ! Global vertex numbering
+        if (is_root(shared_env)) then
+          do i = 1, mesh%topo%global_num_cells
+            associate (global_vert_index => mesh%topo%global_vertex_indices(:, i))
+              ii = i
+              a = modulo(ii - 1, nx * ny) + 1
+              b = (a - 1) / nx
+              c = ((ii - 1) / (nx * ny)) * (nx + 1) * (ny + 1)
+              d = (a + nx - 1) / nx
+              e = (nx + 1) * (ny + 1)
+
+              global_vert_index(front_bottom_left) = a + b + c
+              global_vert_index(front_bottom_right) = a + b + c + 1
+              global_vert_index(front_top_left) = a + c + d + nx
+              global_vert_index(front_top_right) = a + c + d + nx + 1
+              global_vert_index(back_bottom_left) = a + b + c + e
+              global_vert_index(back_bottom_right) = a + b + c + e + 1
+              global_vert_index(back_top_left) = a + c + d + e + nx
+              global_vert_index(back_top_right) = a + c + d + e + nx + 1
+            end associate
+          end do
+        end if
+        call sync(shared_env)
+
+        ! Create and populate the vtxdist array based on the total number of cells
+        ! and the total number of ranks in the parallel environment
+        allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+
+        mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
+        mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
+
+        ! Divide the total number of cells by the world size to
+        ! compute the chunk sizes
+        k = int(real(nglobal) / par_env%num_procs)
+        j = 1
+
+        do i = 1, par_env%num_procs
+          mesh%topo%vtxdist(i) = j
+          j = j + k
+        end do
+
+      class default
+        call error_abort("Unknown parallel environment type.")
+
+      end select
 
     class default
       call error_abort("Unknown parallel environment type.")
@@ -2138,6 +2279,12 @@ contains
         ! Increment total cell count
         call get_total_num_cells(mesh, total_num_cells)
         call set_total_num_cells(total_num_cells + 1, mesh)
+
+        call get_total_num_cells(mesh, total_num_cells)
+        if (total_num_cells /= size(mesh%topo%global_indices)) then
+          print *, total_num_cells, size(mesh%topo%global_indices)
+          call error_abort("ERROR: Local total cell count and size of global indices not in agreement")
+        end if
       end if
     end if
 
@@ -2149,7 +2296,7 @@ contains
     integer(ccs_int), intent(in) :: i
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
     ! dragons. If this were intent(out) it
-    ! would be deallocated on entry!
+    ! would be deallocated on entry
     integer(ccs_int) :: n
     integer(ccs_int), dimension(:), allocatable :: tmp
 
@@ -2396,7 +2543,7 @@ contains
     integer(ccs_int) :: global_num_cells
 
     ! roots_env kept as argument for consistency with partition_kway
-    associate(foo => roots_env)
+    associate (foo => roots_env)
     end associate
 
     call get_global_num_cells(mesh, global_num_cells)
@@ -2623,7 +2770,7 @@ contains
     print *, ""
     if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_face_indices(1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%topo%global_face_indices(1:nb_elem/2,i)
+        print *, par_env%proc_id, "global_face_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "global_face_indices   : UNALLOCATED"
@@ -2632,7 +2779,7 @@ contains
     print *, ""
     if (associated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_vertex_indices(1:"     //      str(nb_elem/2)      //      ", "      //      str(i)      //     ")", mesh%topo%global_vertex_indices(1:nb_elem/2,i)
+        print *, par_env%proc_id, "global_vertex_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "global_vertex_indices : UNALLOCATED"
