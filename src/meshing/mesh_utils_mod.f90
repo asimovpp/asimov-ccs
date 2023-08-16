@@ -530,7 +530,9 @@ contains
     ! Read variable "/cell/vol"
     call create_shared_array(shared_env, global_num_cells, temp_vol_c, &
          temp_window)
-    call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
+    if (is_valid(reader_env)) then
+       call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
+    end if
     call sync(shared_env)
     mesh%geo%volumes(:) = temp_vol_c(mesh%topo%natural_indices(:))
     call sync(shared_env)
@@ -549,7 +551,9 @@ contains
     allocate (temp_x_p(ndim, global_num_cells))
     call create_shared_array(shared_env, (/ ndim, global_num_cells /), temp_x_p, &
          temp_window)
-    call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
+    if (is_valid(reader_env)) then
+       call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
+    end if
     call sync(shared_env)
     mesh%geo%x_p(:, :) = temp_x_p(:, mesh%topo%natural_indices(:))
     call sync(shared_env)
@@ -572,25 +576,33 @@ contains
     f_xn_count(1) = ndim
     f_xn_count(2) = global_num_faces
 
-    ! Read variable "/face/x"
-    call read_array(geo_reader, "/face/x", f_xn_start, f_xn_count, temp_x_f)
-    ! Read variable "/face/n"
-    call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
-
+    if (is_valid(reader_env)) then
+       ! Read variable "/face/x"
+       call read_array(geo_reader, "/face/x", f_xn_start, f_xn_count, temp_x_f)
+       ! Read variable "/face/n"
+       call read_array(geo_reader, "/face/n", f_xn_start, f_xn_count, temp_n_f)
+    end if
+    
     f_a_start = 0
     f_a_count(1) = global_num_faces
 
-    ! Read variable "/face/area"
-    call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
-
+    if (is_valid(reader_env)) then
+       ! Read variable "/face/area"
+       call read_array(geo_reader, "/face/area", f_a_start, f_a_count, temp_a_f)
+    end if
+    call sync(shared_env)
+    
     ! Read variable "/vert"
     call get_global_num_vertices(mesh, global_num_vertices)
     call create_shared_array(shared_env, (/ ndim, global_num_vertices /), temp_x_v, &
          temp_x_v_window)
     f_xn_count(1) = ndim
     f_xn_count(2) = global_num_vertices
-    call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
-
+    if (is_valid(reader_env)) then
+       call read_array(geo_reader, "/vert", f_xn_start, f_xn_count, temp_x_v)
+    end if
+    call sync(shared_env)
+    
     ! Allocate arrays for face centres, face normals, face areas arrand vertex coordinates
     call get_local_num_cells(mesh, local_num_cells)
     allocate (mesh%geo%x_f(ndim, max_faces, local_num_cells))
