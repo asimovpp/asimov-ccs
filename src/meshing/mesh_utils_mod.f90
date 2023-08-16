@@ -286,7 +286,7 @@ contains
 
     if (is_valid(reader_env)) then
       sel2_start = 0
-      sel2_count(1) = max_faces! topo%global_num_cells
+      sel2_count(1) = max_faces ! topo%global_num_cells
       sel2_count(2) = global_num_cells
 
       call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
@@ -396,7 +396,7 @@ contains
               end if
             end if
 
-            !! Found all the vertex neighbours we're expecting
+            ! Found all the vertex neighbours we're expecting
             if (global_num_vert_nb(i) == vert_per_cell) then
               exit
             end if
@@ -406,7 +406,7 @@ contains
       end if
       call sync(shared_env)
 
-      !! Get local data
+      ! Get local data
       call get_local_num_cells(mesh, local_num_cells)
       allocate (mesh%topo%num_vert_nb(local_num_cells))
       allocate (mesh%topo%vert_nb_indices(vert_nb_per_cell, local_num_cells))
@@ -418,7 +418,7 @@ contains
           do j = 1, mesh%topo%num_vert_nb(i)
             associate (idxg_vnb => mesh%topo%vert_nb_indices(j, i))
               if (idxg_vnb > 0) then
-                idx_vnb = findloc(mesh%topo%global_indices, idxg_vnb, dim=1)
+                idx_vnb = findloc(mesh%topo%global_indices, idxg_vnb, dim = 1)
 
                 if (idx_vnb > 0) then
                   call build_local_mesh_add_neighbour(i, vctr, idx_vnb, idxg_vnb, mesh, .true.)
@@ -436,14 +436,14 @@ contains
 
       call get_total_num_cells(mesh, total_num_cells)
       if (any(mesh%topo%vert_nb_indices > total_num_cells)) then
-        call error_abort("ERROR: Vertex neighbour index outside total number of cells I can see!")
+        call error_abort("ERROR: Vertex neighbour index outside total number of cells I can see")
       end if
 
       call destroy_shared_array(shared_env, global_num_vert_nb, global_num_vert_nb_window)
 
     else
       if (par_env%proc_id == par_env%root) then
-        print *, "Not building vertex neighbours!"
+        print *, "Not building vertex neighbours"
       end if
 
     end if
@@ -498,7 +498,7 @@ contains
       shared_comm = shared_env%comm
     class default
       shared_comm = -42
-      call error_abort("Unsupported shared environment!")
+      call error_abort("Unsupported shared environment")
     end select
 
     call get_max_faces(mesh, max_faces)
@@ -689,7 +689,7 @@ contains
     call get_mesh_generated(mesh, is_generated)
 
     if (.not. is_generated) then
-      ! Mesh was read, no need to write again!
+      ! Mesh was read, no need to write again
       return
     end if
 
@@ -2283,7 +2283,7 @@ contains
         call get_total_num_cells(mesh, total_num_cells)
         if (total_num_cells /= size(mesh%topo%global_indices)) then
           print *, total_num_cells, size(mesh%topo%global_indices)
-          call error_abort("ERROR: Local total cell count and size of global indices not in agreement!")
+          call error_abort("ERROR: Local total cell count and size of global indices not in agreement")
         end if
       end if
     end if
@@ -2296,7 +2296,7 @@ contains
     integer(ccs_int), intent(in) :: i
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: arr ! XXX: Allocatable here be
     ! dragons. If this were intent(out) it
-    ! would be deallocated on entry!
+    ! would be deallocated on entry
     integer(ccs_int) :: n
     integer(ccs_int), dimension(:), allocatable :: tmp
 
@@ -2770,7 +2770,7 @@ contains
     print *, ""
     if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_face_indices(1:"      //       str(nb_elem/2)       //       ", "       //       str(i)       //      ")", mesh%topo%global_face_indices(1:nb_elem/2,i)
+        print *, par_env%proc_id, "global_face_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "global_face_indices   : UNALLOCATED"
@@ -2779,7 +2779,7 @@ contains
     print *, ""
     if (associated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_vertex_indices(1:"      //       str(nb_elem/2)       //       ", "       //       str(i)       //      ")", mesh%topo%global_vertex_indices(1:nb_elem/2,i)
+        print *, par_env%proc_id, "global_vertex_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "global_vertex_indices : UNALLOCATED"
