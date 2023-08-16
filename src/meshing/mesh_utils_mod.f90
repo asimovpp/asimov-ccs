@@ -548,7 +548,6 @@ contains
     allocate (mesh%geo%x_p(ndim, total_num_cells))
 
     ! Read variable "/cell/x"
-    allocate (temp_x_p(ndim, global_num_cells))
     call create_shared_array(shared_env, (/ ndim, global_num_cells /), temp_x_p, &
          temp_window)
     if (is_valid(reader_env)) then
@@ -561,9 +560,6 @@ contains
     
     ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     call get_global_num_faces(mesh, global_num_faces)
-    allocate (temp_x_f(ndim, global_num_faces))
-    allocate (temp_n_f(ndim, global_num_faces))
-    allocate (temp_a_f(global_num_faces))
 
     call create_shared_array(shared_env, (/ ndim, global_num_faces /), temp_x_f, &
          temp_x_f_window)
