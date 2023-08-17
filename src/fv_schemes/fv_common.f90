@@ -605,6 +605,11 @@ contains
     real(ccs_real) :: uSwitch, vSwitch, wSwitch
     real(ccs_real) :: problem_dim
     real(ccs_real) :: interpol_factor
+    real(ccs_real), dimension(ndim) :: grad_phi_p 
+    real(ccs_real), dimension(ndim) :: grad_phi_nb
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime, x_f_prime, rnb_k_prime, rp_prime
+    real(ccs_real), dimension(ndim) :: n
+    real(ccs_real) :: a
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -623,14 +628,41 @@ contains
         ! Rhie-Chow correction from Ferziger & Peric
         !
         call get_face_interpolation(loc_f, interpol_factor)
-        call get_distance(loc_p, loc_nb, dx)
-        dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(index_nb) - p(index_p)) / dxmag
 
-        flux_corr = flux_corr + ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
-                + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
-                 + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
+        if (.true.) then !p%enable_cell_corrections) then
+          ! Cell excentricity/non-orthogonality corrections (sec 9.8, p317, eq9.67 and 9.66)
+          call get_face_normal(loc_f, n)
+          call get_centre(loc_p, x_p)
+          call get_centre(loc_nb, x_nb)
+          call get_centre(loc_f, x_f)
+
+          grad_phi_p = (/ dpdx(index_p), dpdy(index_p), dpdz(index_p) /)
+          grad_phi_nb = (/ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) /)
+
+          a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+          rnb_k_prime = x_f + a*n
+          rp_prime = x_f - a*n
+          !dx = rnb_k_prime - rp_prime 
+          !dxmag = norm2(dx)
+          dxmag = abs(2.0_ccs_real * a)
+
+          ! eq 9.66
+          flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
+
+          ! interpolated pressure gradient at the face (i.e.)
+          flux_corr = flux_corr - 0.5_ccs_real * dot_product((grad_phi_p + grad_phi_nb), x_nb - x_p)
+
+          flux_corr = - flux_corr / dxmag
+        else
+          call get_distance(loc_p, loc_nb, dx)
+          dxmag = sqrt(sum(dx**2))
+          flux_corr = -(p(index_nb) - p(index_p)) / dxmag
+
+          flux_corr = flux_corr + ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
+                  + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
+                  + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
+        end if
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
