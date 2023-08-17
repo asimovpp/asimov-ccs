@@ -43,7 +43,7 @@ program test_tgv_disturb_cartesian
     cps = cps_list(i)
     mesh = build_square_mesh(par_env, cps, domain_size)
 
-    !call disturb_cartesian(cps, mesh)
+    call disturb_cartesian(cps, mesh)
 
     call run_tgv2d(par_env, error_L2(:, i), error_Linf(:, i), mesh)
   end do
