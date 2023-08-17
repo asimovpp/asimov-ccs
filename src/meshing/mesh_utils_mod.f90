@@ -439,6 +439,7 @@ contains
         call error_abort("ERROR: Vertex neighbour index outside total number of cells I can see")
       end if
 
+      call destroy_shared_array(shared_env, mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
       call destroy_shared_array(shared_env, global_num_vert_nb, global_num_vert_nb_window)
 
     else
