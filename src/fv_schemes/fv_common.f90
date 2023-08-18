@@ -26,9 +26,10 @@ submodule(fv) fv_common
 contains
 
   !> Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, mesh, component, M, vec)
+  module subroutine compute_fluxes(phi, mf, mesh, component, M, vec, viscosity)
     class(field), intent(inout) :: phi
     class(field), intent(inout) :: mf
+    class(field), intent(inout) :: viscosity
     type(ccs_mesh), intent(in) :: mesh
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), intent(inout) :: M
@@ -36,28 +37,31 @@ contains
 
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: n_int_cells
-    real(ccs_real), dimension(:), pointer :: mf_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
 
     associate (mf_values => mf%values)
       call dprint("CF: get mf")
       call get_vector_data(mf_values, mf_data)
+      call get_vector_data(viscosity%values, viscosity_data)
 
       ! Loop over cells computing advection and diffusion fluxes
       call get_max_faces(mesh, max_faces)
       n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: compute coeffs")
-      call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec)
+      call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec, viscosity_data)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
+      call restore_vector_data(viscosity%values, viscosity_data)
     end associate
 
   end subroutine compute_fluxes
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, M, b)
+  subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, M, b, vis)
     class(field), intent(inout) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
+    real(ccs_real), dimension(:), intent(in) :: vis !< viscosity
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
     integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
     integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
@@ -124,7 +128,8 @@ contains
         call get_local_index(loc_f, index_f)
 
         if (.not. is_boundary) then
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, vis(index_p), vis(index_nb),0)
+          !pass viscosity into this subroutine
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -181,7 +186,7 @@ contains
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, vis(index_p), vis(index_nb), index_nb)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
 
@@ -391,15 +396,18 @@ contains
   end subroutine
 
   !> Sets the diffusion coefficient
-  module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+  module function calc_diffusion_coeff(index_p, index_nb, mesh, visp, visnb, bc) result(coeff)
     integer(ccs_int), intent(in) :: index_p  !< the local cell index
     integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
     type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
     real(ccs_real) :: coeff                  !< the diffusion coefficient
+    real(ccs_real), intent(in) :: visp, visnb !< viscosity
+    integer(ccs_int), intent(in) :: bc
 
     type(face_locator) :: loc_f
     real(ccs_real) :: face_area
-    real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
+    !real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
+    real(ccs_real) :: diffusion_factor
     logical :: is_boundary
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real) :: dxmag
@@ -411,6 +419,9 @@ contains
     call get_boundary_status(loc_f, is_boundary)
 
     call create_cell_locator(mesh, index_p, loc_p)
+
+    !call get_vector_data()
+
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
       call get_distance(loc_p, loc_nb, dx)
@@ -418,6 +429,12 @@ contains
       call get_distance(loc_p, loc_f, dx)
     end if
     dxmag = sqrt(sum(dx**2))
+
+    if (bc == 0) then
+      diffusion_factor = 0.5_ccs_real*(visp + visnb)
+    else
+      diffusion_factor = visp
+    end if
     
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff

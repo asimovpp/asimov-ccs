@@ -164,11 +164,13 @@ program ldc
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(mesh, u, v, w, mf)
+  !initialze viscosity (create a subroutine)
+  call initialise_velocity(mesh, u, v, w, mf, viscosity) !viscosity
   call update(u%values)
   call update(v%values)
   call update(w%values)
   call update(mf%values)
+  call update(viscosity%values)
 
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
@@ -297,7 +299,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(mesh, u, v, w, mf)
+  subroutine initialise_velocity(mesh, u, v, w, mf, viscosity)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -308,7 +310,7 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, mf
+    class(field), intent(inout) :: u, v, w, mf, viscosity
 
     ! Local variables
     integer(ccs_int) :: row, col
@@ -316,7 +318,7 @@ contains
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals, w_vals
-    real(ccs_real), dimension(:), pointer :: mf_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
 
     ! Set alias
     call get_local_num_cells(mesh, n_local)
@@ -360,6 +362,10 @@ contains
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 0.0_ccs_real
     call restore_vector_data(mf%values, mf_data)
+
+    call get_vector_data(viscosity%values, viscosity_data)
+    viscosity_data(:) =  1.e-2_ccs_real
+    call restore_vector_data(viscosity%values, viscosity_data)
 
   end subroutine initialise_velocity
 

@@ -42,7 +42,7 @@ module constants
   integer(ccs_int), public, parameter :: field_p = 3
   integer(ccs_int), public, parameter :: field_p_prime = 4
   integer(ccs_int), public, parameter :: field_mf = 5
-  integer(ccs_int), public, parameter :: field_viscosity = 7 !viscosity 
+  integer(ccs_int), public, parameter :: field_viscosity = 6 !viscosity 
 
   integer(ccs_int), public, parameter :: ccs_string_len = 128
 

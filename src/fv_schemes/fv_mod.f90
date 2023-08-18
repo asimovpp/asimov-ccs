@@ -56,17 +56,20 @@ module fv
 
     !> Sets the diffusion coefficient
     ! XXX: why is this a function when the equivalent advection ones are subroutines?
-    module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+    module function calc_diffusion_coeff(index_p, index_nb, mesh, visp, visnb, bc) result(coeff)
       integer(ccs_int), intent(in) :: index_p  !< the local cell index
       integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
       type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
       real(ccs_real) :: coeff                  !< the diffusion coefficient
+      real(ccs_real), intent(in) :: visp, visnb        !< viscosity
+      integer(ccs_int), intent(in) :: bc         !< boundary condition
     end function calc_diffusion_coeff
 
     !> Computes fluxes and assign to matrix and RHS
-    module subroutine compute_fluxes(phi, mf, mesh, component, M, vec)
+    module subroutine compute_fluxes(phi, mf, mesh, component, M, vec, viscosity)
       class(field), intent(inout) :: phi             !< scalar field structure
       class(field), intent(inout) :: mf              !< mass flux field structure (defined at faces)
+      class(field), intent(inout) :: viscosity       !< viscosity
       type(ccs_mesh), intent(in) :: mesh          !< the mesh being used
       integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
       class(ccs_matrix), intent(inout) :: M       !< Data structure containing matrix to be filled

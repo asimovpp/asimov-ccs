@@ -117,6 +117,7 @@ contains
     class(field), intent(inout) :: phi ! The scalar field
 
     class(field), pointer :: mf  ! The advecting velocity field
+    class(field), pointer :: viscosity  ! viscosity
     class(linear_solver), allocatable :: lin_solver
     type(equation_system) :: lin_system
     
@@ -128,7 +129,7 @@ contains
 
     call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
-    call compute_fluxes(phi, mf, mesh, 0, M, rhs)
+    call compute_fluxes(phi, mf, mesh, 0, M, rhs, viscosity)
     call apply_timestep(mesh, phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")
