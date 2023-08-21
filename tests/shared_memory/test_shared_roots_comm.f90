@@ -19,38 +19,20 @@ program test_shared_roots_comm
 
   call init()
 
-  select type (par_env)
-  type is (parallel_environment_mpi)
-    use_mpi_splitting = .false.
-    call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, test_shared_env)
-    call create_shared_roots_comm(par_env, test_shared_env, test_roots_env)
-    
-    select type (test_shared_env)
-    type is (parallel_environment_mpi)
-      select type (test_roots_env)
-      type is (parallel_environment_mpi)
-        ! Only root of the shared environment(s) should be part of the roots env
-        if (is_root(test_shared_env)) then
-          if (.not. is_valid(test_roots_env)) then
-            call stop_test("Root of shared environment not included in roots environment")
-          end if
-        else
-          if (is_valid(test_roots_env)) then
-            call stop_test("Non-root of shared environment included in roots environment")
-          end if
-        end if
-
-      class default
-        call stop_test("Unsupported parallel environment")
-      end select
-
-    class default
-      call stop_test("Unsupported parallel environment")
-    end select
-
-  class default
-    call stop_test("Unsupported parallel environment")
-  end select
+  use_mpi_splitting = .false.
+  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, test_shared_env)
+  call create_shared_roots_comm(par_env, test_shared_env, test_roots_env)
+  
+  ! Only root of the shared environment(s) should be part of the roots env
+  if (is_root(test_shared_env)) then
+    if (.not. is_valid(test_roots_env)) then
+      call stop_test("Root of shared environment not included in roots environment")
+    end if
+  else
+    if (is_valid(test_roots_env)) then
+      call stop_test("Non-root of shared environment included in roots environment")
+    end if
+  end if
 
   call fin()
 
