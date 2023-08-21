@@ -51,8 +51,13 @@ All possible configuration settings can be found in `build_tools/config_mapping.
 ## Running
 The generated application can be run as a normal MPI application, for example
 ```
-mpirun -n 4 ./ccs_app
+mpirun -n 4 /path/to/ccs_app --ccs_case <CaseName>
 ```
+will use the runtime configuration file `CaseName_config.yaml` in the current directory. An input path can also be provided as
+```
+mpirun -n 4 /path/to/ccs_app --ccs_case CaseName --ccs_in /path/to/case/dir/
+```
+where `/path/to/case/dir/` contains the configuration file `CaseName_config.yaml`.
 
 `ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
 If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well, in particular if you observe stagnating residuals being printed to `stdout` you might want to try tighter tolerances for the linear solvers by passing `-ksp_atol` and `-ksp_rtol` at runtime, e.g.
@@ -75,7 +80,7 @@ mpirun -n 4 ../../../ccs_app --ccs_m 100 --ccs_case TaylorGreenVortex2D
 
 To run the 3D TGV case, you need to change `config.yaml` to state `main: tgv` instead of `main:tgv2d`, rebuild and use the run line:
 ```
-mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex3D
+mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex
 ```
 The default 3D problem size is `16x16x16`.
 
