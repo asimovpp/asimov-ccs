@@ -32,7 +32,15 @@ program split_communicator
 
     select type (par_env_shared)
     type is (parallel_environment_mpi)
-      print *, "global rank ", par_env%proc_id, " shared rank ", par_env_shared%proc_id, " size ", par_env_shared%num_procs
+      if (colour /= -1) then
+        if (.not. is_valid(par_env_shared)) then
+          call stop_test("Shared communicator invalid on process that should be included")
+        end if
+      else
+        if (is_valid(par_env_shared)) then
+          call stop_test("Shared communicator valid on process that should not be included")
+        end if
+      end if
     class default
       call stop_test("Unsupported parallel environment")
     end select

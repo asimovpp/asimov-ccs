@@ -29,8 +29,15 @@ program test_shared_roots_comm
     type is (parallel_environment_mpi)
       select type (test_roots_env)
       type is (parallel_environment_mpi)
-        if (is_valid(test_roots_env)) then
-          call dprint("shared rank " // str(test_shared_env%proc_id) // " roots rank " // str(test_roots_env%proc_id) // " size " // str(roots_env%num_procs))
+        ! Only root of the shared environment(s) should be part of the roots env
+        if (is_root(test_shared_env)) then
+          if (.not. is_valid(test_roots_env)) then
+            call stop_test("Root of shared environment not included in roots environment")
+          end if
+        else
+          if (is_valid(test_roots_env)) then
+            call stop_test("Non-root of shared environment included in roots environment")
+          end if
         end if
 
       class default
