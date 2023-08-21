@@ -113,7 +113,7 @@ The results can be plotted against Ghia's reference data by running the `plot-st
 ```
 python ../../../scripts/plot-structured.py
 ```
-this requires installation of `h5py`, which can be installed via `pip install h5py`.
+this requires either an ADIOS2 build supporting Python or installation of `h5py` as a fallback, which can be installed via `pip install h5py`.
 
 ## Further documentation
 
