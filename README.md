@@ -13,8 +13,9 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 - `fortran-yaml-c` - https://github.com/Nicholaswogan/fortran-yaml-c
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
 - `ParHIP` - https://github.com/KaHIP/KaHIP
+- `ParMETIS` - https://github.com/KarypisLab/ParMETIS
 
-
+**N.B.** although the build system currently requires both, only one of ParHIP or ParMETIS is used to partition the problem.
 
 ## Building
 
@@ -24,6 +25,7 @@ Set the following environment variables:
 - `FYAMLC` to point to the root of your fortran-yaml-c build directory
 - `ADIOS2` to point to the ADIOS2 install directory
 - `PARHIP` to point to the root of the ParHIP install directory
+- `PARMETIS` to point to the root of the ParMETIS install directory
 
 
 With the prerequisites in place, ASiMoV-CCS can be built from the root directory with
