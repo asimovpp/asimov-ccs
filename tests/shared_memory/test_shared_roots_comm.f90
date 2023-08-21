@@ -1,4 +1,4 @@
-program split_communicator
+program test_shared_roots_comm
 #include "ccs_macros.inc"
   
   use mpi
@@ -10,41 +10,41 @@ program split_communicator
                       is_valid, is_root
   use utils, only: debug_print, str, exit_print
   
+  use testing_lib
+
   implicit none
 
-  class(parallel_environment), allocatable, target :: par_env
-  class(parallel_environment), allocatable, target :: shared_env
-  class(parallel_environment), allocatable, target :: roots_env
+  class(parallel_environment), allocatable, target :: test_roots_env, test_shared_env
   logical :: use_mpi_splitting
 
-  call initialise_parallel_environment(par_env)
+  call init()
 
   select type (par_env)
   type is (parallel_environment_mpi)
     use_mpi_splitting = .false.
-    call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
-    call create_shared_roots_comm(par_env, shared_env, roots_env)
+    call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, test_shared_env)
+    call create_shared_roots_comm(par_env, test_shared_env, test_roots_env)
     
-    select type (shared_env)
+    select type (test_shared_env)
     type is (parallel_environment_mpi)
-      select type (roots_env)
+      select type (test_roots_env)
       type is (parallel_environment_mpi)
-        if (is_valid(roots_env)) then
-          call dprint("shared rank " // str(shared_env%proc_id) // " roots rank " // str(roots_env%proc_id) // " size " // str(roots_env%num_procs))
+        if (is_valid(test_roots_env)) then
+          call dprint("shared rank " // str(test_shared_env%proc_id) // " roots rank " // str(test_roots_env%proc_id) // " size " // str(roots_env%num_procs))
         end if
 
       class default
-        call error_abort("Unsupported parallel environment")
+        call stop_test("Unsupported parallel environment")
       end select
 
     class default
-      call error_abort("Unsupported parallel environment")
+      call stop_test("Unsupported parallel environment")
     end select
 
   class default
-    call error_abort("Unsupported parallel environment")
+    call stop_test("Unsupported parallel environment")
   end select
-  
-  call cleanup_parallel_environment(par_env)
 
-end program split_communicator
+  call fin()
+
+end program test_shared_roots_comm

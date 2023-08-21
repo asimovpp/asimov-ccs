@@ -8,14 +8,15 @@ program split_communicator
   use parallel, only: initialise_parallel_environment, create_new_par_env, cleanup_parallel_environment
   use utils, only: debug_print, str, exit_print
   
+  use testing_lib
+
   implicit none
 
-  class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: par_env_shared
   logical :: split_flag
   integer :: colour
 
-  call initialise_parallel_environment(par_env)
+  call init()
 
   select type (par_env)
   type is (parallel_environment_mpi)
@@ -33,12 +34,12 @@ program split_communicator
     type is (parallel_environment_mpi)
       print *, "global rank ", par_env%proc_id, " shared rank ", par_env_shared%proc_id, " size ", par_env_shared%num_procs
     class default
-      call error_abort("Unsupported parallel environment")
+      call stop_test("Unsupported parallel environment")
     end select
   class default
-    call error_abort("Unsupported parallel environment")
+    call stop_test("Unsupported parallel environment")
   end select
 
-  call cleanup_parallel_environment(par_env)
+  call fin()
 
 end program split_communicator

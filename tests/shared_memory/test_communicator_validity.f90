@@ -6,14 +6,16 @@ program test_communicator_validity
   use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: initialise_parallel_environment, create_new_par_env, cleanup_parallel_environment, is_valid
   use utils, only: debug_print, str, exit_print
-  
+ 
+  use testing_lib
+
   implicit none
 
-  class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: par_env_shared
   logical :: split_flag
   integer :: colour
-  call initialise_parallel_environment(par_env)
+
+  call init()
 
   select type (par_env)
   type is (parallel_environment_mpi)
@@ -29,12 +31,12 @@ program test_communicator_validity
     type is (parallel_environment_mpi)
       print *, "colour ", colour, " check if par_env is valid ", is_valid(par_env), " shared ", is_valid(par_env_shared)
     class default
-      call error_abort("Unsupported parallel environment")
+      call stop_test("Unsupported parallel environment")
     end select
   class default
-    call error_abort("Unsupported parallel environment")
+    call stop_test("Unsupported parallel environment")
   end select
-      
-  call cleanup_parallel_environment(par_env)
+ 
+  call fin()
 
 end program test_communicator_validity
