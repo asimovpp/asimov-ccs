@@ -42,7 +42,11 @@ make CMP=<compiler> tests
 
 ## Configuring
 
-The executable `ccs_app` that is built/linked is configured by `config.yaml`. The Fortran program is specified by `main:` where the available options currently reside in `case_setup` and are `poisson`, `scalar_advection`, `ldc`, `tgv` and `tgv2d` (for 3-D and 2-D Taylor-Green Vortex, respectively).
+The executable `ccs_app` that is built/linked is configured by `config.yaml`. The Fortran program is specified by `main:` where the available options currently reside in `case_setup` and are
+- `poisson` to solve a simple Poisson problem
+- `scalar_advection` to solve a scalar advection case (frozen velocity field)
+- `ldc` to run the Lid Driven Cavity problem
+- `tgv` and `tgv2d` to run 3-D and 2-D Taylor-Green Vortex, respectively
 
 The build system automatically links the required modules, but submodules need to be specified in the configuration file. `base:` specifies a collection of basic submodules that work together; available options are `mpi` and `mpi_petsc`. Further customisation is available via the `options:` settings for cases where multiple implementations of the same functionality exist (none at the time of writing). 
 All possible configuration settings can be found in `build_tools/config_mapping.yaml`. 
@@ -51,8 +55,13 @@ All possible configuration settings can be found in `build_tools/config_mapping.
 ## Running
 The generated application can be run as a normal MPI application, for example
 ```
-mpirun -n 4 ./ccs_app
+mpirun -n 4 /path/to/ccs_app --ccs_case <CaseName>
 ```
+will use the runtime configuration file `CaseName_config.yaml` in the current directory. An input path can also be provided as
+```
+mpirun -n 4 /path/to/ccs_app --ccs_case CaseName --ccs_in /path/to/case/dir/
+```
+where `/path/to/case/dir/` contains the configuration file `CaseName_config.yaml`.
 
 `ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
 If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well, in particular if you observe stagnating residuals being printed to `stdout` you might want to try tighter tolerances for the linear solvers by passing `-ksp_atol` and `-ksp_rtol` at runtime, e.g.
@@ -75,7 +84,7 @@ mpirun -n 4 ../../../ccs_app --ccs_m 100 --ccs_case TaylorGreenVortex2D
 
 To run the 3D TGV case, you need to change `config.yaml` to state `main: tgv` instead of `main:tgv2d`, rebuild and use the run line:
 ```
-mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex3D
+mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex
 ```
 The default 3D problem size is `16x16x16`.
 
@@ -108,7 +117,7 @@ The results can be plotted against Ghia's reference data by running the `plot-st
 ```
 python ../../../scripts/plot-structured.py
 ```
-this requires installation of `h5py`, which can be installed via `pip install h5py`.
+this requires either an ADIOS2 build supporting Python or installation of `h5py` as a fallback, which can be installed via `pip install h5py`.
 
 ## Further documentation
 
