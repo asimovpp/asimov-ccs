@@ -109,18 +109,6 @@ contains
     ! Allocate new adjacency index array xadj based on new vtxdist
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
 
-    if (associated(mesh%topo%global_boundaries) .eqv. .false.) then
-      call get_global_num_cells(mesh, global_num_cells)
-      call create_shared_array(shared_env, global_num_cells, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
-
-      ! Reset global_boundaries array
-      if (is_root(shared_env)) then
-        mesh%topo%global_boundaries(:) = 0
-      end if
-      call sync(shared_env)
-    end if
-
-
     call get_max_faces(mesh, max_faces)
 
     ! Allocate temporary 2D integer work array and initialise to 0
@@ -161,20 +149,6 @@ contains
       else
         ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
         if (any(mesh%topo%global_indices == face_nb1)) then
-          select type (shared_env)
-          type is (parallel_environment_mpi)
-             ! Lock to prevent race condition on global_boundaries edits. Unlikely but possible
-             ! XXX: DEBUG fix, to make it compile, TODO: understand why MPI_LOCK_EXCLUSIVE isn't available
-             !call MPI_Win_lock(234, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
-             !call MPI_Win_lock(MPI_LOCK_EXCLUSIVE, shared_env%proc_id, 0, mesh%topo%global_boundaries_window, ierr)
-
-             mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
-
-             !call MPI_Win_unlock(shared_env%proc_id, mesh%topo%global_boundaries_window, ierr)
-          class default
-             print *, "ERROR: Unknown parallel environment!"
-          end select
-
           ! read the boundary id from bnd_rid
           face_nb2 = mesh%topo%bnd_rid(i)
           call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
@@ -719,9 +693,6 @@ contains
     allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), mesh%topo%max_faces + 1))
     tmp_int2d = 0
 
-    ! Allocate global boundaries array
-    call create_shared_array(shared_env, mesh%topo%global_num_cells, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
-
     ! All ranks loop over all the faces
     do i = 1, mesh%topo%global_num_faces
 
@@ -748,7 +719,6 @@ contains
 
       ! If face neighbour 2 is 0 we have a boundary face
       if (face_nb2 .eq. 0) then
-        mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
       end if
 
     end do
