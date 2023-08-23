@@ -12,13 +12,17 @@ module utils
                  initialise_vector, set_vector_size, &
                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
                  clear_vector_values_entries, &
-                 mult_vec_vec, scale_vec, zero_vector
+                 mult_vec_vec, scale_vec, zero_vector, &
+                 get_natural_data_vec
   use mat, only: set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                  initialise_matrix, finalise_matrix, set_matrix_size, &
                  set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, set_matrix_values_entry, &
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
+  use types, only: field, fluid, fluid_solver_selector
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       cell_centred_central, cell_centred_upwind
 
   implicit none
 
@@ -44,6 +48,16 @@ module utils
   public :: calc_kinetic_energy
   public :: calc_enstrophy
   public :: add_field_to_outputlist
+  public :: reset_outputlist_counter
+  public :: get_field
+  public :: get_fluid_solver_selector
+  public :: set_field
+  public :: set_fluid_solver_selector
+  public :: allocate_fluid_fields
+  public :: dealloc_fluid_fields
+  public :: get_natural_data
+  public :: get_scheme_name
+  public :: get_scheme_id
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -119,7 +133,7 @@ module utils
     module procedure set_matrix_size
   end interface set_size
 
-  !>  Generic interface to perform multiplications
+  !> Generic interface to perform multiplications
   interface mult
     module procedure mult_vec_vec
   end interface mult
@@ -130,10 +144,11 @@ module utils
     module procedure zero_matrix
   end interface zero
 
-  !> Generic interface to converting numbers to strings
+  !> Generic interface to converting numbers and bools to strings
   interface str
     module procedure int2str
     module procedure real2str
+    module procedure bool2str
   end interface str
 
   !> Generic interface to debug printer
@@ -141,6 +156,13 @@ module utils
     module procedure debug_print_actual
     module procedure noop
   end interface debug_print
+
+  !> Generic interface to get data in natural ordering
+  interface get_natural_data
+    module procedure get_natural_data_vec
+  end interface get_natural_data
+
+  integer(ccs_int), save :: outputlist_counter = 0
 
 contains
 
@@ -209,6 +231,18 @@ contains
     out_string = trim(adjustl(tmp_string))
   end function
 
+  !> Convert bool to string.
+  function bool2str(in_bool) result(out_string)
+    logical, intent(in) :: in_bool          !< bool to convert
+    character(:), allocatable :: out_string !< string from input bool
+
+    character(32) :: tmp_string
+
+    write (tmp_string, *) in_bool
+
+    out_string = trim(adjustl(tmp_string))
+  end function
+
   !> Print a message and stop program execution.
   subroutine exit_print(msg, filepath, line)
     character(*), intent(in) :: msg      !< text to be printed
@@ -221,33 +255,41 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate kinetic energy over density
-  subroutine calc_kinetic_energy(par_env, mesh, t, u, v, w)
+  subroutine calc_kinetic_energy(par_env, mesh, u, v, w)
+
+    use mpi
 
     use constants, only: ndim, ccs_string_len
-    use types, only: field, ccs_mesh
+    use types, only: field, ccs_mesh, cell_locator
     use vec, only: get_vector_data, restore_vector_data
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use mpi
+    use meshing, only: get_local_num_cells, create_cell_locator, get_volume
+    use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: t !< timestep
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
 
+    integer(ccs_int) :: local_num_cells
     real(ccs_real) :: ek_local, ek_global, volume_local, volume_global
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data
     real(ccs_real) :: rho
     integer(ccs_int) :: index_p
     character(len=ccs_string_len) :: fmt
     integer(ccs_int) :: ierr
+    integer(ccs_int) :: step !< timestep
 
     logical, save :: first_time = .true.
     integer :: io_unit
 
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: volume
+
+    call get_current_step(step)
     rho = 1.0_ccs_real
 
     ek_local = 0.0_ccs_real
@@ -259,13 +301,15 @@ contains
     call get_vector_data(v%values, v_data)
     call get_vector_data(w%values, w_data)
 
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
+      call create_cell_locator(mesh, index_p, loc_p)
+      call get_volume(loc_p, volume)
 
-      ek_local = ek_local + 0.5 * rho * mesh%geo%volumes(index_p) * &
+      ek_local = ek_local + 0.5 * rho * volume * &
                  (u_data(index_p)**2 + v_data(index_p)**2 + w_data(index_p)**2)
 
-      volume_local = volume_local + mesh%geo%volumes(index_p)
-
+      volume_local = volume_local + volume
     end do
 
     call restore_vector_data(u%values, u_data)
@@ -274,9 +318,9 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
-      call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
@@ -292,7 +336,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ek.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) t, ek_global
+      write (io_unit, fmt) step, ek_global
       close (io_unit)
     end if
 
@@ -300,7 +344,9 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate enstrophy
-  subroutine calc_enstrophy(par_env, mesh, t, u, v, w)
+  subroutine calc_enstrophy(par_env, mesh, u, v, w)
+
+    use mpi
 
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
@@ -308,24 +354,27 @@ contains
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use mpi
+    use meshing, only: get_local_num_cells
+    use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh !< the mesh
-    integer(ccs_int), intent(in) :: t !< timestep
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
 
+    integer(ccs_int) :: local_num_cells
     real(ccs_real) :: ens_local, ens_global
     real(ccs_real), dimension(:), pointer :: dudy, dudz, dvdx, dvdz, dwdx, dwdy
     integer(ccs_int) :: index_p
     character(len=ccs_string_len) :: fmt
     integer(ccs_int) :: ierr
+    integer(ccs_int) :: step !< timestep
 
     logical, save :: first_time = .true.
     integer :: io_unit
 
+    call get_current_step(step)
     ens_local = 0.0_ccs_real
     ens_global = 0.0_ccs_real
 
@@ -336,7 +385,8 @@ contains
     call get_vector_data(w%x_gradients, dwdx)
     call get_vector_data(w%y_gradients, dwdy)
 
-    do index_p = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
 
       ens_local = ens_local + (dwdy(index_p) - dvdz(index_p))**2 + &
                   (dudz(index_p) - dwdx(index_p))**2 + &
@@ -354,7 +404,7 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
@@ -368,7 +418,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) t, ens_global
+      write (io_unit, fmt) step, ens_global
       close (io_unit)
     end if
 
@@ -384,13 +434,133 @@ contains
     type(field_ptr), dimension(:), intent(inout) :: list
 
     ! Local variables
-    integer(ccs_int), save :: count = 0
 
-    count = count + 1
+    outputlist_counter = outputlist_counter + 1
 
-    list(count)%ptr => var
-    list(count)%name = name
+    list(outputlist_counter)%ptr => var
+    list(outputlist_counter)%name = name
 
   end subroutine add_field_to_outputlist
 
+  subroutine reset_outputlist_counter()
+
+    outputlist_counter = 0
+
+  end subroutine
+
+  !> Gets the field from the fluid structure specified by field_name
+  subroutine get_field(flow, field_name, flow_field)
+    type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
+    integer(ccs_int), intent(in) :: field_name        !< name of the field of interest
+    class(field), pointer, intent(out) :: flow_field  !< the field of interest
+
+    integer(ccs_int), dimension(1) :: field_index
+
+    field_index = findloc(flow%field_names, field_name)
+    flow_field => flow%fields(field_index(1))%ptr
+  end subroutine get_field
+
+  !< Sets the pointer to the field and the corresponding field name in the fluid structure
+  subroutine set_field(field_index, field_name, flow_field, flow)
+    integer(ccs_int), intent(in) :: field_index     !< index of arrays at which to set the field pointer and name
+    integer(ccs_int), intent(in) :: field_name      !< the name of the field
+    class(field), target, intent(in) :: flow_field  !< the field
+    type(fluid), intent(inout) :: flow              !< the fluid structure
+
+    flow%fields(field_index)%ptr => flow_field
+    flow%field_names(field_index) = field_name
+  end subroutine set_field
+
+  !> Gets the solver selector for a specified field
+  subroutine get_fluid_solver_selector(solver_selector, field_name, selector)
+    type(fluid_solver_selector), intent(in) :: solver_selector  !< Structure containing all of the solver selectors
+    integer(ccs_int), intent(in) :: field_name                  !< name of field
+    logical, intent(out) :: selector                            !< flag indicating whether to solve for the given field
+
+    select case (field_name)
+    case (field_u)
+      selector = solver_selector%u
+    case (field_v)
+      selector = solver_selector%v
+    case (field_w)
+      selector = solver_selector%w
+    case (field_p)
+      selector = solver_selector%p
+    case default
+      call error_abort("Unrecognised field index.")
+    end select
+  end subroutine get_fluid_solver_selector
+
+  !> Sets the solver selector for a specified field
+  subroutine set_fluid_solver_selector(field_name, selector, solver_selector)
+    integer(ccs_int), intent(in) :: field_name                      !< name of field
+    logical, intent(in) :: selector                                 !< flag indicating whether to solve for the given field
+    type(fluid_solver_selector), intent(inout) :: solver_selector   !< Structure containing all of the solver selectors
+
+    select case (field_name)
+    case (field_u)
+      solver_selector%u = selector
+    case (field_v)
+      solver_selector%v = selector
+    case (field_w)
+      solver_selector%w = selector
+    case (field_p)
+      solver_selector%p = selector
+    case default
+      call error_abort("Unrecognised field index.")
+    end select
+  end subroutine set_fluid_solver_selector
+
+  ! Allocates arrays in fluid field structure to specified size
+  subroutine allocate_fluid_fields(n_fields, flow)
+    integer(ccs_int), intent(in) :: n_fields  !< Size of arrays in fluid structure
+    type(fluid), intent(out) :: flow          !< the fluid structure
+
+    allocate (flow%fields(n_fields))
+    allocate (flow%field_names(n_fields))
+  end subroutine allocate_fluid_fields
+
+  ! Deallocates fluid arrays
+  subroutine dealloc_fluid_fields(flow)
+    type(fluid), intent(inout) :: flow  !< The fluid structure to deallocate
+
+    deallocate (flow%fields)
+    deallocate (flow%field_names)
+  end subroutine dealloc_fluid_fields
+
+  !> Convert advection scheme name -> ID.
+  integer(ccs_int) function get_scheme_id(scheme_name)
+
+    character(len=*), intent(in) :: scheme_name
+    integer(ccs_int) :: id
+    character(len=:), allocatable :: scheme
+
+    scheme = trim(scheme_name)
+    if (scheme == "central") then
+       id = cell_centred_central
+    else if (scheme == "upwind") then
+       id = cell_centred_upwind
+    else
+       call error_abort("Uknown scheme "//scheme)
+    end if
+
+    get_scheme_id = id
+  end function get_scheme_id
+
+  !> Convert advection scheme ID -> name.
+  function get_scheme_name(scheme_id) result(scheme_name)
+
+    integer(ccs_int), intent(in) :: scheme_id
+    character(len=:), allocatable :: scheme_name
+
+    if (scheme_id == cell_centred_central) then
+       scheme_name = "central"
+    else if (scheme_id == cell_centred_upwind) then
+       scheme_name = "upwind"
+    else
+       call error_abort("Uknown scheme ID")
+    end if
+
+  end function get_scheme_name
+    
 end module utils

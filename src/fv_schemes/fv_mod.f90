@@ -5,7 +5,8 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, bc_config, face_locator, cell_locator
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, gamma_field, linear_upwind_field, bc_config, &
+                   face_locator, cell_locator, neighbour_locator, bc_profile
   use constants, only: ndim
 
   implicit none
@@ -19,10 +20,16 @@ module fv
   public :: calc_cell_coords
   public :: update_gradient
   public :: compute_boundary_values
-
+  public :: compute_boundary_coeffs
+  public :: get_value_from_bc_profile
+  public :: add_fixed_source
+  public :: add_linear_source
+  
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
     module procedure calc_advection_coeff_uds
+    module procedure calc_advection_coeff_gamma
+    module procedure calc_advection_coeff_luds
   end interface calc_advection_coeff
 
   interface calc_mass_flux
@@ -33,20 +40,48 @@ module fv
   interface
 
     !> Calculates advection coefficient for neighbouring cell using CDS discretisation
-    module subroutine calc_advection_coeff_cds(phi, mf, bc, coeff)
-      type(central_field), intent(in) :: phi !< scalar (central) field
-      real(ccs_real), intent(in) :: mf       !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc     !< flag indicating whether cell is on boundary
-      real(ccs_real), intent(out) :: coeff   !< advection coefficient to be calculated
+    module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+      type(central_field), intent(in) :: phi  !< scalar (central) field
+      type(face_locator), intent(in) :: loc_f !< face locator
+      real(ccs_real), intent(in) :: mf        !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+      real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_cds
 
     !> Calculates advection coefficient for neighbouring cell using UDS discretisation
-    module subroutine calc_advection_coeff_uds(phi, mf, bc, coeff)
-      type(upwind_field), intent(in) :: phi !< scalar (upwind) field
-      real(ccs_real), intent(in) :: mf      !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
-      real(ccs_real), intent(out) :: coeff  !< advection coefficient to be calculated
+    module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+      type(upwind_field), intent(in) :: phi   !< scalar (upwind) field
+      type(face_locator), intent(in) :: loc_f !< face locator
+      real(ccs_real), intent(in) :: mf        !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+      real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_uds
+
+    !> Calculates advection coefficient for neighbouring cell using gamma discretisation
+    module subroutine calc_advection_coeff_gamma(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
+      type(gamma_field), intent(inout) :: phi       !< scalar (gamma) field
+      type(face_locator), intent(in) :: loc_f       !< face locator
+      real(ccs_real), intent(in) :: mf              !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p       !< current cell locator
+      type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
+      real(ccs_real), intent(out) :: coeffaP        !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF        !< advection coefficient for neighbour cell
+    end subroutine calc_advection_coeff_gamma
+
+    !> Calculates advection coefficient for neighbouring cell using LUDS discretisation
+    module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
+      type(linear_upwind_field), intent(inout) :: phi !< scalar (gamma) field
+      type(face_locator), intent(in) :: loc_f         !< face locator
+      real(ccs_real), intent(in) :: mf                !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc              !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p         !< current cell locator
+      type(neighbour_locator), intent(in) :: loc_nb   !< neighbour cell locator
+      real(ccs_real), intent(out) :: coeffaP          !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF          !< advection coefficient for neighbour cell
+    end subroutine calc_advection_coeff_luds
 
     !> Sets the diffusion coefficient
     ! XXX: why is this a function when the equivalent advection ones are subroutines?
@@ -113,17 +148,47 @@ module fv
     end subroutine update_gradient
 
     !> Computes the value of the scalar field on the boundary
-    module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value, &
-                                              x_gradients, y_gradients, z_gradients)
+    module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
       class(field), intent(inout) :: phi                         !< the field for which boundary values are being computed
       integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
       type(cell_locator), intent(in) :: loc_p                 !< location of cell
       type(face_locator), intent(in) :: loc_f                 !< location of face
       real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
       real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
-      real(ccs_real), dimension(:), optional, intent(in) :: x_gradients, y_gradients, z_gradients
+    end subroutine
+  
+    module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
+      class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
+      integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
+      type(cell_locator), intent(in) :: loc_p                 !< location of cell
+      type(face_locator), intent(in) :: loc_f                 !< location of face
+      real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
+      real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
+      real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
     end subroutine
 
+    !> Linear interpolate of BC profile 
+    module subroutine get_value_from_bc_profile(x, profile, bc_value)
+        real(ccs_real), dimension(:), intent(in) :: x !< Location of the interpolation
+        type(bc_profile), intent(in) :: profile       !< boundary condition profile
+        real(ccs_real), intent(out) :: bc_value       !< Interpolated value
+    end subroutine get_value_from_bc_profile
+
+
+    !> Adds a fixed source term to the righthand side of the equation
+    module subroutine add_fixed_source(mesh, S, rhs)
+      type(ccs_mesh), intent(in) :: mesh     !< The mesh
+      class(ccs_vector), intent(inout) :: S   !< The source field
+      class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
+    end subroutine add_fixed_source
+
+    !> Adds a linear source term to the system matrix
+    module subroutine add_linear_source(mesh, S, M)
+      type(ccs_mesh), intent(in) :: mesh    !< The mesh
+      class(ccs_vector), intent(inout) :: S !< The source field
+      class(ccs_matrix), intent(inout) :: M !< The system
+    end subroutine add_linear_source
+    
   end interface
 
 end module fv

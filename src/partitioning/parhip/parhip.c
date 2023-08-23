@@ -6,13 +6,13 @@
 #include <mpi.h>
 #include <parhip_interface.h>
 
-void partition_parhipkway_(idxtype *vtxdist, idxtype *xadj, idxtype *adjncy,
+void partition_parhipkway(idxtype *vtxdist, idxtype *xadj, idxtype *adjncy,
                             idxtype *vwgt, idxtype *adjwgt,
                             int *nparts, double *imbalance, int *suppress_output, 
                             int *seed, int *mode, int *edgecut, idxtype *part, 
                             MPI_Fint *ccomm)
 {
-    int mype, npes, i;
+    int mype, npes;
     MPI_Comm comm;
 
     comm=MPI_Comm_f2c(*ccomm);

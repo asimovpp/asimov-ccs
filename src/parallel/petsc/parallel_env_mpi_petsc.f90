@@ -1,4 +1,3 @@
-!v Submodule file parallel_env_mpi_petsc.smod
 !
 !  Implementation of the parallel environment using MPI and PETSc
 !
@@ -50,6 +49,7 @@ contains
     end select
 
   end subroutine
+
 
   !> Cleanup the PETSc and MPI parallel environments
   module subroutine cleanup_parallel_environment(par_env)

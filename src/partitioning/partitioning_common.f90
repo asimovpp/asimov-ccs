@@ -1,40 +1,51 @@
 submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int
-  use utils, only: str, debug_print
+  use kinds, only: ccs_int, ccs_err
+  use types, only: cell_locator, neighbour_locator, vertex_neighbour_locator
+  use utils, only: str, debug_print, exit_print
   use parallel_types_mpi, only: parallel_environment_mpi
+  use mesh_utils, only: count_mesh_faces, set_cell_face_indices
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
+                     get_halo_num_cells, set_halo_num_cells, &
+                     get_global_num_faces, &
+                     get_total_num_cells, set_total_num_cells, &
+                     set_num_faces, &
+                     get_max_faces, &
+                     create_cell_locator, create_neighbour_locator, &
+                     get_global_index, &
+                     get_local_index, set_local_index, &
+                     get_count_vertex_neighbours
+  use case_config, only: vertex_neighbours
+  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
+
 
   implicit none
 
 contains
 
   ! Compute the new topology connectivity after partitioning
-  module subroutine compute_connectivity(par_env, mesh)
+  module subroutine compute_connectivity(par_env, shared_env, roots_env, mesh)
 
     use mpi
-    use iso_fortran_env, only: int32
 
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
 
     ! Local variables
-    integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
     integer(ccs_int) :: i
-    integer(ccs_int) :: start_index
-    integer(ccs_int) :: end_index
-    integer(ccs_int) :: face_nb1
-    integer(ccs_int) :: face_nb2
-    integer(ccs_int) :: num_connections
 
     irank = par_env%proc_id
     isize = par_env%num_procs
 
-    ! Count the new number of local cells per rank
-    mesh%topo%local_num_cells = count(mesh%topo%global_partition == irank)
-    call dprint("Number of local cells after partitioning: " // str(mesh%topo%local_num_cells))
+    if (vertex_neighbours) then
+      ! Prepare global data needed later
+      call store_global_vertex_connectivity(par_env, shared_env, roots_env, mesh)
+    end if
 
     ! Get global indices of local cells
     call compute_connectivity_get_local_cells(par_env, mesh)
@@ -51,6 +62,42 @@ contains
       end do
     end if
 
+    call compute_face_connectivity(par_env, mesh)
+
+    if (vertex_neighbours) then
+      call compute_vertex_connectivity(par_env, shared_env, mesh)
+    end if
+
+  end subroutine compute_connectivity
+
+  subroutine compute_face_connectivity(par_env, mesh)
+
+    use iso_fortran_env, only: int32
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+
+    ! Local variables
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
+    integer(ccs_int) :: irank ! MPI rank ID
+    integer(ccs_int) :: isize ! Size of MPI world
+    integer(ccs_int) :: i
+    integer(ccs_int) :: start_index
+    integer(ccs_int) :: end_index
+    integer(ccs_int) :: face_nb1
+    integer(ccs_int) :: face_nb2
+    integer(ccs_int) :: num_connections
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: halo_num_cells
+    integer(ccs_int) :: total_num_cells
+    integer(ccs_int) :: global_num_faces
+    integer(ccs_int) :: max_faces
+
+    irank = par_env%proc_id
+    isize = par_env%num_procs
+
+    call get_local_num_cells(mesh, local_num_cells)
+
     ! Deallocate old xadj array
     if (allocated(mesh%topo%xadj)) then
       deallocate (mesh%topo%xadj)
@@ -59,15 +106,10 @@ contains
     ! Allocate new adjacency index array xadj based on new vtxdist
     allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
 
-    if (allocated(mesh%topo%global_boundaries) .eqv. .false.) then
-      allocate (mesh%topo%global_boundaries(mesh%topo%global_num_cells))
-    end if
-
-    ! Reset global_boundaries array
-    mesh%topo%global_boundaries = 0
+    call get_max_faces(mesh, max_faces)
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), mesh%topo%max_faces + 1))
+    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
     start_index = int(mesh%topo%vtxdist(irank + 1), int32)
@@ -77,35 +119,42 @@ contains
     if (allocated(mesh%topo%num_nb)) then
       deallocate (mesh%topo%num_nb)
     end if
-    allocate (mesh%topo%num_nb(mesh%topo%local_num_cells))
+    allocate (mesh%topo%num_nb(local_num_cells))
 
     ! All ranks loop over all the faces again
-    do i = 1, mesh%topo%global_num_faces
+    call get_global_num_faces(mesh, global_num_faces)
+    do i = 1, global_num_faces
 
       face_nb1 = mesh%topo%face_cell1(i)
       face_nb2 = mesh%topo%face_cell2(i)
 
-      ! If face neighbour 1 is local to the current rank
-      ! and face neighbour 2 is not 0
-      if (any(mesh%topo%global_indices == face_nb1) .and. (face_nb2 .ne. 0)) then
-        call compute_connectivity_add_connection(face_nb1, face_nb2, mesh, tmp_int2d)
-      end if
+      if (face_nb2 .ne. 0) then
+        ! If face neighbour 1 is local to the current rank
+        ! and face neighbour 2 is not 0
+        if (any(mesh%topo%global_indices == face_nb1)) then
+          call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
+        end if
 
-      ! If face neighbour 2 is local to the current rank
-      ! and face neighbour 1 is not 0
-      if (any(mesh%topo%global_indices == face_nb2) .and. (face_nb1 .ne. 0)) then
-        call compute_connectivity_add_connection(face_nb2, face_nb1, mesh, tmp_int2d)
-      end if
+        ! If face neighbour 2 is local to the current rank
+        ! and face neighbour 1 is not 0
+        if (face_nb1 .ne. 0) then
+          if (any(mesh%topo%global_indices == face_nb2)) then
+            call compute_connectivity_add_connection(face_nb2, face_nb1, i, mesh, tmp_int2d)
+          end if
+        end if
 
-      ! If face neighbour 2 is 0 we have a boundary face
-      if (face_nb2 .eq. 0) then
-        mesh%topo%global_boundaries(face_nb1) = mesh%topo%global_boundaries(face_nb1) + 1
+      else
+        ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
+        if (any(mesh%topo%global_indices == face_nb1)) then
+          ! read the boundary id from bnd_rid
+          face_nb2 = mesh%topo%bnd_rid(i)
+          call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
+        end if
       end if
-
     end do
 
     ! New number of local connections
-    num_connections = sum(tmp_int2d(:, mesh%topo%max_faces + 1))
+    num_connections = sum(tmp_int2d(:, max_faces + 1))
     call dprint("Number of connections after partitioning: " // str(num_connections))
 
     ! Allocate new adjncy array based on the new number of computed connections
@@ -113,37 +162,294 @@ contains
       deallocate (mesh%topo%adjncy)
     end if
 
+    ! XXX: is adjncy still needed? why is it allocated?
     allocate (mesh%topo%adjncy(num_connections))
+
+    if (allocated(mesh%topo%face_indices)) then
+      deallocate (mesh%topo%face_indices)
+    end if
+    allocate (mesh%topo%face_indices(max_faces, local_num_cells))
 
     call flatten_connectivity(tmp_int2d, mesh)
 
-    call dprint("Number of halo cells after partitioning: " // str(mesh%topo%halo_num_cells))
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call dprint("Number of halo cells after partitioning: " // str(halo_num_cells))
 
-    mesh%topo%total_num_cells = mesh%topo%local_num_cells + mesh%topo%halo_num_cells
+    call get_total_num_cells(mesh, total_num_cells)
+    call dprint("Total number of cells (local + halo) after partitioning: " // str(total_num_cells))
 
-    call dprint("Total number of cells (local + halo) after partitioning: " // str(mesh%topo%total_num_cells))
+    call set_cell_face_indices(mesh)
 
-  end subroutine compute_connectivity
+    call set_num_faces(count_mesh_faces(mesh), mesh)
 
-  subroutine compute_connectivity_get_local_cells(par_env, mesh)
+  end subroutine compute_face_connectivity
+
+  subroutine store_global_vertex_connectivity(par_env, shared_env, roots_env, mesh)
+
+    use mpi
+
+    class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), intent(in) :: shared_env
+    class(parallel_environment), intent(in) :: roots_env
+    type(ccs_mesh), intent(inout) :: mesh
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: max_vert_nb
+
+    integer(ccs_int), dimension(:), pointer :: tmp_arr
+    integer(ccs_int) :: i, j
+    integer(ccs_int) :: idx
+    integer(ccs_int) :: vert_nb_idx
+
+    integer(ccs_err) :: ierr
+    integer :: tmp_arr_window = 0
+
+    ! Copies local vert_nb_indices to the global one
+
+    global_num_cells = mesh%topo%global_num_cells
+
+    max_vert_nb = maxval(mesh%topo%num_vert_nb)
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
+
+    call create_shared_array(shared_env, max_vert_nb * global_num_cells, tmp_arr, tmp_arr_window)
+
+    if (is_root(shared_env)) then
+      tmp_arr(:) = 0
+    end if
+    call sync(shared_env)
+
+    ! XXX: cannot read local_num_cells - arrays haven't been resized!
+    local_num_cells = size(mesh%topo%num_vert_nb)
+
+    do i = 1, local_num_cells
+      idx = max_vert_nb * (mesh%topo%global_indices(i) - 1)
+
+      do j = 1, mesh%topo%num_vert_nb(i)
+        vert_nb_idx = mesh%topo%vert_nb_indices(j, i)
+        if (vert_nb_idx > 0) then
+          tmp_arr(idx + j) = mesh%topo%global_indices(vert_nb_idx)
+        else
+          tmp_arr(idx + j) = vert_nb_idx
+        end if
+      end do
+    end do
+    call sync(shared_env)
+
+    if (is_valid(roots_env)) then
+      select type (roots_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(MPI_IN_PLACE, tmp_arr, max_vert_nb * global_num_cells, MPI_INTEGER, MPI_SUM, roots_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment!")
+      end select
+    end if
+    call sync(shared_env)
+
+    call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+    if (is_root(shared_env)) then
+      mesh%topo%global_vert_nb_indices(:, :) = 0
+      
+      do i = 1, global_num_cells
+        do j = 1, max_vert_nb
+          idx = max_vert_nb * (i - 1) + j
+          mesh%topo%global_vert_nb_indices(j, i) = tmp_arr(idx)
+        end do
+      end do
+    end if
+
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, tmp_arr, tmp_arr_window)
+
+  end subroutine store_global_vertex_connectivity
+
+  subroutine compute_vertex_connectivity(par_env, shared_env, mesh)
+
+    use mpi
+
+    class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), intent(in) :: shared_env
+    type(ccs_mesh), target, intent(inout) :: mesh !< The mesh for which to compute the parition
+
+    integer(ccs_int) :: local_num_cells
+
+    integer(ccs_int) :: i, j
+    integer(ccs_int) :: local_idx
+    integer(ccs_int) :: global_idx
+
+    integer(ccs_int) :: max_vert_nb
+
+    integer(ccs_err) :: ierr
+
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: nvnb
+
+    integer(ccs_int) :: total_num_cells
+
+    integer(ccs_int) :: global_num_cells
+
+    if (.not. associated(mesh%topo%global_vertex_indices)) then
+      call error_abort("The global vertex indices array was deallocated prematurely!")
+    else
+      if (size(mesh%topo%global_vertex_indices, 2) /= mesh%topo%global_num_cells) then
+        call error_abort("Need the global cell-vertex connnectivity, not just local!")
+      end if
+    end if
+
+    call get_global_num_cells(mesh, global_num_cells)
+    call get_local_num_cells(mesh, local_num_cells)
+
+    max_vert_nb = maxval(mesh%topo%num_vert_nb)
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
+
+    !! XXX: Need to get the maximum number of vertex neighbours BEFORE deallocating
+    if (allocated(mesh%topo%num_vert_nb)) then
+      deallocate(mesh%topo%num_vert_nb)
+    end if
+    allocate (mesh%topo%num_vert_nb(local_num_cells))
+
+    ! Check vertex neighbours as input
+    if (any(mesh%topo%global_vert_nb_indices > global_num_cells)) then
+      call error_abort("Global vertex neighbour indices > global_num_cells")
+    end if
+
+    ! Copy vertex neighbour indices from global array
+    if (allocated(mesh%topo%vert_nb_indices)) then
+       deallocate(mesh%topo%vert_nb_indices)
+    end if
+    allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
+    mesh%topo%vert_nb_indices(:, :) = 0
+
+    do local_idx = 1, local_num_cells
+      call create_cell_locator(mesh, local_idx, loc_p)
+      call get_global_index(loc_p, global_idx)
+
+      mesh%topo%vert_nb_indices(:, local_idx) = pack(mesh%topo%global_vert_nb_indices(:, global_idx), mesh%topo%global_vert_nb_indices(:, global_idx) /= 0)
+      mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
+    end do
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+
+    ! Check localised vertex neighbours
+    if (any(mesh%topo%vert_nb_indices > global_num_cells)) then
+      print *, mesh%topo%vert_nb_indices
+      call error_abort("Local vertex neighbour indices > global_num_cells")
+    end if
+
+    ! Convert global->local indices
+    call get_global_num_cells(mesh, global_num_cells)
+    do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+
+      !call get_count_vertex_neighbours(loc_p, nvnb)
+      nvnb = mesh%topo%num_vert_nb(i)
+      do j = 1, nvnb
+        ! We can't use the neighbour index because currently we have global indices and this breaks the error checking.
+        global_idx = mesh%topo%vert_nb_indices(j, i)
+
+        if (global_idx > 0) then
+          if (global_idx > global_num_cells) then
+            print *, "Global index exceeds global cell count", global_idx, global_num_cells
+            call error_abort("Global index exceeds global cell count")
+          end if
+
+          local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
+          if (local_idx == 0) then
+            ! New global index
+            call add_new_global_index(global_idx, mesh)
+            call get_total_num_cells(mesh, total_num_cells)
+            local_idx = total_num_cells
+          end if
+
+          ! As above, can't use vertex neighbour locators as currently have global indices in the arrays.
+          mesh%topo%vert_nb_indices(j, i) = local_idx
+        end if
+      end do
+    end do
+
+  end subroutine compute_vertex_connectivity
+
+  !v Adds a new global index
+  !
+  !  Reallocates the global index array, updating the total and halo counts in the mesh.
+  subroutine add_new_global_index(global_index, mesh)
+
+    integer(ccs_int), intent(in) :: global_index
+    type(ccs_mesh), intent(inout) :: mesh
+
+    integer(ccs_int) :: total_num_cells
+    integer(ccs_int) :: halo_num_cells
+
+    integer(ccs_int), dimension(:), allocatable :: tmp_global_indices
+
+    call get_total_num_cells(mesh, total_num_cells)
+
+    allocate (tmp_global_indices(total_num_cells + 1))
+    tmp_global_indices(1:total_num_cells) = mesh%topo%global_indices(1:total_num_cells)
+    tmp_global_indices(total_num_cells + 1) = global_index
+
+    ! Update total and halo cell counts
+    call set_total_num_cells(total_num_cells + 1, mesh)
+    call get_total_num_cells(mesh, total_num_cells)
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call set_halo_num_cells(halo_num_cells + 1, mesh)
+
+    ! Copy extended global indices back into mesh object
+    deallocate (mesh%topo%global_indices)
+    allocate (mesh%topo%global_indices(total_num_cells))
+    mesh%topo%global_indices(:) = tmp_global_indices(:)
+    deallocate (tmp_global_indices)
+
+  end subroutine
+
+  module subroutine compute_connectivity_get_local_cells(par_env, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
+    integer(ccs_int) :: irank
     integer :: i
     integer :: ctr
+    integer :: local_num_cells
+    integer(ccs_int) :: global_num_cells
+
+    irank = par_env%proc_id
+
+    ! Count the new number of local cells per rank
+    local_num_cells = count(mesh%topo%global_partition == irank)
+
+    call set_local_num_cells(local_num_cells, mesh)
+    call get_local_num_cells(mesh, local_num_cells) ! Ensure using value set within mesh
+    ! Abort the execution if any rank has 0 local cells
+    ! caused by partitioner error
+    call dprint("Number of local cells after partitioning: " // str(local_num_cells))
+    if (local_num_cells <= 0) then
+      call error_abort("ERROR: Zero local cells found.")
+    end if
 
     ! Allocate and then compute global indices
+    call get_local_num_cells(mesh, local_num_cells)
     if (allocated(mesh%topo%global_indices)) then
       deallocate (mesh%topo%global_indices)
     end if
-    allocate (mesh%topo%global_indices(mesh%topo%local_num_cells))
+    allocate (mesh%topo%global_indices(local_num_cells))
     mesh%topo%global_indices(:) = -1 ! This will allow us to check later
 
     ctr = 1
     associate (irank => par_env%proc_id, &
                partition => mesh%topo%global_partition)
-      do i = 1, mesh%topo%global_num_cells
+      call get_global_num_cells(mesh, global_num_cells)
+      do i = 1, global_num_cells
         if (partition(i) == irank) then
           mesh%topo%global_indices(ctr) = i
           ctr = ctr + 1
@@ -151,53 +457,54 @@ contains
       end do
     end associate
 
-    if (ctr /= (mesh%topo%local_num_cells + 1)) then
-      print *, "ERROR: didn't find all my cells!"
-      stop
+    if (ctr /= (local_num_cells + 1)) then
+      call error_abort("Didn't find all my cells!")
     end if
 
     if (minval(mesh%topo%global_indices) < 1) then
-      print *, "ERROR: didn't register all cells properly!"
-      stop
+      call error_abort("Didn't register all cells properly!")
     end if
 
-    if (maxval(mesh%topo%global_indices) > mesh%topo%global_num_cells) then
-      print *, "ERROR: global index exceeds range!"
-      stop
+    call get_global_num_cells(mesh, global_num_cells)
+    if (maxval(mesh%topo%global_indices) > global_num_cells) then
+      call error_abort("Global index exceeds range!")
     end if
 
   end subroutine
 
-  subroutine compute_connectivity_add_connection(face_nb1, face_nb2, mesh, tmp_int2d)
+  subroutine compute_connectivity_add_connection(face_nb1, face_nb2, face_index, mesh, tmp_int2d)
 
     integer(ccs_int), intent(in) :: face_nb1             !< Local cell global index
     integer(ccs_int), intent(in) :: face_nb2             !< Neighbouring cell global index
+    integer(ccs_int), intent(in) :: face_index           !< global face index between cell and its neighbour
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
     integer, dimension(:, :), intent(inout) :: tmp_int2d !< Temporary connectivity array
 
     integer, dimension(1) :: local_index
     integer :: fctr
 
+    integer(ccs_int) :: max_faces
+
     local_index = findloc(mesh%topo%global_indices, face_nb1)
     if (local_index(1) <= 0) then
-      print *, "ERROR: failed to find face neighbour in global indices, findloc: "
-      print *, "- ANY: ", any(mesh%topo%global_indices == face_nb1)
-      print *, "- local_index: ", local_index
-      print *, "- Face neighbour index: ", face_nb1
-      print *, "- Global indices: ", mesh%topo%global_indices
-      stop
+      call error_abort("Failed to find face neighbour in global indices")
     end if
 
-    fctr = tmp_int2d(local_index(1), mesh%topo%max_faces + 1) + 1 ! Increment number of faces for this cell
+    call get_max_faces(mesh, max_faces)
+    fctr = tmp_int2d(local_index(1), max_faces + 1) + 1 ! Increment number of faces for this cell
     tmp_int2d(local_index(1), fctr) = face_nb2               ! Store global index of neighbour cell
-    tmp_int2d(local_index(1), mesh%topo%max_faces + 1) = fctr     ! Store number of faces for this cell
+    tmp_int2d(local_index(1), max_faces + 1) = fctr     ! Store number of faces for this cell
     mesh%topo%num_nb(local_index(1)) = fctr
+
+    mesh%topo%global_face_indices(fctr, face_nb1) = face_index ! Update face indices to make its order consistent with nb_indices
 
   end subroutine
 
   !v Take the 2D connectivity graph and convert to 1D
   !  Note that cell neighbours are still globally numbered at this point.
   subroutine flatten_connectivity(tmp_int2d, mesh)
+
+    use meshing, only: set_halo_num_cells
 
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
@@ -209,28 +516,56 @@ contains
     integer :: ctr
     integer, dimension(1) :: local_idx
 
-    mesh%topo%halo_num_cells = 0
+    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: halo_num_cells
+    integer(ccs_int) :: max_faces
+
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p
+
+    type(neighbour_locator) :: loc_nb
+
+    call set_halo_num_cells(0, mesh)
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call get_local_num_cells(mesh, local_num_cells)
+    call get_max_faces(mesh, max_faces)
 
     ctr = 1
 
-    allocate (tmp1(mesh%topo%local_num_cells))
+    allocate (tmp1(local_num_cells))
+    if (allocated(mesh%topo%nb_indices)) then
+      deallocate (mesh%topo%nb_indices)
+    end if
+    allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
+
     tmp1(:) = -1
 
-    do i = 1, mesh%topo%local_num_cells
+    ! Initialise neighbour indices
+    mesh%topo%nb_indices(:, :) = 0_ccs_int
+
+    call get_halo_num_cells(mesh, halo_num_cells)
+    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
+    do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+
       mesh%topo%xadj(i) = ctr
 
       ! Loop over connections of cell i
-      do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)
+      do j = 1, tmp_int2d(i, max_faces + 1)
         associate (nbidx => tmp_int2d(i, j))
-          if (.not. any(mesh%topo%global_indices == nbidx)) then
+          if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
             ! Halo cell
             if (.not. any(tmp1 == nbidx)) then
               ! New halo cell
               ! Copy and extend size of halo cells buffer
 
-              mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
-              if (mesh%topo%halo_num_cells > size(tmp1)) then
-                allocate (tmp2(size(tmp1) + mesh%topo%local_num_cells))
+              call get_halo_num_cells(mesh, halo_num_cells)
+              call set_halo_num_cells(halo_num_cells + 1, mesh)
+              call get_halo_num_cells(mesh, halo_num_cells)
+              call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
+              if (halo_num_cells > size(tmp1)) then
+                allocate (tmp2(size(tmp1) + local_num_cells))
 
                 tmp2(:) = -1
                 tmp2(1:size(tmp1)) = tmp1(1:size(tmp1))
@@ -240,11 +575,28 @@ contains
                 deallocate (tmp2)
               end if
 
-              tmp1(mesh%topo%halo_num_cells) = nbidx
+              tmp1(halo_num_cells) = nbidx
             end if
 
             local_idx = findloc(tmp1, nbidx)
-            !topo%adjncy(ctr) = local_idx(1)
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(local_num_cells + local_idx(1), loc_nb)
+          end if
+
+          !local_idx = findloc(tmp1, nbidx)
+          !topo%adjncy(ctr) = local_idx(1)
+
+          if (nbidx .lt. 0) then
+            ! boundary 'cell'
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(nbidx, loc_nb)
+          end if
+
+          if (any(mesh%topo%global_indices == nbidx)) then
+            ! local in cell
+            local_idx = findloc(mesh%topo%global_indices, nbidx)
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(local_idx(1), loc_nb)
           end if
 
           mesh%topo%adjncy(ctr) = nbidx
@@ -254,14 +606,16 @@ contains
       end do ! End j
 
     end do
-    mesh%topo%xadj(mesh%topo%local_num_cells + 1) = ctr
+    mesh%topo%xadj(local_num_cells + 1) = ctr
 
-    allocate (tmp2(mesh%topo%local_num_cells + mesh%topo%halo_num_cells))
-    do i = 1, mesh%topo%local_num_cells
-      tmp2(i) = mesh%topo%global_indices(i)
+    allocate (tmp2(local_num_cells + halo_num_cells))
+    do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      tmp2(i) = global_index_p
     end do
-    do i = 1, mesh%topo%halo_num_cells
-      tmp2(mesh%topo%local_num_cells + i) = tmp1(i)
+    do i = 1, halo_num_cells
+      tmp2(local_num_cells + i) = tmp1(i)
     end do
     deallocate (mesh%topo%global_indices)
     allocate (mesh%topo%global_indices, source=tmp2)
@@ -269,6 +623,186 @@ contains
     deallocate (tmp1)
     deallocate (tmp2)
 
+    call get_global_num_cells(mesh, global_num_cells)
+    if (minval(mesh%topo%global_indices) < 1) then
+      call error_abort("Global index < 0! " // str(minval(mesh%topo%global_indices)))
+    end if
+    if (maxval(mesh%topo%global_indices) > global_num_cells) then
+      call error_abort("Global index > " // str(global_num_cells) // "! " // str(maxval(mesh%topo%global_indices)))
+    end if
+
   end subroutine
+
+  module subroutine compute_partitioner_input_generic(par_env, shared_env, mesh)
+
+    use iso_fortran_env, only: int32
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+
+    ! Local variables
+    integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
+
+    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: irank ! MPI rank ID
+    integer(ccs_int) :: isize ! Size of MPI world
+    integer(ccs_int) :: start_index
+    integer(ccs_int) :: end_index
+    integer(ccs_int) :: face_nb1
+    integer(ccs_int) :: face_nb2
+    integer(ccs_int) :: local_index
+    integer(ccs_int) :: num_connections
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: global_num_cells_shared_size
+
+    irank = par_env%proc_id
+    isize = par_env%num_procs
+
+    start_index = int(mesh%topo%vtxdist(irank + 1), int32)
+    end_index = int(mesh%topo%vtxdist(irank + 2), int32) - 1
+
+    ! Allocate global partition array
+    global_num_cells_shared_size = mesh%topo%global_num_cells
+
+    call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%global_partition, mesh%topo%global_partition_window)
+
+    ! Initial global partition
+    if (is_root(shared_env)) then
+      do i = 1, size(mesh%topo%vtxdist) - 1
+        j = i - 1
+        mesh%topo%global_partition(mesh%topo%vtxdist(i):mesh%topo%vtxdist(i + 1) - 1) = j
+      end do
+    end if
+
+    call sync(shared_env)
+
+    ! Count the number of local cells per rank
+    local_num_cells = count(mesh%topo%global_partition == irank)
+    call set_local_num_cells(local_num_cells, mesh)
+    call get_local_num_cells(mesh, local_num_cells) ! Ensure using true value
+    call dprint("Initial number of local cells: " // str(local_num_cells))
+
+    ! Allocate adjacency index array xadj based on vtxdist
+    allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
+
+    ! Allocate temporary 2D integer work array and initialise to 0
+    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), mesh%topo%max_faces + 1))
+    tmp_int2d = 0
+
+    ! All ranks loop over all the faces
+    do i = 1, mesh%topo%global_num_faces
+
+      face_nb1 = mesh%topo%face_cell1(i)
+      face_nb2 = mesh%topo%face_cell2(i)
+
+      ! If face neighbour 1 is local to the current rank
+      ! and face neighbour 2 is not 0
+      if (face_nb1 .ge. start_index .and. face_nb1 .le. end_index .and. face_nb2 .ne. 0) then
+        local_index = face_nb1 - start_index + 1                 ! Local cell index
+        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+        tmp_int2d(local_index, k) = face_nb2                       ! Store global index of neighbour cell
+        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
+      end if
+
+      ! If face neighbour 2 is local to the current rank
+      ! and face neighbour 1 is not 0
+      if (face_nb2 .ge. start_index .and. face_nb2 .le. end_index .and. face_nb1 .ne. 0) then
+        local_index = face_nb2 - start_index + 1                 ! Local cell index
+        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+        tmp_int2d(local_index, k) = face_nb1                       ! Store global index of neighbour cell
+        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
+      end if
+
+      ! If face neighbour 2 is 0 we have a boundary face
+      if (face_nb2 .eq. 0) then
+      end if
+
+    end do
+
+    num_connections = sum(tmp_int2d(:, mesh%topo%max_faces + 1))
+    call dprint("Initial number of connections: " // str(num_connections))
+
+    ! Allocate adjncy array based on the number of computed connections
+    allocate (mesh%topo%adjncy(num_connections))
+    ! Allocate local partition array
+    allocate (mesh%topo%local_partition(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1)))
+
+    local_index = 1
+
+    do i = 1, end_index - start_index + 1  ! Loop over local cells
+
+      mesh%topo%xadj(i) = local_index                          ! Pointer to start of current
+
+      do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)               ! Loop over number of faces
+        mesh%topo%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
+        if (mesh%topo%global_partition(tmp_int2d(i, j)) /= irank) then
+          mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
+        end if
+      end do
+
+      local_index = local_index + tmp_int2d(i, mesh%topo%max_faces + 1)
+      mesh%topo%xadj(i + 1) = local_index
+
+    end do
+
+    call dprint("Initial number of halo cells: " // str(mesh%topo%halo_num_cells))
+
+    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
+
+    call dprint("Total number of cells (local + halo): " // str(mesh%topo%total_num_cells))
+
+    ! Allocate weight arrays
+    allocate (mesh%topo%adjwgt(num_connections))
+    ! Allocate local partition array
+    allocate (mesh%topo%vwgt(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1)))
+
+    deallocate (tmp_int2d)
+
+  end subroutine compute_partitioner_input_generic
+
+
+  !v Deallocate partitioner data structures associated with the mesh
+  module subroutine cleanup_partitioner_data(shared_env, mesh)
+    
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
+
+    if (allocated(mesh%topo%vtxdist)) then 
+      deallocate(mesh%topo%vtxdist)
+      call dprint("mesh%topo%vtxdist deallocated.")
+    end if
+
+    if (allocated(mesh%topo%xadj)) then 
+      deallocate(mesh%topo%xadj)
+      call dprint("mesh%topo%xadj deallocated.")
+    end if
+    
+    if (allocated(mesh%topo%adjncy)) then 
+      deallocate(mesh%topo%adjncy)
+      call dprint("mesh%topo%adjncy deallocated.")
+    end if
+
+    if (allocated(mesh%topo%local_partition)) then 
+      deallocate(mesh%topo%local_partition)
+      call dprint("mesh%topo%local_partition deallocated.")
+    end if
+
+    if (allocated(mesh%topo%adjwgt)) then 
+      deallocate(mesh%topo%adjwgt)
+      call dprint("mesh%topo%adjwgt deallocated.")
+    end if
+
+    if (allocated(mesh%topo%vwgt)) then 
+      deallocate(mesh%topo%vwgt)
+      call dprint("mesh%topo%vwgt deallocated.")
+    end if
+
+    if (associated(mesh%topo%global_partition)) then 
+      call destroy_shared_array(shared_env, mesh%topo%global_partition, mesh%topo%global_partition_window)
+      call dprint("mesh%topo%global_partition deallocated.")
+    end if
+
+  end subroutine cleanup_partitioner_data
 
 end submodule

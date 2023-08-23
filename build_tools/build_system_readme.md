@@ -16,7 +16,7 @@ Some extra scripts are used to work around inflexibilities in Makefiles:
 
 - `filter-out.py` : filters out filenames from a list without taking the path into account
 
-Additional information can be provided to the build system using doxygen build tags. For example, `!> @build mpi` or `!> @build petsc`. Multiple tags can be put on a single line: `!> @build mpi petsc`. This information could be used to know when to add compile flags for required libraries/headers, though this has not been added to the Makefile yet. 
+Additional information can be provided to the build system using "build tags". For example, `!> @build mpi` or `!> @build petsc`. Multiple tags can be put on a single line: `!> @build mpi petsc`. This information could be used to know when to add compile flags for required libraries/headers, though this has not been added to the Makefile yet. 
 Procesisng tags is handled by `process_build_tags.py`, which outputs a variable that can be used in a Makefile rule, e.g. `PETSC_OBJ = file1.o file2.o`.
 
 
@@ -55,7 +55,7 @@ Note that the program file name (`mytest.f90` in this case) has to be specified 
 This can then be executed with, for example `# RUN: %mpirun -n 4 %t1` (note, '%mpirun' is a macro that gets resolved to the mpi invocation command set in the used Makefile arch file).
 If a compiled test case returns non-zero, the test case has failed.
 
-Test cases can `use testing_lib` to included the testing library which contains various utility functions for test initialisation, finalisation, stopping and assertions (not everything has been implemented yet). 
+Test cases can `use testing_lib` to included the testing library which contains various utility functions for test initialisation, finalisation, stopping and assertions. 
 
 ## Testing framework details
 The `lit.cfg` file configures the LIT testing framework. See therein or refer to the LIT user guide for details.

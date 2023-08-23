@@ -21,8 +21,8 @@ program test_vec_set_entries
 
   call init()
 
-  do n = 1, 100
-    mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
+  do n = 4, 100
+    mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real)
 
     call init_vector()
 
@@ -57,7 +57,7 @@ contains
     use types, only: cell_locator
     use utils, only: set_mode, set_row, set_entry, set_values, clear_entries, update
     use vec, only: create_vector_values
-    use meshing, only: set_cell_location, get_global_index
+    use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
 
     integer(ccs_int), intent(in) :: mode
 
@@ -67,39 +67,38 @@ contains
     type(vector_values) :: val_dat
     type(cell_locator) :: loc_p
 
+    integer(ccs_int) :: nlocal
     integer(ccs_int) :: i
     integer(ccs_int) :: j
 
     integer(ccs_int) :: index_p
     integer(ccs_int) :: global_index_p
 
-    associate (nlocal => mesh%topo%local_num_cells)
+    call get_local_num_cells(mesh, nlocal)
 
-      nrows = 1_ccs_int
-      nblocks = nlocal / nrows
+    nrows = 1_ccs_int
+    nblocks = nlocal / nrows
 
-      call create_vector_values(nrows, val_dat)
-      call set_mode(mode, val_dat)
+    call create_vector_values(nrows, val_dat)
+    call set_mode(mode, val_dat)
 
-      do i = 1_ccs_int, nblocks
-        call clear_entries(val_dat)
+    do i = 1_ccs_int, nblocks
+      call clear_entries(val_dat)
 
-        do j = 1_ccs_int, nrows
-          ! Compute local and global indices
-          index_p = j + (i - 1) * nrows
+      do j = 1_ccs_int, nrows
+        ! Compute local and global indices
+        index_p = j + (i - 1) * nrows
 
-          call set_cell_location(mesh, index_p, loc_p)
-          call get_global_index(loc_p, global_index_p)
+        call create_cell_locator(mesh, index_p, loc_p)
+        call get_global_index(loc_p, global_index_p)
 
-          call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...
-          call set_entry(elt_val, val_dat)
-        end do
-
-        call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
+        call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...
+        call set_entry(elt_val, val_dat)
       end do
-      ! TODO: remainder loop (required for blocksize > 1)...
 
-    end associate
+      call set_values(val_dat, v) ! TODO: this should support setting multiple value simultaneously
+    end do
+    ! TODO: remainder loop (required for blocksize > 1)...
 
     call update(v)
 
@@ -107,13 +106,17 @@ contains
 
   subroutine test_vector()
 
+    use meshing, only: get_global_num_cells
     use solver, only: norm
 
     real(ccs_real) :: expectation
     real(ccs_real) :: test_value
 
-    expectation = sqrt(real(mesh%topo%global_num_cells, ccs_real))
-    test_value = norm(v, 2)
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+    expectation = real(global_num_cells, ccs_real)
+    test_value = (norm(v, 2))**2
     if (test_value /= expectation) then
       write (message, *) "FAIL: expected ", expectation, " got ", test_value
       call stop_test(message)

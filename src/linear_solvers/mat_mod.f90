@@ -13,6 +13,7 @@ module mat
 
   public :: create_matrix
   public :: finalise_matrix
+  public :: get_info_matrix
   public :: set_matrix_values
   public :: clear_matrix_values_entries
   public :: set_matrix_values_entry
@@ -34,18 +35,25 @@ module mat
   public :: mat_vec_product
   public :: get_matrix_diagonal
   public :: set_matrix_diagonal
+  public :: add_matrix_diagonal
   public :: zero_matrix
 
   interface
 
     !> Interface to create a new matrix object.
-    module subroutine create_matrix(mat_properties, M)
+    module subroutine create_matrix(mat_properties, M, name)
       type(matrix_spec), intent(in) :: mat_properties  !< contains information about
       !< how the matrix should be allocated
       class(ccs_matrix), allocatable, intent(out) :: M !< the matrix object
+      character(len=*), optional, intent(in) :: name !< name of the matrix object
     end subroutine
 
     module subroutine finalise_matrix(M)
+      class(ccs_matrix), intent(inout) :: M
+    end subroutine
+
+    !> Returns information about matrix storage (number of nonzeros, memory, etc.)
+    module subroutine get_info_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine
 
@@ -206,6 +214,12 @@ module mat
       class(ccs_matrix), intent(inout) :: M
     end subroutine set_matrix_diagonal
 
+    !> Add a vector to the matrix diagonal
+    module subroutine add_matrix_diagonal(D, M)
+      class(ccs_vector), intent(in) :: D      !< the vector containing matrix diagonal elements
+      class(ccs_matrix), intent(inout) :: M   !< the matrix
+    end subroutine add_matrix_diagonal
+    
     module subroutine zero_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix

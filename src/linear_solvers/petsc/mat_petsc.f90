@@ -13,7 +13,7 @@ submodule(mat) mat_petsc
 contains
 
   !> Create a new PETSc matrix object.
-  module subroutine create_matrix(mat_properties, M)
+  module subroutine create_matrix(mat_properties, M, name)
 
     use mpi
 
@@ -21,8 +21,13 @@ contains
     use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
 
+    use meshing, only: get_local_num_cells
+
     type(matrix_spec), intent(in) :: mat_properties   !< contains information about how the matrix should be allocated
     class(ccs_matrix), allocatable, intent(out) :: M  !< the matrix object
+    character(len=*), optional, intent(in) :: name    !< name of the matrix object
+
+    integer(ccs_int) :: local_num_cells
 
     integer(ccs_err) :: ierr  ! Error code
 
@@ -32,6 +37,7 @@ contains
     type is (matrix_petsc)
 
       M%modeset = .false.
+      if (present(name)) M%name = name
 
       select type (par_env => mat_properties%par_env)
       type is (parallel_environment_mpi)
@@ -39,7 +45,8 @@ contains
         call MatCreate(par_env%comm, M%M, ierr)
 
         associate (mesh => mat_properties%mesh)
-          call MatSetSizes(M%M, mesh%topo%local_num_cells, mesh%topo%local_num_cells, &
+          call get_local_num_cells(mesh, local_num_cells)
+          call MatSetSizes(M%M, local_num_cells, local_num_cells, &
                            PETSC_DETERMINE, PETSC_DETERMINE, ierr)
         end associate
 
@@ -47,6 +54,9 @@ contains
           M%allocated = .true.
         end if
 
+        if (present(name)) then
+          call MatSetOptionsPrefix(M%M, M%name // ':', ierr)
+        end if
         call MatSetFromOptions(M%M, ierr)
 
         if (mat_properties%nnz < 1) then
@@ -87,6 +97,29 @@ contains
     end select
 
   end subroutine finalise_matrix
+
+  !> Returns information about matrix storage (number of nonzeros, memory, etc.) 
+  ! see https://petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
+  module subroutine get_info_matrix(M)
+
+    use petscmat, only: MAT_INFO_SIZE, MatGetInfo, MAT_INFO_MEMORY, MAT_INFO_NZ_ALLOCATED, MAT_LOCAL, &
+       MAT_INFO_NZ_USED, MAT_INFO_NZ_UNNEEDED
+
+    class(ccs_matrix), intent(inout) :: M
+    double precision, dimension(MAT_INFO_SIZE) :: info
+
+    integer(ccs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+      print *, "---"
+      print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
+      print *, "nnz used: ", info(MAT_INFO_NZ_USED)
+      print *, "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+    end select
+
+  end subroutine get_info_matrix
 
   !> Perform a parallel update of a PETSc matrix.
   module subroutine update_matrix(M)
@@ -434,6 +467,32 @@ contains
     end select
 
   end subroutine set_matrix_diagonal
+
+  !> Add a vector to the matrix diagonal
+  module subroutine add_matrix_diagonal(D, M)
+    use petscmat, only: MatDiagonalSet
+
+    class(ccs_vector), intent(in) :: D      !< the PETSc vector containing matrix diagonal elements
+    class(ccs_matrix), intent(inout) :: M   !< the PETSc matrix
+
+    integer(ccs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+
+      select type (D)
+      type is (vector_petsc)
+        call MatDiagonalSet(M%M, D%v, ADD_VALUES, ierr)
+
+      class default
+        call error_abort("Unknown vector type.")
+      end select
+
+    class default
+      call error_abort("Unknown matrix type.")
+    end select
+
+  end subroutine add_matrix_diagonal
 
   !> Overwite a matrix with zeros.
   module subroutine zero_matrix(M)

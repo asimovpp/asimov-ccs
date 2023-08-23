@@ -8,11 +8,12 @@ program simple
   use petscvec
   use petscsys
 
-  use constants, only: cell, face
+  use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector
-  use parallel, only: initialise_parallel_environment, &
+                   vector_spec, ccs_vector, fluid, fluid_solver_selector
+  use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
@@ -20,13 +21,17 @@ program simple
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update
+  use utils, only: set_size, initialise, update, get_field, set_field, &
+                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   allocate_fluid_fields
 
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
+  class(parallel_environment), allocatable, target :: shared_env
   type(ccs_mesh) :: square_mesh
   type(vector_spec) :: vec_sizes
+  logical :: use_mpi_splitting
 
   class(field), allocatable :: u, v, w, p, pp, mf
 
@@ -44,12 +49,19 @@ program simple
   logical :: w_sol = .false. ! Don't solve w
   logical :: p_sol = .true.  ! Solve p
 
+  type(fluid) :: flow_fields
+  type(fluid_solver_selector) :: fluid_sol
+
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
   it_end = 1000
 
   print *, "Starting SIMPLE demo"
   call initialise_parallel_environment(par_env)
+
+  use_mpi_splitting = .false.
+  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
+
   call read_command_line_arguments(par_env)
 
   call sync(par_env)
@@ -57,7 +69,7 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  square_mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -108,10 +120,22 @@ program simple
   call update(v%values)
   call update(mf%values)
 
+  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
+  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
+  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
+  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call allocate_fluid_fields(6, flow_fields)
+  call set_field(1, field_u, u, flow_fields)
+  call set_field(2, field_v, v, flow_fields)
+  call set_field(3, field_w, w, flow_fields)
+  call set_field(4, field_p, p, flow_fields)
+  call set_field(5, field_p_prime, pp, flow_fields)
+  call set_field(6, field_mf, mf, flow_fields)
+
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
   call solve_nonlinear(par_env, square_mesh, it_start, it_end, res_target, &
-                       u_sol, v_sol, w_sol, p_sol, u, v, w, p, pp, mf)
+                       fluid_sol, flow_fields)
 
   ! Clean-up
   deallocate (u)
@@ -134,7 +158,7 @@ contains
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
-    use meshing, only: set_cell_location, get_global_index
+    use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
     use fv, only: calc_cell_coords
     use utils, only: set_values, set_mode, set_entry, set_row
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
@@ -144,6 +168,7 @@ contains
     class(field), intent(inout) :: u, v, w, mf
 
     ! Local variables
+    integer(ccs_int) :: n_local
     integer(ccs_int) :: row, col
     integer(ccs_int) :: local_idx, self_idx
     real(ccs_real) :: u_val, v_val, w_val
@@ -152,35 +177,35 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, mf_data
 
     ! Set alias
-    associate (n_local => cell_mesh%topo%local_num_cells)
-      call create_vector_values(n_local, u_vals)
-      call create_vector_values(n_local, v_vals)
-      call create_vector_values(n_local, w_vals)
+    call get_local_num_cells(cell_mesh, n_local)
 
-      call set_mode(add_mode, u_vals)
-      call set_mode(add_mode, v_vals)
-      call set_mode(add_mode, w_vals)
+    call create_vector_values(n_local, u_vals)
+    call create_vector_values(n_local, v_vals)
+    call create_vector_values(n_local, w_vals)
 
-      ! Set initial values for velocity fields
-      do local_idx = 1, n_local
-        call set_cell_location(cell_mesh, local_idx, self_loc)
-        call get_global_index(self_loc, self_idx)
-        call calc_cell_coords(self_idx, cps, row, col)
+    call set_mode(add_mode, u_vals)
+    call set_mode(add_mode, v_vals)
+    call set_mode(add_mode, w_vals)
 
-        u_val = real(col, ccs_real) / real(cps, ccs_real)
-        v_val = -real(row, ccs_real) / real(cps, ccs_real)
-        w_val = 0.0_ccs_real
+    ! Set initial values for velocity fields
+    do local_idx = 1, n_local
+      call create_cell_locator(cell_mesh, local_idx, self_loc)
+      call get_global_index(self_loc, self_idx)
+      call calc_cell_coords(self_idx, cps, row, col)
 
-        call set_row(self_idx, u_vals)
-        call set_entry(u_val, u_vals)
+      u_val = real(col, ccs_real) / real(cps, ccs_real)
+      v_val = -real(row, ccs_real) / real(cps, ccs_real)
+      w_val = 0.0_ccs_real
 
-        call set_row(self_idx, v_vals)
-        call set_entry(v_val, v_vals)
+      call set_row(self_idx, u_vals)
+      call set_entry(u_val, u_vals)
 
-        call set_row(self_idx, w_vals)
-        call set_entry(w_val, w_vals)
-      end do
-    end associate
+      call set_row(self_idx, v_vals)
+      call set_entry(v_val, v_vals)
+
+      call set_row(self_idx, w_vals)
+      call set_entry(w_val, w_vals)
+    end do
 
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)

@@ -12,26 +12,69 @@ module read_config
 
   private
 
+  public :: get_value
   public :: get_case_name
-  public :: get_steps
   public :: get_init
   public :: get_reference_number
   public :: get_solve
   public :: get_solver
   public :: get_transient
-  public :: get_target_residual
   public :: get_monitor_cell
   public :: get_convection_scheme
   public :: get_blending_factor
-  public :: get_relaxation_factor
-  public :: get_output_frequency
+  public :: get_relaxation_factors
   public :: get_plot_format
   public :: get_output_type
-  public :: get_bc_variables
+  public :: get_variables
+  public :: get_variable_types
   public :: get_bc_field
   public :: get_boundary_count
+  public :: get_store_residuals
+
+  interface get_value
+    module procedure get_integer_value
+    module procedure get_real_value
+    module procedure get_string_value
+    module procedure get_logical_value
+  end interface
 
   interface
+
+    !> Gets the integer value associated with the keyword from dict
+    module subroutine get_integer_value(dict, keyword, int_val)
+      class(*), pointer, intent(in) :: dict     !< The dictionary
+      character(len=*), intent(in) :: keyword   !< The key
+      integer, intent(out) :: int_val           !< The corresponding value
+    end subroutine
+
+    !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
+    !  whether the key-value pair is present in the dictionary. Takes a flag indicating whether the
+    !  value is required.
+    module subroutine get_real_value(dict, keyword, real_val, value_present, required)
+      class(*), pointer, intent(in) :: dict            !< The dictionary to read from
+      character(len=*), intent(in) :: keyword          !< The key to read
+      real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
+      logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
+    end subroutine
+
+    !> Gets the string associated with the keyword from dict
+    module subroutine get_string_value(dict, keyword, string_val, value_present, required)
+      class(*), pointer, intent(in) :: dict                       !< The dictionary
+      character(len=*), intent(in) :: keyword                     !< The key
+      character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
+      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+    end subroutine
+
+    !> Gets the logical (boolean) associated with the keyword from dict
+    module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
+      class(*), pointer, intent(in) :: dict                       !< The dictionary
+      character(len=*), intent(in) :: keyword                     !< The key
+      logical, intent(inout) :: logical_val !< The corresponding value
+      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+    end subroutine
 
     !v Get the name of the test case
     !
@@ -40,15 +83,6 @@ module read_config
     module subroutine get_case_name(config_file, title)
       class(*), pointer, intent(in) :: config_file            !< the entry point to the config file
       character(len=:), allocatable, intent(inout) :: title   !< the case name string
-    end subroutine
-
-    !v Get the number of steps
-    !
-    !  Get the maximum number of iterations
-    !  to be preformed in the current run
-    module subroutine get_steps(config_file, steps)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      integer, intent(inout) :: steps               !< the maximum number of iterations
     end subroutine
 
     !v Get source of initial values
@@ -123,16 +157,6 @@ module read_config
       integer, intent(inout) :: max_sub_steps                        !< maximum number of sub-iterations at each time step
     end subroutine
 
-    !v Get target residual
-    !
-    !  Get the convergence criterion.
-    !  The calculation will stop when the residuals (L2-norm) of the
-    !  governing equations are less than the target residual.
-    module subroutine get_target_residual(config_file, residual)
-      class(*), pointer, intent(in) :: config_file  !< the entry point to the config file
-      real(ccs_real), intent(inout) :: residual     !< convergence criterion
-    end subroutine
-
     !v Get grid cell to monitor
     !
     !  Get the grid cell at which to monitor the values
@@ -171,22 +195,13 @@ module read_config
     !v Get relaxation factor values
     !
     !  Get relaxation factors
-    module subroutine get_relaxation_factor(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
+    module subroutine get_relaxation_factors(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
       class(*), pointer, intent(in) :: config_file        !< the entry point to the config file
       real(ccs_real), optional, intent(inout) :: u_relax  !< relaxation factor for u
       real(ccs_real), optional, intent(inout) :: v_relax  !< relaxation factor for v
       real(ccs_real), optional, intent(inout) :: p_relax  !< relaxation factor for p
       real(ccs_real), optional, intent(inout) :: te_relax !< relaxation factor for te
       real(ccs_real), optional, intent(inout) :: ed_relax !< relaxation factor for ed
-    end subroutine
-
-    !v Get output frequency
-    !
-    !  Get output frequency, set with keywords "every", "iter", or both.
-    module subroutine get_output_frequency(config_file, output_freq, output_iter)
-      class(*), pointer, intent(in) :: config_file !< the entry point to the config file
-      integer, intent(inout) :: output_freq        !< the frequency of writing output files
-      integer, intent(inout) :: output_iter        !< output files are written every output_iter/steps
     end subroutine
 
     !> Get output file format
@@ -210,16 +225,27 @@ module read_config
       logical, optional, intent(in) :: required     !< flag indicating whether field is required
     end subroutine
 
-    !> Gets variables that bcs are defined for
-    module subroutine get_bc_variables(filename, variables)
-      character(len=*), intent(in) :: filename                                            !< name of the config file
-      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables  !< string array indicating variables used in BCs
+    !> Gets variable name definitions
+    module subroutine get_variables(config_file, variables)
+      class(*), pointer, intent(in) :: config_file                                       !< pointer to configuration file
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: variables !< string array indicating variables
+    end subroutine
+    !> Gets variable type specifications
+    module subroutine get_variable_types(config_file, variable_types)
+      class(*), pointer, intent(in) :: config_file                               !< pointer to configuration file
+      integer(ccs_int), dimension(:), allocatable, intent(out) :: variable_types !< string array indicating variable types
     end subroutine
 
     !> Gets the number of boundaries
     module subroutine get_boundary_count(filename, n_boundaries)
       character(len=*), intent(in) :: filename      !< name of the config file
       integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
+    end subroutine
+
+    !> Gets wether residuals should be stored or not
+    module subroutine get_store_residuals(filename, store_residuals)
+      character(len=*), intent(in) :: filename
+      logical, intent(out) :: store_residuals
     end subroutine
   end interface
 end module read_config

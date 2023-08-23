@@ -30,6 +30,26 @@ module constants
   integer(ccs_int), public, parameter :: cell = 1
   integer(ccs_int), public, parameter :: face = 2
 
+  ! Field types
+  integer, public, parameter :: face_centred = 0         !< Indicates face centred variable
+  integer, public, parameter :: cell_centred_upwind = 1  !< Indicates cell centred variable (upwind scheme)
+  integer, public, parameter :: cell_centred_central = 2 !< Indicates cell centred variable (central scheme)
+  integer, public, parameter :: cell_centred_gamma = 3 !< Indicates cell centred variable (gamma scheme)
+  integer, public, parameter :: cell_centred_linear_upwind = 4 !< Indicates cell centred variable (linear upwind scheme)
+
+  ! field names
+  integer(ccs_int), public, parameter :: field_u = 0
+  integer(ccs_int), public, parameter :: field_v = 1
+  integer(ccs_int), public, parameter :: field_w = 2
+  integer(ccs_int), public, parameter :: field_p = 3
+  integer(ccs_int), public, parameter :: field_p_prime = 4
+  integer(ccs_int), public, parameter :: field_mf = 5
+
+  ! Constants for splitting mpi communicator
+  integer, public, parameter :: ccs_split_type_shared = 0
+  integer, public, parameter :: ccs_split_undefined = -1 ! Our own splits need to be negative so as to not conflict with any possible colouring used
+  integer, public, parameter :: ccs_split_type_low_high = -2 
+
   integer(ccs_int), public, parameter :: ccs_string_len = 128
 
 end module constants

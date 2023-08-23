@@ -6,4 +6,17 @@
     </engine>
 
   </io>
+  <io name="geo_writer">
+
+    <engine type="HDF5">
+    </engine>
+
+  </io>
+
+  <io name="sol_writer">
+
+    <engine type="BP5">
+    </engine>
+
+  </io>
 </adios-config>

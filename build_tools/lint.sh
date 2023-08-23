@@ -24,10 +24,18 @@ elif [ $ACTION = "score_each_file" ]; then
     echo "  flint score: "$score"; goal is: "$GOAL_SCORE
     # returns 0 for False
     if [ $(echo "$score < $GOAL_SCORE" | bc -l) = 1 ]; then
-      echo "***FAIL***"
-      all_pass=1
+      #check for presence of @dont_fail_linter tag
+      #ignore linter score if the tag is found
+      if grep -rq "@dont_fail_linter" $f; then
+        echo "***FAIL BUT IGNORED***"
+      else
+        echo "***FAIL***"
+        all_pass=1
+      fi
+      
     fi
   done
+
   exit $(echo $all_pass) 
 elif [ $ACTION = "fprettify" ]; then
   if [ -d $TARGET ]; then
@@ -44,4 +52,6 @@ elif [ $ACTION = "fprettify" ]; then
     echo 'DOUBLE CHECK THAT "module procedure" INDENTATION IS OK IN FILES:'
     grep -rl "module procedure" $TARGET
   fi
+else
+  echo 'Unknown ACTION provided to linting script'
 fi

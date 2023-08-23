@@ -10,20 +10,22 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 - `PETSc` - version 3.17 or newer required
 - `makedepf90` - version 2.9.0 required, source can be obtained at https://salsa.debian.org/science-team/makedepf90
 - `adios2` - with `hdf5` support, https://adios2.readthedocs.io/
-- `fortran-yaml-cpp` - https://github.com/Nicholaswogan/fortran-yaml-cpp
+- `fortran-yaml-c` - https://github.com/Nicholaswogan/fortran-yaml-c
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
 - `ParHIP` - https://github.com/KaHIP/KaHIP
+- `ParMETIS` - https://github.com/KarypisLab/ParMETIS
 
-
+**N.B.** although the build system currently requires both, only one of ParHIP or ParMETIS is used to partition the problem.
 
 ## Building
 
 Set the following environment variables:
 
 - `PETSC_DIR` to point to the PETSc install directory 
-- `FYAML` to point to the root of your fortran-yaml-cpp build directory
+- `FYAMLC` to point to the root of your fortran-yaml-c build directory
 - `ADIOS2` to point to the ADIOS2 install directory
 - `PARHIP` to point to the root of the ParHIP install directory
+- `PARMETIS` to point to the root of the ParMETIS install directory
 
 
 With the prerequisites in place, ASiMoV-CCS can be built from the root directory with
@@ -40,7 +42,11 @@ make CMP=<compiler> tests
 
 ## Configuring
 
-The executable `ccs_app` that is built/linked is configured by `config.yaml`. The Fortran program is specified by `main:` where the available options currently reside in `case_setup` and are `poisson`, `scalar_advection`, `ldc`, `tgv` and `tgv2d` (for 3-D and 2-D Taylor-Green Vortex, respectively).
+The executable `ccs_app` that is built/linked is configured by `config.yaml`. The Fortran program is specified by `main:` where the available options currently reside in `case_setup` and are
+- `poisson` to solve a simple Poisson problem
+- `scalar_advection` to solve a scalar advection case (frozen velocity field)
+- `ldc` to run the Lid Driven Cavity problem
+- `tgv` and `tgv2d` to run 3-D and 2-D Taylor-Green Vortex, respectively
 
 The build system automatically links the required modules, but submodules need to be specified in the configuration file. `base:` specifies a collection of basic submodules that work together; available options are `mpi` and `mpi_petsc`. Further customisation is available via the `options:` settings for cases where multiple implementations of the same functionality exist (none at the time of writing). 
 All possible configuration settings can be found in `build_tools/config_mapping.yaml`. 
@@ -49,8 +55,13 @@ All possible configuration settings can be found in `build_tools/config_mapping.
 ## Running
 The generated application can be run as a normal MPI application, for example
 ```
-mpirun -n 4 ./ccs_app
+mpirun -n 4 /path/to/ccs_app --ccs_case <CaseName>
 ```
+will use the runtime configuration file `CaseName_config.yaml` in the current directory. An input path can also be provided as
+```
+mpirun -n 4 /path/to/ccs_app --ccs_case CaseName --ccs_in /path/to/case/dir/
+```
+where `/path/to/case/dir/` contains the configuration file `CaseName_config.yaml`.
 
 `ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
 If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well, in particular if you observe stagnating residuals being printed to `stdout` you might want to try tighter tolerances for the linear solvers by passing `-ksp_atol` and `-ksp_rtol` at runtime, e.g.
@@ -73,7 +84,7 @@ mpirun -n 4 ../../../ccs_app --ccs_m 100 --ccs_case TaylorGreenVortex2D
 
 To run the 3D TGV case, you need to change `config.yaml` to state `main: tgv` instead of `main:tgv2d`, rebuild and use the run line:
 ```
-mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex3D
+mpirun -n 4 ../../../ccs_app --ccs_m 32 --ccs_case TaylorGreenVortex
 ```
 The default 3D problem size is `16x16x16`.
 
@@ -101,3 +112,21 @@ The command line option `--ccs_m` allows you to set the size of the mesh (the de
 ```
 mpirun -n 4 ../../../ccs_app --ccs_m 129 --ccs_case LidDrivenCavity
 ```
+
+The results can be plotted against Ghia's reference data by running the `plot-structured.py` scrip from the results directory
+```
+python ../../../scripts/plot-structured.py
+```
+this requires either an ADIOS2 build supporting Python or installation of `h5py` as a fallback, which can be installed via `pip install h5py`.
+
+## Further documentation
+
+### Code documentation
+CCS uses FORD for code documentation. You can install FORD using `pip install ford`. Documentation can then be generated using `make ford`. This will generate HTML documentation in the `doc` directory with entry point `index.html`.
+
+See https://github.com/Fortran-FOSS-Programmers/ford and https://forddocs.readthedocs.io/en/latest/ for more information on FORD.
+
+### Developer documentation
+A developer and style guide can be generated using `make dev_guide`. This requires `latex`. The output can be found in `dev_guide/ccs_dev_guide.pdf`.
+
+Documentation describing the build system, testing framework and linting in CCS can be found [here](build_tools/build_system_readme.md).

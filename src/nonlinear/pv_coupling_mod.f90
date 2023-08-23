@@ -5,7 +5,7 @@
 module pv_coupling
 
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, ccs_mesh
+  use types, only: field, ccs_mesh, fluid, fluid_solver_selector
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -17,15 +17,13 @@ module pv_coupling
   interface
 
     module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                      u_sol, v_sol, w_sol, p_sol, u, v, w, p, &
-                                      p_prime, mf, step)
+                                      flow_solver_selector, flow)
       class(parallel_environment), allocatable, intent(in) :: par_env
       type(ccs_mesh), intent(in) :: mesh
       integer(ccs_int), intent(in) :: it_start, it_end
       real(ccs_real), intent(in) :: res_target
-      logical, intent(in) :: u_sol, v_sol, w_sol, p_sol
-      class(field), intent(inout) :: u, v, w, p, p_prime, mf
-      integer(ccs_int), optional, intent(in) :: step
+      type(fluid_solver_selector), intent(in) :: flow_solver_selector
+      type(fluid), intent(inout) :: flow
     end subroutine solve_nonlinear
 
   end interface

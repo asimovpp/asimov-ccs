@@ -3,4 +3,6 @@
 
 main: ldc_timestepping
 base: mpi_petsc
+options:
+  timestepping: timestepping_first_order
 extra: parhip

@@ -27,23 +27,25 @@ module vec
   public :: vec_norm
   public :: initialise_vector
   public :: set_vector_size
-  public :: get_vector_data
-  public :: restore_vector_data
+  public :: get_vector_data, get_vector_data_readonly
+  public :: restore_vector_data, restore_vector_data_readonly
   public :: set_vector_location
   public :: vec_reciprocal
   public :: zero_vector
   public :: mult_vec_vec
   public :: scale_vec
+  public :: get_natural_data_vec
 
   interface
 
     !> Interface to create a new vector object.
-    module subroutine create_vector(vec_properties, v)
+    module subroutine create_vector(vec_properties, v, name)
       type(vector_spec), intent(in) :: vec_properties  !< Data structure containing the global and local sizes
       !< of the vector, -1 is interpreted as unset. If both
       !< are set the local size is used.
       class(ccs_vector), allocatable, intent(out) :: v !< The vector returned allocated,
       !< but (potentially) uninitialised.
+      character(len=*), optional, intent(in) :: name !< Name of the vector object
     end subroutine
 
     !> Interface to set values in a vector.
@@ -144,7 +146,7 @@ module vec
       type(vector_spec), intent(inout) :: vec_properties !< the vector data object
     end subroutine set_vector_size
 
-    !> Gets the data in a given vector
+    !> Gets the data in a given vector with possibility to overwrite the data.
     module subroutine get_vector_data(vec, array)
       class(ccs_vector), intent(inout) :: vec                        !< the vector to get data from
       real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
@@ -156,6 +158,18 @@ module vec
       real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
     end subroutine restore_vector_data
 
+    !> Gets the data in a given vector with readonly access.
+    module subroutine get_vector_data_readonly(vec, array)
+      class(ccs_vector), intent(inout) :: vec                        !< the vector to get data from
+      real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
+    end subroutine get_vector_data_readonly
+
+    !> Restores the vector data with readonly access.
+    module subroutine restore_vector_data_readonly(vec, array)
+      class(ccs_vector), intent(inout) :: vec                       !< the vector to reset
+      real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
+    end subroutine restore_vector_data_readonly
+    
     !> Set vector values to be located at either cell-centre or face
     module subroutine set_vector_location(loc, vec_properties)
       integer(ccs_int), intent(in) :: loc
@@ -180,6 +194,18 @@ module vec
       real(ccs_real), intent(in) :: alpha
       class(ccs_vector), intent(inout) :: v
     end subroutine scale_vec
+
+    !> Interface to return the vector data in natural ordering
+    module subroutine get_natural_data_vec(par_env, mesh, v, data)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_mesh), intent(in) :: mesh
+      class(ccs_vector), intent(inout) :: v
+      real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
+      !< natural ordering. Note the use
+      !< of allocatable + intent(out),
+      !< this ensures it will be
+      !< de/reallocated by this subroutine.
+    end subroutine get_natural_data_vec
 
   end interface
 

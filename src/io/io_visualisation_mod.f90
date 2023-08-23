@@ -11,11 +11,21 @@ module io_visualisation
 
   private
 
+  public :: reset_io_visualisation
+  public :: reset_io_visualisation_module
   public :: write_solution
   public :: write_fields
   public :: write_xdmf
 
   interface
+
+    !> Reset module to its original stage
+    module subroutine reset_io_visualisation_module()
+    end subroutine
+
+    !> Reset module to its original stage
+    module subroutine reset_io_visualisation()
+    end subroutine
 
     !> Write the flow solution for the current time-step to file
     module subroutine write_solution(par_env, case_name, mesh, output_list, step, maxstep, dt)

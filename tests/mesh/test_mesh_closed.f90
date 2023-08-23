@@ -8,7 +8,7 @@ program test_mesh_closed
 
   use constants
 
-  use meshing, only: set_face_location, get_face_normal, get_face_area
+  use meshing, only: create_face_locator, get_face_normal, get_face_area, get_local_num_cells
   use mesh_utils, only: build_mesh
 
   implicit none
@@ -23,32 +23,38 @@ program test_mesh_closed
   real(ccs_real), dimension(ndim) :: norm
   real(ccs_real) :: A
 
+  integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i, j
 
   real(ccs_real) :: A_expected
 
+  integer(ccs_int), dimension(4) :: m = (/4, 8, 16, 20/)
+  integer(ccs_int) :: mctr
+
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
-  do n = 1, 20 ! XXX: Should use some named constant, not just "20"
+  do mctr = 1, size(m)
+    n = m(mctr)
 
     nx = n
     ny = n
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, nx, nz, ny, l)
+    mesh = build_mesh(par_env, shared_env, nx, nz, ny, l)
 
     A_expected = (l / n)**2
 
     ! Loop over cells
-    do i = 1, mesh%topo%local_num_cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
       S(:) = 0.0_ccs_real
 
       ! Loop over neighbours/faces
       do j = 1, mesh%topo%num_nb(i)
 
-        call set_face_location(mesh, i, j, loc_f)
+        call create_face_locator(mesh, i, j, loc_f)
         call get_face_area(loc_f, A)
         call get_face_normal(loc_f, norm)
         S(:) = S(:) + norm(:) * A
