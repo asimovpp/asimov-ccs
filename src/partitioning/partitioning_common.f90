@@ -92,7 +92,6 @@ contains
     integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
-    ! integer(ccs_err) :: ierr
 
     irank = par_env%proc_id
     isize = par_env%num_procs
