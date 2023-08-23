@@ -31,7 +31,7 @@ program test_compute_bc_values
 
   call init()
 
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   ! set locations
   index_p = 0

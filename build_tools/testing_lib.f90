@@ -10,6 +10,7 @@ module testing_lib
   use parallel_types
   use parallel_types_mpi
   use utils, only: str, exit_print
+  use constants, only: ccs_split_type_low_high, ccs_split_type_shared
 
   implicit none
 
@@ -75,6 +76,8 @@ module testing_lib
   end interface
 
   class(parallel_environment), allocatable, target :: par_env
+  class(parallel_environment), allocatable, target :: shared_env
+  class(parallel_environment), allocatable, target :: roots_env
   integer(ccs_err) :: ierr
   integer :: real_type
   character(1024) :: message
@@ -90,6 +93,7 @@ contains
 
     integer, allocatable :: seed(:)
     integer :: n
+    logical :: use_mpi_splitting
 
     if (kind(0.0_ccs_real) == kind(0.0d0)) then
       real_type = MPI_DOUBLE
@@ -98,6 +102,9 @@ contains
     end if
 
     call initialise_parallel_environment(par_env)
+    use_mpi_splitting = .false.
+    call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
+    call create_shared_roots_comm(par_env, shared_env, roots_env)
 
     ! XXX: This would be a good candidate for a testing library
     call random_seed(size=n)

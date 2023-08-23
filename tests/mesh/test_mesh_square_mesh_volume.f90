@@ -36,7 +36,7 @@ program test_mesh_square_mesh_volume
   do mctr = 1, size(m)
     n = m(mctr)
     l = parallel_random(par_env)
-    mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, shared_env, n, l)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
     CV = (l / n)**2 ! Expected cell volume
