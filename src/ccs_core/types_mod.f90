@@ -119,10 +119,6 @@ module types
     integer(ccs_int), dimension(:), allocatable :: num_nb                   !< The local number of neighbours per cell
                                                                             !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted
     integer(ccs_int), dimension(:), allocatable :: num_vert_nb              !< The local number of vertex neighbours per cell
-    integer(ccs_int), dimension(:), pointer :: global_boundaries            !< Array of boundary faces.
-                                                                            !<    Counts the number of boundary faces for each cell
-                                                                            !<   num_boundary = global_boundary(global_icell)
-    integer :: global_boundaries_window                                     !< Associated shared window
     integer(ccs_int), dimension(:), pointer :: face_cell1                   !< Array of 1st face cells
                                                                             !<   global_icell1 = face_cell1(global_iface).
     integer :: face_cell1_window                                            !< Associated shared window

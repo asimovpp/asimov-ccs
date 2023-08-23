@@ -2720,12 +2720,6 @@ contains
       print *, par_env%proc_id, "num_nb             : UNALLOCATED"
     end if
 
-    if (associated(mesh%topo%global_boundaries)) then
-      print *, par_env%proc_id, "global_boundaries : ", mesh%topo%global_boundaries(1:nb_elem)
-    else
-      print *, par_env%proc_id, "global_boundaries : UNALLOCATED"
-    end if
-
     if (associated(mesh%topo%face_cell1)) then
       print *, par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
     else
@@ -2821,11 +2815,6 @@ contains
     if (associated(mesh%topo%global_vertex_indices)) then
       call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
       call dprint("mesh%topo%global_vertex_indices deallocated.")
-    end if
-
-    if (associated(mesh%topo%global_boundaries)) then
-      call destroy_shared_array(shared_env, mesh%topo%global_boundaries, mesh%topo%global_boundaries_window)
-      call dprint("mesh%topo%global_boundaries deallocated.")
     end if
 
     if (associated(mesh%topo%face_cell1)) then

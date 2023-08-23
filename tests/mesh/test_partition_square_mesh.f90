@@ -370,7 +370,6 @@ contains
   ! topo%local_num_cells = local_num_cells
   !allocate (mesh%topo%xadj(local_num_cells + 1))
 
-  ! <MISSING> allocate mesh%topo%global_boundaries
   ! <MISSING> allocate mesh%topo%adjncy
 
   !allocate (mesh%topo%local_partition(local_num_cells))
