@@ -62,7 +62,7 @@ contains
       end do
     end if
 
-    call compute_face_connectivity(par_env, shared_env, mesh)
+    call compute_face_connectivity(par_env, mesh)
 
     if (vertex_neighbours) then
       call compute_vertex_connectivity(par_env, shared_env, mesh)
@@ -70,12 +70,11 @@ contains
 
   end subroutine compute_connectivity
 
-  subroutine compute_face_connectivity(par_env, shared_env, mesh)
+  subroutine compute_face_connectivity(par_env, mesh)
 
     use iso_fortran_env, only: int32
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
     ! Local variables
@@ -89,7 +88,6 @@ contains
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: total_num_cells
     integer(ccs_int) :: global_num_faces
