@@ -17,7 +17,6 @@ program test_communicator_validity
 
   call init()
 
-  ! XXX: Are these select types necessary?
   if (modulo(par_env%proc_id, 2) == 1) then
     colour = 1
   else
