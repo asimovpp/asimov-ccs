@@ -15,9 +15,9 @@ program poiseuille
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector
+                   field_ptr, fluid, fluid_solver_selector, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+       set_field_type, set_field_vector_properties, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -31,10 +31,11 @@ program poiseuille
                    add_field_to_outputlist, get_field, set_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count, get_case_name
+  use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh, build_square_mesh, write_mesh
+  use mesh_utils, only: read_mesh, build_square_mesh, write_mesh, compute_face_interpolation
+  use meshing, only: get_total_num_cells, get_global_num_cells
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution
@@ -55,10 +56,12 @@ program poiseuille
 
   type(field_spec) :: field_properties
   class(field), allocatable, target :: u, v, w, p, p_prime, mf
+  type(bc_profile), allocatable :: profile
 
   type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
+  logical :: enable_cell_corrections
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -69,10 +72,11 @@ program poiseuille
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
-  logical :: w_sol = .true.
+  logical :: w_sol = .false.
   logical :: p_sol = .true.
 
-  integer(ccs_int) :: t          ! Timestep counter
+  real(ccs_real), dimension(3) :: error_L2 !< L2 norm of the error for the U, V and P fields respectively
+  real(ccs_real), dimension(3) :: error_Linf !< Linf norm of the error for the U, V and P fields respectively
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
@@ -116,6 +120,7 @@ program poiseuille
     ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
     mesh = build_square_mesh(par_env, cps, domain_size)
+    call disturb_cartesian(cps, mesh)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
     call read_mesh(par_env, case_name, mesh)
@@ -137,9 +142,11 @@ program poiseuille
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
+  call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
 
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
+  call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
@@ -156,6 +163,11 @@ program poiseuille
   call set_field_name("p_prime", field_properties)
   call create_field(field_properties, p_prime)
 
+
+  ! Set to 1st boundary condition (inlet)
+  call get_inlet_profile(profile)
+  call set_bc_profile(u, profile, 1)
+
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
@@ -170,12 +182,13 @@ program poiseuille
   call add_field_to_outputlist(w, "w", output_list)
   call add_field_to_outputlist(p, "p", output_list)
 
-  call activate_timestepping()
-  call set_timestep(dt)
-
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(mesh, u, v, w, p, mf)
+  call update(u%values)
+  call update(v%values)
+  call update(w%values)
+  call update(mf%values)
   call calc_kinetic_energy(par_env, mesh, u, v, w)
   call calc_enstrophy(par_env, mesh, u, v, w)
 
@@ -205,22 +218,16 @@ program poiseuille
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
 
-  do t = 1, num_steps
-    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields)
-    call calc_kinetic_energy(par_env, mesh, u, v, w)
-    call update_gradient(mesh, u)
-    call update_gradient(mesh, v)
-    call update_gradient(mesh, w)
-    call calc_enstrophy(par_env, mesh, u, v, w)
-    if (par_env%proc_id == par_env%root) then
-      print *, "TIME = ", t
-    end if
+  call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+                        fluid_sol, flow_fields)
+  call calc_kinetic_energy(par_env, mesh, u, v, w)
+  call update_gradient(mesh, u)
+  call update_gradient(mesh, v)
+  call update_gradient(mesh, w)
+  call calc_enstrophy(par_env, mesh, u, v, w)
 
-    if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
-    end if
-  end do
+  call calc_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+  call write_solution(par_env, case_path, mesh, output_list)
 
   ! Clean-up
   deallocate (u)
@@ -451,5 +458,186 @@ contains
     call update(mf%values)
 
   end subroutine initialise_flow
+
+
+  subroutine get_inlet_profile(profile)
+
+    type(bc_profile), allocatable, intent(out) :: profile
+    integer(ccs_int) :: n=100, i
+    real(ccs_real) :: y, h, mu, P
+
+
+    allocate(profile)
+
+    allocate(profile%centre(3))
+    allocate(profile%values(n))
+    allocate(profile%coordinates(n))
+    h = 1.0_ccs_real
+    mu = 0.01_ccs_real
+    P = 8*mu 
+
+
+    profile%centre(:) = (/ 0, 0, 0 /)
+
+    do i=1, n
+      y =  real(i, ccs_real)*h/real(n, ccs_real)
+      profile%coordinates(i) = y      
+      profile%values(i) = P*y*(h-y)/ (2.0_ccs_real*mu)
+
+    end do
+
+  end subroutine
+  
+  subroutine calc_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+
+    use constants, only: ndim
+    use types, only: cell_locator
+    use utils, only: str
+
+    use vec, only: get_vector_data, restore_vector_data
+
+    use meshing, only: get_centre, create_cell_locator, get_local_num_cells
+
+    use parallel, only: allreduce
+    use parallel_types_mpi, only: parallel_environment_mpi
+    use timestepping, only: get_current_time, get_current_step
+
+    class(parallel_environment), intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), intent(in) :: mesh
+    class(field), intent(inout) :: u, v, w, p
+    real(ccs_real), dimension(3), intent(out) :: error_L2
+    real(ccs_real), dimension(3), intent(out) :: error_Linf
+
+    real(ccs_real), dimension(3) :: error_L2_local
+    real(ccs_real), dimension(3) :: error_Linf_local
+
+    real(ccs_real) :: ft
+    real(ccs_real) :: u_an, v_an, w_an, p_an
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
+
+    real(ccs_real) :: mu, rho, nu, x, y
+
+    logical, save :: first_time = .true.
+
+    type(cell_locator) :: loc_p
+    real(ccs_real), dimension(ndim) :: x_p
+    integer(ccs_int) :: index_p, local_num_cells
+
+    character(len=ccs_string_len) :: fmt
+    real(ccs_real) :: time
+    integer(ccs_int) :: step
+
+    integer(ccs_int) :: global_num_cells
+
+    integer :: io_unit
+
+    integer :: ierr
+
+    mu = 0.01_ccs_real ! XXX: currently hardcoded somewhere
+    rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
+    nu = mu / rho
+
+    error_Linf_local(:) = 0.0_ccs_real
+    error_L2_local(:) = 0.0_ccs_real
+
+    call get_vector_data(u%values, u_data)
+    call get_vector_data(v%values, v_data)
+    call get_vector_data(w%values, w_data)
+    call get_vector_data(p%values, p_data)
+    call get_current_time(time)
+    call get_current_step(step)
+
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
+
+      call create_cell_locator(mesh, index_p, loc_p)
+      call get_centre(loc_p, x_p)
+
+      ! Compute analytical solution
+      x = x_p(1)
+      y = x_p(2)
+      u_an = 8*mu*y*(1-y)/(2*mu)
+      v_an = 0.0_ccs_real
+      p_an = -8*mu*(x-1)
+
+      error_L2_local(1) = error_L2_local(1) + (u_an - u_data(index_p))**2
+      error_L2_local(2) = error_L2_local(2) + (v_an - v_data(index_p))**2
+      !error_L2_local(3) = error_L2_local(3) + (w_an - w_data(index_p))**2
+      error_L2_local(3) = error_L2_local(3) + (p_an - p_data(index_p))**2
+
+      error_Linf_local(1) = max(error_Linf_local(1), abs(u_an - u_data(index_p)))
+      error_Linf_local(2) = max(error_Linf_local(2), abs(v_an - v_data(index_p)))
+      !error_Linf_local(3) = max(error_Linf_local(3), abs(w_an - w_data(index_p)))
+      error_Linf_local(3) = max(error_Linf_local(3), abs(p_an - p_data(index_p)))
+
+    end do
+    call restore_vector_data(u%values, u_data)
+    call restore_vector_data(v%values, v_data)
+    call restore_vector_data(w%values, w_data)
+    call restore_vector_data(p%values, p_data)
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+    class default
+      call error_abort("ERROR: Unknown type")
+    end select
+
+    call get_global_num_cells(mesh, global_num_cells)
+    error_L2(:) = sqrt(error_L2(:) / global_num_cells)
+
+    if (par_env%proc_id == par_env%root) then
+      if (first_time) then
+        first_time = .false.
+        open (newunit=io_unit, file="err.log", status="replace", form="formatted")
+      else
+        open (newunit=io_unit, file="err.log", status="old", form="formatted", position="append")
+      end if
+      fmt = '(I0,' // str(2 * size(error_L2)) // '(1x,e12.4))'
+      write (io_unit, fmt) step, error_L2, error_Linf
+      close (io_unit)
+    end if
+
+  end subroutine calc_error
+
+
+
+  subroutine disturb_cartesian(cps, mesh)
+    integer(ccs_int), intent(in) :: cps
+    type(ccs_mesh), intent(inout) :: mesh
+
+    real(ccs_real) :: dx
+    integer(ccs_int) :: icell, total_num_cells, idim, icell_global
+    real(ccs_real) :: disturbance
+    integer(ccs_int) :: n
+    
+    dx = domain_size / real(cps)
+
+    call get_total_num_cells(mesh, total_num_cells)
+    do icell = 1, total_num_cells
+      icell_global = mesh%topo%global_indices(icell)
+
+      if (icell_global == int(mesh%topo%global_num_cells / 2)) then
+        disturbance = 0.2
+        mesh%geo%x_p(1, icell) = mesh%geo%x_p(1, icell) + (disturbance - 0.5_ccs_real)*dx/3.0
+        !mesh%geo%x_p(2, icell) = mesh%geo%x_p(1, icell) + (disturbance - 0.5_ccs_real)*dx/3.0
+      end if
+      ! idim = 1
+      ! disturbance = real(modulo(3*icell_global, 17), ccs_real) / 17.0_ccs_real
+      ! mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real)*dx/30.0
+
+      ! idim = 2
+      ! disturbance = real(modulo(3*icell_global, 29), ccs_real) / 29.0_ccs_real
+      ! mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real)*dx/30.0
+
+    end do
+
+    ! Update face interpolation
+    call compute_face_interpolation(mesh)
+
+  end subroutine
+
+
 
 end program poiseuille

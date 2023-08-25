@@ -786,14 +786,14 @@ contains
             mf_data(index_f) = calc_mass_flux(u, v, w, &
                                               p_data, dpdx_data, dpdy_data, dpdz_data, &
                                               invAu_data, invAv_data, invAw_data, &
-                                              loc_f)
+                                              loc_f, p%enable_cell_corrections)
           end if
         else
           ! Compute mass flux through face
           mf_data(index_f) = calc_mass_flux(u, v, w, &
                                             p_data, dpdx_data, dpdy_data, dpdz_data, &
                                             invAu_data, invAv_data, invAw_data, &
-                                            loc_f)
+                                            loc_f, .false.)
         end if
 
         mib = mib + mf_data(index_f) * face_area
@@ -966,7 +966,7 @@ contains
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
             mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
-                                      invAu_data, invAv_data, invAw_data, loc_f)
+                                      invAu_data, invAv_data, invAw_data, loc_f, .false.)
 
             mf_data(index_f) = mf_data(index_f) + mf_prime
           else

@@ -4,15 +4,15 @@ title: Poiseuille
 #  number of timesteps
 steps: 100
 #  number of iterations
-iterations: 7
+iterations: 200
 # time step size
 dt: 1.0e-2
 
 # Square/cubic mesh generation parameters
 # cells per side
-cps: 32
+cps: 16
 # domain size
-L: 3.1415926535
+L: 1.0
 
 relaxation_factor:
   u: 0.9
@@ -62,6 +62,7 @@ viscocity : 1.0e-3
 
 variables:
   n_variables: 5
+  enable_cell_corrections: false
   variable_1:
     name: u
     type: central
@@ -87,7 +88,7 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_u:
-      type: dirichlet
+      type: profile
       value: 1
     variable_v:
       type: dirichlet
