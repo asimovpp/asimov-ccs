@@ -89,6 +89,7 @@ contains
 
     ! Transport the scalars
     call count_fields(flow, nfields)
+    print*,"num of fields=",nfields
     do s = 1, nfields
        call get_field_id(flow, s, field_id)
        if (any(skip_fields == field_id)) then

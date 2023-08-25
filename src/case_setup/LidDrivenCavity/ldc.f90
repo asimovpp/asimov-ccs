@@ -177,7 +177,7 @@ program ldc
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(6, flow_fields)
+  call allocate_fluid_fields(7, flow_fields) !changed for viscosity
   call set_field(1, field_u, u, flow_fields)
   call set_field(2, field_v, v, flow_fields)
   call set_field(3, field_w, w, flow_fields)

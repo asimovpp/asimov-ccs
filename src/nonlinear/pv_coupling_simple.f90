@@ -21,7 +21,8 @@ submodule(pv_coupling) pv_coupling_simple
 
   use utils, only: debug_print, get_field, get_fluid_solver_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity
+  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, &
+                        field_mf, field_viscosity         
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
@@ -88,6 +89,7 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_p_prime, p_prime)
     call get_field(flow, field_mf, mf)
+    call get_field(flow, field_viscosity, viscosity) !viscosity
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -140,6 +142,7 @@ contains
     call dprint("NONLINEAR: compute grad p")
     call update_gradient(mesh, p)
 
+    print*,"inside solve_nonlinear"
     outerloop: do i = it_start, it_end
 
       call dprint("NONLINEAR: iteration " // str(i))
@@ -261,6 +264,7 @@ contains
       first_time = .false.
     end if
 
+    print*,"inside calculate_velocity"
     ! u-velocity
     ! ----------
     if (u_sol) then
@@ -332,6 +336,7 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
+    print*,"inside calculate velocity component"
     call compute_fluxes(u, mf, mesh, component, M, vec, viscosity)
 
     call apply_timestep(mesh, u, invAu, M, vec)
