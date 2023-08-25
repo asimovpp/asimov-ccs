@@ -39,7 +39,7 @@ program test_tgv_timestep
   do i = 1, num_dt
     dt = dt_list(i)
     num_steps = int(0.1_ccs_real / dt)
-    call run_tgv2d(par_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt, input_num_steps=num_steps)
+    call run_tgv2d(par_env, shared_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt, input_num_steps=num_steps)
   end do
 
   if (par_env%proc_id == par_env%root) then
