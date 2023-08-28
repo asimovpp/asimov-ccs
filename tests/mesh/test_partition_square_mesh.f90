@@ -145,7 +145,7 @@ contains
         call stop_test(message)
       end if
 
-      ctr = ctr + int(topo%vtxdist(i) - topo%vtxdist(i - 1))
+      ctr = ctr + int(topo%graph_conn%vtxdist(i) - topo%graph_conn%vtxdist(i - 1))
     end do
 
     call get_global_num_cells(topo, global_num_cells)
@@ -172,7 +172,7 @@ contains
       call get_global_index(loc_p, global_index_p)
 
       do j = int(mesh%topo%graph_conn%xadj(i)), int(mesh%topo%graph_conn%xadj(i + 1)) - 1
-        if (mesh%topo%adjncy(j) == global_index_p) then
+        if (mesh%topo%graph_conn%adjncy(j) == global_index_p) then
           print *, "TOPO neighbours @ global idx ", global_index_p, ": ", &
             mesh%topo%graph_conn%adjncy(mesh%topo%graph_conn%xadj(i):mesh%topo%graph_conn%xadj(i + 1) - 1)
           write (message, *) "ERROR: found self-loop " // stage // "- partitioning."
@@ -250,7 +250,7 @@ contains
 
     do j = int(graph_conn%xadj(i)), int(graph_conn%xadj(i + 1)) - 1
        if (.not. any(adjncy_global_expected == graph_conn%adjncy(j)) .and. graph_conn%adjncy(j) .gt. 0) then
-          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(xadj(i):graph_conn%xadj(i+1) - 1)
+          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
           write (message, *) "ERROR: neighbours are wrong " // stage // "- partitioning."
           call stop_test(message)
@@ -259,7 +259,7 @@ contains
 
     do j = 1, size(adjncy_global_expected)
        if (.not. any(graph_conn%adjncy == adjncy_global_expected(j)) .and. adjncy_global_expected(j) /= 0) then
-          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(xadj(i):graph_conn%xadj(i+1) - 1)
+          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
           write (message, *) "ERROR: neighbours are missing " // stage // "- partitioning."
           call stop_test(message)

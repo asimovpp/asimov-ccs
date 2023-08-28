@@ -30,7 +30,7 @@ program test_partition_tri_mesh
   type(ccs_mesh), target :: mesh
   integer :: i
 
-  integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
+  integer, parameter :: topo_idx_type = kind(mesh%topo%graph_conn%adjncy(1))
 
   ! Topology grid size
   integer, parameter :: nrows = 3
@@ -371,12 +371,12 @@ contains
 
     type(graph_connectivity), intent(inout) :: graph_conn
     
-    allocate (mesh%topo%vtxdist(par_env%num_procs + 1))
+    allocate (graph_conn%vtxdist(par_env%num_procs + 1))
 
     ! Hardcode vtxdist for now
-    mesh%topo%vtxdist = (/1, 6, 11, 16/)
+    graph_conn%vtxdist = (/1, 6, 11, 16/)
 
-    local_num_cells = int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int)
+    local_num_cells = int(graph_conn%vtxdist(par_env%proc_id + 2) - graph_conn%vtxdist(par_env%proc_id + 1), ccs_int)
     
   end subroutine initialise_test_partition
   
@@ -389,7 +389,7 @@ contains
     call clean_test_graphconn(topo%graph_conn)
   end subroutine clean_test_topo
   subroutine clean_test_graphconn(graph_conn)
-    type(graph_conn), intent(inout) :: graph_conn
+    type(graph_connectivity), intent(inout) :: graph_conn
 
     if (allocated(graph_conn%xadj)) then
       deallocate (graph_conn%xadj)
