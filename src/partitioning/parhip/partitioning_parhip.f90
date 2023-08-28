@@ -52,7 +52,7 @@ contains
     call partition_kway_topo(par_env, shared_env, roots_env, mesh%topo)
     
   end subroutine partition_kway
-  module subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
+  subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
 
     use mpi
     use iso_c_binding
