@@ -386,6 +386,14 @@ contains
   subroutine clean_test_topo(topo)
     type(topology), intent(in) :: topo
 
+    if (allocated(graph_conn%vert_nb_indices)) then
+      deallocate(graph_conn%vert_nb_indices)
+    end if
+
+    if (allocated(graph_conn%num_vert_nb)) then
+      deallocate(graph_conn%num_vert_nb)
+    end if
+
     call clean_test_graphconn(topo%graph_conn)
   end subroutine clean_test_topo
   subroutine clean_test_graphconn(graph_conn)
@@ -409,14 +417,6 @@ contains
 
     if (allocated(graph_conn%vtxdist)) then
       deallocate (graph_conn%vtxdist)
-    end if
-
-    if (allocated(graph_conn%vert_nb_indices)) then
-      deallocate(graph_conn%vert_nb_indices)
-    end if
-
-    if (allocated(graph_conn%num_vert_nb)) then
-      deallocate(graph_conn%num_vert_nb)
     end if
   end subroutine clean_test_graphconn
 
