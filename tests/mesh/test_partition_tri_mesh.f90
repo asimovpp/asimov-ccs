@@ -341,7 +341,7 @@ contains
     ! --- read_topology() --- end
 
     ! --- compute_partitioner_input() ---
-    call initialise_test_partition(mesh%topo%graph_conn)
+    call initialise_test_partition(mesh%topo%graph_conn, local_num_cells)
     call set_local_num_cells(local_num_cells, mesh)
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
 
@@ -367,9 +367,10 @@ contains
     call set_total_num_cells(local_num_cells, mesh)
 
   end subroutine initialise_test
-  subroutine initialise_test_partition(graph_conn)
+  subroutine initialise_test_partition(graph_conn, local_num_cells)
 
     type(graph_connectivity), intent(inout) :: graph_conn
+    integer(ccs_int), intent(out) :: local_num_cells
     
     allocate (graph_conn%vtxdist(par_env%num_procs + 1))
 
