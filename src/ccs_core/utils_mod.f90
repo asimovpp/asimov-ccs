@@ -431,12 +431,27 @@ contains
     ! Arguments
     class(field), pointer, intent(in) :: var
     character(len=*), intent(in) :: name
-    type(field_ptr), dimension(:), intent(inout) :: list
+    type(field_ptr), dimension(:), allocatable, intent(inout) :: list
 
     ! Local variables
+    integer :: list_size
+    type(field_ptr), dimension(:), allocatable :: tmp_list
 
     outputlist_counter = outputlist_counter + 1
+    list_size = size(list)
 
+    if (outputlist_counter > list_size) then
+       !! Reallocate list
+       allocate(tmp_list(list_size))
+
+       tmp_list(:) = list(:)
+       deallocate(list)
+       allocate(list(outputlist_counter))
+       list(1:list_size) = tmp_list(1:list_size)
+       
+       deallocate(tmp_list)
+    end if
+    
     list(outputlist_counter)%ptr => var
     list(outputlist_counter)%name = name
 
