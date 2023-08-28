@@ -384,14 +384,14 @@ contains
     call clean_test_topo(mesh%topo)
   end subroutine clean_test
   subroutine clean_test_topo(topo)
-    type(topology), intent(in) :: topo
+    type(topology), intent(inout) :: topo
 
-    if (allocated(graph_conn%vert_nb_indices)) then
-      deallocate(graph_conn%vert_nb_indices)
+    if (allocated(topo%vert_nb_indices)) then
+      deallocate(topo%vert_nb_indices)
     end if
 
-    if (allocated(graph_conn%num_vert_nb)) then
-      deallocate(graph_conn%num_vert_nb)
+    if (allocated(topo%num_vert_nb)) then
+      deallocate(topo%num_vert_nb)
     end if
 
     call clean_test_graphconn(topo%graph_conn)
