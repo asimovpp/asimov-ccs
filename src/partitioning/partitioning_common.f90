@@ -771,7 +771,7 @@ contains
     call cleanup_partitioner_data_topo(shared_env, mesh%topo)
 
   end subroutine cleanup_partitioner_data
-  module subroutine cleanup_partitioner_data_topo(shared_env, topo)
+  subroutine cleanup_partitioner_data_topo(shared_env, topo)
     
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(topology), target, intent(inout) :: topo   !< The mesh topology
@@ -779,7 +779,7 @@ contains
     call cleanup_partitioner_data_graphconn(shared_env, topo%graph_conn)
 
   end subroutine cleanup_partitioner_data_topo
-  module subroutine cleanup_partitioner_data_graphconn(shared_env, graph_conn)
+  subroutine cleanup_partitioner_data_graphconn(shared_env, graph_conn)
     
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(graph_connectivity), target, intent(inout) :: graph_conn   !< The mesh topology graph connectivity
