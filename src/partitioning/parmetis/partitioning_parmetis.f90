@@ -2,6 +2,7 @@ submodule(partitioning) partitioning_parmetis
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_real, ccs_long
+  use types, only: topology
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: set_local_num_cells, get_local_num_cells
@@ -50,6 +51,19 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
+    call partition_kway_topo(par_env, shared_env, roots_env, mesh%topo)
+    
+  end subroutine partition_kway
+  module subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
+
+    use mpi
+    use iso_c_binding
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
+    type(topology), target, intent(inout) :: topo                           !< The mesh topology for which to compute the parition
+
     ! Local variables
     integer(ccs_long), dimension(:), pointer :: tmp_partition
     integer(ccs_int) :: tmp_partition_window
@@ -94,12 +108,12 @@ contains
 
     irank = par_env%proc_id ! Current rank
 
-    vtxdist = mesh%topo%vtxdist - 1
-    xadj = mesh%topo%xadj - 1
-    adjncy = mesh%topo%adjncy - 1
+    vtxdist = topo%graph_conn%vtxdist - 1
+    xadj = topo%graph_conn%xadj - 1
+    adjncy = topo%graph_conn%adjncy - 1
 
-    adjwgt = mesh%topo%adjwgt
-    vwgt = mesh%topo%vwgt
+    adjwgt = topo%graph_conn%adjwgt
+    vwgt = topo%graph_conn%vwgt
 
     ! Set weights to 1
     adjwgt = 1
@@ -107,7 +121,7 @@ contains
 
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
-    local_part_size = size(mesh%topo%local_partition)
+    local_part_size = size(topo%graph_conn%local_partition)
 
     allocate (local_partition(local_part_size))
 
@@ -122,22 +136,22 @@ contains
                                   tpwgts, ubvec, options, &
                                   edgecuts, local_partition, comm)
 
-      mesh%topo%local_partition(:) = local_partition(:)
+      topo%graph_conn%local_partition(:) = local_partition(:)
 
-      call create_shared_array(shared_env, mesh%topo%global_num_cells, tmp_partition, tmp_partition_window)
+      call create_shared_array(shared_env, topo%global_num_cells, tmp_partition, tmp_partition_window)
 
       if (is_root(shared_env)) then
         tmp_partition(:) = 0
       end if
 
       do i = 1, local_part_size
-        tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
+        tmp_partition(i + vtxdist(irank + 1)) = topo%graph_conn%local_partition(i)
       end do
 
       if (is_valid(roots_env)) then
         select type (roots_env)
         type is (parallel_environment_mpi)
-          call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
+          call MPI_AllReduce(tmp_partition, topo%graph_conn%global_partition, topo%global_num_cells, &
                             MPI_LONG, MPI_SUM, roots_env%comm, ierr)
         class default
           print *, "ERROR: Unknown parallel environment!"
@@ -152,7 +166,7 @@ contains
 
     call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
 
-  end subroutine partition_kway
+  end subroutine partition_kway_topo
 
   !v Compute the input arrays for the partitioner
   !

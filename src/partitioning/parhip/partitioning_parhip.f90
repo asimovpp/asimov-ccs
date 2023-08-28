@@ -2,6 +2,7 @@ submodule(partitioning) partitioning_parhip
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_real, ccs_long
+  use types, only: topology
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
@@ -48,6 +49,19 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
 
+    call partition_kway_topo(par_env, shared_env, roots_env, mesh%topo)
+    
+  end subroutine partition_kway
+  module subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
+
+    use mpi
+    use iso_c_binding
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
+    type(topology), target, intent(inout) :: topo                              !< The mesh topology for which to compute the parition
+
     ! Local variables
     integer(ccs_long), dimension(:), pointer :: tmp_partition
     integer :: tmp_partition_window
@@ -79,19 +93,19 @@ contains
     suppress = 0      ! Do not suppress the output
     edgecuts = -1     ! XXX: silence unused variable warning
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(topo, global_num_cells)
 
     irank = par_env%proc_id ! Current rank
     num_procs = par_env%num_procs
 
     ! ParHIP needs 0-indexing - shift array contents by -1
-    allocate(vtxdist, mold=mesh%topo%vtxdist)
-    vtxdist = mesh%topo%vtxdist - 1
-    xadj = mesh%topo%xadj - 1
-    adjncy = mesh%topo%adjncy - 1
+    allocate(vtxdist, mold=topo%graph_conn%vtxdist)
+    vtxdist = topo%graph_conn%vtxdist - 1
+    xadj = topo%graph_conn%xadj - 1
+    adjncy = topo%graph_conn%adjncy - 1
 
-    adjwgt = mesh%topo%adjwgt
-    vwgt = mesh%topo%vwgt
+    adjwgt = topo%graph_conn%adjwgt
+    vwgt = topo%graph_conn%vwgt
 
     ! Set weights to 1
     adjwgt = 1_ccs_long
@@ -99,7 +113,7 @@ contains
 
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
-    local_part_size = size(mesh%topo%local_partition)
+    local_part_size = size(topo%graph_conn%local_partition)
 
     allocate (local_partition(local_part_size))
 
@@ -113,7 +127,7 @@ contains
                                 num_procs, imbalance, suppress, &
                                 seed, mode, edgecuts, local_partition, comm)
 
-      mesh%topo%local_partition(:) = local_partition(:)
+      topo%graph_conn%local_partition(:) = local_partition(:)
 
       call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
 
@@ -123,14 +137,14 @@ contains
       call sync(shared_env)
 
       do i = 1, local_part_size
-        tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
+        tmp_partition(i + vtxdist(irank + 1)) = topo%graph_conn%local_partition(i)
       end do
       call sync(shared_env)
 
       if (is_valid(roots_env)) then
         select type (roots_env)
         type is (parallel_environment_mpi)
-            call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
+            call MPI_AllReduce(tmp_partition, topo%graph_conn%global_partition, global_num_cells, &
                               MPI_LONG, MPI_SUM, roots_env%comm, ierr)
         class default
           print *, "ERROR: Unknown parallel environment!"
@@ -147,7 +161,7 @@ contains
 
     call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
 
-  end subroutine partition_kway
+  end subroutine partition_kway_topo
 
   !v Compute the input arrays for the partitioner
   !
