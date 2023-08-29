@@ -511,8 +511,7 @@ contains
     real(ccs_real), dimension(3) :: error_L2_local
     real(ccs_real), dimension(3) :: error_Linf_local
 
-    real(ccs_real) :: ft
-    real(ccs_real) :: u_an, v_an, w_an, p_an
+    real(ccs_real) :: u_an, v_an, p_an
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
 
     real(ccs_real) :: mu, rho, nu, x, y
@@ -608,9 +607,8 @@ contains
     type(ccs_mesh), intent(inout) :: mesh
 
     real(ccs_real) :: dx
-    integer(ccs_int) :: icell, total_num_cells, idim, icell_global
+    integer(ccs_int) :: icell, total_num_cells, icell_global
     real(ccs_real) :: disturbance
-    integer(ccs_int) :: n
     
     dx = domain_size / real(cps)
 
