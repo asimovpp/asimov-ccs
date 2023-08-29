@@ -142,10 +142,11 @@ contains
     call dprint("NONLINEAR: compute grad p")
     call update_gradient(mesh, p)
 
-    print*,"inside solve_nonlinear"
+    !print*,"inside solve_nonlinear"
     outerloop: do i = it_start, it_end
 
       call dprint("NONLINEAR: iteration " // str(i))
+      !print*,"iteration no.=",i
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
@@ -264,7 +265,7 @@ contains
       first_time = .false.
     end if
 
-    print*,"inside calculate_velocity"
+    !print*,"inside calculate_velocity"
     ! u-velocity
     ! ----------
     if (u_sol) then
@@ -336,7 +337,7 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
-    print*,"inside calculate velocity component"
+    !print*,"inside calculate velocity component"
     call compute_fluxes(u, mf, mesh, component, M, vec, viscosity)
 
     call apply_timestep(mesh, u, invAu, M, vec)

@@ -38,20 +38,20 @@ contains
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
-    print*,"inside compute_fluxes"
+    !print*,"inside compute_fluxes"
 
     associate (mf_values => mf%values)
       call dprint("CF: get mf")
       call get_vector_data(mf_values, mf_data)
-      print*,"mf_data obtained"
+      !print*,"mf_data obtained"
       call get_vector_data(viscosity%values, viscosity_data)
-      print*,"viscosity_data obtained"
+      !print*,"viscosity_data obtained"
 
       ! Loop over cells computing advection and diffusion fluxes
       call get_max_faces(mesh, max_faces)
       n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: compute coeffs")
-      print*,"entering compute_coeffs"
+      !print*,"entering compute_coeffs"
       call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec, viscosity_data)
 
       call dprint("CF: restore mf")
@@ -106,7 +106,7 @@ contains
     call set_mode(add_mode, b_coeffs)
 
     call get_local_num_cells(mesh, local_num_cells)
-    print*,"inside compute_coeffs"
+    !print*,"inside compute_coeffs"
     do index_p = 1, local_num_cells
       call clear_entries(mat_coeffs)
       call clear_entries(b_coeffs)
@@ -421,6 +421,8 @@ contains
     type(neighbour_locator) :: loc_nb
     type(field):: Schmidt_No 
     real(ccs_real) :: Schmidt_data
+    real(ccs_real) :: visavg !< average viscosity
+    real(ccs_real), parameter :: density = 1.0_ccs_real 
 
     !print*,"inside calc_diffusion_coeff"
     call create_face_locator(mesh, index_p, index_nb, loc_f)
@@ -430,7 +432,7 @@ contains
     call create_cell_locator(mesh, index_p, loc_p)
 
     !call get_vector_data()
-    !Schmidt_data = Schmidt_No%Schmidt
+    Schmidt_data = Schmidt_No%Schmidt
     !print*,"schmidt no=",Schmidt_data
 
     if (.not. is_boundary) then
@@ -442,10 +444,14 @@ contains
     dxmag = sqrt(sum(dx**2))
 
     if (bc == 0) then
-      diffusion_factor = 0.5_ccs_real*(visp + visnb)
+      visavg = 0.5_ccs_real * (visp + visnb)
+      diffusion_factor = visavg / (density * Schmidt_data)
+      !diffusion_factor = 0.5_ccs_real*(visp + visnb)
       !print*,"bc=0, diff factor=", diffusion_factor
     else
-      diffusion_factor = visp
+      visavg = visp
+      diffusion_factor = visavg / (density * Schmidt_data)
+      !diffusion_factor = visp
       !print*,"bc!=0, diff factor=", diffusion_factor
     end if
     
