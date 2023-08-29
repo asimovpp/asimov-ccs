@@ -566,7 +566,7 @@ contains
           flux = -flux
         end if
 
-        flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, u_field%enable_cell_corrections)
+        flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections)
         flux = flux + flux_corr
       else
         call compute_boundary_values(u_field, x_direction, loc_p, loc_f, face_normal, u_bc)
@@ -609,7 +609,7 @@ contains
     real(ccs_real) :: interpol_factor
     real(ccs_real), dimension(ndim) :: grad_phi_p 
     real(ccs_real), dimension(ndim) :: grad_phi_nb
-    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime, x_f_prime, rnb_k_prime, rp_prime
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, rnb_k_prime, rp_prime
     real(ccs_real), dimension(ndim) :: n
     real(ccs_real) :: a
 
@@ -754,7 +754,7 @@ contains
 
     real(ccs_real) :: phif
     real(ccs_real) :: interpol_factor
-    real(ccs_real) :: dxmag, a
+    real(ccs_real) :: a
     real(ccs_real), dimension(ndim) :: grad_phi_p 
     real(ccs_real), dimension(ndim) :: grad_phi_nb
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, rnb_k_prime, rp_prime
