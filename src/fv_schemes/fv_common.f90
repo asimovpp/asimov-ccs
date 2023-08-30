@@ -185,28 +185,29 @@ contains
 
 
           if (phi%enable_cell_corrections) then
-            ! Excentricity correction (convective term) (sec 9.7.1)
             call get_face_normal(loc_f, n)
             call get_centre(loc_p, x_p)
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
 
-            call get_face_interpolation(loc_f, interpol_factor)
+            a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+            x_nb_prime = x_f + a*n
+            x_p_prime = x_f - a*n
+
 
             grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
             grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
 
-            x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
-            grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
+            ! call get_face_interpolation(loc_f, interpol_factor)
+            ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
+            ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
+            !hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
 
-            hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
+            ! Excentricity correction (convective term) (sec 9.7.1)
+            hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
 
 
             ! Non-orthogonality correction (diffusive flux) (sec 9.7.2)
-            a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-            x_nb_prime = x_f + a*n
-            x_p_prime = x_f - a*n
-            
             hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
           end if
 
@@ -708,34 +709,66 @@ contains
   !v Performs an update of the gradients of a field.
   !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !  correctly updated on other PEs. @endnote
-  module subroutine update_gradient(mesh, phi)
+  module subroutine update_gradient(mesh, phi, enable_cell_corrections)
 
-    use meshing, only: get_total_num_cells
+    use meshing, only: get_local_num_cells
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
+    logical, optional, intent(in) :: enable_cell_corrections
+    real(ccs_real), dimension(:), allocatable :: x_gradients
+    real(ccs_real), dimension(:), allocatable :: y_gradients
+    real(ccs_real), dimension(:), allocatable :: z_gradients
+
+    real(ccs_real), dimension(:), pointer :: gradients_data    ! Data array for gradients
+    integer(ccs_int) :: local_num_cells
+    logical :: my_enable_cell_corrections
+
+    if (present(enable_cell_corrections)) then
+      my_enable_cell_corrections = enable_cell_corrections
+    else
+      my_enable_cell_corrections = phi%enable_cell_corrections
+    end if
+
+    call get_local_num_cells(mesh, local_num_cells)
+    allocate(x_gradients(local_num_cells))
+    allocate(y_gradients(local_num_cells))
+    allocate(z_gradients(local_num_cells))
 
     call dprint("Compute x gradient")
-    call update_gradient_component(mesh, 1, phi, phi%x_gradients)
-    call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(mesh, 1, my_enable_cell_corrections, phi, x_gradients)
     call dprint("Compute y gradient")
-    call update_gradient_component(mesh, 2, phi, phi%y_gradients)
-    call update(phi%y_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(mesh, 2, my_enable_cell_corrections, phi, y_gradients)
     call dprint("Compute z gradient")
-    call update_gradient_component(mesh, 3, phi, phi%z_gradients)
-    call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(mesh, 3, my_enable_cell_corrections, phi, z_gradients)
+
+    call get_vector_data(phi%x_gradients, gradients_data)
+    gradients_data(1:local_num_cells) = x_gradients(:)
+    call restore_vector_data(phi%x_gradients, gradients_data)
+    call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+
+    call get_vector_data(phi%y_gradients, gradients_data)
+    gradients_data(1:local_num_cells) = y_gradients(:)
+    call restore_vector_data(phi%y_gradients, gradients_data)
+    call update(phi%y_gradients) ! yyy: opportunity to overlap update with later compute (begin/compute/end)
+
+    call get_vector_data(phi%z_gradients, gradients_data)
+    gradients_data(1:local_num_cells) = z_gradients(:)
+    call restore_vector_data(phi%z_gradients, gradients_data)
+    call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
+
 
   end subroutine update_gradient
 
   !> Helper subroutine to calculate a gradient component at a time.
-  subroutine update_gradient_component(mesh, component, phi, gradients)
+  subroutine update_gradient_component(mesh, component, enable_cell_corrections, phi, gradients)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
+    logical, intent(in) :: enable_cell_corrections
     class(field), intent(inout) :: phi !< the field whose gradient we want to compute
-    class(ccs_vector), intent(inout) :: gradients !< a cell-centred array of the gradient
+    real(ccs_real), dimension(:), intent(inout) :: gradients !< a cell-centred array of the gradient
 
-    type(vector_values) :: grad_values
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: grad
 
@@ -771,12 +804,10 @@ contains
     call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
     call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
     call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
-    call create_vector_values(1_ccs_int, grad_values)
-    call set_mode(insert_mode, grad_values)
+    call get_vector_data_readonly(phi%values, phi_data)
 
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-      call clear_entries(grad_values)
 
       grad = 0.0_ccs_int
 
@@ -791,12 +822,11 @@ contains
         call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
-          call get_vector_data_readonly(phi%values, phi_data)
           !call get_face_interpolation(loc_f, interpol_factor)
           interpol_factor = 0.5_ccs_real
           phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
 
-          if (phi%enable_cell_corrections) then
+          if (enable_cell_corrections) then
             call get_face_normal(loc_f, n)
             call get_centre(loc_p, x_p)
             call get_centre(loc_nb, x_nb)
@@ -812,7 +842,6 @@ contains
             phif = phif + 0.5_ccs_real*(dot_product(grad_phi_nb, rnb_k_prime - x_nb) + dot_product(grad_phi_p, rp_prime - x_p))
           end if
 
-          call restore_vector_data_readonly(phi%values, phi_data)
         else
           call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif)
         end if
@@ -822,19 +851,13 @@ contains
 
       call get_volume(loc_p, V)
       grad = grad / V
-
-      call get_global_index(loc_p, global_index_p)
-      call set_row(global_index_p, grad_values)
-      call set_entry(grad, grad_values)
-      call set_values(grad_values, gradients)
+      gradients(index_p) = grad
     end do
 
+    call restore_vector_data_readonly(phi%values, phi_data)
     call restore_vector_data_readonly(phi%x_gradients, x_gradients_data)
     call restore_vector_data_readonly(phi%y_gradients, y_gradients_data)
     call restore_vector_data_readonly(phi%z_gradients, z_gradients_data)
-
-    deallocate (grad_values%global_indices)
-    deallocate (grad_values%values)
 
   end subroutine update_gradient_component
 
