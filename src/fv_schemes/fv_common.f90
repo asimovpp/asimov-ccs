@@ -96,6 +96,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
+    real(ccs_real) :: SchmidtNo
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
@@ -132,9 +133,10 @@ contains
 
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, index_f)
+        SchmidtNo = phi%Schmidt
 
         if (.not. is_boundary) then
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, vis(index_p), vis(index_nb),0)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, vis(index_p), vis(index_nb), SchmidtNo, 0)
           !pass viscosity into this subroutine
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
@@ -192,7 +194,7 @@ contains
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, vis(index_p), vis(index_nb), index_nb)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, vis(index_p), vis(index_nb), SchmidtNo, index_nb)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
 
@@ -402,7 +404,7 @@ contains
   end subroutine
 
   !> Sets the diffusion coefficient
-  module function calc_diffusion_coeff(index_p, index_nb, mesh, visp, visnb, bc) result(coeff)
+  module function calc_diffusion_coeff(index_p, index_nb, mesh, visp, visnb, SchmidtNo, bc) result(coeff)
     integer(ccs_int), intent(in) :: index_p  !< the local cell index
     integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
     type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
@@ -419,8 +421,7 @@ contains
     real(ccs_real) :: dxmag
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    type(field):: Schmidt_No 
-    real(ccs_real) :: Schmidt_data
+    real(ccs_real) :: SchmidtNo
     real(ccs_real) :: visavg !< average viscosity
     real(ccs_real), parameter :: density = 1.0_ccs_real 
 
@@ -430,10 +431,6 @@ contains
     call get_boundary_status(loc_f, is_boundary)
 
     call create_cell_locator(mesh, index_p, loc_p)
-
-    !call get_vector_data()
-    Schmidt_data = Schmidt_No%Schmidt
-    !print*,"schmidt no=",Schmidt_data
 
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
@@ -445,12 +442,12 @@ contains
 
     if (bc == 0) then
       visavg = 0.5_ccs_real * (visp + visnb)
-      diffusion_factor = visavg / (density * Schmidt_data)
+      diffusion_factor = visavg / (density * SchmidtNo)
       !diffusion_factor = 0.5_ccs_real*(visp + visnb)
       !print*,"bc=0, diff factor=", diffusion_factor
     else
       visavg = visp
-      diffusion_factor = visavg / (density * Schmidt_data)
+      diffusion_factor = visavg / (density * SchmidtNo)
       !diffusion_factor = visp
       !print*,"bc!=0, diff factor=", diffusion_factor
     end if
