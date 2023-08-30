@@ -145,9 +145,10 @@ module fv
     !v Performs an update of the gradients of a field.
     !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
     !  correctly updated on other PEs. @endnote
-    module subroutine update_gradient(mesh, phi)
+    module subroutine update_gradient(mesh, phi, enable_cell_corrections)
       type(ccs_mesh), intent(in) :: mesh !< the mesh
       class(field), intent(inout) :: phi !< the field whose gradients we want to update
+      logical, optional, intent(in) :: enable_cell_corrections
     end subroutine update_gradient
 
     !> Computes the value of the scalar field on the boundary
