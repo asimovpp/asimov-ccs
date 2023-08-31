@@ -400,7 +400,7 @@ contains
       b = 0.0_ccs_real
     case (bc_type_neumann)
       call get_distance(loc_p, loc_f, dx)
-      dxmag = sqrt(sum(dx**2))
+      dxmag = norm2(dx)
 
       a = 1.0_ccs_real
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
@@ -491,12 +491,14 @@ contains
         call get_centre(loc_nb, x_nb)
         call get_centre(loc_f, x_f)
 
+        ! see math below, but it works because ||n||=1 and points outwards
         a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        dxmag = 2.0_ccs_real * a
+
         !rnb_k_prime = x_f + a*n
         !rp_prime = x_f - a*n
         !dx = rnb_k_prime - rp_prime 
         !dxmag = norm2(dx)
-        dxmag = abs(2.0_ccs_real * a)
       else
         call get_distance(loc_p, loc_nb, dx)
         dxmag = norm2(dx)
@@ -528,11 +530,17 @@ contains
     type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
     integer(ccs_int) :: index_nb                   ! Neighbour cell index
     real(ccs_real) :: flux_corr                    ! Flux correction
-    real(ccs_real), dimension(ndim) :: face_normal ! (local) face-normal array
+    real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
     real(ccs_real) :: u_bc, v_bc, w_bc             ! values of u, v and w at boundary
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data ! the vector data for u, v and w
+    real(ccs_real), dimension(:), pointer :: data  ! the vector data for u, v and w
+    real(ccs_real), dimension(:), pointer :: x_gradients_data
+    real(ccs_real), dimension(:), pointer :: y_gradients_data
+    real(ccs_real), dimension(:), pointer :: z_gradients_data
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
     real(ccs_real) :: interpol_factor
+    real(ccs_real), dimension(ndim) :: grad_phi_p, grad_phi_nb
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
+    real(ccs_real) :: flux_x, flux_y, flux_z, a
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -544,23 +552,83 @@ contains
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
-      call get_face_normal(loc_f, face_normal)
+      call get_face_normal(loc_f, n)
+      ! XXX: this is likely expensive inside a loop...
       if (.not. is_boundary) then
 
-        ! XXX: this is likely expensive inside a loop...
-        call get_vector_data_readonly(u_field%values, u_data)
-        call get_vector_data_readonly(v_field%values, v_data)
-        call get_vector_data_readonly(w_field%values, w_data)
-
         call get_face_interpolation(loc_f, interpol_factor)
+        call get_centre(loc_p, x_p)
+        call get_centre(loc_nb, x_nb)
+        call get_centre(loc_f, x_f)
 
-        flux = ((interpol_factor * u_data(index_p) + (1.0_ccs_real - interpol_factor) * u_data(index_nb)) * face_normal(x_direction) &
-              + (interpol_factor * v_data(index_p) + (1.0_ccs_real - interpol_factor) * v_data(index_nb)) * face_normal(y_direction) &
-              + (interpol_factor * w_data(index_p) + (1.0_ccs_real - interpol_factor) * w_data(index_nb)) * face_normal(z_direction))
+        a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        x_nb_prime = x_f + a*n
+        x_p_prime = x_f - a*n
 
-        call restore_vector_data_readonly(u_field%values, u_data)
-        call restore_vector_data_readonly(v_field%values, v_data)
-        call restore_vector_data_readonly(w_field%values, w_data)
+        ! X component
+        call get_vector_data_readonly(u_field%values, data)
+        if (u_field%enable_cell_corrections .and. enable_cell_corrections) then
+          call get_vector_data_readonly(u_field%x_gradients, x_gradients_data)
+          call get_vector_data_readonly(u_field%y_gradients, y_gradients_data)
+          call get_vector_data_readonly(u_field%z_gradients, z_gradients_data)
+
+          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
+          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+
+          call restore_vector_data_readonly(u_field%x_gradients, x_gradients_data)
+          call restore_vector_data_readonly(u_field%y_gradients, y_gradients_data)
+          call restore_vector_data_readonly(u_field%z_gradients, z_gradients_data)
+
+          flux_x = 0.5_ccs_real * (data(index_p) + dot_product(grad_phi_p, x_p_prime - x_p))
+          flux_x = flux_x + 0.5_ccs_real * (data(index_nb) + dot_product(grad_phi_nb, x_nb_prime - x_nb))
+        else
+          flux_x = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
+        end if
+        call restore_vector_data_readonly(u_field%values, data)
+
+        ! Y component
+        call get_vector_data_readonly(v_field%values, data)
+        if (v_field%enable_cell_corrections .and. enable_cell_corrections) then
+          call get_vector_data_readonly(v_field%x_gradients, x_gradients_data)
+          call get_vector_data_readonly(v_field%y_gradients, y_gradients_data)
+          call get_vector_data_readonly(v_field%z_gradients, z_gradients_data)
+
+          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
+          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+
+          call restore_vector_data_readonly(v_field%x_gradients, x_gradients_data)
+          call restore_vector_data_readonly(v_field%y_gradients, y_gradients_data)
+          call restore_vector_data_readonly(v_field%z_gradients, z_gradients_data)
+
+          flux_y = 0.5_ccs_real * (data(index_p) + dot_product(grad_phi_p, x_p_prime - x_p))
+          flux_y = flux_y + 0.5_ccs_real * (data(index_nb) + dot_product(grad_phi_nb, x_nb_prime - x_nb))
+        else
+          flux_y = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
+        end if
+        call restore_vector_data_readonly(v_field%values, data)
+        
+        ! Z component
+        call get_vector_data_readonly(w_field%values, data)
+        if (w_field%enable_cell_corrections .and. enable_cell_corrections) then
+          call get_vector_data_readonly(w_field%x_gradients, x_gradients_data)
+          call get_vector_data_readonly(w_field%y_gradients, y_gradients_data)
+          call get_vector_data_readonly(w_field%z_gradients, z_gradients_data)
+
+          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
+          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+
+          call restore_vector_data_readonly(w_field%x_gradients, x_gradients_data)
+          call restore_vector_data_readonly(w_field%y_gradients, y_gradients_data)
+          call restore_vector_data_readonly(w_field%z_gradients, z_gradients_data)
+
+          flux_z = 0.5_ccs_real * (data(index_p) + dot_product(grad_phi_p, x_p_prime - x_p))
+          flux_z = flux_z + 0.5_ccs_real * (data(index_nb) + dot_product(grad_phi_nb, x_nb_prime - x_nb))
+        else
+          flux_z = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
+        end if
+        call restore_vector_data_readonly(w_field%values, data)
+
+        flux = dot_product((/flux_x, flux_y, flux_z/), n)
 
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
@@ -570,10 +638,10 @@ contains
         flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections)
         flux = flux + flux_corr
       else
-        call compute_boundary_values(u_field, x_direction, loc_p, loc_f, face_normal, u_bc)
-        call compute_boundary_values(v_field, y_direction, loc_p, loc_f, face_normal, v_bc)
-        call compute_boundary_values(w_field, z_direction, loc_p, loc_f, face_normal, w_bc)
-        flux = u_bc * face_normal(x_direction) + v_bc * face_normal(y_direction) + w_bc * face_normal(z_direction)
+        call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
+        call compute_boundary_values(v_field, y_direction, loc_p, loc_f, n, v_bc)
+        call compute_boundary_values(w_field, z_direction, loc_p, loc_f, n, w_bc)
+        flux = dot_product((/u_bc, v_bc, w_bc/), n)
       end if
     end associate
 
@@ -648,7 +716,7 @@ contains
           rp_prime = x_f - a*n
           !dx = rnb_k_prime - rp_prime 
           !dxmag = norm2(dx)
-          dxmag = abs(2.0_ccs_real * a)
+          dxmag = 2.0_ccs_real * a
 
           ! eq 9.66
           flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
@@ -659,7 +727,7 @@ contains
           flux_corr = - flux_corr / dxmag
         else
           call get_distance(loc_p, loc_nb, dx)
-          dxmag = sqrt(sum(dx**2))
+          dxmag = norm2(dx)
           flux_corr = -(p(index_nb) - p(index_p)) / dxmag
 
           flux_corr = flux_corr + ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
