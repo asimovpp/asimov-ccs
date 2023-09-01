@@ -221,6 +221,14 @@ contains
     integer(ccs_err) :: ierr
     integer :: shared_comm
 
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      shared_comm = shared_env%comm
+    class default
+      shared_comm = -42
+      call error_abort("Unsupported shared environment")
+    end select
+
     ! Read attribute "ncel" - the total number of cells
     if (is_valid(reader_env)) then
       call read_scalar(geo_reader, "ncel", topo%global_num_cells)
