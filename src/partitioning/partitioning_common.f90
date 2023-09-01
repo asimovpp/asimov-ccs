@@ -643,7 +643,7 @@ contains
     
   end subroutine compute_partitioner_input_generic
 
-  module subroutine compute_partitioner_input_generic_topo(par_env, shared_env, topo)
+  subroutine compute_partitioner_input_generic_topo(par_env, shared_env, topo)
 
     use iso_fortran_env, only: int32
 
