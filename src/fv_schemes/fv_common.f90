@@ -87,6 +87,7 @@ contains
     real(ccs_real) :: interpol_factor
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime, x_f_prime
     real(ccs_real), dimension(ndim) :: n
+    real(ccs_real) :: face_value, face_correction_only
 
     logical :: is_boundary
 
@@ -183,6 +184,9 @@ contains
           aP = aP - sgn * mf(index_f) * face_area
           hoe = aP * phi_data(index_p) + aF * phi_data(index_nb)
 
+          ! Excentricity correction (convective term) (sec 9.7.1)
+          call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
+          hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
 
           if (phi%enable_cell_corrections) then
             call get_face_normal(loc_f, n)
@@ -202,9 +206,7 @@ contains
             ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
             ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
             !hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
-
-            ! Excentricity correction (convective term) (sec 9.7.1)
-            hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
+            !hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
 
 
             ! Non-orthogonality correction (diffusive flux) (sec 9.7.2)
@@ -511,6 +513,76 @@ contains
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 
+  !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field
+  ! spec) using sec 9.7.1
+  subroutine interpolate_field_to_face(data_field, loc_f, face_value, face_correction_only)
+
+    class(field), intent(inout) :: data_field
+    type(face_locator), intent(in) :: loc_f                         !< face locator
+    real(ccs_real), intent(out) :: face_value
+    real(ccs_real), optional, intent(out) :: face_correction_only
+
+    real(ccs_real) :: face_correction
+    type(cell_locator) :: loc_p                    ! Primary cell locator
+    type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
+    integer(ccs_int) :: index_nb                   ! Neighbour cell index
+    real(ccs_real), dimension(:), pointer :: data
+    real(ccs_real), dimension(:), pointer :: x_gradients_data
+    real(ccs_real), dimension(:), pointer :: y_gradients_data
+    real(ccs_real), dimension(:), pointer :: z_gradients_data
+    real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
+    real(ccs_real), dimension(ndim) :: grad_phi_p, grad_phi_nb
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
+    real(ccs_real) :: interpol_factor, a
+
+
+    associate (mesh => loc_f%mesh, &
+               index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
+
+      call create_cell_locator(mesh, index_p, loc_p)
+      call create_neighbour_locator(loc_p, j, loc_nb)
+      call get_local_index(loc_nb, index_nb)
+      call get_face_normal(loc_f, n)
+
+      call get_vector_data_readonly(data_field%values, data)
+      if (data_field%enable_cell_corrections) then
+        call get_centre(loc_p, x_p)
+        call get_centre(loc_nb, x_nb)
+        call get_centre(loc_f, x_f)
+
+        a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        x_nb_prime = x_f + a*n
+        x_p_prime = x_f - a*n
+
+        call get_vector_data_readonly(data_field%x_gradients, x_gradients_data)
+        call get_vector_data_readonly(data_field%y_gradients, y_gradients_data)
+        call get_vector_data_readonly(data_field%z_gradients, z_gradients_data)
+
+        grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
+        grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+
+        call restore_vector_data_readonly(data_field%x_gradients, x_gradients_data)
+        call restore_vector_data_readonly(data_field%y_gradients, y_gradients_data)
+        call restore_vector_data_readonly(data_field%z_gradients, z_gradients_data)
+
+        face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
+        face_value = 0.5_ccs_real * (data(index_p) + data(index_nb)) + face_correction
+      else
+        call get_face_interpolation(loc_f, interpol_factor)
+        face_correction = 0.0_ccs_real
+        face_value = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
+      end if
+      call restore_vector_data_readonly(data_field%values, data)
+
+      if (present(face_correction_only)) then
+        face_correction_only = face_correction
+      end if
+
+    end associate
+
+  end subroutine
+
   !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
   module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
     class(field), intent(inout) :: u_field
@@ -556,78 +628,9 @@ contains
       ! XXX: this is likely expensive inside a loop...
       if (.not. is_boundary) then
 
-        call get_face_interpolation(loc_f, interpol_factor)
-        call get_centre(loc_p, x_p)
-        call get_centre(loc_nb, x_nb)
-        call get_centre(loc_f, x_f)
-
-        a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-        x_nb_prime = x_f + a*n
-        x_p_prime = x_f - a*n
-
-        ! X component
-        call get_vector_data_readonly(u_field%values, data)
-        if (u_field%enable_cell_corrections .and. enable_cell_corrections) then
-          call get_vector_data_readonly(u_field%x_gradients, x_gradients_data)
-          call get_vector_data_readonly(u_field%y_gradients, y_gradients_data)
-          call get_vector_data_readonly(u_field%z_gradients, z_gradients_data)
-
-          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
-          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
-
-          call restore_vector_data_readonly(u_field%x_gradients, x_gradients_data)
-          call restore_vector_data_readonly(u_field%y_gradients, y_gradients_data)
-          call restore_vector_data_readonly(u_field%z_gradients, z_gradients_data)
-
-          flux_x = 0.5_ccs_real * (data(index_p) + dot_product(grad_phi_p, x_p_prime - x_p))
-          flux_x = flux_x + 0.5_ccs_real * (data(index_nb) + dot_product(grad_phi_nb, x_nb_prime - x_nb))
-        else
-          flux_x = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
-        end if
-        call restore_vector_data_readonly(u_field%values, data)
-
-        ! Y component
-        call get_vector_data_readonly(v_field%values, data)
-        if (v_field%enable_cell_corrections .and. enable_cell_corrections) then
-          call get_vector_data_readonly(v_field%x_gradients, x_gradients_data)
-          call get_vector_data_readonly(v_field%y_gradients, y_gradients_data)
-          call get_vector_data_readonly(v_field%z_gradients, z_gradients_data)
-
-          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
-          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
-
-          call restore_vector_data_readonly(v_field%x_gradients, x_gradients_data)
-          call restore_vector_data_readonly(v_field%y_gradients, y_gradients_data)
-          call restore_vector_data_readonly(v_field%z_gradients, z_gradients_data)
-
-          flux_y = 0.5_ccs_real * (data(index_p) + dot_product(grad_phi_p, x_p_prime - x_p))
-          flux_y = flux_y + 0.5_ccs_real * (data(index_nb) + dot_product(grad_phi_nb, x_nb_prime - x_nb))
-        else
-          flux_y = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
-        end if
-        call restore_vector_data_readonly(v_field%values, data)
-        
-        ! Z component
-        call get_vector_data_readonly(w_field%values, data)
-        if (w_field%enable_cell_corrections .and. enable_cell_corrections) then
-          call get_vector_data_readonly(w_field%x_gradients, x_gradients_data)
-          call get_vector_data_readonly(w_field%y_gradients, y_gradients_data)
-          call get_vector_data_readonly(w_field%z_gradients, z_gradients_data)
-
-          grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
-          grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
-
-          call restore_vector_data_readonly(w_field%x_gradients, x_gradients_data)
-          call restore_vector_data_readonly(w_field%y_gradients, y_gradients_data)
-          call restore_vector_data_readonly(w_field%z_gradients, z_gradients_data)
-
-          flux_z = 0.5_ccs_real * (data(index_p) + dot_product(grad_phi_p, x_p_prime - x_p))
-          flux_z = flux_z + 0.5_ccs_real * (data(index_nb) + dot_product(grad_phi_nb, x_nb_prime - x_nb))
-        else
-          flux_z = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
-        end if
-        call restore_vector_data_readonly(w_field%values, data)
-
+        call interpolate_field_to_face(u_field, loc_f, flux_x)
+        call interpolate_field_to_face(v_field, loc_f, flux_y)
+        call interpolate_field_to_face(w_field, loc_f, flux_z)
         flux = dot_product((/flux_x, flux_y, flux_z/), n)
 
         if (index_p > index_nb) then
