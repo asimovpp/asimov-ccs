@@ -106,8 +106,10 @@ module meshing
   end interface get_distance
 
   interface get_local_num_cells
-    module procedure get_local_num_cells_int
-    module procedure get_local_num_cells_long
+    module procedure get_local_num_cells_mesh_int
+    module procedure get_local_num_cells_mesh_long
+    module procedure get_local_num_cells_topo_int
+    module procedure get_local_num_cells_topo_long
   end interface get_local_num_cells
 
   interface set_centre
@@ -440,17 +442,29 @@ module meshing
     end subroutine set_local_num_cells_topo
 
     !> Gets the mesh local cell count.
-    module subroutine get_local_num_cells_int(mesh, local_num_cells)
+    module subroutine get_local_num_cells_mesh_int(mesh, local_num_cells)
       type(ccs_mesh), intent(in) :: mesh               !< The mesh
       integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
-    end subroutine get_local_num_cells_int
+    end subroutine get_local_num_cells_mesh_int
     !v Gets the mesh local cell count.
     !
     !  Handles case when using a long integer to access the internal mesh data.
-    module subroutine get_local_num_cells_long(mesh, local_num_cells)
+    module subroutine get_local_num_cells_mesh_long(mesh, local_num_cells)
       type(ccs_mesh), intent(in) :: mesh                !< The mesh
       integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
-    end subroutine get_local_num_cells_long
+    end subroutine get_local_num_cells_mesh_long
+    !> Gets the mesh local cell count.
+    module subroutine get_local_num_cells_topo_int(topo, local_num_cells)
+      type(topology), intent(in) :: topo               !< The mesh topology
+      integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
+    end subroutine get_local_num_cells_topo_int
+    !v Gets the mesh local cell count.
+    !
+    !  Handles case when using a long integer to access the internal mesh data.
+    module subroutine get_local_num_cells_topo_long(topo, local_num_cells)
+      type(topology), intent(in) :: topo                !< The mesh topology
+      integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
+    end subroutine get_local_num_cells_topo_long
 
     !> Sets the mesh total cell count.
     module subroutine set_total_num_cells_mesh(total_num_cells, mesh)

@@ -28,26 +28,48 @@ contains
   end subroutine set_local_num_cells_topo
 
   !> Gets the mesh local cell count.
-  module subroutine get_local_num_cells_int(mesh, local_num_cells)
+  module subroutine get_local_num_cells_mesh_int(mesh, local_num_cells)
 
     type(ccs_mesh), intent(in) :: mesh               !< The mesh
     integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
 
-    local_num_cells = mesh%topo%local_num_cells
+    call get_local_num_cells_topo_int(mesh%topo, local_num_cells)
 
-  end subroutine get_local_num_cells_int
+  end subroutine get_local_num_cells_mesh_int
+
+  !> Gets the mesh local cell count.
+  module subroutine get_local_num_cells_topo_int(topo, local_num_cells)
+
+    type(topology), intent(in) :: topo               !< The mesh topology
+    integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
+
+    local_num_cells = topo%local_num_cells
+
+  end subroutine get_local_num_cells_topo_int
 
   !v Gets the mesh local cell count.
   !
   !  Handles case when using a long integer to access the internal mesh data.
-  module subroutine get_local_num_cells_long(mesh, local_num_cells)
+  module subroutine get_local_num_cells_mesh_long(mesh, local_num_cells)
 
     type(ccs_mesh), intent(in) :: mesh                !< The mesh
     integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
 
-    local_num_cells = int(mesh%topo%local_num_cells, ccs_long)
+    call get_local_num_cells_topo_long(mesh%topo, local_num_cells)
 
-  end subroutine get_local_num_cells_long
+  end subroutine get_local_num_cells_mesh_long
+
+  !v Gets the mesh local cell count.
+  !
+  !  Handles case when using a long integer to access the internal mesh data.
+  module subroutine get_local_num_cells_topo_long(topo, local_num_cells)
+
+    type(topology), intent(in) :: topo                !< The mesh topology
+    integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
+
+    local_num_cells = int(topo%local_num_cells, ccs_long)
+
+  end subroutine get_local_num_cells_topo_long
 
   !> Sets the mesh total cell count.
   module subroutine set_total_num_cells_mesh(total_num_cells, mesh)

@@ -635,11 +635,21 @@ contains
 
   module subroutine compute_partitioner_input_generic(par_env, shared_env, mesh)
 
-    use iso_fortran_env, only: int32
-
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+
+    call compute_partitioner_input_generic_topo(par_env, shared_env, mesh%topo)
+    
+  end subroutine compute_partitioner_input_generic
+
+  module subroutine compute_partitioner_input_generic_topo(par_env, shared_env, topo)
+
+    use iso_fortran_env, only: int32
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    type(topology), target, intent(inout) :: topo                              !< The mesh for which to compute the parition
 
     ! Local variables
     integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
@@ -659,59 +669,59 @@ contains
     irank = par_env%proc_id
     isize = par_env%num_procs
 
-    start_index = int(mesh%topo%graph_conn%vtxdist(irank + 1), int32)
-    end_index = int(mesh%topo%graph_conn%vtxdist(irank + 2), int32) - 1
+    start_index = int(topo%graph_conn%vtxdist(irank + 1), int32)
+    end_index = int(topo%graph_conn%vtxdist(irank + 2), int32) - 1
 
     ! Allocate global partition array
-    global_num_cells_shared_size = mesh%topo%global_num_cells
+    global_num_cells_shared_size = topo%global_num_cells
 
-    call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%graph_conn%global_partition, mesh%topo%graph_conn%global_partition_window)
+    call create_shared_array(shared_env, global_num_cells_shared_size, topo%graph_conn%global_partition, topo%graph_conn%global_partition_window)
 
     ! Initial global partition
     if (is_root(shared_env)) then
-      do i = 1, size(mesh%topo%graph_conn%vtxdist) - 1
+      do i = 1, size(topo%graph_conn%vtxdist) - 1
         j = i - 1
-        mesh%topo%graph_conn%global_partition(mesh%topo%graph_conn%vtxdist(i):mesh%topo%graph_conn%vtxdist(i + 1) - 1) = j
+        topo%graph_conn%global_partition(topo%graph_conn%vtxdist(i):topo%graph_conn%vtxdist(i + 1) - 1) = j
       end do
     end if
 
     call sync(shared_env)
 
     ! Count the number of local cells per rank
-    local_num_cells = count(mesh%topo%graph_conn%global_partition == irank)
-    call set_local_num_cells(local_num_cells, mesh)
-    call get_local_num_cells(mesh, local_num_cells) ! Ensure using true value
+    local_num_cells = count(topo%graph_conn%global_partition == irank)
+    call set_local_num_cells(local_num_cells, topo)
+    call get_local_num_cells(topo, local_num_cells) ! Ensure using true value
     call dprint("Initial number of local cells: " // str(local_num_cells))
 
     ! Allocate adjacency index array xadj based on vtxdist
-    allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
+    allocate (topo%graph_conn%xadj(topo%graph_conn%vtxdist(irank + 2) - topo%graph_conn%vtxdist(irank + 1) + 1))
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), mesh%topo%max_faces + 1))
+    allocate (tmp_int2d(topo%graph_conn%vtxdist(irank + 2) - topo%graph_conn%vtxdist(irank + 1), topo%max_faces + 1))
     tmp_int2d = 0
 
     ! All ranks loop over all the faces
-    do i = 1, mesh%topo%global_num_faces
+    do i = 1, topo%global_num_faces
 
-      face_nb1 = mesh%topo%face_cell1(i)
-      face_nb2 = mesh%topo%face_cell2(i)
+      face_nb1 = topo%face_cell1(i)
+      face_nb2 = topo%face_cell2(i)
 
       ! If face neighbour 1 is local to the current rank
       ! and face neighbour 2 is not 0
       if (face_nb1 .ge. start_index .and. face_nb1 .le. end_index .and. face_nb2 .ne. 0) then
         local_index = face_nb1 - start_index + 1                 ! Local cell index
-        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+        k = tmp_int2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
         tmp_int2d(local_index, k) = face_nb2                       ! Store global index of neighbour cell
-        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
+        tmp_int2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
       end if
 
       ! If face neighbour 2 is local to the current rank
       ! and face neighbour 1 is not 0
       if (face_nb2 .ge. start_index .and. face_nb2 .le. end_index .and. face_nb1 .ne. 0) then
         local_index = face_nb2 - start_index + 1                 ! Local cell index
-        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
+        k = tmp_int2d(local_index, topo%max_faces + 1) + 1  ! Increment number of faces for this cell
         tmp_int2d(local_index, k) = face_nb1                       ! Store global index of neighbour cell
-        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
+        tmp_int2d(local_index, topo%max_faces + 1) = k      ! Store number of faces for this cell
       end if
 
       ! If face neighbour 2 is 0 we have a boundary face
@@ -720,47 +730,46 @@ contains
 
     end do
 
-    num_connections = sum(tmp_int2d(:, mesh%topo%max_faces + 1))
+    num_connections = sum(tmp_int2d(:, topo%max_faces + 1))
     call dprint("Initial number of connections: " // str(num_connections))
 
     ! Allocate adjncy array based on the number of computed connections
-    allocate (mesh%topo%graph_conn%adjncy(num_connections))
+    allocate (topo%graph_conn%adjncy(num_connections))
     ! Allocate local partition array
-    allocate (mesh%topo%graph_conn%local_partition(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1)))
+    allocate (topo%graph_conn%local_partition(topo%graph_conn%vtxdist(irank + 2) - topo%graph_conn%vtxdist(irank + 1)))
 
     local_index = 1
 
     do i = 1, end_index - start_index + 1  ! Loop over local cells
 
-      mesh%topo%graph_conn%xadj(i) = local_index                          ! Pointer to start of current
+      topo%graph_conn%xadj(i) = local_index                          ! Pointer to start of current
 
-      do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)               ! Loop over number of faces
-        mesh%topo%graph_conn%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
-        if (mesh%topo%graph_conn%global_partition(tmp_int2d(i, j)) /= irank) then
-          mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
+      do j = 1, tmp_int2d(i, topo%max_faces + 1)               ! Loop over number of faces
+        topo%graph_conn%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
+        if (topo%graph_conn%global_partition(tmp_int2d(i, j)) /= irank) then
+          topo%halo_num_cells = topo%halo_num_cells + 1
         end if
       end do
 
-      local_index = local_index + tmp_int2d(i, mesh%topo%max_faces + 1)
-      mesh%topo%graph_conn%xadj(i + 1) = local_index
+      local_index = local_index + tmp_int2d(i, topo%max_faces + 1)
+      topo%graph_conn%xadj(i + 1) = local_index
 
     end do
 
-    call dprint("Initial number of halo cells: " // str(mesh%topo%halo_num_cells))
+    call dprint("Initial number of halo cells: " // str(topo%halo_num_cells))
 
-    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
+    topo%total_num_cells = local_num_cells + topo%halo_num_cells
 
-    call dprint("Total number of cells (local + halo): " // str(mesh%topo%total_num_cells))
+    call dprint("Total number of cells (local + halo): " // str(topo%total_num_cells))
 
     ! Allocate weight arrays
-    allocate (mesh%topo%graph_conn%adjwgt(num_connections))
+    allocate (topo%graph_conn%adjwgt(num_connections))
     ! Allocate local partition array
-    allocate (mesh%topo%graph_conn%vwgt(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1)))
+    allocate (topo%graph_conn%vwgt(topo%graph_conn%vtxdist(irank + 2) - topo%graph_conn%vtxdist(irank + 1)))
 
     deallocate (tmp_int2d)
 
-  end subroutine compute_partitioner_input_generic
-
+  end subroutine compute_partitioner_input_generic_topo
 
   !v Deallocate partitioner data structures associated with the mesh
   module subroutine cleanup_partitioner_data(shared_env, mesh)
