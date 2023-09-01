@@ -157,6 +157,9 @@ contains
   ! "nfac" - the total number of faces
   ! "maxfaces" - the maximum number of faces per cell
   ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
+  !
+  ! This high-level interface zeroes the topology object contained by the mesh before calling the
+  ! lower-level routine to read the topology object and building the vertext neighbours.
   subroutine read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
@@ -182,6 +185,15 @@ contains
 
   end subroutine read_topology
 
+  !v Read the topology data from an input (HDF5) file
+  ! This subroutine assumes the following names are used in the file:
+  ! "ncel" - the total number of cells
+  ! "nfac" - the total number of faces
+  ! "maxfaces" - the maximum number of faces per cell
+  ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
+  !
+  ! This lower-level subroutine works directly with the topology object, as indicated by the `_topo`
+  ! suffix.
   subroutine read_topology_topo(par_env, shared_env, reader_env, geo_reader, topo)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
