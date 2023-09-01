@@ -57,7 +57,6 @@ module poiseuille_core
     character(len=:), allocatable :: input_path  ! Path to input directory
     character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
     character(len=:), allocatable :: ccs_config_file ! Config file for CCS
-    character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
     type(ccs_mesh) :: mesh
 
@@ -230,7 +229,7 @@ module poiseuille_core
     call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
 
-    call calc_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+    call calc_error(par_env, mesh, u, v, p, error_L2, error_Linf)
     call write_solution(par_env, case_path, mesh, output_list)
 
     ! Clean-up
@@ -502,7 +501,7 @@ module poiseuille_core
 
   end subroutine
   
-  subroutine calc_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+  subroutine calc_error(par_env, mesh, u, v, p, error_L2, error_Linf)
 
     use constants, only: ndim
     use types, only: cell_locator
@@ -518,7 +517,7 @@ module poiseuille_core
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, p
+    class(field), intent(inout) :: u, v, p
     real(ccs_real), dimension(3), intent(out) :: error_L2
     real(ccs_real), dimension(3), intent(out) :: error_Linf
 
@@ -526,7 +525,7 @@ module poiseuille_core
     real(ccs_real), dimension(3) :: error_Linf_local
 
     real(ccs_real) :: u_an, v_an, p_an
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, p_data
 
     real(ccs_real) :: mu, rho, nu, x, y
 

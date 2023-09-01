@@ -583,7 +583,7 @@ contains
 
   end subroutine
 
-  !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
+  !> Calculates mass flux across given face. Note: assumes rho = 1
   module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
     class(field), intent(inout) :: u_field
     class(field), intent(inout) :: v_field
@@ -704,15 +704,15 @@ contains
         call get_face_interpolation(loc_f, interpol_factor)
         call get_face_normal(loc_f, face_normal)
 
+        grad_phi_p = (/ dpdx(index_p), dpdy(index_p), dpdz(index_p) /)
+        grad_phi_nb = (/ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) /)
+
         if (enable_cell_corrections) then
           ! Cell excentricity/non-orthogonality corrections (sec 9.8, p317, eq9.67 and 9.66)
           call get_face_normal(loc_f, n)
           call get_centre(loc_p, x_p)
           call get_centre(loc_nb, x_nb)
           call get_centre(loc_f, x_f)
-
-          grad_phi_p = (/ dpdx(index_p), dpdy(index_p), dpdz(index_p) /)
-          grad_phi_nb = (/ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) /)
 
           a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
           rnb_k_prime = x_f + a*n
@@ -732,10 +732,7 @@ contains
           call get_distance(loc_p, loc_nb, dx)
           dxmag = norm2(dx)
           flux_corr = -(p(index_nb) - p(index_p)) / dxmag
-
-          flux_corr = flux_corr + ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
-                  + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
-                  + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
+          flux_corr = flux_corr + dot_product(interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb, face_normal)
         end if
 
         call get_volume(loc_p, Vp)
