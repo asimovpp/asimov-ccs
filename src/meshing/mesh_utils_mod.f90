@@ -221,6 +221,18 @@ contains
     integer(ccs_err) :: ierr
     integer :: shared_comm
 
+    call read_topology_connectivity(shared_env, reader_env, geo_reader, &
+                                    topo%global_num_faces, topo%max_faces, &
+                                    topo%face_cell1, topo%face_cell1_window, topo%face_cell2, topo%face_cell2_window)
+
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      shared_comm = shared_env%comm
+    class default
+      shared_comm = -42
+      call error_abort("Unsupported shared environment")
+    end select
+
     ! Read attribute "ncel" - the total number of cells
     if (is_valid(reader_env)) then
       call read_scalar(geo_reader, "ncel", topo%global_num_cells)
@@ -235,18 +247,12 @@ contains
     end if
 
     if (is_valid(reader_env)) then
-      ! Read attribute "nfac" - the total number of faces
-      call read_scalar(geo_reader, "nfac", topo%global_num_faces)
-      ! Read attribute "maxfaces" - the maximum number of faces per cell
-      call read_scalar(geo_reader, "maxfaces", topo%max_faces)
       ! Read attribute "nvrt" - the total number of vertices
       call read_scalar(geo_reader, "nvrt", topo%global_num_vertices)
 
       ! Read attribute "nbnd" - the total number of boundary faces
       call read_scalar(geo_reader, "nbnd", num_bnd)
     end if
-    call MPI_Bcast(topo%global_num_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
-    call MPI_Bcast(topo%max_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
     call MPI_Bcast(topo%global_num_vertices, 1, MPI_INTEGER, 0, shared_comm, ierr)
     call MPI_Bcast(num_bnd, 1, MPI_INTEGER, 0, shared_comm, ierr)
 
@@ -259,21 +265,7 @@ contains
     end if
 
     call get_global_num_faces(topo, global_num_faces)
-
-    ! Read arrays face/cell1 and face/cell2
-    call create_shared_array(shared_env, global_num_faces, topo%face_cell1, &
-                             topo%face_cell1_window)
-    call create_shared_array(shared_env, global_num_faces, topo%face_cell2, &
-                             topo%face_cell2_window)
-
-    if (is_valid(reader_env)) then
-      sel_start(1) = 0 ! Global index to start reading from
-      sel_count(1) = global_num_faces ! How many elements to read in total
-      call read_array(geo_reader, "/face/cell1", sel_start, sel_count, topo%face_cell1)
-      call read_array(geo_reader, "/face/cell2", sel_start, sel_count, topo%face_cell2)
-    end if
-    call sync(shared_env)
-
+    
     ! Read bnd data
     call create_shared_array(shared_env, global_num_faces, topo%bnd_rid, &
                              topo%bnd_rid_window)
@@ -345,6 +337,59 @@ contains
     end associate
     
   end subroutine read_topology_topo
+
+  subroutine read_topology_connectivity(shared_env, reader_env, geo_reader, &
+                                        global_num_faces, max_faces, &
+                                        face_cell1, face_cell1_window, face_cell2, face_cell2_window)
+
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
+    class(io_process) :: geo_reader                                            !< The IO process for reading the file
+    integer(ccs_int), intent(out) :: global_num_faces
+    integer(ccs_int), intent(out) :: max_faces
+    integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell1
+    integer, intent(out) :: face_cell1_window
+    integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell2
+    integer, intent(out) :: face_cell2_window
+
+    integer(ccs_long), dimension(1) :: sel_start
+    integer(ccs_long), dimension(1) :: sel_count
+    
+    integer :: shared_comm
+    integer(ccs_err) :: ierr
+    
+    select type (shared_env)
+    type is (parallel_environment_mpi)
+      shared_comm = shared_env%comm
+    class default
+      shared_comm = -42
+      call error_abort("Unsupported shared environment")
+    end select
+
+    if(is_valid(reader_env)) then
+      ! Read attribute "nfac" - the total number of faces
+      call read_scalar(geo_reader, "nfac", global_num_faces)
+      ! Read attribute "maxfaces" - the maximum number of faces per cell
+      call read_scalar(geo_reader, "maxfaces", max_faces)
+    end if
+    call MPI_Bcast(global_num_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(max_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    
+    ! Read arrays face/cell1 and face/cell2
+    call create_shared_array(shared_env, global_num_faces, face_cell1, &
+                             face_cell1_window)
+    call create_shared_array(shared_env, global_num_faces, face_cell2, &
+                             face_cell2_window)
+
+    if (is_valid(reader_env)) then
+      sel_start = 0                ! Global index to start reading from
+      sel_count = global_num_faces ! How many elements to read in total
+      call read_array(geo_reader, "/face/cell1", sel_start, sel_count, face_cell1)
+      call read_array(geo_reader, "/face/cell2", sel_start, sel_count, face_cell2)
+    end if
+    call sync(shared_env)
+    
+  end subroutine read_topology_connectivity
   
   !v Build the vertex neighbours from the cell-vertex connectivity.
   !
