@@ -20,6 +20,7 @@ module timers
   logical :: initialised = .false.
 
   public :: timer_init
+  public :: timer_reset
   public :: timer_get_index
   public :: timer_register_start
   public :: timer_register
@@ -40,6 +41,18 @@ contains
       allocate(tocks(0))
       allocate(timer_names(0))
       initialised = .true.
+    end if
+
+  end subroutine
+
+  subroutine timer_reset()
+
+    if (initialised) then
+      deallocate(has_started)
+      deallocate(ticks)
+      deallocate(tocks)
+      deallocate(timer_names)
+      initialised = .false.
     end if
 
   end subroutine
@@ -76,11 +89,15 @@ contains
     character(len=*), intent(in) :: timer_name
     integer(ccs_int), intent(out) :: timer_index
 
+    character(len=64) :: timer_name_local
+
+    timer_name_local = timer_name
+
     call timer_init()
-    call timer_get_index(timer_name, timer_index)
+    call timer_get_index(timer_name_local, timer_index)
     if (timer_index == -1) then
       timer_index = size(ticks) + 1
-      timer_names = (/ timer_names, trim(timer_name) /)
+      timer_names = (/ timer_names, timer_name_local /)
       ticks = (/ ticks, 0.d0 /)
       tocks = (/ tocks, 0.d0 /)
       has_started = (/ has_started, .false. /)
