@@ -115,7 +115,6 @@ contains
     real(ccs_real) :: dx
     integer(ccs_int) :: icell, total_num_cells, idim, icell_global
     real(ccs_real) :: disturbance
-    integer(ccs_int) :: n, i, j
     
     dx = domain_size / real(cps)
 
