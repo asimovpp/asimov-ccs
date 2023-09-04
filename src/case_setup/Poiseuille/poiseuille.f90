@@ -6,6 +6,8 @@ program poiseuille
 #include "ccs_macros.inc"
 
   use Poiseuille_core
+  use constants, only: ccs_split_type_low_high
+  use parallel, only: initialise_parallel_environment, create_new_par_env 
 
   implicit none
 
