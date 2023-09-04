@@ -41,7 +41,7 @@ program test_poiseuille_disturb_cartesian
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, cps, domain_size)
+    mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
 
     call disturb_cartesian(cps, domain_size, mesh)
 
