@@ -611,15 +611,8 @@ contains
     real(ccs_real) :: flux_corr                    ! Flux correction
     real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
     real(ccs_real) :: u_bc, v_bc, w_bc             ! values of u, v and w at boundary
-    real(ccs_real), dimension(:), pointer :: data  ! the vector data for u, v and w
-    real(ccs_real), dimension(:), pointer :: x_gradients_data
-    real(ccs_real), dimension(:), pointer :: y_gradients_data
-    real(ccs_real), dimension(:), pointer :: z_gradients_data
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
-    real(ccs_real) :: interpol_factor
-    real(ccs_real), dimension(ndim) :: grad_phi_p, grad_phi_nb
-    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
-    real(ccs_real) :: flux_x, flux_y, flux_z, a
+    real(ccs_real) :: flux_x, flux_y, flux_z
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -874,7 +867,6 @@ contains
     real(ccs_real), dimension(ndim) :: face_norm
 
     real(ccs_real) :: V
-    integer(ccs_int) :: global_index_p
 
     call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
     call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
