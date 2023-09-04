@@ -4,7 +4,7 @@ title: Poiseuille
 #  number of timesteps
 steps: 100
 #  number of iterations
-iterations: 400
+iterations: 4000
 # time step size
 dt: 1.0e-2
 
@@ -62,7 +62,7 @@ viscocity : 1.0e-3
 
 variables:
   n_variables: 5
-  enable_cell_corrections: true
+  enable_cell_corrections: false
   variable_1:
     name: u
     type: central

@@ -41,6 +41,8 @@ module poiseuille_core
   use io_visualisation, only: write_solution, reset_io_visualisation
   use fv, only: update_gradient
   use utils, only: str
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
+                    timer_print, timer_get_time, timer_print_all, timer_reset
 
   implicit none
 
@@ -75,8 +77,9 @@ module poiseuille_core
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
 
-    double precision :: start_time
-    double precision :: end_time
+    integer(ccs_int) :: timer_index_total
+    integer(ccs_int) :: timer_index_init
+    integer(ccs_int) :: timer_index_sol
 
     logical :: u_sol = .true.  ! Default equations to solve for LDC case
     logical :: v_sol = .true.
@@ -86,6 +89,7 @@ module poiseuille_core
     type(fluid) :: flow_fields
     type(fluid_solver_selector) :: fluid_sol
 
+    call timer_init()
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -99,7 +103,9 @@ module poiseuille_core
 
     ccs_config_file = case_path // ccsconfig
 
-    call timer(start_time)
+    call timer_register_start("Elapsed time", timer_index_total)
+
+    call timer_register_start("Init time", timer_index_init)
 
     ! Read case name and runtime parameters from configuration file
     call read_configuration(ccs_config_file)
@@ -221,6 +227,9 @@ module poiseuille_core
     call set_field(5, field_p_prime, p_prime, flow_fields)
     call set_field(6, field_mf, mf, flow_fields)
 
+    call timer_stop(timer_index_init)
+    call timer_register_start("Solver time inc I/O", timer_index_sol)
+
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                           fluid_sol, flow_fields)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
@@ -232,6 +241,8 @@ module poiseuille_core
     call calc_error(par_env, mesh, u, v, p, error_L2, error_Linf)
     call write_solution(par_env, case_path, mesh, output_list)
 
+    call timer_stop(timer_index_sol)
+
     ! Clean-up
     deallocate (u)
     deallocate (v)
@@ -240,15 +251,14 @@ module poiseuille_core
     deallocate (p_prime)
     deallocate (output_list)
 
+    call timer_stop(timer_index_total)
+
+    call timer_print_all(par_env)
+
     call reset_timestepping()
     call reset_outputlist_counter()
     call reset_io_visualisation()
-
-    call timer(end_time)
-
-    if (irank == par_env%root) then
-      print *, "Elapsed time: ", end_time - start_time
-    end if
+    call timer_reset()
 
   end subroutine
 
@@ -478,7 +488,7 @@ module poiseuille_core
     integer(ccs_int) :: n, i
     real(ccs_real) :: y, h, mu, P
 
-    n = 3*cps
+    n = 200*3*cps
 
     allocate(profile)
 
