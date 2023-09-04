@@ -39,7 +39,7 @@ variables:
     name: v
     type: central
   variable_3:
-    name: w
+    name: scalar
     type: central
   variable_4:
     name: p
@@ -54,57 +54,16 @@ boundaries:
     name: left
     type: dirichlet
     value: 1
-    variable_p:
-      type: extrapolate
-    variable_u:
-      type: dirichlet
-      value: 1
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
   boundary_2:
     name: right
     type: neumann
     value: 0
-    variable_p:
-      type: dirichlet
-      value: 0
-    variable_p_prime:
-      type: dirichlet
-      value: 0
   boundary_3:
     name: bottom
     type: neumann
     value: 0
-    variable_p:
-      type: dirichlet
-      value: 0
-    variable_p_prime:
-      type: dirichlet
-      value: 0
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
   boundary_4:
     name: top
     type: neumann
     value: 0
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
-
+ 

@@ -6,15 +6,16 @@ program scalar_advection
   ! ASiMoV-CCS uses
   use kinds, only: ccs_real, ccs_int
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
-                         velocity_relax, pressure_relax, res_target, case_name, &
+                         velocity_relax, pressure_relax, res_target, case_name, write_gradients, &
                          velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, field_spec, &
                    equation_system, linear_solver, ccs_mesh, field_ptr, &
-                   field, upwind_field, central_field, bc_config
+                   field, upwind_field, central_field, bc_config, face_locator
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
+  use meshing, only: get_boundary_status, create_face_locator
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
        set_field_type, set_field_vector_properties, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
@@ -99,10 +100,12 @@ program scalar_advection
   ! Set up the square mesh
   if (irank == par_env%root) print *, "Building mesh"
   mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
-  call disturb_cartesian(cps, mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
+
+  ! Write gradients to solution file
+  write_gradients = .true.
 
   ! Read boundary conditions
   if (irank == par_env%root) print *, "Read and allocate BCs"
@@ -177,19 +180,13 @@ program scalar_advection
   ! call set_advection_velocity(mesh, mf)
 
   if (irank == par_env%root) print *, "Update gradients"
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, scalar)
-  call update_gradient(mesh, u)
-  call update_gradient(mesh, v)
-  call update_gradient(mesh, scalar)
+  call update_gradient(mesh, scalar, enable_cell_corrections=.false.)
 
   ! Actually compute the values to fill the matrix
   if (irank == par_env%root) print *, "Compute fluxes"
   call compute_fluxes(scalar, mf, mesh, direction, M, source)
 
   call update(M) ! parallel assembly for M
-
   call update(scalar%values) ! parallel assembly for source
   call update(source) ! parallel assembly for source
 
@@ -272,7 +269,7 @@ contains
       u_val = 1.0_ccs_real !x_p(1) / domain_size
       v_val = 0.0_ccs_real !-x_p(2) / domain_size
 
-      scalar_val = x_p(1) 
+      scalar_val = 0.0_ccs_real !x_p(1) 
 
       call set_row(global_index_p, u_vals)
       call set_entry(u_val, u_vals)
@@ -333,91 +330,6 @@ contains
     call update(mf%values)
 
   end subroutine initialise_flow
-
-
- !  subroutine set_advection_velocity(mesh, mf)
- !    use constants, only: add_mode
- !    use types, only: vector_values, cell_locator
- !    use meshing, only: create_cell_locator, get_global_index, get_local_num_cells
- !    use fv, only: calc_cell_coords
- !    use utils, only: set_row, set_entry, set_values
-
- !    class(ccs_mesh), intent(in) :: mesh
- !    class(field), intent(inout) :: mf
- !    integer(ccs_int) :: row, col
- !    integer(ccs_int) :: index_p, global_index_p, n_local
- !    real(ccs_real) :: mf_val
- !    type(cell_locator) :: loc_p
- !    type(vector_values) :: mf_vals
-
- !    real(ccs_real) :: u, v
-
- !    mf_vals%setter_mode = add_mode
-
- !    call get_local_num_cells(mesh, n_local)
-
- !    allocate (mf_vals%global_indices(n_local))
- !    mf_vals%global_indices(:) = -1_ccs_int
- !    allocate (mf_vals%values(n_local))
-
- !    ! Set IC velocity and scalar fields
- !    do index_p = 1, n_local
- !      call create_cell_locator(mesh, index_p, loc_p)
- !      call get_global_index(loc_p, global_index_p)
- !      call calc_cell_coords(global_index_p, cps, row, col)
-
- !      ! TODO: this should be in a face loop, compute these based on normals and set mf appropriately
- !      u = real(col, ccs_real) / real(cps, ccs_real)
- !      v = -real(row, ccs_real) / real(cps, ccs_real)
-
- !      mf_val = u + v
-
- !      call set_row(global_index_p, mf_vals)
- !      call set_entry(mf_val, mf_vals)
- !    end do
- !    call set_values(mf_vals, mf%values)
-
- !    call update(mf%values)
-
- !    deallocate (mf_vals%global_indices)
- !    deallocate (mf_vals%values)
-
- !  end subroutine set_advection_velocity
-
-  subroutine disturb_cartesian(cps, mesh)
-    integer(ccs_int), intent(in) :: cps
-    type(ccs_mesh), intent(inout) :: mesh
-
-    real(ccs_real) :: dx
-    integer(ccs_int) :: icell, total_num_cells, icell_global
-    real(ccs_real) :: disturbance
-    
-    dx = domain_size / real(cps)
-
-    call get_total_num_cells(mesh, total_num_cells)
-    do icell = 1, total_num_cells
-      icell_global = mesh%topo%global_indices(icell)
-
-      if (icell_global == int(mesh%topo%global_num_cells / 2)+ 1) then
-        disturbance = 0.2
-        print *, icell_global
-        mesh%geo%x_p(1, icell) = mesh%geo%x_p(1, icell) + (disturbance - 0.5_ccs_real)*dx/3.0
-        !mesh%geo%x_p(2, icell) = mesh%geo%x_p(1, icell) + (disturbance - 0.5_ccs_real)*dx/3.0
-      end if
-      ! idim = 1
-      ! disturbance = real(modulo(3*icell_global, 17), ccs_real) / 17.0_ccs_real
-      ! mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real)*dx/30.0
-
-      ! idim = 2
-      ! disturbance = real(modulo(3*icell_global, 29), ccs_real) / 29.0_ccs_real
-      ! mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real)*dx/30.0
-
-    end do
-
-    ! Update face interpolation
-    call compute_face_interpolation(mesh)
-
-  end subroutine
 
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
