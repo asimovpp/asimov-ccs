@@ -100,9 +100,6 @@ contains
     real(ccs_real) :: loe ! Low-order explicit flux
     real(ccs_real) :: a
 
-    call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
-    call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
-    call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
@@ -112,13 +109,21 @@ contains
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    ! Update gradients, if gamma/linear upwind field
+    ! Update gradients, if gamma/linear upwind field, or cell corrections are enabled
     select type (phi)
     type is (gamma_field)
       call update_gradient(mesh, phi)
     type is (linear_upwind_field)
       call update_gradient(mesh, phi)
+    class default
+      if (phi%enable_cell_corrections) then
+        call update_gradient(mesh, phi)
+      end if
     end select
+
+    call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
+    call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
+    call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
     
     call get_local_num_cells(mesh, local_num_cells) 
     do index_p = 1, local_num_cells
@@ -543,10 +548,11 @@ contains
       call create_cell_locator(mesh, index_p, loc_p)
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
-      call get_face_normal(loc_f, n)
 
       call get_vector_data_readonly(data_field%values, data)
+
       if (data_field%enable_cell_corrections) then
+        call get_face_normal(loc_f, n)
         call get_centre(loc_p, x_p)
         call get_centre(loc_nb, x_nb)
         call get_centre(loc_f, x_f)
@@ -573,6 +579,7 @@ contains
         face_correction = 0.0_ccs_real
         face_value = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
       end if
+
       call restore_vector_data_readonly(data_field%values, data)
 
       if (present(face_correction_only)) then
