@@ -5,7 +5,7 @@ program test_tgv_disturb_cartesian
 #include "ccs_macros.inc"
 
   use testing_lib
-  use error_analysis, only: get_order, print_error_summary
+  use error_analysis, only: get_order, print_error_summary, disturb_cartesian
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d, domain_size
   use mesh_utils, only: compute_face_interpolation
@@ -14,7 +14,7 @@ program test_tgv_disturb_cartesian
   implicit none
 
   type(ccs_mesh), target :: mesh
-  integer(ccs_int), parameter :: num_cps = 3
+  integer(ccs_int), parameter :: num_cps = 4
   integer(ccs_int), parameter :: nvar = 3
   real(ccs_real), dimension(nvar, num_cps) :: error_L2
   real(ccs_real), dimension(nvar, num_cps) :: error_Linf
@@ -33,7 +33,7 @@ program test_tgv_disturb_cartesian
   variable_labels = (/"U", "V", "P"/)
   domain_size = 3.14159265358979323
 
-  cps_list = (/16, 32, 64 /) !, 128, 256/)
+  cps_list = (/32, 64, 128, 256/)
   refinements = real(maxval(cps_list(:))) / real(cps_list(:))
 
   error_L2(:, :) = 0.0_ccs_real
@@ -43,7 +43,7 @@ program test_tgv_disturb_cartesian
     cps = cps_list(i)
     mesh = build_square_mesh(par_env, cps, domain_size)
 
-    call disturb_cartesian(cps, mesh)
+    call disturb_cartesian(cps, domain_size, mesh)
 
     call run_tgv2d(par_env, error_L2(:, i), error_Linf(:, i), mesh)
   end do
@@ -66,38 +66,5 @@ program test_tgv_disturb_cartesian
   end if
 
   call fin()
-
-contains
-
-  !v Modifies a square mesh by randomly moving cell centres
-  subroutine disturb_cartesian(cps, mesh)
-    integer(ccs_int), intent(in) :: cps
-    type(ccs_mesh), intent(inout) :: mesh
-
-    real(ccs_real) :: dx
-    integer(ccs_int) :: icell, total_num_cells, idim, icell_global
-    real(ccs_real) :: disturbance
-    integer(ccs_int) :: n
-    
-    dx = domain_size / real(cps)
-
-    call get_total_num_cells(mesh, total_num_cells)
-    do icell = 1, total_num_cells
-      icell_global = mesh%topo%global_indices(icell)
-
-      idim = 1
-      disturbance = real(modulo(3*icell_global, 17), ccs_real) / 17.0_ccs_real
-      mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real)*dx/3.0
-
-      idim = 2
-      disturbance = real(modulo(3*icell_global, 29), ccs_real) / 29.0_ccs_real
-      mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real)*dx/3.0
-
-    end do
-
-    ! Update face interpolation
-    call compute_face_interpolation(mesh)
-
-  end subroutine
 
 end program test_tgv_disturb_cartesian
