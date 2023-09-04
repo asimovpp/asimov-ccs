@@ -82,10 +82,8 @@ contains
     real(ccs_real) :: adv_coeff_total, adv_coeffaF, adv_coeffaP
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real), dimension(ndim) :: grad_phi_p 
-    real(ccs_real), dimension(ndim) :: grad_phi_k_prime
     real(ccs_real), dimension(ndim) :: grad_phi_nb
-    real(ccs_real) :: interpol_factor
-    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime, x_f_prime
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
     real(ccs_real), dimension(ndim) :: n
     real(ccs_real) :: face_value, face_correction_only
 
