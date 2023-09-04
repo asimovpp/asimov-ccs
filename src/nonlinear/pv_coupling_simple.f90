@@ -1101,6 +1101,10 @@ contains
     ! checks if RMS of residuals is below target
     if (maxval(residuals(1:nvar)) < res_target) converged = .true.
 
+    if (maxval(residuals) > huge(1.0_ccs_real)) then
+      call error_abort("Computation diverging")
+    end if
+
   end subroutine check_convergence
 
   !v Applies implicit underrelaxation to an equation
