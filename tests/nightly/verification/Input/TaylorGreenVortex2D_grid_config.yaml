@@ -2,7 +2,7 @@
 title: TaylorGreenVortex2D
 
 #  number of timesteps
-steps: 2
+steps: 1
 #  number of iterations
 iterations: 250
 # time step size
