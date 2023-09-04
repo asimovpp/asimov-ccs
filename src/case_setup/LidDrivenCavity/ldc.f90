@@ -15,7 +15,8 @@ program ldc
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, cell_centred_gamma, cell_centred_linear_upwind, &
-                       face_centred
+                       face_centred, &
+                       ccs_split_type_shared, ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, gamma_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
@@ -23,6 +24,7 @@ program ldc
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
+                      create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
@@ -42,6 +44,7 @@ program ldc
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
@@ -74,12 +77,18 @@ program ldc
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
+  logical :: use_mpi_splitting
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   call timer_init()
 
   irank = par_env%proc_id
   isize = par_env%num_procs
+
+  ! Create shared memory communicator for each node
+  use_mpi_splitting = .true.
+  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
 
@@ -112,7 +121,7 @@ program ldc
   ! Create a mesh
   if (irank == par_env%root) print *, "Building mesh"
   !mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)      ! 2-D mesh
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)      ! 2-D mesh
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"

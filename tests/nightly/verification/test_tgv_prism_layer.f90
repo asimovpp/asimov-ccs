@@ -45,11 +45,11 @@ program test_tgv_prism_layer
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, cps, domain_size)
+    mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
 
     call generate_prism_layer(growth_rate, cps, mesh)
 
-    call run_tgv2d(par_env, error_L2(:, i), error_Linf(:, i), mesh)
+    call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), mesh)
   end do
 
   if (par_env%proc_id == par_env%root) then

@@ -22,7 +22,7 @@ program test_vec_set_entries
   call init()
 
   do n = 4, 100
-    mesh = build_square_mesh(par_env, n, 1.0_ccs_real)
+    mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real)
 
     call init_vector()
 

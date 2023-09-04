@@ -35,7 +35,7 @@ program test_square_mesh_centres
     n = m(mctr)
 
     l = parallel_random(par_env)
-    mesh = build_square_mesh(par_env, n, l)
+    mesh = build_square_mesh(par_env, shared_env, n, l)
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells

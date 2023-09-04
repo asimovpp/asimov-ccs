@@ -17,15 +17,17 @@ module reordering
   interface
 
     !> Get and apply new order to mesh cells.
-    module subroutine reorder_cells(par_env, mesh)
+    module subroutine reorder_cells(par_env, shared_env, mesh)
       class(parallel_environment), intent(in) :: par_env !< The parallel environment
+      class(parallel_environment), intent(in) :: shared_env !< The parallel environment
       type(ccs_mesh), intent(inout) :: mesh
     end subroutine
 
     !> Given a mesh reordering, apply it.
-    module subroutine apply_reordering(new_indices, par_env, mesh)
+    module subroutine apply_reordering(new_indices, par_env, shared_env, mesh)
       integer(ccs_int), dimension(:), intent(in) :: new_indices
       class(parallel_environment), intent(in) :: par_env !< The parallel environment
+      class(parallel_environment), intent(in) :: shared_env !< The parallel environment
       type(ccs_mesh), intent(inout) :: mesh
     end subroutine
 

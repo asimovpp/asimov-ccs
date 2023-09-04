@@ -14,8 +14,9 @@ program scalar_advection
                    field, upwind_field, central_field, bc_config, face_locator
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
-                       cell_centred_central, cell_centred_upwind, face_centred
-  use meshing, only: get_boundary_status, create_face_locator
+                       cell_centred_central, cell_centred_upwind, face_centred, &
+                       ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
+  use meshing, only: get_boundary_status, create_face_locator, get_total_num_cells, get_global_num_cells
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
        set_field_type, set_field_vector_properties, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
@@ -25,8 +26,7 @@ program scalar_advection
   use utils, only: update, initialise, set_size, add_field_to_outputlist, exit_print, finalise, zero
   use mesh_utils, only: build_square_mesh, write_mesh, compute_face_interpolation
   use parallel_types, only: parallel_environment
-  use meshing, only: get_total_num_cells, get_global_num_cells
-  use parallel, only: initialise_parallel_environment, &
+  use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments
   use fv, only: compute_fluxes, update_gradient
@@ -38,6 +38,7 @@ program scalar_advection
   implicit none
 
   class(parallel_environment), allocatable, target :: par_env
+  class(parallel_environment), allocatable, target :: shared_env
   class(ccs_vector), allocatable, target :: source
   class(ccs_matrix), allocatable, target :: M
   class(linear_solver), allocatable :: scalar_solver
@@ -66,8 +67,12 @@ program scalar_advection
 
   double precision :: start_time
   double precision :: end_time
+  logical :: use_mpi_splitting
 
   call initialise_parallel_environment(par_env)
+  use_mpi_splitting = .false.
+  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
+
   call timer_init()
 
   irank = par_env%proc_id
@@ -99,7 +104,7 @@ program scalar_advection
 
   ! Set up the square mesh
   if (irank == par_env%root) print *, "Building mesh"
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"

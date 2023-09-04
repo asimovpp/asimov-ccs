@@ -45,7 +45,7 @@ program test_poiseuille_disturb_cartesian
 
     call disturb_cartesian(cps, domain_size, mesh)
 
-    call run_poiseuille(par_env, error_L2(:, i), error_Linf(:, i), mesh)
+    call run_poiseuille(par_env, shared_env, error_L2(:, i), error_Linf(:, i), mesh)
   end do
 
   if (par_env%proc_id == par_env%root) then

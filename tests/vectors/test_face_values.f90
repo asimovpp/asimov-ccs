@@ -24,7 +24,7 @@ program test_face_values
   call init()
 
   ! Create a square mesh
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   allocate (face_field :: mf)
 

@@ -13,6 +13,7 @@ program tgv
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
+  use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
@@ -21,8 +22,9 @@ program tgv
   use kinds, only: ccs_real, ccs_int, ccs_long
   use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use parallel, only: initialise_parallel_environment, &
+                      create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, query_stop_run
+                      read_command_line_arguments, sync, query_stop_run, is_root
   use parallel_types, only: parallel_environment
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
@@ -44,6 +46,7 @@ program tgv
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
@@ -85,12 +88,18 @@ program tgv
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
+  logical :: use_mpi_splitting
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   call timer_init()
 
   irank = par_env%proc_id
   isize = par_env%num_procs
+
+  ! Create shared memory communicator for each node
+  use_mpi_splitting = .true.
+  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
 
@@ -109,7 +118,7 @@ program tgv
   ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -130,10 +139,10 @@ program tgv
   if (cps /= huge(0)) then
     ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
-    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
+    mesh = build_mesh(par_env, shared_env, cps, cps, cps, domain_size)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
-    call read_mesh(par_env, case_name, mesh)
+    call read_mesh(par_env, shared_env, case_name, mesh)
   end if
   call timer_stop(timer_index_build)
 

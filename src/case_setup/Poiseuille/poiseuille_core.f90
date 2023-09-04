@@ -50,8 +50,9 @@ module poiseuille_core
 
   contains
 
-  subroutine run_poiseuille(par_env, error_L2, error_Linf, input_mesh)
+  subroutine run_poiseuille(par_env, shared_env, error_L2, error_Linf, input_mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     real(ccs_real), dimension(3), intent(out) :: error_L2 !< L2 norm of the error for the U, V and P fields respectively
     real(ccs_real), dimension(3), intent(out) :: error_Linf !< Linf norm of the error for the U, V and P fields respectively
     type(ccs_mesh), intent(inout), optional :: input_mesh !< mesh object to use, if not provided, the build_square_mesh is used
@@ -117,7 +118,7 @@ module poiseuille_core
       mesh = input_mesh
     else
       if (irank == par_env%root) print *, "Building mesh"
-      mesh = build_square_mesh(par_env, cps, domain_size)
+      mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
     end if
 
     ! set solver and preconditioner info
