@@ -75,6 +75,22 @@ module types
     type(equation_system) :: linear_system !< System of equations
   end type linear_solver
 
+  !v Graph connectivity type
+  type, public :: graph_connectivity
+    integer(ccs_long), dimension(:), allocatable :: xadj            !< Array that points to where in adjncy the list for each vertex
+                                                                    !<   begins and ends  - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjncy          !< Array storing adjacency lists for each vertex consecutively
+                                                                    !<   - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vtxdist         !< Array that indicates vertices local to a processor. Rank p_i stores
+                                                                    !<   the vertices from vtxdist[i] up to (but not including) vertex
+                                                                    !<   vtxdist[i + 1] - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: vwgt            !< Weights on vertices - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: adjwgt          !< Weights on edges - name from ParMETIS
+    integer(ccs_long), dimension(:), allocatable :: local_partition !< Local partition array
+    integer(ccs_long), dimension(:), pointer :: global_partition    !< Global partition array
+    integer :: global_partition_window                              !< Associated shared window
+  end type graph_connectivity
+  
   !v Topology type
   !
   !  Describes the topology (i.e. connectivity) of the mesh.
@@ -85,6 +101,7 @@ module types
   !  - global index: the index (i.e. row) of a cell in the linear system. Each process has a contiguous range of global indices,
   !                  i.e. each global index is given by the local index + a constant pre-process offset.
   type, public :: topology
+    type(graph_connectivity) :: graph_conn                                  !< Object describing the connectivity
     integer(ccs_int) :: global_num_cells                                    !< Global number of cells
     integer(ccs_int) :: local_num_cells                                     !< Local number of cells
     integer(ccs_int) :: halo_num_cells                                      !< Local number of halo cells
@@ -129,18 +146,6 @@ module types
                                                                             !< 0 on internal faces
                                                                             !< -X on a bondary face according to the boundary index
     integer :: bnd_rid_window                                               !< Associated shared window
-    integer(ccs_long), dimension(:), allocatable :: xadj                    !< Array that points to where in adjncy the list for each vertex
-                                                                            !<   begins and ends  - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: adjncy                  !< Array storing adjacency lists for each vertex consecutively
-                                                                            !<   - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: vtxdist                 !< Array that indicates vertices local to a processor. Rank p_i stores
-                                                                            !<   the vertices from vtxdist[i] up to (but not including) vertex
-                                                                            !<   vtxdist[i + 1] - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: vwgt                    !< Weights on vertices - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: adjwgt                  !< Weights on edges - name from ParMETIS
-    integer(ccs_long), dimension(:), allocatable :: local_partition         !< Local partition array
-    integer(ccs_long), dimension(:), pointer :: global_partition            !< Global partition array
-    integer :: global_partition_window                                      !< Associated shared window
   end type topology
 
   !> Geometry type

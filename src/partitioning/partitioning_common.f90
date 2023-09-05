@@ -2,7 +2,7 @@ submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_err
-  use types, only: cell_locator, neighbour_locator, vertex_neighbour_locator
+  use types, only: topology, graph_connectivity, cell_locator, neighbour_locator, vertex_neighbour_locator
   use utils, only: str, debug_print, exit_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
@@ -51,14 +51,14 @@ contains
     call compute_connectivity_get_local_cells(par_env, mesh)
 
     ! Recompute vtxdist array based on the new partition
-    mesh%topo%vtxdist(1) = 1
+    mesh%topo%graph_conn%vtxdist(1) = 1
     do i = 2, isize + 1
-      mesh%topo%vtxdist(i) = count(mesh%topo%global_partition == (i - 2)) + mesh%topo%vtxdist(i - 1)
+      mesh%topo%graph_conn%vtxdist(i) = count(mesh%topo%graph_conn%global_partition == (i - 2)) + mesh%topo%graph_conn%vtxdist(i - 1)
     end do
 
     if (irank == 0) then
       do i = 1, isize + 1
-        call dprint("new vtxdist(" // str(i) // "): " // str(int(mesh%topo%vtxdist(i))))
+        call dprint("new vtxdist(" // str(i) // "): " // str(int(mesh%topo%graph_conn%vtxdist(i))))
       end do
     end if
 
@@ -99,21 +99,21 @@ contains
     call get_local_num_cells(mesh, local_num_cells)
 
     ! Deallocate old xadj array
-    if (allocated(mesh%topo%xadj)) then
-      deallocate (mesh%topo%xadj)
+    if (allocated(mesh%topo%graph_conn%xadj)) then
+      deallocate (mesh%topo%graph_conn%xadj)
     end if
 
     ! Allocate new adjacency index array xadj based on new vtxdist
-    allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
+    allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
 
     call get_max_faces(mesh, max_faces)
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), max_faces + 1))
+    allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
-    start_index = int(mesh%topo%vtxdist(irank + 1), int32)
-    end_index = int(mesh%topo%vtxdist(irank + 2), int32) - 1
+    start_index = int(mesh%topo%graph_conn%vtxdist(irank + 1), int32)
+    end_index = int(mesh%topo%graph_conn%vtxdist(irank + 2), int32) - 1
 
     ! Allocate array to hold number of neighbours for local cells
     if (allocated(mesh%topo%num_nb)) then
@@ -158,12 +158,12 @@ contains
     call dprint("Number of connections after partitioning: " // str(num_connections))
 
     ! Allocate new adjncy array based on the new number of computed connections
-    if (allocated(mesh%topo%adjncy)) then
-      deallocate (mesh%topo%adjncy)
+    if (allocated(mesh%topo%graph_conn%adjncy)) then
+      deallocate (mesh%topo%graph_conn%adjncy)
     end if
 
     ! XXX: is adjncy still needed? why is it allocated?
-    allocate (mesh%topo%adjncy(num_connections))
+    allocate (mesh%topo%graph_conn%adjncy(num_connections))
 
     if (allocated(mesh%topo%face_indices)) then
       deallocate (mesh%topo%face_indices)
@@ -426,7 +426,7 @@ contains
     irank = par_env%proc_id
 
     ! Count the new number of local cells per rank
-    local_num_cells = count(mesh%topo%global_partition == irank)
+    local_num_cells = count(mesh%topo%graph_conn%global_partition == irank)
 
     call set_local_num_cells(local_num_cells, mesh)
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using value set within mesh
@@ -447,7 +447,7 @@ contains
 
     ctr = 1
     associate (irank => par_env%proc_id, &
-               partition => mesh%topo%global_partition)
+               partition => mesh%topo%graph_conn%global_partition)
       call get_global_num_cells(mesh, global_num_cells)
       do i = 1, global_num_cells
         if (partition(i) == irank) then
@@ -549,7 +549,7 @@ contains
     do i = 1, local_num_cells
       call create_cell_locator(mesh, i, loc_p)
 
-      mesh%topo%xadj(i) = ctr
+      mesh%topo%graph_conn%xadj(i) = ctr
 
       ! Loop over connections of cell i
       do j = 1, tmp_int2d(i, max_faces + 1)
@@ -599,14 +599,14 @@ contains
             call set_local_index(local_idx(1), loc_nb)
           end if
 
-          mesh%topo%adjncy(ctr) = nbidx
+          mesh%topo%graph_conn%adjncy(ctr) = nbidx
         end associate
 
         ctr = ctr + 1
       end do ! End j
 
     end do
-    mesh%topo%xadj(local_num_cells + 1) = ctr
+    mesh%topo%graph_conn%xadj(local_num_cells + 1) = ctr
 
     allocate (tmp2(local_num_cells + halo_num_cells))
     do i = 1, local_num_cells
@@ -659,35 +659,35 @@ contains
     irank = par_env%proc_id
     isize = par_env%num_procs
 
-    start_index = int(mesh%topo%vtxdist(irank + 1), int32)
-    end_index = int(mesh%topo%vtxdist(irank + 2), int32) - 1
+    start_index = int(mesh%topo%graph_conn%vtxdist(irank + 1), int32)
+    end_index = int(mesh%topo%graph_conn%vtxdist(irank + 2), int32) - 1
 
     ! Allocate global partition array
     global_num_cells_shared_size = mesh%topo%global_num_cells
 
-    call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%global_partition, mesh%topo%global_partition_window)
+    call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%graph_conn%global_partition, mesh%topo%graph_conn%global_partition_window)
 
     ! Initial global partition
     if (is_root(shared_env)) then
-      do i = 1, size(mesh%topo%vtxdist) - 1
+      do i = 1, size(mesh%topo%graph_conn%vtxdist) - 1
         j = i - 1
-        mesh%topo%global_partition(mesh%topo%vtxdist(i):mesh%topo%vtxdist(i + 1) - 1) = j
+        mesh%topo%graph_conn%global_partition(mesh%topo%graph_conn%vtxdist(i):mesh%topo%graph_conn%vtxdist(i + 1) - 1) = j
       end do
     end if
 
     call sync(shared_env)
 
     ! Count the number of local cells per rank
-    local_num_cells = count(mesh%topo%global_partition == irank)
+    local_num_cells = count(mesh%topo%graph_conn%global_partition == irank)
     call set_local_num_cells(local_num_cells, mesh)
     call get_local_num_cells(mesh, local_num_cells) ! Ensure using true value
     call dprint("Initial number of local cells: " // str(local_num_cells))
 
     ! Allocate adjacency index array xadj based on vtxdist
-    allocate (mesh%topo%xadj(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1) + 1))
+    allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), mesh%topo%max_faces + 1))
+    allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), mesh%topo%max_faces + 1))
     tmp_int2d = 0
 
     ! All ranks loop over all the faces
@@ -724,25 +724,25 @@ contains
     call dprint("Initial number of connections: " // str(num_connections))
 
     ! Allocate adjncy array based on the number of computed connections
-    allocate (mesh%topo%adjncy(num_connections))
+    allocate (mesh%topo%graph_conn%adjncy(num_connections))
     ! Allocate local partition array
-    allocate (mesh%topo%local_partition(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1)))
+    allocate (mesh%topo%graph_conn%local_partition(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1)))
 
     local_index = 1
 
     do i = 1, end_index - start_index + 1  ! Loop over local cells
 
-      mesh%topo%xadj(i) = local_index                          ! Pointer to start of current
+      mesh%topo%graph_conn%xadj(i) = local_index                          ! Pointer to start of current
 
       do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)               ! Loop over number of faces
-        mesh%topo%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
-        if (mesh%topo%global_partition(tmp_int2d(i, j)) /= irank) then
+        mesh%topo%graph_conn%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
+        if (mesh%topo%graph_conn%global_partition(tmp_int2d(i, j)) /= irank) then
           mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
         end if
       end do
 
       local_index = local_index + tmp_int2d(i, mesh%topo%max_faces + 1)
-      mesh%topo%xadj(i + 1) = local_index
+      mesh%topo%graph_conn%xadj(i + 1) = local_index
 
     end do
 
@@ -753,9 +753,9 @@ contains
     call dprint("Total number of cells (local + halo): " // str(mesh%topo%total_num_cells))
 
     ! Allocate weight arrays
-    allocate (mesh%topo%adjwgt(num_connections))
+    allocate (mesh%topo%graph_conn%adjwgt(num_connections))
     ! Allocate local partition array
-    allocate (mesh%topo%vwgt(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1)))
+    allocate (mesh%topo%graph_conn%vwgt(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1)))
 
     deallocate (tmp_int2d)
 
@@ -768,41 +768,57 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
 
-    if (allocated(mesh%topo%vtxdist)) then 
-      deallocate(mesh%topo%vtxdist)
-      call dprint("mesh%topo%vtxdist deallocated.")
-    end if
-
-    if (allocated(mesh%topo%xadj)) then 
-      deallocate(mesh%topo%xadj)
-      call dprint("mesh%topo%xadj deallocated.")
-    end if
-    
-    if (allocated(mesh%topo%adjncy)) then 
-      deallocate(mesh%topo%adjncy)
-      call dprint("mesh%topo%adjncy deallocated.")
-    end if
-
-    if (allocated(mesh%topo%local_partition)) then 
-      deallocate(mesh%topo%local_partition)
-      call dprint("mesh%topo%local_partition deallocated.")
-    end if
-
-    if (allocated(mesh%topo%adjwgt)) then 
-      deallocate(mesh%topo%adjwgt)
-      call dprint("mesh%topo%adjwgt deallocated.")
-    end if
-
-    if (allocated(mesh%topo%vwgt)) then 
-      deallocate(mesh%topo%vwgt)
-      call dprint("mesh%topo%vwgt deallocated.")
-    end if
-
-    if (associated(mesh%topo%global_partition)) then 
-      call destroy_shared_array(shared_env, mesh%topo%global_partition, mesh%topo%global_partition_window)
-      call dprint("mesh%topo%global_partition deallocated.")
-    end if
+    call cleanup_partitioner_data_topo(shared_env, mesh%topo)
 
   end subroutine cleanup_partitioner_data
+  subroutine cleanup_partitioner_data_topo(shared_env, topo)
+    
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    type(topology), target, intent(inout) :: topo   !< The mesh topology
+
+    call cleanup_partitioner_data_graphconn(shared_env, topo%graph_conn)
+
+  end subroutine cleanup_partitioner_data_topo
+  subroutine cleanup_partitioner_data_graphconn(shared_env, graph_conn)
+    
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    type(graph_connectivity), target, intent(inout) :: graph_conn   !< The mesh topology graph connectivity
+
+    if (allocated(graph_conn%vtxdist)) then 
+      deallocate(graph_conn%vtxdist)
+      call dprint("graph_conn%vtxdist deallocated.")
+    end if
+
+    if (allocated(graph_conn%xadj)) then 
+      deallocate(graph_conn%xadj)
+      call dprint("graph_conn%xadj deallocated.")
+    end if
+    
+    if (allocated(graph_conn%adjncy)) then 
+      deallocate(graph_conn%adjncy)
+      call dprint("graph_conn%adjncy deallocated.")
+    end if
+
+    if (allocated(graph_conn%local_partition)) then 
+      deallocate(graph_conn%local_partition)
+      call dprint("graph_conn%local_partition deallocated.")
+    end if
+
+    if (allocated(graph_conn%adjwgt)) then 
+      deallocate(graph_conn%adjwgt)
+      call dprint("graph_conn%adjwgt deallocated.")
+    end if
+
+    if (allocated(graph_conn%vwgt)) then 
+      deallocate(graph_conn%vwgt)
+      call dprint("topo%vwgt deallocated.")
+    end if
+
+    if (associated(graph_conn%global_partition)) then 
+      call destroy_shared_array(shared_env, graph_conn%global_partition, graph_conn%global_partition_window)
+      call dprint("graph_conn%global_partition deallocated.")
+    end if
+
+  end subroutine cleanup_partitioner_data_graphconn
 
 end submodule
