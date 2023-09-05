@@ -19,6 +19,7 @@ program poiseuille
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  use_mpi_splitting = .false.
   call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
 
   call run_poiseuille(par_env, shared_env, error_L2, error_Linf)

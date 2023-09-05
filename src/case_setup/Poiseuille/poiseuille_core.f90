@@ -154,7 +154,7 @@ module poiseuille_core
     call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
     call set_field_vector_properties(vec_properties, field_properties)
-    call set_field_type(cell_centred_upwind, field_properties)
+    call set_field_type(cell_centred_central, field_properties)
     call set_field_name("u", field_properties)
     call create_field(field_properties, u)
     call set_field_name("v", field_properties)
