@@ -107,18 +107,6 @@ contains
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    ! Update gradients, if gamma/linear upwind field, or cell corrections are enabled
-    select type (phi)
-    type is (gamma_field)
-      call update_gradient(mesh, phi)
-    type is (linear_upwind_field)
-      call update_gradient(mesh, phi)
-    class default
-      if (phi%enable_cell_corrections) then
-        call update_gradient(mesh, phi)
-      end if
-    end select
-
     call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
     call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
     call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
