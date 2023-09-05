@@ -19,6 +19,7 @@ submodule(fv) fv_common
                      get_local_num_cells, get_face_interpolation, &
                      get_max_faces, get_centre
   use boundary_conditions, only: get_bc_index
+  use timers, only: timer_register_start, timer_stop
   use bc_constants
 
   implicit none
@@ -775,6 +776,9 @@ contains
 
     real(ccs_real), dimension(:), pointer :: gradients_data    ! Data array for gradients
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: timer_index
+
+    call timer_register_start("Compute gradient", timer_index)
 
     call get_local_num_cells(mesh, local_num_cells)
     allocate(x_gradients(local_num_cells))
@@ -803,6 +807,7 @@ contains
     call restore_vector_data(phi%z_gradients, gradients_data)
     call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
 
+    call timer_stop(timer_index)
 
   end subroutine update_gradient
 
