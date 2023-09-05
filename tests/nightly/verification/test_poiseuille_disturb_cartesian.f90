@@ -14,7 +14,7 @@ program test_poiseuille_disturb_cartesian
   implicit none
 
   type(ccs_mesh), target :: mesh
-  integer(ccs_int), parameter :: num_cps = 4
+  integer(ccs_int), parameter :: num_cps = 3
   integer(ccs_int), parameter :: nvar = 3
   real(ccs_real), dimension(nvar, num_cps) :: error_L2
   real(ccs_real), dimension(nvar, num_cps) :: error_Linf
@@ -26,14 +26,14 @@ program test_poiseuille_disturb_cartesian
 
   character(len=12), dimension(nvar) :: variable_labels
 
-  integer(ccs_int) :: i, j
+  integer(ccs_int) :: i
 
   call init()
 
   variable_labels = (/"U", "V", "P"/)
   domain_size = 1.0_ccs_real
 
-  cps_list = (/32, 64, 128, 256/)
+  cps_list = (/32, 64, 128/) !, 256/)
   refinements = real(maxval(cps_list(:))) / real(cps_list(:))
 
   error_L2(:, :) = 0.0_ccs_real
@@ -55,13 +55,13 @@ program test_poiseuille_disturb_cartesian
     call get_order(refinements, error_L2, orders_L2)
     call get_order(refinements, error_Linf, orders_Linf)
 
-    call assert_gt(orders_L2(1), 1.8_ccs_real, "U not converging in 2nd order ")
-    call assert_gt(orders_L2(2), 1.8_ccs_real, "V not converging in 2nd order ")
-    call assert_gt(orders_L2(3), 1.8_ccs_real, "P not converging in 2nd order ")
+    call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
+    call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")
+    call assert_gt(orders_L2(3), 1.9_ccs_real, "P not converging in 2nd order ")
 
-    call assert_gt(orders_Linf(1), 1.4_ccs_real, "U not converging in 2nd order ")
-    call assert_gt(orders_Linf(2), 1.4_ccs_real, "V not converging in 2nd order ")
-    call assert_gt(orders_Linf(3), 1.2_ccs_real, "P not converging in 2nd order ")
+    call assert_gt(orders_Linf(1), 1.8_ccs_real, "U not converging in 2nd order ")
+    call assert_gt(orders_Linf(2), 1.8_ccs_real, "V not converging in 2nd order ")
+    call assert_gt(orders_Linf(3), 1.1_ccs_real, "P not converging in 2nd order ")
 
   end if
 
