@@ -195,10 +195,6 @@ module poiseuille_core
     call update(w%values)
     call update(p%values)
     call update(mf%values)
-    call update_gradient(mesh, u, enable_cell_corrections=.false.)
-    call update_gradient(mesh, v, enable_cell_corrections=.false.)
-    call update_gradient(mesh, w, enable_cell_corrections=.false.)
-    call update_gradient(mesh, p, enable_cell_corrections=.false.)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
 
@@ -234,9 +230,6 @@ module poiseuille_core
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                           fluid_sol, flow_fields)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
-    call update_gradient(mesh, u)
-    call update_gradient(mesh, v)
-    call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
 
     call calc_error(par_env, mesh, u, v, p, error_L2, error_Linf)

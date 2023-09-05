@@ -244,9 +244,6 @@ program tgv
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
-    call update_gradient(mesh, u)
-    call update_gradient(mesh, v)
-    call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t

@@ -187,10 +187,6 @@ contains
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
     call initialise_flow(mesh, u, v, w, p, mf)
-    call update_gradient(mesh, u, enable_cell_corrections=.false.)
-    call update_gradient(mesh, v, enable_cell_corrections=.false.)
-    call update_gradient(mesh, w, enable_cell_corrections=.false.)
-    call update_gradient(mesh, p, enable_cell_corrections=.false.)
 
     call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
@@ -228,9 +224,6 @@ contains
       call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
       call calc_kinetic_energy(par_env, mesh, u, v, w)
 
-      call update_gradient(mesh, u)
-      call update_gradient(mesh, v)
-      call update_gradient(mesh, w)
       call calc_enstrophy(par_env, mesh, u, v, w)
 
       if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then

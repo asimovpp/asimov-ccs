@@ -763,26 +763,18 @@ contains
   !v Performs an update of the gradients of a field.
   !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !  correctly updated on other PEs. @endnote
-  module subroutine update_gradient(mesh, phi, enable_cell_corrections)
+  module subroutine update_gradient(mesh, phi)
 
     use meshing, only: get_local_num_cells
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
-    logical, optional, intent(in) :: enable_cell_corrections
     real(ccs_real), dimension(:), allocatable :: x_gradients
     real(ccs_real), dimension(:), allocatable :: y_gradients
     real(ccs_real), dimension(:), allocatable :: z_gradients
 
     real(ccs_real), dimension(:), pointer :: gradients_data    ! Data array for gradients
     integer(ccs_int) :: local_num_cells
-    logical :: my_enable_cell_corrections
-
-    if (present(enable_cell_corrections)) then
-      my_enable_cell_corrections = enable_cell_corrections
-    else
-      my_enable_cell_corrections = phi%enable_cell_corrections
-    end if
 
     call get_local_num_cells(mesh, local_num_cells)
     allocate(x_gradients(local_num_cells))
@@ -790,11 +782,11 @@ contains
     allocate(z_gradients(local_num_cells))
 
     call dprint("Compute x gradient")
-    call update_gradient_component(mesh, 1, my_enable_cell_corrections, phi, x_gradients)
+    call update_gradient_component(mesh, 1, phi, x_gradients)
     call dprint("Compute y gradient")
-    call update_gradient_component(mesh, 2, my_enable_cell_corrections, phi, y_gradients)
+    call update_gradient_component(mesh, 2, phi, y_gradients)
     call dprint("Compute z gradient")
-    call update_gradient_component(mesh, 3, my_enable_cell_corrections, phi, z_gradients)
+    call update_gradient_component(mesh, 3, phi, z_gradients)
 
     call get_vector_data(phi%x_gradients, gradients_data)
     gradients_data(1:local_num_cells) = x_gradients(:)
@@ -815,11 +807,10 @@ contains
   end subroutine update_gradient
 
   !> Helper subroutine to calculate a gradient component at a time.
-  subroutine update_gradient_component(mesh, component, enable_cell_corrections, phi, gradients)
+  subroutine update_gradient_component(mesh, component, phi, gradients)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
-    logical, intent(in) :: enable_cell_corrections
     class(field), intent(inout) :: phi !< the field whose gradient we want to compute
     real(ccs_real), dimension(:), intent(inout) :: gradients !< a cell-centred array of the gradient
 
@@ -879,7 +870,7 @@ contains
           interpol_factor = 0.5_ccs_real
           phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
 
-          if (enable_cell_corrections) then
+          if (phi%enable_cell_corrections) then
             call get_face_normal(loc_f, n)
             call get_centre(loc_p, x_p)
             call get_centre(loc_nb, x_nb)

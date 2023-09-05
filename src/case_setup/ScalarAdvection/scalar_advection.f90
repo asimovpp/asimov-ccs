@@ -159,9 +159,6 @@ program scalar_advection
   call update(scalar%values)
   call update(mf%values)
 
-  ! Read bc configuration
-  ! call read_bc_config("ScalarAdvection_config.yaml", "scalar", scalar)
-
   ! Initialise with default values
   if (irank == par_env%root) print *, "Initialise mat"
   call initialise(mat_properties)
@@ -180,12 +177,6 @@ program scalar_advection
 
   call zero(source)
   call zero(M)
-
-  ! Set advection velocity
-  ! call set_advection_velocity(mesh, mf)
-
-  if (irank == par_env%root) print *, "Update gradients"
-  call update_gradient(mesh, scalar, enable_cell_corrections=.false.)
 
   ! Actually compute the values to fill the matrix
   if (irank == par_env%root) print *, "Compute fluxes"
