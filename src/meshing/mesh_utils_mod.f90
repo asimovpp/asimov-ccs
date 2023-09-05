@@ -157,12 +157,49 @@ contains
   ! "nfac" - the total number of faces
   ! "maxfaces" - the maximum number of faces per cell
   ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
+  !
+  ! This high-level interface zeroes the topology object contained by the mesh before calling the
+  ! lower-level routine to read the topology object and building the vertext neighbours.
   subroutine read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
+
+    ! Zero scalar topology values to have known initial state
+    call set_global_num_cells(0_ccs_int, mesh)
+    call set_global_num_faces(0_ccs_int, mesh)
+    call set_max_faces(0_ccs_int, mesh)
+    call set_local_num_cells(0_ccs_int, mesh)
+    call set_halo_num_cells(0_ccs_int, mesh)
+    call set_total_num_cells(0_ccs_int, mesh)
+    call set_num_faces(0_ccs_int, mesh)
+    call set_vert_per_cell(0_ccs_int, mesh)
+    call set_vert_nb_per_cell(0_ccs_int, mesh)
+    call set_global_num_vertices(0_ccs_int, mesh)
+
+    call read_topology_topo(par_env, shared_env, reader_env, geo_reader, mesh%topo)
+    
+    call build_vertex_neighbours(par_env, shared_env, mesh)
+
+  end subroutine read_topology
+
+  !v Read the topology data from an input (HDF5) file
+  ! This subroutine assumes the following names are used in the file:
+  ! "ncel" - the total number of cells
+  ! "nfac" - the total number of faces
+  ! "maxfaces" - the maximum number of faces per cell
+  ! "/face/cell1" and "/face/cell2" - the arrays the face edge data
+  !
+  ! This lower-level subroutine works directly with the topology object, as indicated by the `_topo`
+  ! suffix.
+  subroutine read_topology_topo(par_env, shared_env, reader_env, geo_reader, topo)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
+    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    type(topology), intent(inout) :: topo                                   !< The mesh topology that will be read
 
     integer(ccs_int) :: i, j, k
     integer(ccs_int) :: num_bnd !< global number of boundary faces
@@ -189,29 +226,17 @@ contains
       shared_comm = shared_env%comm
     class default
       shared_comm = -42
-      call error_abort("Unsupported shared environment!")
+      call error_abort("Unsupported shared environment")
     end select
-
-    ! Zero scalar topology values to have known initial state
-    call set_global_num_cells(0_ccs_int, mesh)
-    call set_global_num_faces(0_ccs_int, mesh)
-    call set_max_faces(0_ccs_int, mesh)
-    call set_local_num_cells(0_ccs_int, mesh)
-    call set_halo_num_cells(0_ccs_int, mesh)
-    call set_total_num_cells(0_ccs_int, mesh)
-    call set_num_faces(0_ccs_int, mesh)
-    call set_vert_per_cell(0_ccs_int, mesh)
-    call set_vert_nb_per_cell(0_ccs_int, mesh)
-    call set_global_num_vertices(0_ccs_int, mesh)
 
     ! Read attribute "ncel" - the total number of cells
     if (is_valid(reader_env)) then
-      call read_scalar(geo_reader, "ncel", mesh%topo%global_num_cells)
+      call read_scalar(geo_reader, "ncel", topo%global_num_cells)
     end if
-    call MPI_Bcast(mesh%topo%global_num_cells, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(topo%global_num_cells, 1, MPI_INTEGER, 0, shared_comm, ierr)
 
     ! Abort the execution if there a fewer global cells than MPI ranks
-    if (mesh%topo%global_num_cells < par_env%num_procs) then
+    if (topo%global_num_cells < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
                       &Reduce the number of MPI ranks or use a bigger mesh."
       call error_abort(error_message)
@@ -219,47 +244,47 @@ contains
 
     if (is_valid(reader_env)) then
       ! Read attribute "nfac" - the total number of faces
-      call read_scalar(geo_reader, "nfac", mesh%topo%global_num_faces)
+      call read_scalar(geo_reader, "nfac", topo%global_num_faces)
       ! Read attribute "maxfaces" - the maximum number of faces per cell
-      call read_scalar(geo_reader, "maxfaces", mesh%topo%max_faces)
+      call read_scalar(geo_reader, "maxfaces", topo%max_faces)
       ! Read attribute "nvrt" - the total number of vertices
-      call read_scalar(geo_reader, "nvrt", mesh%topo%global_num_vertices)
+      call read_scalar(geo_reader, "nvrt", topo%global_num_vertices)
 
       ! Read attribute "nbnd" - the total number of boundary faces
       call read_scalar(geo_reader, "nbnd", num_bnd)
     end if
-    call MPI_Bcast(mesh%topo%global_num_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
-    call MPI_Bcast(mesh%topo%max_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
-    call MPI_Bcast(mesh%topo%global_num_vertices, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(topo%global_num_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(topo%max_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call MPI_Bcast(topo%global_num_vertices, 1, MPI_INTEGER, 0, shared_comm, ierr)
     call MPI_Bcast(num_bnd, 1, MPI_INTEGER, 0, shared_comm, ierr)
 
-    call get_max_faces(mesh, max_faces)
+    call get_max_faces(topo, max_faces)
     if (max_faces == 6) then ! if cell are hexes
-      call set_vert_per_cell(8, mesh) ! 8 vertices per cell
-      call set_vert_nb_per_cell(20, mesh)
+      call set_vert_per_cell(8, topo) ! 8 vertices per cell
+      call set_vert_nb_per_cell(20, topo)
     else
       call error_abort("Currently only supporting hex cells.")
     end if
 
-    call get_global_num_faces(mesh, global_num_faces)
+    call get_global_num_faces(topo, global_num_faces)
 
     ! Read arrays face/cell1 and face/cell2
-    call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, &
-                             mesh%topo%face_cell1_window)
-    call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, &
-                             mesh%topo%face_cell2_window)
+    call create_shared_array(shared_env, global_num_faces, topo%face_cell1, &
+                             topo%face_cell1_window)
+    call create_shared_array(shared_env, global_num_faces, topo%face_cell2, &
+                             topo%face_cell2_window)
 
     if (is_valid(reader_env)) then
       sel_start(1) = 0 ! Global index to start reading from
       sel_count(1) = global_num_faces ! How many elements to read in total
-      call read_array(geo_reader, "/face/cell1", sel_start, sel_count, mesh%topo%face_cell1)
-      call read_array(geo_reader, "/face/cell2", sel_start, sel_count, mesh%topo%face_cell2)
+      call read_array(geo_reader, "/face/cell1", sel_start, sel_count, topo%face_cell1)
+      call read_array(geo_reader, "/face/cell2", sel_start, sel_count, topo%face_cell2)
     end if
     call sync(shared_env)
 
     ! Read bnd data
-    call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, &
-                             mesh%topo%bnd_rid_window)
+    call create_shared_array(shared_env, global_num_faces, topo%bnd_rid, &
+                             topo%bnd_rid_window)
 
     if (is_valid(reader_env)) then
       allocate (bnd_rid(num_bnd))
@@ -271,37 +296,37 @@ contains
       call read_array(geo_reader, "/bnd/face", sel_start, sel_count, bnd_face)
 
       ! make sure inside faces=0 and boundary faces are negative
-      mesh%topo%bnd_rid(:) = 0_ccs_int
-      mesh%topo%bnd_rid(bnd_face(:)) = -(bnd_rid(:) + 1_ccs_int)
+      topo%bnd_rid(:) = 0_ccs_int
+      topo%bnd_rid(bnd_face(:)) = -(bnd_rid(:) + 1_ccs_int)
     end if
     call sync(shared_env)
 
     ! Read global face and vertex indices
-    call get_global_num_cells(mesh, global_num_cells)
-    call get_vert_per_cell(mesh, vert_per_cell)
-    call create_shared_array(shared_env, (/max_faces, global_num_cells/), mesh%topo%global_face_indices, &
-                             mesh%topo%global_face_indices_window)
-    call create_shared_array(shared_env, (/vert_per_cell, global_num_cells/), mesh%topo%global_vertex_indices, &
-                             mesh%topo%global_vertex_indices_window)
+    call get_global_num_cells(topo, global_num_cells)
+    call get_vert_per_cell(topo, vert_per_cell)
+    call create_shared_array(shared_env, (/max_faces, global_num_cells/), topo%global_face_indices, &
+                             topo%global_face_indices_window)
+    call create_shared_array(shared_env, (/vert_per_cell, global_num_cells/), topo%global_vertex_indices, &
+                             topo%global_vertex_indices_window)
 
     if (is_valid(reader_env)) then
       sel2_start = 0
       sel2_count(1) = max_faces ! topo%global_num_cells
       sel2_count(2) = global_num_cells
 
-      call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, mesh%topo%global_face_indices)
+      call read_array(geo_reader, "/cell/cface", sel2_start, sel2_count, topo%global_face_indices)
 
       sel2_count(1) = vert_per_cell
 
-      call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, mesh%topo%global_vertex_indices)
+      call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, topo%global_vertex_indices)
     end if
 
     ! Create and populate the vtxdist array based on the total number of cells
     ! and the total number of ranks in the parallel environment
-    allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+    allocate (topo%graph_conn%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
 
-    mesh%topo%vtxdist(1) = 1                                        ! First element is 1
-    mesh%topo%vtxdist(par_env%num_procs + 1) = global_num_cells + 1 ! Last element is total number of cells + 1
+    topo%graph_conn%vtxdist(1) = 1                                        ! First element is 1
+    topo%graph_conn%vtxdist(par_env%num_procs + 1) = global_num_cells + 1 ! Last element is total number of cells + 1
 
     ! Divide the total number of cells by the world size to
     ! compute the chunk sizes
@@ -309,28 +334,26 @@ contains
     j = 1
 
     do i = 1, par_env%num_procs
-      mesh%topo%vtxdist(i) = j
+      topo%graph_conn%vtxdist(i) = j
       j = j + k
     end do
 
     associate (irank => par_env%proc_id)
-      local_num_cells = int(mesh%topo%vtxdist(irank + 2) - mesh%topo%vtxdist(irank + 1), ccs_int)
-      call set_local_num_cells(local_num_cells, mesh)
-      call set_total_num_cells(local_num_cells, mesh)
+      local_num_cells = int(topo%graph_conn%vtxdist(irank + 2) - topo%graph_conn%vtxdist(irank + 1), ccs_int)
+      call set_local_num_cells(local_num_cells, topo)
+      call set_total_num_cells(local_num_cells, topo)
 
-      allocate (mesh%topo%global_indices(local_num_cells))
-      do i = 1, mesh%topo%local_num_cells
-        mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(irank + 1), ccs_int) + (i - 1)
+      allocate (topo%global_indices(local_num_cells))
+      do i = 1, topo%local_num_cells
+        topo%global_indices(i) = int(topo%graph_conn%vtxdist(irank + 1), ccs_int) + (i - 1)
       end do
 
-      allocate (mesh%topo%num_nb(local_num_cells))
-      mesh%topo%num_nb(:) = max_faces
+      allocate (topo%num_nb(local_num_cells))
+      topo%num_nb(:) = max_faces
     end associate
-
-    call build_vertex_neighbours(par_env, shared_env, mesh)
-
-  end subroutine read_topology
-
+    
+  end subroutine read_topology_topo
+  
   !v Build the vertex neighbours from the cell-vertex connectivity.
   !
   !  @note@ This will be quadratic - do we REALLY need it?
@@ -1178,10 +1201,10 @@ contains
 
         ! Create and populate the vtxdist array based on the total number of cells
         ! and the total number of ranks in the parallel environment
-        allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+        allocate (mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
 
-        mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
-        mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
+        mesh%topo%graph_conn%vtxdist(1) = 1                                                  ! First element is 1
+        mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
 
         ! Divide the total number of cells by the world size to
         ! compute the chunk sizes
@@ -1208,7 +1231,7 @@ contains
         call sync(shared_env)
 
         do i = 1, par_env%num_procs
-          mesh%topo%vtxdist(i) = j
+          mesh%topo%graph_conn%vtxdist(i) = j
           j = j + k
         end do
 
@@ -1860,10 +1883,10 @@ contains
 
         ! Create and populate the vtxdist array based on the total number of cells
         ! and the total number of ranks in the parallel environment
-        allocate (mesh%topo%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+        allocate (mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
 
-        mesh%topo%vtxdist(1) = 1                                                  ! First element is 1
-        mesh%topo%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
+        mesh%topo%graph_conn%vtxdist(1) = 1                                                  ! First element is 1
+        mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
 
         ! Divide the total number of cells by the world size to
         ! compute the chunk sizes
@@ -1871,7 +1894,7 @@ contains
         j = 1
 
         do i = 1, par_env%num_procs
-          mesh%topo%vtxdist(i) = j
+          mesh%topo%graph_conn%vtxdist(i) = j
           j = j + k
         end do
 
@@ -2533,7 +2556,7 @@ contains
 
   end subroutine
 
-  ! Populate mesh%topo%global_partition with a split of cells in stride using global_start and local_count
+  ! Populate mesh%topo%graph_conn%global_partition with a split of cells in stride using global_start and local_count
   subroutine partition_stride(par_env, shared_env, roots_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
@@ -2553,7 +2576,7 @@ contains
       do iproc = 0, par_env%num_procs - 1
         start = global_start(global_num_cells, iproc, par_env%num_procs)
         end = start + local_count(global_num_cells, iproc, par_env%num_procs) - 1
-        mesh%topo%global_partition(start:end) = iproc
+        mesh%topo%graph_conn%global_partition(start:end) = iproc
       end do
     end if
 
@@ -2738,26 +2761,26 @@ contains
       print *, par_env%proc_id, "bnd_rid           : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%vwgt)) then
-      print *, par_env%proc_id, "vwgt              : ", mesh%topo%vwgt(1:nb_elem)
+    if (allocated(mesh%topo%graph_conn%vwgt)) then
+      print *, par_env%proc_id, "vwgt              : ", mesh%topo%graph_conn%vwgt(1:nb_elem)
     else
       print *, par_env%proc_id, "vwgt              : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%adjwgt)) then
-      print *, par_env%proc_id, "adjwgt            : ", mesh%topo%adjwgt(1:nb_elem)
+    if (allocated(mesh%topo%graph_conn%adjwgt)) then
+      print *, par_env%proc_id, "adjwgt            : ", mesh%topo%graph_conn%adjwgt(1:nb_elem)
     else
       print *, par_env%proc_id, "adjwgt            : UNALLOCATED"
     end if
 
-    if (allocated(mesh%topo%local_partition)) then
-      print *, par_env%proc_id, "local_partition   : ", mesh%topo%local_partition(1:nb_elem)
+    if (allocated(mesh%topo%graph_conn%local_partition)) then
+      print *, par_env%proc_id, "local_partition   : ", mesh%topo%graph_conn%local_partition(1:nb_elem)
     else
       print *, par_env%proc_id, "local_partition   : UNALLOCATED"
     end if
 
-    if (associated(mesh%topo%global_partition)) then
-      print *, par_env%proc_id, "global_partition  : ", mesh%topo%global_partition(1:nb_elem)
+    if (associated(mesh%topo%graph_conn%global_partition)) then
+      print *, par_env%proc_id, "global_partition  : ", mesh%topo%graph_conn%global_partition(1:nb_elem)
     else
       print *, par_env%proc_id, "global_partition  : UNALLOCATED"
     end if
@@ -2832,9 +2855,9 @@ contains
       call dprint("mesh%topo%bnd_rid deallocated.")
     end if
 
-    if (associated(mesh%topo%global_partition)) then
-      call destroy_shared_array(shared_env, mesh%topo%global_partition, mesh%topo%global_partition_window)
-      call dprint("mesh%topo%global_partition deallocated.")
+    if (associated(mesh%topo%graph_conn%global_partition)) then
+      call destroy_shared_array(shared_env, mesh%topo%graph_conn%global_partition, mesh%topo%graph_conn%global_partition_window)
+      call dprint("mesh%topo%graph_conn%global_partition deallocated.")
     end if
   end subroutine cleanup_topo
 

@@ -2,9 +2,10 @@ submodule(partitioning) partitioning_parmetis
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_real, ccs_long
+  use types, only: topology, graph_connectivity
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array
 
   implicit none
@@ -40,15 +41,56 @@ contains
   !
   ! Use Parmetis library to compute a k-way vertex separator given a k-way partition of the graph.
   ! The graph can be weighted or unweighted.
+  !
+  ! High-level interface operating on the mesh object.
   module subroutine partition_kway(par_env, shared_env, roots_env, mesh)
-
-    use mpi
-    use iso_c_binding
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+
+    call partition_kway_topo(par_env, shared_env, roots_env, mesh%topo)
+    
+  end subroutine partition_kway
+
+  !v Partition the mesh
+  !
+  ! Use Parmetis library to compute a k-way vertex separator given a k-way partition of the graph.
+  ! The graph can be weighted or unweighted.
+  !
+  ! High-level interface operating on the topology object.
+  subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
+    type(topology), target, intent(inout) :: topo                           !< The mesh topology for which to compute the parition
+
+    integer(ccs_int) :: global_num_cells
+
+    call get_global_num_cells(topo, global_num_cells)
+
+    call partition_kway_graphconn(par_env, shared_env, roots_env, global_num_cells, topo%graph_conn)
+
+  end subroutine partition_kway_topo
+
+  !v Partition the mesh
+  !
+  ! Use Parmetis library to compute a k-way vertex separator given a k-way partition of the graph.
+  ! The graph can be weighted or unweighted.
+  !
+  ! Performs the partitioning on the graph connectivity object.
+  subroutine partition_kway_graphconn(par_env, shared_env, roots_env, global_num_cells, graph_conn)
+
+    use mpi
+    use iso_c_binding
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The parallel environment
+    integer(ccs_int), intent(in) :: global_num_cells                           !< The global cell count
+    type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph connectivity for which to compute the parition
 
     ! Local variables
     integer(ccs_long), dimension(:), pointer :: tmp_partition
@@ -94,12 +136,12 @@ contains
 
     irank = par_env%proc_id ! Current rank
 
-    vtxdist = mesh%topo%vtxdist - 1
-    xadj = mesh%topo%xadj - 1
-    adjncy = mesh%topo%adjncy - 1
+    vtxdist = graph_conn%vtxdist - 1
+    xadj = graph_conn%xadj - 1
+    adjncy = graph_conn%adjncy - 1
 
-    adjwgt = mesh%topo%adjwgt
-    vwgt = mesh%topo%vwgt
+    adjwgt = graph_conn%adjwgt
+    vwgt = graph_conn%vwgt
 
     ! Set weights to 1
     adjwgt = 1
@@ -107,7 +149,7 @@ contains
 
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
-    local_part_size = size(mesh%topo%local_partition)
+    local_part_size = size(graph_conn%local_partition)
 
     allocate (local_partition(local_part_size))
 
@@ -122,22 +164,22 @@ contains
                                   tpwgts, ubvec, options, &
                                   edgecuts, local_partition, comm)
 
-      mesh%topo%local_partition(:) = local_partition(:)
+      graph_conn%local_partition(:) = local_partition(:)
 
-      call create_shared_array(shared_env, mesh%topo%global_num_cells, tmp_partition, tmp_partition_window)
+      call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
 
       if (is_root(shared_env)) then
         tmp_partition(:) = 0
       end if
 
       do i = 1, local_part_size
-        tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
+        tmp_partition(i + vtxdist(irank + 1)) = graph_conn%local_partition(i)
       end do
 
       if (is_valid(roots_env)) then
         select type (roots_env)
         type is (parallel_environment_mpi)
-          call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
+          call MPI_AllReduce(tmp_partition, graph_conn%global_partition, global_num_cells, &
                             MPI_LONG, MPI_SUM, roots_env%comm, ierr)
         class default
           print *, "ERROR: Unknown parallel environment!"
@@ -152,7 +194,7 @@ contains
 
     call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
 
-  end subroutine partition_kway
+  end subroutine partition_kway_graphconn
 
   !v Compute the input arrays for the partitioner
   !
