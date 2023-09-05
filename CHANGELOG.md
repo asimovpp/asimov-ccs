@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4
+
+- Added read of external mesh files
+- Updated partitioning, including option to use ParMETIS
+- Added local cells reordering
+- Added support for scalar transport
+- Added gamma and linear upwind schemes
+- Replaced globally-sized arrays with shared memory to address memory capacity issues
+- Added the Backwards Facing Step testcase
+- Added verification tests for space and time discretisation and Poiseuille flow testcase
+- Improved user-friendliness of configuration and run
+
+
 ## v0.3
 
 - Implemented 2D and 3D Taylor Green Vortex (TGV) use cases
