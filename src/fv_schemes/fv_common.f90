@@ -518,7 +518,7 @@ contains
     type(cell_locator) :: loc_p                    ! Primary cell locator
     type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
     integer(ccs_int) :: index_nb                   ! Neighbour cell index
-    real(ccs_real), dimension(:), pointer :: data
+    real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: x_gradients_data
     real(ccs_real), dimension(:), pointer :: y_gradients_data
     real(ccs_real), dimension(:), pointer :: z_gradients_data
@@ -536,7 +536,7 @@ contains
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
-      call get_vector_data_readonly(data_field%values, data)
+      call get_vector_data_readonly(data_field%values, phi_data)
 
       if (data_field%enable_cell_corrections) then
         call get_face_normal(loc_f, n)
@@ -560,14 +560,14 @@ contains
         call restore_vector_data_readonly(data_field%z_gradients, z_gradients_data)
 
         face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
-        face_value = 0.5_ccs_real * (data(index_p) + data(index_nb)) + face_correction
+        face_value = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) + face_correction
       else
         call get_face_interpolation(loc_f, interpol_factor)
         face_correction = 0.0_ccs_real
-        face_value = (interpol_factor * data(index_p) + (1.0_ccs_real - interpol_factor) * data(index_nb))
+        face_value = (interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb))
       end if
 
-      call restore_vector_data_readonly(data_field%values, data)
+      call restore_vector_data_readonly(data_field%values, phi_data)
 
       if (present(face_correction_only)) then
         face_correction_only = face_correction
