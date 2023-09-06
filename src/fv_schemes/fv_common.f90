@@ -97,7 +97,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
-    real(ccs_real) :: a
+    real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
 
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
@@ -186,9 +186,9 @@ contains
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
 
-            a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-            x_nb_prime = x_f + a*n
-            x_p_prime = x_f - a*n
+            dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+            x_nb_prime = x_f + dx_orth*n
+            x_p_prime = x_f - dx_orth*n
 
 
             grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
@@ -466,7 +466,7 @@ contains
     real(ccs_real), dimension(ndim) :: x_nb
     real(ccs_real), dimension(ndim) :: x_f
     real(ccs_real) :: dxmag
-    real(ccs_real) :: a
+    real(ccs_real) :: dx_orth
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
@@ -486,8 +486,8 @@ contains
         call get_centre(loc_f, x_f)
 
         ! see math below, but it works because ||n||=1 and points outwards
-        a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-        dxmag = 2.0_ccs_real * a
+        dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        dxmag = 2.0_ccs_real * dx_orth
 
         !rnb_k_prime = x_f + a*n
         !rp_prime = x_f - a*n
@@ -525,7 +525,7 @@ contains
     real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
     real(ccs_real), dimension(ndim) :: grad_phi_p, grad_phi_nb
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
-    real(ccs_real) :: interpol_factor, a
+    real(ccs_real) :: interpol_factor, dx_orth
 
 
     associate (mesh => loc_f%mesh, &
@@ -544,9 +544,9 @@ contains
         call get_centre(loc_nb, x_nb)
         call get_centre(loc_f, x_f)
 
-        a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-        x_nb_prime = x_f + a*n
-        x_p_prime = x_f - a*n
+        dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        x_nb_prime = x_f + dx_orth*n
+        x_p_prime = x_f - dx_orth*n
 
         call get_vector_data_readonly(data_field%x_gradients, x_gradients_data)
         call get_vector_data_readonly(data_field%y_gradients, y_gradients_data)
@@ -670,7 +670,7 @@ contains
     real(ccs_real), dimension(ndim) :: grad_phi_nb
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, rnb_k_prime, rp_prime
     real(ccs_real), dimension(ndim) :: n
-    real(ccs_real) :: a
+    real(ccs_real) :: dx_orth
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -701,12 +701,12 @@ contains
           call get_centre(loc_nb, x_nb)
           call get_centre(loc_f, x_f)
 
-          a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-          rnb_k_prime = x_f + a*n
-          rp_prime = x_f - a*n
+          dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+          rnb_k_prime = x_f + dx_orth*n
+          rp_prime = x_f - dx_orth*n
           !dx = rnb_k_prime - rp_prime 
           !dxmag = norm2(dx)
-          dxmag = 2.0_ccs_real * a
+          dxmag = 2.0_ccs_real * dx_orth
 
           ! eq 9.66
           flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
@@ -837,7 +837,7 @@ contains
 
     real(ccs_real) :: phif
     real(ccs_real) :: interpol_factor
-    real(ccs_real) :: a
+    real(ccs_real) :: dx_orth
     real(ccs_real), dimension(ndim) :: grad_phi_p 
     real(ccs_real), dimension(ndim) :: grad_phi_nb
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, rnb_k_prime, rp_prime
@@ -884,9 +884,9 @@ contains
             grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
             grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
 
-            a = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-            rnb_k_prime = x_f + a*n
-            rp_prime = x_f - a*n
+            dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+            rnb_k_prime = x_f + dx_orth*n
+            rp_prime = x_f - dx_orth*n
 
             phif = phif + 0.5_ccs_real*(dot_product(grad_phi_nb, rnb_k_prime - x_nb) + dot_product(grad_phi_p, rp_prime - x_p))
           end if
