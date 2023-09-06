@@ -1011,6 +1011,7 @@ contains
         call get_global_num_cells(mesh, nglobal)
         call get_global_num_vertices(mesh, global_num_vertices)
         call get_global_num_faces(mesh, global_num_faces)
+        call get_max_faces(mesh, max_faces)
 
         ! Associate aliases to make code easier to read
         associate (h => mesh%geo%h)
@@ -1033,7 +1034,6 @@ contains
           call set_vert_per_cell(4_ccs_int, mesh)
           call set_vert_nb_per_cell(4_ccs_int, mesh)
 
-          call get_max_faces(mesh, max_faces)
           call get_vert_per_cell(mesh, vert_per_cell)
           call get_vert_nb_per_cell(mesh, vert_nb_per_cell)
 
@@ -1569,6 +1569,16 @@ contains
 
     integer(ccs_int), dimension(2) :: length
 
+    nglobal = nx * ny * nz ! The global cell count
+    call build_topology_connectivity(shared_env, &
+                                     nx, ny, nz, &
+                                     global_num_faces, max_faces, &
+                                     mesh%topo%face_cell1, mesh%topo%face_cell1_window, &
+                                     mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+    call set_naive_distribution(par_env, nglobal, mesh%topo%graph_conn)
+
+    !< XXX: <It should be possible to enter the partitioner here>
+    
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -1576,11 +1586,16 @@ contains
       type is (parallel_environment_mpi)
 
         ! Set the global mesh parameters
-        call set_global_num_cells(nx * ny * nz, mesh)
+        call set_global_num_cells(nglobal, mesh)
         call set_global_num_vertices((nx + 1) * (ny + 1) * (nz + 1), mesh)
+        call set_global_num_faces(global_num_faces, mesh)
+        call set_max_faces(max_faces, mesh)
 
+        ! Just to make sure we are working with the same numbers as the mesh object.
         call get_global_num_cells(mesh, nglobal)
         call get_global_num_vertices(mesh, global_num_vertices)
+        call get_global_num_faces(mesh, global_num_faces)
+        call get_max_faces(mesh, max_faces)
 
         ! Determine ownership range
         start_global = global_start(nglobal, par_env%proc_id, par_env%num_procs)
@@ -1773,13 +1788,8 @@ contains
         call get_total_num_cells(mesh, total_num_cells)
         call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
 
-        call set_global_num_faces((nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1), mesh)
-        call get_global_num_faces(mesh, global_num_faces)
-        call get_max_faces(mesh, max_faces)
 
         ! Create shared memory global arrays
-        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
         call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
 
         length(1) = max_faces
@@ -1807,8 +1817,6 @@ contains
           face_counter = left
           if (modulo(ii, nx) == 0_ccs_int) then
             global_index_nb = -left
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1825,16 +1833,12 @@ contains
           face_counter = right
           if (modulo(ii, nx) == (nx - 1_ccs_int)) then
             global_index_nb = -right
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
             mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + 1_ccs_int
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1847,8 +1851,6 @@ contains
           face_counter = bottom
           if (modulo(ii / nx, ny) == 0_ccs_int) then
             global_index_nb = -bottom
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1865,16 +1867,12 @@ contains
           face_counter = top
           if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
             global_index_nb = -top
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
             mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + nx
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1887,8 +1885,6 @@ contains
           face_counter = back
           if ((ii / (nx * ny)) == 0_ccs_int) then
             global_index_nb = -back
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1905,16 +1901,12 @@ contains
           face_counter = front
           if ((ii / (nx * ny)) == nz - 1_ccs_int) then
             global_index_nb = -front
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
             mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + nx * ny
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1957,8 +1949,6 @@ contains
         end if
         call sync(shared_env)
 
-        call set_naive_distribution(par_env, nglobal, mesh%topo%graph_conn)
-
       class default
         call error_abort("Unknown parallel environment type.")
 
@@ -1971,6 +1961,101 @@ contains
 
   end subroutine build_topology
 
+  subroutine build_topology_connectivity(shared_env, &
+                                         nx, ny, nz, &
+                                         global_num_faces, max_faces, &
+                                         face_cell1, face_cell1_window, face_cell2, face_cell2_window)
+
+    class(parallel_environment), intent(in) :: shared_env !< The shared parallel environment
+    integer(ccs_int), intent(in) :: nx, ny, nz
+    integer(ccs_int), intent(out) :: global_num_faces
+    integer(ccs_int), intent(out) :: max_faces
+    integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell1
+    integer, intent(out) :: face_cell1_window
+    integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell2
+    integer, intent(out) :: face_cell2_window
+
+    integer(ccs_int) :: i
+    integer(ccs_int) :: ii
+    integer(ccs_int) :: nglobal
+    integer(ccs_int) :: face_index_counter
+    integer(ccs_int) :: global_index_nb
+
+    nglobal = nx * ny * nz
+    global_num_faces = (nx + 1) * ny * nz + nx * (ny + 1) * nz + nx * ny * (nz + 1)
+    max_faces = 6 ! Constant for hex meshes
+    
+    call create_shared_array(shared_env, global_num_faces, face_cell1, face_cell1_window)
+    call create_shared_array(shared_env, global_num_faces, face_cell2, face_cell2_window)
+
+    if (is_root(shared_env)) then
+      face_cell1(:) = 0_ccs_int
+      face_cell2(:) = 0_ccs_int
+    end if
+
+    face_index_counter = 1
+    do i = 1, nglobal
+      ii = i - 1
+
+      ! Left face
+      if (modulo(ii, nx) == 0_ccs_int) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+        face_index_counter = face_index_counter + 1_ccs_int
+      end if
+
+      ! Right face
+      if (modulo(ii, nx) == (nx - 1_ccs_int)) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+      else
+        global_index_nb = i + 1_ccs_int
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = global_index_nb
+      end if
+      face_index_counter = face_index_counter + 1_ccs_int
+
+      ! Bottom face
+      if (modulo(ii / nx, ny) == 0_ccs_int) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+        face_index_counter = face_index_counter + 1_ccs_int
+      end if
+
+      ! Top face
+      if (modulo(ii / nx, ny) == (ny - 1_ccs_int)) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+      else
+        global_index_nb = i + nx
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = global_index_nb
+      end if
+      face_index_counter = face_index_counter + 1_ccs_int
+
+      ! Back face
+      if ((ii / (nx * ny)) == 0_ccs_int) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+        face_index_counter = face_index_counter + 1_ccs_int
+      end if
+
+      ! Front face
+      if ((ii / (nx * ny)) == nz - 1_ccs_int) then
+        global_index_nb = -front
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+      else
+        global_index_nb = i + nx * ny
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = global_index_nb
+      end if
+      face_index_counter = face_index_counter + 1_ccs_int
+      
+    end do
+    
+  end subroutine build_topology_connectivity
+  
   !v Utility constructor to build a 3D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
