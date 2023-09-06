@@ -176,7 +176,7 @@ contains
           aP = aP - sgn * mf(index_f) * face_area
           hoe = aP * phi_data(index_p) + aF * phi_data(index_nb)
 
-          ! Excentricity correction (convective term) (sec 9.7.1)
+          ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
           call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
           hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
 
@@ -201,7 +201,7 @@ contains
             !hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
 
 
-            ! Non-orthogonality correction (diffusive flux) (sec 9.7.2)
+            ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
             hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
           end if
 
@@ -506,7 +506,7 @@ contains
   end function calc_diffusion_coeff
 
   !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field
-  ! spec) using sec 9.7.1
+  ! spec) using Ferziger & Peric 4th ed, sec 9.7.1
   subroutine interpolate_field_to_face(data_field, loc_f, face_value, face_correction_only)
 
     class(field), intent(inout) :: data_field
@@ -695,7 +695,7 @@ contains
         grad_phi_nb = (/ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) /)
 
         if (enable_cell_corrections) then
-          ! Cell excentricity/non-orthogonality corrections (sec 9.8, p317, eq9.67 and 9.66)
+          ! Cell excentricity/non-orthogonality corrections (Ferziger & Peric 4th ed, sec 9.8, p317, eq9.67 and 9.66)
           call get_face_normal(loc_f, n)
           call get_centre(loc_p, x_p)
           call get_centre(loc_nb, x_nb)
