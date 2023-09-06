@@ -15,7 +15,7 @@ program tgv
                        cell_centred_central, cell_centred_upwind, face_centred
   use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties, set_field_store_residuals
+                    set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use fv, only: update_gradient
   use io_visualisation, only: write_solution
@@ -30,7 +30,7 @@ program tgv
                           partition_kway, compute_connectivity
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -81,7 +81,7 @@ program tgv
   logical :: w_sol = .true.
   logical :: p_sol = .true.
 
-  logical :: store_residuals
+  logical :: store_residuals, enable_cell_corrections
 
   integer(ccs_int) :: t          ! Timestep counter
 
@@ -156,6 +156,7 @@ program tgv
   if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
   call get_store_residuals(ccs_config_file, store_residuals)
+  call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -167,6 +168,7 @@ program tgv
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
   call set_field_store_residuals(store_residuals, field_properties)
+  call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
@@ -242,9 +244,6 @@ program tgv
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
-    call update_gradient(mesh, u)
-    call update_gradient(mesh, v)
-    call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t

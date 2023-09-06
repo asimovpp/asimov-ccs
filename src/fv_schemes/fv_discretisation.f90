@@ -31,7 +31,7 @@ contains
     associate (mflux => mf)
     end associate
 
-    if (bc == 0) then
+    if (bc == 0 .and. (.not. phi%enable_cell_corrections)) then
       call get_face_interpolation(loc_f, interpolation_factor)
       interpolation_factor = 1.0_ccs_real - interpolation_factor
     else

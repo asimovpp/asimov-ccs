@@ -22,7 +22,7 @@ relaxation_factor:
 target_residual: 1.0e-10
 
 # Frequency (in terms of timesteps) of writing solution to file
-write_frequency: 5
+write_frequency: 1
 
 # Fluid properties
 viscocity : 1.0e-3
@@ -60,6 +60,7 @@ viscocity : 1.0e-3
 #  variables: [u, v, w, p]
 
 variables:
+  enable_cell_corrections: true
   n_variables: 4
   variable_1:
     name: u
