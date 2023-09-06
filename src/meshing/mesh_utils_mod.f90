@@ -986,7 +986,8 @@ contains
     call build_square_topology_connectivity(shared_env, &
                                             cps, &
                                             mesh%topo%global_num_faces, max_faces, &
-                                            mesh%topo%face_cell1, mesh%topo%face_cell1_window, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+                                            mesh%topo%face_cell1, mesh%topo%face_cell1_window, &
+                                            mesh%topo%face_cell2, mesh%topo%face_cell2_window)
     
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -1265,7 +1266,7 @@ contains
     integer(ccs_int) :: global_index_nb
     
     nglobal = cps**2
-
+    global_num_faces = 2 * cps * (cps + 1)
     max_faces = 4 ! Constant for square meshes
     
     call create_shared_array(shared_env, global_num_faces, face_cell1, face_cell1_window)
