@@ -8,7 +8,8 @@ module mesh_utils
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
   use types, only: ccs_mesh, topology, geometry, &
                    io_environment, io_process, &
-                   face_locator, cell_locator, neighbour_locator, vert_locator
+                   face_locator, cell_locator, neighbour_locator, vert_locator, &
+                   graph_connectivity
   use io, only: read_scalar, read_array, &
                 write_scalar, write_array, &
                 configure_io, open_file, close_file, &
@@ -201,7 +202,7 @@ contains
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(topology), intent(inout) :: topo                                   !< The mesh topology that will be read
 
-    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: i
     integer(ccs_int) :: num_bnd !< global number of boundary faces
     integer(ccs_int), dimension(:), allocatable :: bnd_rid, bnd_face
     integer(ccs_long), dimension(1) :: sel_start
@@ -305,23 +306,8 @@ contains
       call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, topo%global_vertex_indices)
     end if
 
-    ! Create and populate the vtxdist array based on the total number of cells
-    ! and the total number of ranks in the parallel environment
-    allocate (topo%graph_conn%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
-
-    topo%graph_conn%vtxdist(1) = 1                                        ! First element is 1
-    topo%graph_conn%vtxdist(par_env%num_procs + 1) = global_num_cells + 1 ! Last element is total number of cells + 1
-
-    ! Divide the total number of cells by the world size to
-    ! compute the chunk sizes
-    k = int(real(global_num_cells) / par_env%num_procs)
-    j = 1
-
-    do i = 1, par_env%num_procs
-      topo%graph_conn%vtxdist(i) = j
-      j = j + k
-    end do
-
+    call set_naive_distribution(par_env, global_num_cells, topo%graph_conn)
+    
     associate (irank => par_env%proc_id)
       local_num_cells = int(topo%graph_conn%vtxdist(irank + 2) - topo%graph_conn%vtxdist(irank + 1), ccs_int)
       call set_local_num_cells(local_num_cells, topo)
@@ -973,7 +959,7 @@ contains
 
     integer(ccs_int) :: start_global    ! The (global) starting index of a partition
     integer(ccs_int) :: end_global      ! The (global) last index of a partition
-    integer(ccs_int) :: i, j, k         ! Loop counter
+    integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
@@ -1236,21 +1222,11 @@ contains
 
         call set_cell_face_indices(mesh)
 
-        ! Create and populate the vtxdist array based on the total number of cells
-        ! and the total number of ranks in the parallel environment
-        allocate (mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
-
-        mesh%topo%graph_conn%vtxdist(1) = 1                                                  ! First element is 1
-        mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
-
-        ! Divide the total number of cells by the world size to
-        ! compute the chunk sizes
-        k = int(real(nglobal) / par_env%num_procs)
-        j = 1
-
+        call set_naive_distribution(par_env, nglobal, mesh%topo%graph_conn)
+        
         length(1) = mesh%topo%vert_per_cell
         length(2) = mesh%topo%global_num_cells
-       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+        call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
         ! Global vertex numbering
         if (is_root(shared_env)) then
@@ -1266,11 +1242,6 @@ contains
           end do
         end if
         call sync(shared_env)
-
-        do i = 1, par_env%num_procs
-          mesh%topo%graph_conn%vtxdist(i) = j
-          j = j + k
-        end do
 
       class default
         call error_abort("Unknown parallel environment type.")
@@ -1506,7 +1477,7 @@ contains
 
     integer(ccs_int) :: start_global    ! The (global) starting index of a partition
     integer(ccs_int) :: end_global      ! The (global) last index of a partition
-    integer(ccs_int) :: i, j, k           ! Loop counter
+    integer(ccs_int) :: i               ! Loop counter
     integer(ccs_int) :: ii              ! Zero-indexed loop counter (simplifies some operations)
     integer(ccs_int) :: index_counter   ! Local index counter
     integer(ccs_int) :: face_counter    ! Cell-local face counter
@@ -1918,22 +1889,7 @@ contains
         end if
         call sync(shared_env)
 
-        ! Create and populate the vtxdist array based on the total number of cells
-        ! and the total number of ranks in the parallel environment
-        allocate (mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
-
-        mesh%topo%graph_conn%vtxdist(1) = 1                                                  ! First element is 1
-        mesh%topo%graph_conn%vtxdist(par_env%num_procs + 1) = nglobal + 1 ! Last element is total number of cells + 1
-
-        ! Divide the total number of cells by the world size to
-        ! compute the chunk sizes
-        k = int(real(nglobal) / par_env%num_procs)
-        j = 1
-
-        do i = 1, par_env%num_procs
-          mesh%topo%graph_conn%vtxdist(i) = j
-          j = j + k
-        end do
+        call set_naive_distribution(par_env, nglobal, mesh%topo%graph_conn)
 
       class default
         call error_abort("Unknown parallel environment type.")
@@ -2927,4 +2883,30 @@ contains
 
   end subroutine
 
+  ! Naively distribute cells equally across all processes
+  subroutine set_naive_distribution(par_env, num_cells, graph_conn)
+
+    class(parallel_environment), intent(in) :: par_env
+    integer(ccs_int), intent(in) :: num_cells
+    type(graph_connectivity), intent(inout) :: graph_conn
+
+    integer(ccs_int) :: i, j, k
+    
+    ! Create and populate the vtxdist array based on the total number of cells
+    ! and the total number of ranks in the parallel environment
+    allocate (graph_conn%vtxdist(par_env%num_procs + 1)) ! vtxdist array is of size num_procs + 1 on all ranks
+
+    graph_conn%vtxdist(1) = 1                                        ! First element is 1
+    graph_conn%vtxdist(par_env%num_procs + 1) = num_cells + 1 ! Last element is total number of cells + 1
+
+    ! Divide the total number of cells by the world size to compute the chunk sizes
+    k = int(real(num_cells) / par_env%num_procs)
+    j = 1
+
+    do i = 1, par_env%num_procs
+      graph_conn%vtxdist(i) = j
+      j = j + k
+    end do
+  end subroutine set_naive_distribution
+  
 end module mesh_utils
