@@ -871,7 +871,6 @@ contains
         call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
-          !call get_face_interpolation(loc_f, interpol_factor)
           interpol_factor = 0.5_ccs_real
           phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
 
