@@ -983,6 +983,11 @@ contains
 
     integer(ccs_int), dimension(2) :: length
 
+    call build_square_topology_connectivity(shared_env, &
+                                            cps, &
+                                            mesh%topo%global_num_faces, max_faces, &
+                                            mesh%topo%face_cell1, mesh%topo%face_cell1_window, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+    
     select type (par_env)
     type is (parallel_environment_mpi)
 
@@ -1014,7 +1019,7 @@ contains
           end_global = start_global + (local_num_cells - 1)
 
           ! Set max faces per cell (constant, 4)
-          call set_max_faces(4_ccs_int, mesh)
+          call set_max_faces(max_faces, mesh)
 
           ! Set number of vertices per cell
           call set_vert_per_cell(4_ccs_int, mesh)
@@ -1112,8 +1117,6 @@ contains
         call get_global_num_faces(mesh, global_num_faces)
 
         ! Create shared memory global arrays
-        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell1, mesh%topo%face_cell1_window)
-        call create_shared_array(shared_env, global_num_faces, mesh%topo%face_cell2, mesh%topo%face_cell2_window)
         call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
 
         length(1) = max_faces
@@ -1122,8 +1125,6 @@ contains
 
         ! Initialise shared memory global arrays
         if (is_root(shared_env)) then
-          mesh%topo%face_cell1(:) = 0_ccs_int
-          mesh%topo%face_cell2(:) = 0_ccs_int
           mesh%topo%global_face_indices(:, :) = 0_ccs_int
           mesh%topo%bnd_rid(:) = 0_ccs_int
         end if
@@ -1140,8 +1141,6 @@ contains
           face_counter = left
           if (modulo(ii, cps) == 0_ccs_int) then
             global_index_nb = -left
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1158,16 +1157,12 @@ contains
           face_counter = right
           if (modulo(ii, cps) == (cps - 1_ccs_int)) then
             global_index_nb = -right
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
             mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + 1_ccs_int
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1180,8 +1175,6 @@ contains
           face_counter = bottom
           if (modulo(ii / cps, cps) == 0_ccs_int) then
             global_index_nb = -bottom
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1198,16 +1191,12 @@ contains
           face_counter = top
           if (modulo(ii / cps, cps) == (cps - 1_ccs_int)) then
             global_index_nb = -top
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = 0
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
             mesh%topo%bnd_rid(face_index_counter) = global_index_nb
           else
             global_index_nb = i + cps
-            mesh%topo%face_cell1(face_index_counter) = i
-            mesh%topo%face_cell2(face_index_counter) = global_index_nb
 
             call create_face_locator(mesh, i, face_counter, loc_f)
             call set_global_index(face_index_counter, loc_f)
@@ -1254,6 +1243,82 @@ contains
     end select
 
   end subroutine build_square_topology
+
+  subroutine build_square_topology_connectivity(shared_env, &
+                                                cps, &
+                                                global_num_faces, max_faces, &
+                                                face_cell1, face_cell1_window, face_cell2, face_cell2_window)
+
+    class(parallel_environment), intent(in) :: shared_env !< The shared parallel environment
+    integer(ccs_int), intent(in) :: cps
+    integer(ccs_int), intent(out) :: global_num_faces
+    integer(ccs_int), intent(out) :: max_faces
+    integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell1
+    integer, intent(out) :: face_cell1_window
+    integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell2
+    integer, intent(out) :: face_cell2_window
+
+    integer(ccs_int) :: i
+    integer(ccs_int) :: ii
+    integer(ccs_int) :: nglobal
+    integer(ccs_int) :: face_index_counter
+    integer(ccs_int) :: global_index_nb
+    
+    nglobal = cps**2
+
+    max_faces = 4 ! Constant for square meshes
+    
+    call create_shared_array(shared_env, global_num_faces, face_cell1, face_cell1_window)
+    call create_shared_array(shared_env, global_num_faces, face_cell2, face_cell2_window)
+
+    if (is_root(shared_env)) then
+      face_cell1(:) = 0_ccs_int
+      face_cell2(:) = 0_ccs_int
+    end if
+
+    face_index_counter = 1
+    do i = 1, nglobal
+      ii = i - 1
+      
+      ! Left face
+      if (modulo(ii, cps) == 0_ccs_int) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+        face_index_counter = face_index_counter + 1_ccs_int
+      end if
+
+      ! Right face
+      if (modulo(ii, cps) == (cps - 1_ccs_int)) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+      else
+        global_index_nb = i + 1_ccs_int
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = global_index_nb
+      end if
+      face_index_counter = face_index_counter + 1_ccs_int
+
+      ! Bottom face
+      if (modulo(ii / cps, cps) == 0_ccs_int) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+        face_index_counter = face_index_counter + 1_ccs_int
+      end if
+
+      ! Top face
+      if (modulo(ii / cps, cps) == (cps - 1_ccs_int)) then
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = 0
+      else
+        global_index_nb = i + cps
+        face_cell1(face_index_counter) = i
+        face_cell2(face_index_counter) = global_index_nb
+      end if
+      face_index_counter = face_index_counter + 1_ccs_int
+      
+    end do
+    
+  end subroutine build_square_topology_connectivity
 
   subroutine build_square_geometry(par_env, cps, side_length, mesh)
 
