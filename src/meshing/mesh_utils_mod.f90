@@ -1798,8 +1798,6 @@ contains
 
         ! Initialise shared memory global arrays
         if (is_root(shared_env)) then
-          mesh%topo%face_cell1(:) = 0_ccs_int
-          mesh%topo%face_cell2(:) = 0_ccs_int
           mesh%topo%global_face_indices(:, :) = 0_ccs_int
           mesh%topo%bnd_rid(:) = 0_ccs_int
         end if
