@@ -222,10 +222,6 @@ contains
     integer(ccs_err) :: ierr
     integer :: shared_comm
 
-    call read_topology_connectivity(shared_env, reader_env, geo_reader, &
-                                    topo%global_num_faces, topo%max_faces, &
-                                    topo%face_cell1, topo%face_cell1_window, topo%face_cell2, topo%face_cell2_window)
-
     select type (shared_env)
     type is (parallel_environment_mpi)
       shared_comm = shared_env%comm
@@ -239,7 +235,15 @@ contains
       call read_scalar(geo_reader, "ncel", topo%global_num_cells)
     end if
     call MPI_Bcast(topo%global_num_cells, 1, MPI_INTEGER, 0, shared_comm, ierr)
+    call get_global_num_cells(topo, global_num_cells)
 
+    call read_topology_connectivity(shared_env, reader_env, geo_reader, &
+                                    topo%global_num_faces, topo%max_faces, &
+                                    topo%face_cell1, topo%face_cell1_window, topo%face_cell2, topo%face_cell2_window)
+    call set_naive_distribution(par_env, global_num_cells, topo%graph_conn)
+
+    ! XXX: <It should be possible to enter the partitioner here>
+    
     ! Abort the execution if there a fewer global cells than MPI ranks
     if (topo%global_num_cells < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
@@ -287,7 +291,6 @@ contains
     call sync(shared_env)
 
     ! Read global face and vertex indices
-    call get_global_num_cells(topo, global_num_cells)
     call get_vert_per_cell(topo, vert_per_cell)
     call create_shared_array(shared_env, (/max_faces, global_num_cells/), topo%global_face_indices, &
                              topo%global_face_indices_window)
@@ -305,8 +308,6 @@ contains
 
       call read_array(geo_reader, "/cell/vertices", sel2_start, sel2_count, topo%global_vertex_indices)
     end if
-
-    call set_naive_distribution(par_env, global_num_cells, topo%graph_conn)
     
     associate (irank => par_env%proc_id)
       local_num_cells = int(topo%graph_conn%vtxdist(irank + 2) - topo%graph_conn%vtxdist(irank + 1), ccs_int)
@@ -983,11 +984,15 @@ contains
 
     integer(ccs_int), dimension(2) :: length
 
+    nglobal = cps**2 ! The global cell count
     call build_square_topology_connectivity(shared_env, &
                                             cps, &
-                                            mesh%topo%global_num_faces, max_faces, &
+                                            global_num_faces, max_faces, &
                                             mesh%topo%face_cell1, mesh%topo%face_cell1_window, &
                                             mesh%topo%face_cell2, mesh%topo%face_cell2_window)
+    call set_naive_distribution(par_env, nglobal, mesh%topo%graph_conn)
+
+    ! XXX: <It should be possible to enter the partitioner here>
     
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -996,11 +1001,16 @@ contains
       type is (parallel_environment_mpi)
 
         ! Set the global mesh parameters
-        call set_global_num_cells(cps**2, mesh)
+        call set_global_num_cells(nglobal, mesh)
         call set_global_num_vertices((cps + 1)**2, mesh)
 
+        call set_global_num_faces(global_num_faces, mesh)
+        call set_max_faces(max_faces, mesh)
+
+        ! Just to make sure we are working with the same numbers as the mesh object.
         call get_global_num_cells(mesh, nglobal)
         call get_global_num_vertices(mesh, global_num_vertices)
+        call get_global_num_faces(mesh, global_num_faces)
 
         ! Associate aliases to make code easier to read
         associate (h => mesh%geo%h)
@@ -1018,9 +1028,6 @@ contains
 
           call set_total_num_cells(local_num_cells, mesh) ! Set initial value
           end_global = start_global + (local_num_cells - 1)
-
-          ! Set max faces per cell (constant, 4)
-          call set_max_faces(max_faces, mesh)
 
           ! Set number of vertices per cell
           call set_vert_per_cell(4_ccs_int, mesh)
@@ -1113,9 +1120,6 @@ contains
         call set_total_num_cells(size(mesh%topo%global_indices), mesh)
         call get_total_num_cells(mesh, total_num_cells)
         call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
-
-        call set_global_num_faces((cps + 1) * cps + cps * (cps + 1), mesh)
-        call get_global_num_faces(mesh, global_num_faces)
 
         ! Create shared memory global arrays
         call create_shared_array(shared_env, global_num_faces, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
@@ -1211,8 +1215,6 @@ contains
         call set_num_faces(count_mesh_faces(mesh), mesh)
 
         call set_cell_face_indices(mesh)
-
-        call set_naive_distribution(par_env, nglobal, mesh%topo%graph_conn)
         
         length(1) = mesh%topo%vert_per_cell
         length(2) = mesh%topo%global_num_cells
