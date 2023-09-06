@@ -111,7 +111,7 @@ program tgv
 
   ccs_config_file = case_path // ccsconfig
 
-  call timer_register_start("Elapsed time", timer_index_total)
+  call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 
   call timer_register_start("Init time", timer_index_init)
 
