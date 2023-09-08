@@ -318,9 +318,6 @@ contains
     real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
     real(ccs_real) :: bc_value
-    real(ccs_real), dimension(:), pointer :: x_gradients_data    ! Data array for x gradient
-    real(ccs_real), dimension(:), pointer :: y_gradients_data    ! Data array for y gradient
-    real(ccs_real), dimension(:), pointer :: z_gradients_data    ! Data array for z gradient
 
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
