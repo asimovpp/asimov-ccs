@@ -203,6 +203,10 @@ module types
     class(ccs_vector), allocatable :: x_gradients                 !< Vector representing the x gradient
     class(ccs_vector), allocatable :: y_gradients                 !< Vector representing the y gradient
     class(ccs_vector), allocatable :: z_gradients                 !< Vector representing the z gradient
+    real(ccs_real), dimension(:), pointer :: values_ro            !< Read only pointer to array containing values
+    real(ccs_real), dimension(:), pointer :: x_gradients_ro       !< Read only pointer to array containing x_gradients
+    real(ccs_real), dimension(:), pointer :: y_gradients_ro       !< Read only pointer to array containing y_gradients
+    real(ccs_real), dimension(:), pointer :: z_gradients_ro       !< Read only pointer to array containing z_gradients
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
   end type field

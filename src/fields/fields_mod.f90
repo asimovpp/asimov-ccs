@@ -11,7 +11,7 @@ module fields
 
   use utils, only: update
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use vec, only: create_vector
+  use vec, only: create_vector, get_vector_data_readonly
   use fv, only: update_gradient
   use timestepping, only: initialise_old_values
 
@@ -108,6 +108,7 @@ contains
 
     call dprint("Create field values vector")
     call create_vector(vec_properties, phi%values)
+    call get_vector_data_readonly(phi%values, phi%values_ro)
 
     if (store_residuals) then
       call dprint("Create residuals field vector")
@@ -120,6 +121,9 @@ contains
       call create_vector(vec_properties, phi%x_gradients)
       call create_vector(vec_properties, phi%y_gradients)
       call create_vector(vec_properties, phi%z_gradients)
+      call get_vector_data_readonly(phi%x_gradients, phi%x_gradients_ro)
+      call get_vector_data_readonly(phi%y_gradients, phi%y_gradients_ro)
+      call get_vector_data_readonly(phi%z_gradients, phi%z_gradients_ro)
 
       ! Currently no need for old face values
       call dprint("Create field old values")
