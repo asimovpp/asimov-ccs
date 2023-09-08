@@ -36,6 +36,7 @@ program scalar_advection
 
   class(field), allocatable :: mf !< Prescribed face velocity field
   class(field), allocatable :: scalar
+  class(filed), allocatable :: viscosity 
 
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
@@ -60,6 +61,7 @@ program scalar_advection
   ! Init velocities and scalar
   allocate (central_field :: mf)
   allocate (upwind_field :: scalar)
+  allocate (central_field :: viscosity)
 
   ! Read bc configuration
   call read_bc_config("./case_setup/ScalarAdvection/ScalarAdvection_config.yaml", "scalar", scalar)
@@ -80,12 +82,13 @@ program scalar_advection
   call create_vector(vec_properties, solution)
   call create_vector(vec_properties, scalar%values)
   call create_vector(vec_properties, mf%values)
+  call create_vector(vec_properties, viscosity%values)
 
   ! Set advection velocity
   call set_advection_velocity(mesh, mf)
 
   ! Actually compute the values to fill the matrix
-  call compute_fluxes(scalar, mf, mesh, direction, M, source)
+  call compute_fluxes(scalar, mf, mesh, direction, M, source, viscosity)
 
   call update(M) ! parallel assembly for M
 
