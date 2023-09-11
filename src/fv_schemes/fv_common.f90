@@ -232,7 +232,7 @@ contains
           type is (gamma_field)
             call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           type is  (linear_upwind_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF )
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
@@ -732,20 +732,19 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: timer_index
 
+    call timer_register_start("Compute gradient", timer_index)
 
     call get_local_num_cells(mesh, local_num_cells)
     allocate(x_gradients(local_num_cells))
     allocate(y_gradients(local_num_cells))
     allocate(z_gradients(local_num_cells))
 
-    call timer_register_start("Compute gradient", timer_index)
     call dprint("Compute x gradient")
     call update_gradient_component(mesh, 1, phi, x_gradients)
     call dprint("Compute y gradient")
     call update_gradient_component(mesh, 2, phi, y_gradients)
     call dprint("Compute z gradient")
     call update_gradient_component(mesh, 3, phi, z_gradients)
-    call timer_stop(timer_index)
 
     call get_vector_data(phi%x_gradients, gradients_data)
     gradients_data(1:local_num_cells) = x_gradients(:)
@@ -762,6 +761,7 @@ contains
     call restore_vector_data(phi%z_gradients, gradients_data)
     call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
 
+    call timer_stop(timer_index)
 
   end subroutine update_gradient
 
