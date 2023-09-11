@@ -120,7 +120,7 @@ contains
     allocate (central_field :: neumann_field)
     call create_vector(vec_properties, neumann_field%values)
     call update(neumann_field%values)
-    call get_vector_data_readonly(neumann%values, neumann%values_ro)
+    call get_vector_data_readonly(neumann_field%values, neumann_field%values_ro)
     call allocate_bc_arrays(n_boundaries, neumann_field%bcs)
     neumann_field%bcs%bc_types = bc_type_neumann
     neumann_field%bcs%values = 0.0_ccs_real
