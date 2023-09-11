@@ -1,4 +1,5 @@
-module tgv2d_core
+!> Program file for Poiseuille case
+module poiseuille_core
 #include "ccs_macros.inc"
 
   use petscvec
@@ -8,83 +9,88 @@ module tgv2d_core
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
-  use constants, only: cell, face, ccsconfig, ccs_string_len, &
+  use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
-  use kinds, only: ccs_real, ccs_int
+  use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
+                   vector_spec, ccs_vector, io_environment, io_process, &
+                   field_ptr, fluid, fluid_solver_selector, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
+       set_field_type, set_field_vector_properties, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
-  use meshing, only: get_global_num_cells
-  use mesh_utils, only: build_square_mesh, write_mesh
-  use vec, only: set_vector_location
+  use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist, reset_outputlist_counter, get_field, set_field, &
+  use utils, only: set_size, initialise, update, exit_print, &
+                   calc_kinetic_energy, calc_enstrophy, &
+                   add_field_to_outputlist, get_field, set_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
-                   allocate_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count, get_store_residuals, get_enable_cell_corrections
-  use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
+                   allocate_fluid_fields, reset_outputlist_counter
+  use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections
+  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
+  use mesh_utils, only: read_mesh, build_square_mesh, write_mesh, compute_face_interpolation
+  use meshing, only: get_total_num_cells, get_global_num_cells
+  use partitioning, only: compute_partitioner_input, &
+                          partition_kway, compute_connectivity
   use io_visualisation, only: write_solution, reset_io_visualisation
   use fv, only: update_gradient
+  use utils, only: str
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
+                    timer_print, timer_get_time, timer_print_all, timer_reset
 
   implicit none
 
-  public :: run_tgv2d
+  public :: run_poiseuille
 
-contains
+  contains
 
-  subroutine run_tgv2d(par_env, shared_env, error_L2, error_Linf, input_mesh, input_dt, input_num_steps)
+  subroutine run_poiseuille(par_env, shared_env, error_L2, error_Linf, input_mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     real(ccs_real), dimension(3), intent(out) :: error_L2 !< L2 norm of the error for the U, V and P fields respectively
     real(ccs_real), dimension(3), intent(out) :: error_Linf !< Linf norm of the error for the U, V and P fields respectively
     type(ccs_mesh), intent(inout), optional :: input_mesh !< mesh object to use, if not provided, the build_square_mesh is used
-    real(ccs_real), intent(in), optional :: input_dt !< timestep, if not provided, the yaml config option is used
-    integer(ccs_int), intent(in), optional :: input_num_steps !< number of timesteps, if not provided, the yaml config option is used
-
+  
     character(len=:), allocatable :: input_path  ! Path to input directory
     character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
     character(len=:), allocatable :: ccs_config_file ! Config file for CCS
 
     type(ccs_mesh) :: mesh
+
     type(vector_spec) :: vec_properties
 
     type(field_spec) :: field_properties
     class(field), allocatable, target :: u, v, w, p, p_prime, mf
+    type(bc_profile), allocatable :: profile
 
     type(field_ptr), allocatable :: output_list(:)
 
     integer(ccs_int) :: n_boundaries
+    logical :: enable_cell_corrections
 
     integer(ccs_int) :: it_start, it_end
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
 
-    double precision :: start_time
-    double precision :: init_time
-    double precision :: end_time
+    integer(ccs_int) :: timer_index_total
+    integer(ccs_int) :: timer_index_init
+    integer(ccs_int) :: timer_index_sol
 
     logical :: u_sol = .true.  ! Default equations to solve for LDC case
     logical :: v_sol = .true.
     logical :: w_sol = .false.
     logical :: p_sol = .true.
 
-    logical :: store_residuals, enable_cell_corrections
-    
-    integer(ccs_int) :: t         ! Timestep counter
-
     type(fluid) :: flow_fields
     type(fluid_solver_selector) :: fluid_sol
 
+    call timer_init()
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -98,28 +104,21 @@ contains
 
     ccs_config_file = case_path // ccsconfig
 
-    call timer(start_time)
+    call timer_register_start("Elapsed time", timer_index_total)
 
-    ! Read case name from configuration file
+    call timer_register_start("Init time", timer_index_init)
+
+    ! Read case name and runtime parameters from configuration file
     call read_configuration(ccs_config_file)
 
     if (irank == par_env%root) print *, "Starting ", case_name, " case!"
 
     ! Create a square mesh
-
     if (present(input_mesh)) then
       mesh = input_mesh
     else
       if (irank == par_env%root) print *, "Building mesh"
       mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
-    end if
-
-    if (present(input_dt)) then
-      dt = input_dt
-    end if
-
-    if (present(input_num_steps)) then
-      num_steps = input_num_steps
     end if
 
     ! set solver and preconditioner info
@@ -135,18 +134,23 @@ contains
     ! Initialise fields
     if (irank == par_env%root) print *, "Initialise fields"
 
-    ! Create and initialise field vectors
-    call initialise(vec_properties)
+    ! Write gradients to solution file
+    write_gradients = .true.
+
+    ! Read boundary conditions
+    if (irank == par_env%root) print *, "Read and allocate BCs"
     call get_boundary_count(ccs_config_file, n_boundaries)
-    call get_store_residuals(ccs_config_file, store_residuals)
-    call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
+
+    ! Create and initialise field vectors
+    if (irank == par_env%root) print *, "Initialise field vectors"
+    call initialise(vec_properties)
 
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
+    call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
 
     call set_field_config_file(ccs_config_file, field_properties)
     call set_field_n_boundaries(n_boundaries, field_properties)
-    call set_field_store_residuals(store_residuals, field_properties)
     call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
     call set_field_vector_properties(vec_properties, field_properties)
@@ -164,6 +168,11 @@ contains
     call set_field_name("p_prime", field_properties)
     call create_field(field_properties, p_prime)
 
+
+    ! Set to 1st boundary condition (inlet)
+    call get_inlet_profile(profile)
+    call set_bc_profile(u, profile, 1)
+
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     call set_field_vector_properties(vec_properties, field_properties)
@@ -178,22 +187,21 @@ contains
     call add_field_to_outputlist(w, "w", output_list)
     call add_field_to_outputlist(p, "p", output_list)
 
-    ! Write gradients to solution file
-    write_gradients = .true.
-
-    call activate_timestepping()
-    call set_timestep(dt)
-
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
     call initialise_flow(mesh, u, v, w, p, mf)
-
-    call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+    call update(u%values)
+    call update(v%values)
+    call update(w%values)
+    call update(p%values)
+    call update(mf%values)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
+    call calc_kinetic_energy(par_env, mesh, u, v, w)
+    call calc_enstrophy(par_env, mesh, u, v, w)
 
     ! Write out mesh to file
     call write_mesh(par_env, case_path, mesh)
@@ -215,21 +223,19 @@ contains
     call set_field(4, field_p, p, flow_fields)
     call set_field(5, field_p_prime, p_prime, flow_fields)
     call set_field(6, field_mf, mf, flow_fields)
-    
-    call timer(init_time)
 
-    do t = 1, num_steps
-      call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                           fluid_sol, flow_fields)
-      call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
-      call calc_kinetic_energy(par_env, mesh, u, v, w)
+    call timer_stop(timer_index_init)
+    call timer_register_start("Solver time inc I/O", timer_index_sol)
 
-      call calc_enstrophy(par_env, mesh, u, v, w)
+    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+                          fluid_sol, flow_fields)
+    call calc_kinetic_energy(par_env, mesh, u, v, w)
+    call calc_enstrophy(par_env, mesh, u, v, w)
 
-      if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-        call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
-      end if
-    end do
+    call calc_error(par_env, mesh, u, v, p, error_L2, error_Linf)
+    call write_solution(par_env, case_path, mesh, output_list)
+
+    call timer_stop(timer_index_sol)
 
     ! Clean-up
     deallocate (u)
@@ -239,23 +245,22 @@ contains
     deallocate (p_prime)
     deallocate (output_list)
 
+    call timer_stop(timer_index_total)
+
+    call timer_print_all(par_env)
+
     call reset_timestepping()
     call reset_outputlist_counter()
     call reset_io_visualisation()
+    call timer_reset()
 
-    call timer(end_time)
-
-    if (irank == par_env%root) then
-      print *, "Init time: ", init_time - start_time
-      print *, "Elapsed time: ", end_time - start_time
-    end if
-
-  end subroutine run_tgv2d
+  end subroutine
 
   ! Read YAML configuration file
   subroutine read_configuration(config_filename)
 
-    use read_config, only: get_value, get_relaxation_factors
+    use read_config, only: get_reference_number, get_value, &
+                           get_relaxation_factors
 
     character(len=*), intent(in) :: config_filename
 
@@ -291,6 +296,11 @@ contains
       if (cps == huge(0)) then
         call error_abort("No value assigned to cps.")
       end if
+    end if
+
+    call get_value(config_file, 'write_frequency', write_frequency)
+    if (write_frequency == huge(0.0)) then
+      call error_abort("No value assigned to write_frequency.")
     end if
 
     call get_value(config_file, 'L', domain_size)
@@ -331,8 +341,10 @@ contains
     write (*, '(1x,a,e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
-    print *, "* Cells per side: ", cps
-    write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
+    if (cps /= huge(0)) then
+      print *, "* Cells per side: ", cps
+      write (*, '(1x,a,e10.3)') "* Domain size: ", domain_size
+    end if
     print *, "Global number of cells is ", global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
@@ -358,8 +370,8 @@ contains
     class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
-    integer(ccs_int) :: n_local
     integer(ccs_int) :: n, count
+    integer(ccs_int) :: n_local
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
     real(ccs_real) :: u_val, v_val, w_val, p_val
     type(cell_locator) :: loc_p
@@ -393,10 +405,10 @@ contains
 
       call get_centre(loc_p, x_p)
 
-      u_val = sin(x_p(1)) * cos(x_p(2))
-      v_val = -cos(x_p(1)) * sin(x_p(2))
+      u_val = 0.0_ccs_real 
+      v_val = 0.0_ccs_real 
       w_val = 0.0_ccs_real
-      p_val = 0.0_ccs_real !-(sin(2 * x_p(1)) + sin(2 * x_p(2))) * 0.01_ccs_real / 4.0_ccs_real
+      p_val = 0.0_ccs_real
 
       call set_row(global_index_p, u_vals)
       call set_entry(u_val, u_vals)
@@ -428,6 +440,7 @@ contains
     n = 0
 
     ! Loop over local cells and faces
+    call get_local_num_cells(mesh, n_local)
     do index_p = 1, n_local
 
       call create_cell_locator(mesh, index_p, loc_p)
@@ -446,8 +459,7 @@ contains
           call get_centre(loc_f, x_f)
 
           ! compute initial value based on current face coordinates
-          mf_data(index_f) = sin(x_f(1)) * cos(x_f(2)) * face_normal(1) &
-                             - cos(x_f(1)) * sin(x_f(2)) * face_normal(2)
+          mf_data(index_f) = 0.0_ccs_real * face_normal(1)
         end if
 
       end do
@@ -463,7 +475,37 @@ contains
 
   end subroutine initialise_flow
 
-  subroutine calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+
+  subroutine get_inlet_profile(profile)
+
+    type(bc_profile), allocatable, intent(out) :: profile
+    integer(ccs_int) :: n, i
+    real(ccs_real) :: y, h, mu, P
+
+    n = 200*3*cps
+
+    allocate(profile)
+
+    allocate(profile%centre(3))
+    allocate(profile%values(n))
+    allocate(profile%coordinates(n))
+    h = 1.0_ccs_real
+    mu = 0.01_ccs_real
+    P = 8*mu 
+
+
+    profile%centre(:) = (/ 0, 0, 0 /)
+
+    do i=1, n
+      y =  real(i-1, ccs_real)*h/real(n-1, ccs_real)
+      profile%coordinates(i) = y      
+      profile%values(i) = P*y*(h-y)/ (2.0_ccs_real*mu)
+
+    end do
+
+  end subroutine
+  
+  subroutine calc_error(par_env, mesh, u, v, p, error_L2, error_Linf)
 
     use constants, only: ndim
     use types, only: cell_locator
@@ -479,18 +521,17 @@ contains
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, p
+    class(field), intent(inout) :: u, v, p
     real(ccs_real), dimension(3), intent(out) :: error_L2
     real(ccs_real), dimension(3), intent(out) :: error_Linf
 
     real(ccs_real), dimension(3) :: error_L2_local
     real(ccs_real), dimension(3) :: error_Linf_local
 
-    real(ccs_real) :: ft
-    real(ccs_real) :: u_an, v_an, w_an, p_an
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
+    real(ccs_real) :: u_an, v_an, p_an
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, p_data
 
-    real(ccs_real) :: mu, rho, nu
+    real(ccs_real) :: mu, rho, nu, x, y
 
     logical, save :: first_time = .true.
 
@@ -517,7 +558,6 @@ contains
 
     call get_vector_data(u%values, u_data)
     call get_vector_data(v%values, v_data)
-    call get_vector_data(w%values, w_data)
     call get_vector_data(p%values, p_data)
     call get_current_time(time)
     call get_current_step(step)
@@ -529,28 +569,23 @@ contains
       call get_centre(loc_p, x_p)
 
       ! Compute analytical solution
-      ft = exp(-2 * nu * time)
-      ! u_an = cos(x_p(1)) * sin(x_p(2)) * ft
-      ! v_an = -sin(x_p(1)) * cos(x_p(2)) * ft
-      u_an = sin(x_p(1)) * cos(x_p(2)) * ft
-      v_an = -cos(x_p(1)) * sin(x_p(2)) * ft
-      w_an = 0.0_ccs_real
-      p_an = +(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
+      x = x_p(1)
+      y = x_p(2)
+      u_an = 8*mu*y*(1-y)/(2*mu)
+      v_an = 0.0_ccs_real
+      p_an = -8*mu*(x-1)
 
       error_L2_local(1) = error_L2_local(1) + (u_an - u_data(index_p))**2
       error_L2_local(2) = error_L2_local(2) + (v_an - v_data(index_p))**2
-      !error_L2_local(3) = error_L2_local(3) + (w_an - w_data(index_p))**2
       error_L2_local(3) = error_L2_local(3) + (p_an - p_data(index_p))**2
 
       error_Linf_local(1) = max(error_Linf_local(1), abs(u_an - u_data(index_p)))
       error_Linf_local(2) = max(error_Linf_local(2), abs(v_an - v_data(index_p)))
-      !error_Linf_local(3) = max(error_Linf_local(3), abs(w_an - w_data(index_p)))
       error_Linf_local(3) = max(error_Linf_local(3), abs(p_an - p_data(index_p)))
 
     end do
     call restore_vector_data(u%values, u_data)
     call restore_vector_data(v%values, v_data)
-    call restore_vector_data(w%values, w_data)
     call restore_vector_data(p%values, p_data)
 
     select type (par_env)
@@ -567,16 +602,15 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
         first_time = .false.
-        open (newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")
+        open (newunit=io_unit, file="err.log", status="replace", form="formatted")
       else
-        open (newunit=io_unit, file="tgv2d-err.log", status="old", form="formatted", position="append")
+        open (newunit=io_unit, file="err.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,' // str(2 * size(error_L2)) // '(1x,e12.4))'
       write (io_unit, fmt) step, error_L2, error_Linf
       close (io_unit)
     end if
 
-  end subroutine calc_tgv2d_error
+  end subroutine calc_error
 
-end module tgv2d_core
-
+end module poiseuille_core

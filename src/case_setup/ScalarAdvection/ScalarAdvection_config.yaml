@@ -1,75 +1,69 @@
 ---
 title: scalar_advection_poisson
 
-reference_numbers:
-    pressure: 101325.0
-    temperature: 289.0
-    density: 1.0
-    viscosity: 1.0e-05
-    pref_at_cell: 4096
+#  number of timesteps
+steps: 100
+#  number of iterations
+iterations: 200
+# time step size
+dt: 1.0e-2
 
-steps: 1000
+# Square/cubic mesh generation parameters
+# cells per side
+cps: 3
+# domain size
+L: 1.0
 
-solve:
-  w: off
-
-solver:
-  u: 12
-  v: 12
-
-init: 
-  type: user
-
-transient:
-  type: quad
-  dt: 0.0001
-  gamma: 1.0
-  max_sub_steps: 10
-
-target_residual: 1.0e-12
-
-monitor_cell: 8094
-
-convection_scheme:
-  u: 1
-  v: 1
-  w: 1
-
-blending_factor:
-  u: 1.0
-  v: 1.0
-  w: 1.0
-  
 relaxation_factor:
-  u: 0.8
-  v: 0.8
-  p: 0.5
+  u: 0.9
+  v: 0.9
+  w: 0.9
+  p: 0.1
 
-output:
-  every: 1000
+target_residual: 1.0e-10
 
-plot_format: vtk
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 50
 
-post:
-  type: center
-  variables: [u, v, w, p]
+# Fluid properties
+viscocity : 1.0e-3
+
+
+variables:
+  n_variables: 5
+  enable_cell_corrections: true
+  variable_1:
+    name: u
+    type: central
+  variable_2:
+    name: v
+    type: central
+  variable_3:
+    name: scalar
+    type: central
+  variable_4:
+    name: p
+    type: central
+  variable_5:
+    name: p_prime
+    type: central
 
 boundaries:
   n_boundaries: 4
-  boundary_1:
+  boundary_1: 
     name: left
     type: dirichlet
-    scalar: 1.0
-  
+    value: 1
   boundary_2:
     name: right
-    type: const_grad
-
+    type: neumann
+    value: 0
   boundary_3:
     name: bottom
-    type: const_grad
-  
+    type: neumann
+    value: 0
   boundary_4:
     name: top
-    type: dirichlet
-    mf: 0.0
+    type: neumann
+    value: 0
+ 
