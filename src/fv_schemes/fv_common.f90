@@ -71,9 +71,6 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
-    real(ccs_real), dimension(:), pointer :: x_gradients_data    ! Data array for x gradient
-    real(ccs_real), dimension(:), pointer :: y_gradients_data    ! Data array for y gradient
-    real(ccs_real), dimension(:), pointer :: z_gradients_data    ! Data array for z gradient
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
     integer(ccs_int) :: j
@@ -94,7 +91,6 @@ contains
 
     real(ccs_real) :: sgn ! Sign indicating face orientation
     real(ccs_real) :: aP, aF, bP, aPb
-    real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
     real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
@@ -108,10 +104,6 @@ contains
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
-    call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
-    call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
-    
     call get_local_num_cells(mesh, local_num_cells) 
     do index_p = 1, local_num_cells
       call clear_entries(mat_coeffs)
@@ -163,7 +155,6 @@ contains
             call error_abort("Invalid velocity field discretisation.")
           end select
 
-          call get_vector_data_readonly(phi%values, phi_data)
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
@@ -174,7 +165,7 @@ contains
           aP = (sgn * mf(index_f) * face_area) * aP
           aF = (sgn * mf(index_f) * face_area) * aF
           aP = aP - sgn * mf(index_f) * face_area
-          hoe = aP * phi_data(index_p) + aF * phi_data(index_nb)
+          hoe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
 
           ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
           call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
@@ -191,8 +182,8 @@ contains
             x_p_prime = x_f - dx_orth*n
 
 
-            grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
-            grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+            grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
+            grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
 
             ! call get_face_interpolation(loc_f, interpol_factor)
             ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
@@ -217,7 +208,7 @@ contains
           end if
           aP = aP - sgn * mf(index_f) * face_area
 
-          loe = aP * phi_data(index_p) + aF * phi_data(index_nb)
+          loe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
           call set_entry(loe, b_coeffs) ! Explicit low-order term
 
           call get_global_index(loc_nb, global_index_nb)
@@ -226,8 +217,6 @@ contains
 
           adv_coeff_total = adv_coeff_total + aP
           diff_coeff_total = diff_coeff_total - diff_coeff
-
-          call restore_vector_data_readonly(phi%values, phi_data)
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
@@ -243,7 +232,7 @@ contains
           type is (gamma_field)
             call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           type is  (linear_upwind_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF )
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
@@ -252,8 +241,7 @@ contains
           aP = aP * (mf(index_f) * face_area)
           aF = aF * (mf(index_f) * face_area)
           aP = aP - mf(index_f) * face_area
-          call get_vector_data_readonly(phi%values, phi_data)
-          call set_entry(-(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP)), b_coeffs)
+          call set_entry(-(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)), b_coeffs)
           if (mf(index_f) > 0.0_ccs_real) then
             aP = mf(index_f) * face_area
             aF = 0.0_ccs_real
@@ -263,8 +251,7 @@ contains
           end if
           aP = aP - mf(index_f) * face_area
 
-          call set_entry(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP), b_coeffs)
-          call restore_vector_data_readonly(phi%values, phi_data)
+          call set_entry(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP), b_coeffs)
 
           call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
 
@@ -278,10 +265,6 @@ contains
       call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
       call set_values(mat_coeffs, M)
     end do
-
-    call restore_vector_data_readonly(phi%x_gradients, x_gradients_data)
-    call restore_vector_data_readonly(phi%y_gradients, y_gradients_data)
-    call restore_vector_data_readonly(phi%z_gradients, z_gradients_data)
 
     deallocate (mat_coeffs%global_row_indices)
     deallocate (mat_coeffs%global_col_indices)
@@ -301,14 +284,11 @@ contains
     real(ccs_real) :: a !< The diagonal coeff (implicit component)
     real(ccs_real) :: b !< The RHS value (explicit component)
     integer(ccs_int) :: index_p
-    real(ccs_real), dimension(:), pointer :: phi_data
 
     call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     call get_local_index(loc_p, index_p)
-    call get_vector_data_readonly(phi%values, phi_data)
-    bc_value = 0.5_ccs_real * (phi_data(index_p) + (b + a * phi_data(index_p)))
-    call restore_vector_data_readonly(phi%values, phi_data)
+    bc_value = 0.5_ccs_real * (phi%values_ro(index_p) + (b + a * phi%values_ro(index_p)))
 
   end subroutine compute_boundary_values
 
@@ -338,9 +318,6 @@ contains
     real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
     real(ccs_real) :: bc_value
-    real(ccs_real), dimension(:), pointer :: x_gradients_data    ! Data array for x gradient
-    real(ccs_real), dimension(:), pointer :: y_gradients_data    ! Data array for y gradient
-    real(ccs_real), dimension(:), pointer :: z_gradients_data    ! Data array for z gradient
 
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
@@ -354,16 +331,8 @@ contains
     case (bc_type_extrapolate)
       call get_distance(loc_p, loc_f, dx)
 
-      call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
-      call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
-      call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
-
       a = 1.0_ccs_real
-      b = 2.0_ccs_real * (x_gradients_data(index_p) * dx(1) + y_gradients_data(index_p) * dx(2) + z_gradients_data(index_p) * dx(3))
-
-      call restore_vector_data_readonly(phi%x_gradients, x_gradients_data)
-      call restore_vector_data_readonly(phi%y_gradients, y_gradients_data)
-      call restore_vector_data_readonly(phi%z_gradients, z_gradients_data)
+      b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(index_p) * dx(2) + phi%z_gradients_ro(index_p) * dx(3))
 
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
@@ -507,9 +476,9 @@ contains
 
   !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field
   ! spec) using Ferziger & Peric 4th ed, sec 9.7.1
-  subroutine interpolate_field_to_face(data_field, loc_f, face_value, face_correction_only)
+  subroutine interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
 
-    class(field), intent(inout) :: data_field
+    class(field), intent(inout) :: phi
     type(face_locator), intent(in) :: loc_f                         !< face locator
     real(ccs_real), intent(out) :: face_value
     real(ccs_real), optional, intent(out) :: face_correction_only
@@ -518,10 +487,6 @@ contains
     type(cell_locator) :: loc_p                    ! Primary cell locator
     type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
     integer(ccs_int) :: index_nb                   ! Neighbour cell index
-    real(ccs_real), dimension(:), pointer :: phi_data
-    real(ccs_real), dimension(:), pointer :: x_gradients_data
-    real(ccs_real), dimension(:), pointer :: y_gradients_data
-    real(ccs_real), dimension(:), pointer :: z_gradients_data
     real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
     real(ccs_real), dimension(ndim) :: grad_phi_p, grad_phi_nb
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
@@ -536,9 +501,7 @@ contains
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
-      call get_vector_data_readonly(data_field%values, phi_data)
-
-      if (data_field%enable_cell_corrections) then
+      if (phi%enable_cell_corrections) then
         call get_face_normal(loc_f, n)
         call get_centre(loc_p, x_p)
         call get_centre(loc_nb, x_nb)
@@ -548,26 +511,17 @@ contains
         x_nb_prime = x_f + dx_orth*n
         x_p_prime = x_f - dx_orth*n
 
-        call get_vector_data_readonly(data_field%x_gradients, x_gradients_data)
-        call get_vector_data_readonly(data_field%y_gradients, y_gradients_data)
-        call get_vector_data_readonly(data_field%z_gradients, z_gradients_data)
-
-        grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
-        grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
-
-        call restore_vector_data_readonly(data_field%x_gradients, x_gradients_data)
-        call restore_vector_data_readonly(data_field%y_gradients, y_gradients_data)
-        call restore_vector_data_readonly(data_field%z_gradients, z_gradients_data)
+        grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
+        grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
 
         face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
-        face_value = 0.5_ccs_real * (phi_data(index_p) + phi_data(index_nb)) + face_correction
+        face_value = 0.5_ccs_real * (phi%values_ro(index_p) + phi%values_ro(index_nb)) + face_correction
       else
         call get_face_interpolation(loc_f, interpol_factor)
         face_correction = 0.0_ccs_real
-        face_value = (interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb))
+        face_value = (interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb))
       end if
 
-      call restore_vector_data_readonly(data_field%values, phi_data)
 
       if (present(face_correction_only)) then
         face_correction_only = face_correction
@@ -819,7 +773,6 @@ contains
     class(field), intent(inout) :: phi !< the field whose gradient we want to compute
     real(ccs_real), dimension(:), intent(inout) :: gradients !< a cell-centred array of the gradient
 
-    real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: grad
 
     integer(ccs_int) :: local_num_cells
@@ -828,9 +781,6 @@ contains
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
-    real(ccs_real), dimension(:), pointer :: x_gradients_data    ! Data array for x gradient
-    real(ccs_real), dimension(:), pointer :: y_gradients_data    ! Data array for y gradient
-    real(ccs_real), dimension(:), pointer :: z_gradients_data    ! Data array for z gradient
 
     integer(ccs_int) :: nnb
     integer(ccs_int) :: index_nb
@@ -850,11 +800,6 @@ contains
 
     real(ccs_real) :: V
 
-    call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
-    call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
-    call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
-    call get_vector_data_readonly(phi%values, phi_data)
-
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
 
@@ -862,6 +807,7 @@ contains
 
       call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
+      call get_centre(loc_p, x_p)
       do j = 1, nnb
         call create_face_locator(mesh, index_p, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
@@ -872,16 +818,15 @@ contains
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
           interpol_factor = 0.5_ccs_real
-          phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
+          phif = interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb)
 
           if (phi%enable_cell_corrections) then
             call get_face_normal(loc_f, n)
-            call get_centre(loc_p, x_p)
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
 
-            grad_phi_p = (/ x_gradients_data(index_p), y_gradients_data(index_p), z_gradients_data(index_p) /)
-            grad_phi_nb = (/ x_gradients_data(index_nb), y_gradients_data(index_nb), z_gradients_data(index_nb) /)
+            grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
+            grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
 
             dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
             rnb_k_prime = x_f + dx_orth*n
@@ -901,11 +846,6 @@ contains
       grad = grad / V
       gradients(index_p) = grad
     end do
-
-    call restore_vector_data_readonly(phi%values, phi_data)
-    call restore_vector_data_readonly(phi%x_gradients, x_gradients_data)
-    call restore_vector_data_readonly(phi%y_gradients, y_gradients_data)
-    call restore_vector_data_readonly(phi%z_gradients, z_gradients_data)
 
   end subroutine update_gradient_component
 
