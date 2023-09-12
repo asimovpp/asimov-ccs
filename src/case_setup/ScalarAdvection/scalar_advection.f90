@@ -36,7 +36,7 @@ program scalar_advection
 
   class(field), allocatable :: mf !< Prescribed face velocity field
   class(field), allocatable :: scalar
-  class(filed), allocatable :: viscosity 
+  class(field), allocatable :: viscosity 
 
   integer(ccs_int) :: cps = 50 ! Default value for cells per side
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
