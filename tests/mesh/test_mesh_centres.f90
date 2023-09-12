@@ -46,7 +46,7 @@ program test_mesh_centres
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, nx, ny, nz, l)
+    mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
 
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells

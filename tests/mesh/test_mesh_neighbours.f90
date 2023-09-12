@@ -48,7 +48,7 @@ program test_mesh_neighbours
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, nx, ny, nz, l)
+    mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
 
     vertex_boundary_ctr = 0
     boundary_ctr = 0

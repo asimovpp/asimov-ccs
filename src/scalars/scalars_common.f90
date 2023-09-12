@@ -126,8 +126,6 @@ contains
     call zero(rhs)
     call zero(M)
 
-    call update_gradient(mesh, phi)
-
     call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
     call get_field(flow, field_viscosity, viscosity) !viscosity
@@ -148,6 +146,9 @@ contains
     call dprint("SCALAR: solve linear system")
     call create_solver(lin_system, lin_solver)
     call solve(lin_solver)
+
+    call update_gradient(mesh, phi)
+
     deallocate(lin_solver)
     
   end subroutine transport_scalar

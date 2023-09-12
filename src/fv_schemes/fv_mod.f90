@@ -5,7 +5,8 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, bc_config, face_locator, cell_locator, bc_profile
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, gamma_field, linear_upwind_field, bc_config, &
+                   face_locator, cell_locator, neighbour_locator, bc_profile
   use constants, only: ndim
 
   implicit none
@@ -27,6 +28,8 @@ module fv
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
     module procedure calc_advection_coeff_uds
+    module procedure calc_advection_coeff_gamma
+    module procedure calc_advection_coeff_luds
   end interface calc_advection_coeff
 
   interface calc_mass_flux
@@ -37,32 +40,59 @@ module fv
   interface
 
     !> Calculates advection coefficient for neighbouring cell using CDS discretisation
-    module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeff)
-      type(central_field), intent(in) :: phi !< scalar (central) field
+    module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+      type(central_field), intent(in) :: phi  !< scalar (central) field
       type(face_locator), intent(in) :: loc_f !< face locator
-      real(ccs_real), intent(in) :: mf       !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc     !< flag indicating whether cell is on boundary
-      real(ccs_real), intent(out) :: coeff   !< advection coefficient to be calculated
+      real(ccs_real), intent(in) :: mf        !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+      real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_cds
 
     !> Calculates advection coefficient for neighbouring cell using UDS discretisation
-    module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeff)
-      type(upwind_field), intent(in) :: phi !< scalar (upwind) field
+    module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+      type(upwind_field), intent(in) :: phi   !< scalar (upwind) field
       type(face_locator), intent(in) :: loc_f !< face locator
-      real(ccs_real), intent(in) :: mf      !< mass flux at the face
-      integer(ccs_int), intent(in) :: bc    !< flag indicating whether cell is on boundary
-      real(ccs_real), intent(out) :: coeff  !< advection coefficient to be calculated
+      real(ccs_real), intent(in) :: mf        !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+      real(ccs_real), intent(out) :: coeffaP  !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF  !< advection coefficient for neighbour cell
     end subroutine calc_advection_coeff_uds
+
+    !> Calculates advection coefficient for neighbouring cell using gamma discretisation
+    module subroutine calc_advection_coeff_gamma(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
+      type(gamma_field), intent(inout) :: phi       !< scalar (gamma) field
+      type(face_locator), intent(in) :: loc_f       !< face locator
+      real(ccs_real), intent(in) :: mf              !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p       !< current cell locator
+      type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
+      real(ccs_real), intent(out) :: coeffaP        !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF        !< advection coefficient for neighbour cell
+    end subroutine calc_advection_coeff_gamma
+
+    !> Calculates advection coefficient for neighbouring cell using LUDS discretisation
+    module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
+      type(linear_upwind_field), intent(inout) :: phi !< scalar (gamma) field
+      type(face_locator), intent(in) :: loc_f         !< face locator
+      real(ccs_real), intent(in) :: mf                !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc              !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p         !< current cell locator
+      type(neighbour_locator), intent(in) :: loc_nb   !< neighbour cell locator
+      real(ccs_real), intent(out) :: coeffaP          !< advection coefficient for current cell
+      real(ccs_real), intent(out) :: coeffaF          !< advection coefficient for neighbour cell
+    end subroutine calc_advection_coeff_luds
 
     !> Sets the diffusion coefficient
     ! XXX: why is this a function when the equivalent advection ones are subroutines?
-    module function calc_diffusion_coeff(index_p, index_nb, mesh, visp, visnb, bc) result(coeff)
+    module function calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections, visp, visnb, SchmidtNo) result(coeff)
       integer(ccs_int), intent(in) :: index_p  !< the local cell index
       integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
       type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
+      logical, intent(in) :: enable_cell_corrections !< whether or not cell corrections shouls be used
       real(ccs_real) :: coeff                  !< the diffusion coefficient
       real(ccs_real), intent(in) :: visp, visnb        !< viscosity
-      integer(ccs_int), intent(in) :: bc         !< boundary condition
+      real(ccs_real) :: SchmidtNo
     end function calc_diffusion_coeff
 
     !> Computes fluxes and assign to matrix and RHS
@@ -77,7 +107,7 @@ module fv
     end subroutine
 
     !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-    module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
+    module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
       class(field), intent(inout) :: u_field               !< x velocities field
       class(field), intent(inout) :: v_field               !< y velocities field
       class(field), intent(inout) :: w_field               !< z velocities field
@@ -89,11 +119,12 @@ module fv
       real(ccs_real), dimension(:), intent(in) :: invAv !< inverse momentum diagonal in y
       real(ccs_real), dimension(:), intent(in) :: invAw !< inverse momentum diagonal in z
       type(face_locator), intent(in) :: loc_f           !< face locator
+      logical, intent(in) :: enable_cell_corrections    !< whether or not cell shape corrections are to be used
       real(ccs_real) :: flux                            !< the flux across the boundary
     end function calc_mass_flux_uvw
 
     !> Computes Rhie-Chow correction
-    module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
+    module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
       real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
       real(ccs_real), dimension(:), intent(in) :: dpdx  !< pressure gradients in x
       real(ccs_real), dimension(:), intent(in) :: dpdy  !< pressure gradients in y
@@ -102,6 +133,7 @@ module fv
       real(ccs_real), dimension(:), intent(in) :: invAv !< inverse momentum diagonal in y
       real(ccs_real), dimension(:), intent(in) :: invAw !< inverse momentum diagonal in z
       type(face_locator), intent(in) :: loc_f           !< face locator
+      logical, intent(in) :: enable_cell_corrections    !< whether or not cell shape corrections are to be used
       real(ccs_real) :: flux                            !< the flux across the boundary
     end function calc_mass_flux_no_uvw
 

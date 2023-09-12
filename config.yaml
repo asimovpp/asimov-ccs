@@ -1,5 +1,5 @@
 main: ldc
 base: mpi_petsc
 options: 
-  partitioning: partitioning_parmetis
-extra: parmetis
+  partitioning: partitioning_parhip
+extra: parhip

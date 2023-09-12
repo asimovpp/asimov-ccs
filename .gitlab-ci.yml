@@ -109,14 +109,14 @@ test_intelx:
     - HOME=${CI_HOME} CMP=intelx make tests
 
 #-----------------------------------------------------------------------------#
-
+#don't run cray debug build because it fails on the CI
 .debug_build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
   allow_failure: true
 
-.build_cray:
+build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray make obj"

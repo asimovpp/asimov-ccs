@@ -38,7 +38,7 @@ program test_advection_coeff
 
   call init()
 
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   call get_local_num_cells(mesh, local_num_cells)
 
@@ -187,8 +187,8 @@ contains
     real(ccs_real), intent(in) :: face_area                    !< The surface area of the face between the cell and neighbour
     real(ccs_real), dimension(ndim), intent(in) :: face_normal !< The normal to the face between the cell and neighbour
     type(face_locator), intent(in) :: loc_f                    !< face locator
-
-    real(ccs_real) :: coeff
+    
+    real(ccs_real) :: coeffaP, coeffaF,coeff
     real(ccs_real) :: mf
     real(ccs_real) :: expected_coeff
 
@@ -198,14 +198,15 @@ contains
 
     select type (phi)
     type is (central_field)
-      call calc_advection_coeff(phi, loc_f, mf, 0_ccs_int, coeff)
+      call calc_advection_coeff(phi, loc_f, mf, 0_ccs_int, coeffaP, coeffaF)
     type is (upwind_field)
-      call calc_advection_coeff(phi, loc_f, mf, 0_ccs_int, coeff)
+      call calc_advection_coeff(phi, loc_f, mf, 0_ccs_int, coeffaP, coeffaF)
     class default
       write (message, *) "FAIL: incorrect velocity field discretisation"
       call stop_test(message)
     end select
-    coeff = coeff * mf * face_area
+    !coeff = coeff * mf * face_area
+    coeff = coeffaF* mf * face_area
 
     select type (phi)
     type is (upwind_field)

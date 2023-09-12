@@ -11,17 +11,19 @@ program bfs
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
-                       cell_centred_central, cell_centred_upwind, face_centred
+                       cell_centred_central, cell_centred_upwind, face_centred, &
+                       ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
                    field_ptr, fluid, fluid_solver_selector, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-       set_field_type, set_field_vector_properties
+                    set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync
+                      read_command_line_arguments, sync, &
+                      create_new_par_env
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
@@ -31,7 +33,7 @@ program bfs
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
-  use read_config, only: get_variables, get_boundary_count, get_case_name
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
@@ -43,6 +45,7 @@ program bfs
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
@@ -71,7 +74,10 @@ program bfs
   logical :: w_sol = .false.
   logical :: p_sol = .true.
 
+  logical :: store_residuals, enable_cell_corrections
+
   integer(ccs_int) :: t          ! Timestep counter
+  logical :: use_mpi_splitting
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
@@ -79,6 +85,8 @@ program bfs
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  use_mpi_splitting = .true.
+  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   irank = par_env%proc_id
   isize = par_env%num_procs
@@ -115,7 +123,7 @@ program bfs
 
   ! Read mesh from .geo file
   if (irank == par_env%root) print *, "Reading mesh file"
-  call read_mesh(par_env, case_name, mesh)
+  call read_mesh(par_env, shared_env, case_name, mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -126,6 +134,8 @@ program bfs
   ! Read boundary conditions
   if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
+  call get_store_residuals(ccs_config_file, store_residuals)
+  call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -136,6 +146,8 @@ program bfs
 
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
+  call set_field_store_residuals(store_residuals, field_properties)
+  call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)

@@ -35,7 +35,7 @@ program test_mesh_volume
   nz = 4
 
   l = parallel_random(par_env)
-  mesh = build_mesh(par_env, nx, ny, nz, l)
+  mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
   expected_vol = l**3 ! XXX: Currently the mesh is a hard-coded 3D cube...
 
   CV = (l / nx) * (l / ny) * (l / nz)

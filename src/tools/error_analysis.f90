@@ -103,4 +103,41 @@ contains
 
   end subroutine
 
+  !v Modifies a square mesh by slightly moving cell centres
+  subroutine disturb_cartesian(cps, domain_size, mesh)
+    use mesh_utils, only: compute_face_interpolation
+    use meshing, only: get_total_num_cells
+
+    integer(ccs_int), intent(in) :: cps
+    real(ccs_real), intent(in) :: domain_size
+    type(ccs_mesh), intent(inout) :: mesh
+
+    real(ccs_real) :: dx
+    integer(ccs_int) :: icell, total_num_cells, idim, icell_global
+    real(ccs_real) :: disturbance
+
+    dx = domain_size / real(cps)
+
+    call get_total_num_cells(mesh, total_num_cells)
+    do icell = 1, total_num_cells
+      icell_global = mesh%topo%global_indices(icell)
+
+      if (mesh%geo%x_p(1, icell) >= 0.1 * domain_size .and. mesh%geo%x_p(1, icell) <= 0.9 * domain_size .and. &
+          mesh%geo%x_p(2, icell) >= 0.1 * domain_size .and. mesh%geo%x_p(2, icell) <= 0.9 * domain_size) then
+        idim = 1
+        disturbance = real(modulo(3 * icell_global, 17), ccs_real) / 17.0_ccs_real
+        mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real) * dx / 20.0
+
+        idim = 2
+        disturbance = real(modulo(3 * icell_global, 29), ccs_real) / 29.0_ccs_real
+        mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real) * dx / 20.0
+      end if
+
+    end do
+
+    ! Update face interpolation
+    call compute_face_interpolation(mesh)
+
+  end subroutine
+
 end module error_analysis

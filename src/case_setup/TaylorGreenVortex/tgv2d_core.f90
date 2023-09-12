@@ -15,7 +15,7 @@ module tgv2d_core
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties, set_field_store_residuals
+                    set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -31,7 +31,7 @@ module tgv2d_core
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count, get_store_residuals
+  use read_config, only: get_variables, get_boundary_count, get_store_residuals, get_enable_cell_corrections
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
   use io_visualisation, only: write_solution, reset_io_visualisation
   use fv, only: update_gradient
@@ -42,8 +42,9 @@ module tgv2d_core
 
 contains
 
-  subroutine run_tgv2d(par_env, error_L2, error_Linf, input_mesh, input_dt, input_num_steps)
+  subroutine run_tgv2d(par_env, shared_env, error_L2, error_Linf, input_mesh, input_dt, input_num_steps)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     real(ccs_real), dimension(3), intent(out) :: error_L2 !< L2 norm of the error for the U, V and P fields respectively
     real(ccs_real), dimension(3), intent(out) :: error_Linf !< Linf norm of the error for the U, V and P fields respectively
     type(ccs_mesh), intent(inout), optional :: input_mesh !< mesh object to use, if not provided, the build_square_mesh is used
@@ -77,7 +78,7 @@ contains
     logical :: w_sol = .false.
     logical :: p_sol = .true.
 
-    logical :: store_residuals
+    logical :: store_residuals, enable_cell_corrections
     
     integer(ccs_int) :: t         ! Timestep counter
 
@@ -110,7 +111,7 @@ contains
       mesh = input_mesh
     else
       if (irank == par_env%root) print *, "Building mesh"
-      mesh = build_square_mesh(par_env, cps, domain_size)
+      mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
     end if
 
     if (present(input_dt)) then
@@ -138,6 +139,7 @@ contains
     call initialise(vec_properties)
     call get_boundary_count(ccs_config_file, n_boundaries)
     call get_store_residuals(ccs_config_file, store_residuals)
+    call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
 
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
@@ -145,6 +147,7 @@ contains
     call set_field_config_file(ccs_config_file, field_properties)
     call set_field_n_boundaries(n_boundaries, field_properties)
     call set_field_store_residuals(store_residuals, field_properties)
+    call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
     call set_field_vector_properties(vec_properties, field_properties)
     call set_field_type(cell_centred_central, field_properties)
@@ -184,6 +187,7 @@ contains
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
     call initialise_flow(mesh, u, v, w, p, mf)
+
     call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
@@ -220,9 +224,6 @@ contains
       call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
       call calc_kinetic_energy(par_env, mesh, u, v, w)
 
-      call update_gradient(mesh, u)
-      call update_gradient(mesh, v)
-      call update_gradient(mesh, w)
       call calc_enstrophy(par_env, mesh, u, v, w)
 
       if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then

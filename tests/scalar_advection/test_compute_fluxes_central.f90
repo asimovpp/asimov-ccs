@@ -33,7 +33,7 @@ program test_compute_fluxes
 
   call init()
 
-  mesh = build_square_mesh(par_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
 
   allocate (central_field :: scalar)
   allocate (face_field :: mf)
@@ -102,7 +102,7 @@ contains
     integer(ccs_int) :: local_num_cells
 
     real(ccs_real) :: sgn
-    real(ccs_real) :: adv_coeff
+    real(ccs_real) :: adv_coeff, adv_coeffaP, adv_coeffaF
 
     select type(scalar)
     type is (central_field)
@@ -128,13 +128,13 @@ contains
             else
               sgn = 1.0_ccs_real
             end if
-            call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), 0, adv_coeff)
+            call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), 0, adv_coeffaP, adv_coeffaF)
 
-            call assert_ge(adv_coeff, 0.0_ccs_real, "Central advection coefficient should be >= 0")
-            call assert_le(adv_coeff, 1.0_ccs_real, "Central advection coefficient should be <= 1")
+            call assert_ge(adv_coeffaF, 0.0_ccs_real, "Central advection coefficient should be >= 0")
+            call assert_le(adv_coeffaF, 1.0_ccs_real, "Central advection coefficient should be <= 1")
           else
             sgn = 1.0_ccs_real
-            call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), index_nb, adv_coeff)
+            call calc_advection_coeff(scalar, loc_f, sgn * mf_data(index_f), index_nb, adv_coeffaP, adv_coeffaF)
           end if
         end do
       end do

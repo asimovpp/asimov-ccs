@@ -13,22 +13,24 @@ program tgv
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
+  use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties, set_field_store_residuals
+                    set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use fv, only: update_gradient
   use io_visualisation, only: write_solution
   use kinds, only: ccs_real, ccs_int, ccs_long
   use mesh_utils, only: read_mesh, build_mesh, write_mesh
   use parallel, only: initialise_parallel_environment, &
+                      create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, query_stop_run
+                      read_command_line_arguments, sync, query_stop_run, is_root
   use parallel_types, only: parallel_environment
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -39,10 +41,12 @@ program tgv
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, str, debug_print
   use vec, only: create_vector, set_vector_location
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
 
   implicit none
 
   class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
   character(len=:), allocatable :: input_path  ! Path to input directory
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
@@ -63,37 +67,39 @@ program tgv
   integer(ccs_int) :: irank ! MPI rank ID
   integer(ccs_int) :: isize ! Size of MPI world
 
-  double precision :: start_time
-  double precision :: init_time
-  double precision :: solver_time
-  double precision :: end_time
-  double precision :: mesh_init_start
-  double precision :: mesh_init_end
-  double precision :: mesh_init_total
-  double precision :: io_init_start
-  double precision :: io_init_end
-  double precision :: io_init_total
-  double precision :: io_sol_start
-  double precision :: io_sol_end
-  double precision :: io_sol_total
+  integer(ccs_int) :: timer_index_total
+  integer(ccs_int) :: timer_index_init
+  integer(ccs_int) :: timer_index_build
+  integer(ccs_int) :: timer_index_io_init
+  integer(ccs_int) :: timer_index_io_sol
+  integer(ccs_int) :: timer_index_sol
+
+  double precision :: sol_time, io_time
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
   logical :: w_sol = .true.
   logical :: p_sol = .true.
 
-  logical :: store_residuals
+  logical :: store_residuals, enable_cell_corrections
 
   integer(ccs_int) :: t          ! Timestep counter
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
 
+  logical :: use_mpi_splitting
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  call timer_init()
 
   irank = par_env%proc_id
   isize = par_env%num_procs
+
+  ! Create shared memory communicator for each node
+  use_mpi_splitting = .true.
+  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   call read_command_line_arguments(par_env, cps, case_name=case_name, in_dir=input_path)
 
@@ -105,12 +111,14 @@ program tgv
 
   ccs_config_file = case_path // ccsconfig
 
-  call timer(start_time)
+  call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
+
+  call timer_register_start("Init time", timer_index_init)
 
   ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -127,17 +135,16 @@ program tgv
 
   ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...
-  call timer(mesh_init_start)
+  call timer_register_start("Mesh build/read time", timer_index_build)
   if (cps /= huge(0)) then
     ! Create a cubic mesh
     if (irank == par_env%root) print *, "Building mesh"
-    mesh = build_mesh(par_env, cps, cps, cps, domain_size)
+    mesh = build_mesh(par_env, shared_env, cps, cps, cps, domain_size)
   else
     if (irank == par_env%root) print *, "Reading mesh file"
-    call read_mesh(par_env, case_name, mesh)
+    call read_mesh(par_env, shared_env, case_name, mesh)
   end if
-  call timer(mesh_init_end)
-  mesh_init_total = mesh_init_end - mesh_init_start
+  call timer_stop(timer_index_build)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -149,6 +156,7 @@ program tgv
   if (irank == par_env%root) print *, "Read and allocate BCs"
   call get_boundary_count(ccs_config_file, n_boundaries)
   call get_store_residuals(ccs_config_file, store_residuals)
+  call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
 
   ! Create and initialise field vectors
   if (irank == par_env%root) print *, "Initialise field vectors"
@@ -160,6 +168,7 @@ program tgv
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
   call set_field_store_residuals(store_residuals, field_properties)
+  call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
@@ -205,10 +214,9 @@ program tgv
   call calc_enstrophy(par_env, mesh, u, v, w)
 
   ! Write out mesh to file
-  call timer(io_init_start)
+  call timer_register_start("I/O time for mesh", timer_index_io_init)
   call write_mesh(par_env, case_path, mesh)
-  call timer(io_init_end)
-  io_init_total = io_init_end - io_init_start
+  call timer_stop(timer_index_io_init)
 
   ! Print the run configuration
   if (irank == par_env%root) then
@@ -228,15 +236,14 @@ program tgv
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
 
-  call timer(init_time)
+  call timer_stop(timer_index_init)
+  call timer_register("I/O time for solution", timer_index_io_sol)
+  call timer_register_start("Solver time inc I/O", timer_index_sol)
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
-    call update_gradient(mesh, u)
-    call update_gradient(mesh, v)
-    call update_gradient(mesh, w)
     call calc_enstrophy(par_env, mesh, u, v, w)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
@@ -244,24 +251,22 @@ program tgv
 
     ! If a STOP file exist, write solution and exit the main simulation loop
     if (query_stop_run(par_env) .eqv. .true.) then
-      call timer(io_sol_start)
+      call timer_start(timer_index_io_sol)
       call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
-      call timer(io_sol_end)
-      io_sol_total = io_sol_total + io_sol_end - io_sol_start
+      call timer_stop(timer_index_io_sol)
       call dprint("STOP file found. Writing output and ending simulation.")
       exit
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call timer(io_sol_start)
+      call timer_start(timer_index_io_sol)
       call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
-      call timer(io_sol_end)
-      io_sol_total = io_sol_total + io_sol_end - io_sol_start
+      call timer_stop(timer_index_io_sol)
     end if
 
   end do
 
-  call timer(solver_time)
+  call timer_stop(timer_index_sol)
 
   ! Clean-up
   deallocate (u)
@@ -271,17 +276,15 @@ program tgv
   deallocate (p_prime)
   deallocate (output_list)
 
-  call timer(end_time)
+  call timer_stop(timer_index_total)
 
+  call timer_print_all(par_env)
+
+  call timer_get_time(timer_index_sol, sol_time)
+  call timer_get_time(timer_index_io_sol, io_time)
   if (irank == par_env%root) then
-    write(*,'(A30, F10.4, A)') "Elapsed time: ", end_time - start_time, " s"
-    write(*,'(A30, F10.4, A)') "Init time: ", init_time - start_time, " s"
-    write(*,'(A30, F10.4, A)') "Mesh build/read time: ", mesh_init_total, " s"
-    write(*,'(A30, F10.4, A)') "I/O time for mesh: ", io_init_total, " s"
-    write(*,'(A30, F10.4, A)') "Solver time inc I/O: ", solver_time - init_time, " s"
-    write(*,'(A30, F10.4, A)') "Solver time no I/O: ", solver_time - init_time - io_sol_total, " s"
-    write(*,'(A30, F10.4, A)') "Average time/step (no I/O): ", (solver_time - init_time - io_sol_total) / num_steps, " s"
-    write(*,'(A30, F10.4, A)') "I/O time for solution: ", io_sol_total, " s"
+    write(*,'(A30, F10.4, A)') "Solver time no I/O:", sol_time - io_time, " s"
+    write(*,'(A30, F10.4, A)') "Average time/step (no I/O):", (sol_time - io_time)/num_steps, " s"
   end if
 
   ! Finalise MPI

@@ -28,11 +28,11 @@ program test_mesh_partitioning
 
   ! Partition
   call get_global_num_cells(mesh, global_num_cells)
-  allocate (mesh%topo%global_partition(global_num_cells))
-  call partition_kway(par_env, mesh)
+  call create_shared_array(shared_env, global_num_cells, mesh%topo%graph_conn%global_partition, mesh%topo%graph_conn%global_partition_window)
+  call partition_kway(par_env, shared_env, roots_env, mesh)
 
   if (par_env%proc_id == 0) then
-    print *, mesh%topo%global_partition
+    print *, mesh%topo%graph_conn%global_partition
   end if
 
   ! Check mesh after partitioning
@@ -52,31 +52,31 @@ contains
 
       if (par_env%num_procs == 3) then
 
-        allocate (mesh%topo%local_partition(5))
-        allocate (mesh%topo%xadj(6))
-        allocate (mesh%topo%vwgt(5))
-        allocate (mesh%topo%vtxdist(4))
+        allocate (mesh%topo%graph_conn%local_partition(5))
+        allocate (mesh%topo%graph_conn%xadj(6))
+        allocate (mesh%topo%graph_conn%vwgt(5))
+        allocate (mesh%topo%graph_conn%vtxdist(4))
 
         if (par_env%proc_id == 0) then
-          allocate (mesh%topo%adjncy(13))
-          allocate (mesh%topo%adjwgt(13))
-          mesh%topo%xadj = (/1, 3, 6, 9, 12, 14/)
-          mesh%topo%adjncy = (/2, 6, 1, 3, 7, 2, 4, 8, 3, 5, 9, 4, 10/)
+          allocate (mesh%topo%graph_conn%adjncy(13))
+          allocate (mesh%topo%graph_conn%adjwgt(13))
+          mesh%topo%graph_conn%xadj = (/1, 3, 6, 9, 12, 14/)
+          mesh%topo%graph_conn%adjncy = (/2, 6, 1, 3, 7, 2, 4, 8, 3, 5, 9, 4, 10/)
         else if (par_env%proc_id == 1) then
-          allocate (mesh%topo%adjncy(18))
-          allocate (mesh%topo%adjwgt(18))
-          mesh%topo%xadj = (/1, 4, 8, 12, 16, 19/)
-          mesh%topo%adjncy = (/1, 7, 11, 2, 6, 8, 12, 3, 7, 9, 13, 4, 8, 10, 14, 5, 9, 15/)
+          allocate (mesh%topo%graph_conn%adjncy(18))
+          allocate (mesh%topo%graph_conn%adjwgt(18))
+          mesh%topo%graph_conn%xadj = (/1, 4, 8, 12, 16, 19/)
+          mesh%topo%graph_conn%adjncy = (/1, 7, 11, 2, 6, 8, 12, 3, 7, 9, 13, 4, 8, 10, 14, 5, 9, 15/)
         else
-          allocate (mesh%topo%adjncy(13))
-          allocate (mesh%topo%adjwgt(13))
-          mesh%topo%xadj = (/1, 3, 6, 9, 12, 14/)
-          mesh%topo%adjncy = (/6, 12, 7, 11, 13, 8, 12, 14, 9, 13, 15, 10, 14/)
+          allocate (mesh%topo%graph_conn%adjncy(13))
+          allocate (mesh%topo%graph_conn%adjwgt(13))
+          mesh%topo%graph_conn%xadj = (/1, 3, 6, 9, 12, 14/)
+          mesh%topo%graph_conn%adjncy = (/6, 12, 7, 11, 13, 8, 12, 14, 9, 13, 15, 10, 14/)
         end if
 
-        mesh%topo%vtxdist = (/1, 6, 11, 16/)
-        mesh%topo%adjwgt = 1
-        mesh%topo%vwgt = 1
+        mesh%topo%graph_conn%vtxdist = (/1, 6, 11, 16/)
+        mesh%topo%graph_conn%adjwgt = 1
+        mesh%topo%graph_conn%vwgt = 1
 
       else
         write (message, *) "Test must be run on 3 MPI ranks"
@@ -101,7 +101,7 @@ contains
     nnew = 0
     call get_global_num_cells(mesh, global_num_cells)
     do i = 1, global_num_cells
-      if (mesh%topo%global_partition(i) == par_env%proc_id) then
+      if (mesh%topo%graph_conn%global_partition(i) == par_env%proc_id) then
         nnew = nnew + 1
       end if
     end do
@@ -115,24 +115,24 @@ contains
 
   subroutine clean_up
 
-    if (allocated(mesh%topo%xadj)) then
-      deallocate (mesh%topo%xadj)
+    if (allocated(mesh%topo%graph_conn%xadj)) then
+      deallocate (mesh%topo%graph_conn%xadj)
     end if
 
-    if (allocated(mesh%topo%adjncy)) then
-      deallocate (mesh%topo%adjncy)
+    if (allocated(mesh%topo%graph_conn%adjncy)) then
+      deallocate (mesh%topo%graph_conn%adjncy)
     end if
 
-    if (allocated(mesh%topo%adjwgt)) then
-      deallocate (mesh%topo%adjwgt)
+    if (allocated(mesh%topo%graph_conn%adjwgt)) then
+      deallocate (mesh%topo%graph_conn%adjwgt)
     end if
 
-    if (allocated(mesh%topo%vwgt)) then
-      deallocate (mesh%topo%vwgt)
+    if (allocated(mesh%topo%graph_conn%vwgt)) then
+      deallocate (mesh%topo%graph_conn%vwgt)
     end if
 
-    if (allocated(mesh%topo%vtxdist)) then
-      deallocate (mesh%topo%vtxdist)
+    if (allocated(mesh%topo%graph_conn%vtxdist)) then
+      deallocate (mesh%topo%graph_conn%vtxdist)
     end if
 
   end subroutine

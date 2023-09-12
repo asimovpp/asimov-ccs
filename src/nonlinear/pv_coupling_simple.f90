@@ -139,12 +139,14 @@ contains
     residuals(:) = 0.0_ccs_real
 
     ! Get pressure gradient
-    call dprint("NONLINEAR: compute grad p")
+    call dprint("NONLINEAR: compute gradients")
     call update_gradient(mesh, p)
+    if (u_sol) call update_gradient(mesh, u)
+    if (v_sol) call update_gradient(mesh, v)
+    if (w_sol) call update_gradient(mesh, w)
 
     !print*,"inside solve_nonlinear"
     outerloop: do i = it_start, it_end
-
       call dprint("NONLINEAR: iteration " // str(i))
       !print*,"iteration no.=",i
 
@@ -167,9 +169,7 @@ contains
 
       ! Update pressure field with pressure correction
       call dprint("NONLINEAR: correct pressure")
-      call update_pressure(p_prime, p)
-      call dprint("NONLINEAR: compute gradp")
-      call update_gradient(mesh, p)
+      call update_pressure(mesh, p_prime, p)
 
       ! Transport scalars
       ! XXX: Should we distinguish active scalars (update in non-linear loop) and passive scalars
@@ -982,14 +982,14 @@ contains
             mf_data(index_f) = calc_mass_flux(u, v, w, &
                                               p_data, dpdx_data, dpdy_data, dpdz_data, &
                                               invAu_data, invAv_data, invAw_data, &
-                                              loc_f)
+                                              loc_f, p%enable_cell_corrections)
           end if
         else
           ! Compute mass flux through face
           mf_data(index_f) = calc_mass_flux(u, v, w, &
                                             p_data, dpdx_data, dpdy_data, dpdz_data, &
                                             invAu_data, invAv_data, invAw_data, &
-                                            loc_f)
+                                            loc_f, .false.)
         end if
 
         mib = mib + mf_data(index_f) * face_area
@@ -1031,15 +1031,18 @@ contains
   end subroutine compute_mass_imbalance
 
   !> Corrects the pressure field, using explicit underrelaxation
-  subroutine update_pressure(p_prime, p)
+  subroutine update_pressure(mesh, p_prime, p)
 
     use case_config, only: pressure_relax
 
     ! Arguments
+    class(ccs_mesh), intent(in) :: mesh    !< The mesh
     class(field), intent(in) :: p_prime !< pressure correction
     class(field), intent(inout) :: p    !< the pressure field being corrected
 
     call axpy(pressure_relax, p_prime%values, p%values)
+
+    call update_gradient(mesh, p)
 
   end subroutine update_pressure
 
@@ -1084,6 +1087,10 @@ contains
     call update(u%values)
     call update(v%values)
     call update(w%values)
+
+    call update_gradient(mesh, u)
+    call update_gradient(mesh, v)
+    call update_gradient(mesh, w)
 
   end subroutine update_velocity
 
@@ -1162,7 +1169,7 @@ contains
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
             mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
-                                      invAu_data, invAv_data, invAw_data, loc_f)
+                                      invAu_data, invAv_data, invAw_data, loc_f, p_prime%enable_cell_corrections)
 
             mf_data(index_f) = mf_data(index_f) + mf_prime
           else
@@ -1296,6 +1303,10 @@ contains
 
     ! checks if RMS of residuals is below target
     if (maxval(residuals(1:nvar)) < res_target) converged = .true.
+
+    if (maxval(residuals) > huge(1.0_ccs_real)) then
+      call error_abort("Computation diverging")
+    end if
 
   end subroutine check_convergence
 

@@ -140,7 +140,7 @@ contains
     real(ccs_real), dimension(:), pointer :: S_data
     
     ! Initialise mesh
-    mesh = build_mesh(par_env, n, n, n, l)
+    mesh = build_mesh(par_env, shared_env, n, n, n, l)
 
     ! Initialise vectors
     call initialise(vec_sizes)
