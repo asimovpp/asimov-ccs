@@ -471,7 +471,6 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p, index_p
     real(ccs_real) :: r1, r2, r3
-    real(ccs_real), dimension(:), pointer :: p_gradient_data
     real(ccs_real), dimension(:), pointer :: dux_data, dvx_data, dwx_data
     real(ccs_real), dimension(:), pointer :: duy_data, dvy_data, dwy_data
     real(ccs_real), dimension(:), pointer :: duz_data, dvz_data, dwz_data
