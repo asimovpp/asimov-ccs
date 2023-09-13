@@ -453,6 +453,7 @@ contains
     real(ccs_real) :: SchmidtNo
     real(ccs_real) :: visavg !< average viscosity
     real(ccs_real), parameter :: density = 1.0_ccs_real 
+    real(ccs_real) :: interpolation_factor
 
     !print*,"inside calc_diffusion_coeff"
     call create_face_locator(mesh, index_p, index_nb, loc_f)
@@ -461,6 +462,7 @@ contains
 
     call create_cell_locator(mesh, index_p, loc_p)
 
+    call get_face_interpolation(loc_f, interpolation_factor)
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
 
@@ -489,11 +491,11 @@ contains
     end if
 
     if (.not. is_boundary) then
-      visavg = 0.5_ccs_real * (visp + visnb)
+      visavg = (interpolation_factor * visp) + ((1.0_ccs_real - interpolation_factor) * visnb)
+      !visavg = 0.5_ccs_real * (visp + visnb)
       diffusion_factor = visavg / (density * SchmidtNo)
     else
-      visavg = visp
-      diffusion_factor = visavg / (density * SchmidtNo)
+      diffusion_factor = visp / (density * SchmidtNo)
     end if
     
     coeff = -face_area * diffusion_factor / dxmag
