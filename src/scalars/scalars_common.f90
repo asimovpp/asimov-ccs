@@ -4,7 +4,7 @@
 
 submodule(scalars) scalars_common
 #include "ccs_macros.inc"
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density
 
   use kinds, only: ccs_int
   use types, only: ccs_matrix, ccs_vector, &
@@ -119,6 +119,7 @@ contains
 
     class(field), pointer :: mf  ! The advecting velocity field
     class(field), pointer :: viscosity  ! viscosity
+    class(field), pointer :: density ! density
     class(linear_solver), allocatable :: lin_solver
     type(equation_system) :: lin_system
     
@@ -128,8 +129,9 @@ contains
 
     call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity) !viscosity
-    call compute_fluxes(phi, mf, mesh, 0, M, rhs, viscosity)
+    call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, field_density, density)
+    call compute_fluxes(phi, mf, mesh, 0, M, rhs, viscosity, density)
     call apply_timestep(mesh, phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")

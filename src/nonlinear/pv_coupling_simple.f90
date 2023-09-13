@@ -22,7 +22,7 @@ submodule(pv_coupling) pv_coupling_simple
   use utils, only: debug_print, get_field, get_fluid_solver_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, &
-                        field_mf, field_viscosity         
+                        field_mf, field_viscosity, field_density         
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
@@ -82,6 +82,7 @@ contains
     class(field), pointer :: p_prime !< field containing pressure-correction values
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
     class(field), pointer :: viscosity !< field containing the viscosity
+    class(field), pointer :: density !< field containing the density
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
@@ -89,7 +90,8 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_p_prime, p_prime)
     call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity) !viscosity
+    call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, field_density, density)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -236,6 +238,7 @@ contains
     class(field), pointer :: mf
     class(field), pointer :: p
     class(field), pointer :: viscosity
+    class(field), pointer :: density
 
     !declare the viscosity field here and access it and pass it in calculate_velocity_component subroutine and all sucessive ones
     call get_field(flow, field_u, u)
@@ -244,6 +247,7 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_mf, mf)
     call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, field_density, density)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -269,24 +273,24 @@ contains
     ! u-velocity
     ! ----------
     if (u_sol) then
-      call calculate_velocity_component(flow, par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals, viscosity)
+      call calculate_velocity_component(flow, par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals, viscosity, density)
     end if
 
     ! v-velocity
     ! ----------
     if (v_sol) then
-      call calculate_velocity_component(flow, par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals, viscosity)
+      call calculate_velocity_component(flow, par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals, viscosity, density)
     end if
 
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(flow, par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals, viscosity)
+      call calculate_velocity_component(flow, par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals, viscosity, density)
     end if
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals, viscosity)
+  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals, viscosity, density)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
@@ -298,6 +302,7 @@ contains
     type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: mf
     class(field), intent(inout) :: viscosity
+    class(field), intent(inout) :: density
     class(field), intent(inout) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
@@ -341,7 +346,7 @@ contains
       call error_abort("Unsupported vector component: " // str(component))
     end if
     !print*,"inside calculate velocity component"
-    call compute_fluxes(u, mf, mesh, component, M, vec, viscosity)
+    call compute_fluxes(u, mf, mesh, component, M, vec, viscosity, density)
 
     call apply_timestep(mesh, u, invAu, M, vec)
 
