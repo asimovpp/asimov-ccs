@@ -22,6 +22,13 @@ endif
 ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
+
+# Check for gfortran version >= 10
+GFORTRAN_VER_GTE10 := $(shell echo `gfortran -dumpversion | cut -f1 -d.` \>= 10 | bc)
+ifeq ($(GFORTRAN_VER_GTE10),1)
+  FFLAGS += -fallow-argument-mismatch
+endif
+
 FFLAGS += -fopenmp
 FFLAGS += -J$(OBJ_DIR)
 MPIRUN = mpirun --oversubscribe
