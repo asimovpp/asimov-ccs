@@ -3,6 +3,7 @@
   except:
     variables:
       - $NIGHTLY
+      - $A2_PERFORMANCE
 
 .setup_gnu:
   before_script:
@@ -247,6 +248,79 @@ profile_intel:
   allow_failure: true
 
 #-----------------------------------------------------------------------------#
+# ARCHER2 performance
+
+.setup_A2_perf:
+  only:
+    variables:
+      - $A2_PERFORMANCE
+  dependencies: []
+
+# 1 node
+A2_perf_1node:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  variables:
+    SLURM_partition: standard
+    SLURM_qos: lowpriority
+    SLURM_time: "00:10:00"
+    SLURM_ntasks-per-node: 128
+    SLURM_nodes: 1
+  script:
+    - CMP=cray make -j all
+    - RUNTESTS=nightly/performance/test_tgv_1node_A2_cps108.yaml CMP=cray make tests
+  artifacts:
+    paths: [tests/nightly/performance/output*txt]
+
+A2_perf_1node_database_update:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  needs:
+    - job: A2_perf_1node
+      artifacts: true
+  variables:
+    ON_COMPUTE: "FALSE"
+  script:
+    - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
+    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
+    - cd asimov-ccs-nightly-data
+    - git add performance_results.json
+    - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
+    - git push
+
+
+
+# 2 node
+A2_perf_2nodes:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  variables:
+    SLURM_partition: standard
+    SLURM_qos: lowpriority
+    SLURM_time: "00:10:00"
+    SLURM_ntasks-per-node: 128
+    SLURM_nodes: 2
+  script:
+    - CMP=cray make -j all
+    - RUNTESTS=nightly/performance/test_tgv_2nodes_A2_cps108.yaml CMP=cray make tests
+  artifacts:
+    paths: [tests/nightly/performance/output*txt]
+
+A2_perf_2nodes_database_update:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  needs:
+    - job: A2_perf_2nodes
+      artifacts: true
+  variables:
+    ON_COMPUTE: "FALSE"
+  script:
+    - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
+    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
+    - cd asimov-ccs-nightly-data
+    - git add performance_results.json
+    - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
+    - git push
+
+
+#-----------------------------------------------------------------------------#
+# Nightly tests on the CI desktop
 
 .setup_nightly:
   only:
