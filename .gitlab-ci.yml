@@ -263,7 +263,7 @@ A2_perf_1node:
     SLURM_partition: standard
     SLURM_qos: lowpriority
     SLURM_time: "00:10:00"
-    SLURM_ntasks-per-node: 128
+    SLURM_ntasks_per_node: 128
     SLURM_nodes: 1
   script:
     - CMP=cray make -j all
@@ -297,7 +297,7 @@ A2_perf_2nodes:
     SLURM_partition: standard
     SLURM_qos: lowpriority
     SLURM_time: "00:10:00"
-    SLURM_ntasks-per-node: 128
+    SLURM_ntasks_per_node: 128
     SLURM_nodes: 2
   script:
     - CMP=cray make -j all
