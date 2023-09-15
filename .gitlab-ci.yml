@@ -267,7 +267,9 @@ A2_perf_1node:
     SLURM_nodes: 1
   script:
     - CMP=cray make -j all
-    - RUNTESTS=nightly/performance/test_tgv_1node_A2_cps108.yaml CMP=cray make tests
+    - export CPS=108
+    - export NCORES=128
+    - RUNTESTS=nightly/performance/test_tgv.yaml CMP=cray make tests
   artifacts:
     paths: [tests/nightly/performance/output*txt]
 
@@ -280,7 +282,7 @@ A2_perf_1node_database_update:
     ON_COMPUTE: "FALSE"
   script:
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
-    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
+    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt
     - cd asimov-ccs-nightly-data
     - git add performance_results.json
     - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
@@ -288,7 +290,7 @@ A2_perf_1node_database_update:
 
 
 
-# 2 node
+# 2 nodes
 A2_perf_2nodes:
   extends: [.setup_A2_perf, .setup_cray_A2]
   variables:
@@ -299,7 +301,9 @@ A2_perf_2nodes:
     SLURM_nodes: 2
   script:
     - CMP=cray make -j all
-    - RUNTESTS=nightly/performance/test_tgv_2nodes_A2_cps108.yaml CMP=cray make tests
+    - export CPS=136
+    - export NCORES=256
+    - RUNTESTS=nightly/performance/test_tgv.yaml CMP=cray make tests
   artifacts:
     paths: [tests/nightly/performance/output*txt]
 
@@ -312,7 +316,7 @@ A2_perf_2nodes_database_update:
     ON_COMPUTE: "FALSE"
   script:
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
-    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
+    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt
     - cd asimov-ccs-nightly-data
     - git add performance_results.json
     - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
@@ -333,6 +337,8 @@ nightly_gnu_performance:
   extends: [.setup_nightly, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu make
+    - export CPS=90
+    - export NCORES=26
     - HOME=${CI_HOME} RUNTESTS=nightly/performance CMP=gnu make tests
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
     - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
