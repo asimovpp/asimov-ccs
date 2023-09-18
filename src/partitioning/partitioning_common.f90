@@ -804,26 +804,36 @@ contains
       vtx1 = edge_starts(i)
       vtx2 = edge_ends(i)
 
-      ! If edge vertex 1 is local to the current rank
-      ! and edge vertex 2 is not 0
-      if (vtx1 .ge. start_index .and. vtx1 .le. end_index .and. vtx2 .ne. 0) then
-        local_index = vtx1 - start_index + 1                     ! Local vertex index
-        k = connectivity_graph(local_index, max_degree + 1) + 1  ! Increment number of edges for this vertex
-        connectivity_graph(local_index, k) = vtx2                ! Store global index of neighbour vertex
-        connectivity_graph(local_index, max_degree + 1) = k      ! Store number of edges for this vertex
-      end if
+      if (vtx2 /= 0) then
+        if (vtx1 /= 0) then
+          ! If edge vertex 1 is local to the current rank
+          if (vtx1 >= start_index) then
+            if (vtx1 <= end_index) then
+              local_index = vtx1 - start_index + 1                    ! Local vertex index
+              k = connectivity_graph(local_index, max_degree + 1) + 1 ! Increment number of edges
+                                                                      ! for this vertex
+              connectivity_graph(local_index, k) = vtx2               ! Store global index of neighbour
+                                                                      ! vertex
+              connectivity_graph(local_index, max_degree + 1) = k     ! Store number of edges for this
+                                                                      ! vertex
+            end if
+          end if
 
-      ! If edge vertex 2 is local to the current rank
-      ! and edge vertex 1 is not 0
-      if (vtx2 .ge. start_index .and. vtx2 .le. end_index .and. vtx1 .ne. 0) then
-        local_index = vtx2 - start_index + 1                     ! Local vertex index
-        k = connectivity_graph(local_index, max_degree + 1) + 1  ! Increment number of edges for this vertex
-        connectivity_graph(local_index, k) = vtx1                ! Store global index of neighbour vertex
-        connectivity_graph(local_index, max_degree + 1) = k      ! Store number of edges for this vertex
-      end if
-
-      ! If edge vertex 2 is 0 we have a boundary edge
-      if (vtx2 .eq. 0) then
+          ! If edge vertex 2 is local to the current rank
+          if (vtx2 >= start_index) then
+            if (vtx2 <= end_index) then
+              local_index = vtx2 - start_index + 1                    ! Local vertex index
+              k = connectivity_graph(local_index, max_degree + 1) + 1 ! Increment number of edges
+                                                                      ! for this vertex
+              connectivity_graph(local_index, k) = vtx1               ! Store global index of neighbour
+                                                                      ! vertex
+              connectivity_graph(local_index, max_degree + 1) = k     ! Store number of edges for this
+                                                                      ! vertex
+            end if
+          end if
+        end if
+      else
+        ! If edge vertex 2 is 0 we have a boundary edge
       end if
 
     end do
