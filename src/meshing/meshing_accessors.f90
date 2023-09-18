@@ -17,7 +17,7 @@ contains
 
   end subroutine set_local_num_cells_mesh
 
-  !> Sets the mesh local cell count.
+  !> Sets the mesh topology local cell count.
   module subroutine set_local_num_cells_topo(local_num_cells, topo)
 
     integer(ccs_int), intent(in) :: local_num_cells !< The local cell count
@@ -37,7 +37,7 @@ contains
 
   end subroutine get_local_num_cells_mesh_int
 
-  !> Gets the mesh local cell count.
+  !> Gets the mesh topology local cell count.
   module subroutine get_local_num_cells_topo_int(topo, local_num_cells)
 
     type(topology), intent(in) :: topo               !< The mesh topology
@@ -59,9 +59,9 @@ contains
 
   end subroutine get_local_num_cells_mesh_long
 
-  !v Gets the mesh local cell count.
+  !v Gets the mesh topology local cell count.
   !
-  !  Handles case when using a long integer to access the internal mesh data.
+  !  Handles case when using a long integer to access the internal topology data.
   module subroutine get_local_num_cells_topo_long(topo, local_num_cells)
 
     type(topology), intent(in) :: topo                !< The mesh topology
@@ -81,7 +81,7 @@ contains
 
   end subroutine set_total_num_cells_mesh
 
-  !> Sets the mesh total cell count.
+  !> Sets the mesh topology total cell count.
   module subroutine set_total_num_cells_topo(total_num_cells, topo)
 
     integer(ccs_int), intent(in) :: total_num_cells !< The total cell count
@@ -121,7 +121,7 @@ contains
     
   end subroutine get_global_num_cells_mesh
 
-  !> Gets the mesh global cell count.
+  !> Gets the mesh topology global cell count.
   module subroutine get_global_num_cells_topo(topo, global_num_cells)
 
     type(topology), intent(in) :: topo                !< The mesh topology
@@ -171,7 +171,7 @@ contains
 
   end subroutine get_global_num_faces_mesh
 
-  !> Gets the mesh global face count.
+  !> Gets the mesh topology global face count.
   module subroutine get_global_num_faces_topo(topo, global_num_faces)
 
     type(topology), intent(in) :: topo                !< The mesh topology
@@ -221,7 +221,7 @@ contains
     
   end subroutine get_max_faces_mesh
 
-  !> Gets the mesh face count.
+  !> Gets the mesh topology face count.
   module subroutine get_max_faces_topo(topo, max_faces)
 
     type(topology), intent(in) :: topo         ! The mesh topology
