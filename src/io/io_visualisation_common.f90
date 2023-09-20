@@ -16,8 +16,8 @@ submodule(io_visualisation) io_visualisation_common
   implicit none
 
   character(len=1), dimension(4), parameter :: skip_fields = &
-       (/ "u", "v", "w", &
-          "p" /)
+       [ "u", "v", "w", &
+          "p" ]
 
   logical, save :: initial_step = .true.
     

@@ -494,7 +494,7 @@ module poiseuille_core
     P = 8*mu 
 
 
-    profile%centre(:) = (/ 0, 0, 0 /)
+    profile%centre(:) = [ 0, 0, 0 ]
 
     do i=1, n
       y =  real(i-1, ccs_real)*h/real(n-1, ccs_real)
