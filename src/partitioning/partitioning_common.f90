@@ -251,7 +251,7 @@ contains
     end if
     call sync(shared_env)
 
-    call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+    call create_shared_array(shared_env, [max_vert_nb, global_num_cells], mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
     if (is_root(shared_env)) then
       mesh%topo%global_vert_nb_indices(:, :) = 0
       
@@ -735,7 +735,7 @@ contains
     allocate (tmp_int2d(graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
-    call build_connectivity_graph((/ start_index, end_index /), face_cell1, face_cell2, tmp_int2d)
+    call build_connectivity_graph([ start_index, end_index ], face_cell1, face_cell2, tmp_int2d)
     
     num_connections = sum(tmp_int2d(:, max_faces + 1))
     call dprint("Initial number of connections: " // str(num_connections))
