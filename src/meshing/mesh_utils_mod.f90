@@ -2726,6 +2726,9 @@ contains
 
   end subroutine partition_stride
 
+  !v Compute the global start index of a process if each receives an equal share of the items,
+  !  ordered by process ID. Any remainder items are distributed evenly between the remainder lower
+  !  process IDs.
   integer function global_start(n, procid, nproc)
 
     integer(ccs_int), intent(in) :: n
@@ -2741,6 +2744,8 @@ contains
 
   end function global_start
 
+  !v Compute the local share of a process if each receives an equal share of the items, ordered by
+  !  process ID. Any remainder items are distributed evenly between the remainder lower process IDs.
   integer function local_count(n, procid, nproc)
 
     integer(ccs_int), intent(in) :: n
