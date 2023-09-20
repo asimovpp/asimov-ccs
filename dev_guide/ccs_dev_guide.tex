@@ -319,6 +319,16 @@ integer, dimension(10, 20) :: a, b
 a(:) = b(:) ! Good
 \end{lstlisting}
 
+For better readability, array initialisations should be done using square brackets instead of parenthesis.
+\begin{lstlisting}[language=fortran,basicstyle=\fontsize{9}{10}\ttfamily\label{lst:array_good_decl}
+]
+integer, dimension(3) :: a
+
+a = (/ 1, 2, 3 /) ! Bad
+a = [ 1, 2, 3 ]    ! Good
+\end{lstlisting}
+
+
 \subsection{Parentheses}
 Improve readability of mathematical formulas by explicity using parentheses.
 
