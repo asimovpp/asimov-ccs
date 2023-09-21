@@ -316,12 +316,13 @@ contains
 
   end subroutine
 
-  module subroutine compute_bandwidth(mesh)
+  module subroutine compute_bandwidth(mesh, bw_max, bw_avg)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh to evaluate
+    integer(ccs_int), intent(out) :: bw_max
+    real(ccs_real), intent(out) :: bw_avg
 
-    integer(ccs_int) :: bw, bw_max, bw_rowmax
-    real(ccs_real) :: bw_avg
+    integer(ccs_int) :: bw, bw_rowmax
     integer(ccs_int) :: idx_p, idx_nb
 
     type(cell_locator) :: loc_p
@@ -354,7 +355,6 @@ contains
       bw_avg = bw_avg + bw_rowmax
     end do
     bw_avg = bw_avg / local_num_cells
-    print *, "Bandwidth: ", bw_max, bw_avg
 
   end subroutine compute_bandwidth
 
