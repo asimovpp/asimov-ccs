@@ -3021,6 +3021,9 @@ contains
     class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
+    integer(ccs_int) :: bw_max
+    real(ccs_real) :: bw_avg
+
     call create_shared_roots_comm(par_env, shared_env, roots_env)
 
     if (par_env%num_procs > 1) then
@@ -3031,12 +3034,39 @@ contains
 
     call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
-    call compute_bandwidth(mesh)
+    call compute_bandwidth(mesh, bw_max, bw_avg)
+    call print_bandwidth(par_env, bw_max, bw_avg)
+    
     call reorder_cells(par_env, shared_env, mesh)
     call cleanup_partitioner_data(shared_env, mesh)
-    call compute_bandwidth(mesh)
+
+    call compute_bandwidth(mesh, bw_max, bw_avg)
+    call print_bandwidth(par_env, bw_max, bw_avg)
 
   end subroutine
+
+  subroutine print_bandwidth(par_env, bw_max, bw_avg)
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    integer(ccs_int), intent(in) :: bw_max
+    real(ccs_real), intent(in) :: bw_avg
+
+    integer(ccs_int) :: ierr
+    real(ccs_real) :: sum_bw_avg
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, bw_max, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+      call MPI_Allreduce(bw_avg, sum_bw_avg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      if(is_root(par_env)) then 
+        print *, "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
+      end if
+
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
+    
+  end subroutine
+
 
   ! Naively distribute cells equally across all processes
   subroutine set_naive_distribution(par_env, num_cells, graph_conn)

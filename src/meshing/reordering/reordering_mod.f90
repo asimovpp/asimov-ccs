@@ -3,7 +3,7 @@
 !  Provides the interface for mesh reordering methods.
 module reordering
 
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_real
   use types, only: ccs_mesh
   use parallel_types, only: parallel_environment
 
@@ -32,8 +32,10 @@ module reordering
     end subroutine
 
     !> Calculate and print the bandwidth of a mesh
-    module subroutine compute_bandwidth(mesh)
+    module subroutine compute_bandwidth(mesh, bw_max, bw_avg)
       type(ccs_mesh), intent(in) :: mesh
+      integer(ccs_int), intent(out) :: bw_max
+      real(ccs_real), intent(out) :: bw_avg
     end subroutine
 
     !> Generate a mesh cell reordering mapping.
