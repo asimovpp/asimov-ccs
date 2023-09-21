@@ -3061,7 +3061,7 @@ contains
         print *, "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
       end if
 
-      class default
+    class default
       call error_abort("Unsupported parallel environment!")
     end select
     
