@@ -3015,7 +3015,6 @@ contains
                             compute_connectivity, &
                             compute_partitioner_input, &
                             cleanup_partitioner_data
-    use parallel, only: is_root
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
