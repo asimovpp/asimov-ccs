@@ -36,7 +36,7 @@ module reordering
       type(ccs_mesh), intent(in) :: mesh
       integer(ccs_int), intent(out) :: bw_max
       real(ccs_real), intent(out) :: bw_avg
-      end subroutine
+    end subroutine
 
     !> Generate a mesh cell reordering mapping.
     module subroutine get_reordering(mesh, new_indices)
