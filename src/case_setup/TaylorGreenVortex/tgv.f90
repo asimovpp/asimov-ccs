@@ -134,9 +134,6 @@ program tgv
   ! Hard coding to whether or not vertex neighbours are built
   vertex_neighbours = .true. ! set to .false. to avoid building
 
-  ! ! Hard coding whether or not bandwidth is computed
-  ! compute_bwidth = .false.
-
   ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...
   call timer_register_start("Mesh build/read time", timer_index_build)
@@ -306,7 +303,6 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
-    character(:), allocatable :: on_off
 
     config_file => parse(config_filename, error)
     if (allocated(error)) then
@@ -357,14 +353,7 @@ contains
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
-    call get_value(config_file, 'compute_bwidth', on_off)
-    if(on_off == 'on') then
-      compute_bwidth = .true.
-    else if (on_off == 'off') then
-      compute_bwidth = .false.
-    else  
-      call error_abort("Please set compute_bwidth to either on or off.")
-    end if
+   call get_value(config_file, 'compute_bwidth', compute_bwidth)
 
   end subroutine
 
