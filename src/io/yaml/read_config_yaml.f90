@@ -132,7 +132,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
 
     type(type_error), allocatable :: io_err
     character(len=:), allocatable :: string_val !< The corresponding value
-    character(len=:), allocatable :: message    !< Error message
+
     select type (dict)
     type is (type_dictionary)
 
