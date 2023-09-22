@@ -261,6 +261,7 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
+    character(:), allocatable :: on_off
 
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 

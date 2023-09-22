@@ -236,6 +236,7 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
+    character(:), allocatable :: on_off
 
     config_file => parse(config_filename, error)
     if (allocated(error)) then
