@@ -142,7 +142,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       else if (string_val == 'false') then
         logical_val = .false.
       else
-        call error_abort("Set to value for " // keyword // " to true or false, not " // string_val)
+        call error_abort("Set the value for " // keyword // " to true or false, not " // string_val)
       end if
 
       if (present(value_present)) then
