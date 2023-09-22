@@ -18,6 +18,9 @@ relaxation_factor:
 
 target_residual: 1.0e-10
 
+# Compute matrix bandwidth (on/off)
+compute_bwidth : off
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:

@@ -3015,6 +3015,7 @@ contains
                             compute_connectivity, &
                             compute_partitioner_input, &
                             cleanup_partitioner_data
+    use case_config, only: compute_bwidth
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
@@ -3034,14 +3035,18 @@ contains
 
     call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
-    call compute_bandwidth(mesh, bw_max, bw_avg)
-    call print_bandwidth(par_env, bw_max, bw_avg)
-    
+    if(compute_bwidth .eqv. .true.) then
+      call compute_bandwidth(mesh, bw_max, bw_avg)
+      call print_bandwidth(par_env, bw_max, bw_avg)
+    end if
+
     call reorder_cells(par_env, shared_env, mesh)
     call cleanup_partitioner_data(shared_env, mesh)
 
-    call compute_bandwidth(mesh, bw_max, bw_avg)
-    call print_bandwidth(par_env, bw_max, bw_avg)
+    if(compute_bwidth .eqv. .true.) then
+      call compute_bandwidth(mesh, bw_max, bw_avg)
+      call print_bandwidth(par_env, bw_max, bw_avg)
+    end if
 
   end subroutine
 

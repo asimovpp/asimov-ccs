@@ -9,7 +9,8 @@ program tgv
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
+                         pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours, &
+                         compute_bwidth
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred
@@ -132,6 +133,9 @@ program tgv
 
   ! Hard coding to whether or not vertex neighbours are built
   vertex_neighbours = .true. ! set to .false. to avoid building
+
+  ! ! Hard coding whether or not bandwidth is computed
+  ! compute_bwidth = .false.
 
   ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...
@@ -302,6 +306,7 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
+    character(:), allocatable :: on_off
 
     config_file => parse(config_filename, error)
     if (allocated(error)) then
@@ -350,6 +355,15 @@ contains
     call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
+    end if
+
+    call get_value(config_file, 'compute_bwidth', on_off)
+    if(on_off == 'on') then
+      compute_bwidth = .true.
+    else if (on_off == 'off') then
+      compute_bwidth = .false.
+    else  
+      call error_abort("Please set compute_bwidth to either on or off.")
     end if
 
   end subroutine
