@@ -72,7 +72,7 @@ module read_config
     module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
       class(*), pointer, intent(in) :: dict                       !< The dictionary
       character(len=*), intent(in) :: keyword                     !< The key
-      logical, intent(out) :: logical_val !< The corresponding value
+      logical, intent(inout) :: logical_val !< The corresponding value
       logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
