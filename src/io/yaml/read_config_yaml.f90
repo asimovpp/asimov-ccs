@@ -39,7 +39,7 @@ contains
     end select
 
     if (allocated(io_err) .eqv. .true.) then
-      call error_abort("Error reading " // keyword)
+      call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
     end if
 
   end subroutine
@@ -67,11 +67,6 @@ contains
           value_present = .true.
         end if
       end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          ! call error_handler(io_err)
-        end if
-      end if
 
     class default
       call error_abort("Unknown type")
@@ -79,7 +74,7 @@ contains
 
     if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
+        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
       end if
     end if
 
@@ -106,11 +101,6 @@ contains
           value_present = .true.
         end if
       end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          !call error_handler(io_err)
-        end if
-      end if
 
     class default
       call error_abort("Unknown type")
@@ -118,7 +108,7 @@ contains
 
     if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
+        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
       end if
     end if
   end subroutine
@@ -126,7 +116,7 @@ contains
 module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
-    logical, intent(out) :: logical_val                         !< The corresponding value
+    logical, intent(inout) :: logical_val                         !< The corresponding value
     logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
     logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
@@ -141,7 +131,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
         logical_val = .true.
       else if (string_val == 'false') then
         logical_val = .false.
-      else
+      else if (.not. allocated(io_err)) then
         call error_abort("Set the value for " // keyword // " to true or false, not " // string_val)
       end if
 
@@ -152,11 +142,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           value_present = .true.
         end if
       end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          !call error_handler(io_err)
-        end if
-      end if
 
     class default
       call error_abort("Unknown type")
@@ -164,7 +149,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
 
     if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
+        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
       end if
     end if
   end subroutine
