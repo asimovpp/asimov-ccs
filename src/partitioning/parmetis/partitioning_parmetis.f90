@@ -17,20 +17,20 @@ submodule(partitioning) partitioning_parmetis
                                       edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
-      integer(c_long), dimension(*) :: vtxdist
-      integer(c_long), dimension(*) :: xadj
-      integer(c_long), dimension(*) :: adjncy
-      integer(c_long), dimension(*) :: vwgt
-      integer(c_long), dimension(*) :: adjwgt
-      integer(c_long) :: wgtflag ! Set to 0 for "no weights"
-      integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
-      integer(c_long) :: ncon
-      integer(c_long) :: num_procs
+      integer(c_int32_t), dimension(*) :: vtxdist
+      integer(c_int32_t), dimension(*) :: xadj
+      integer(c_int32_t), dimension(*) :: adjncy
+      integer(c_int32_t), dimension(*) :: vwgt
+      integer(c_int32_t), dimension(*) :: adjwgt
+      integer(c_int32_t) :: wgtflag ! Set to 0 for "no weights"
+      integer(c_int32_t) :: numflag ! Numbering scheme - 1 means Fortran style
+      integer(c_int32_t) :: ncon
+      integer(c_int32_t) :: num_procs
       real(c_float), dimension(*) :: tpwgts
       real(c_float), dimension(*) :: ubvec
-      integer(c_long), dimension(*) :: options
-      integer(c_long) :: edgecuts
-      integer(c_long), dimension(*) :: local_partition
+      integer(c_int32_t), dimension(*) :: options
+      integer(c_int32_t) :: edgecuts
+      integer(c_int32_t), dimension(*) :: local_partition
       integer(c_int) :: comm
     end subroutine
   end interface
@@ -85,6 +85,7 @@ contains
 
     use mpi
     use iso_c_binding
+    use iso_fortran_env
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
@@ -100,20 +101,20 @@ contains
     integer(ccs_int) :: ierr
     integer(ccs_int) :: i
 
-    integer(c_long), dimension(:), allocatable :: vtxdist
-    integer(c_long), dimension(:), allocatable :: xadj
-    integer(c_long), dimension(:), allocatable :: adjncy
-    integer(c_long), dimension(:), allocatable :: vwgt
-    integer(c_long), dimension(:), allocatable :: adjwgt
-    integer(c_long) :: wgtflag ! Set to 0 for "no weights"
-    integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
-    integer(c_long) :: ncon
-    integer(c_long) :: num_procs
+    integer(c_int32_t), dimension(:), allocatable :: vtxdist
+    integer(c_int32_t), dimension(:), allocatable :: xadj
+    integer(c_int32_t), dimension(:), allocatable :: adjncy
+    integer(c_int32_t), dimension(:), allocatable :: vwgt
+    integer(c_int32_t), dimension(:), allocatable :: adjwgt
+    integer(c_int32_t) :: wgtflag ! Set to 0 for "no weights"
+    integer(c_int32_t) :: numflag ! Numbering scheme - 1 means Fortran style
+    integer(c_int32_t) :: ncon
+    integer(c_int32_t) :: num_procs
     real(c_float), dimension(:), allocatable :: tpwgts
     real(c_float), dimension(:), allocatable :: ubvec
-    integer(c_long), dimension(:), allocatable :: options
-    integer(c_long) :: edgecuts
-    integer(c_long), dimension(:), allocatable :: local_partition
+    integer(c_int32_t), dimension(:), allocatable :: options
+    integer(c_int32_t) :: edgecuts
+    integer(c_int32_t), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
     ! Values mostly hardcoded for now
@@ -136,12 +137,12 @@ contains
 
     irank = par_env%proc_id ! Current rank
 
-    vtxdist = graph_conn%vtxdist - 1
-    xadj = graph_conn%xadj - 1
-    adjncy = graph_conn%adjncy - 1
+    vtxdist = int(graph_conn%vtxdist, int32) - 1
+    xadj = int(graph_conn%xadj, int32) - 1
+    adjncy = int(graph_conn%adjncy, int32) - 1
 
-    adjwgt = graph_conn%adjwgt
-    vwgt = graph_conn%vwgt
+    adjwgt = int(graph_conn%adjwgt, int32)
+    vwgt = int(graph_conn%vwgt, int32)
 
     ! Set weights to 1
     adjwgt = 1
@@ -164,7 +165,7 @@ contains
                                   tpwgts, ubvec, options, &
                                   edgecuts, local_partition, comm)
 
-      graph_conn%local_partition(:) = local_partition(:)
+      graph_conn%local_partition(:) = int(local_partition(:), int64)
 
       call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
 
@@ -180,7 +181,7 @@ contains
         select type (roots_env)
         type is (parallel_environment_mpi)
           call MPI_AllReduce(tmp_partition, graph_conn%global_partition, global_num_cells, &
-                            MPI_LONG, MPI_SUM, roots_env%comm, ierr)
+                            MPI_INTEGER8, MPI_SUM, roots_env%comm, ierr)
         class default
           print *, "ERROR: Unknown parallel environment!"
         end select
