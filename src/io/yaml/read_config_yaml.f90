@@ -39,7 +39,7 @@ contains
     end select
 
     if (allocated(io_err) .eqv. .true.) then
-      call error_abort("Error reading " // keyword)
+      call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
     end if
 
   end subroutine
@@ -67,11 +67,6 @@ contains
           value_present = .true.
         end if
       end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          ! call error_handler(io_err)
-        end if
-      end if
 
     class default
       call error_abort("Unknown type")
@@ -79,7 +74,7 @@ contains
 
     if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
+        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
       end if
     end if
 
@@ -106,11 +101,6 @@ contains
           value_present = .true.
         end if
       end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          !call error_handler(io_err)
-        end if
-      end if
 
     class default
       call error_abort("Unknown type")
@@ -118,7 +108,7 @@ contains
 
     if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
+        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
       end if
     end if
   end subroutine
@@ -152,11 +142,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           value_present = .true.
         end if
       end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          !call error_handler(io_err)
-        end if
-      end if
 
     class default
       call error_abort("Unknown type")
@@ -164,7 +149,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
 
     if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
       if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
+        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
       end if
     end if
   end subroutine
