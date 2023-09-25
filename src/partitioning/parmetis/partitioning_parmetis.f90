@@ -138,7 +138,6 @@ contains
     irank = par_env%proc_id ! Current rank
 
     vtxdist = int(graph_conn%vtxdist, int32) - 1
-    print*, "vtxdist: ", vtxdist
     xadj = int(graph_conn%xadj, int32) - 1
     adjncy = int(graph_conn%adjncy, int32) - 1
 
@@ -166,11 +165,7 @@ contains
                                   tpwgts, ubvec, options, &
                                   edgecuts, local_partition, comm)
 
-      print*, "Number of edgecuts: ", edgecuts
-      print*, "Local partition: ", local_partition
-
       graph_conn%local_partition(:) = int(local_partition(:), int64)
-      print*, "Graph conn local partition: ", local_partition
 
       call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
 
