@@ -6,7 +6,7 @@ submodule(partitioning) partitioning_parmetis
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
-  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array
+  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
 
   implicit none
 
@@ -138,6 +138,7 @@ contains
     irank = par_env%proc_id ! Current rank
 
     vtxdist = int(graph_conn%vtxdist, int32) - 1
+    print*, "vtxdist: ", vtxdist
     xadj = int(graph_conn%xadj, int32) - 1
     adjncy = int(graph_conn%adjncy, int32) - 1
 
@@ -165,17 +166,23 @@ contains
                                   tpwgts, ubvec, options, &
                                   edgecuts, local_partition, comm)
 
+      print*, "Number of edgecuts: ", edgecuts
+      print*, "Local partition: ", local_partition
+
       graph_conn%local_partition(:) = int(local_partition(:), int64)
+      print*, "Graph conn local partition: ", local_partition
 
       call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
 
       if (is_root(shared_env)) then
         tmp_partition(:) = 0
       end if
+      call sync(shared_env)
 
       do i = 1, local_part_size
         tmp_partition(i + vtxdist(irank + 1)) = graph_conn%local_partition(i)
       end do
+      call sync(shared_env)
 
       if (is_valid(roots_env)) then
         select type (roots_env)
@@ -192,6 +199,8 @@ contains
     end select
 
     call dprint("Number of edgecuts: " // str(int(edgecuts)))
+
+    call sync(shared_env)
 
     call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
 
