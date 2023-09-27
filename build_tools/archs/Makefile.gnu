@@ -17,7 +17,9 @@ ifeq ($(BUILD),debug)
   FFLAGS += -Wall -Wpedantic -Werror 
   FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 else
-  FFLAGS += -O3 -march=native -mtune=native
+  FFLAGS += -O3
+  # Warning, native flags don't allow cross compilation
+  FFLAGS += -march=native -mtune=native
 endif
 ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
