@@ -175,7 +175,7 @@ program bfs
   ! Read u componemt (1st column)
   call read_bc_profile(case_path // '.blasius.prf', 1, profile)
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
-  profile%centre(:) = (/ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real /) 
+  profile%centre(:) = [ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real ] 
 
   ! Set to 3rd boundary condition (inlet)
   call set_bc_profile(u, profile, 3)
@@ -496,8 +496,8 @@ contains
         exit
       end if
 
-      profile%values = (/ profile%values, tmp_values(variable_id) /)
-      profile%coordinates = (/ profile%coordinates, tmp_coord /)
+      profile%values = [ profile%values, tmp_values(variable_id) ]
+      profile%coordinates = [ profile%coordinates, tmp_coord ]
     end do
 
   end subroutine read_bc_profile

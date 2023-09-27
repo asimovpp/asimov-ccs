@@ -105,11 +105,11 @@ contains
     call timer_get_index(timer_name_local, timer_index)
     if (timer_index == -1) then
       timer_index = size(ticks) + 1
-      timer_names = (/ timer_names, timer_name_local /)
-      ticks = (/ ticks, 0.d0 /)
-      tocks = (/ tocks, 0.d0 /)
-      counters = (/ counters, 0 /)
-      has_started = (/ has_started, .false. /)
+      timer_names = [ timer_names, timer_name_local ]
+      ticks = [ ticks, 0.d0 ]
+      tocks = [ tocks, 0.d0 ]
+      counters = [ counters, 0 ]
+      has_started = [ has_started, .false. ]
       if (present(is_total_time)) then
         if (is_total_time) then
           total_index = timer_index

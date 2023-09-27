@@ -172,7 +172,7 @@ program scalar_transport
   call allocate_fluid_fields(3, flow_fields)
   field_ctr = 1
   call set_field(field_ctr, field_mf, mf, flow_fields)
-  scalar_index = maxval((/ field_u, field_v, field_w, field_p, field_p_prime, field_mf /)) + 1
+  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf ]) + 1
   do i = 1, size(field_list)
      field_ctr = field_ctr + 1
      call set_field(field_ctr, scalar_index, field_list(i)%f, flow_fields)

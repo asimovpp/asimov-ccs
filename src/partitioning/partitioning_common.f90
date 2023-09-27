@@ -251,7 +251,7 @@ contains
     end if
     call sync(shared_env)
 
-    call create_shared_array(shared_env, (/max_vert_nb, global_num_cells/), mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
+    call create_shared_array(shared_env, [max_vert_nb, global_num_cells], mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
     if (is_root(shared_env)) then
       mesh%topo%global_vert_nb_indices(:, :) = 0
       
@@ -635,133 +635,211 @@ contains
 
   module subroutine compute_partitioner_input_generic(par_env, shared_env, mesh)
 
-    use iso_fortran_env, only: int32
-
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
+    call compute_partitioner_input_generic_topo(par_env, shared_env, mesh%topo)
+    
+  end subroutine compute_partitioner_input_generic
+
+  subroutine compute_partitioner_input_generic_topo(par_env, shared_env, topo)
+
+    use iso_fortran_env, only: int32
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    type(topology), target, intent(inout) :: topo                              !< The mesh topology for which to compute the parition
+
+    ! Local variables
+    integer(ccs_int) :: irank
+    integer(ccs_int) :: local_num_cells
+    
+    irank = par_env%proc_id
+
+    call compute_partitioner_input_generic_graphconn(par_env, shared_env, topo%global_num_cells, &
+                                                     topo%face_cell1, topo%face_cell2, topo%max_faces, &
+                                                     topo%graph_conn)
+
+    ! Count and store the number of local cells per rank
+    local_num_cells = count(topo%graph_conn%global_partition == irank)
+    call set_local_num_cells(local_num_cells, topo)
+    call get_local_num_cells(topo, local_num_cells) ! Ensure using true value
+    call dprint("Initial number of local cells: " // str(local_num_cells))
+
+    ! Count halo cells
+    ! XXX: This will count multiple connections to the same halo cell multiple times, so too would
+    !      the original implementation!
+    associate(graph_conn => topo%graph_conn)
+      topo%halo_num_cells = count(graph_conn%global_partition(graph_conn%adjncy) /= irank)
+    end associate
+    
+    call dprint("Initial number of halo cells: " // str(topo%halo_num_cells))
+    topo%total_num_cells = local_num_cells + topo%halo_num_cells
+    call dprint("Total number of cells (local + halo): " // str(topo%total_num_cells))
+    
+  end subroutine compute_partitioner_input_generic_topo
+
+  subroutine compute_partitioner_input_generic_graphconn(par_env, shared_env, global_num_cells_shared_size, &
+                                                         face_cell1, face_cell2, max_faces, &
+                                                         graph_conn)
+
+    use iso_fortran_env, only: int32
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    integer(ccs_int), intent(in) :: global_num_cells_shared_size               !< The global cell count
+    integer(ccs_int), dimension(:), intent(in) :: face_cell1                   !< Face neighbour 1
+    integer(ccs_int), dimension(:), intent(in) :: face_cell2                   !< Face neighbour 2
+    integer(ccs_int), intent(in) :: max_faces                                  !< Maximum face count per cell
+    type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph connectivity for which to compute the parition
+
     ! Local variables
     integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
 
-    integer(ccs_int) :: i, j, k
+    integer(ccs_int) :: i, j
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
     integer(ccs_int) :: start_index
     integer(ccs_int) :: end_index
-    integer(ccs_int) :: face_nb1
-    integer(ccs_int) :: face_nb2
     integer(ccs_int) :: local_index
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: global_num_cells_shared_size
 
     irank = par_env%proc_id
     isize = par_env%num_procs
 
-    start_index = int(mesh%topo%graph_conn%vtxdist(irank + 1), int32)
-    end_index = int(mesh%topo%graph_conn%vtxdist(irank + 2), int32) - 1
+    start_index = int(graph_conn%vtxdist(irank + 1), int32)
+    end_index = int(graph_conn%vtxdist(irank + 2), int32) - 1
 
     ! Allocate global partition array
-    global_num_cells_shared_size = mesh%topo%global_num_cells
-
-    call create_shared_array(shared_env, global_num_cells_shared_size, mesh%topo%graph_conn%global_partition, mesh%topo%graph_conn%global_partition_window)
+    call create_shared_array(shared_env, global_num_cells_shared_size, graph_conn%global_partition, graph_conn%global_partition_window)
 
     ! Initial global partition
     if (is_root(shared_env)) then
-      do i = 1, size(mesh%topo%graph_conn%vtxdist) - 1
+      do i = 1, size(graph_conn%vtxdist) - 1
         j = i - 1
-        mesh%topo%graph_conn%global_partition(mesh%topo%graph_conn%vtxdist(i):mesh%topo%graph_conn%vtxdist(i + 1) - 1) = j
+        graph_conn%global_partition(graph_conn%vtxdist(i):graph_conn%vtxdist(i + 1) - 1) = j
       end do
     end if
 
     call sync(shared_env)
 
     ! Count the number of local cells per rank
-    local_num_cells = count(mesh%topo%graph_conn%global_partition == irank)
-    call set_local_num_cells(local_num_cells, mesh)
-    call get_local_num_cells(mesh, local_num_cells) ! Ensure using true value
-    call dprint("Initial number of local cells: " // str(local_num_cells))
+    local_num_cells = count(graph_conn%global_partition == irank)
 
     ! Allocate adjacency index array xadj based on vtxdist
-    allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
+    allocate (graph_conn%xadj(graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1) + 1))
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), mesh%topo%max_faces + 1))
+    allocate (tmp_int2d(graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
-    ! All ranks loop over all the faces
-    do i = 1, mesh%topo%global_num_faces
-
-      face_nb1 = mesh%topo%face_cell1(i)
-      face_nb2 = mesh%topo%face_cell2(i)
-
-      ! If face neighbour 1 is local to the current rank
-      ! and face neighbour 2 is not 0
-      if (face_nb1 .ge. start_index .and. face_nb1 .le. end_index .and. face_nb2 .ne. 0) then
-        local_index = face_nb1 - start_index + 1                 ! Local cell index
-        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
-        tmp_int2d(local_index, k) = face_nb2                       ! Store global index of neighbour cell
-        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
-      end if
-
-      ! If face neighbour 2 is local to the current rank
-      ! and face neighbour 1 is not 0
-      if (face_nb2 .ge. start_index .and. face_nb2 .le. end_index .and. face_nb1 .ne. 0) then
-        local_index = face_nb2 - start_index + 1                 ! Local cell index
-        k = tmp_int2d(local_index, mesh%topo%max_faces + 1) + 1  ! Increment number of faces for this cell
-        tmp_int2d(local_index, k) = face_nb1                       ! Store global index of neighbour cell
-        tmp_int2d(local_index, mesh%topo%max_faces + 1) = k      ! Store number of faces for this cell
-      end if
-
-      ! If face neighbour 2 is 0 we have a boundary face
-      if (face_nb2 .eq. 0) then
-      end if
-
-    end do
-
-    num_connections = sum(tmp_int2d(:, mesh%topo%max_faces + 1))
+    call build_connectivity_graph([ start_index, end_index ], face_cell1, face_cell2, tmp_int2d)
+    
+    num_connections = sum(tmp_int2d(:, max_faces + 1))
     call dprint("Initial number of connections: " // str(num_connections))
 
     ! Allocate adjncy array based on the number of computed connections
-    allocate (mesh%topo%graph_conn%adjncy(num_connections))
+    allocate (graph_conn%adjncy(num_connections))
     ! Allocate local partition array
-    allocate (mesh%topo%graph_conn%local_partition(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1)))
+    allocate (graph_conn%local_partition(graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1)))
 
     local_index = 1
 
     do i = 1, end_index - start_index + 1  ! Loop over local cells
 
-      mesh%topo%graph_conn%xadj(i) = local_index                          ! Pointer to start of current
+      graph_conn%xadj(i) = local_index                          ! Pointer to start of current
 
-      do j = 1, tmp_int2d(i, mesh%topo%max_faces + 1)               ! Loop over number of faces
-        mesh%topo%graph_conn%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
-        if (mesh%topo%graph_conn%global_partition(tmp_int2d(i, j)) /= irank) then
-          mesh%topo%halo_num_cells = mesh%topo%halo_num_cells + 1
-        end if
+      do j = 1, tmp_int2d(i, max_faces + 1)               ! Loop over number of faces
+        graph_conn%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
       end do
 
-      local_index = local_index + tmp_int2d(i, mesh%topo%max_faces + 1)
-      mesh%topo%graph_conn%xadj(i + 1) = local_index
+      local_index = local_index + tmp_int2d(i, max_faces + 1)
+      graph_conn%xadj(i + 1) = local_index
 
     end do
 
-    call dprint("Initial number of halo cells: " // str(mesh%topo%halo_num_cells))
-
-    mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
-
-    call dprint("Total number of cells (local + halo): " // str(mesh%topo%total_num_cells))
-
     ! Allocate weight arrays
-    allocate (mesh%topo%graph_conn%adjwgt(num_connections))
+    allocate (graph_conn%adjwgt(num_connections))
     ! Allocate local partition array
-    allocate (mesh%topo%graph_conn%vwgt(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1)))
+    allocate (graph_conn%vwgt(graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1)))
 
     deallocate (tmp_int2d)
 
-  end subroutine compute_partitioner_input_generic
+  end subroutine compute_partitioner_input_generic_graphconn
 
+  subroutine build_connectivity_graph(local_range, edge_starts, edge_ends, connectivity_graph)
 
+    integer(ccs_int), dimension(2), intent(in) :: local_range ! Local start/end indices
+    integer(ccs_int), dimension(:), intent(in) :: edge_starts ! Starting vertices of each edge
+    integer(ccs_int), dimension(:), intent(in) :: edge_ends   ! Ending vertices of each edge
+    integer(ccs_int), dimension(:, :), intent(out) :: connectivity_graph
+
+    ! Local variables
+    integer(ccs_int) :: max_degree ! Maximum number of edges connected to a vertex
+    integer(ccs_int) :: nedges ! Number of edges in the graph
+    integer(ccs_int) :: start_index ! Start index of local range
+    integer(ccs_int) :: end_index   ! End index of local range
+
+    integer(ccs_int) :: vtx1, vtx2
+    
+    integer(ccs_int) :: local_index
+    integer(ccs_int) :: i
+    integer(ccs_int) :: k
+    
+    max_degree = size(connectivity_graph, 2) - 1
+
+    nedges = size(edge_starts)
+    if (size(edge_ends) /= nedges) then
+       call error_abort("Size of edge start/end arrays doesn't match")
+    end if
+
+    start_index = local_range(1)
+    end_index = local_range(2)
+    
+    ! All ranks loop over all the graph edges
+    do i = 1, nedges
+
+      vtx1 = edge_starts(i)
+      vtx2 = edge_ends(i)
+
+      if (vtx2 /= 0) then
+        if (vtx1 /= 0) then
+          ! If edge vertex 1 is local to the current rank
+          if (vtx1 >= start_index) then
+            if (vtx1 <= end_index) then
+              local_index = vtx1 - start_index + 1                    ! Local vertex index
+              k = connectivity_graph(local_index, max_degree + 1) + 1 ! Increment number of edges
+                                                                      ! for this vertex
+              connectivity_graph(local_index, k) = vtx2               ! Store global index of neighbour
+                                                                      ! vertex
+              connectivity_graph(local_index, max_degree + 1) = k     ! Store number of edges for this
+                                                                      ! vertex
+            end if
+          end if
+
+          ! If edge vertex 2 is local to the current rank
+          if (vtx2 >= start_index) then
+            if (vtx2 <= end_index) then
+              local_index = vtx2 - start_index + 1                    ! Local vertex index
+              k = connectivity_graph(local_index, max_degree + 1) + 1 ! Increment number of edges
+                                                                      ! for this vertex
+              connectivity_graph(local_index, k) = vtx1               ! Store global index of neighbour
+                                                                      ! vertex
+              connectivity_graph(local_index, max_degree + 1) = k     ! Store number of edges for this
+                                                                      ! vertex
+            end if
+          end if
+        end if
+      else
+        ! If edge vertex 2 is 0 we have a boundary edge
+      end if
+
+    end do
+    
+  end subroutine build_connectivity_graph
+  
   !v Deallocate partitioner data structures associated with the mesh
   module subroutine cleanup_partitioner_data(shared_env, mesh)
     
