@@ -26,10 +26,10 @@ submodule(scalars) scalars_common
   integer(ccs_int), save :: previous_step = -1
 
   !> List of fields not to be updated as transported scalars
-  integer(ccs_int), dimension(6), parameter :: skip_fields = &
+  integer(ccs_int), dimension(8), parameter :: skip_fields = &
        (/ field_u, field_v, field_w, &
           field_p, field_p_prime, &
-          field_mf /)
+          field_mf, field_viscosity, field_density /)
 
 contains
   
@@ -111,7 +111,7 @@ contains
        end if
 
        ! density values are single digit (same as i/p)
-       print*,"field id=", field_id, "-------------------------------------------------------------"
+       !print*,"field id=", field_id, "-------------------------------------------------------------"
 
        call transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
          
@@ -139,7 +139,7 @@ contains
     type(equation_system) :: lin_system
     real(ccs_real), dimension(:), pointer :: density_data
     
-    print*,"inside transport_scalar"
+    !print*,"inside transport_scalar"
     call initialise(lin_system)
     call zero(rhs)
     call zero(M)
@@ -175,11 +175,11 @@ contains
 
     ! density values are single digit (same as i/p)  
     call solve(lin_solver)
-    call get_vector_data(density%values, density_data)
-    do index_p = 1, 5
-      print*,"IUS cell=",index_p,"density=",density_data(index_p)
-    end do 
-    call restore_vector_data(density%values, density_data)
+    !call get_vector_data(density%values, density_data)
+    !do index_p = 1, 5
+      !print*,"IUS cell=",index_p,"density=",density_data(index_p)
+    !end do 
+    !call restore_vector_data(density%values, density_data)
     ! density values are exponential
 
     call update_gradient(mesh, phi)
