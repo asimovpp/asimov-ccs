@@ -226,6 +226,8 @@ program ldc
   deallocate (p)
   deallocate (p_prime)
   deallocate (output_list)
+  !deallocate (viscosity)
+  !deallocate (density)
 
   call timer_stop(timer_index_total)
 

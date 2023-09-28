@@ -95,17 +95,21 @@ contains
 
           select type (u => solver%linear_system%solution)
           type is (vector_petsc)
+            print*,"indise type vector_petsc"
             call KSPSolve(ksp, b%v, u%v, ierr)
             call update(u)
             if (ierr /= 0) then
+              print*, "ERROR in linear solve."
               call error_abort("ERROR in linear solve.")
             end if
 
           class default
+            print*,"ERROR: Trying to use non-PETSc vector for solution with PETSc solver."
             call error_abort("ERROR: Trying to use non-PETSc vector for solution with PETSc solver.")
           end select
 
         class default
+          print*, "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver."
           call error_abort("ERROR: Trying to use non-PETSc vector for RHS with PETSc solver.")
         end select
 

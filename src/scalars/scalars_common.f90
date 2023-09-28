@@ -6,7 +6,7 @@ submodule(scalars) scalars_common
 #include "ccs_macros.inc"
   use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density
 
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_real !< added here
   use types, only: ccs_matrix, ccs_vector, &
        vector_spec, matrix_spec, &
        linear_solver, equation_system
@@ -14,7 +14,7 @@ submodule(scalars) scalars_common
   use fv, only: compute_fluxes, update_gradient
   use timestepping, only: update_old_values, get_current_step, apply_timestep
 
-  use vec, only: create_vector
+  use vec, only: create_vector, get_vector_data, restore_vector_data !< added here
   use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system
 
@@ -55,7 +55,12 @@ contains
     type(matrix_spec) :: mat_properties
 
     integer(ccs_int) :: max_faces
-    
+
+    !< checking for density
+    integer(ccs_int) :: index_p
+    class(field), pointer :: density !< field containing the density
+    real(ccs_real), dimension(:), pointer :: density_data
+
     ! Initialise equation system (reused across scalars)
     call dprint("SCALAR: init")
     call initialise(vec_properties)
@@ -90,6 +95,9 @@ contains
     ! Transport the scalars
     call count_fields(flow, nfields)
     !print*,"num of fields=",nfields
+
+    call get_field(flow, field_density, density) !< checking
+
     do s = 1, nfields
        call get_field_id(flow, s, field_id)
        if (any(skip_fields == field_id)) then
@@ -101,7 +109,14 @@ contains
        if (do_update) then
           call update_old_values(phi)
        end if
+
+       ! density values are single digit (same as i/p)
+       print*,"field id=", field_id, "-------------------------------------------------------------"
+
        call transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
+         
+       ! density values are turned to exponential here
+       
     end do
     
   end subroutine update_scalars
@@ -122,7 +137,9 @@ contains
     class(field), pointer :: density ! density
     class(linear_solver), allocatable :: lin_solver
     type(equation_system) :: lin_system
+    real(ccs_real), dimension(:), pointer :: density_data
     
+    print*,"inside transport_scalar"
     call initialise(lin_system)
     call zero(rhs)
     call zero(M)
@@ -131,7 +148,11 @@ contains
     call get_field(flow, field_mf, mf)
     call get_field(flow, field_viscosity, viscosity)
     call get_field(flow, field_density, density)
+
+    ! density values are single digit (same as i/p)   
     call compute_fluxes(phi, mf, mesh, 0, M, rhs, viscosity, density)
+    ! density values are single digit (same as i/p)   
+
     call apply_timestep(mesh, phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")
@@ -139,15 +160,27 @@ contains
     call update(rhs)
     call finalise(M)
 
+    ! density values are single digit (same as i/p)  
+
     if (allocated(phi%values%name)) then
        call set_equation_system(par_env, rhs, phi%values, M, lin_system, phi%values%name)
     else
        call set_equation_system(par_env, rhs, phi%values, M, lin_system)
     end if
+
+    ! density values are single digit (same as i/p)  
        
     call dprint("SCALAR: solve linear system")
     call create_solver(lin_system, lin_solver)
+
+    ! density values are single digit (same as i/p)  
     call solve(lin_solver)
+    call get_vector_data(density%values, density_data)
+    do index_p = 1, 5
+      print*,"IUS cell=",index_p,"density=",density_data(index_p)
+    end do 
+    call restore_vector_data(density%values, density_data)
+    ! density values are exponential
 
     call update_gradient(mesh, phi)
 

@@ -130,6 +130,7 @@ contains
 
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
+      !print*, "cell_num=", index_p, "densp=",dens(index_p)
 
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
@@ -142,8 +143,10 @@ contains
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, index_f)
         SchmidtNo = phi%Schmidt
+        
 
         if (.not. is_boundary) then
+          !print*, "NB, densnb=",dens(index_nb)
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh, phi%enable_cell_corrections, vis(index_p), vis(index_nb), dens(index_p), dens(index_nb), SchmidtNo)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
@@ -230,6 +233,7 @@ contains
           adv_coeff_total = adv_coeff_total + aP
           diff_coeff_total = diff_coeff_total - diff_coeff
         else
+          !print*, "B, densnb=",dens(index_nb)
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
           diff_coeff = calc_diffusion_coeff(index_p, j, mesh, .false., vis(index_p), vis(index_nb), dens(index_p), dens(index_nb), SchmidtNo)
@@ -455,7 +459,9 @@ contains
     type(neighbour_locator) :: loc_nb
     real(ccs_real) :: SchmidtNo
     real(ccs_real) :: visavg !< average viscosity
+    real(ccs_real) :: densavg !< average density
     real(ccs_real), parameter :: density = 1.0_ccs_real 
+    real(ccs_real) :: interpolation_factor
 
     !print*,"inside calc_diffusion_coeff"
     call create_face_locator(mesh, index_p, index_nb, loc_f)
@@ -463,6 +469,7 @@ contains
     call get_boundary_status(loc_f, is_boundary)
 
     call create_cell_locator(mesh, index_p, loc_p)
+    call get_face_interpolation(loc_f, interpolation_factor)
 
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
@@ -492,11 +499,13 @@ contains
     end if
 
     if (.not. is_boundary) then
-      visavg = 0.5_ccs_real * (visp + visnb)
-      diffusion_factor = visavg / (density * SchmidtNo)
+      visavg = (interpolation_factor * visp) + ((1.0_ccs_real - interpolation_factor) * visnb)
+      densavg = (interpolation_factor * densp) + ((1.0_ccs_real - interpolation_factor) * densnb)
+      !print*,"NB densp=",densp, "densnb=", densnb
+      diffusion_factor = visavg / (densavg * SchmidtNo)
     else
-      visavg = visp
-      diffusion_factor = visavg / (density * SchmidtNo)
+      !print*,"B densp=", densp
+      diffusion_factor = visp / (densp * SchmidtNo)
     end if
     
     coeff = -face_area * diffusion_factor / dxmag

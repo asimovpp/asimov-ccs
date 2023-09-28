@@ -84,6 +84,10 @@ contains
     class(field), pointer :: viscosity !< field containing the viscosity
     class(field), pointer :: density !< field containing the density
 
+    !< checking
+    integer(ccs_int) :: index_p, local_num_cells
+    real(ccs_real), dimension(:), pointer :: density_data
+
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
@@ -150,14 +154,20 @@ contains
     !print*,"inside solve_nonlinear"
     outerloop: do i = it_start, it_end
       call dprint("NONLINEAR: iteration " // str(i))
-      !print*,"iteration no.=",i
+      !< checking density values                        
+      call get_local_num_cells(mesh, local_num_cells) 
+      call get_vector_data(density%values, density_data)
+      do index_p = 1, 5
+        print*,"B cell=",index_p,"density=",density_data(index_p)
+      end do 
+      call restore_vector_data(density%values, density_data)
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
       call calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, source, &
                               lin_system, invAu, invAv, invAw, res, residuals)
 
-      ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
+            ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
@@ -173,10 +183,14 @@ contains
       call dprint("NONLINEAR: correct pressure")
       call update_pressure(mesh, p_prime, p)
 
+      !< density values are in single digits (same as i/p)
+
       ! Transport scalars
       ! XXX: Should we distinguish active scalars (update in non-linear loop) and passive scalars
       !      (single update per timestep)?
       call update_scalars(par_env, mesh, flow)
+
+      !< density values change to exponential here after update
 
       call check_convergence(par_env, i, residuals, res_target, &
                              flow_solver_selector, converged)
@@ -190,6 +204,7 @@ contains
         exit outerloop
       end if
 
+      ! density values are in exponential
     end do outerloop
 
     deallocate (lin_solverP)
@@ -240,7 +255,6 @@ contains
     class(field), pointer :: viscosity
     class(field), pointer :: density
 
-    !declare the viscosity field here and access it and pass it in calculate_velocity_component subroutine and all sucessive ones
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
@@ -309,8 +323,6 @@ contains
     class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
     class(field), target, intent(inout) :: u
-    !class(field), intent(inout) :: u, v, w
-    !type(fluid), intent(inout) :: flow
     class(ccs_vector), intent(inout) :: invAu
     class(ccs_vector), target, intent(inout) :: input_res
     class(ccs_vector), pointer :: res
