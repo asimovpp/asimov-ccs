@@ -62,19 +62,15 @@ contains
       end do
     end if
 
-    call compute_face_connectivity_new(par_env, mesh)
+    call compute_face_connectivity(par_env, mesh)
 
     if (vertex_neighbours) then
       call compute_vertex_connectivity(par_env, shared_env, mesh)
     end if
 
   end subroutine compute_connectivity
-  
 
-
-
-
-  subroutine compute_face_connectivity_new(par_env, mesh)
+  subroutine compute_face_connectivity(par_env, mesh)
 
     use iso_fortran_env, only: int32
 
@@ -86,24 +82,23 @@ contains
     integer(ccs_int), dimension(:, :), allocatable :: cell_faces
     integer(ccs_int), dimension(:), allocatable :: cell_faces_counters
     integer(ccs_int) :: irank ! MPI rank ID
-    integer(ccs_int) :: isize ! Size of MPI world
-    integer(ccs_int) :: i, j
-    integer(ccs_int) :: start_index
-    integer(ccs_int) :: end_index
+    integer(ccs_int) :: i
+    integer(ccs_int) :: j
     integer(ccs_int) :: face_nb1
     integer(ccs_int) :: face_nb2
     integer(ccs_int) :: num_connections
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: halo_num_cells
     integer(ccs_int) :: total_num_cells
+    integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
     
-    integer(ccs_int) :: cell, face, neighbour
-
+    integer(ccs_int) :: cell
+    integer(ccs_int) :: face
+    integer(ccs_int) :: neighbour
 
     irank = par_env%proc_id
-    isize = par_env%num_procs
 
     call get_local_num_cells(mesh, local_num_cells)
 
@@ -121,35 +116,25 @@ contains
     allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
-    start_index = int(mesh%topo%graph_conn%vtxdist(irank + 1), int32)
-    end_index = int(mesh%topo%graph_conn%vtxdist(irank + 2), int32) - 1
-
     ! Allocate array to hold number of neighbours for local cells
     if (allocated(mesh%topo%num_nb)) then
       deallocate (mesh%topo%num_nb)
     end if
     allocate (mesh%topo%num_nb(local_num_cells))
 
-    !! Construct a cell_faces lookup table 
-    !get global number of cells -> A
-    !get max number of faces (the most faced cell type) -> B
-    !create an array of size (A, B) -> cell_faces
-    !iterate through face_cell1, append value to cell_faces(i)
-    !ditto for face_cell2
-
-
-    !call get_total_num_cells(mesh, total_num_cells)
-    call get_global_num_cells(mesh, total_num_cells)
-    allocate (cell_faces(total_num_cells, max_faces))
-    allocate (cell_faces_counters(total_num_cells))
+    ! TODO: this table could be constructed by one rank on each node and placed in shared memory
+    ! Construct a cell->faces lookup table 
+    call get_global_num_cells(mesh, global_num_cells)
+    allocate (cell_faces(global_num_cells, max_faces))
+    allocate (cell_faces_counters(global_num_cells))
     cell_faces(:,:) = -1
     cell_faces_counters(:) = 1
     call get_global_num_faces(mesh, global_num_faces)
     do i = 1, global_num_faces
       face_nb1 = mesh%topo%face_cell1(i)
       face_nb2 = mesh%topo%face_cell2(i)
-      !cell_faces(face_nb1) = [cell_faces(face_nb1), i] 
-      !cell_faces(face_nb2) = [cell_faces(face_nb2), i] 
+
+      ! Only add non-boundary cells to the table
       if (face_nb1 /= 0) then
         cell_faces(face_nb1, cell_faces_counters(face_nb1)) = i 
         cell_faces_counters(face_nb1) = cell_faces_counters(face_nb1) + 1
@@ -158,226 +143,30 @@ contains
         cell_faces(face_nb2, cell_faces_counters(face_nb2)) = i 
         cell_faces_counters(face_nb2) = cell_faces_counters(face_nb2) + 1
       end if
-      !cell_faces(face_nb1) = [cell_faces(face_nb1), face_nb2] 
     end do
-
-    !! the structure is not quite right. Do I list the face indices for a cell or the indices of the cells that are connected
-    !through that face?
-
-
+    
+    ! Use cell->faces lookup table to compute mesh connectivity for the local cells
     do i = 1, local_num_cells
       cell = mesh%topo%global_indices(i)
       do j = 1, max_faces
         face = cell_faces(cell, j)
         if (face .ne. -1) then
+
+          ! The neighbouring cell is the cell (connected via a face) that is not the same as me
           if (mesh%topo%face_cell1(face) == cell) then
             neighbour = mesh%topo%face_cell2(face)
           else
             neighbour = mesh%topo%face_cell1(face)
           end if
 
-          ! this loop can be simplified to just alter neighbour and call the function afterwards
-          if (neighbour /= 0) then
-            call compute_connectivity_add_connection_new(cell, i, neighbour, face, mesh, tmp_int2d)
-            ! is the reverse case covered automatically?
-          else
-            ! need to put in the right values here... 
+          ! If neighbour is 0, we have a boundary face. Read the boundary id from bnd_rid
+          if (neighbour == 0) then
             neighbour = mesh%topo%bnd_rid(face)
-            call compute_connectivity_add_connection_new(cell, i, neighbour, face, mesh, tmp_int2d)
           end if
+          call compute_connectivity_add_connection(cell, i, neighbour, face, mesh, tmp_int2d)
 
         end if
       end do
-    end do
-
-
-
-
-
-    !!! ! All ranks loop over all the faces again
-    !!! call get_global_num_faces(mesh, global_num_faces)
-    !!! do i = 1, global_num_faces
-
-    !!!   face_nb1 = mesh%topo%face_cell1(i)
-    !!!   face_nb2 = mesh%topo%face_cell2(i)
-
-    !!!   if (face_nb2 .ne. 0) then
-    !!!     ! If face neighbour 1 is local to the current rank
-    !!!     ! and face neighbour 2 is not 0
-    !!!     if (any(mesh%topo%global_indices == face_nb1)) then
-    !!!       call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
-    !!!     end if
-
-    !!!     ! If face neighbour 2 is local to the current rank
-    !!!     ! and face neighbour 1 is not 0
-    !!!     if (face_nb1 .ne. 0) then
-    !!!       if (any(mesh%topo%global_indices == face_nb2)) then
-    !!!         call compute_connectivity_add_connection(face_nb2, face_nb1, i, mesh, tmp_int2d)
-    !!!       end if
-    !!!     end if
-
-    !!!   else
-    !!!     ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
-    !!!     if (any(mesh%topo%global_indices == face_nb1)) then
-    !!!       ! read the boundary id from bnd_rid
-    !!!       face_nb2 = mesh%topo%bnd_rid(i)
-    !!!       call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
-    !!!     end if
-    !!!   end if
-    !!! end do
-
-    ! New number of local connections
-    num_connections = sum(tmp_int2d(:, max_faces + 1))
-    call dprint("Number of connections after partitioning: " // str(num_connections))
-
-    ! Allocate new adjncy array based on the new number of computed connections
-    if (allocated(mesh%topo%graph_conn%adjncy)) then
-      deallocate (mesh%topo%graph_conn%adjncy)
-    end if
-
-    ! XXX: is adjncy still needed? why is it allocated?
-    allocate (mesh%topo%graph_conn%adjncy(num_connections))
-
-    if (allocated(mesh%topo%face_indices)) then
-      deallocate (mesh%topo%face_indices)
-    end if
-    allocate (mesh%topo%face_indices(max_faces, local_num_cells))
-
-    call flatten_connectivity(tmp_int2d, mesh)
-
-    call get_halo_num_cells(mesh, halo_num_cells)
-    call dprint("Number of halo cells after partitioning: " // str(halo_num_cells))
-
-    call get_total_num_cells(mesh, total_num_cells)
-    call dprint("Total number of cells (local + halo) after partitioning: " // str(total_num_cells))
-
-    call set_cell_face_indices(mesh)
-
-    call set_num_faces(count_mesh_faces(mesh), mesh)
-
-  end subroutine compute_face_connectivity_new
-
-
-  subroutine compute_connectivity_add_connection_new(face_nb1, face_nb1_index, face_nb2, face_index, mesh, tmp_int2d)
-
-    integer(ccs_int), intent(in) :: face_nb1             !< Local cell global index
-    integer(ccs_int), intent(in) :: face_nb1_index       !< 
-    integer(ccs_int), intent(in) :: face_nb2             !< Neighbouring cell global index
-    integer(ccs_int), intent(in) :: face_index           !< global face index between cell and its neighbour
-    type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
-    integer, dimension(:, :), intent(inout) :: tmp_int2d !< Temporary connectivity array
-
-    integer, dimension(1) :: local_index
-    integer :: fctr
-
-    integer(ccs_int) :: max_faces
-
-    local_index(1) = face_nb1_index
-
-    call get_max_faces(mesh, max_faces)
-    fctr = tmp_int2d(local_index(1), max_faces + 1) + 1 ! Increment number of faces for this cell
-    tmp_int2d(local_index(1), fctr) = face_nb2               ! Store global index of neighbour cell
-    tmp_int2d(local_index(1), max_faces + 1) = fctr     ! Store number of faces for this cell
-    mesh%topo%num_nb(local_index(1)) = fctr
-
-    mesh%topo%global_face_indices(fctr, face_nb1) = face_index ! Update face indices to make its order consistent with nb_indices
-
-  end subroutine compute_connectivity_add_connection_new
-
-
-
-  subroutine compute_face_connectivity(par_env, mesh)
-
-    use iso_fortran_env, only: int32
-
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
-
-    ! Local variables
-    integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
-    integer(ccs_int) :: irank ! MPI rank ID
-    integer(ccs_int) :: isize ! Size of MPI world
-    integer(ccs_int) :: i
-    integer(ccs_int) :: start_index
-    integer(ccs_int) :: end_index
-    integer(ccs_int) :: face_nb1
-    integer(ccs_int) :: face_nb2
-    integer(ccs_int) :: num_connections
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: halo_num_cells
-    integer(ccs_int) :: total_num_cells
-    integer(ccs_int) :: global_num_faces
-    integer(ccs_int) :: max_faces
-
-    irank = par_env%proc_id
-    isize = par_env%num_procs
-
-    call get_local_num_cells(mesh, local_num_cells)
-
-    ! Deallocate old xadj array
-    if (allocated(mesh%topo%graph_conn%xadj)) then
-      deallocate (mesh%topo%graph_conn%xadj)
-    end if
-
-    ! Allocate new adjacency index array xadj based on new vtxdist
-    allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
-
-    call get_max_faces(mesh, max_faces)
-
-    ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), max_faces + 1))
-    tmp_int2d = 0
-
-    start_index = int(mesh%topo%graph_conn%vtxdist(irank + 1), int32)
-    end_index = int(mesh%topo%graph_conn%vtxdist(irank + 2), int32) - 1
-
-    ! Allocate array to hold number of neighbours for local cells
-    if (allocated(mesh%topo%num_nb)) then
-      deallocate (mesh%topo%num_nb)
-    end if
-    allocate (mesh%topo%num_nb(local_num_cells))
-
-   ! if (par_env%proc_id == 0) then
-
-   !   print *, "face_cell1"
-   !   print *, mesh%topo%face_cell1
-   !   print *, "face_cell2"
-   !   print *, mesh%topo%face_cell2
-   !   print *, "global_indices"
-   !   print *, mesh%topo%global_indices
-
-   ! end if
-
-    ! All ranks loop over all the faces again
-    call get_global_num_faces(mesh, global_num_faces)
-    do i = 1, global_num_faces
-
-      face_nb1 = mesh%topo%face_cell1(i)
-      face_nb2 = mesh%topo%face_cell2(i)
-
-      if (face_nb2 .ne. 0) then
-        ! If face neighbour 1 is local to the current rank
-        ! and face neighbour 2 is not 0
-        if (any(mesh%topo%global_indices == face_nb1)) then
-          call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
-        end if
-
-        ! If face neighbour 2 is local to the current rank
-        ! and face neighbour 1 is not 0
-        if (face_nb1 .ne. 0) then
-          if (any(mesh%topo%global_indices == face_nb2)) then
-            call compute_connectivity_add_connection(face_nb2, face_nb1, i, mesh, tmp_int2d)
-          end if
-        end if
-
-      else
-        ! If face neighbour 1 is local and if face neighbour 2 is 0 we have a boundary face
-        if (any(mesh%topo%global_indices == face_nb1)) then
-          ! read the boundary id from bnd_rid
-          face_nb2 = mesh%topo%bnd_rid(i)
-          call compute_connectivity_add_connection(face_nb1, face_nb2, i, mesh, tmp_int2d)
-        end if
-      end if
     end do
 
     ! New number of local connections
@@ -699,33 +488,28 @@ contains
 
   end subroutine
 
-  subroutine compute_connectivity_add_connection(face_nb1, face_nb2, face_index, mesh, tmp_int2d)
+  subroutine compute_connectivity_add_connection(face_nb1, face_nb1_local_index, face_nb2, face_index, mesh, tmp_int2d)
 
     integer(ccs_int), intent(in) :: face_nb1             !< Local cell global index
+    integer(ccs_int), intent(in) :: face_nb1_local_index !< Index of face neighbour 1 in list of global indices 
     integer(ccs_int), intent(in) :: face_nb2             !< Neighbouring cell global index
     integer(ccs_int), intent(in) :: face_index           !< global face index between cell and its neighbour
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
     integer, dimension(:, :), intent(inout) :: tmp_int2d !< Temporary connectivity array
 
-    integer, dimension(1) :: local_index
     integer :: fctr
-
     integer(ccs_int) :: max_faces
 
-    local_index = findloc(mesh%topo%global_indices, face_nb1)
-    if (local_index(1) <= 0) then
-      call error_abort("Failed to find face neighbour in global indices")
-    end if
-
     call get_max_faces(mesh, max_faces)
-    fctr = tmp_int2d(local_index(1), max_faces + 1) + 1 ! Increment number of faces for this cell
-    tmp_int2d(local_index(1), fctr) = face_nb2               ! Store global index of neighbour cell
-    tmp_int2d(local_index(1), max_faces + 1) = fctr     ! Store number of faces for this cell
-    mesh%topo%num_nb(local_index(1)) = fctr
+    fctr = tmp_int2d(face_nb1_local_index, max_faces + 1) + 1 ! Increment number of faces for this cell
+    tmp_int2d(face_nb1_local_index, fctr) = face_nb2          ! Store global index of neighbour cell
+    tmp_int2d(face_nb1_local_index, max_faces + 1) = fctr     ! Store number of faces for this cell
+    mesh%topo%num_nb(face_nb1_local_index) = fctr
 
     mesh%topo%global_face_indices(fctr, face_nb1) = face_index ! Update face indices to make its order consistent with nb_indices
 
-  end subroutine
+  end subroutine compute_connectivity_add_connection
+
 
   !v Take the 2D connectivity graph and convert to 1D
   !  Note that cell neighbours are still globally numbered at this point.
