@@ -94,7 +94,7 @@ contains
     integer(ccs_int) :: global_num_faces
     integer(ccs_int) :: max_faces
     
-    integer(ccs_int) :: cell
+    integer(ccs_int) :: global_index_p
     integer(ccs_int) :: face
     integer(ccs_int) :: neighbour
 
@@ -147,13 +147,13 @@ contains
     
     ! Use cell->faces lookup table to compute mesh connectivity for the local cells
     do i = 1, local_num_cells
-      cell = mesh%topo%global_indices(i)
+      global_index_p = mesh%topo%global_indices(i)
       do j = 1, max_faces
-        face = cell_faces(cell, j)
+        face = cell_faces(global_index_p, j)
         if (face .ne. -1) then
 
           ! The neighbouring cell is the cell (connected via a face) that is not the same as me
-          if (mesh%topo%face_cell1(face) == cell) then
+          if (mesh%topo%face_cell1(face) == global_index_p) then
             neighbour = mesh%topo%face_cell2(face)
           else
             neighbour = mesh%topo%face_cell1(face)
@@ -163,7 +163,7 @@ contains
           if (neighbour == 0) then
             neighbour = mesh%topo%bnd_rid(face)
           end if
-          call compute_connectivity_add_connection(cell, i, neighbour, face, mesh, tmp_int2d)
+          call compute_connectivity_add_connection(global_index_p, i, neighbour, face, mesh, tmp_int2d)
 
         end if
       end do
@@ -491,7 +491,7 @@ contains
   subroutine compute_connectivity_add_connection(face_nb1, face_nb1_local_index, face_nb2, face_index, mesh, tmp_int2d)
 
     integer(ccs_int), intent(in) :: face_nb1             !< Local cell global index
-    integer(ccs_int), intent(in) :: face_nb1_local_index !< Index of face neighbour 1 in list of global indices 
+    integer(ccs_int), intent(in) :: face_nb1_local_index !< Local index of face neighbour 1
     integer(ccs_int), intent(in) :: face_nb2             !< Neighbouring cell global index
     integer(ccs_int), intent(in) :: face_index           !< global face index between cell and its neighbour
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
