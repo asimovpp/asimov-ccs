@@ -44,13 +44,13 @@
 debug_build_gnu:
   extends: [.general_setup, .setup_gnu]
   script:
-    - HOME=${CI_HOME} CMP=gnu BUILD=debug make all
+    - HOME=${CI_HOME} CMP=gnu BUILD=debug PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit make all
   allow_failure: true
 
 build_gnu:
   extends: [.general_setup, .setup_gnu]
   script:
-    - HOME=${CI_HOME} CMP=gnu make obj
+    - HOME=${CI_HOME} CMP=gnu PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit make obj
   artifacts:
     paths: [obj/]
 
@@ -60,7 +60,7 @@ test_gnu:
       artifacts: true
   extends: [.general_setup, .setup_gnu, .test_common]
   script:
-    - HOME=${CI_HOME} CMP=gnu make tests
+    - HOME=${CI_HOME} CMP=gnu PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit make tests
 
 #-----------------------------------------------------------------------------#
 
