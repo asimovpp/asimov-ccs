@@ -259,7 +259,6 @@ profile_intel:
   only:
     variables:
       - $A2_PERFORMANCE
-  dependencies: []
 
 # 1 node
 A2_perf_1node:
