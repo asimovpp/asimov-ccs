@@ -62,7 +62,7 @@ contains
       end do
     end if
 
-    call compute_face_connectivity(par_env, mesh)
+    call compute_face_connectivity(par_env, shared_env, mesh)
 
     if (vertex_neighbours) then
       call compute_vertex_connectivity(par_env, shared_env, mesh)
@@ -70,17 +70,19 @@ contains
 
   end subroutine compute_connectivity
 
-  subroutine compute_face_connectivity(par_env, mesh)
+  subroutine compute_face_connectivity(par_env, shared_env, mesh)
 
     use iso_fortran_env, only: int32
 
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
 
     ! Local variables
     integer(ccs_int), dimension(:, :), allocatable :: tmp_int2d ! Temporary 2D integer array
-    integer(ccs_int), dimension(:, :), allocatable :: cell_faces
+    integer(ccs_int), dimension(:, :), pointer :: cell_faces
     integer(ccs_int), dimension(:), allocatable :: cell_faces_counters
+    integer :: cell_faces_window
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: i
     integer(ccs_int) :: j
@@ -122,28 +124,32 @@ contains
     end if
     allocate (mesh%topo%num_nb(local_num_cells))
 
-    ! TODO: this table could be constructed by one rank on each node and placed in shared memory
+
     ! Construct a cell->faces lookup table 
     call get_global_num_cells(mesh, global_num_cells)
-    allocate (cell_faces(global_num_cells, max_faces))
-    allocate (cell_faces_counters(global_num_cells))
-    cell_faces(:,:) = -1
-    cell_faces_counters(:) = 1
-    call get_global_num_faces(mesh, global_num_faces)
-    do i = 1, global_num_faces
-      face_nb1 = mesh%topo%face_cell1(i)
-      face_nb2 = mesh%topo%face_cell2(i)
+    call create_shared_array(shared_env, [global_num_cells, max_faces], cell_faces, cell_faces_window)
+    if (is_root(shared_env)) then
+      allocate (cell_faces_counters(global_num_cells))
+      cell_faces(:,:) = -1
+      cell_faces_counters(:) = 1
+      call get_global_num_faces(mesh, global_num_faces)
+      do i = 1, global_num_faces
+        face_nb1 = mesh%topo%face_cell1(i)
+        face_nb2 = mesh%topo%face_cell2(i)
 
-      ! Only add non-boundary cells to the table
-      if (face_nb1 /= 0) then
-        cell_faces(face_nb1, cell_faces_counters(face_nb1)) = i 
-        cell_faces_counters(face_nb1) = cell_faces_counters(face_nb1) + 1
-      end if
-      if (face_nb2 /= 0) then
-        cell_faces(face_nb2, cell_faces_counters(face_nb2)) = i 
-        cell_faces_counters(face_nb2) = cell_faces_counters(face_nb2) + 1
-      end if
-    end do
+        ! Only add non-boundary cells to the table
+        if (face_nb1 /= 0) then
+          cell_faces(face_nb1, cell_faces_counters(face_nb1)) = i 
+          cell_faces_counters(face_nb1) = cell_faces_counters(face_nb1) + 1
+        end if
+        if (face_nb2 /= 0) then
+          cell_faces(face_nb2, cell_faces_counters(face_nb2)) = i 
+          cell_faces_counters(face_nb2) = cell_faces_counters(face_nb2) + 1
+        end if
+      end do
+    end if
+    
+    call sync(shared_env)
     
     ! Use cell->faces lookup table to compute mesh connectivity for the local cells
     do i = 1, local_num_cells
@@ -197,6 +203,9 @@ contains
     call set_cell_face_indices(mesh)
 
     call set_num_faces(count_mesh_faces(mesh), mesh)
+    
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, cell_faces, cell_faces_window)
 
   end subroutine compute_face_connectivity
 
