@@ -48,7 +48,7 @@
 debug_build_gnu:
   extends: [.general_setup, .setup_gnu]
   script:
-    - HOME=${CI_HOME} CMP=gnu make all
+    - HOME=${CI_HOME} CMP=gnu BUILD=debug make all
   allow_failure: true
 
 build_gnu:
