@@ -7,16 +7,12 @@
 .setup_gnu:
   before_script:
     - source setup_gitlab_runner_env
-    - source ${GNU_SETUP}
-    - export PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit
-    - export LD_LIBRARY_PATH=$PARMETIS/lib:$LD_LIBRARY_PATH
+    - source ${GNU_SETUP} 32bit
 
 .setup_intel:
   before_script:
     - source setup_gitlab_runner_env
-    - source ${INTEL_SETUP}
-    - export PARMETIS=/home/shared/install/parmetis-intel-latest_32bit
-    - export LD_LIBRARY_PATH=$PARMETIS/lib:$LD_LIBRARY_PATH
+    - source ${INTEL_SETUP} 32bit
 
 .setup_cray:
   before_script:
