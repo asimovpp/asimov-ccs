@@ -8,6 +8,8 @@
   before_script:
     - source setup_gitlab_runner_env
     - source ${GNU_SETUP}
+    - export PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit
+    - export LD_LIBRARY_PATH=$PARMETIS/lib:$LD_LIBRARY_PATH
 
 .setup_intel:
   before_script:
@@ -44,13 +46,13 @@
 debug_build_gnu:
   extends: [.general_setup, .setup_gnu]
   script:
-    - HOME=${CI_HOME} CMP=gnu BUILD=debug PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit make all
+    - HOME=${CI_HOME} CMP=gnu make all
   allow_failure: true
 
 build_gnu:
   extends: [.general_setup, .setup_gnu]
   script:
-    - HOME=${CI_HOME} CMP=gnu PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit make obj
+    - HOME=${CI_HOME} CMP=gnu make obj
   artifacts:
     paths: [obj/]
 
@@ -60,7 +62,7 @@ test_gnu:
       artifacts: true
   extends: [.general_setup, .setup_gnu, .test_common]
   script:
-    - HOME=${CI_HOME} CMP=gnu PARMETIS=/home/shared/install/parmetis-gnu-latest_32bit make tests
+    - HOME=${CI_HOME} CMP=gnu make tests
 
 #-----------------------------------------------------------------------------#
 
