@@ -44,15 +44,12 @@ contains
     associate (mf_values => mf%values)
       call dprint("CF: get mf")
       call get_vector_data(mf_values, mf_data)
-      !print*,"mf_data obtained"
       call get_vector_data(viscosity%values, viscosity_data)
-      !print*,"viscosity_data obtained"
 
       ! Loop over cells computing advection and diffusion fluxes
       call get_max_faces(mesh, max_faces)
       n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: compute coeffs")
-      !print*,"entering compute_coeffs"
       call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec, viscosity_data)
 
       call dprint("CF: restore mf")
@@ -438,7 +435,6 @@ contains
 
     type(face_locator) :: loc_f
     real(ccs_real) :: face_area
-    !real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     real(ccs_real) :: diffusion_factor
     logical :: is_boundary
     real(ccs_real), dimension(ndim) :: dx
@@ -455,7 +451,6 @@ contains
     real(ccs_real), parameter :: density = 1.0_ccs_real 
     real(ccs_real) :: interpolation_factor
 
-    !print*,"inside calc_diffusion_coeff"
     call create_face_locator(mesh, index_p, index_nb, loc_f)
     call get_face_area(loc_f, face_area)
     call get_boundary_status(loc_f, is_boundary)
@@ -492,7 +487,6 @@ contains
 
     if (.not. is_boundary) then
       visavg = (interpolation_factor * visp) + ((1.0_ccs_real - interpolation_factor) * visnb)
-      !visavg = 0.5_ccs_real * (visp + visnb)
       diffusion_factor = visavg / (density * SchmidtNo)
     else
       diffusion_factor = visp / (density * SchmidtNo)

@@ -89,7 +89,7 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_p_prime, p_prime)
     call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity) !viscosity
+    call get_field(flow, field_viscosity, viscosity) 
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -145,10 +145,8 @@ contains
     if (v_sol) call update_gradient(mesh, v)
     if (w_sol) call update_gradient(mesh, w)
 
-    !print*,"inside solve_nonlinear"
     outerloop: do i = it_start, it_end
       call dprint("NONLINEAR: iteration " // str(i))
-      !print*,"iteration no.=",i
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
@@ -265,7 +263,6 @@ contains
       first_time = .false.
     end if
 
-    !print*,"inside calculate_velocity"
     ! u-velocity
     ! ----------
     if (u_sol) then
@@ -340,7 +337,7 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
-    !print*,"inside calculate velocity component"
+    
     call compute_fluxes(u, mf, mesh, component, M, vec, viscosity)
 
     call apply_timestep(mesh, u, invAu, M, vec)
