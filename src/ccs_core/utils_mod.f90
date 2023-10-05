@@ -443,7 +443,11 @@ contains
     new_element%name = name
     
     if (allocated(list)) then
-      list = [list, new_element]
+      if (size(list) > outputlist_counter) then
+        list(outputlist_counter) = new_element
+      else
+        list = [list, new_element]
+      end if
     else
       list = [new_element]
     end if
