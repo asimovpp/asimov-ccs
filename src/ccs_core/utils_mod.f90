@@ -424,37 +424,32 @@ contains
 
   end subroutine calc_enstrophy
 
+  !v Append new field to output list.
+  !
+  ! @note does not check for duplicates
   subroutine add_field_to_outputlist(var, name, list)
 
     use types, only: field, field_ptr
 
     ! Arguments
-    class(field), pointer, intent(in) :: var
-    character(len=*), intent(in) :: name
-    type(field_ptr), dimension(:), allocatable, intent(inout) :: list
+    class(field), pointer, intent(in) :: var !< The field to be added
+    character(len=*), intent(in) :: name     !< The name of the field
+    type(field_ptr), dimension(:), allocatable, intent(inout) :: list !< The output list
 
     ! Local variables
-    integer :: list_size
-    type(field_ptr), dimension(:), allocatable :: tmp_list
+    type(field_ptr) :: new_element
 
-    outputlist_counter = outputlist_counter + 1
-    list_size = size(list)
-
-    if (outputlist_counter > list_size) then
-       !! Reallocate list
-       allocate(tmp_list(list_size))
-
-       tmp_list(:) = list(:)
-       deallocate(list)
-       allocate(list(outputlist_counter))
-       list(1:list_size) = tmp_list(1:list_size)
-       
-       deallocate(tmp_list)
+    new_element%ptr => var
+    new_element%name = name
+    
+    if (allocated(list)) then
+      list = [list, new_element]
+    else
+      list = [new_element]
     end if
     
-    list(outputlist_counter)%ptr => var
-    list(outputlist_counter)%name = name
-
+    outputlist_counter = outputlist_counter + 1
+    
   end subroutine add_field_to_outputlist
 
   subroutine reset_outputlist_counter()
