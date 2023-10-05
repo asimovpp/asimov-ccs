@@ -163,7 +163,7 @@ contains
     call create_field(field_properties, p)
     call set_field_name("p_prime", field_properties)
     call create_field(field_properties, p_prime)
-     call set_field_name("visosity", field_properties)
+    call set_field_name("visosity", field_properties)
     call create_field(field_properties, viscosity)
 
     call set_vector_location(face, vec_properties)

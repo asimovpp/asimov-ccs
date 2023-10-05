@@ -1,4 +1,4 @@
-main: tgv2d
+main: bfs
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip

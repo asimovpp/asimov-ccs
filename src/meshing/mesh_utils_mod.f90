@@ -119,6 +119,7 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
+    print*, "inside read mesh"
     call set_mesh_generated(.false., mesh)
 
     geo_file = case_name // "_mesh" // geoext
@@ -178,9 +179,7 @@ contains
     call set_vert_per_cell(0_ccs_int, mesh)
     call set_vert_nb_per_cell(0_ccs_int, mesh)
     call set_global_num_vertices(0_ccs_int, mesh)
-
     call read_topology_topo(par_env, shared_env, reader_env, geo_reader, mesh%topo)
-    
     call build_vertex_neighbours(par_env, shared_env, mesh)
 
   end subroutine read_topology
@@ -233,6 +232,7 @@ contains
     if (is_valid(reader_env)) then
       call read_scalar(geo_reader, "ncel", topo%global_num_cells)
     end if
+
     call MPI_Bcast(topo%global_num_cells, 1, MPI_INTEGER, 0, shared_comm, ierr)
 
     ! Abort the execution if there a fewer global cells than MPI ranks
@@ -253,11 +253,12 @@ contains
       ! Read attribute "nbnd" - the total number of boundary faces
       call read_scalar(geo_reader, "nbnd", num_bnd)
     end if
+    
     call MPI_Bcast(topo%global_num_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
     call MPI_Bcast(topo%max_faces, 1, MPI_INTEGER, 0, shared_comm, ierr)
     call MPI_Bcast(topo%global_num_vertices, 1, MPI_INTEGER, 0, shared_comm, ierr)
     call MPI_Bcast(num_bnd, 1, MPI_INTEGER, 0, shared_comm, ierr)
-
+    
     call get_max_faces(topo, max_faces)
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8, topo) ! 8 vertices per cell
@@ -308,7 +309,7 @@ contains
                              topo%global_face_indices_window)
     call create_shared_array(shared_env, (/vert_per_cell, global_num_cells/), topo%global_vertex_indices, &
                              topo%global_vertex_indices_window)
-
+                             
     if (is_valid(reader_env)) then
       sel2_start = 0
       sel2_count(1) = max_faces ! topo%global_num_cells
