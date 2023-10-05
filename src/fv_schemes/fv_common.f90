@@ -19,6 +19,7 @@ submodule(fv) fv_common
                      get_local_num_cells, get_face_interpolation, &
                      get_max_faces, get_centre
   use boundary_conditions, only: get_bc_index
+  use timers, only: timer_register_start, timer_stop
   use bc_constants
 
   implicit none
@@ -78,15 +79,22 @@ contains
     real(ccs_real) :: diff_coeff, diff_coeff_total
     real(ccs_real) :: adv_coeff_total, adv_coeffaF, adv_coeffaP
     real(ccs_real), dimension(ndim) :: face_normal
+    real(ccs_real), dimension(ndim) :: grad_phi_p 
+    real(ccs_real), dimension(ndim) :: grad_phi_nb
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
+    real(ccs_real), dimension(ndim) :: n
+    real(ccs_real) :: face_value, face_correction_only
+
     logical :: is_boundary
 
     integer(ccs_int) :: index_f
 
     real(ccs_real) :: sgn ! Sign indicating face orientation
     real(ccs_real) :: aP, aF, bP, aPb
-    real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
+    real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
+
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
@@ -96,14 +104,6 @@ contains
     call create_vector_values(n_int_cells, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    ! Update gradients, if gamma/linear upwind field
-    select type (phi)
-    type is (gamma_field)
-      call update_gradient(mesh, phi)
-    type is (linear_upwind_field)
-      call update_gradient(mesh, phi)
-    end select
-    
     call get_local_num_cells(mesh, local_num_cells) 
     do index_p = 1, local_num_cells
       call clear_entries(mat_coeffs)
@@ -132,7 +132,7 @@ contains
         call get_local_index(loc_f, index_f)
 
         if (.not. is_boundary) then
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, phi%enable_cell_corrections)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -155,7 +155,6 @@ contains
             call error_abort("Invalid velocity field discretisation.")
           end select
 
-          call get_vector_data_readonly(phi%values, phi_data)
 
           ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
           ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
@@ -166,7 +165,37 @@ contains
           aP = (sgn * mf(index_f) * face_area) * aP
           aF = (sgn * mf(index_f) * face_area) * aF
           aP = aP - sgn * mf(index_f) * face_area
-          hoe = aP * phi_data(index_p) + aF * phi_data(index_nb)
+          hoe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
+
+          ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
+          call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
+          hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
+
+          if (phi%enable_cell_corrections) then
+            call get_face_normal(loc_f, n)
+            call get_centre(loc_p, x_p)
+            call get_centre(loc_nb, x_nb)
+            call get_centre(loc_f, x_f)
+
+            dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+            x_nb_prime = x_f + dx_orth*n
+            x_p_prime = x_f - dx_orth*n
+
+
+            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+
+            ! call get_face_interpolation(loc_f, interpol_factor)
+            ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
+            ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
+            !hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
+            !hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
+
+
+            ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
+            hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
+          end if
+
           call set_entry(-hoe, b_coeffs)
 
           ! Low-order
@@ -179,7 +208,7 @@ contains
           end if
           aP = aP - sgn * mf(index_f) * face_area
 
-          loe = aP * phi_data(index_p) + aF * phi_data(index_nb)
+          loe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
           call set_entry(loe, b_coeffs) ! Explicit low-order term
 
           call get_global_index(loc_nb, global_index_nb)
@@ -188,12 +217,10 @@ contains
 
           adv_coeff_total = adv_coeff_total + aP
           diff_coeff_total = diff_coeff_total - diff_coeff
-
-          call restore_vector_data_readonly(phi%values, phi_data)
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh)
+          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, .false.)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
           
@@ -205,7 +232,7 @@ contains
           type is (gamma_field)
             call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           type is  (linear_upwind_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF )
+            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
           class default
             call error_abort("Invalid velocity field discretisation.")
           end select
@@ -214,8 +241,7 @@ contains
           aP = aP * (mf(index_f) * face_area)
           aF = aF * (mf(index_f) * face_area)
           aP = aP - mf(index_f) * face_area
-          call get_vector_data_readonly(phi%values, phi_data)
-          call set_entry(-(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP)), b_coeffs)
+          call set_entry(-(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)), b_coeffs)
           if (mf(index_f) > 0.0_ccs_real) then
             aP = mf(index_f) * face_area
             aF = 0.0_ccs_real
@@ -225,8 +251,7 @@ contains
           end if
           aP = aP - mf(index_f) * face_area
 
-          call set_entry(aP * phi_data(index_p) + aF * (aPb * phi_data(index_p) + bP), b_coeffs)
-          call restore_vector_data_readonly(phi%values, phi_data)
+          call set_entry(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP), b_coeffs)
 
           call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
 
@@ -259,14 +284,11 @@ contains
     real(ccs_real) :: a !< The diagonal coeff (implicit component)
     real(ccs_real) :: b !< The RHS value (explicit component)
     integer(ccs_int) :: index_p
-    real(ccs_real), dimension(:), pointer :: phi_data
 
     call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     call get_local_index(loc_p, index_p)
-    call get_vector_data_readonly(phi%values, phi_data)
-    bc_value = 0.5_ccs_real * (phi_data(index_p) + (b + a * phi_data(index_p)))
-    call restore_vector_data_readonly(phi%values, phi_data)
+    bc_value = 0.5_ccs_real * (phi%values_ro(index_p) + (b + a * phi%values_ro(index_p)))
 
   end subroutine compute_boundary_values
 
@@ -296,9 +318,6 @@ contains
     real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
     real(ccs_real) :: bc_value
-    real(ccs_real), dimension(:), pointer :: x_gradients_data    ! Data array for x gradient
-    real(ccs_real), dimension(:), pointer :: y_gradients_data    ! Data array for y gradient
-    real(ccs_real), dimension(:), pointer :: z_gradients_data    ! Data array for z gradient
 
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
@@ -312,27 +331,19 @@ contains
     case (bc_type_extrapolate)
       call get_distance(loc_p, loc_f, dx)
 
-      call get_vector_data_readonly(phi%x_gradients, x_gradients_data)
-      call get_vector_data_readonly(phi%y_gradients, y_gradients_data)
-      call get_vector_data_readonly(phi%z_gradients, z_gradients_data)
-
       a = 1.0_ccs_real
-      b = 2.0_ccs_real * (x_gradients_data(index_p) * dx(1) + y_gradients_data(index_p) * dx(2) + z_gradients_data(index_p) * dx(3))
-
-      call restore_vector_data_readonly(phi%x_gradients, x_gradients_data)
-      call restore_vector_data_readonly(phi%y_gradients, y_gradients_data)
-      call restore_vector_data_readonly(phi%z_gradients, z_gradients_data)
+      b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(index_p) * dx(2) + phi%z_gradients_ro(index_p) * dx(3))
 
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
-        parallel_component_map = (/1, 1, 1/)
+        parallel_component_map = [1, 1, 1]
       case (1)
-        parallel_component_map = (/0, 1, 1/)
+        parallel_component_map = [0, 1, 1]
       case (2)
-        parallel_component_map = (/1, 0, 1/)
+        parallel_component_map = [1, 0, 1]
       case (3)
-        parallel_component_map = (/1, 1, 0/)
+        parallel_component_map = [1, 1, 0]
       case default
         call error_abort("invalid component provided " // str(component))
       end select
@@ -352,7 +363,7 @@ contains
       b = 0.0_ccs_real
     case (bc_type_neumann)
       call get_distance(loc_p, loc_f, dx)
-      dxmag = sqrt(sum(dx**2))
+      dxmag = norm2(dx)
 
       a = 1.0_ccs_real
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
@@ -407,10 +418,11 @@ contains
   end subroutine
 
   !> Sets the diffusion coefficient
-  module function calc_diffusion_coeff(index_p, index_nb, mesh) result(coeff)
+  module function calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections) result(coeff)
     integer(ccs_int), intent(in) :: index_p  !< the local cell index
     integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
     type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
+    logical, intent(in) :: enable_cell_corrections !< Whether or not cell shape corrections are used
     real(ccs_real) :: coeff                  !< the diffusion coefficient
 
     type(face_locator) :: loc_f
@@ -418,7 +430,12 @@ contains
     real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     logical :: is_boundary
     real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real), dimension(ndim) :: n
+    real(ccs_real), dimension(ndim) :: x_p
+    real(ccs_real), dimension(ndim) :: x_nb
+    real(ccs_real), dimension(ndim) :: x_f
     real(ccs_real) :: dxmag
+    real(ccs_real) :: dx_orth
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
@@ -429,17 +446,93 @@ contains
     call create_cell_locator(mesh, index_p, loc_p)
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
-      call get_distance(loc_p, loc_nb, dx)
+
+      if (enable_cell_corrections) then
+        call get_face_normal(loc_f, n)
+
+        call get_centre(loc_p, x_p)
+        call get_centre(loc_nb, x_nb)
+        call get_centre(loc_f, x_f)
+
+        ! see math below, but it works because ||n||=1 and points outwards
+        dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        dxmag = 2.0_ccs_real * dx_orth
+
+        !rnb_k_prime = x_f + a*n
+        !rp_prime = x_f - a*n
+        !dx = rnb_k_prime - rp_prime 
+        !dxmag = norm2(dx)
+      else
+        call get_distance(loc_p, loc_nb, dx)
+        dxmag = norm2(dx)
+      end if
     else
       call get_distance(loc_p, loc_f, dx)
+      dxmag = norm2(dx)
     end if
-    dxmag = sqrt(sum(dx**2))
 
     coeff = -face_area * diffusion_factor / dxmag
   end function calc_diffusion_coeff
 
-  !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-  module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
+  !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field
+  ! spec) using Ferziger & Peric 4th ed, sec 9.7.1
+  subroutine interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
+
+    class(field), intent(inout) :: phi
+    type(face_locator), intent(in) :: loc_f                         !< face locator
+    real(ccs_real), intent(out) :: face_value
+    real(ccs_real), optional, intent(out) :: face_correction_only
+
+    real(ccs_real) :: face_correction
+    type(cell_locator) :: loc_p                    ! Primary cell locator
+    type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
+    integer(ccs_int) :: index_nb                   ! Neighbour cell index
+    real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
+    real(ccs_real), dimension(ndim) :: grad_phi_p, grad_phi_nb
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
+    real(ccs_real) :: interpol_factor, dx_orth
+
+
+    associate (mesh => loc_f%mesh, &
+               index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
+
+      call create_cell_locator(mesh, index_p, loc_p)
+      call create_neighbour_locator(loc_p, j, loc_nb)
+      call get_local_index(loc_nb, index_nb)
+
+      if (phi%enable_cell_corrections) then
+        call get_face_normal(loc_f, n)
+        call get_centre(loc_p, x_p)
+        call get_centre(loc_nb, x_nb)
+        call get_centre(loc_f, x_f)
+
+        dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+        x_nb_prime = x_f + dx_orth*n
+        x_p_prime = x_f - dx_orth*n
+
+        grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+        grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+
+        face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
+        face_value = 0.5_ccs_real * (phi%values_ro(index_p) + phi%values_ro(index_nb)) + face_correction
+      else
+        call get_face_interpolation(loc_f, interpol_factor)
+        face_correction = 0.0_ccs_real
+        face_value = (interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb))
+      end if
+
+
+      if (present(face_correction_only)) then
+        face_correction_only = face_correction
+      end if
+
+    end associate
+
+  end subroutine
+
+  !> Calculates mass flux across given face. Note: assumes rho = 1
+  module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
     class(field), intent(inout) :: u_field
     class(field), intent(inout) :: v_field
     class(field), intent(inout) :: w_field
@@ -447,6 +540,7 @@ contains
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
     type(face_locator), intent(in) :: loc_f                         !< face locator
+    logical, intent(in) :: enable_cell_corrections
 
     real(ccs_real) :: flux                                          !< The flux across the boundary
 
@@ -456,11 +550,10 @@ contains
     type(neighbour_locator) :: loc_nb              ! Neighbour cell locator
     integer(ccs_int) :: index_nb                   ! Neighbour cell index
     real(ccs_real) :: flux_corr                    ! Flux correction
-    real(ccs_real), dimension(ndim) :: face_normal ! (local) face-normal array
+    real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
     real(ccs_real) :: u_bc, v_bc, w_bc             ! values of u, v and w at boundary
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data ! the vector data for u, v and w
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
-    real(ccs_real) :: interpol_factor
+    real(ccs_real) :: flux_x, flux_y, flux_z
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -472,47 +565,39 @@ contains
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
-      call get_face_normal(loc_f, face_normal)
+      call get_face_normal(loc_f, n)
+      ! XXX: this is likely expensive inside a loop...
       if (.not. is_boundary) then
 
-        ! XXX: this is likely expensive inside a loop...
-        call get_vector_data_readonly(u_field%values, u_data)
-        call get_vector_data_readonly(v_field%values, v_data)
-        call get_vector_data_readonly(w_field%values, w_data)
-
-        call get_face_interpolation(loc_f, interpol_factor)
-
-        flux = ((interpol_factor * u_data(index_p) + (1.0_ccs_real - interpol_factor) * u_data(index_nb)) * face_normal(x_direction) &
-              + (interpol_factor * v_data(index_p) + (1.0_ccs_real - interpol_factor) * v_data(index_nb)) * face_normal(y_direction) &
-              + (interpol_factor * w_data(index_p) + (1.0_ccs_real - interpol_factor) * w_data(index_nb)) * face_normal(z_direction))
-
-        call restore_vector_data_readonly(u_field%values, u_data)
-        call restore_vector_data_readonly(v_field%values, v_data)
-        call restore_vector_data_readonly(w_field%values, w_data)
+        call interpolate_field_to_face(u_field, loc_f, flux_x)
+        call interpolate_field_to_face(v_field, loc_f, flux_y)
+        call interpolate_field_to_face(w_field, loc_f, flux_z)
+        flux = dot_product([flux_x, flux_y, flux_z], n)
 
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
           flux = -flux
         end if
 
-        flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f)
+        flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections)
         flux = flux + flux_corr
       else
-        call compute_boundary_values(u_field, x_direction, loc_p, loc_f, face_normal, u_bc)
-        call compute_boundary_values(v_field, y_direction, loc_p, loc_f, face_normal, v_bc)
-        call compute_boundary_values(w_field, z_direction, loc_p, loc_f, face_normal, w_bc)
-        flux = u_bc * face_normal(x_direction) + v_bc * face_normal(y_direction) + w_bc * face_normal(z_direction)
+        call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
+        call compute_boundary_values(v_field, y_direction, loc_p, loc_f, n, v_bc)
+        call compute_boundary_values(w_field, z_direction, loc_p, loc_f, n, w_bc)
+        flux = dot_product([u_bc, v_bc, w_bc], n)
       end if
     end associate
 
   end function calc_mass_flux_uvw
 
   ! Computes Rhie-Chow correction
-  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f) result(flux)
+  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
     real(ccs_real), dimension(:), intent(in) :: p                   !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
     real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
     type(face_locator), intent(in) :: loc_f                         !< face locator
+    logical, intent(in) :: enable_cell_corrections
 
     real(ccs_real) :: flux                         !< The flux across the boundary
 
@@ -535,6 +620,11 @@ contains
     real(ccs_real) :: uSwitch, vSwitch, wSwitch
     real(ccs_real) :: problem_dim
     real(ccs_real) :: interpol_factor
+    real(ccs_real), dimension(ndim) :: grad_phi_p 
+    real(ccs_real), dimension(ndim) :: grad_phi_nb
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, rnb_k_prime, rp_prime
+    real(ccs_real), dimension(ndim) :: n
+    real(ccs_real) :: dx_orth
 
     call get_boundary_status(loc_f, is_boundary)
 
@@ -553,14 +643,38 @@ contains
         ! Rhie-Chow correction from Ferziger & Peric
         !
         call get_face_interpolation(loc_f, interpol_factor)
-        call get_distance(loc_p, loc_nb, dx)
-        dxmag = sqrt(sum(dx**2))
         call get_face_normal(loc_f, face_normal)
-        flux_corr = -(p(index_nb) - p(index_p)) / dxmag
 
-        flux_corr = flux_corr + ((interpol_factor * dpdx(index_p) + (1.0_ccs_real - interpol_factor) * dpdx(index_nb)) * face_normal(x_direction) &
-                + (interpol_factor * dpdy(index_p) + (1.0_ccs_real - interpol_factor) * dpdy(index_nb)) * face_normal(y_direction) &
-                 + (interpol_factor * dpdz(index_p) + (1.0_ccs_real - interpol_factor) * dpdz(index_nb)) * face_normal(z_direction))
+        grad_phi_p = [ dpdx(index_p), dpdy(index_p), dpdz(index_p) ]
+        grad_phi_nb = [ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) ]
+
+        if (enable_cell_corrections) then
+          ! Cell excentricity/non-orthogonality corrections (Ferziger & Peric 4th ed, sec 9.8, p317, eq9.67 and 9.66)
+          call get_face_normal(loc_f, n)
+          call get_centre(loc_p, x_p)
+          call get_centre(loc_nb, x_nb)
+          call get_centre(loc_f, x_f)
+
+          dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+          rnb_k_prime = x_f + dx_orth*n
+          rp_prime = x_f - dx_orth*n
+          !dx = rnb_k_prime - rp_prime 
+          !dxmag = norm2(dx)
+          dxmag = 2.0_ccs_real * dx_orth
+
+          ! eq 9.66
+          flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
+
+          ! interpolated pressure gradient at the face (i.e.)
+          flux_corr = flux_corr - 0.5_ccs_real * dot_product((grad_phi_p + grad_phi_nb), x_nb - x_p)
+
+          flux_corr = - flux_corr / dxmag
+        else
+          call get_distance(loc_p, loc_nb, dx)
+          dxmag = norm2(dx)
+          flux_corr = -(p(index_nb) - p(index_p)) / dxmag
+          flux_corr = flux_corr + dot_product(interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb, face_normal)
+        end if
 
         call get_volume(loc_p, Vp)
         call get_volume(loc_nb, V_nb)
@@ -606,20 +720,48 @@ contains
   !  correctly updated on other PEs. @endnote
   module subroutine update_gradient(mesh, phi)
 
-    use meshing, only: get_total_num_cells
+    use meshing, only: get_local_num_cells
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
+    real(ccs_real), dimension(:), allocatable :: x_gradients
+    real(ccs_real), dimension(:), allocatable :: y_gradients
+    real(ccs_real), dimension(:), allocatable :: z_gradients
+
+    real(ccs_real), dimension(:), pointer :: gradients_data    ! Data array for gradients
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: timer_index
+
+    call timer_register_start("Compute gradient", timer_index)
+
+    call get_local_num_cells(mesh, local_num_cells)
+    allocate(x_gradients(local_num_cells))
+    allocate(y_gradients(local_num_cells))
+    allocate(z_gradients(local_num_cells))
 
     call dprint("Compute x gradient")
-    call update_gradient_component(mesh, 1, phi, phi%x_gradients)
-    call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(mesh, 1, phi, x_gradients)
     call dprint("Compute y gradient")
-    call update_gradient_component(mesh, 2, phi, phi%y_gradients)
-    call update(phi%y_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(mesh, 2, phi, y_gradients)
     call dprint("Compute z gradient")
-    call update_gradient_component(mesh, 3, phi, phi%z_gradients)
-    call update(phi%z_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call update_gradient_component(mesh, 3, phi, z_gradients)
+
+    call get_vector_data(phi%x_gradients, gradients_data)
+    gradients_data(1:local_num_cells) = x_gradients(:)
+    call restore_vector_data(phi%x_gradients, gradients_data)
+    call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+
+    call get_vector_data(phi%y_gradients, gradients_data)
+    gradients_data(1:local_num_cells) = y_gradients(:)
+    call restore_vector_data(phi%y_gradients, gradients_data)
+    call update(phi%y_gradients) ! yyy: opportunity to overlap update with later compute (begin/compute/end)
+
+    call get_vector_data(phi%z_gradients, gradients_data)
+    gradients_data(1:local_num_cells) = z_gradients(:)
+    call restore_vector_data(phi%z_gradients, gradients_data)
+    call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
+
+    call timer_stop(timer_index)
 
   end subroutine update_gradient
 
@@ -629,10 +771,8 @@ contains
     type(ccs_mesh), intent(in) :: mesh !< the mesh
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
     class(field), intent(inout) :: phi !< the field whose gradient we want to compute
-    class(ccs_vector), intent(inout) :: gradients !< a cell-centred array of the gradient
+    real(ccs_real), dimension(:), intent(inout) :: gradients !< a cell-centred array of the gradient
 
-    type(vector_values) :: grad_values
-    real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real) :: grad
 
     integer(ccs_int) :: local_num_cells
@@ -647,6 +787,11 @@ contains
 
     real(ccs_real) :: phif
     real(ccs_real) :: interpol_factor
+    real(ccs_real) :: dx_orth
+    real(ccs_real), dimension(ndim) :: grad_phi_p 
+    real(ccs_real), dimension(ndim) :: grad_phi_nb
+    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, rnb_k_prime, rp_prime
+    real(ccs_real), dimension(ndim) :: n
 
     logical :: is_boundary
 
@@ -654,19 +799,15 @@ contains
     real(ccs_real), dimension(ndim) :: face_norm
 
     real(ccs_real) :: V
-    integer(ccs_int) :: global_index_p
-
-    call create_vector_values(1_ccs_int, grad_values)
-    call set_mode(insert_mode, grad_values)
 
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-      call clear_entries(grad_values)
 
       grad = 0.0_ccs_int
 
       call create_cell_locator(mesh, index_p, loc_p)
       call count_neighbours(loc_p, nnb)
+      call get_centre(loc_p, x_p)
       do j = 1, nnb
         call create_face_locator(mesh, index_p, j, loc_f)
         call get_boundary_status(loc_f, is_boundary)
@@ -676,10 +817,24 @@ contains
         call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         if (.not. is_boundary) then
-          call get_vector_data_readonly(phi%values, phi_data)
-          call get_face_interpolation(loc_f, interpol_factor)
-          phif = interpol_factor * phi_data(index_p) + (1.0_ccs_real - interpol_factor) * phi_data(index_nb)
-          call restore_vector_data_readonly(phi%values, phi_data)
+          interpol_factor = 0.5_ccs_real
+          phif = interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb)
+
+          if (phi%enable_cell_corrections) then
+            call get_face_normal(loc_f, n)
+            call get_centre(loc_nb, x_nb)
+            call get_centre(loc_f, x_f)
+
+            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+
+            dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+            rnb_k_prime = x_f + dx_orth*n
+            rp_prime = x_f - dx_orth*n
+
+            phif = phif + 0.5_ccs_real*(dot_product(grad_phi_nb, rnb_k_prime - x_nb) + dot_product(grad_phi_p, rp_prime - x_p))
+          end if
+
         else
           call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif)
         end if
@@ -689,15 +844,8 @@ contains
 
       call get_volume(loc_p, V)
       grad = grad / V
-
-      call get_global_index(loc_p, global_index_p)
-      call set_row(global_index_p, grad_values)
-      call set_entry(grad, grad_values)
-      call set_values(grad_values, gradients)
+      gradients(index_p) = grad
     end do
-
-    deallocate (grad_values%global_indices)
-    deallocate (grad_values%values)
 
   end subroutine update_gradient_component
 

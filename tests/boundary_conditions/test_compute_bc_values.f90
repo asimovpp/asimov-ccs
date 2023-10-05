@@ -12,7 +12,7 @@ program test_compute_bc_values
   use meshing, only: get_local_index, create_cell_locator, count_neighbours, create_neighbour_locator, &
                      get_boundary_status, create_face_locator, get_face_normal, get_local_num_cells
   use mesh_utils, only: build_square_mesh
-  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
+  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data, get_vector_data_readonly
 
   implicit none
 
@@ -89,6 +89,7 @@ contains
     call update(dirichlet_field%values)
     call allocate_bc_arrays(n_boundaries, dirichlet_field%bcs)
     call create_vector(vec_properties, dirichlet_field%values)
+    call get_vector_data_readonly(dirichlet_field%values, dirichlet_field%values_ro)
     dirichlet_field%bcs%bc_types = bc_type_dirichlet
     dirichlet_field%bcs%values = expected_bc_value
     dirichlet_field%bcs%ids = (/(j, j=1, n_boundaries)/)
@@ -119,6 +120,7 @@ contains
     allocate (central_field :: neumann_field)
     call create_vector(vec_properties, neumann_field%values)
     call update(neumann_field%values)
+    call get_vector_data_readonly(neumann_field%values, neumann_field%values_ro)
     call allocate_bc_arrays(n_boundaries, neumann_field%bcs)
     neumann_field%bcs%bc_types = bc_type_neumann
     neumann_field%bcs%values = 0.0_ccs_real
@@ -165,6 +167,10 @@ contains
       call update(extrapolated_field%x_gradients)
       call update(extrapolated_field%y_gradients)
       call update(extrapolated_field%z_gradients)
+      call get_vector_data_readonly(extrapolated_field%values, extrapolated_field%values_ro)
+      call get_vector_data_readonly(extrapolated_field%x_gradients, extrapolated_field%x_gradients_ro)
+      call get_vector_data_readonly(extrapolated_field%y_gradients, extrapolated_field%y_gradients_ro)
+      call get_vector_data_readonly(extrapolated_field%z_gradients, extrapolated_field%z_gradients_ro)
       call allocate_bc_arrays(n_boundaries, extrapolated_field%bcs)
       extrapolated_field%bcs%bc_types = bc_type_extrapolate
       extrapolated_field%bcs%ids = (/(j, j=1, n_boundaries)/)

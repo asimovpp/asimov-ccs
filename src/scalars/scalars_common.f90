@@ -27,9 +27,9 @@ submodule(scalars) scalars_common
 
   !> List of fields not to be updated as transported scalars
   integer(ccs_int), dimension(6), parameter :: skip_fields = &
-       (/ field_u, field_v, field_w, &
+       [ field_u, field_v, field_w, &
           field_p, field_p_prime, &
-          field_mf /)
+          field_mf ]
 
 contains
   
@@ -124,8 +124,6 @@ contains
     call zero(rhs)
     call zero(M)
 
-    call update_gradient(mesh, phi)
-
     call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
     call compute_fluxes(phi, mf, mesh, 0, M, rhs)
@@ -145,6 +143,9 @@ contains
     call dprint("SCALAR: solve linear system")
     call create_solver(lin_system, lin_solver)
     call solve(lin_solver)
+
+    call update_gradient(mesh, phi)
+
     deallocate(lin_solver)
     
   end subroutine transport_scalar

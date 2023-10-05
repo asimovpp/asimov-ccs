@@ -33,7 +33,7 @@ program test_diffusion_coeff
   index_p = 1
   j = 1
 
-  coeff = calc_diffusion_coeff(index_p, j, mesh)
+  coeff = calc_diffusion_coeff(index_p, j, mesh, .false.)
 
   call create_cell_locator(mesh, index_p, loc_p)
   call create_neighbour_locator(loc_p, j, loc_nb)

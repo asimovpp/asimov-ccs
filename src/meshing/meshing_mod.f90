@@ -6,7 +6,7 @@ module meshing
 
   use constants, only: ndim
   use kinds, only: ccs_int, ccs_real, ccs_long
-  use types, only: ccs_mesh, face_locator, cell_locator, neighbour_locator, &
+  use types, only: ccs_mesh, topology, face_locator, cell_locator, neighbour_locator, &
                    vert_locator, vertex_neighbour_locator
 
   implicit none
@@ -106,8 +106,10 @@ module meshing
   end interface get_distance
 
   interface get_local_num_cells
-    module procedure get_local_num_cells_int
-    module procedure get_local_num_cells_long
+    module procedure get_local_num_cells_mesh_int
+    module procedure get_local_num_cells_mesh_long
+    module procedure get_local_num_cells_topo_int
+    module procedure get_local_num_cells_topo_long
   end interface get_local_num_cells
 
   interface set_centre
@@ -125,6 +127,46 @@ module meshing
     module procedure get_neighbour_local_status
     module procedure get_vertex_neighbour_local_status
   end interface get_local_status
+
+  interface get_max_faces
+     module procedure get_max_faces_mesh
+     module procedure get_max_faces_topo
+  end interface get_max_faces
+
+  interface set_vert_per_cell
+     module procedure set_vert_per_cell_mesh
+     module procedure set_vert_per_cell_topo
+  end interface set_vert_per_cell
+
+  interface set_vert_nb_per_cell
+     module procedure set_vert_nb_per_cell_mesh
+     module procedure set_vert_nb_per_cell_topo
+  end interface set_vert_nb_per_cell
+
+  interface get_global_num_cells
+     module procedure get_global_num_cells_mesh
+     module procedure get_global_num_cells_topo
+  end interface get_global_num_cells
+
+  interface get_global_num_faces
+     module procedure get_global_num_faces_mesh
+     module procedure get_global_num_faces_topo
+  end interface get_global_num_faces
+
+  interface get_vert_per_cell
+     module procedure get_vert_per_cell_mesh
+     module procedure get_vert_per_cell_topo
+  end interface get_vert_per_cell
+
+  interface set_local_num_cells
+     module procedure set_local_num_cells_mesh
+     module procedure set_local_num_cells_topo
+  end interface set_local_num_cells
+
+  interface set_total_num_cells
+     module procedure set_total_num_cells_mesh
+     module procedure set_total_num_cells_topo
+  end interface set_total_num_cells
 
   interface
 
@@ -390,29 +432,54 @@ module meshing
     end subroutine get_face_neighbour_distance
 
     !> Sets the mesh local cell count.
-    module subroutine set_local_num_cells(local_num_cells, mesh)
+    module subroutine set_local_num_cells_mesh(local_num_cells, mesh)
       integer(ccs_int), intent(in) :: local_num_cells !< The local cell count
       type(ccs_mesh), intent(inout) :: mesh           !< The mesh
-    end subroutine set_local_num_cells
+    end subroutine set_local_num_cells_mesh
+
+    !> Sets the mesh topology local cell count
+    module subroutine set_local_num_cells_topo(local_num_cells, topo)
+      integer(ccs_int), intent(in) :: local_num_cells !< The local cell count
+      type(topology), intent(inout) :: topo           !< The mesh topology
+    end subroutine set_local_num_cells_topo
 
     !> Gets the mesh local cell count.
-    module subroutine get_local_num_cells_int(mesh, local_num_cells)
+    module subroutine get_local_num_cells_mesh_int(mesh, local_num_cells)
       type(ccs_mesh), intent(in) :: mesh               !< The mesh
       integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
-    end subroutine get_local_num_cells_int
+    end subroutine get_local_num_cells_mesh_int
     !v Gets the mesh local cell count.
     !
     !  Handles case when using a long integer to access the internal mesh data.
-    module subroutine get_local_num_cells_long(mesh, local_num_cells)
+    module subroutine get_local_num_cells_mesh_long(mesh, local_num_cells)
       type(ccs_mesh), intent(in) :: mesh                !< The mesh
       integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
-    end subroutine get_local_num_cells_long
+    end subroutine get_local_num_cells_mesh_long
+    
+    !> Gets the mesh topology local cell count.
+    module subroutine get_local_num_cells_topo_int(topo, local_num_cells)
+      type(topology), intent(in) :: topo               !< The mesh topology
+      integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
+    end subroutine get_local_num_cells_topo_int
+    !v Gets the mesh topology local cell count.
+    !
+    !  Handles case when using a long integer to access the internal topology data.
+    module subroutine get_local_num_cells_topo_long(topo, local_num_cells)
+      type(topology), intent(in) :: topo                !< The mesh topology
+      integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
+    end subroutine get_local_num_cells_topo_long
 
     !> Sets the mesh total cell count.
-    module subroutine set_total_num_cells(total_num_cells, mesh)
+    module subroutine set_total_num_cells_mesh(total_num_cells, mesh)
       integer(ccs_int), intent(in) :: total_num_cells !< The total cell count
       type(ccs_mesh), intent(inout) :: mesh           !< The mesh
-    end subroutine set_total_num_cells
+    end subroutine set_total_num_cells_mesh
+
+    !> Sets the mesh topology total cell count.
+    module subroutine set_total_num_cells_topo(total_num_cells, topo)
+      integer(ccs_int), intent(in) :: total_num_cells !< The total cell count
+      type(topology), intent(inout) :: topo           !< The mesh topology
+    end subroutine set_total_num_cells_topo
 
     !> Gets the mesh total cell count.
     module subroutine get_total_num_cells(mesh, total_num_cells)
@@ -427,10 +494,16 @@ module meshing
     end subroutine set_global_num_cells
 
     !> Gets the mesh global cell count.
-    module subroutine get_global_num_cells(mesh, global_num_cells)
+    module subroutine get_global_num_cells_mesh(mesh, global_num_cells)
       type(ccs_mesh), intent(in) :: mesh                !< The mesh
       integer(ccs_int), intent(out) :: global_num_cells !< The global cell count
-    end subroutine get_global_num_cells
+    end subroutine get_global_num_cells_mesh
+
+    !> Gets the mesh topology global cell count.
+    module subroutine get_global_num_cells_topo(topo, global_num_cells)
+      type(topology), intent(in) :: topo                !< The mesh topology
+      integer(ccs_int), intent(out) :: global_num_cells !< The global cell count
+    end subroutine get_global_num_cells_topo
 
     !> Sets the mesh halo cell count.
     module subroutine set_halo_num_cells(halo_num_cells, mesh)
@@ -451,12 +524,18 @@ module meshing
     end subroutine set_global_num_faces
 
     !> Gets the mesh global face count.
-    module subroutine get_global_num_faces(mesh, global_num_faces)
+    module subroutine get_global_num_faces_mesh(mesh, global_num_faces)
       type(ccs_mesh), intent(in) :: mesh                !< The mesh
       integer(ccs_int), intent(out) :: global_num_faces !< The global face count
-    end subroutine get_global_num_faces
+    end subroutine get_global_num_faces_mesh
 
-    !> Sets the mesh  face count.
+    !> Gets the mesh topology global face count.
+    module subroutine get_global_num_faces_topo(topo, global_num_faces)
+      type(topology), intent(in) :: topo                !< The mesh topology
+      integer(ccs_int), intent(out) :: global_num_faces !< The global face count
+    end subroutine get_global_num_faces_topo
+
+    !> Sets the mesh face count.
     module subroutine set_num_faces(num_faces, mesh)
       integer(ccs_int), intent(in) :: num_faces !< The face count
       type(ccs_mesh), intent(inout) :: mesh     !< The mesh
@@ -468,17 +547,23 @@ module meshing
       integer(ccs_int), intent(out) :: num_faces !< The face count
     end subroutine get_num_faces
 
-    !> Sets the mesh  face count.
+    !> Sets the mesh face count.
     module subroutine set_max_faces(max_faces, mesh)
       integer(ccs_int), intent(in) :: max_faces !< The face count
       type(ccs_mesh), intent(inout) :: mesh     !< The mesh
     end subroutine set_max_faces
 
     !> Gets the mesh face count.
-    module subroutine get_max_faces(mesh, max_faces)
+    module subroutine get_max_faces_mesh(mesh, max_faces)
       type(ccs_mesh), intent(in) :: mesh         !< The mesh
       integer(ccs_int), intent(out) :: max_faces !< The face count
-    end subroutine get_max_faces
+    end subroutine get_max_faces_mesh
+
+    !> Gets the mesh topology face count.
+    module subroutine get_max_faces_topo(topo, max_faces)
+      type(topology), intent(in) :: topo         !< The mesh topology
+      integer(ccs_int), intent(out) :: max_faces !< The face count
+    end subroutine get_max_faces_topo
 
     !> Sets the global number of vertices.
     module subroutine set_global_num_vertices(global_num_vertices, mesh)
@@ -493,22 +578,40 @@ module meshing
     end subroutine get_global_num_vertices
 
     !> Sets the number of vertices per cell.
-    module subroutine set_vert_per_cell(vert_per_cell, mesh)
+    module subroutine set_vert_per_cell_mesh(vert_per_cell, mesh)
       integer(ccs_int), intent(in) :: vert_per_cell !< The number of vertices per cell
       type(ccs_mesh), intent(inout) :: mesh         !< The mesh
-    end subroutine set_vert_per_cell
+    end subroutine set_vert_per_cell_mesh
+
+    !> Sets the number of vertices per cell.
+    module subroutine set_vert_per_cell_topo(vert_per_cell, topo)
+      integer(ccs_int), intent(in) :: vert_per_cell !< The number of vertices per cell
+      type(topology), intent(inout) :: topo         !< The mesh topology
+    end subroutine set_vert_per_cell_topo
 
     !> Gets the number of vertices per cell.
-    module subroutine get_vert_per_cell(mesh, vert_per_cell)
+    module subroutine get_vert_per_cell_mesh(mesh, vert_per_cell)
       type(ccs_mesh), intent(in) :: mesh             !< The mesh
       integer(ccs_int), intent(out) :: vert_per_cell !< The number of vertices per cell
-    end subroutine get_vert_per_cell
+    end subroutine get_vert_per_cell_mesh
+
+    !> Gets the number of vertices per cell.
+    module subroutine get_vert_per_cell_topo(topo, vert_per_cell)
+      type(topology), intent(in) :: topo             !< The mesh topology
+      integer(ccs_int), intent(out) :: vert_per_cell !< The number of vertices per cell
+    end subroutine get_vert_per_cell_topo
 
     !> Sets the number of neighbours via vertices per cell.
-    module subroutine set_vert_nb_per_cell(vert_nb_per_cell, mesh)
+    module subroutine set_vert_nb_per_cell_mesh(vert_nb_per_cell, mesh)
       integer(ccs_int), intent(in) :: vert_nb_per_cell !< The number of neighbours via vertices per cell
       type(ccs_mesh), intent(inout) :: mesh         !< The mesh
-    end subroutine set_vert_nb_per_cell
+    end subroutine set_vert_nb_per_cell_mesh
+
+    !> Sets the number of neighbours via vertices per cell.
+    module subroutine set_vert_nb_per_cell_topo(vert_nb_per_cell, topo)
+      integer(ccs_int), intent(in) :: vert_nb_per_cell !< The number of neighbours via vertices per cell
+      type(topology), intent(inout) :: topo            !< The mesh topology
+    end subroutine set_vert_nb_per_cell_topo
 
     !> Gets the number of neighbours via vertices per cell.
     module subroutine get_vert_nb_per_cell(mesh, vert_nb_per_cell)

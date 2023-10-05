@@ -5,7 +5,7 @@ module timers
   use kinds
   use types
   use parallel_types, only: parallel_environment
-  use parallel, only: timer
+  use parallel, only: timer, is_root
 
   use utils, only: exit_print
 
@@ -16,10 +16,13 @@ module timers
   logical, dimension(:), allocatable :: has_started
   double precision, dimension(:), allocatable :: ticks
   double precision, dimension(:), allocatable :: tocks
+  integer(ccs_int), dimension(:), allocatable :: counters
   character(len=64), dimension(:), allocatable :: timer_names
+  integer(ccs_int) :: total_index
   logical :: initialised = .false.
 
   public :: timer_init
+  public :: timer_reset
   public :: timer_get_index
   public :: timer_register_start
   public :: timer_register
@@ -38,8 +41,24 @@ contains
       allocate(has_started(0))
       allocate(ticks(0))
       allocate(tocks(0))
+      allocate(counters(0))
       allocate(timer_names(0))
+      total_index = 0
       initialised = .true.
+    end if
+
+  end subroutine
+
+  subroutine timer_reset()
+
+    if (initialised) then
+      deallocate(has_started)
+      deallocate(ticks)
+      deallocate(tocks)
+      deallocate(counters)
+      deallocate(timer_names)
+      total_index = 0
+      initialised = .false.
     end if
 
   end subroutine
@@ -62,19 +81,21 @@ contains
   end subroutine
 
   !> Register and start a timer
-  subroutine timer_register_start(timer_name, timer_index)
+  subroutine timer_register_start(timer_name, timer_index, is_total_time)
     character(len=*), intent(in) :: timer_name
     integer(ccs_int), intent(out) :: timer_index
+    logical, optional, intent(in) :: is_total_time
 
-    call timer_register(timer_name, timer_index)
+    call timer_register(timer_name, timer_index, is_total_time=is_total_time)
     call timer_start(timer_index)
 
   end subroutine
 
   !> Register a new timer
-  subroutine timer_register(timer_name, timer_index)
+  subroutine timer_register(timer_name, timer_index, is_total_time)
     character(len=*), intent(in) :: timer_name
     integer(ccs_int), intent(out) :: timer_index
+    logical, optional, intent(in) :: is_total_time
 
     character(len=64) :: timer_name_local
 
@@ -84,10 +105,16 @@ contains
     call timer_get_index(timer_name_local, timer_index)
     if (timer_index == -1) then
       timer_index = size(ticks) + 1
-      timer_names = (/ timer_names, timer_name_local /)
-      ticks = (/ ticks, 0.d0 /)
-      tocks = (/ tocks, 0.d0 /)
-      has_started = (/ has_started, .false. /)
+      timer_names = [ timer_names, timer_name_local ]
+      ticks = [ ticks, 0.d0 ]
+      tocks = [ tocks, 0.d0 ]
+      counters = [ counters, 0 ]
+      has_started = [ has_started, .false. ]
+      if (present(is_total_time)) then
+        if (is_total_time) then
+          total_index = timer_index
+        end if
+      end if
     end if
     
   end subroutine
@@ -99,6 +126,7 @@ contains
     double precision :: time
 
     call timer(tick)
+    counters(timer_index) = counters(timer_index) + 1
 
     ! Allows to start/stop a timer
     if (has_started(timer_index)) then
@@ -124,13 +152,23 @@ contains
   subroutine timer_print(par_env, timer_index)
     class(parallel_environment), intent(in) :: par_env
     integer(ccs_int), intent(in) :: timer_index
-    double precision :: time
+    double precision :: time, total_time
 
     call timer_get_time(timer_index, time)
 
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       ! repeat ' ' to right align
-      write(*,'(A30, F10.4, A)')  repeat(' ', max(0, 29-len(trim(timer_names(timer_index))))) // trim(timer_names(timer_index)) // ":", time, " s"
+      write(*,'(A30, F10.4, A)', advance="no")  repeat(' ', max(0, 29-len(trim(timer_names(timer_index))))) // trim(timer_names(timer_index)) // ":", time, " s"
+
+      if (total_index /= 0) then
+        call timer_get_time(total_index, total_time)
+        write(*, '(F10.2, A)', advance="no") 100*time / total_time, " %"
+      end if
+
+      if (counters(timer_index) >= 2) then
+        write(*, '(F10.4, A, I10, A)', advance="no") time / counters(timer_index), " s/call", counters(timer_index), " calls"
+      end if
+      write(*, '(A)') ""
     end if
 
   end subroutine

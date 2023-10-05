@@ -30,6 +30,7 @@ module read_config
   public :: get_bc_field
   public :: get_boundary_count
   public :: get_store_residuals
+  public :: get_enable_cell_corrections
 
   interface get_value
     module procedure get_integer_value
@@ -73,7 +74,7 @@ module read_config
       character(len=*), intent(in) :: keyword                     !< The key
       logical, intent(inout) :: logical_val !< The corresponding value
       logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
-      logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+      logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
 
     !v Get the name of the test case
@@ -242,10 +243,16 @@ module read_config
       integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
     end subroutine
 
-    !> Gets wether residuals should be stored or not
+    !> Gets whether residuals should be stored or not
     module subroutine get_store_residuals(filename, store_residuals)
       character(len=*), intent(in) :: filename
       logical, intent(out) :: store_residuals
+    end subroutine
+
+    !> Gets whether cell corrections (non orthogonality, excentricity etc.) should be used
+    module subroutine get_enable_cell_corrections(filename, enable_cell_corrections)
+      character(len=*), intent(in) :: filename
+      logical, intent(out) :: enable_cell_corrections
     end subroutine
   end interface
 end module read_config

@@ -31,7 +31,7 @@ contains
     associate (mflux => mf)
     end associate
 
-    if (bc == 0) then
+    if (bc == 0 .and. (.not. phi%enable_cell_corrections)) then
       call get_face_interpolation(loc_f, interpolation_factor)
       interpolation_factor = 1.0_ccs_real - interpolation_factor
     else
@@ -134,7 +134,7 @@ contains
           call get_face_interpolation(loc_f, interpolation_factor)
           interpolation_factor = 1.0_ccs_real - interpolation_factor
           coeffaF = interpolation_factor
-        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+        else !Gamma
           gamma_m = phiPt / beta_m
           call get_face_interpolation(loc_f, interpolation_factor)
           coeffaF = 1.0_ccs_real + (gamma_m * (interpolation_factor - 1.0_ccs_real))
@@ -165,7 +165,7 @@ contains
           call get_face_interpolation(loc_f, interpolation_factor)
           interpolation_factor = 1.0_ccs_real - interpolation_factor
           coeffaF = interpolation_factor
-        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+        else !Gamma
           gamma_m = phiPt / beta_m
           coeffaF = (1.0_ccs_real - interpolation_factor) * gamma_m
         end if

@@ -11,7 +11,7 @@ module fields
 
   use utils, only: update
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use vec, only: create_vector
+  use vec, only: create_vector, get_vector_data_readonly
   use fv, only: update_gradient
   use timestepping, only: initialise_old_values
 
@@ -24,6 +24,7 @@ module fields
   public :: set_field_vector_properties
   public :: set_field_n_boundaries
   public :: set_field_store_residuals
+  public :: set_field_enable_cell_corrections
   public :: set_field_name
   public :: set_field_type
 
@@ -44,11 +45,14 @@ contains
                field_type => field_properties%field_type, &
                field_name => field_properties%field_name, &
                n_boundaries => field_properties%n_boundaries, &
-               store_residuals => field_properties%store_residuals)
+               store_residuals => field_properties%store_residuals, &
+               enable_cell_corrections => field_properties%enable_cell_corrections)
       call allocate_field(vec_properties, field_type, n_boundaries, store_residuals, phi)
 
       ! XXX: ccs_config_file is host-associated from program scope.
       call read_bc_config(ccs_config_file, field_name, phi)
+      
+      phi%enable_cell_corrections = enable_cell_corrections
 
       !! --- Ensure data is updated/parallel-constructed ---
       ! XXX: Potential abstraction --- see update(vec), etc.
@@ -104,6 +108,7 @@ contains
 
     call dprint("Create field values vector")
     call create_vector(vec_properties, phi%values)
+    call get_vector_data_readonly(phi%values, phi%values_ro)
 
     if (store_residuals) then
       call dprint("Create residuals field vector")
@@ -116,6 +121,9 @@ contains
       call create_vector(vec_properties, phi%x_gradients)
       call create_vector(vec_properties, phi%y_gradients)
       call create_vector(vec_properties, phi%z_gradients)
+      call get_vector_data_readonly(phi%x_gradients, phi%x_gradients_ro)
+      call get_vector_data_readonly(phi%y_gradients, phi%y_gradients_ro)
+      call get_vector_data_readonly(phi%z_gradients, phi%z_gradients_ro)
 
       ! Currently no need for old face values
       call dprint("Create field old values")
@@ -156,7 +164,7 @@ contains
 
   end subroutine set_field_n_boundaries
 
-  !> Set wether or not residuals should be stored
+  !> Set whether or not residuals should be stored
   subroutine set_field_store_residuals(store_residuals, field_properties)
 
     logical, intent(in) :: store_residuals
@@ -165,6 +173,16 @@ contains
     field_properties%store_residuals = store_residuals
 
   end subroutine set_field_store_residuals
+
+  !> Set whether or not cell shape corrections should be used
+  subroutine set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
+
+    logical, intent(in) :: enable_cell_corrections 
+    type(field_spec), intent(inout) :: field_properties
+
+    field_properties%enable_cell_corrections = enable_cell_corrections
+
+  end subroutine set_field_enable_cell_corrections
 
   !> Set the name of a field to be created
   subroutine set_field_name(name, field_properties)
