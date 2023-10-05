@@ -456,6 +456,7 @@ contains
     call update(w%values)
     call update(p%values)
     call update(mf%values)
+    call update(viscosity%values)
 
   end subroutine initialise_flow
 

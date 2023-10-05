@@ -13,7 +13,7 @@ program scalar_advection
                    equation_system, linear_solver, ccs_mesh, field_ptr, &
                    field, upwind_field, central_field, bc_config, face_locator
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use meshing, only: get_boundary_status, create_face_locator, get_total_num_cells, get_global_num_cells
@@ -58,9 +58,8 @@ program scalar_advection
   logical :: enable_cell_corrections
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, mf
+  class(field), allocatable, target :: u, v, mf, viscosity
   class(field), allocatable, target :: scalar
-  class(field), allocatable :: viscosity
 
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
   integer(ccs_int) :: irank ! MPI rank ID
@@ -139,6 +138,10 @@ program scalar_advection
   call set_field_name("scalar", field_properties)
   call create_field(field_properties, scalar)
 
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("visosity", field_properties)
+  call create_field(field_properties, viscosity) 
+
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
@@ -154,11 +157,12 @@ program scalar_advection
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(mesh, u, v, scalar, mf)
+  call initialise_flow(mesh, u, v, scalar, mf, viscosity)
   call update(u%values)
   call update(v%values)
   call update(scalar%values)
   call update(mf%values)
+  call update(viscosity%values)
 
   ! Initialise with default values
   if (irank == par_env%root) print *, "Initialise mat"
@@ -202,6 +206,7 @@ program scalar_advection
   deallocate (source)
   deallocate (M)
   deallocate (mf)
+  deallocate (viscosity)
   deallocate (scalar_solver)
 
   call timer(end_time)
@@ -214,7 +219,7 @@ program scalar_advection
 
 contains
 
-  subroutine initialise_flow(mesh, u, v, scalar, mf)
+  subroutine initialise_flow(mesh, u, v, scalar, mf, viscosity)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -227,7 +232,7 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, scalar, mf
+    class(field), intent(inout) :: u, v, scalar, mf, viscosity
 
     ! Local variables
     integer(ccs_int) :: n, count
@@ -238,7 +243,7 @@ contains
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, scalar_vals
-    real(ccs_real), dimension(:), pointer :: mf_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
     real(ccs_real), dimension(ndim) :: face_normal
@@ -321,10 +326,15 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
+    call get_vector_data(viscosity%values, viscosity_data)
+    viscosity_data(:) =  1.e-2_ccs_real
+    call restore_vector_data(viscosity%values, viscosity_data)
+
     call update(u%values)
     call update(v%values)
     call update(scalar%values)
     call update(mf%values)
+    call update(viscosity%values)
 
   end subroutine initialise_flow
 
