@@ -181,7 +181,6 @@ module poiseuille_core
     call create_field(field_properties, mf)
 
     ! Add fields to output list
-    allocate (output_list(4))
     call add_field_to_outputlist(u, "u", output_list)
     call add_field_to_outputlist(v, "v", output_list)
     call add_field_to_outputlist(w, "w", output_list)
@@ -494,7 +493,7 @@ module poiseuille_core
     P = 8*mu 
 
 
-    profile%centre(:) = (/ 0, 0, 0 /)
+    profile%centre(:) = [ 0, 0, 0 ]
 
     do i=1, n
       y =  real(i-1, ccs_real)*h/real(n-1, ccs_real)

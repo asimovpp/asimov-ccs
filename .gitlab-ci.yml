@@ -8,12 +8,12 @@
 .setup_gnu:
   before_script:
     - source setup_gitlab_runner_env
-    - source ${GNU_SETUP}
+    - source ${GNU_SETUP} 32bit
 
 .setup_intel:
   before_script:
     - source setup_gitlab_runner_env
-    - source ${INTEL_SETUP}
+    - source ${INTEL_SETUP} 32bit
 
 .setup_cray:
   before_script:

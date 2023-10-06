@@ -124,7 +124,7 @@ $(CAF_OBJ): %.o: %.f90
 	$(FC) $(FFLAGS) $(CAFFLAGS) -o $@ -c $< $(INC)
 
 $(TAG_DEPS): $(SRC)
-	$(PY) $(TOOLS)/process_build_tags.py $(SRC) > $(TAG_DEPS)
+	$(PY) $(TOOLS)/process_build_tags.py $(OBJ_DIR) $(SRC) > $(TAG_DEPS)
 
 GEN_DEPS         = $(call printdo, makedepf90 -b $(OBJ_DIR)                 $(SRC) > $(ALL_DEPS))
 GEN_DEPS_W_SMODS = $(call printdo, makedepf90 -b $(OBJ_DIR) -S $(SMOD_DEPS) $(SRC) > $(ALL_DEPS))
