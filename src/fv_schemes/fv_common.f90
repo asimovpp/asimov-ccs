@@ -329,6 +329,7 @@ contains
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
+    print*,"inside compute BoCo: getting boundary index"
     call get_bc_index(phi, index_nb, index_bc)
 
     select case (phi%bcs%bc_types(index_bc))
