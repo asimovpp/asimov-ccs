@@ -231,17 +231,16 @@ contains
     class(field), pointer :: u
     class(field), pointer :: v
     class(field), pointer :: w
-    class(field), pointer :: mf
+    !class(field), pointer :: mf
     class(field), pointer :: p
-    class(field), pointer :: viscosity
+    !class(field), pointer :: viscosity
 
-    !declare the viscosity field here and access it and pass it in calculate_velocity_component subroutine and all sucessive ones
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
     call get_field(flow, field_p, p)
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity)
+    !call get_field(flow, field_mf, mf)
+    !call get_field(flow, field_viscosity, viscosity)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -266,24 +265,24 @@ contains
     ! u-velocity
     ! ----------
     if (u_sol) then
-      call calculate_velocity_component(flow, par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals, viscosity)
+      call calculate_velocity_component(flow, par_env, varu, mesh, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
     end if
 
     ! v-velocity
     ! ----------
     if (v_sol) then
-      call calculate_velocity_component(flow, par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals, viscosity)
+      call calculate_velocity_component(flow, par_env, varv, mesh, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
     end if
 
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(flow, par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals, viscosity)
+      call calculate_velocity_component(flow, par_env, varw, mesh, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
     end if
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals, viscosity)
+  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
@@ -293,16 +292,16 @@ contains
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in) :: ivar
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: mf
-    class(field), intent(inout) :: viscosity
+    !class(field), intent(inout) :: mf
+    !class(field), intent(inout) :: viscosity
+    class(field), pointer :: mf
+    class(field), pointer :: viscosity
     class(field), intent(inout) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
     class(field), target, intent(inout) :: u
-    !class(field), intent(inout) :: u, v, w
-    !type(fluid), intent(inout) :: flow
     class(ccs_vector), intent(inout) :: invAu
     class(ccs_vector), target, intent(inout) :: input_res
     class(ccs_vector), pointer :: res
@@ -337,6 +336,9 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
+
+    call get_field(flow, field_mf, mf)
+    call get_field(flow, field_viscosity, viscosity)
     
     call compute_fluxes(u, mf, mesh, component, M, vec, viscosity)
 
@@ -354,10 +356,7 @@ contains
 
     !calculate viscous source term and populate RHS vector 
     call dprint("compute viscous souce term")
-    
-    !print*,"starting momentum_viscous_source"
-    call calculate_momentum_viscous_source (mesh, flow, component, viscosity, vec)
-    !print*,"closing momentum_viscous_source"
+    call calculate_momentum_viscous_source (mesh, flow, component, vec)
 
     ! Underrelax the equations
     call dprint("GV: underrelax u")
@@ -453,12 +452,13 @@ contains
   end subroutine calculate_momentum_pressure_source
 
   !v Adds the momentum source due to variation in viscosity
-  subroutine calculate_momentum_viscous_source (mesh, flow, component, viscosity, vec)
+  subroutine calculate_momentum_viscous_source (mesh, flow, component, vec)
     integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
     type(fluid), intent(inout) :: flow
     class(field), pointer :: u
     class(field), pointer :: v
     class(field), pointer :: w
+    class(field), pointer :: viscosity
 
     type(ccs_mesh), intent(in) :: mesh
     class(ccs_vector), allocatable, intent(inout) :: vec
@@ -482,7 +482,7 @@ contains
     type(face_locator) :: loc_f
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: interpolation_factor   
-    class(field), intent(inout) :: viscosity 
+    !class(field), intent(inout) :: viscosity 
     real(ccs_real) :: viscosity_face
     real(ccs_real) :: face_area
     real(ccs_real), dimension(:), pointer :: viscosity_data
@@ -490,6 +490,7 @@ contains
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
+    call get_field(flow, field_viscosity, viscosity)
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
