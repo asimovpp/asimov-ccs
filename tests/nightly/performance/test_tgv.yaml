@@ -1,13 +1,15 @@
 # RUN: %build_test %s %t1 
-# RUN: export outputfile="output_tgv.txt"
+# RUN: export outputfile="output_tgv_${CPS}_${NCORES}.txt"
 # RUN: echo "date: $(date -Iminutes)" > $outputfile
-# RUN: echo "ncores: 26" >> $outputfile
-# RUN: echo "label: tgv_90" >> $outputfile
+# RUN: echo "ncores: $NCORES" >> $outputfile
+# RUN: echo "label: tgv_${CPS}_${NCORES}" >> $outputfile
 # RUN: echo "commitID: $(git rev-parse --short HEAD)" >> $outputfile
 # RUN: echo "commitdate: $(git show -s --format=%cd --date=iso)" >> $outputfile
 # RUN: echo "compiler: $CMP" >> $outputfile
-# RUN: %mpirun -n 26 %t1 --ccs_case Input/TaylorGreenVortex --ccs_m 90 >> $outputfile
+# RUN: %mpirun -n $NCORES %t1 --ccs_case Input/TaylorGreenVortex --ccs_m $CPS >> $outputfile
 
 main: tgv
 base: mpi_petsc
+options:
+  partitioning: partitioning_parhip
 extra: parhip
