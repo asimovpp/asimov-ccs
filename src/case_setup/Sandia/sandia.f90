@@ -22,8 +22,7 @@ program sandia
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, &
-                      create_new_par_env
+                      read_command_line_arguments, sync, query_stop_run, create_new_par_env
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
@@ -78,6 +77,8 @@ program sandia
   logical :: v_sol = .true.
   logical :: w_sol = .true.
   logical :: p_sol = .true.
+
+  logical :: diverged = .false.
 
   logical :: store_residuals, enable_cell_corrections
 
@@ -226,9 +227,17 @@ program sandia
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields)
+                         fluid_sol, flow_fields, diverged)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
+    end if
+
+    ! If a STOP file exist, write solution and exit the main simulation loop
+    if (query_stop_run(par_env) .or. diverged) then
+      call timer_start(timer_index_io_sol)
+      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call timer_stop(timer_index_io_sol)
+      exit
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
@@ -387,7 +396,7 @@ contains
 
       call get_centre(loc_p, x_p)
 
-      u_val = 5.0_ccs_real
+      u_val = 0.0_ccs_real
       v_val = 0.0_ccs_real
       w_val = 0.0_ccs_real
       p_val = 0.0_ccs_real 
