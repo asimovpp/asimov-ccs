@@ -2,9 +2,9 @@
 title: Sandia
 
 #  number of timesteps
-steps: 100
+steps: 14000
 #  number of iterations
-iterations: 20
+iterations: 15
 # time step size
 dt: 1.0e-5
 
@@ -15,15 +15,15 @@ dt: 1.0e-5
 L: 3.1415926535
 
 relaxation_factor:
-  u: 0.5
-  v: 0.5
-  w: 0.5
-  p: 0.3
+  u: 0.7
+  v: 0.7
+  w: 0.7
+  p: 0.08
 
 target_residual: 1.0e-10
 
 # Frequency (in terms of timesteps) of writing solution to file
-write_frequency: 50
+write_frequency: 100
 
 # Fluid properties
 viscocity : 1.0e-3
@@ -61,8 +61,8 @@ viscocity : 1.0e-3
 #  variables: [u, v, w, p]
 
 variables:
-  enable_cell_corrections: true
-  n_variables: 4
+  enable_cell_corrections: false
+  n_variables: 5
   variable_1:
     name: u
     type: central
@@ -70,9 +70,12 @@ variables:
     name: v
     type: central
   variable_3:
-    name: p
+    name: w
     type: central
   variable_4:
+    name: p
+    type: central
+  variable_5:
     name: p_prime
     type: central
 
@@ -82,8 +85,6 @@ boundaries:
     name: left
     type: neumann
     value: 0
-    variable_p:
-      type: extrapolate
     variable_u:
       type: dirichlet
       value: 0
@@ -92,14 +93,15 @@ boundaries:
       value: 0
   boundary_2: # atmos
     name: right
-    type: neumann
+    type: dirichlet
     value: 0
   boundary_3: #coflow
     name: bottom
     type: neumann
     value: 0
     variable_p:
-      type: extrapolate
+      type: neumann
+      value: 0
     variable_u:
       type: dirichlet
       value: 0.9
@@ -114,7 +116,8 @@ boundaries:
     type: neumann
     value: 0
     variable_p:
-      type: extrapolate
+      type: neumann
+      value: 0
     variable_u:
       type: dirichlet
       value: 49.6
@@ -129,7 +132,8 @@ boundaries:
     type: neumann
     value: 0
     variable_p:
-      type: extrapolate
+      type: neumann
+      value: 0
     variable_u:
       type: dirichlet
       value: 11.4
@@ -144,7 +148,8 @@ boundaries:
     type: neumann
     value: 0
     variable_p:
-      type: extrapolate
+      type: neumann
+      value: 0
     variable_u:
       type: dirichlet
       value: 0
@@ -174,7 +179,8 @@ boundaries:
     type: neumann
     value: 0
     variable_p:
-      type: extrapolate
+      type: neumann
+      value: 0
     variable_u:
       type: dirichlet
       value: 0
@@ -189,7 +195,8 @@ boundaries:
     type: neumann
     value: 0
     variable_p:
-      type: extrapolate
+      type: neumann
+      value: 0
     variable_u:
       type: dirichlet
       value: 0
@@ -206,4 +213,3 @@ boundaries:
     variable_p:
       type: dirichlet
       value: 0
-   
