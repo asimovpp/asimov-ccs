@@ -499,6 +499,9 @@ contains
     type is (parallel_environment_mpi)
       if(par_env%proc_id == par_env%root) then 
         inquire(file="STOP", EXIST=stop_run)
+        if (stop_run) then
+          print *, "STOP file found"
+        end if
       end if
 
       call MPI_Bcast(stop_run, 1, MPI_LOGICAL, par_env%root, par_env%comm, ierr)
