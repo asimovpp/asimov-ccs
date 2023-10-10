@@ -139,7 +139,7 @@ program scalar_advection
   call create_field(field_properties, scalar)
 
   call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("visosity", field_properties)
+  call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
 
   call set_vector_location(face, vec_properties)

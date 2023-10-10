@@ -231,16 +231,12 @@ contains
     class(field), pointer :: u
     class(field), pointer :: v
     class(field), pointer :: w
-    !class(field), pointer :: mf
     class(field), pointer :: p
-    !class(field), pointer :: viscosity
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
     call get_field(flow, field_p, p)
-    !call get_field(flow, field_mf, mf)
-    !call get_field(flow, field_viscosity, viscosity)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -292,8 +288,6 @@ contains
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in) :: ivar
     type(ccs_mesh), intent(in) :: mesh
-    !class(field), intent(inout) :: mf
-    !class(field), intent(inout) :: viscosity
     class(field), pointer :: mf
     class(field), pointer :: viscosity
     class(field), intent(inout) :: p
@@ -340,7 +334,7 @@ contains
     call get_field(flow, field_mf, mf)
     call get_field(flow, field_viscosity, viscosity)
     
-    call compute_fluxes(u, mf, mesh, component, M, vec, viscosity)
+    call compute_fluxes(u, mf, viscosity, mesh, component, M, vec)
 
     call apply_timestep(mesh, u, invAu, M, vec)
 
@@ -455,19 +449,19 @@ contains
   subroutine calculate_momentum_viscous_source (mesh, flow, component, vec)
     integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
     type(fluid), intent(inout) :: flow
-    class(field), pointer :: u
-    class(field), pointer :: v
-    class(field), pointer :: w
+    class(field), pointer :: u  !< x-component of velocity 
+    class(field), pointer :: v  !< y-component of velocity
+    class(field), pointer :: w  !< z-component of velocity
     class(field), pointer :: viscosity
 
-    type(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), allocatable, intent(inout) :: vec
+    type(ccs_mesh), intent(in) :: mesh  !< the mesh
+    class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
  
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p, index_p
-    real(ccs_real) :: r1, r2, r3
+    real(ccs_real) :: r1, r2, r3  !< variables involved in calculating the source term
     real(ccs_real), dimension(:), pointer :: dux_data, dvx_data, dwx_data
     real(ccs_real), dimension(:), pointer :: duy_data, dvy_data, dwy_data
     real(ccs_real), dimension(:), pointer :: duz_data, dvz_data, dwz_data
@@ -482,7 +476,6 @@ contains
     type(face_locator) :: loc_f
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: interpolation_factor   
-    !class(field), intent(inout) :: viscosity 
     real(ccs_real) :: viscosity_face
     real(ccs_real) :: face_area
     real(ccs_real), dimension(:), pointer :: viscosity_data
@@ -533,8 +526,6 @@ contains
         call get_face_interpolation(loc_f, interpolation_factor)
 
         !evaluating gradients for neighbouring cell
-
-
         if(component==1) then ! x-component of velocity
           ! present cell gradients
           duvwp(1)=dux_data(index_p)
