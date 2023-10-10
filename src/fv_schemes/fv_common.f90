@@ -39,7 +39,6 @@ contains
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
-    !print*,"inside compute_fluxes"
 
     associate (mf_values => mf%values)
       call dprint("CF: get mf")

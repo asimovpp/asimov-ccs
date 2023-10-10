@@ -451,16 +451,16 @@ contains
     type(fluid), intent(inout) :: flow
     integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
     class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
-    class(field), pointer :: u  !< x-component of velocity 
-    class(field), pointer :: v  !< y-component of velocity
-    class(field), pointer :: w  !< z-component of velocity
+    class(field), pointer :: u  ! x-component of velocity 
+    class(field), pointer :: v  ! y-component of velocity
+    class(field), pointer :: w  ! z-component of velocity
     class(field), pointer :: viscosity
  
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p, index_p
-    real(ccs_real) :: r1, r2, r3  !< variables involved in calculating the source term
+    real(ccs_real) :: r1, r2, r3  ! variables involved in calculating the source term
     real(ccs_real), dimension(:), pointer :: dux_data, dvx_data, dwx_data
     real(ccs_real), dimension(:), pointer :: duy_data, dvy_data, dwy_data
     real(ccs_real), dimension(:), pointer :: duz_data, dvz_data, dwz_data
