@@ -188,8 +188,8 @@ contains
             x_p_prime = x_f - dx_orth*n
 
 
-            grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
-            grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
+            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
             ! call get_face_interpolation(loc_f, interpol_factor)
             ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
@@ -343,13 +343,13 @@ contains
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
-        parallel_component_map = (/1, 1, 1/)
+        parallel_component_map = [1, 1, 1]
       case (1)
-        parallel_component_map = (/0, 1, 1/)
+        parallel_component_map = [0, 1, 1]
       case (2)
-        parallel_component_map = (/1, 0, 1/)
+        parallel_component_map = [1, 0, 1]
       case (3)
-        parallel_component_map = (/1, 1, 0/)
+        parallel_component_map = [1, 1, 0]
       case default
         call error_abort("invalid component provided " // str(component))
       end select
@@ -525,8 +525,8 @@ contains
         x_nb_prime = x_f + dx_orth*n
         x_p_prime = x_f - dx_orth*n
 
-        grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
-        grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
+        grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+        grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
         face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
         face_value = 0.5_ccs_real * (phi%values_ro(index_p) + phi%values_ro(index_nb)) + face_correction
@@ -586,7 +586,7 @@ contains
         call interpolate_field_to_face(u_field, loc_f, flux_x)
         call interpolate_field_to_face(v_field, loc_f, flux_y)
         call interpolate_field_to_face(w_field, loc_f, flux_z)
-        flux = dot_product((/flux_x, flux_y, flux_z/), n)
+        flux = dot_product([flux_x, flux_y, flux_z], n)
 
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
@@ -599,7 +599,7 @@ contains
         call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
         call compute_boundary_values(v_field, y_direction, loc_p, loc_f, n, v_bc)
         call compute_boundary_values(w_field, z_direction, loc_p, loc_f, n, w_bc)
-        flux = dot_product((/u_bc, v_bc, w_bc/), n)
+        flux = dot_product([u_bc, v_bc, w_bc], n)
       end if
     end associate
 
@@ -659,8 +659,8 @@ contains
         call get_face_interpolation(loc_f, interpol_factor)
         call get_face_normal(loc_f, face_normal)
 
-        grad_phi_p = (/ dpdx(index_p), dpdy(index_p), dpdz(index_p) /)
-        grad_phi_nb = (/ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) /)
+        grad_phi_p = [ dpdx(index_p), dpdy(index_p), dpdz(index_p) ]
+        grad_phi_nb = [ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) ]
 
         if (enable_cell_corrections) then
           ! Cell excentricity/non-orthogonality corrections (Ferziger & Peric 4th ed, sec 9.8, p317, eq9.67 and 9.66)
@@ -839,8 +839,8 @@ contains
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
 
-            grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
-            grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
+            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
             dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
             rnb_k_prime = x_f + dx_orth*n

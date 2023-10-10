@@ -27,9 +27,9 @@ submodule(scalars) scalars_common
 
   !> List of fields not to be updated as transported scalars
   integer(ccs_int), dimension(6), parameter :: skip_fields = &
-       (/ field_u, field_v, field_w, &
+       [ field_u, field_v, field_w, &
           field_p, field_p_prime, &
-          field_mf /)
+          field_mf ]
 
 contains
   

@@ -45,4 +45,7 @@ module case_config
   ! Logical to toggle whether the vertex neighbours are build or not
   logical, save, public :: vertex_neighbours = .true.
 
+  ! Logical to toggle whether the matrix bandwidth is computed or not
+  logical, save, public :: compute_bwidth = .true.
+
 end module case_config

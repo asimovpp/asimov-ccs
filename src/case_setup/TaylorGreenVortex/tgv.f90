@@ -9,7 +9,8 @@ program tgv
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
+                         pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours, &
+                         compute_bwidth
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind, face_centred
@@ -195,7 +196,6 @@ program tgv
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  allocate (output_list(4))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(w, "w", output_list)
@@ -354,6 +354,8 @@ contains
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
+
+   call get_value(config_file, 'compute_bwidth', compute_bwidth)
 
   end subroutine
 
