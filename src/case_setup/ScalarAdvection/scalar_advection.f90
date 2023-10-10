@@ -185,7 +185,7 @@ program scalar_advection
 
   ! Actually compute the values to fill the matrix
   if (irank == par_env%root) print *, "Compute fluxes"
-  call compute_fluxes(scalar, mf, mesh, direction, M, source, viscosity)
+  call compute_fluxes(scalar, mf, viscosity, mesh, direction, M, source)
 
   call update(M) ! parallel assembly for M
   call update(scalar%values) ! parallel assembly for source

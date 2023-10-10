@@ -447,15 +447,14 @@ contains
 
   !v Adds the momentum source due to variation in viscosity
   subroutine calculate_momentum_viscous_source (mesh, flow, component, vec)
-    integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
+    type(ccs_mesh), intent(in) :: mesh  !< the mesh
     type(fluid), intent(inout) :: flow
+    integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
+    class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
     class(field), pointer :: u  !< x-component of velocity 
     class(field), pointer :: v  !< y-component of velocity
     class(field), pointer :: w  !< z-component of velocity
     class(field), pointer :: viscosity
-
-    type(ccs_mesh), intent(in) :: mesh  !< the mesh
-    class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
  
     ! Local variables
     type(vector_values) :: vec_values
