@@ -9,7 +9,7 @@ program simple
   use petscsys
 
   use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
-                       ccs_split_type_low_high, ccs_split_undefined
+                    field_viscosity, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
   use types, only: field, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, fluid, fluid_solver_selector
@@ -33,7 +33,7 @@ program simple
   type(vector_spec) :: vec_sizes
   logical :: use_mpi_splitting
 
-  class(field), allocatable :: u, v, w, p, pp, mf
+  class(field), allocatable :: u, v, w, p, pp, mf, viscosity
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
@@ -78,8 +78,9 @@ program simple
   allocate (upwind_field :: w)
   allocate (central_field :: p)
   allocate (central_field :: pp)
+  allocate (central_field :: viscosity)
   allocate (face_field :: mf)
-
+  
   ! Create and initialise field vectors
   call initialise(vec_sizes)
 
@@ -97,6 +98,7 @@ program simple
   call create_vector(vec_sizes, pp%x_gradients)
   call create_vector(vec_sizes, pp%y_gradients)
   call create_vector(vec_sizes, pp%z_gradients)
+  call create_vector(vec_sizes, viscosity%values)
   call update(u%values)
   call update(v%values)
   call update(p%values)
@@ -107,6 +109,7 @@ program simple
   call update(pp%x_gradients)
   call update(pp%y_gradients)
   call update(pp%z_gradients)
+  call update(viscosity%values)
 
   call set_vector_location(face, vec_sizes)
   call set_size(par_env, square_mesh, vec_sizes)
@@ -115,22 +118,24 @@ program simple
 
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(square_mesh, u, v, w, mf)
+  call initialise_velocity(square_mesh, u, v, w, mf, viscosity)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
+  call update(viscosity%values)
 
   call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(6, flow_fields)
+  call allocate_fluid_fields(7, flow_fields)
   call set_field(1, field_u, u, flow_fields)
   call set_field(2, field_v, v, flow_fields)
   call set_field(3, field_w, w, flow_fields)
   call set_field(4, field_p, p, flow_fields)
   call set_field(5, field_p_prime, pp, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
+  call set_field(7, field_viscosity, viscosity, flow_fields)
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
@@ -154,7 +159,7 @@ program simple
 
 contains
 
-  subroutine initialise_velocity(cell_mesh, u, v, w, mf)
+  subroutine initialise_velocity(cell_mesh, u, v, w, mf, viscosity)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -165,7 +170,7 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: cell_mesh
-    class(field), intent(inout) :: u, v, w, mf
+    class(field), intent(inout) :: u, v, w, mf, viscosity
 
     ! Local variables
     integer(ccs_int) :: n_local
@@ -174,7 +179,7 @@ contains
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: self_loc
     type(vector_values) :: u_vals, v_vals, w_vals
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, mf_data
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, mf_data, viscosity_data
 
     ! Set alias
     call get_local_num_cells(cell_mesh, n_local)
@@ -211,6 +216,10 @@ contains
     call set_values(v_vals, v%values)
     call set_values(w_vals, w%values)
 
+    call update(u%values)
+    call update(v%values)
+    call update(w%values)
+    
     ! XXX: make a finaliser for vector values
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
@@ -223,16 +232,19 @@ contains
     call get_vector_data(v%values, v_data)
     call get_vector_data(w%values, w_data)
     call get_vector_data(mf%values, mf_data)
+    call get_vector_data(viscosity%values, viscosity_data)
 
     u_data(:) = 0.0_ccs_real
     v_data(:) = 0.0_ccs_real
     w_data(:) = 0.0_ccs_real
     mf_data(:) = 0.0_ccs_real
+    viscosity_data(:) =  1.e-2_ccs_real
 
     call restore_vector_data(u%values, u_data)
     call restore_vector_data(v%values, v_data)
     call restore_vector_data(w%values, w_data)
     call restore_vector_data(mf%values, mf_data)
+    call restore_vector_data(viscosity%values, viscosity_data)
 
   end subroutine initialise_velocity
 

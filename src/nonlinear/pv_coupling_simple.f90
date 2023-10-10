@@ -151,16 +151,8 @@ contains
     if (v_sol) call update_gradient(mesh, v)
     if (w_sol) call update_gradient(mesh, w)
 
-    !print*,"inside solve_nonlinear"
     outerloop: do i = it_start, it_end
       call dprint("NONLINEAR: iteration " // str(i))
-      !< checking density values                        
-      call get_local_num_cells(mesh, local_num_cells) 
-      call get_vector_data(density%values, density_data)
-      do index_p = 1, 5
-        print*,"B cell=",index_p,"density=",density_data(index_p)
-      end do 
-      call restore_vector_data(density%values, density_data)
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
@@ -250,18 +242,12 @@ contains
     class(field), pointer :: u
     class(field), pointer :: v
     class(field), pointer :: w
-    class(field), pointer :: mf
     class(field), pointer :: p
-    class(field), pointer :: viscosity
-    class(field), pointer :: density
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
     call get_field(flow, field_p, p)
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity)
-    call get_field(flow, field_density, density)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -283,28 +269,27 @@ contains
       first_time = .false.
     end if
 
-    !print*,"inside calculate_velocity"
     ! u-velocity
     ! ----------
     if (u_sol) then
-      call calculate_velocity_component(flow, par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals, viscosity, density)
+      call calculate_velocity_component(flow, par_env, varu, mesh, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
     end if
 
     ! v-velocity
     ! ----------
     if (v_sol) then
-      call calculate_velocity_component(flow, par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals, viscosity, density)
+      call calculate_velocity_component(flow, par_env, varv, mesh, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
     end if
 
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(flow, par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals, viscosity, density)
+      call calculate_velocity_component(flow, par_env, varw, mesh, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
     end if
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals, viscosity, density)
+  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
@@ -314,9 +299,9 @@ contains
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in) :: ivar
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: mf
-    class(field), intent(inout) :: viscosity
-    class(field), intent(inout) :: density
+    class(field), pointer :: mf
+    class(field), pointer :: viscosity
+    class(field), pointer :: density
     class(field), intent(inout) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
@@ -357,8 +342,12 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
-    !print*,"inside calculate velocity component"
-    call compute_fluxes(u, mf, mesh, component, M, vec, viscosity, density)
+
+    call get_field(flow, field_mf, mf)
+    call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, field_density, density)
+    
+    call compute_fluxes(u, mf, viscosity, density, mesh, component, M, vec)
 
     call apply_timestep(mesh, u, invAu, M, vec)
 
@@ -374,10 +363,7 @@ contains
 
     !calculate viscous source term and populate RHS vector 
     call dprint("compute viscous souce term")
-    
-    !print*,"starting momentum_viscous_source"
-    call calculate_momentum_viscous_source (mesh, flow, component, viscosity, vec)
-    !print*,"closing momentum_viscous_source"
+    call calculate_momentum_viscous_source (mesh, flow, component, vec)
 
     ! Underrelax the equations
     call dprint("GV: underrelax u")
@@ -473,21 +459,21 @@ contains
   end subroutine calculate_momentum_pressure_source
 
   !v Adds the momentum source due to variation in viscosity
-  subroutine calculate_momentum_viscous_source (mesh, flow, component, viscosity, vec)
-    integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
+  subroutine calculate_momentum_viscous_source (mesh, flow, component, vec)
+    type(ccs_mesh), intent(in) :: mesh  !< the mesh
     type(fluid), intent(inout) :: flow
-    class(field), pointer :: u
-    class(field), pointer :: v
-    class(field), pointer :: w
-
-    type(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), allocatable, intent(inout) :: vec
+    integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
+    class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
+    class(field), pointer :: u  ! x-component of velocity 
+    class(field), pointer :: v  ! y-component of velocity
+    class(field), pointer :: w  ! z-component of velocity
+    class(field), pointer :: viscosity
  
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p, index_p
-    real(ccs_real) :: r1, r2, r3
+    real(ccs_real) :: r1, r2, r3  ! variables involved in calculating the source term
     real(ccs_real), dimension(:), pointer :: dux_data, dvx_data, dwx_data
     real(ccs_real), dimension(:), pointer :: duy_data, dvy_data, dwy_data
     real(ccs_real), dimension(:), pointer :: duz_data, dvz_data, dwz_data
@@ -502,7 +488,6 @@ contains
     type(face_locator) :: loc_f
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: interpolation_factor   
-    class(field), intent(inout) :: viscosity 
     real(ccs_real) :: viscosity_face
     real(ccs_real) :: face_area
     real(ccs_real), dimension(:), pointer :: viscosity_data
@@ -510,6 +495,7 @@ contains
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
+    call get_field(flow, field_viscosity, viscosity)
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
@@ -552,8 +538,6 @@ contains
         call get_face_interpolation(loc_f, interpolation_factor)
 
         !evaluating gradients for neighbouring cell
-
-
         if(component==1) then ! x-component of velocity
           ! present cell gradients
           duvwp(1)=dux_data(index_p)

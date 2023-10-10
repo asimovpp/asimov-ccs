@@ -36,7 +36,7 @@ program test_diffusion_coeff
   j = 1
   visp = SchmidtNo * D
   visnb = SchmidtNo * D
-  coeff = calc_diffusion_coeff(index_p, j, mesh, .false., visp, visnb, SchmidtNo)
+  call calc_diffusion_coeff(index_p, j, mesh, .false., visp, visnb, SchmidtNo, coeff)
 
   call create_cell_locator(mesh, index_p, loc_p)
   call create_neighbour_locator(loc_p, j, loc_nb)

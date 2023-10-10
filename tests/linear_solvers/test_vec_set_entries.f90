@@ -117,10 +117,7 @@ contains
     call get_global_num_cells(mesh, global_num_cells)
     expectation = real(global_num_cells, ccs_real)
     test_value = (norm(v, 2))**2
-    if (test_value /= expectation) then
-      write (message, *) "FAIL: expected ", expectation, " got ", test_value
-      call stop_test(message)
-    end if
+    call assert_eq(test_value, expectation, "Wrong vector norm")
 
   end subroutine test_vector
 

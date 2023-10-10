@@ -1,7 +1,6 @@
 !v Submodule file fv_common.smod
 !
 !  An implementation of the finite volume method
-
 submodule(fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: add_mode, insert_mode
@@ -27,7 +26,7 @@ submodule(fv) fv_common
 contains
 
   !> Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, mesh, component, M, vec, viscosity, density)
+  module subroutine compute_fluxes(phi, mf, viscosity, density, mesh, component, M, vec)
     class(field), intent(inout) :: phi
     class(field), intent(inout) :: mf
     class(field), intent(inout) :: viscosity
@@ -52,8 +51,7 @@ contains
       call get_max_faces(mesh, max_faces)
       n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: compute coeffs")
-      !print*,"entering compute_coeffs"
-      call compute_coeffs(phi, mf_data, mesh, component, n_int_cells, M, vec, viscosity_data, density_data)
+      call compute_coeffs(phi, mf_data, viscosity_data, density_data, mesh, component, n_int_cells, M, vec)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
@@ -65,10 +63,10 @@ contains
   end subroutine compute_fluxes
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_coeffs(phi, mf, mesh, component, n_int_cells, M, b, vis, dens)
+  subroutine compute_coeffs(phi, mf, visc, dens, mesh, component, n_int_cells, M, b)
     class(field), intent(inout) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
-    real(ccs_real), dimension(:), intent(in) :: vis !< viscosity
+    real(ccs_real), dimension(:), intent(in) :: visc !< viscosity
     real(ccs_real), dimension(:), intent(in) :: dens !< density
     type(ccs_mesh), intent(in) :: mesh             !< Mesh structure
     integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
@@ -146,8 +144,7 @@ contains
         
 
         if (.not. is_boundary) then
-          !print*, "NB, densnb=",dens(index_nb)
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, phi%enable_cell_corrections, vis(index_p), vis(index_nb), dens(index_p), dens(index_nb), SchmidtNo)
+          call calc_diffusion_coeff(index_p, j, mesh, phi%enable_cell_corrections, visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
 
           ! XXX: Why won't Fortran interfaces distinguish on extended types...
           ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
@@ -197,8 +194,8 @@ contains
             x_p_prime = x_f - dx_orth*n
 
 
-            grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
-            grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
+            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
             ! call get_face_interpolation(loc_f, interpol_factor)
             ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
@@ -236,7 +233,7 @@ contains
           !print*, "B, densnb=",dens(index_nb)
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
-          diff_coeff = calc_diffusion_coeff(index_p, j, mesh, .false., vis(index_p), vis(index_nb), dens(index_p), dens(index_nb), SchmidtNo)
+          call calc_diffusion_coeff(index_p, j, mesh, .false., visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
           
@@ -353,13 +350,13 @@ contains
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
-        parallel_component_map = (/1, 1, 1/)
+        parallel_component_map = [1, 1, 1]
       case (1)
-        parallel_component_map = (/0, 1, 1/)
+        parallel_component_map = [0, 1, 1]
       case (2)
-        parallel_component_map = (/1, 0, 1/)
+        parallel_component_map = [1, 0, 1]
       case (3)
-        parallel_component_map = (/1, 1, 0/)
+        parallel_component_map = [1, 1, 0]
       case default
         call error_abort("invalid component provided " // str(component))
       end select
@@ -434,18 +431,17 @@ contains
   end subroutine
 
   !> Sets the diffusion coefficient
-  module function calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections, visp, visnb, densp, densnb, SchmidtNo) result(coeff)
+  module subroutine calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff) 
     integer(ccs_int), intent(in) :: index_p  !< the local cell index
     integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
     type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
     logical, intent(in) :: enable_cell_corrections !< Whether or not cell shape corrections are used
-    real(ccs_real) :: coeff                  !< the diffusion coefficient
-    real(ccs_real), intent(in) :: visp, visnb !< viscosity
-    real(ccs_real), intent(in) :: densp, densnb !< density
-
+    real(ccs_real), intent(out) :: coeff                  !< the diffusion coefficient
+    real(ccs_real), intent(in) :: visc_p, visc_nb !< viscosity
+    real(ccs_real), intent(in) :: SchmidtNo
+    real(ccs_real), intent(in) :: dens_p, dens_nb !< density
     type(face_locator) :: loc_f
     real(ccs_real) :: face_area
-    !real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
     real(ccs_real) :: diffusion_factor
     logical :: is_boundary
     real(ccs_real), dimension(ndim) :: dx
@@ -457,20 +453,17 @@ contains
     real(ccs_real) :: dx_orth
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
-    real(ccs_real) :: SchmidtNo
-    real(ccs_real) :: visavg !< average viscosity
-    real(ccs_real) :: densavg !< average density
+    real(ccs_real) :: visc_avg !< average viscosity
+    real(ccs_real) :: dens_avg !< average density
     real(ccs_real), parameter :: density = 1.0_ccs_real 
     real(ccs_real) :: interpolation_factor
 
-    !print*,"inside calc_diffusion_coeff"
     call create_face_locator(mesh, index_p, index_nb, loc_f)
     call get_face_area(loc_f, face_area)
     call get_boundary_status(loc_f, is_boundary)
 
     call create_cell_locator(mesh, index_p, loc_p)
     call get_face_interpolation(loc_f, interpolation_factor)
-
     if (.not. is_boundary) then
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
 
@@ -484,11 +477,6 @@ contains
         ! see math below, but it works because ||n||=1 and points outwards
         dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
         dxmag = 2.0_ccs_real * dx_orth
-
-        !rnb_k_prime = x_f + a*n
-        !rp_prime = x_f - a*n
-        !dx = rnb_k_prime - rp_prime 
-        !dxmag = norm2(dx)
       else
         call get_distance(loc_p, loc_nb, dx)
         dxmag = norm2(dx)
@@ -499,17 +487,15 @@ contains
     end if
 
     if (.not. is_boundary) then
-      visavg = (interpolation_factor * visp) + ((1.0_ccs_real - interpolation_factor) * visnb)
-      densavg = (interpolation_factor * densp) + ((1.0_ccs_real - interpolation_factor) * densnb)
-      !print*,"NB densp=",densp, "densnb=", densnb
-      diffusion_factor = visavg / (densavg * SchmidtNo)
+      visc_avg = (interpolation_factor * visc_p) + ((1.0_ccs_real - interpolation_factor) * visc_nb)
+      dens_avg = (interpolation_factor * dens_p) + ((1.0_ccs_real - interpolation_factor) * dens_nb)
+      diffusion_factor = visc_avg / (dens_avg * SchmidtNo)
     else
-      !print*,"B densp=", densp
-      diffusion_factor = visp / (densp * SchmidtNo)
+      diffusion_factor = visc_p / (dens_p * SchmidtNo)
     end if
     
     coeff = -face_area * diffusion_factor / dxmag
-  end function calc_diffusion_coeff
+  end subroutine calc_diffusion_coeff
 
   !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field
   ! spec) using Ferziger & Peric 4th ed, sec 9.7.1
@@ -548,8 +534,8 @@ contains
         x_nb_prime = x_f + dx_orth*n
         x_p_prime = x_f - dx_orth*n
 
-        grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
-        grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
+        grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+        grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
         face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
         face_value = 0.5_ccs_real * (phi%values_ro(index_p) + phi%values_ro(index_nb)) + face_correction
@@ -609,7 +595,7 @@ contains
         call interpolate_field_to_face(u_field, loc_f, flux_x)
         call interpolate_field_to_face(v_field, loc_f, flux_y)
         call interpolate_field_to_face(w_field, loc_f, flux_z)
-        flux = dot_product((/flux_x, flux_y, flux_z/), n)
+        flux = dot_product([flux_x, flux_y, flux_z], n)
 
         if (index_p > index_nb) then
           ! XXX: making convention to point from low to high cell.
@@ -622,7 +608,7 @@ contains
         call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
         call compute_boundary_values(v_field, y_direction, loc_p, loc_f, n, v_bc)
         call compute_boundary_values(w_field, z_direction, loc_p, loc_f, n, w_bc)
-        flux = dot_product((/u_bc, v_bc, w_bc/), n)
+        flux = dot_product([u_bc, v_bc, w_bc], n)
       end if
     end associate
 
@@ -682,8 +668,8 @@ contains
         call get_face_interpolation(loc_f, interpol_factor)
         call get_face_normal(loc_f, face_normal)
 
-        grad_phi_p = (/ dpdx(index_p), dpdy(index_p), dpdz(index_p) /)
-        grad_phi_nb = (/ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) /)
+        grad_phi_p = [ dpdx(index_p), dpdy(index_p), dpdz(index_p) ]
+        grad_phi_nb = [ dpdx(index_nb), dpdy(index_nb), dpdz(index_nb) ]
 
         if (enable_cell_corrections) then
           ! Cell excentricity/non-orthogonality corrections (Ferziger & Peric 4th ed, sec 9.8, p317, eq9.67 and 9.66)
@@ -862,8 +848,8 @@ contains
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
 
-            grad_phi_p = (/ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) /)
-            grad_phi_nb = (/ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) /)
+            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
             dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
             rnb_k_prime = x_f + dx_orth*n

@@ -160,7 +160,6 @@ program ldc
   call set_field_name("density", field_properties)
   call create_field(field_properties, density)
 
-
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
@@ -169,7 +168,6 @@ program ldc
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  allocate (output_list(4))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(w, "w", output_list)

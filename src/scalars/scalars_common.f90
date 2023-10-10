@@ -94,10 +94,6 @@ contains
 
     ! Transport the scalars
     call count_fields(flow, nfields)
-    !print*,"num of fields=",nfields
-
-    call get_field(flow, field_density, density) !< checking
-
     do s = 1, nfields
        call get_field_id(flow, s, field_id)
        if (any(skip_fields == field_id)) then
@@ -109,9 +105,6 @@ contains
        if (do_update) then
           call update_old_values(phi)
        end if
-
-       ! density values are single digit (same as i/p)
-       !print*,"field id=", field_id, "-------------------------------------------------------------"
 
        call transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
          
@@ -146,13 +139,9 @@ contains
 
     call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, field_viscosity, viscosity) 
     call get_field(flow, field_density, density)
-
-    ! density values are single digit (same as i/p)   
-    call compute_fluxes(phi, mf, mesh, 0, M, rhs, viscosity, density)
-    ! density values are single digit (same as i/p)   
-
+    call compute_fluxes(phi, mf, viscosity, density, mesh, 0, M, rhs)
     call apply_timestep(mesh, phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")

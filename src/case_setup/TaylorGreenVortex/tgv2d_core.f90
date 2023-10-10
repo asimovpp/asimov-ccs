@@ -7,9 +7,9 @@ module tgv2d_core
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+                         pressure_solver_method_name, pressure_solver_precon_name, compute_bwidth
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
@@ -59,7 +59,7 @@ contains
     type(vector_spec) :: vec_properties
 
     type(field_spec) :: field_properties
-    class(field), allocatable, target :: u, v, w, p, p_prime, mf
+    class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity
 
     type(field_ptr), allocatable :: output_list(:)
 
@@ -163,6 +163,8 @@ contains
     call create_field(field_properties, p)
     call set_field_name("p_prime", field_properties)
     call create_field(field_properties, p_prime)
+    call set_field_name("viscosity", field_properties)
+    call create_field(field_properties, viscosity)
 
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
@@ -170,9 +172,8 @@ contains
     call set_field_type(face_centred, field_properties)
     call set_field_name("mf", field_properties)
     call create_field(field_properties, mf)
-
+   
     ! Add fields to output list
-    allocate (output_list(4))
     call add_field_to_outputlist(u, "u", output_list)
     call add_field_to_outputlist(v, "v", output_list)
     call add_field_to_outputlist(w, "w", output_list)
@@ -186,7 +187,7 @@ contains
 
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
-    call initialise_flow(mesh, u, v, w, p, mf)
+    call initialise_flow(mesh, u, v, w, p, mf, viscosity)
 
     call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
     call calc_kinetic_energy(par_env, mesh, u, v, w)
@@ -208,13 +209,14 @@ contains
     call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
     call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
     call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-    call allocate_fluid_fields(6, flow_fields)
+    call allocate_fluid_fields(7, flow_fields)
     call set_field(1, field_u, u, flow_fields)
     call set_field(2, field_v, v, flow_fields)
     call set_field(3, field_w, w, flow_fields)
     call set_field(4, field_p, p, flow_fields)
     call set_field(5, field_p_prime, p_prime, flow_fields)
     call set_field(6, field_mf, mf, flow_fields)
+    call set_field(7, field_viscosity, viscosity, flow_fields)
     
     call timer(init_time)
 
@@ -308,6 +310,8 @@ contains
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
+    call get_value(config_file, 'compute_bwidth', compute_bwidth)
+
   end subroutine
 
   ! Print test case configuration
@@ -342,7 +346,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(mesh, u, v, w, p, mf)
+  subroutine initialise_flow(mesh, u, v, w, p, mf, viscosity)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -355,7 +359,7 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, p, mf
+    class(field), intent(inout) :: u, v, w, p, mf, viscosity
 
     ! Local variables
     integer(ccs_int) :: n_local
@@ -366,7 +370,7 @@ contains
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, w_vals, p_vals
-    real(ccs_real), dimension(:), pointer :: mf_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
     real(ccs_real), dimension(ndim) :: face_normal
@@ -453,6 +457,10 @@ contains
       end do
     end do
 
+    call get_vector_data(viscosity%values, viscosity_data)
+    viscosity_data(:) =  1.e-2_ccs_real
+    call restore_vector_data(viscosity%values, viscosity_data)
+
     call restore_vector_data(mf%values, mf_data)
 
     call update(u%values)
@@ -460,6 +468,7 @@ contains
     call update(w%values)
     call update(p%values)
     call update(mf%values)
+    call update(viscosity%values)
 
   end subroutine initialise_flow
 

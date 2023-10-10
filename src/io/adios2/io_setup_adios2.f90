@@ -36,7 +36,7 @@ contains
 
         if (present(config_file)) then
           ! Initialise the ADIOS2 environment
-          call adios2_init(io_env%adios, trim(config_file), par_env%comm, adios2_debug_mode_on, ierr)
+          call adios2_init(io_env%adios, trim(config_file), par_env%comm, ierr)
         else
           call error_abort("ADIOS2 requires a config file!")
         end if

@@ -28,6 +28,9 @@ write_frequency: 5
 # Fluid properties
 viscocity : 1.0e-3
 
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:
