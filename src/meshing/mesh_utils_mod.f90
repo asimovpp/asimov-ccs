@@ -120,7 +120,6 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
-    print*, "inside read mesh"
     call set_mesh_generated(.false., mesh)
 
     geo_file = case_name // "_mesh" // geoext
