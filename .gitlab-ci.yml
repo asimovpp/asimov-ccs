@@ -381,7 +381,7 @@ nightly_wiki_update:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
     - cd asimov-ccs.wiki
-    - ../asimov-ccs-nightly-data/plot_performance.py ../asimov-ccs-nightly-data/performance_results.json img/ci-performance-graph
+    - ../asimov-ccs-nightly-data/plot_performance.py --datafile ../asimov-ccs-nightly-data/performance_results.json --outfile img/ci-performance-graph
     - git add img/ci-performance-graph*
     - git -c user.name='CI' -c user.email='ci' commit -m "CI updates graph"
     - git push
