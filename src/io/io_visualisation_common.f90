@@ -49,6 +49,7 @@ contains
 
     call timer_register("Write fields time", timer_index_write_field)
     call timer_register("Write xdmf time", timer_index_write_xdmf)
+    print*, "line 11"
 
     ! Write the required fields ('heavy' data)
     if (present(step) .and. present(maxstep)) then
@@ -63,18 +64,29 @@ contains
       call timer_stop(timer_index_write_field)
     end if
 
+    print*, "line 12"
+
     ! Write the XML descriptor ('light' data)
     if (present(step) .and. present(maxstep) .and. present(dt)) then
+      print*, "inside if"
       ! Unsteady case
       call timer_start(timer_index_write_xdmf)
+      print*, "line 13"
       call write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
+      print*, "line 14"
       call timer_stop(timer_index_write_xdmf)
+      print*, "line 15"
     else
+      print*, "inside else"
       ! Steady case
       call timer_start(timer_index_write_xdmf)
+      print*, "line 16"
       call write_xdmf(par_env, case_name, mesh, output_list)
+      print*, "line 17"
       call timer_stop(timer_index_write_xdmf)
+      print*, "line 18"
     end if
+    print*, "line 19"
 
   end subroutine
 
