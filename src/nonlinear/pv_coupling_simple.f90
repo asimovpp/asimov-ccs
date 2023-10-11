@@ -591,7 +591,10 @@ contains
         end if 
       end do
 
-      r3=r2*Vol
+      ! Accumulated value in r2 is the volume integral, the source term subroutine
+      ! accepts point-wise values, approximated by cell average, i.e. r2 / V
+      r3 = r2 / Vol
+      
       call set_row(global_index_p, vec_values)
       call set_entry(r3, vec_values)
       call set_values(vec_values, vec)
