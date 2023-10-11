@@ -95,7 +95,6 @@ contains
 
           select type (u => solver%linear_system%solution)
           type is (vector_petsc)
-            print*,"indise type vector_petsc"
             call KSPSolve(ksp, b%v, u%v, ierr)
             call update(u)
             if (ierr /= 0) then
