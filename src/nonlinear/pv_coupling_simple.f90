@@ -530,12 +530,13 @@ contains
           duvwp(1)=dux_data(index_p)
           duvwp(2)=dvx_data(index_p)
           duvwp(3)=dwx_data(index_p)
-          ! neighbouring cell gradients
-          duvwf(1)=dux_data(index_nb)
-          duvwf(2)=dvx_data(index_nb)
-          duvwf(3)=dwx_data(index_nb)
 
           if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=dux_data(index_nb)
+            duvwf(2)=dvx_data(index_nb)
+            duvwf(3)=dwx_data(index_nb)
+
             duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
             duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
             duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
@@ -550,12 +551,13 @@ contains
           duvwp(1)=duy_data(index_p)
           duvwp(2)=dvy_data(index_p)
           duvwp(3)=dwy_data(index_p)
-          ! neighbouring cell gradients
-          duvwf(1)=duy_data(index_nb)
-          duvwf(2)=dvy_data(index_nb)
-          duvwf(3)=dwy_data(index_nb)
           
           if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=duy_data(index_nb)
+            duvwf(2)=dvy_data(index_nb)
+            duvwf(3)=dwy_data(index_nb)
+
             duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
             duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
             duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
@@ -570,12 +572,13 @@ contains
           duvwp(1)=duz_data(index_p)
           duvwp(2)=dvz_data(index_p)
           duvwp(3)=dwz_data(index_p)
-          ! neighbouring cell gradients
-          duvwf(1)=duz_data(index_nb)
-          duvwf(2)=dvz_data(index_nb)
-          duvwf(3)=dwz_data(index_nb)
           
           if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=duz_data(index_nb)
+            duvwf(2)=dvz_data(index_nb)
+            duvwf(3)=dwz_data(index_nb)
+
             duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
             duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
             duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
