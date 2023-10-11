@@ -467,6 +467,10 @@ contains
         call get_centre(loc_f, x_f)
 
         ! see math below, but it works because ||n||=1 and points outwards
+        !rnb_k_prime = x_f + a*n
+        !rp_prime = x_f - a*n
+        !dx = rnb_k_prime - rp_prime 
+        !dxmag = norm2(dx)
         dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
         dxmag = 2.0_ccs_real * dx_orth
       else
