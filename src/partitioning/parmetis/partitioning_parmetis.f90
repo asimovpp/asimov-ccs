@@ -120,7 +120,7 @@ contains
     ! Values mostly hardcoded for now
     wgtflag = 0 ! No weights
     numflag = 0 ! Use C-style indexing for now
-    ncon = 3
+    ncon = 1
     num_procs = par_env%num_procs
     edgecuts = -1
 
@@ -128,12 +128,12 @@ contains
     allocate (tpwgts(ncon * num_procs))
     allocate (options(0:2))
 
-    options(0) = 0 ! 0 = default values, 1 = values specified in (1) and (2)
-    options(1) = 1 ! Output verbosity - 1 gives timing information
+    options(0) = 1 ! 0 = default values, 1 = values specified in (1) and (2)
+    options(1) = 2 ! Output verbosity - 1 gives timing information
     options(2) = 2023 ! Random number seed
 
-    ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
-    tpwgts(:) = 1.0 / real(num_procs, c_float) ! Sum of tpwgts(:) should be 1. Check this is correct
+    ubvec(:) = 1.03 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
+    tpwgts(:) = 1.0 / real(num_procs, c_float) ! Should be set to 1 / num_procs
 
     irank = par_env%proc_id ! Current rank
 
@@ -157,6 +157,10 @@ contains
     ! Partitioning an unweighted graph
     select type (par_env)
     type is (parallel_environment_mpi)
+
+      if (is_root(par_env)) then
+        print*, "Partitioning with ParMETIS"
+      end if
 
       comm = par_env%comm
 

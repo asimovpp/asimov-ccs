@@ -145,6 +145,10 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
 
+      if (is_root(par_env)) then
+        print*, "Partitioning with ParHIP"
+      end if
+
       comm = par_env%comm
 
       call partition_parhipkway(vtxdist, xadj, adjncy, vwgt, adjwgt, &

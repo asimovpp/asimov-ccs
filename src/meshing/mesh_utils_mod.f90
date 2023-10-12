@@ -3015,6 +3015,8 @@ contains
                             compute_connectivity, &
                             compute_partitioner_input, &
                             cleanup_partitioner_data
+    use parallel, only: timer
+    use timers, only: timer_register, timer_start, timer_stop
     use case_config, only: compute_bwidth
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -3025,22 +3027,42 @@ contains
     integer(ccs_int) :: bw_max
     real(ccs_real) :: bw_avg
 
+    double precision :: start_time
+    double precision :: end_time
+
+    integer(ccs_int) :: timer_partitioning
+    integer(ccs_int) :: timer_compute_connectivity
+    integer(ccs_int) :: timer_reordering
+
+    call timer_register("Partitioning time", timer_partitioning)
+    call timer_register("Computing connectivity time", timer_compute_connectivity)
+    call timer_register("Reordering time", timer_reordering)
+
     call create_shared_roots_comm(par_env, shared_env, roots_env)
 
+    call timer_start(timer_partitioning)
     if (par_env%num_procs > 1) then
       call partition_kway(par_env, shared_env, roots_env, mesh)
     else
       call partition_stride(par_env, shared_env, roots_env, mesh)
     end if
+    call timer_stop(timer_partitioning)
 
+    call timer_start(timer_compute_connectivity)
     call compute_connectivity(par_env, shared_env, roots_env, mesh)
+    call timer_stop(timer_compute_connectivity)
+
+! insert halo / local cells computation here
 
     if(compute_bwidth .eqv. .true.) then
       call compute_bandwidth(mesh, bw_max, bw_avg)
       call print_bandwidth(par_env, bw_max, bw_avg)
     end if
 
+    call timer_start(timer_reordering)
     call reorder_cells(par_env, shared_env, mesh)
+    call timer_stop(timer_reordering)
+
     call cleanup_partitioner_data(shared_env, mesh)
 
     if(compute_bwidth .eqv. .true.) then
