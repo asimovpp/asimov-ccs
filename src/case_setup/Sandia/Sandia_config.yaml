@@ -2,9 +2,9 @@
 title: Sandia
 
 #  number of timesteps
-steps: 14000
+steps: 20000
 #  number of iterations
-iterations: 15
+iterations: 18
 # time step size
 dt: 1.0e-5
 
@@ -18,12 +18,12 @@ relaxation_factor:
   u: 0.7
   v: 0.7
   w: 0.7
-  p: 0.08
+  p: 0.30
 
 target_residual: 1.0e-10
 
 # Frequency (in terms of timesteps) of writing solution to file
-write_frequency: 100
+write_frequency: 20
 
 # Fluid properties
 viscocity : 1.0e-3
@@ -95,6 +95,12 @@ boundaries:
     name: right
     type: dirichlet
     value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
   boundary_3: #coflow
     name: bottom
     type: neumann
@@ -211,5 +217,8 @@ boundaries:
     type: neumann
     value: 0
     variable_p:
+      type: dirichlet
+      value: 0
+    variable_p_prime:
       type: dirichlet
       value: 0
