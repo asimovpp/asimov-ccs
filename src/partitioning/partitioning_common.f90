@@ -38,7 +38,8 @@ contains
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
     integer(ccs_int) :: i
-
+    integer(ccs_err) :: partition_rank
+    
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -51,11 +52,27 @@ contains
     call compute_connectivity_get_local_cells(par_env, mesh)
 
     ! Recompute vtxdist array based on the new partition
-    mesh%topo%graph_conn%vtxdist(1) = 1
-    do i = 2, isize + 1
-      mesh%topo%graph_conn%vtxdist(i) = count(mesh%topo%graph_conn%global_partition == (i - 2)) + mesh%topo%graph_conn%vtxdist(i - 1)
-    end do
+    ! mesh%topo%graph_conn%vtxdist(1) = 1
+    ! do i = 2, isize + 1
+    !   mesh%topo%graph_conn%vtxdist(i) = count(mesh%topo%graph_conn%global_partition == (i - 2)) + mesh%topo%graph_conn%vtxdist(i - 1)
+    ! end do
+    associate(global_partition => mesh%topo%graph_conn%global_partition, &
+              vtxdist => mesh%topo%graph_conn%vtxdist)
+      vtxdist(:) = 0
 
+      ! Store counts at rank + 1
+      do i = 1, size(global_partition)
+        partition_rank = global_partition(i) + 1 ! Ranks are C-indexed...
+        vtxdist(partition_rank + 1) = vtxdist(partition_rank + 1) + 1
+      end do
+
+      ! Compute distribution offsets
+      vtxdist(1) = 1
+      do i= 2, isize + 1
+        vtxdist(i) = vtxdist(i) + vtxdist(i - 1)
+      end do
+    end associate
+    
     if (irank == 0) then
       do i = 1, isize + 1
         call dprint("new vtxdist(" // str(i) // "): " // str(int(mesh%topo%graph_conn%vtxdist(i))))
