@@ -1494,7 +1494,9 @@ contains
   function build_mesh(par_env, shared_env, nx, ny, nz, side_length) result(mesh)
 
     use partitioning, only: compute_partitioner_input
-
+    use parallel, only: timer
+    use timers, only: timer_register, timer_start, timer_stop
+    
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
@@ -1505,6 +1507,15 @@ contains
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
+
+    integer(ccs_int) :: timer_build_topo
+    integer(ccs_int) :: timer_build_geo
+    integer(ccs_int) :: timer_partitioner_input
+
+    call timer_register("Build mesh topology", timer_build_topo)
+    call timer_register("Compute partitioner input", timer_partitioner_input)
+    call timer_register("Build mesh geometry", timer_build_geo)
+
     call set_mesh_generated(.true., mesh)
 
     if (.not. (nx .eq. ny .and. ny .eq. nz)) then !< @note Must be a cube (for now) @endnote
@@ -1518,13 +1529,19 @@ contains
       call error_abort(error_message)
     end if
 
+    call timer_start(timer_build_topo)
     call build_topology(par_env, shared_env, nx, ny, nz, mesh)
-
+    call timer_stop(timer_build_topo)
+    
+    call timer_start(timer_partitioner_input)
     call compute_partitioner_input(par_env, shared_env, mesh)
+    call timer_stop(timer_partitioner_input)
 
     call mesh_partition_reorder(par_env, shared_env, mesh)
 
+    call timer_start(timer_build_geo)
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
+    call timer_stop(timer_build_geo)
 
     call cleanup_topo(shared_env, mesh)
 
@@ -3027,16 +3044,13 @@ contains
     integer(ccs_int) :: bw_max
     real(ccs_real) :: bw_avg
 
-    double precision :: start_time
-    double precision :: end_time
-
     integer(ccs_int) :: timer_partitioning
     integer(ccs_int) :: timer_compute_connectivity
     integer(ccs_int) :: timer_reordering
 
-    call timer_register("Partitioning time", timer_partitioning)
-    call timer_register("Computing connectivity time", timer_compute_connectivity)
-    call timer_register("Reordering time", timer_reordering)
+    call timer_register("Partitioning", timer_partitioning)
+    call timer_register("Computing connectivity", timer_compute_connectivity)
+    call timer_register("Reordering", timer_reordering)
 
     call create_shared_roots_comm(par_env, shared_env, roots_env)
 
