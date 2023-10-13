@@ -2430,8 +2430,9 @@ contains
       ng = size(mesh%topo%global_indices)
       found = .false.
       do i = local_num_cells + 1, ng
-        call create_cell_locator(mesh, i, loc_h)
-        call get_global_index(loc_h, global_index_h)
+        !call create_cell_locator(mesh, i, loc_h)
+        !call get_global_index(loc_h, global_index_h)
+        global_index_h = mesh%topo%global_indices(i)
         if (global_index_h == global_index_nb) then
           found = .true.
           if (vertex_nb_flag) then
