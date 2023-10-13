@@ -533,10 +533,6 @@ contains
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
-      allocate (mat_coeffs%global_row_indices(1))
-      allocate (mat_coeffs%global_col_indices(1 + nnb))
-      allocate (mat_coeffs%values(1 + nnb))
-
       block_nrows = 1_ccs_int
       block_ncols = 1_ccs_int + nnb
       call set_matrix_values_spec_nrows(block_nrows, mat_val_spec)
