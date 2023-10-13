@@ -62,7 +62,7 @@ contains
 
       ! Store counts at rank + 1
       do i = 1, size(global_partition)
-        partition_rank = global_partition(i)
+        partition_rank = global_partition(i) + 1 ! Ranks are C-indexed...
         vtxdist(partition_rank + 1) = vtxdist(partition_rank + 1) + 1
       end do
 
