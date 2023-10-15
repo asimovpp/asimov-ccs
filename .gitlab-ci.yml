@@ -3,6 +3,7 @@
   except:
     variables:
       - $NIGHTLY
+      - $A2_PERFORMANCE
 
 .setup_gnu:
   before_script:
@@ -28,7 +29,6 @@
     SLURM_partition: serial
     SLURM_qos: serial
     SLURM_time: "00:10:00"
-    SLURM_ntasks: 5
   before_script:
     - source ${CRAY_SETUP}
 
@@ -148,6 +148,8 @@ debug_build_cray_A2:
   extends: [.general_setup, .setup_cray_A2]
   needs:
     - job: ARCHER2_trigger
+  variables:
+    SLURM_ntasks: 5
   script:
     - CMP=cray BUILD=debug make all
   allow_failure: true
@@ -156,6 +158,8 @@ build_cray_A2:
   extends: [.general_setup, .setup_cray_A2]
   needs:
     - job: ARCHER2_trigger
+  variables:
+    SLURM_ntasks: 5
   script:
     - CMP=cray make obj
   artifacts:
@@ -167,6 +171,8 @@ test_cray_A2:
       artifacts: true
     - job: ARCHER2_trigger
   extends: [.general_setup, .setup_cray_A2, .test_common]
+  variables:
+    SLURM_ntasks: 5
   script:
     - CMP=cray make tests
 
@@ -247,6 +253,82 @@ profile_intel:
   allow_failure: true
 
 #-----------------------------------------------------------------------------#
+# ARCHER2 performance
+
+.setup_A2_perf:
+  only:
+    variables:
+      - $A2_PERFORMANCE
+
+# 1 node
+A2_perf_1node:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  variables:
+    SLURM_partition: standard
+    SLURM_qos: lowpriority
+    SLURM_time: "00:10:00"
+    SLURM_ntasks_per_node: 128
+    SLURM_nodes: 1
+  script:
+    - CMP=cray make -j all
+    - export CPS=108
+    - export NCORES=128
+    - RUNTESTS=nightly/performance/test_tgv.yaml CMP=cray make tests
+  artifacts:
+    paths: [tests/nightly/performance/output*txt]
+
+A2_perf_1node_database_update:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  needs:
+    - job: A2_perf_1node
+      artifacts: true
+  variables:
+    ON_COMPUTE: "FALSE"
+  script:
+    - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
+    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt
+    - cd asimov-ccs-nightly-data
+    - git add performance_results.json
+    - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
+    - git push
+
+
+
+# 2 nodes
+A2_perf_2nodes:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  variables:
+    SLURM_partition: standard
+    SLURM_qos: lowpriority
+    SLURM_time: "00:10:00"
+    SLURM_ntasks_per_node: 128
+    SLURM_nodes: 2
+  script:
+    - CMP=cray make -j all
+    - export CPS=136
+    - export NCORES=256
+    - RUNTESTS=nightly/performance/test_tgv.yaml CMP=cray make tests
+  artifacts:
+    paths: [tests/nightly/performance/output*txt]
+
+A2_perf_2nodes_database_update:
+  extends: [.setup_A2_perf, .setup_cray_A2]
+  needs:
+    - job: A2_perf_2nodes
+      artifacts: true
+  variables:
+    ON_COMPUTE: "FALSE"
+  script:
+    - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
+    - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt
+    - cd asimov-ccs-nightly-data
+    - git add performance_results.json
+    - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
+    - git push
+
+
+#-----------------------------------------------------------------------------#
+# Nightly tests on the CI desktop
 
 .setup_nightly:
   only:
@@ -259,6 +341,8 @@ nightly_gnu_performance:
   extends: [.setup_nightly, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu make
+    - export CPS=90
+    - export NCORES=26
     - HOME=${CI_HOME} RUNTESTS=nightly/performance CMP=gnu make tests
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
     - asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/performance_results.json tests/nightly/performance/output*.txt  
@@ -297,7 +381,7 @@ nightly_wiki_update:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
     - cd asimov-ccs.wiki
-    - ../asimov-ccs-nightly-data/plot_performance.py ../asimov-ccs-nightly-data/performance_results.json img/ci-performance-graph
+    - ../asimov-ccs-nightly-data/plot_performance.py --datafile ../asimov-ccs-nightly-data/performance_results.json --outfile img/ci-performance-graph
     - git add img/ci-performance-graph*
     - git -c user.name='CI' -c user.email='ci' commit -m "CI updates graph"
     - git push

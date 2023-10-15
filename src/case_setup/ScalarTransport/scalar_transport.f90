@@ -150,7 +150,6 @@ program scalar_transport
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  allocate (output_list(2))
   do i = 1, size(field_list)
      fptr => field_list(i)%f
      call add_field_to_outputlist(fptr, field_list(i)%name, output_list)
