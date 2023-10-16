@@ -127,6 +127,10 @@ contains
     integer(ccs_int) :: timer_read_geo
     integer(ccs_int) :: timer_partitioner_input
 
+    call timer_register("Read mesh topology", timer_read_topo)
+    call timer_register("Compute partitioner input", timer_partitioner_input)
+    call timer_register("Read mesh geometry", timer_read_geo)
+
     call set_mesh_generated(.false., mesh)
 
     geo_file = case_name // "_mesh" // geoext
