@@ -107,6 +107,9 @@ contains
     use partitioning, only: compute_connectivity_get_local_cells, &
                             compute_partitioner_input
 
+    use parallel, only: timer
+    use timers, only: timer_register, timer_start, timer_stop
+
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     character(len=:), allocatable :: case_name
@@ -120,6 +123,10 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
+    integer(ccs_int) :: timer_read_topo
+    integer(ccs_int) :: timer_read_geo
+    integer(ccs_int) :: timer_partitioner_input
+
     call set_mesh_generated(.false., mesh)
 
     geo_file = case_name // "_mesh" // geoext
@@ -132,13 +139,19 @@ contains
 
     call open_file(geo_file, "read", geo_reader)
 
+    call timer_start(timer_read_topo)
     call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
-
+    call timer_stop(timer_read_topo)
+    
+    call timer_start(timer_partitioner_input)
     call compute_partitioner_input(par_env, shared_env, mesh)
+    call timer_stop(timer_partitioner_input)
 
     call mesh_partition_reorder(par_env, shared_env, mesh)
 
+    call timer_start(timer_read_geo)
     call read_geometry(shared_env, reader_env, geo_reader, mesh)
+    call timer_stop(timer_read_geo)
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -1495,7 +1508,7 @@ contains
 
     use partitioning, only: compute_partitioner_input
     use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop, timer_print
+    use timers, only: timer_register, timer_start, timer_stop
     
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
@@ -1532,19 +1545,16 @@ contains
     call timer_start(timer_build_topo)
     call build_topology(par_env, shared_env, nx, ny, nz, mesh)
     call timer_stop(timer_build_topo)
-    call timer_print(par_env, timer_build_topo)
     
     call timer_start(timer_partitioner_input)
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
-    call timer_print(par_env, timer_partitioner_input)
 
     call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call timer_start(timer_build_geo)
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
     call timer_stop(timer_build_geo)
-    call timer_print(par_env, timer_build_geo)
 
     call cleanup_topo(shared_env, mesh)
 
@@ -2432,8 +2442,12 @@ contains
       ng = size(mesh%topo%global_indices)
       found = .false.
       do i = local_num_cells + 1, ng
+        ! Line "global_index_h = mesh%topo%global_indices(i)"
+        ! is a functionally equivalent, manually inlined version of
+        ! the following two lines:
         !call create_cell_locator(mesh, i, loc_h)
         !call get_global_index(loc_h, global_index_h)
+        ! and used here for performance reasons
         global_index_h = mesh%topo%global_indices(i)
         if (global_index_h == global_index_nb) then
           found = .true.
@@ -3036,7 +3050,7 @@ contains
                             compute_partitioner_input, &
                             cleanup_partitioner_data
     use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop, timer_print
+    use timers, only: timer_register, timer_start, timer_stop
     use case_config, only: compute_bwidth
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -3064,12 +3078,10 @@ contains
       call partition_stride(par_env, shared_env, roots_env, mesh)
     end if
     call timer_stop(timer_partitioning)
-    call timer_print(par_env, timer_partitioning)
 
     call timer_start(timer_compute_connectivity)
     call compute_connectivity(par_env, shared_env, roots_env, mesh)
     call timer_stop(timer_compute_connectivity)
-    call timer_print(par_env, timer_compute_connectivity)
 
 ! insert halo / local cells computation here
 
@@ -3081,7 +3093,6 @@ contains
     call timer_start(timer_reordering)
     call reorder_cells(par_env, shared_env, mesh)
     call timer_stop(timer_reordering)
-    call timer_print(par_env, timer_reordering)
 
     call cleanup_partitioner_data(shared_env, mesh)
 

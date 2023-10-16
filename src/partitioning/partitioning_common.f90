@@ -52,10 +52,6 @@ contains
     call compute_connectivity_get_local_cells(par_env, mesh)
 
     ! Recompute vtxdist array based on the new partition
-    ! mesh%topo%graph_conn%vtxdist(1) = 1
-    ! do i = 2, isize + 1
-    !   mesh%topo%graph_conn%vtxdist(i) = count(mesh%topo%graph_conn%global_partition == (i - 2)) + mesh%topo%graph_conn%vtxdist(i - 1)
-    ! end do
     associate(global_partition => mesh%topo%graph_conn%global_partition, &
               vtxdist => mesh%topo%graph_conn%vtxdist)
       vtxdist(:) = 0
