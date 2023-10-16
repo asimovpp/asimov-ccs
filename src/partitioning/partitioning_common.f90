@@ -28,7 +28,6 @@ contains
   module subroutine compute_connectivity(par_env, shared_env, roots_env, mesh)
 
     use mpi
-    use iso_fortran_env
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
@@ -63,7 +62,7 @@ contains
 
       ! Store counts at rank + 1
       do i = 1, size(global_partition)
-        partition_rank = int(global_partition(i), int32) + 1 ! Ranks are C-indexed...
+        partition_rank = int(global_partition(i), ccs_int) + 1 ! Ranks are C-indexed...
         vtxdist(partition_rank + 1) = vtxdist(partition_rank + 1) + 1
       end do
 
