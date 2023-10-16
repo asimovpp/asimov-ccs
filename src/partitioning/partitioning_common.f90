@@ -38,7 +38,7 @@ contains
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
     integer(ccs_int) :: i
-    integer(ccs_err) :: partition_rank
+    integer(ccs_int) :: partition_rank
     
     irank = par_env%proc_id
     isize = par_env%num_procs
