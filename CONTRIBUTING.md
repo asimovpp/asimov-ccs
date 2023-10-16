@@ -6,7 +6,7 @@ As described in the build tools documentation (`build_tools/build_system_readme.
 We request that contributions are based on, and target, the `upstreaming` branch - this will help us
 to upstream the contributions.
 The `upstreaming` branch is kept in sync with the `develop` branch - ASiMoV-CCS developers should
-ensure the `upstream` branch is up to date when reviewing any pull requests, and that the proposed
+ensure the `upstreaming` branch is up to date when reviewing any pull requests, and that the proposed
 changes are compatible with this.
 Once a contribution is accepted, the ASiMoV-CCS developer should merge the `upstreaming` branch into
 `develop` on the main repository and this will be reflected in the public repository.
