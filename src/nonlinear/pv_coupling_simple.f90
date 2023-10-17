@@ -21,7 +21,8 @@ submodule(pv_coupling) pv_coupling_simple
 
   use utils, only: debug_print, get_field, get_fluid_solver_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf
+  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, &
+                        field_mf, field_viscosity         
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
@@ -80,6 +81,7 @@ contains
     class(field), pointer :: p       !< field containing pressure values
     class(field), pointer :: p_prime !< field containing pressure-correction values
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
+    class(field), pointer :: viscosity !< field containing the viscosity
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
@@ -87,6 +89,7 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_p_prime, p_prime)
     call get_field(flow, field_mf, mf)
+    call get_field(flow, field_viscosity, viscosity) 
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -228,14 +231,12 @@ contains
     class(field), pointer :: u
     class(field), pointer :: v
     class(field), pointer :: w
-    class(field), pointer :: mf
     class(field), pointer :: p
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
     call get_field(flow, field_p, p)
-    call get_field(flow, field_mf, mf)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -260,33 +261,35 @@ contains
     ! u-velocity
     ! ----------
     if (u_sol) then
-      call calculate_velocity_component(par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
+      call calculate_velocity_component(flow, par_env, varu, mesh, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
     end if
 
     ! v-velocity
     ! ----------
     if (v_sol) then
-      call calculate_velocity_component(par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
+      call calculate_velocity_component(flow, par_env, varv, mesh, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
     end if
 
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
+      call calculate_velocity_component(flow, par_env, varw, mesh, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
     end if
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
+  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
 
     ! Arguments
+    type(fluid), intent(inout) :: flow
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in) :: ivar
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: mf
+    class(field), pointer :: mf
+    class(field), pointer :: viscosity
     class(field), intent(inout) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
@@ -306,7 +309,7 @@ contains
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
-
+    
     ! Select either field residuals or reuse 'input_res'
     if (allocated(u%residuals)) then
       res => u%residuals
@@ -327,7 +330,11 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
-    call compute_fluxes(u, mf, mesh, component, M, vec)
+
+    call get_field(flow, field_mf, mf)
+    call get_field(flow, field_viscosity, viscosity)
+    
+    call compute_fluxes(u, mf, viscosity, mesh, component, M, vec)
 
     call apply_timestep(mesh, u, invAu, M, vec)
 
@@ -340,6 +347,10 @@ contains
     else if (component == 3) then
       call calculate_momentum_pressure_source(mesh, p%z_gradients, vec)
     end if
+
+    !calculate viscous source term and populate RHS vector 
+    call dprint("compute viscous souce term")
+    call calculate_momentum_viscous_source (mesh, flow, component, vec)
 
     ! Underrelax the equations
     call dprint("GV: underrelax u")
