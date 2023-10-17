@@ -10,7 +10,7 @@ program bfs
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -56,7 +56,7 @@ program bfs
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity
+  class(field), allocatable, target :: u, v, w, p, p_prime, mf
 
   type(field_ptr), allocatable :: output_list(:)
 
@@ -163,8 +163,6 @@ program bfs
   call create_field(field_properties, p)
   call set_field_name("p_prime", field_properties)
   call create_field(field_properties, p_prime)
-  call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -190,7 +188,7 @@ program bfs
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(mesh, u, v, w, p, mf, viscosity)
+  call initialise_flow(mesh, u, v, w, p, mf)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -211,14 +209,13 @@ program bfs
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(7, flow_fields)
+  call allocate_fluid_fields(6, flow_fields)
   call set_field(1, field_u, u, flow_fields)
   call set_field(2, field_v, v, flow_fields)
   call set_field(3, field_w, w, flow_fields)
   call set_field(4, field_p, p, flow_fields)
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
-  call set_field(7, field_viscosity, viscosity, flow_fields)
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -333,7 +330,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(mesh, u, v, w, p, mf, viscosity)
+  subroutine initialise_flow(mesh, u, v, w, p, mf)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -346,7 +343,7 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, p, mf, viscosity
+    class(field), intent(inout) :: u, v, w, p, mf
 
     ! Local variables
     integer(ccs_int) :: n, count
@@ -357,7 +354,7 @@ contains
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, w_vals, p_vals
-    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
+    real(ccs_real), dimension(:), pointer :: mf_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
     real(ccs_real), dimension(ndim) :: face_normal
@@ -446,16 +443,11 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-    call get_vector_data(viscosity%values, viscosity_data)
-    viscosity_data(:) =  1.e-2_ccs_real
-    call restore_vector_data(viscosity%values, viscosity_data)
-
     call update(u%values)
     call update(v%values)
     call update(w%values)
     call update(p%values)
     call update(mf%values)
-    call update(viscosity%values)
 
   end subroutine initialise_flow
 
