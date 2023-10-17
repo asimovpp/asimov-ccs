@@ -21,7 +21,7 @@ module utils
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
   use types, only: field, fluid, fluid_solver_selector
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind
 
   implicit none

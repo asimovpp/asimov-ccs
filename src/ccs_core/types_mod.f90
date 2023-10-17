@@ -208,6 +208,7 @@ module types
     real(ccs_real), dimension(:), pointer :: y_gradients_ro       !< Read only pointer to array containing y_gradients
     real(ccs_real), dimension(:), pointer :: z_gradients_ro       !< Read only pointer to array containing z_gradients
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
+    real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
   end type field
 

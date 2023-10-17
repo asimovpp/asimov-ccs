@@ -21,7 +21,8 @@ submodule(pv_coupling) pv_coupling_simple
 
   use utils, only: debug_print, get_field, get_fluid_solver_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, field_mf
+  use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, &
+                        field_mf, field_viscosity         
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
@@ -80,6 +81,7 @@ contains
     class(field), pointer :: p       !< field containing pressure values
     class(field), pointer :: p_prime !< field containing pressure-correction values
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
+    class(field), pointer :: viscosity !< field containing the viscosity
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
@@ -87,6 +89,7 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_p_prime, p_prime)
     call get_field(flow, field_mf, mf)
+    call get_field(flow, field_viscosity, viscosity) 
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -228,14 +231,12 @@ contains
     class(field), pointer :: u
     class(field), pointer :: v
     class(field), pointer :: w
-    class(field), pointer :: mf
     class(field), pointer :: p
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
     call get_field(flow, field_p, p)
-    call get_field(flow, field_mf, mf)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -260,33 +261,35 @@ contains
     ! u-velocity
     ! ----------
     if (u_sol) then
-      call calculate_velocity_component(par_env, varu, mesh, mf, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
+      call calculate_velocity_component(flow, par_env, varu, mesh, p, 1, M, vec, lin_sys, u, invAu, res, residuals)
     end if
 
     ! v-velocity
     ! ----------
     if (v_sol) then
-      call calculate_velocity_component(par_env, varv, mesh, mf, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
+      call calculate_velocity_component(flow, par_env, varv, mesh, p, 2, M, vec, lin_sys, v, invAv, res, residuals)
     end if
 
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(par_env, varw, mesh, mf, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
+      call calculate_velocity_component(flow, par_env, varw, mesh, p, 3, M, vec, lin_sys, w, invAw, res, residuals)
     end if
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(par_env, ivar, mesh, mf, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
+  subroutine calculate_velocity_component(flow, par_env, ivar, mesh, p, component, M, vec, lin_sys, u, invAu, input_res, residuals)
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
 
     ! Arguments
+    type(fluid), intent(inout) :: flow
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in) :: ivar
     type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: mf
+    class(field), pointer :: mf
+    class(field), pointer :: viscosity
     class(field), intent(inout) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
@@ -306,7 +309,7 @@ contains
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
-
+    
     ! Select either field residuals or reuse 'input_res'
     if (allocated(u%residuals)) then
       res => u%residuals
@@ -327,7 +330,11 @@ contains
     else
       call error_abort("Unsupported vector component: " // str(component))
     end if
-    call compute_fluxes(u, mf, mesh, component, M, vec)
+
+    call get_field(flow, field_mf, mf)
+    call get_field(flow, field_viscosity, viscosity)
+    
+    call compute_fluxes(u, mf, viscosity, mesh, component, M, vec)
 
     call apply_timestep(mesh, u, invAu, M, vec)
 
@@ -340,6 +347,10 @@ contains
     else if (component == 3) then
       call calculate_momentum_pressure_source(mesh, p%z_gradients, vec)
     end if
+
+    !calculate viscous source term and populate RHS vector 
+    call dprint("compute viscous souce term")
+    call calculate_momentum_viscous_source (mesh, flow, component, vec)
 
     ! Underrelax the equations
     call dprint("GV: underrelax u")
@@ -433,6 +444,183 @@ contains
     call restore_vector_data(p_gradients, p_gradient_data)
 
   end subroutine calculate_momentum_pressure_source
+
+  !v Adds the momentum source due to variation in viscosity
+  subroutine calculate_momentum_viscous_source (mesh, flow, component, vec)
+    type(ccs_mesh), intent(in) :: mesh  !< the mesh
+    type(fluid), intent(inout) :: flow
+    integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
+    class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
+    class(field), pointer :: u  ! x-component of velocity 
+    class(field), pointer :: v  ! y-component of velocity
+    class(field), pointer :: w  ! z-component of velocity
+    class(field), pointer :: viscosity
+ 
+    ! Local variables
+    type(vector_values) :: vec_values
+    type(cell_locator) :: loc_p
+    integer(ccs_int) :: global_index_p, index_p
+    real(ccs_real) :: r1, r2, r3  ! variables involved in calculating the source term
+    real(ccs_real), dimension(:), pointer :: dux_data, dvx_data, dwx_data
+    real(ccs_real), dimension(:), pointer :: duy_data, dvy_data, dwy_data
+    real(ccs_real), dimension(:), pointer :: duz_data, dvz_data, dwz_data
+    real(ccs_real), dimension(3) :: duvw, duvwp, duvwf
+    integer(ccs_int) :: local_num_cells
+    real(ccs_real) :: Vol
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: j
+    integer(ccs_int) :: index_nb
+    type(neighbour_locator) :: loc_nb
+    logical :: is_boundary
+    type(face_locator) :: loc_f
+    real(ccs_real), dimension(ndim) :: face_normal
+    real(ccs_real) :: interpolation_factor   
+    real(ccs_real) :: viscosity_face
+    real(ccs_real) :: face_area
+    real(ccs_real), dimension(:), pointer :: viscosity_data
+
+    call get_field(flow, field_u, u)
+    call get_field(flow, field_v, v)
+    call get_field(flow, field_w, w)
+    call get_field(flow, field_viscosity, viscosity)
+
+    call create_vector_values(1_ccs_int, vec_values)
+    call set_mode(add_mode, vec_values)
+
+    ! Extracting the necessary data    
+    call get_vector_data(viscosity%values, viscosity_data)
+    ! x-component velocity gradient values
+    call get_vector_data(u%x_gradients, dux_data)
+    call get_vector_data(v%x_gradients, dvx_data)
+    call get_vector_data(w%x_gradients, dwx_data)
+    ! y-component velocity gradient values
+    call get_vector_data(u%y_gradients, duy_data)
+    call get_vector_data(v%y_gradients, dvy_data)
+    call get_vector_data(w%y_gradients, dwy_data)
+    ! z-component velocity gradient values
+    call get_vector_data(u%z_gradients, duz_data)
+    call get_vector_data(v%z_gradients, dvz_data)
+    call get_vector_data(w%z_gradients, dwz_data)
+
+    ! Loop over cells
+    call get_local_num_cells(mesh, local_num_cells)
+    do index_p = 1, local_num_cells
+
+      call clear_entries(vec_values)
+      call create_cell_locator(mesh, index_p, loc_p)
+      call get_global_index(loc_p, global_index_p)
+      call get_volume(loc_p, Vol)
+      call count_neighbours(loc_p, nnb)
+
+      r1=0.0_ccs_real
+      r2=0.0_ccs_real
+
+      do j=1,nnb
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_local_index(loc_nb, index_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        call create_face_locator(mesh, index_p, j, loc_f)
+        call get_face_normal(loc_f, face_normal)
+        call get_face_area(loc_f, face_area)
+        call get_face_interpolation(loc_f, interpolation_factor)
+
+        !evaluating gradients for neighbouring cell
+        if(component==1) then ! x-component of velocity
+          ! present cell gradients
+          duvwp(1)=dux_data(index_p)
+          duvwp(2)=dvx_data(index_p)
+          duvwp(3)=dwx_data(index_p)
+
+          if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=dux_data(index_nb)
+            duvwf(2)=dvx_data(index_nb)
+            duvwf(3)=dwx_data(index_nb)
+
+            duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
+            duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
+            duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
+            viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            r1=face_area*viscosity_face*dot_product(duvw,face_normal)
+          else ! boundary face
+            r1=face_area*viscosity_data(index_p)*dot_product(duvwp,face_normal)
+          end if
+          r2=r1+r2
+        else if (component == 2) then ! y-component of velocity
+          ! present cell gradients
+          duvwp(1)=duy_data(index_p)
+          duvwp(2)=dvy_data(index_p)
+          duvwp(3)=dwy_data(index_p)
+          
+          if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=duy_data(index_nb)
+            duvwf(2)=dvy_data(index_nb)
+            duvwf(3)=dwy_data(index_nb)
+
+            duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
+            duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
+            duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
+            viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            r1=face_area*viscosity_face*dot_product(duvw,face_normal)
+          else ! boundary face
+            r1=face_area*viscosity_data(index_p)*dot_product(duvwp,face_normal)
+          end if
+          r2=r1+r2
+        else if(component == 3) then ! z-component of velocity
+          ! present cell gradients
+          duvwp(1)=duz_data(index_p)
+          duvwp(2)=dvz_data(index_p)
+          duvwp(3)=dwz_data(index_p)
+          
+          if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=duz_data(index_nb)
+            duvwf(2)=dvz_data(index_nb)
+            duvwf(3)=dwz_data(index_nb)
+
+            duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
+            duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
+            duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
+            viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            r1=face_area*viscosity_face*dot_product(duvw,face_normal)
+          else ! boundary face
+            r1=face_area*viscosity_data(index_p)*dot_product(duvwp,face_normal)
+          end if
+          r2=r1+r2
+        end if 
+      end do
+
+      ! Accumulated value in r2 is the volume integral, the source term subroutine
+      ! accepts point-wise values, approximated by cell average, i.e. r2 / V
+      r3 = r2 / Vol
+      
+      call set_row(global_index_p, vec_values)
+      call set_entry(r3, vec_values)
+      call set_values(vec_values, vec)
+    end do
+
+    deallocate (vec_values%global_indices)
+    deallocate (vec_values%values)
+
+    ! Restoring the necessary data    
+    call restore_vector_data(viscosity%values, viscosity_data)
+    ! x-component velocity gradient values
+    call restore_vector_data(u%x_gradients, dux_data)
+    call restore_vector_data(v%x_gradients, dvx_data)
+    call restore_vector_data(w%x_gradients, dwx_data)
+    ! y-component velocity gradient values
+    call restore_vector_data(u%y_gradients, duy_data)
+    call restore_vector_data(v%y_gradients, dvy_data)
+    call restore_vector_data(w%y_gradients, dwy_data)
+    ! z-component velocity gradient values
+    call restore_vector_data(u%z_gradients, duz_data)
+    call restore_vector_data(v%z_gradients, dvz_data)
+    call restore_vector_data(w%z_gradients, dwz_data)
+    
+  end subroutine calculate_momentum_viscous_source
+
+
 
   !v Solves the pressure correction equation
   !
