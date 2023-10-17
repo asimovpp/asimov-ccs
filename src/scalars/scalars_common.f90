@@ -4,7 +4,7 @@
 
 submodule(scalars) scalars_common
 #include "ccs_macros.inc"
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity
 
   use kinds, only: ccs_int
   use types, only: ccs_matrix, ccs_vector, &
@@ -26,10 +26,10 @@ submodule(scalars) scalars_common
   integer(ccs_int), save :: previous_step = -1
 
   !> List of fields not to be updated as transported scalars
-  integer(ccs_int), dimension(6), parameter :: skip_fields = &
+  integer(ccs_int), dimension(7), parameter :: skip_fields = &
        [ field_u, field_v, field_w, &
           field_p, field_p_prime, &
-          field_mf ]
+          field_mf, field_viscosity ]
 
 contains
   
@@ -117,6 +117,7 @@ contains
     class(field), intent(inout) :: phi ! The scalar field
 
     class(field), pointer :: mf  ! The advecting velocity field
+    class(field), pointer :: viscosity  ! viscosity
     class(linear_solver), allocatable :: lin_solver
     type(equation_system) :: lin_system
     
@@ -126,7 +127,8 @@ contains
 
     call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
-    call compute_fluxes(phi, mf, mesh, 0, M, rhs)
+    call get_field(flow, field_viscosity, viscosity) 
+    call compute_fluxes(phi, mf, viscosity, mesh, 0, M, rhs)
     call apply_timestep(mesh, phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")
