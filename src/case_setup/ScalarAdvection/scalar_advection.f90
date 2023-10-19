@@ -152,7 +152,6 @@ program scalar_advection
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  allocate (output_list(3))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(scalar, "scalar", output_list)
