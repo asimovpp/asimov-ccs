@@ -158,7 +158,7 @@ contains
 
     if (is_root(par_env)) then
       ! repeat ' ' to right align
-      write(*,'(A30, F10.4, A)', advance="no")  repeat(' ', max(0, 29-len(trim(timer_names(timer_index))))) // trim(timer_names(timer_index)) // ":", time, " s"
+      write(*,'(A30, F12.4, A)', advance="no")  repeat(' ', max(0, 29-len(trim(timer_names(timer_index))))) // trim(timer_names(timer_index)) // ":", time, " s"
 
       if (total_index /= 0) then
         call timer_get_time(total_index, total_time)
