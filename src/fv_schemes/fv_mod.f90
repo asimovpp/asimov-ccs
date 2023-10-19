@@ -85,13 +85,15 @@ module fv
 
     !> Sets the diffusion coefficient
     ! XXX: why is this a function when the equivalent advection ones are subroutines?
-    module subroutine calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections, visc_p, visc_nb, SchmidtNo, coeff)
+    module subroutine calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff)
       integer(ccs_int), intent(in) :: index_p  !< the local cell index
       integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
       type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
       logical, intent(in) :: enable_cell_corrections !< whether or not cell corrections shouls be used
       real(ccs_real), intent(out) :: coeff                  !< the diffusion coefficient
       real(ccs_real), intent(in) :: visc_p, visc_nb        !< viscosity
+      real(ccs_real), intent(in) :: dens_p       !< density in this cell
+      real(ccs_real), intent(in) :: dens_nb      !< density in neighbour cell
       real(ccs_real), intent(in) :: SchmidtNo
     end subroutine calc_diffusion_coeff
 
