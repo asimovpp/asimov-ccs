@@ -488,6 +488,7 @@ contains
     call update(v%values)
     call update(w%values)
     call update(p%values)
+    call update(scalar_field%values)
     call update(mf%values)
 
   end subroutine initialise_flow
