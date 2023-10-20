@@ -220,7 +220,7 @@ program sandia
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(6, flow_fields)
+  call allocate_fluid_fields(7, flow_fields)
   call set_field(1, field_u, u, flow_fields)
   call set_field(2, field_v, v, flow_fields)
   call set_field(3, field_w, w, flow_fields)
@@ -414,7 +414,12 @@ contains
       v_val = 0.0_ccs_real
       w_val = 0.0_ccs_real
       p_val = 0.0_ccs_real 
-      scalar_val = 0.0_ccs_real 
+      ! Initialise the scalar to 1 inside the jet nozzle
+      if (x(1) < -0.08) then
+        scalar_val = 1.0_ccs_real 
+      else
+        scalar_val = 0.0_ccs_real 
+      end if
 
       call set_row(global_index_p, u_vals)
       call set_entry(u_val, u_vals)
