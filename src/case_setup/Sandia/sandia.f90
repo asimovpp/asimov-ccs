@@ -45,52 +45,52 @@ program sandia
 
   implicit none
 
-  class(parallel_environment), allocatable :: par_env
-  class(parallel_environment), allocatable :: shared_env
-  character(len=:), allocatable :: input_path  ! Path to input directory
-  character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
-  character(len=:), allocatable :: ccs_config_file ! Config file for CCS
-  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
+  class(parallel_environment), allocatable:: par_env
+  class(parallel_environment), allocatable:: shared_env
+  character(len=:), allocatable:: input_path  ! Path to input directory
+  character(len=:), allocatable:: case_path  ! Path to input directory with case name appended
+  character(len=:), allocatable:: ccs_config_file  ! Config file for CCS
+  character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
 
-  type(ccs_mesh) :: mesh
+  type(ccs_mesh):: mesh
 
-  type(vector_spec) :: vec_properties
+  type(vector_spec):: vec_properties
 
-  type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf
-  class(field), allocatable, target :: scalar_field
+  type(field_spec):: field_properties
+  class(field), allocatable, target:: u, v, w, p, p_prime, mf
+  class(field), allocatable, target:: scalar_field
 
-  type(field_ptr), allocatable :: output_list(:)
+  type(field_ptr), allocatable:: output_list(:)
 
-  integer(ccs_int) :: n_boundaries
-  integer(ccs_int) :: scalar_index
+  integer(ccs_int):: n_boundaries
+  integer(ccs_int):: scalar_index
 
-  integer(ccs_int) :: it_start, it_end
-  integer(ccs_int) :: irank ! MPI rank ID
-  integer(ccs_int) :: isize ! Size of MPI world
+  integer(ccs_int):: it_start, it_end
+  integer(ccs_int):: irank  ! MPI rank ID
+  integer(ccs_int):: isize  ! Size of MPI world
 
-  integer(ccs_int) :: timer_index_total
-  integer(ccs_int) :: timer_index_init
-  integer(ccs_int) :: timer_index_build
-  integer(ccs_int) :: timer_index_io_init
-  integer(ccs_int) :: timer_index_io_sol
-  integer(ccs_int) :: timer_index_sol
+  integer(ccs_int):: timer_index_total
+  integer(ccs_int):: timer_index_init
+  integer(ccs_int):: timer_index_build
+  integer(ccs_int):: timer_index_io_init
+  integer(ccs_int):: timer_index_io_sol
+  integer(ccs_int):: timer_index_sol
 
-  logical :: u_sol = .true.  ! Default equations to solve for LDC case
-  logical :: v_sol = .true.
-  logical :: w_sol = .true.
-  logical :: p_sol = .true.
+  logical:: u_sol = .true.  ! Default equations to solve for LDC case
+  logical:: v_sol = .true.
+  logical:: w_sol = .true.
+  logical:: p_sol = .true.
 
-  logical :: diverged = .false.
+  logical:: diverged = .false.
 
-  logical :: store_residuals, enable_cell_corrections
+  logical:: store_residuals, enable_cell_corrections
 
-  integer(ccs_int) :: t          ! Timestep counter
-  logical :: use_mpi_splitting
+  integer(ccs_int):: t          ! Timestep counter
+  logical:: use_mpi_splitting
 
-  type(fluid) :: flow_fields
-  type(fluid_solver_selector) :: fluid_sol
-  type(bc_profile), allocatable :: profile
+  type(fluid):: flow_fields
+  type(fluid_solver_selector):: fluid_sol
+  type(bc_profile), allocatable:: profile
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -100,7 +100,7 @@ program sandia
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, case_name=case_name, in_dir=input_path)
+  call read_command_line_arguments(par_env, case_name = case_name, in_dir = input_path)
 
   if (allocated(input_path)) then
     case_path = input_path // "/" // case_name
@@ -283,10 +283,10 @@ contains
     use read_config, only: get_reference_number, get_value, &
                            get_relaxation_factors
 
-    character(len=*), intent(in) :: config_filename
+    character(len=*), intent(in):: config_filename
 
-    class(*), pointer :: config_file  !< Pointer to CCS config file
-    character(:), allocatable :: error
+    class(*), pointer:: config_file  !< Pointer to CCS config file
+    character(:), allocatable:: error
 
     config_file => parse(config_filename, error)
     if (allocated(error)) then
@@ -325,7 +325,7 @@ contains
       call error_abort("No value assigned to target residual.")
     end if
 
-    call get_relaxation_factors(config_file, u_relax=velocity_relax, p_relax=pressure_relax)
+    call get_relaxation_factors(config_file, u_relax = velocity_relax, p_relax = pressure_relax)
     if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
@@ -344,14 +344,14 @@ contains
     print *, "******************************************************************************"
     print *, "* SIMULATION LENGTH"
     print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-    write (*, '(1x,a,e10.3)') "* Time step size: ", dt
+    write (*, '(1x, a, e10.3)') "* Time step size: ", dt
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
     print *, "* Global number of cells is ", mesh%topo%global_num_cells
     print *, "******************************************************************************"
     print *, "* RELAXATION FACTORS"
-    write (*, '(1x,a,e10.3)') "* velocity: ", velocity_relax
-    write (*, '(1x,a,e10.3)') "* pressure: ", pressure_relax
+    write (*, '(1x, a, e10.3)') "* velocity: ", velocity_relax
+    write (*, '(1x, a, e10.3)') "* pressure: ", pressure_relax
     print *, "******************************************************************************"
 
   end subroutine
@@ -368,26 +368,26 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, p, mf
-    class(field), intent(inout) :: scalar_field
+    class(ccs_mesh), intent(in):: mesh
+    class(field), intent(inout):: u, v, w, p, mf
+    class(field), intent(inout):: scalar_field
 
     ! Local variables
-    integer(ccs_int) :: n, count
-    integer(ccs_int) :: n_local
-    integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
-    real(ccs_real) :: u_val, v_val, w_val, p_val, scalar_val
-    type(cell_locator) :: loc_p
-    type(face_locator) :: loc_f
-    type(neighbour_locator) :: loc_nb
-    type(vector_values) :: u_vals, v_vals, w_vals, p_vals, scalar_vals
-    real(ccs_real), dimension(:), pointer :: mf_data
+    integer(ccs_int):: n, count
+    integer(ccs_int):: n_local
+    integer(ccs_int):: index_p, global_index_p, index_f, index_nb
+    real(ccs_real):: u_val, v_val, w_val, p_val, scalar_val
+    type(cell_locator):: loc_p
+    type(face_locator):: loc_f
+    type(neighbour_locator):: loc_nb
+    type(vector_values):: u_vals, v_vals, w_vals, p_vals, scalar_vals
+    real(ccs_real), dimension(:), pointer:: mf_data
 
-    real(ccs_real), dimension(ndim) :: x_p, x_f
-    real(ccs_real), dimension(ndim) :: face_normal
+    real(ccs_real), dimension(ndim):: x_p, x_f
+    real(ccs_real), dimension(ndim):: face_normal
 
-    integer(ccs_int) :: nnb
-    integer(ccs_int) :: j
+    integer(ccs_int):: nnb
+    integer(ccs_int):: j
 
     ! Set alias
     call get_local_num_cells(mesh, n_local)
@@ -415,7 +415,7 @@ contains
       w_val = 0.0_ccs_real
       p_val = 0.0_ccs_real 
       ! Initialise the scalar to 1 inside the jet nozzle
-      if (x(1) < -0.08) then
+      if (x_p(1) < -0.08) then
         scalar_val = 1.0_ccs_real 
       else
         scalar_val = 0.0_ccs_real 
@@ -468,7 +468,7 @@ contains
         call get_local_index(loc_nb, index_nb)
 
         ! if neighbour index is greater than previous face index
-        if (index_nb > index_p) then ! XXX: abstract this test
+        if (index_nb > index_p) then  ! XXX: abstract this test
 
           call create_face_locator(mesh, index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
@@ -494,15 +494,15 @@ contains
 
   subroutine read_bc_profile(filename, variable_id, profile)
     
-    character(len=*), intent(in) :: filename
-    integer(ccs_int), intent(in) :: variable_id
-    type(bc_profile), allocatable, intent(out) :: profile
+    character(len=*), intent(in):: filename
+    integer(ccs_int), intent(in):: variable_id
+    type(bc_profile), allocatable, intent(out):: profile
 
-    real(ccs_real), allocatable, dimension(:) :: tmp_values
-    real(ccs_real) :: tmp_coord
-    character(len=128) :: header_string, tmp
-    integer(ccs_int) :: num_field, i
-    integer :: io_err, unit_io
+    real(ccs_real), allocatable, dimension(:):: tmp_values
+    real(ccs_real):: tmp_coord
+    character(len = 128):: header_string, tmp
+    integer(ccs_int):: num_field, i
+    integer:: io_err, unit_io
 
     allocate(profile)
 
@@ -510,7 +510,7 @@ contains
     allocate(profile%values(0))
     allocate(profile%coordinates(0))
 
-    open(newunit=unit_io, file=trim(filename), status='old', action='read')
+    open(newunit = unit_io, file = trim(filename), status='old', action='read')
 
     read(unit_io, *)                      ! ignore profile type
     read(unit_io, *) tmp, profile%centre  ! read centre
@@ -520,9 +520,9 @@ contains
 
     ! Count the number of fields in file
     num_field = -1
-    do i=1, len(header_string)
+    do i = 1, len(header_string)
       if (header_string(i:i) == ',') then
-        num_field = num_field + 1
+        num_field = num_field+1
       end if
     end do
 
@@ -531,7 +531,7 @@ contains
     ! Read file profile table
     do while (.true.)
 
-      read(unit_io, *, iostat=io_err) tmp_coord, tmp_values
+      read(unit_io, *, iostat = io_err) tmp_coord, tmp_values
       if (io_err /= 0) then
         exit
       end if
