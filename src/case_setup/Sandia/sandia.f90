@@ -27,6 +27,7 @@ program sandia
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
+  use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, set_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
@@ -57,10 +58,12 @@ program sandia
 
   type(field_spec) :: field_properties
   class(field), allocatable, target :: u, v, w, p, p_prime, mf
+  class(field), allocatable, target :: scalar_field
 
   type(field_ptr), allocatable :: output_list(:)
 
   integer(ccs_int) :: n_boundaries
+  integer(ccs_int) :: scalar_index
 
   integer(ccs_int) :: it_start, it_end
   integer(ccs_int) :: irank ! MPI rank ID
@@ -139,7 +142,7 @@ program sandia
   if (irank == par_env%root) print *, "Initialise fields"
 
   ! Write gradients to solution file
-  write_gradients = .true.
+  write_gradients = .false.
 
   ! Read boundary conditions
   if (irank == par_env%root) print *, "Read and allocate BCs"
@@ -174,6 +177,9 @@ program sandia
   call set_field_name("p_prime", field_properties)
   call create_field(field_properties, p_prime)
 
+  call set_field_name("scalar", field_properties)
+  call create_field(field_properties, scalar_field)
+
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
@@ -182,15 +188,16 @@ program sandia
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  allocate (output_list(4))
+  allocate (output_list(5))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(w, "w", output_list)
   call add_field_to_outputlist(p, "p", output_list)
+  call add_field_to_outputlist(scalar_field, "scalar", output_list)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(mesh, u, v, w, p, mf)
+  call initialise_flow(mesh, u, v, w, p, mf, scalar_field)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -221,6 +228,9 @@ program sandia
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
 
+  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf ]) + 1
+  call set_field(7, scalar_index, scalar_field, flow_fields)
+
   call timer_stop(timer_index_init)
   call timer_register("I/O time for solution", timer_index_io_sol)
   call timer_register_start("Solver time inc I/O", timer_index_sol)
@@ -228,6 +238,7 @@ program sandia
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields, diverged)
+    call update_scalars(par_env, mesh, flow_fields)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
     end if
@@ -345,7 +356,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(mesh, u, v, w, p, mf)
+  subroutine initialise_flow(mesh, u, v, w, p, mf, scalar_field)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -359,16 +370,17 @@ contains
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, w, p, mf
+    class(field), intent(inout) :: scalar_field
 
     ! Local variables
     integer(ccs_int) :: n, count
     integer(ccs_int) :: n_local
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
-    real(ccs_real) :: u_val, v_val, w_val, p_val
+    real(ccs_real) :: u_val, v_val, w_val, p_val, scalar_val
     type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
-    type(vector_values) :: u_vals, v_vals, w_vals, p_vals
+    type(vector_values) :: u_vals, v_vals, w_vals, p_vals, scalar_vals
     real(ccs_real), dimension(:), pointer :: mf_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
@@ -384,10 +396,12 @@ contains
     call create_vector_values(n_local, v_vals)
     call create_vector_values(n_local, w_vals)
     call create_vector_values(n_local, p_vals)
+    call create_vector_values(n_local, scalar_vals)
     call set_mode(insert_mode, u_vals)
     call set_mode(insert_mode, v_vals)
     call set_mode(insert_mode, w_vals)
     call set_mode(insert_mode, p_vals)
+    call set_mode(insert_mode, scalar_vals)
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
@@ -400,6 +414,7 @@ contains
       v_val = 0.0_ccs_real
       w_val = 0.0_ccs_real
       p_val = 0.0_ccs_real 
+      scalar_val = 0.0_ccs_real 
 
       call set_row(global_index_p, u_vals)
       call set_entry(u_val, u_vals)
@@ -409,21 +424,27 @@ contains
       call set_entry(w_val, w_vals)
       call set_row(global_index_p, p_vals)
       call set_entry(p_val, p_vals)
+
+      call set_row(global_index_p, scalar_vals)
+      call set_entry(scalar_val, scalar_vals)
     end do
 
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
     call set_values(w_vals, w%values)
     call set_values(p_vals, p%values)
+    call set_values(scalar_vals, scalar_field%values)
 
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
     deallocate (w_vals%global_indices)
     deallocate (p_vals%global_indices)
+    deallocate (scalar_vals%global_indices)
     deallocate (u_vals%values)
     deallocate (v_vals%values)
     deallocate (w_vals%values)
     deallocate (p_vals%values)
+    deallocate (scalar_vals%values)
 
     call get_vector_data(mf%values, mf_data)
 
