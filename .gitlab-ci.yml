@@ -340,7 +340,7 @@ A2_perf_2nodes_database_update:
 nightly_gnu_performance:
   extends: [.setup_nightly, .setup_gnu]
   script:
-    - [[ $(echo $(awk '{print $1}' /proc/loadavg) '> 1.1'| bc -l) == 1 ]] && exit 1
+    - build_tools/test_load.sh
     - HOME=${CI_HOME} CMP=gnu make
     - export CPS=90
     - export NCORES=26
