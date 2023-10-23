@@ -238,7 +238,6 @@ program sandia
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          fluid_sol, flow_fields, diverged)
-    call update_scalars(par_env, mesh, flow_fields)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
     end if

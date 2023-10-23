@@ -2,7 +2,7 @@
 title: Sandia
 
 #  number of timesteps
-steps: 20000
+steps: 10000
 #  number of iterations
 iterations: 18
 # time step size
@@ -78,6 +78,9 @@ variables:
   variable_5:
     name: p_prime
     type: central
+  variable_6:
+    name: scalar
+    type: central
 
 boundaries:
   n_boundaries: 10
@@ -101,6 +104,9 @@ boundaries:
     variable_p_prime:
       type: neumann
       value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
   boundary_3: #coflow
     name: bottom
     type: neumann
@@ -115,6 +121,9 @@ boundaries:
       type: dirichlet
       value: 0
     variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
       type: dirichlet
       value: 0
   boundary_4: #jet
@@ -133,6 +142,9 @@ boundaries:
     variable_w:
       type: dirichlet
       value: 0
+    variable_scalar:
+      type: dirichlet
+      value: 1
   boundary_5: #pilot
     name: back
     type: neumann
@@ -142,11 +154,14 @@ boundaries:
       value: 0
     variable_u:
       type: dirichlet
-      value: 11.4
+      value: 11.4 
     variable_v:
       type: dirichlet
       value: 0
     variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
       type: dirichlet
       value: 0
   boundary_6: #wall
@@ -165,6 +180,9 @@ boundaries:
     variable_w:
       type: dirichlet
       value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
   boundary_7: #rims
     name: other1
     type: neumann
@@ -179,6 +197,9 @@ boundaries:
       value: 0
     variable_w:
       type: dirichlet
+      value: 0
+    variable_scalar:
+      type: neumann
       value: 0
   boundary_8: #walls_pilot
     name: other2
@@ -196,6 +217,9 @@ boundaries:
     variable_w:
       type: dirichlet
       value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
   boundary_9: #walls_jet
     name: other3
     type: neumann
@@ -212,6 +236,9 @@ boundaries:
     variable_w:
       type: dirichlet
       value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
   boundary_10: #outflow
     name: other4
     type: neumann
@@ -221,4 +248,7 @@ boundaries:
       value: 0
     variable_p_prime:
       type: dirichlet
+      value: 0
+    variable_scalar:
+      type: neumann
       value: 0
