@@ -265,48 +265,48 @@ contains
 
   ! end subroutine check_connectivity_cell_graphconn
   
-  subroutine compute_expected_global_adjncy(i, adjncy_global_expected)
+  ! subroutine compute_expected_global_adjncy(i, adjncy_global_expected)
 
-    integer, intent(in) :: i
-    integer, dimension(:), intent(inout) :: adjncy_global_expected
+  !   integer, intent(in) :: i
+  !   integer, dimension(:), intent(inout) :: adjncy_global_expected
 
-    integer :: interior_ctr
+  !   integer :: interior_ctr
 
-    type(cell_locator) :: loc_p
-    integer(ccs_int) :: idx_global, cidx_global
+  !   type(cell_locator) :: loc_p
+  !   integer(ccs_int) :: idx_global, cidx_global
 
-    adjncy_global_expected(:) = 0
-    interior_ctr = 1
+  !   adjncy_global_expected(:) = 0
+  !   interior_ctr = 1
 
-    call create_cell_locator(mesh, i, loc_p)
-    call get_global_index(loc_p, idx_global)
-    cidx_global = idx_global - 1 ! C-style indexing
+  !   call create_cell_locator(mesh, i, loc_p)
+  !   call get_global_index(loc_p, idx_global)
+  !   cidx_global = idx_global - 1 ! C-style indexing
 
-    if ((modulo(cidx_global, 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
-      ! NOT @ left boundary
-      adjncy_global_expected(interior_ctr) = idx_global - 1
-      interior_ctr = interior_ctr + 1
-    end if
+  !   if ((modulo(cidx_global, 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
+  !     ! NOT @ left boundary
+  !     adjncy_global_expected(interior_ctr) = idx_global - 1
+  !     interior_ctr = interior_ctr + 1
+  !   end if
 
-    if ((modulo(cidx_global, 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
-      ! NOT @ right boundary
-      adjncy_global_expected(interior_ctr) = idx_global + 1
-      interior_ctr = interior_ctr + 1
-    end if
+  !   if ((modulo(cidx_global, 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
+  !     ! NOT @ right boundary
+  !     adjncy_global_expected(interior_ctr) = idx_global + 1
+  !     interior_ctr = interior_ctr + 1
+  !   end if
 
-    if (((cidx_global / 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
-      ! NOT @ bottom boundary
-      adjncy_global_expected(interior_ctr) = idx_global - 4
-      interior_ctr = interior_ctr + 1
-    end if
+  !   if (((cidx_global / 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
+  !     ! NOT @ bottom boundary
+  !     adjncy_global_expected(interior_ctr) = idx_global - 4
+  !     interior_ctr = interior_ctr + 1
+  !   end if
 
-    if (((cidx_global / 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
-      ! NOT @ top boundary
-      adjncy_global_expected(interior_ctr) = idx_global + 4
-      interior_ctr = interior_ctr + 1
-    end if
+  !   if (((cidx_global / 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
+  !     ! NOT @ top boundary
+  !     adjncy_global_expected(interior_ctr) = idx_global + 4
+  !     interior_ctr = interior_ctr + 1
+  !   end if
 
-  end subroutine
+  ! end subroutine
 
 !  subroutine initialise_test
 !
