@@ -12,7 +12,7 @@ ifeq ($(BUILD),debug)
   FFLAGS += -Og
   FFLAGS += -fcheck=bounds
   FFLAGS += -fbacktrace
-  FFLAGS += -ffpe-trap=invalid,overflow #,zero -- causes issues in ParHIP...
+  #FFLAGS += -ffpe-trap=invalid,overflow,zero # -- causes issues in ParHIP...
   #FFLAGS += -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -Wall -Wpedantic -Wno-uninitialized -Werror # Wuninitialized is buggy
   FFLAGS += -DEXCLUDE_MISSING_INTERFACE
