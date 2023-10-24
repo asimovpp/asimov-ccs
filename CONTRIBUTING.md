@@ -45,7 +45,10 @@ Opening a draft pull request early in the development process to begin discussio
 The process for accepting a contribution into the upstream GitLab repository is outlined below.
 Currently, a manual process is required to push the contribution to the upstream repository.
 
-1. When a pull request is opened, check it is targetting the `upstreaming` branch, change the target branch if necessary.
+0. When a potential contributor opens an issue regarding making a contribution:
+- is the proposed contribution well-described? Ask for clarification if not. **TODO:** develop a template for bug reports and proposed changes.
+- check whether the proposed contribution conflicts or overlaps with any ongoing or planned work - try to discuss this with the contributor, perhaps they could collaborate on any preexisting work?
+1. When a pull request is opened check it is targetting the `upstreaming` branch, change the target branch if necessary.
 2. Ensure that the `upstreaming` branch is up to date by merging `develop` into `upstreaming` and pushing to GitHub if 
 necessary, this might raise merge conflicts with the pull request if it has drifted from upstream developments, work
 with the contributor to resolve these.
