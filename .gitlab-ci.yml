@@ -45,7 +45,8 @@ debug_build_gnu:
   extends: [.general_setup, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu BUILD=debug make all
-  allow_failure: true
+  artifacts:
+    paths: [obj/]
 
 build_gnu:
   extends: [.general_setup, .setup_gnu]
@@ -56,11 +57,11 @@ build_gnu:
 
 test_gnu:
   needs: 
-    - job: build_gnu
+    - job: debug_build_gnu
       artifacts: true
   extends: [.general_setup, .setup_gnu, .test_common]
   script:
-    - HOME=${CI_HOME} CMP=gnu make tests
+    - HOME=${CI_HOME} CMP=gnu BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 
