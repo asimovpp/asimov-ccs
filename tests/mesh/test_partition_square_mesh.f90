@@ -224,46 +224,46 @@ contains
     deallocate (face_cell2_expected)
     
   end subroutine check_connectivity_cell
-  subroutine check_connectivity_cell_graphconn(i, graph_conn, loc_p, stage)
+  ! subroutine check_connectivity_cell_graphconn(i, graph_conn, loc_p, stage)
 
-    integer(ccs_int), intent(in) :: i
-    type(graph_connectivity), intent(in) :: graph_conn
-    type(cell_locator), intent(in) :: loc_p
-    character(len=*), intent(in) :: stage
+  !   integer(ccs_int), intent(in) :: i
+  !   type(graph_connectivity), intent(in) :: graph_conn
+  !   type(cell_locator), intent(in) :: loc_p
+  !   character(len=*), intent(in) :: stage
 
-    integer :: j
-    integer :: nadj
-    integer(ccs_int) :: global_index_p
-    integer, dimension(:), allocatable :: adjncy_global_expected
+  !   integer :: j
+  !   integer :: nadj
+  !   integer(ccs_int) :: global_index_p
+  !   integer, dimension(:), allocatable :: adjncy_global_expected
     
-    call get_global_index(loc_p, global_index_p)
+  !   call get_global_index(loc_p, global_index_p)
 
-    nadj = int(graph_conn%xadj(i + 1) - graph_conn%xadj(i))
-    allocate (adjncy_global_expected(nadj))
+  !   nadj = int(graph_conn%xadj(i + 1) - graph_conn%xadj(i))
+  !   allocate (adjncy_global_expected(nadj))
 
-    call compute_expected_global_adjncy(i, adjncy_global_expected)
+  !   call compute_expected_global_adjncy(i, adjncy_global_expected)
 
-    do j = int(graph_conn%xadj(i)), int(graph_conn%xadj(i + 1)) - 1
-       if (.not. any(adjncy_global_expected == graph_conn%adjncy(j)) .and. graph_conn%adjncy(j) .gt. 0) then
-          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
-          print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are wrong " // stage // "- partitioning."
-          call stop_test(message)
-       end if
-    end do
+  !   do j = int(graph_conn%xadj(i)), int(graph_conn%xadj(i + 1)) - 1
+  !      if (.not. any(adjncy_global_expected == graph_conn%adjncy(j)) .and. graph_conn%adjncy(j) .gt. 0) then
+  !         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
+  !         print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
+  !         write (message, *) "ERROR: neighbours are wrong " // stage // "- partitioning."
+  !         call stop_test(message)
+  !      end if
+  !   end do
 
-    do j = 1, size(adjncy_global_expected)
-       if (.not. any(graph_conn%adjncy == adjncy_global_expected(j)) .and. adjncy_global_expected(j) /= 0) then
-          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
-          print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-          write (message, *) "ERROR: neighbours are missing " // stage // "- partitioning."
-          call stop_test(message)
-       end if
-    end do
+  !   do j = 1, size(adjncy_global_expected)
+  !      if (.not. any(graph_conn%adjncy == adjncy_global_expected(j)) .and. adjncy_global_expected(j) /= 0) then
+  !         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
+  !         print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
+  !         write (message, *) "ERROR: neighbours are missing " // stage // "- partitioning."
+  !         call stop_test(message)
+  !      end if
+  !   end do
 
-    deallocate (adjncy_global_expected)
+  !   deallocate (adjncy_global_expected)
 
-  end subroutine check_connectivity_cell_graphconn
+  ! end subroutine check_connectivity_cell_graphconn
   
   subroutine compute_expected_global_adjncy(i, adjncy_global_expected)
 
