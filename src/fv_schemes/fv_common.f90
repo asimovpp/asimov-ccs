@@ -550,17 +550,18 @@ contains
   end subroutine
 
   !> Calculates mass flux across given face. Note: assumes rho = 1
-  module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
+  module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invA, &
+                                     loc_f, enable_cell_corrections) result(flux)
     class(field), intent(inout) :: u_field
     class(field), intent(inout) :: v_field
     class(field), intent(inout) :: w_field
-    real(ccs_real), dimension(:), intent(in) :: p                   !< array containing pressure
-    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
-    real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
-    type(face_locator), intent(in) :: loc_f                         !< face locator
+    real(ccs_real), dimension(:), intent(in) :: p                !< array containing pressure
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz !< arrays containing pressure gradient in x, y and z
+    real(ccs_real), dimension(:), intent(in) :: invA             !< array containing inverse momentum diagonal
+    type(face_locator), intent(in) :: loc_f                      !< face locator
     logical, intent(in) :: enable_cell_corrections
 
-    real(ccs_real) :: flux                                          !< The flux across the boundary
+    real(ccs_real) :: flux                                       !< The flux across the boundary
 
     ! Local variables
     logical :: is_boundary                         ! Boundary indicator
@@ -597,7 +598,7 @@ contains
           flux = -flux
         end if
 
-        flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections)
+        flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections)
         flux = flux + flux_corr
       else
         call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
@@ -610,11 +611,11 @@ contains
   end function calc_mass_flux_uvw
 
   ! Computes Rhie-Chow correction
-  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
-    real(ccs_real), dimension(:), intent(in) :: p                   !< array containing pressure
-    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz    !< arrays containing pressure gradient in x, y and z
-    real(ccs_real), dimension(:), intent(in) :: invAu, invAv, invAw !< arrays containing inverse momentum diagonal in x, y and z
-    type(face_locator), intent(in) :: loc_f                         !< face locator
+  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
+    real(ccs_real), dimension(:), intent(in) :: p                !< array containing pressure
+    real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz !< arrays containing pressure gradient in x, y and z
+    real(ccs_real), dimension(:), intent(in) :: invA             !< array containing inverse momentum diagonal
+    type(face_locator), intent(in) :: loc_f                      !< face locator
     logical, intent(in) :: enable_cell_corrections
 
     real(ccs_real) :: flux                         !< The flux across the boundary
@@ -635,8 +636,6 @@ contains
     real(ccs_real) :: invAf                        ! Face inverse momentum coefficient
     integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
 
-    real(ccs_real) :: uSwitch, vSwitch, wSwitch
-    real(ccs_real) :: problem_dim
     real(ccs_real) :: interpol_factor
     real(ccs_real), dimension(ndim) :: grad_phi_p 
     real(ccs_real), dimension(ndim) :: grad_phi_nb
@@ -699,12 +698,8 @@ contains
         Vf = interpol_factor * Vp + (1.0_ccs_real - interpol_factor) * V_nb
 
         ! This is probably not quite right ...
-        uSwitch = 1.0_ccs_real
-        vSwitch = 1.0_ccs_real
-        wSwitch = 1.0_ccs_real
-        problem_dim = uSwitch + vSwitch + wSwitch
-        invAp = (uSwitch * invAu(index_p) + vSwitch * invAv(index_p) + wSwitch * invAw(index_p)) / problem_dim
-        invA_nb = (uSwitch * invAu(index_nb) + vSwitch * invAv(index_nb) + wSwitch * invAw(index_nb)) / problem_dim
+        invAp = invA(index_p)
+        invA_nb = invA(index_nb)
         invAf = interpol_factor * invAp + (1.0_ccs_real - interpol_factor) * invA_nb
 
         flux_corr = (Vf * invAf) * flux_corr
