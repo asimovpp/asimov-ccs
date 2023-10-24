@@ -108,7 +108,7 @@ contains
         .or. (graph_conn%xadj(size(graph_conn%xadj) - 1) > size(graph_conn%adjncy))) then
       print *, graph_conn%xadj
       print *, size(graph_conn%adjncy)
-      write (message, *) "ERROR: xadj array is wrong!"
+      write (message, *) "ERROR: xadj array is wrong!" // stage // "-partitioning"
       call stop_test(message)
     end if
    
@@ -189,20 +189,15 @@ contains
 
     integer(ccs_int) :: i, local_num_cells
 
-    type(cell_locator) :: loc_p
-
     call get_local_num_cells(mesh, local_num_cells)
     do i = 1, local_num_cells ! Loop over local cells
-      call create_cell_locator(mesh, i, loc_p)
-      call check_connectivity_cell(i, mesh%topo, loc_p, stage)
+      call check_connectivity_cell(mesh%topo, stage)
     end do
 
   end subroutine check_connectivity
-  subroutine check_connectivity_cell(i, topo, loc_p, stage)
+  subroutine check_connectivity_cell(topo, stage)
 
-    integer(ccs_int), intent(in) :: i
     type(topology), intent(in) :: topo
-    type(cell_locator), intent(in) :: loc_p
     character(len=*), intent(in) :: stage
 
     integer, dimension(:), allocatable :: face_cell1_expected, face_cell2_expected
