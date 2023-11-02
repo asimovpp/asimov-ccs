@@ -939,6 +939,8 @@ contains
   !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
   module subroutine print_partition_quality(par_env, mesh)
 
+    use case_config, only : compute_partqual
+    
     class(parallel_environment), intent(in) :: par_env
     type(ccs_mesh), intent(in) :: mesh
 
@@ -946,12 +948,14 @@ contains
     real(ccs_real) :: ulb ! Under load balance (minimum)
     real(ccs_real) :: olb ! Over load balance (maximum)
 
-    call compute_partition_quality(par_env, mesh, s2v, ulb, olb)
-    if (is_root(par_env)) then
-      print *, "Partitioning report:"
-      print *, "- Surface:Volume ratio:", s2v
-      print *, "- Under load balance:", ulb
-      print *, "- Over load balance:", olb
+    if (compute_partqual) then
+      call compute_partition_quality(par_env, mesh, s2v, ulb, olb)
+      if (is_root(par_env)) then
+        print *, "Partitioning report:"
+        print *, "- Surface:Volume ratio:", s2v
+        print *, "- Under load balance:", ulb
+        print *, "- Over load balance:", olb
+      end if
     end if
     
   end subroutine print_partition_quality
