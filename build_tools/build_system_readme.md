@@ -19,7 +19,7 @@ Some extra scripts are used to work around inflexibilities in Makefiles:
 Additional information can be provided to the build system using "build tags". For example, `!> @build mpi` or `!> @build petsc`. Multiple tags can be put on a single line: `!> @build mpi petsc`. This information could be used to know when to add compile flags for required libraries/headers, though this has not been added to the Makefile yet. 
 Procesisng tags is handled by `process_build_tags.py`, which outputs a variable that can be used in a Makefile rule, e.g. `PETSC_OBJ = file1.o file2.o`.
 
-For each compiler, flags are defined in `$CCS_DIR/build_tools/archs/Makefile.CMP`. Note that with GNU compilers, architecture specific flags are enabled by default, they may need to be adapted when cross compiling.
+For each compiler, flags are defined in `$CCS_DIR/build_tools/archs/Makefile.CMP`. Note that with GNU and LLVM compilers, architecture specific flags are enabled by default, they may need to be adapted when cross compiling.
 
 
 # Linking

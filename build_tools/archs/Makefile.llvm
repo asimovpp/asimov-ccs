@@ -1,0 +1,36 @@
+CC = mpicc
+CFLAGS = -O3
+
+FC = mpif90
+FFLAGS = -cpp -std=f2018 -fimplicit-none
+# HLFIR is required at least since 7411a59001ca7c77ca374cba2f986dfe614c0462
+FFLAGS += -flang-experimental-polymorphism -flang-experimental-hlfir
+ifeq ($(VERBOSE),yes)
+  FFLAGS += -DVERBOSE
+endif
+ifeq ($(BUILD),debug)
+  # Add debugging (i.e. expensive) flags
+  # Ideally we'd be using something like this, but Flang doesn't support it yet
+  #FFLAGS += -g -Og
+  #FFLAGS += -fsanitize=address -fno-omit-frame-pointer
+  #FFLAGS += -ffp-exception-behavior=strict
+  #FFLAGS += -Wall -Wpedantic -Werror
+  # For now, we use this instead
+  FFLAGS += -g -O1
+  FFLAGS += -Werror
+else
+  # Warning, this assumes `uname' exists in the system
+  UNAME_M := $(shell uname -m)
+  ifeq ($(UNAME_M),aarch64)
+    FFLAGS += -O3 -mcpu=native
+  else
+    FFLAGS += -O3 -march=native
+  endif
+endif
+ifeq ($(PROFILE),yes)
+  # Can be visualised with `<LLVM install dir>/share/opt-viewer/opt-viewer.py`
+  FFLAGS += -fsave-optimization-record
+endif
+FFLAGS += -fopenmp
+FFLAGS += -J$(OBJ_DIR)
+MPIRUN = mpirun --oversubscribe
