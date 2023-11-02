@@ -3051,7 +3051,8 @@ contains
     use partitioning, only: partition_kway, &
                             compute_connectivity, &
                             compute_partitioner_input, &
-                            cleanup_partitioner_data
+                            cleanup_partitioner_data, &
+                            print_partition_quality
     use parallel, only: timer
     use timers, only: timer_register, timer_start, timer_stop
     use case_config, only: compute_bwidth
@@ -3080,6 +3081,7 @@ contains
     else
       call partition_stride(par_env, shared_env, roots_env, mesh)
     end if
+    call print_partition_quality(par_env, mesh)
     call timer_stop(timer_partitioning)
 
     call timer_start(timer_compute_connectivity)
