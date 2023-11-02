@@ -38,7 +38,7 @@ module mesh_utils
                      set_global_index, &
                      get_mesh_generated, set_mesh_generated
   use bc_constants
-  use reordering, only: reorder_cells, compute_bandwidth
+  use reordering, only: reorder_cells, print_bandwidth
 
   implicit none
 
@@ -3055,15 +3055,11 @@ contains
                             print_partition_quality
     use parallel, only: timer
     use timers, only: timer_register, timer_start, timer_stop
-    use case_config, only: compute_bwidth
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
-
-    integer(ccs_int) :: bw_max
-    real(ccs_real) :: bw_avg
 
     integer(ccs_int) :: timer_partitioning
     integer(ccs_int) :: timer_compute_connectivity
@@ -3090,10 +3086,7 @@ contains
 
 ! insert halo / local cells computation here
 
-    if(compute_bwidth .eqv. .true.) then
-      call compute_bandwidth(mesh, bw_max, bw_avg)
-      call print_bandwidth(par_env, bw_max, bw_avg)
-    end if
+    call print_bandwidth(par_env, mesh)
 
     call timer_start(timer_reordering)
     call reorder_cells(par_env, shared_env, mesh)
@@ -3101,33 +3094,8 @@ contains
 
     call cleanup_partitioner_data(shared_env, mesh)
 
-    if(compute_bwidth .eqv. .true.) then
-      call compute_bandwidth(mesh, bw_max, bw_avg)
-      call print_bandwidth(par_env, bw_max, bw_avg)
-    end if
+    call print_bandwidth(par_env, mesh)
 
-  end subroutine
-
-  subroutine print_bandwidth(par_env, bw_max, bw_avg)
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    integer(ccs_int), intent(in) :: bw_max
-    real(ccs_real), intent(in) :: bw_avg
-
-    integer(ccs_int) :: ierr
-    real(ccs_real) :: sum_bw_avg
-
-    select type (par_env)
-    type is (parallel_environment_mpi)
-      call MPI_Allreduce(MPI_IN_PLACE, bw_max, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
-      call MPI_Allreduce(bw_avg, sum_bw_avg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
-      if(is_root(par_env)) then 
-        print *, "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
-      end if
-
-    class default
-      call error_abort("Unsupported parallel environment!")
-    end select
-    
   end subroutine
 
 
