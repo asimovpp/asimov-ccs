@@ -85,7 +85,8 @@ INC += -I${PARHIP}/include
 LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
 
 INC += -I${PARMETIS}/include
-LIB += -L${PARMETIS}/lib -lparmetis -Wl,-rpath,${PARMETIS}/lib
+# LIB += ${PARMETIS}/lib/libGKlib.a ${PARMETIS}/lib/libmetis.a ${PARMETIS}/lib/libparmetis.a -Wl,-rpath,${PARMETIS}/lib
+LIB += -L${PARMETIS}/lib -lGKlib -lmetis -lparmetis -Wl,-rpath,${PARMETIS}/lib
 
 ifeq ($(NEED_CMP),yes)
   INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
