@@ -16,7 +16,8 @@ module partitioning
   public :: cleanup_partitioner_data
   public :: compute_connectivity
   public :: compute_connectivity_get_local_cells
-
+  public :: print_partition_quality
+  
   interface
 
     !v Partition the mesh
@@ -59,6 +60,17 @@ module partitioning
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
     end subroutine compute_partitioner_input_generic
 
+    !v Compute and report the partitioning quality.
+    !
+    !  The following metrics are implemented
+    !  - The "surface to volume ratio" nhalo / nlocal (averaged)
+    !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
+    !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
+    module subroutine print_partition_quality(par_env, mesh)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_mesh), intent(in) :: mesh
+    end subroutine print_partition_quality
+    
   end interface
 
 end module partitioning
