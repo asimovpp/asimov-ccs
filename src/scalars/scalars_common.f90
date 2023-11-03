@@ -56,11 +56,6 @@ contains
 
     integer(ccs_int) :: max_faces
 
-    !< checking for density
-    integer(ccs_int) :: index_p
-    class(field), pointer :: density !< field containing the density
-    real(ccs_real), dimension(:), pointer :: density_data
-
     ! Initialise equation system (reused across scalars)
     call dprint("SCALAR: init")
     call initialise(vec_properties)
@@ -130,7 +125,6 @@ contains
     class(field), pointer :: density ! density
     class(linear_solver), allocatable :: lin_solver
     type(equation_system) :: lin_system
-    real(ccs_real), dimension(:), pointer :: density_data
     
     !print*,"inside transport_scalar"
     call initialise(lin_system)
