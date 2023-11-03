@@ -84,10 +84,6 @@ contains
     class(field), pointer :: viscosity !< field containing the viscosity
     class(field), pointer :: density !< field containing the density
 
-    !< checking
-    integer(ccs_int) :: index_p, local_num_cells
-    real(ccs_real), dimension(:), pointer :: density_data
-
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
     call get_field(flow, field_w, w)
