@@ -81,14 +81,6 @@ LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 INC += -I${FYAMLC}/modules 
 LIB += -Wl,-rpath,${FYAMLC}/lib -L${FYAMLC}/lib -lfortran-yaml-c
 
-# Catch error when no partitioner libraries are set
-# A bit clunky, but I don't think Makefile supports AND
-ifndef PARHIP
-ifndef PARMETIS
-  $(error You must build against atleast one partitioning library, setting its install location via PARHIP, PARMETIS. Select between multiple by editing config.yaml)
-endif
-endif
-
 ifdef PARHIP
   INC += -I${PARHIP}/include
   LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
