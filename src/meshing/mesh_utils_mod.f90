@@ -2480,11 +2480,12 @@ contains
     ng = size(mesh%topo%global_indices)
     found = .false.
 
+    ! First look within existing mesh halos
     i = findloc(mesh%topo%global_indices(local_num_cells + 1:ng), global_index_nb, dim=1)
     if (i > 0) then ! Found neighbour in halos
       found = .true.
 
-      i = i + local_num_cells
+      i = i + local_num_cells ! Offset
       if (vertex_nb_flag) then
         mesh%topo%vert_nb_indices(index_p_nb, index_p) = i
       else
@@ -2493,7 +2494,25 @@ contains
     end if
 
     if (.not. found) then
-      call add_new_halo_neighbour(index_p, index_p_nb, vertex_nb_flag, loc_nb, mesh, new_halos)
+      ! Have we seen this halo before?
+
+      ! XXX: abstract
+      i = findloc(new_halos, global_index_nb, dim=1)
+      if (i > 0) then ! Found neighbour in halos
+        found = .true.
+
+        i = i + ng ! Offset
+        if (vertex_nb_flag) then
+          mesh%topo%vert_nb_indices(index_p_nb, index_p) = i
+        else
+          call set_local_index(i, loc_nb)
+        end if
+      end if
+    end if
+    
+    if (.not. found) then
+      ! Halo is unseen
+      call add_new_halo_neighbour(index_p, index_p_nb, global_index_nb, vertex_nb_flag, loc_nb, mesh, new_halos)
     end if
 
   end subroutine add_halo_neighbour
@@ -2502,10 +2521,11 @@ contains
   ! becoming its local index).
   ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
   !      the (extended) original array.
-  subroutine add_new_halo_neighbour(index_p, index_p_nb, vertex_nb_flag, loc_nb, mesh, new_halos)
+  subroutine add_new_halo_neighbour(index_p, index_p_nb, global_index_nb, vertex_nb_flag, loc_nb, mesh, new_halos)
 
     integer(ccs_int), intent(in) :: index_p !< the index of the cell whose neighbours we are assembling
     integer(ccs_int), intent(in) :: index_p_nb !< the cell-relative neighbour index
+    integer(ccs_int), intent(in) :: global_index_nb !< the global index of the neighbour cell
     logical, intent(in) :: vertex_nb_flag !< flag indicating whether the neighbour being added is a vertex neighbour
     type(neighbour_locator), intent(inout) :: loc_nb
     type(ccs_mesh), intent(inout) :: mesh !< the mesh we are assembling neighbours on
@@ -2518,19 +2538,19 @@ contains
 
     call get_global_num_cells(mesh, global_num_cells)
 
-    ng = size(mesh%topo%global_indices)
+    ng = size(mesh%topo%global_indices) + size(new_halos)
 
     if ((ng + 1) > global_num_cells) then
       call error_abort("ERROR: Trying to create halo that exceeds global mesh size.")
     end if
 
-    ng = ng + size(new_halos) + 1
+    ng = ng + 1
     if (vertex_nb_flag) then
       mesh%topo%vert_nb_indices(index_p_nb, index_p) = ng
     else
       call set_local_index(ng, loc_nb)
     end if
-    new_halos = [new_halos, ng]
+    new_halos = [new_halos, global_index_nb]
 
     ! Increment total cell count
     call get_total_num_cells(mesh, total_num_cells)
