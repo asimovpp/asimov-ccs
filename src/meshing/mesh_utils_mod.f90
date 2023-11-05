@@ -2453,8 +2453,6 @@ contains
     integer(ccs_int) :: local_num_cells ! The number of local cells
     integer(ccs_int) :: global_num_cells ! The number of global cells
 
-    integer(ccs_int) :: global_index_h
-
     integer(ccs_int) :: total_num_cells
 
     call get_local_num_cells(mesh, local_num_cells)
@@ -2463,24 +2461,18 @@ contains
     ! First check if neighbour is already present in halo
     ng = size(mesh%topo%global_indices)
     found = .false.
-    do i = local_num_cells + 1, ng
-      ! Line "global_index_h = mesh%topo%global_indices(i)"
-      ! is a functionally equivalent, manually inlined version of
-      ! the following two lines:
-      !call create_cell_locator(mesh, i, loc_h)
-      !call get_global_index(loc_h, global_index_h)
-      ! and used here for performance reasons
-      global_index_h = mesh%topo%global_indices(i)
-      if (global_index_h == global_index_nb) then
-        found = .true.
-        if (vertex_nb_flag) then
-          mesh%topo%vert_nb_indices(index_p_nb, index_p) = i
-        else
-          call set_local_index(i, loc_nb)
-        end if
-        exit
+
+    i = findloc(mesh%topo%global_indices(local_num_cells + 1:ng), global_index_nb, dim=1)
+    if (i > 0) then ! Found neighbour in halos
+      found = .true.
+
+      i = i + local_num_cells
+      if (vertex_nb_flag) then
+        mesh%topo%vert_nb_indices(index_p_nb, index_p) = i
+      else
+        call set_local_index(i, loc_nb)
       end if
-    end do
+    end if
 
     ! If neighbour was not present append to global index list (the end of the global index list
     ! becoming its local index).
