@@ -502,7 +502,8 @@ contains
 
       ! Append new halos to global indices
       mesh%topo%global_indices = [mesh%topo%global_indices, new_halos]
-
+      deallocate(new_halos)
+      
       call get_total_num_cells(mesh, total_num_cells)
       if (any(mesh%topo%vert_nb_indices > total_num_cells)) then
         call error_abort("ERROR: Vertex neighbour index outside total number of cells I can see")
@@ -1144,7 +1145,8 @@ contains
 
         ! Append new halos to global indices
         mesh%topo%global_indices = [mesh%topo%global_indices, new_halos]
-
+        deallocate(new_halos)
+        
         call set_total_num_cells(size(mesh%topo%global_indices), mesh)
         call get_total_num_cells(mesh, total_num_cells)
         call set_halo_num_cells(total_num_cells - local_num_cells, mesh)
