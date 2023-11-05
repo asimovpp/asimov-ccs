@@ -2453,8 +2453,6 @@ contains
     integer(ccs_int) :: local_num_cells ! The number of local cells
     integer(ccs_int) :: global_num_cells ! The number of global cells
 
-    integer(ccs_int) :: total_num_cells
-
     call get_local_num_cells(mesh, local_num_cells)
     call get_global_num_cells(mesh, global_num_cells)
 
@@ -2474,35 +2472,57 @@ contains
       end if
     end if
 
-    ! If neighbour was not present append to global index list (the end of the global index list
-    ! becoming its local index).
-    ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
-    !      the (extended) original array.
     if (.not. found) then
-      if ((ng + 1) > global_num_cells) then
-        call error_abort("ERROR: Trying to create halo that exceeds global mesh size.")
-      end if
-
-      call append_to_arr(global_index_nb, mesh%topo%global_indices)
-      ng = size(mesh%topo%global_indices)
-      if (vertex_nb_flag) then
-        mesh%topo%vert_nb_indices(index_p_nb, index_p) = ng
-      else
-        call set_local_index(ng, loc_nb)
-      end if
-
-      ! Increment total cell count
-      call get_total_num_cells(mesh, total_num_cells)
-      call set_total_num_cells(total_num_cells + 1, mesh)
-
-      call get_total_num_cells(mesh, total_num_cells)
-      if (total_num_cells /= size(mesh%topo%global_indices)) then
-        print *, total_num_cells, size(mesh%topo%global_indices)
-        call error_abort("ERROR: Local total cell count and size of global indices not in agreement")
-      end if
+      call add_new_halo_neighbour(index_p, index_p_nb, global_index_nb, vertex_nb_flag, loc_nb, mesh)
     end if
 
   end subroutine add_halo_neighbour
+
+  ! If neighbour was not present append to global index list (the end of the global index list
+  ! becoming its local index).
+  ! XXX: Note this currently copies into an n+1 temporary, reallocates and then copies back to
+  !      the (extended) original array.
+  subroutine add_new_halo_neighbour(index_p, index_p_nb, global_index_nb, vertex_nb_flag, loc_nb, mesh)
+
+    integer(ccs_int), intent(in) :: index_p !< the index of the cell whose neighbours we are assembling
+    integer(ccs_int), intent(in) :: index_p_nb !< the cell-relative neighbour index
+    integer(ccs_int), intent(in) :: global_index_nb !< the global index of the neighbour cell
+    logical, intent(in) :: vertex_nb_flag !< flag indicating whether the neighbour being added is a vertex neighbour
+    type(neighbour_locator), intent(inout) :: loc_nb
+    type(ccs_mesh), intent(inout) :: mesh !< the mesh we are assembling neighbours on
+
+    integer(ccs_int) :: ng  ! The current number of cells (total = local + halos)
+    
+    integer(ccs_int) :: global_num_cells ! The number of global cells
+    integer(ccs_int) :: total_num_cells
+
+    call get_global_num_cells(mesh, global_num_cells)
+
+    ng = size(mesh%topo%global_indices)
+
+    if ((ng + 1) > global_num_cells) then
+      call error_abort("ERROR: Trying to create halo that exceeds global mesh size.")
+    end if
+
+    call append_to_arr(global_index_nb, mesh%topo%global_indices)
+    ng = size(mesh%topo%global_indices)
+    if (vertex_nb_flag) then
+      mesh%topo%vert_nb_indices(index_p_nb, index_p) = ng
+    else
+      call set_local_index(ng, loc_nb)
+    end if
+
+    ! Increment total cell count
+    call get_total_num_cells(mesh, total_num_cells)
+    call set_total_num_cells(total_num_cells + 1, mesh)
+
+    call get_total_num_cells(mesh, total_num_cells)
+    if (total_num_cells /= size(mesh%topo%global_indices)) then
+      print *, total_num_cells, size(mesh%topo%global_indices)
+      call error_abort("ERROR: Local total cell count and size of global indices not in agreement")
+    end if
+    
+  end subroutine add_new_halo_neighbour
   
   !v @note Docs needed.
   subroutine append_to_arr(i, arr)
