@@ -230,7 +230,6 @@ contains
           adv_coeff_total = adv_coeff_total + aP
           diff_coeff_total = diff_coeff_total - diff_coeff
         else
-          !print*, "B, densnb=",dens(index_nb)
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
           call calc_diffusion_coeff(index_p, j, mesh, .false., visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
@@ -475,6 +474,10 @@ contains
         call get_centre(loc_f, x_f)
 
         ! see math below, but it works because ||n||=1 and points outwards
+        !rnb_k_prime = x_f + a*n
+        !rp_prime = x_f - a*n
+        !dx = rnb_k_prime - rp_prime 
+        !dxmag = norm2(dx)
         dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
         dxmag = 2.0_ccs_real * dx_orth
       else

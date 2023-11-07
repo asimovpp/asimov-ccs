@@ -10,7 +10,7 @@ program tgv
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours, &
-                         compute_bwidth
+                         compute_bwidth, compute_partqual
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        field_density, cell_centred_central, cell_centred_upwind, face_centred
@@ -42,7 +42,8 @@ program tgv
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, str, debug_print
   use vec, only: create_vector, set_vector_location
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
+                    timer_get_time, timer_print_all, timer_export_csv
 
   implicit none
 
@@ -285,6 +286,7 @@ program tgv
   call timer_stop(timer_index_total)
 
   call timer_print_all(par_env)
+  call timer_export_csv(par_env)
 
   call timer_get_time(timer_index_sol, sol_time)
   call timer_get_time(timer_index_io_sol, io_time)
@@ -359,6 +361,7 @@ contains
     end if
 
    call get_value(config_file, 'compute_bwidth', compute_bwidth)
+   call get_value(config_file, 'compute_partqual', compute_partqual)
 
   end subroutine
 

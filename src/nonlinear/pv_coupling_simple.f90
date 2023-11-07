@@ -469,7 +469,7 @@ contains
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p, index_p
-    real(ccs_real) :: r1, r2, r3  ! variables involved in calculating the source term
+    real(ccs_real) :: r1, r2  ! variables involved in calculating the source term
     real(ccs_real), dimension(:), pointer :: dux_data, dvx_data, dwx_data
     real(ccs_real), dimension(:), pointer :: duy_data, dvy_data, dwy_data
     real(ccs_real), dimension(:), pointer :: duz_data, dvz_data, dwz_data
@@ -539,12 +539,13 @@ contains
           duvwp(1)=dux_data(index_p)
           duvwp(2)=dvx_data(index_p)
           duvwp(3)=dwx_data(index_p)
-          ! neighbouring cell gradients
-          duvwf(1)=dux_data(index_nb)
-          duvwf(2)=dvx_data(index_nb)
-          duvwf(3)=dwx_data(index_nb)
 
           if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=dux_data(index_nb)
+            duvwf(2)=dvx_data(index_nb)
+            duvwf(3)=dwx_data(index_nb)
+
             duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
             duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
             duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
@@ -559,12 +560,13 @@ contains
           duvwp(1)=duy_data(index_p)
           duvwp(2)=dvy_data(index_p)
           duvwp(3)=dwy_data(index_p)
-          ! neighbouring cell gradients
-          duvwf(1)=duy_data(index_nb)
-          duvwf(2)=dvy_data(index_nb)
-          duvwf(3)=dwy_data(index_nb)
           
           if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=duy_data(index_nb)
+            duvwf(2)=dvy_data(index_nb)
+            duvwf(3)=dwy_data(index_nb)
+
             duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
             duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
             duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
@@ -579,12 +581,13 @@ contains
           duvwp(1)=duz_data(index_p)
           duvwp(2)=dvz_data(index_p)
           duvwp(3)=dwz_data(index_p)
-          ! neighbouring cell gradients
-          duvwf(1)=duz_data(index_nb)
-          duvwf(2)=dvz_data(index_nb)
-          duvwf(3)=dwz_data(index_nb)
           
           if(.not.is_boundary) then ! no boundary face
+            ! neighbouring cell gradients
+            duvwf(1)=duz_data(index_nb)
+            duvwf(2)=dvz_data(index_nb)
+            duvwf(3)=dwz_data(index_nb)
+
             duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
             duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
             duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
@@ -597,9 +600,8 @@ contains
         end if 
       end do
 
-      r3=r2*Vol
       call set_row(global_index_p, vec_values)
-      call set_entry(r3, vec_values)
+      call set_entry(r2, vec_values)
       call set_values(vec_values, vec)
     end do
 
@@ -622,8 +624,6 @@ contains
     call restore_vector_data(w%z_gradients, dwz_data)
     
   end subroutine calculate_momentum_viscous_source
-
-
 
   !v Solves the pressure correction equation
   !
@@ -723,10 +723,6 @@ contains
       call create_cell_locator(mesh, index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
-
-      allocate (mat_coeffs%global_row_indices(1))
-      allocate (mat_coeffs%global_col_indices(1 + nnb))
-      allocate (mat_coeffs%values(1 + nnb))
 
       block_nrows = 1_ccs_int
       block_ncols = 1_ccs_int + nnb

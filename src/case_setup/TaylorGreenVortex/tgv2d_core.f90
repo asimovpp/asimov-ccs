@@ -7,7 +7,8 @@ module tgv2d_core
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name, compute_bwidth
+                         pressure_solver_method_name, pressure_solver_precon_name, &
+                         compute_bwidth, compute_partqual
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        field_density, cell_centred_central, cell_centred_upwind, face_centred
@@ -313,6 +314,7 @@ contains
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
+    call get_value(config_file, 'compute_partqual', compute_partqual)
     call get_value(config_file, 'compute_bwidth', compute_bwidth)
 
   end subroutine

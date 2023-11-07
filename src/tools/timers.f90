@@ -30,6 +30,7 @@ module timers
   public :: timer_stop
   public :: timer_print
   public :: timer_print_all
+  public :: timer_export_csv
   public :: timer_get_time
 
 contains
@@ -157,8 +158,7 @@ contains
     call timer_get_time(timer_index, time)
 
     if (is_root(par_env)) then
-      ! repeat ' ' to right align
-      write(*,'(A30, F10.4, A)', advance="no")  repeat(' ', max(0, 29-len(trim(timer_names(timer_index))))) // trim(timer_names(timer_index)) // ":", time, " s"
+      write(*,'(A30, F12.4, A)', advance="no")  trim(timer_names(timer_index)) // ":", time, " s"
 
       if (total_index /= 0) then
         call timer_get_time(total_index, total_time)
@@ -172,6 +172,40 @@ contains
     end if
 
   end subroutine
+
+  !> Export timers to timers.csv
+  subroutine timer_export_csv(par_env)
+    class(parallel_environment), intent(in) :: par_env
+    integer(ccs_int) :: timer_index
+    double precision :: time, total_time, percentage
+    integer :: io_unit
+
+    if (.not. is_root(par_env)) return
+
+    open (newunit=io_unit, file="timers.csv", status="replace", form="formatted")
+
+    write (io_unit, '(a)') 'name, timing (s), percentage, s/calls, n calls'
+
+    do timer_index=1, size(ticks)
+
+      call timer_get_time(timer_index, time)
+
+      percentage = 0
+      if (total_index /= 0) then
+        call timer_get_time(total_index, total_time)
+        percentage = 100.0*time / total_time
+      end if
+
+      write(io_unit,'(A30)', advance="no")  trim(timer_names(timer_index)) // ','
+      write(io_unit,'(F12.4, A)', advance="no")  time, ","
+      write(io_unit,'(F8.2, A)', advance="no")  percentage, ","
+      write(io_unit,'(F15.6, A)', advance="no")  time / counters(timer_index), ","
+      write(io_unit,'(I10)', advance="yes")  counters(timer_index)
+      
+    end do
+
+  end subroutine
+
 
   !> Print all the timers
   subroutine timer_print_all(par_env)

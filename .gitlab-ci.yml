@@ -45,7 +45,8 @@ debug_build_gnu:
   extends: [.general_setup, .setup_gnu]
   script:
     - HOME=${CI_HOME} CMP=gnu BUILD=debug make all
-  allow_failure: true
+  artifacts:
+    paths: [obj/]
 
 build_gnu:
   extends: [.general_setup, .setup_gnu]
@@ -56,11 +57,11 @@ build_gnu:
 
 test_gnu:
   needs: 
-    - job: build_gnu
+    - job: debug_build_gnu
       artifacts: true
   extends: [.general_setup, .setup_gnu, .test_common]
   script:
-    - HOME=${CI_HOME} CMP=gnu make tests
+    - HOME=${CI_HOME} CMP=gnu BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 
@@ -340,6 +341,7 @@ A2_perf_2nodes_database_update:
 nightly_gnu_performance:
   extends: [.setup_nightly, .setup_gnu]
   script:
+    - build_tools/test_load.sh
     - HOME=${CI_HOME} CMP=gnu make
     - export CPS=90
     - export NCORES=26
@@ -381,7 +383,7 @@ nightly_wiki_update:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 
     - git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
     - cd asimov-ccs.wiki
-    - ../asimov-ccs-nightly-data/plot_performance.py ../asimov-ccs-nightly-data/performance_results.json img/ci-performance-graph
+    - ../asimov-ccs-nightly-data/plot_performance.py --datafile ../asimov-ccs-nightly-data/performance_results.json --outfile img/ci-performance-graph
     - git add img/ci-performance-graph*
     - git -c user.name='CI' -c user.email='ci' commit -m "CI updates graph"
     - git push

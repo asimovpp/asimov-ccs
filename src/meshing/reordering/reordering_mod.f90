@@ -11,8 +11,8 @@ module reordering
 
   private
   public :: reorder_cells
-  public :: compute_bandwidth
   public :: disable_reordering
+  public :: print_bandwidth
 
   interface
 
@@ -31,13 +31,12 @@ module reordering
       type(ccs_mesh), intent(inout) :: mesh
     end subroutine
 
-    !> Calculate and print the bandwidth of a mesh
-    module subroutine compute_bandwidth(mesh, bw_max, bw_avg)
+    !> Print statistics on the local matrix bandwidth
+    module subroutine print_bandwidth(par_env, mesh)
+      class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(ccs_mesh), intent(in) :: mesh
-      integer(ccs_int), intent(out) :: bw_max
-      real(ccs_real), intent(out) :: bw_avg
-    end subroutine
-
+    end subroutine print_bandwidth
+    
     !> Generate a mesh cell reordering mapping.
     module subroutine get_reordering(mesh, new_indices)
       type(ccs_mesh), intent(in) :: mesh

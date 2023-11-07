@@ -102,7 +102,7 @@ contains
     integer(ccs_int) :: local_num_cells
 
     real(ccs_real) :: sgn
-    real(ccs_real) :: adv_coeff, adv_coeffaP, adv_coeffaF
+    real(ccs_real) :: adv_coeffaP, adv_coeffaF
 
     select type(scalar)
     type is (central_field)
