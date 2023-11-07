@@ -232,7 +232,7 @@ contains
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
-          call calc_diffusion_coeff(index_p, j, mesh, .false., visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
+          call calc_diffusion_coeff(index_p, j, mesh, .false., visc(index_p), 0.0_ccs_real, dens(index_p), 0.0_ccs_real, SchmidtNo, diff_coeff)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
           
