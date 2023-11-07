@@ -10,7 +10,7 @@ program tgv
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours, &
-                         compute_bwidth
+                         compute_bwidth, compute_partqual
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind, face_centred
@@ -358,6 +358,7 @@ contains
     end if
 
    call get_value(config_file, 'compute_bwidth', compute_bwidth)
+   call get_value(config_file, 'compute_partqual', compute_partqual)
 
   end subroutine
 

@@ -24,9 +24,10 @@ Set the following environment variables:
 - `PETSC_DIR` to point to the PETSc install directory 
 - `FYAMLC` to point to the root of your fortran-yaml-c build directory
 - `ADIOS2` to point to the ADIOS2 install directory
-- `PARHIP` to point to the root of the ParHIP install directory
-- `PARMETIS` to point to the root of the ParMETIS install directory
+- `PARHIP` to point to the root of the ParHIP install directory (optional)
+- `PARMETIS` to point to the root of the ParMETIS install directory (optional)
 
+**N.B.** at least one of `PARHIP` or `PARMETIS` must be set when building.
 
 With the prerequisites in place, ASiMoV-CCS can be built from the root directory with
 ```
