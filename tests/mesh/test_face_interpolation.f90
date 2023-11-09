@@ -9,10 +9,10 @@ program test_face_interpolation
   use constants, only: ndim
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_face_interpolation, create_face_locator, get_max_faces
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   type(face_locator) :: loc_f
   integer(ccs_int) :: index_p, j
   real(ccs_real) :: interpol_factor
@@ -29,7 +29,7 @@ program test_face_interpolation
   index_p = 1_ccs_int
   j = 1_ccs_int
 
-  call create_face_locator(mesh, index_p, j, loc_f)
+  call create_face_locator(index_p, j, loc_f)
   call get_face_interpolation(loc_f, interpol_factor)
 
   call assert_eq(interpol_factor, 1.0_ccs_real - face_coordinate, "FAIL: wrong interpolation for cell1")
@@ -38,10 +38,12 @@ program test_face_interpolation
   index_p = 2_ccs_int
   j = 1_ccs_int
 
-  call create_face_locator(mesh, index_p, j, loc_f)
+  call create_face_locator(index_p, j, loc_f)
   call get_face_interpolation(loc_f, interpol_factor)
 
   call assert_eq(interpol_factor, face_coordinate, "FAIL: wrong interpolation for cell2")
+
+  call nullify_mesh_object()
 
   call fin()
 
@@ -71,19 +73,20 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
+    call set_mesh_object(mesh)
     ! Build 2 cells mesh topology
-    call set_local_num_cells(2, mesh)
-    call set_global_num_cells(2, mesh)
-    call set_halo_num_cells(0, mesh)
-    call set_total_num_cells(2, mesh)
-    call set_global_num_faces(1, mesh)
-    call set_num_faces(1, mesh)
-    call set_max_faces(1, mesh)
+    call set_local_num_cells(2)
+    call set_global_num_cells(2)
+    call set_halo_num_cells(0)
+    call set_total_num_cells(2)
+    call set_global_num_faces(1)
+    call set_num_faces(1)
+    call set_max_faces(1)
 
-    call get_local_num_cells(mesh, local_num_cells)
-    call get_total_num_cells(mesh, total_num_cells)
-    call get_global_num_cells(mesh, global_num_cells)
-    call get_max_faces(mesh, max_faces)
+    call get_local_num_cells(local_num_cells)
+    call get_total_num_cells(total_num_cells)
+    call get_global_num_cells(global_num_cells)
+    call get_max_faces(max_faces)
 
     allocate (mesh%topo%global_indices(global_num_cells))
     mesh%topo%global_indices(1) = 1
@@ -96,10 +99,10 @@ contains
     mesh%topo%face_indices(:, :) = 1
 
     allocate (mesh%topo%nb_indices(max_faces, local_num_cells))
-    call create_cell_locator(mesh, 1, loc_p)        ! Select cell 1
+    call create_cell_locator(1, loc_p)        ! Select cell 1
     call create_neighbour_locator(loc_p, 1, loc_nb) ! Select 1st neighbour
     call set_local_index(2, loc_nb)               ! Set neighbour index = 2
-    call create_cell_locator(mesh, 2, loc_p)        ! Select cell 2
+    call create_cell_locator(2, loc_p)        ! Select cell 2
     call create_neighbour_locator(loc_p, 1, loc_nb) ! Select 1st neighbour
     call set_local_index(1, loc_nb)               ! Set neighbour index = 1
 

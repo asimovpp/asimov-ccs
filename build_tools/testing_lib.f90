@@ -11,6 +11,7 @@ module testing_lib
   use parallel_types_mpi
   use utils, only: str, exit_print
   use constants, only: ccs_split_type_low_high, ccs_split_type_shared
+  use globals, only: mesh
 
   implicit none
 
