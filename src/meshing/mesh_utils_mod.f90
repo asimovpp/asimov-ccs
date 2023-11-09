@@ -1278,6 +1278,7 @@ contains
       call error_abort("Unknown parallel environment type.")
 
     end select
+    call nullify_mesh_object()
 
   end subroutine build_square_topology
 
