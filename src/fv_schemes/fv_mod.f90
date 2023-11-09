@@ -85,10 +85,9 @@ module fv
 
     !> Sets the diffusion coefficient
     ! XXX: why is this a function when the equivalent advection ones are subroutines?
-    module subroutine calc_diffusion_coeff(index_p, index_nb, mesh, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff)
+    module subroutine calc_diffusion_coeff(index_p, index_nb, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff)
       integer(ccs_int), intent(in) :: index_p  !< the local cell index
       integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
-      type(ccs_mesh), intent(in) :: mesh       !< the mesh structure
       logical, intent(in) :: enable_cell_corrections !< whether or not cell corrections shouls be used
       real(ccs_real), intent(out) :: coeff                  !< the diffusion coefficient
       real(ccs_real), intent(in) :: visc_p, visc_nb        !< viscosity
@@ -98,12 +97,11 @@ module fv
     end subroutine calc_diffusion_coeff
 
     !> Computes fluxes and assign to matrix and RHS
-    module subroutine compute_fluxes(phi, mf, viscosity, density, mesh, component, M, vec)
+    module subroutine compute_fluxes(phi, mf, viscosity, density, component, M, vec)
       class(field), intent(inout) :: phi             !< scalar field structure
       class(field), intent(inout) :: mf              !< mass flux field structure (defined at faces)
       class(field), intent(inout) :: viscosity       !< viscosity
       class(field), intent(inout) :: density         !< density
-      type(ccs_mesh), intent(in) :: mesh          !< the mesh being used
       integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
       class(ccs_matrix), intent(inout) :: M       !< Data structure containing matrix to be filled
       class(ccs_vector), intent(inout) :: vec     !< Data structure containing RHS vector to be filled
@@ -151,8 +149,7 @@ module fv
     !v Performs an update of the gradients of a field.
     !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
     !  correctly updated on other PEs. @endnote
-    module subroutine update_gradient(mesh, phi)
-      type(ccs_mesh), intent(in) :: mesh !< the mesh
+    module subroutine update_gradient(phi)
       class(field), intent(inout) :: phi !< the field whose gradients we want to update
     end subroutine update_gradient
 
@@ -185,15 +182,13 @@ module fv
 
 
     !> Adds a fixed source term to the righthand side of the equation
-    module subroutine add_fixed_source(mesh, S, rhs)
-      type(ccs_mesh), intent(in) :: mesh     !< The mesh
+    module subroutine add_fixed_source(S, rhs)
       class(ccs_vector), intent(inout) :: S   !< The source field
       class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
     end subroutine add_fixed_source
 
     !> Adds a linear source term to the system matrix
-    module subroutine add_linear_source(mesh, S, M)
-      type(ccs_mesh), intent(in) :: mesh    !< The mesh
+    module subroutine add_linear_source(S, M)
       class(ccs_vector), intent(inout) :: S !< The source field
       class(ccs_matrix), intent(inout) :: M !< The system
     end subroutine add_linear_source

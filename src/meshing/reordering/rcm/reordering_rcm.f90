@@ -7,13 +7,12 @@ submodule(reordering) reordering_rcm
 contains
 
   !v Determine how the mesh should be reordered using bundled RCM reordering
-  module subroutine get_reordering(mesh, new_indices)
+  module subroutine get_reordering(new_indices)
 
     use rcm_mod
     use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
                        get_local_index, create_neighbour_locator, get_local_status
 
-    type(ccs_mesh), intent(in) :: mesh                                      !< the mesh to be reordered
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format
 
     integer(ccs_int), allocatable, dimension(:) :: perm, perm_inv
@@ -30,14 +29,14 @@ contains
     type(neighbour_locator) :: loc_nb
 
     ! First build adjacency matrix for local cells
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
 
     allocate (xadj(0))
     allocate (adjncy(0))
     ctr = 1
     xadj = [xadj, ctr]
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)

@@ -118,7 +118,7 @@ contains
 
     dx = domain_size / real(cps)
 
-    call get_total_num_cells(mesh, total_num_cells)
+    call get_total_num_cells(total_num_cells)
     do icell = 1, total_num_cells
       icell_global = mesh%topo%global_indices(icell)
 

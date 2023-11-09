@@ -68,7 +68,7 @@ contains
         call update(phi%y_gradients)
         call update(phi%z_gradients)
 
-        call update_gradient(vec_properties%mesh, phi)
+        call update_gradient(phi)
       end if
       !! --- End update ---
     end associate

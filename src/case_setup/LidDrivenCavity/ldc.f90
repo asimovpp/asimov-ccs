@@ -8,6 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
+  use globals, only: mesh
   use case_config, only: num_iters, cps, domain_size, case_name, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
@@ -50,7 +51,6 @@ program ldc
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
-  type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
@@ -175,7 +175,7 @@ program ldc
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(mesh, u, v, w, mf, viscosity, density) 
+  call initialise_velocity(u, v, w, mf, viscosity, density) 
   call update(u%values)
   call update(v%values)
   call update(w%values)
@@ -287,7 +287,7 @@ contains
 
     integer(ccs_int) :: global_num_cells
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
@@ -311,7 +311,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(mesh, u, v, w, mf, viscosity, density)
+  subroutine initialise_velocity(u, v, w, mf, viscosity, density)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -321,7 +321,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, w, mf, viscosity, density
 
     ! Local variables
@@ -333,7 +332,7 @@ contains
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -344,7 +343,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call calc_cell_coords(global_index_p, cps, row, col)
 

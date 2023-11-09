@@ -133,6 +133,7 @@ program poisson
   use problem_setup
 
   ! ASiMoV-CCS uses
+  use globals, only: mesh
   use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
   use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
@@ -171,7 +172,6 @@ program poisson
   type(vector_spec) :: vec_properties
   type(matrix_spec) :: mat_properties
   type(equation_system) :: poisson_eq
-  type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: cps = 10 !< Default value for cells per side
 
@@ -282,10 +282,10 @@ contains
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(insert_mode, vec_values)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
       call clear_entries(vec_values)
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call set_row(global_index_p, vec_values)
@@ -304,6 +304,7 @@ contains
     class(parallel_environment), allocatable :: shared_env
 
     mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+    call set_mesh_object(mesh)
 
   end subroutine initialise_poisson
 
@@ -329,7 +330,7 @@ contains
     call create_vector_values(nrows_working_set, val_dat)
     call set_mode(add_mode, val_dat)
 
-    call get_local_num_cells(mesh, nloc)
+    call get_local_num_cells(nloc)
     associate (h => mesh%geo%h)
       ! this is currently setting 1 vector value at a time
       ! consider changing to doing all the updates in one go
@@ -337,7 +338,7 @@ contains
       do i = 1, nloc
         call clear_entries(val_dat)
 
-        call create_cell_locator(mesh, i, loc_p)
+        call create_cell_locator(i, loc_p)
         call get_centre(loc_p, cc)
         call get_volume(loc_p, V)
         call get_global_index(loc_p, global_index_p)
