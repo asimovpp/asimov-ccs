@@ -16,7 +16,8 @@ submodule(partitioning) partitioning_common
                      get_global_index, &
                      get_local_index, set_local_index, &
                      get_count_vertex_neighbours, &
-                     set_mesh_object, nullify_mesh_object
+                     set_mesh_object, nullify_mesh_object, &
+                     set_topo_object, nullify_topo_object
   use case_config, only: vertex_neighbours
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
 
@@ -685,6 +686,7 @@ contains
     integer(ccs_int) :: irank
     integer(ccs_int) :: local_num_cells
     
+    call set_topo_object(topo)
     irank = par_env%proc_id
 
     call compute_partitioner_input_generic_graphconn(par_env, shared_env, topo%global_num_cells, &
@@ -707,6 +709,8 @@ contains
     call dprint("Initial number of halo cells: " // str(topo%halo_num_cells))
     topo%total_num_cells = local_num_cells + topo%halo_num_cells
     call dprint("Total number of cells (local + halo): " // str(topo%total_num_cells))
+
+    call nullify_topo_object()
     
   end subroutine compute_partitioner_input_generic_topo
 
