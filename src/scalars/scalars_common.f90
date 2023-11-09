@@ -27,9 +27,9 @@ submodule(scalars) scalars_common
 
   !> List of fields not to be updated as transported scalars
   integer(ccs_int), dimension(8), parameter :: skip_fields = &
-       (/ field_u, field_v, field_w, &
+       [ field_u, field_v, field_w, &
           field_p, field_p_prime, &
-          field_mf, field_viscosity, field_density /)
+          field_mf, field_viscosity, field_density ]
 
 contains
   
@@ -102,9 +102,6 @@ contains
        end if
 
        call transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
-         
-       ! density values are turned to exponential here
-       
     end do
     
   end subroutine update_scalars
@@ -143,28 +140,16 @@ contains
     call update(rhs)
     call finalise(M)
 
-    ! density values are single digit (same as i/p)  
-
     if (allocated(phi%values%name)) then
        call set_equation_system(par_env, rhs, phi%values, M, lin_system, phi%values%name)
     else
        call set_equation_system(par_env, rhs, phi%values, M, lin_system)
     end if
-
-    ! density values are single digit (same as i/p)  
-       
+     
     call dprint("SCALAR: solve linear system")
     call create_solver(lin_system, lin_solver)
 
-    ! density values are single digit (same as i/p)  
     call solve(lin_solver)
-    !call get_vector_data(density%values, density_data)
-    !do index_p = 1, 5
-      !print*,"IUS cell=",index_p,"density=",density_data(index_p)
-    !end do 
-    !call restore_vector_data(density%values, density_data)
-    ! density values are exponential
-
     call update_gradient(mesh, phi)
 
     deallocate(lin_solver)

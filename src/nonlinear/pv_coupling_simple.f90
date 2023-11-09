@@ -155,7 +155,7 @@ contains
       call calculate_velocity(par_env, mesh, flow, flow_solver_selector, ivar, M, source, &
                               lin_system, invAu, invAv, invAw, res, residuals)
 
-            ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
+      ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(mesh, invAu, invAv, invAw, ivar, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")

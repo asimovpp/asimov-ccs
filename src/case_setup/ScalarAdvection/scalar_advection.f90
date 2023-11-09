@@ -198,16 +198,12 @@ program scalar_advection
   ! Create linear solver & set options
   if (irank == par_env%root) print *, "Solve"
   call set_equation_system(par_env, source, scalar%values, M, scalar_equation_system)
-  print*, "line 1"
   call create_solver(scalar_equation_system, scalar_solver)
-  print*, "line2"
   call solve(scalar_solver)
-  print*, "line 3"
 
   call write_mesh(par_env, case_path, mesh)
-  print*, "line 4"
   call write_solution(par_env, case_path, mesh, output_list)
-  print*, "line 5"
+
   ! Clean up
   deallocate (scalar)
   deallocate (source)
@@ -217,21 +213,13 @@ program scalar_advection
   deallocate (density)
   deallocate (scalar_solver)
 
-  print*, "line 6"
-
   call timer(end_time)
-
-  print*, "line 7"
 
   if (par_env%proc_id == par_env%root) then
     print *, "Elapsed time = ", (end_time - start_time)
   end if
 
-  print*, "line 8"
-
   call cleanup_parallel_environment(par_env)
-  print*, "line 9"
-
 contains
 
   subroutine initialise_flow(mesh, u, v, scalar, mf, viscosity, density)
