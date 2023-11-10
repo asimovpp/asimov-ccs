@@ -2458,6 +2458,20 @@ contains
 
   end subroutine build_local_mesh_add_neighbour
 
+  !v Helper subroutine to add a neighbour in the set of halo cells.
+  !
+  !  Given the global index of the neighbour:
+  !  1) try to locate it at the end of the global indices array - this is for historical reasons, in
+  !     the new design only the global indices of local cells should be stored here at this point.
+  !  2) check if we've already found this halo neighbour in the new halos list.
+  !  3) if the above fails then it is a new halo neighbour.
+  !
+  !  The local cells and halo cells are mainained separately at this point as it means we can
+  !  (relatively) cheaply append halo cells onto the (shorter) new halos list and only at the end
+  !  does an expensive concatenation of local and halo cells occur.
+  !
+  !  This subroutine should only be called after determining a neighbour is a halo (i.e. non-local)
+  !  cell.
   subroutine add_halo_neighbour(index_p, index_p_nb, global_index_nb, vertex_nb_flag, loc_nb, mesh, new_halos)
 
     integer(ccs_int), intent(in) :: index_p !< the index of the cell whose neighbours we are assembling
