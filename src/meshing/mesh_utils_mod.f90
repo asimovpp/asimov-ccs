@@ -487,10 +487,10 @@ contains
                 idx_vnb = findloc(mesh%topo%global_indices, idxg_vnb, dim=1)
 
                 if (idx_vnb > 0) then
-                  call build_local_mesh_add_neighbour(i, vctr, idx_vnb, idxg_vnb, mesh, .true., new_halos)
+                  call build_local_mesh_add_neighbour(i, vctr, idx_vnb, idxg_vnb, .true., mesh, new_halos)
                 else
                   call get_total_num_cells(mesh, total_num_cells)
-                  call build_local_mesh_add_neighbour(i, vctr, total_num_cells + 1, idxg_vnb, mesh, .true., new_halos)
+                  call build_local_mesh_add_neighbour(i, vctr, total_num_cells + 1, idxg_vnb, .true., mesh, new_halos)
                 end if
 
                 vctr = vctr + 1
@@ -2396,7 +2396,7 @@ contains
       global_index_nb = index_p + index_increment
     end if
 
-    call build_local_mesh_add_neighbour(index_counter, nb_counter, index_nb, global_index_nb, mesh, vertex_flag, new_halos)
+    call build_local_mesh_add_neighbour(index_counter, nb_counter, index_nb, global_index_nb, vertex_flag, mesh, new_halos)
   end subroutine add_neighbour
 
   !v Helper subroutine to add a neighbour to a cell's neighbour list.
@@ -2411,14 +2411,14 @@ contains
   !        is added immediately
   !     2. this is a new halo cell, the list of global indices must be grown to
   !        accomodate before adding the neighbour.
-  subroutine build_local_mesh_add_neighbour(index_p, index_p_nb, index_nb, global_index_nb, mesh, vertex_nb_flag, new_halos)
+  subroutine build_local_mesh_add_neighbour(index_p, index_p_nb, index_nb, global_index_nb, vertex_nb_flag, mesh, new_halos)
 
     integer(ccs_int), intent(in) :: index_p !< the index of the cell whose neighbours we are assembling
     integer(ccs_int), intent(in) :: index_p_nb !< the cell-relative neighbour index
     integer(ccs_int), intent(in) :: index_nb !< the local index of the neighbour cell
     integer(ccs_int), intent(in) :: global_index_nb !< the global index of the neighbour cell
-    type(ccs_mesh), intent(inout) :: mesh !< the mesh we are assembling neighbours on
     logical, intent(in) :: vertex_nb_flag !< flag indicating whether the neighbour being added is a vertex neighbour
+    type(ccs_mesh), intent(inout) :: mesh !< the mesh we are assembling neighbours on
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: new_halos !< New halo indices
 
     integer(ccs_int) :: local_num_cells ! The number of local cells
