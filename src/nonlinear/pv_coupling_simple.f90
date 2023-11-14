@@ -282,7 +282,7 @@ contains
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
-    use timers, only: timer_start, timer_stop, timer_get_index
+    use timers, only: timer_register_start, timer_stop
 
     ! Arguments
     type(fluid), intent(inout) :: flow
@@ -336,8 +336,7 @@ contains
     call get_field(flow, field_mf, mf)
     call get_field(flow, field_viscosity, viscosity)
 
-    call timer_get_index("Building coefficients", timer_coeffs)
-    call timer_start(timer_coeffs)
+    call timer_register_start("Building coefficients", timer_coeffs)
     call compute_fluxes(u, mf, viscosity, mesh, component, M, vec)
     call timer_stop(timer_coeffs)
 
@@ -627,7 +626,7 @@ contains
   subroutine calculate_pressure_correction(par_env, mesh, invAu, invAv, invAw, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
-    use timers, only: timer_start, timer_stop, timer_get_index
+    use timers, only: timer_register_start, timer_stop
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -689,8 +688,7 @@ contains
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: timer_coeffs
 
-    call timer_get_index("Building coefficients", timer_coeffs)
-    call timer_start(timer_coeffs)
+    call timer_register_start("Building coefficients", timer_coeffs)
     ! First zero matrix
     call zero(M)
 

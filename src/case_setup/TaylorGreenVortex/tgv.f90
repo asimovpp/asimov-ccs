@@ -75,7 +75,6 @@ program tgv
   integer(ccs_int) :: timer_index_io_init
   integer(ccs_int) :: timer_index_io_sol
   integer(ccs_int) :: timer_index_sol
-  integer(ccs_int) :: timer_coeffs
 
   double precision :: sol_time, io_time
 
@@ -244,7 +243,6 @@ program tgv
   call timer_stop(timer_index_init)
   call timer_register("I/O time for solution", timer_index_io_sol)
   call timer_register_start("Solver time inc I/O", timer_index_sol)
-  call timer_register("Building coefficients", timer_coeffs)
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
