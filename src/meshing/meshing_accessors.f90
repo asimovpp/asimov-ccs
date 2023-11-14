@@ -10,6 +10,8 @@ submodule(meshing) meshing_accessors
 
 contains
 
+  !> Sets mesh object to the module
+  ! needs to be run before any call to an accessor
   module subroutine set_mesh_object(input_mesh)
     type(ccs_mesh), target, intent(inout) :: input_mesh           !< The mesh
 
@@ -22,6 +24,7 @@ contains
     
   end subroutine
 
+  !> Unsets module mesh object
   module subroutine nullify_mesh_object()
 
     nullify(mesh)
@@ -29,6 +32,8 @@ contains
 
   end subroutine
 
+  !> Sets topo object to the module
+  ! needs to be run before any call to an accessor
   module subroutine set_topo_object(input_topo)
     type(topology), target, intent(inout) :: input_topo           !< The mesh topology object
 
@@ -40,6 +45,7 @@ contains
     
   end subroutine
 
+  !> Unsets module topo object
   module subroutine nullify_topo_object()
 
     nullify(topo)
