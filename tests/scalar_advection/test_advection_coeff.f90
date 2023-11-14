@@ -14,12 +14,12 @@ program test_advection_coeff
   use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal, &
                      get_local_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use utils, only: update, initialise, &
                    set_size, set_row, set_entry, set_values
   use petsctypes, only: vector_petsc
 
   implicit none
-  type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
   class(field), allocatable :: u, v
@@ -39,8 +39,9 @@ program test_advection_coeff
   call init()
 
   mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  call set_mesh_object(mesh)
 
-  call get_local_num_cells(mesh, local_num_cells)
+  call get_local_num_cells(local_num_cells)
 
   index_test = int(0.5 * local_num_cells + 2, ccs_int)
   do direction = x_dir, y_dir
@@ -64,7 +65,7 @@ program test_advection_coeff
       call create_vector(vec_properties, u%values)
       call create_vector(vec_properties, v%values)
 
-      call set_velocity_fields(mesh, direction, u, v)
+      call set_velocity_fields(direction, u, v)
 
       associate (u_vec => u%values, v_vec => v%values)
         call get_vector_data(u_vec, u_data)
@@ -82,6 +83,8 @@ program test_advection_coeff
       call tidy_velocity_fields(scalar, u, v)
     end do
   end do
+
+  call nullify_mesh_object()
 
   call fin()
 
@@ -101,25 +104,24 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
 
-    call create_cell_locator(mesh, index, loc_p)
+    call create_cell_locator(index, loc_p)
     call get_local_index(loc_p, index_p)
 
     call create_neighbour_locator(loc_p, nb, loc_nb)
     call get_local_index(loc_nb, index_nb)
 
-    call create_face_locator(mesh, index, nb, loc_f)
+    call create_face_locator(index, nb, loc_f)
     call get_face_area(loc_f, face_area)
 
     call get_face_normal(loc_f, normal)
   end subroutine get_cell_parameters
 
   !v Sets the velocity field in the desired direction and discretisation
-  subroutine set_velocity_fields(mesh, direction, u, v)
+  subroutine set_velocity_fields(direction, u, v)
 
     use vec, only: create_vector_values
     use utils, only: set_mode
 
-    class(ccs_mesh), intent(in) :: mesh              !< The mesh structure
     integer(ccs_int), intent(in) :: direction        !< Integer indicating the direction of the velocity field
     class(field), intent(inout), allocatable :: u, v !< The velocity fields in x and y directions
     type(cell_locator) :: loc_p
@@ -128,7 +130,7 @@ contains
     real(ccs_real) :: u_val, v_val
     integer(ccs_int) :: n_local
 
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -137,7 +139,7 @@ contains
 
     ! Set IC velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       if (direction == x_dir) then

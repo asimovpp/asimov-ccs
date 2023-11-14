@@ -8,11 +8,11 @@ program test_mesh_neighbours
   use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
                      get_boundary_status, get_local_num_cells, get_count_vertex_neighbours, &
                      get_local_index
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_mesh
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   type(cell_locator) :: loc_p
 
   integer(ccs_int) :: n, nx, ny, nz
@@ -49,13 +49,14 @@ program test_mesh_neighbours
 
     l = parallel_random(par_env)
     mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
+    call set_mesh_object(mesh)
 
     vertex_boundary_ctr = 0
     boundary_ctr = 0
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
 
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
       call get_count_vertex_neighbours(loc_p, nvnb)
 
@@ -125,6 +126,8 @@ program test_mesh_neighbours
     ! excluding cube vertices and edges
     call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
     call assert_eq(global_vertex_boundary_ctr, expected_vertex_boundary_ctr, "FAIL: mesh vertex boundary count is incorrect")
+
+    call nullify_mesh_object()
   end do
 
   call fin()
@@ -159,7 +162,7 @@ contains
       call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call create_cell_locator(mesh, index_nb, cell_loc_nb)
+        call create_cell_locator(index_nb, cell_loc_nb)
         call count_neighbours(cell_loc_nb, nnb)
         found_parent = .false.
         do j = 1, nnb
@@ -211,7 +214,7 @@ contains
       call get_local_status(loc_nb, is_local)
       if (is_local) then
         ! Parent should be in neighbour's neighbour list
-        call create_cell_locator(mesh, index_nb, cell_loc_nb)
+        call create_cell_locator(index_nb, cell_loc_nb)
         call get_count_vertex_neighbours(cell_loc_nb, nvnb)
         found_parent = .false.
         do j = 1, nvnb

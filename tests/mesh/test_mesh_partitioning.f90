@@ -17,17 +17,20 @@ program test_mesh_partitioning
   use kinds, only: ccs_int, ccs_long
   use types, only: ccs_mesh, topology
   use meshing, only: get_global_num_cells, set_global_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   implicit none
 
-  type(ccs_mesh) :: mesh
   integer(ccs_int) :: global_num_cells
 
   call init()
+
+  allocate(mesh)
+  call set_mesh_object(mesh)
   call initialise_test()
 
   ! Partition
-  call get_global_num_cells(mesh, global_num_cells)
+  call get_global_num_cells(global_num_cells)
   call create_shared_array(shared_env, global_num_cells, mesh%topo%graph_conn%global_partition, mesh%topo%graph_conn%global_partition_window)
   call partition_kway(par_env, shared_env, roots_env, mesh)
 
@@ -38,6 +41,7 @@ program test_mesh_partitioning
   ! Check mesh after partitioning
   call check_global_cell_count()
 
+  call nullify_mesh_object()
   call clean_up()
   call fin()
 
@@ -45,7 +49,7 @@ contains
 
   subroutine initialise_test()
 
-    call set_global_num_cells(15, mesh)
+    call set_global_num_cells(15)
 
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -99,7 +103,7 @@ contains
     integer(ccs_int) :: global_num_cells
 
     nnew = 0
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     do i = 1, global_num_cells
       if (mesh%topo%graph_conn%global_partition(i) == par_env%proc_id) then
         nnew = nnew + 1

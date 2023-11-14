@@ -10,7 +10,7 @@ module globals
 
   private
 
-  type(ccs_mesh), public :: mesh
+  type(ccs_mesh), allocatable, public :: mesh
 
 
 end module globals 

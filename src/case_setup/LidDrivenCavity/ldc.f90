@@ -28,6 +28,7 @@ program ldc
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
   use meshing, only: get_global_num_cells
@@ -122,6 +123,7 @@ program ldc
   if (irank == par_env%root) print *, "Building mesh"
   !mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
   mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)      ! 2-D mesh
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -230,6 +232,8 @@ program ldc
   call timer_stop(timer_index_total)
 
   call timer_print_all(par_env)
+
+  call nullify_mesh_object()
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)

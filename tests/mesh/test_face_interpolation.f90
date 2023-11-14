@@ -22,6 +22,7 @@ program test_face_interpolation
 
   face_coordinate = 0.3_ccs_real
   mesh = generate_mesh(face_coordinate)
+  call set_mesh_object(mesh)
 
   call compute_face_interpolation(mesh)
 
@@ -117,6 +118,8 @@ contains
     allocate (mesh%geo%x_f(ndim, max_faces, total_num_cells))
     mesh%geo%x_f(:, 1, 1) = (/face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
     mesh%geo%x_f(:, 1, 2) = (/face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
+
+    call nullify_mesh_object()
 
   end function
 

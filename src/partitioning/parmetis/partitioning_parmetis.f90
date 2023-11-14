@@ -163,6 +163,21 @@ contains
       end if
 
       comm = par_env%comm
+      print *, vtxdist
+      print *, xadj
+      print *, adjncy
+      print *, vwgt
+      print *, adjwgt
+      print *, wgtflag
+      print *, numflag
+      print *, ncon
+      print *, num_procs
+      print *, tpwgts
+      print *, ubvec
+      print *, options
+      print *, edgecuts
+      print *, local_partition
+      print *, comm
 
       call partition_parmetiskway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
                                   wgtflag, numflag, ncon, num_procs, &

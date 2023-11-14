@@ -88,9 +88,10 @@ program test_mesh_centres
         end do
       end do
     end do
+
+    call nullify_mesh_object()
   end do
 
-  call nullify_mesh_object()
 
   call fin()
 
