@@ -149,8 +149,7 @@ contains
     logical :: is_boundary
     logical :: is_local
 
-    associate (mesh => loc_nb%mesh, &
-               parent_idx => loc_nb%index_p)
+    associate (parent_idx => loc_nb%index_p)
       call get_local_index(loc_nb, index_nb)
 
       ! Neighbour index should not be its parents
@@ -201,8 +200,7 @@ contains
     logical :: is_boundary
     logical :: is_local
 
-    associate (mesh => loc_nb%mesh, &
-               parent_idx => loc_nb%index_p)
+    associate (parent_idx => loc_nb%index_p)
       call get_local_index(loc_nb, index_nb)
 
       ! Neighbour index should not be its parents
