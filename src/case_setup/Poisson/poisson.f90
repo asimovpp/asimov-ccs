@@ -142,6 +142,7 @@ program poisson
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
   use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, get_local_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols
