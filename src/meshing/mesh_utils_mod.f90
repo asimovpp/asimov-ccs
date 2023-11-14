@@ -149,7 +149,7 @@ contains
     call timer_start(timer_read_topo)
     call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
     call timer_stop(timer_read_topo)
-    
+
     call timer_start(timer_partitioner_input)
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
@@ -187,7 +187,6 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
-
 
     call set_mesh_object(mesh)
 
@@ -288,7 +287,7 @@ contains
     call MPI_Bcast(num_bnd, 1, MPI_INTEGER, 0, shared_comm, ierr)
     call get_max_faces(max_faces)
     if (max_faces == 6) then ! if cell are hexes
-      call set_vert_per_cell(8 ) ! 8 vertices per cell
+      call set_vert_per_cell(8) ! 8 vertices per cell
       call set_vert_nb_per_cell(20)
     else
       call error_abort("Currently only supporting hex cells.")
@@ -321,7 +320,7 @@ contains
                              topo%global_face_indices_window)
     call create_shared_array(shared_env, [vert_per_cell, global_num_cells], topo%global_vertex_indices, &
                              topo%global_vertex_indices_window)
-                             
+
     if (is_valid(reader_env)) then
       sel2_start = 0
       sel2_count(1) = max_faces ! topo%global_num_cells
@@ -349,7 +348,7 @@ contains
     end associate
 
     call nullify_topo_object()
-    
+
   end subroutine read_topology_topo
 
   subroutine read_topology_connectivity(shared_env, reader_env, geo_reader, &
@@ -515,8 +514,8 @@ contains
 
       ! Append new halos to global indices
       mesh%topo%global_indices = [mesh%topo%global_indices, new_halos]
-      deallocate(new_halos)
-      
+      deallocate (new_halos)
+
       call get_total_num_cells(total_num_cells)
       if (any(mesh%topo%vert_nb_indices > total_num_cells)) then
         call error_abort("ERROR: Vertex neighbour index outside total number of cells I can see")
@@ -1024,7 +1023,7 @@ contains
     type(face_locator) :: loc_f
 
     integer(ccs_int), dimension(2) :: length
-    
+
     integer(ccs_int), dimension(:), allocatable :: new_halos ! New halos generated during mesh build
 
     call set_mesh_object(mesh)
@@ -1111,7 +1110,7 @@ contains
           !        -3 = bottom boundary
           !        -4 = top boundary
           index_counter = 1_ccs_int ! Set local indexing starting from 1...n
-          allocate(new_halos(0))
+          allocate (new_halos(0))
           do i = start_global, end_global
             ii = i - 1_ccs_int
             nb_direction = 0_ccs_int
@@ -1164,8 +1163,8 @@ contains
 
         ! Append new halos to global indices
         mesh%topo%global_indices = [mesh%topo%global_indices, new_halos]
-        deallocate(new_halos)
-        
+        deallocate (new_halos)
+
         call set_total_num_cells(size(mesh%topo%global_indices))
         call get_total_num_cells(total_num_cells)
         call set_halo_num_cells(total_num_cells - local_num_cells)
@@ -1202,9 +1201,9 @@ contains
             face_index_counter = face_index_counter + 1_ccs_int
           else
             ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
-            !global_index_nb = i - 1_ccs_int
-            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-            !mesh%topo%face_cell2(face_index_counter) = i
+            ! global_index_nb = i - 1_ccs_int
+            ! mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            ! mesh%topo%face_cell2(face_index_counter) = i
           end if
 
           ! Construct right (2) face/neighbour
@@ -1236,9 +1235,9 @@ contains
             face_index_counter = face_index_counter + 1_ccs_int
           else
             ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
-            !global_index_nb = i - nx
-            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-            !mesh%topo%face_cell2(face_index_counter) = i
+            ! global_index_nb = i - nx
+            ! mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            ! mesh%topo%face_cell2(face_index_counter) = i
           end if
 
           ! Construct top (4) face/neighbour
@@ -1549,7 +1548,7 @@ contains
     use partitioning, only: compute_partitioner_input
     use parallel, only: timer
     use timers, only: timer_register, timer_start, timer_stop
-    
+
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
@@ -1587,7 +1586,7 @@ contains
     call timer_start(timer_build_topo)
     call build_topology(par_env, shared_env, nx, ny, nz, mesh)
     call timer_stop(timer_build_topo)
-    
+
     call timer_start(timer_partitioner_input)
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
@@ -1642,9 +1641,9 @@ contains
     integer(ccs_int), dimension(2) :: length
 
     integer(ccs_int), dimension(:), allocatable :: new_halos ! New halos generated during mesh build
-    
+
     call set_mesh_object(mesh)
-    
+
     nglobal = nx * ny * nz ! The global cell count
     call build_topology_connectivity(shared_env, &
                                      nx, ny, nz, &
@@ -1694,7 +1693,7 @@ contains
         call set_vert_per_cell(8)
 
         ! Set number of neighbours via vertex per cell
-        call set_vert_nb_per_cell(20_ccs_int) 
+        call set_vert_nb_per_cell(20_ccs_int)
 
         call get_max_faces(max_faces)
         call get_vert_per_cell(vert_per_cell)
@@ -1733,7 +1732,7 @@ contains
         !        -5 = back_boundary
         !        -6 = front_boundary
         index_counter = 1_ccs_int ! Set local indexing starting from 1...n
-        allocate(new_halos(0))
+        allocate (new_halos(0))
         do i = start_global, end_global
 
           ii = i - 1_ccs_int
@@ -1861,7 +1860,7 @@ contains
 
         ! Append new halo indices to global indices
         mesh%topo%global_indices = [mesh%topo%global_indices, new_halos]
-        deallocate(new_halos)
+        deallocate (new_halos)
 
         call set_total_num_cells(size(mesh%topo%global_indices))
         call get_total_num_cells(total_num_cells)
@@ -1900,9 +1899,9 @@ contains
             face_index_counter = face_index_counter + 1_ccs_int
           else
             ! If internal left face, nothing to be done, the face will be linked as a right face from its neighbour
-            !global_index_nb = i - 1_ccs_int
-            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-            !mesh%topo%face_cell2(face_index_counter) = i
+            ! global_index_nb = i - 1_ccs_int
+            ! mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            ! mesh%topo%face_cell2(face_index_counter) = i
           end if
 
           ! Construct right (2) face/neighbour
@@ -1934,9 +1933,9 @@ contains
             face_index_counter = face_index_counter + 1_ccs_int
           else
             ! If internal bottom face, nothing to be done, the face will be linked as a top face from its neighbour
-            !global_index_nb = i - nx
-            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-            !mesh%topo%face_cell2(face_index_counter) = i
+            ! global_index_nb = i - nx
+            ! mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            ! mesh%topo%face_cell2(face_index_counter) = i
           end if
 
           ! Construct top (4) face/neighbour
@@ -1968,9 +1967,9 @@ contains
             face_index_counter = face_index_counter + 1_ccs_int
           else
             ! If internal back face, nothing to be done, the face will be linked as a front face from its neighbour
-            !global_index_nb = i - nx * ny
-            !mesh%topo%face_cell1(face_index_counter) = global_index_nb
-            !mesh%topo%face_cell2(face_index_counter) = i
+            ! global_index_nb = i - nx * ny
+            ! mesh%topo%face_cell1(face_index_counter) = global_index_nb
+            ! mesh%topo%face_cell2(face_index_counter) = i
           end if
 
           ! Construct front (6) face/neighbour
@@ -2555,7 +2554,7 @@ contains
         end if
       end if
     end if
-    
+
     if (.not. found) then
       ! Halo is unseen
       call add_new_halo_neighbour(index_p, index_p_nb, global_index_nb, vertex_nb_flag, loc_nb, mesh, new_halos)
@@ -2576,9 +2575,9 @@ contains
     type(neighbour_locator), intent(inout) :: loc_nb
     type(ccs_mesh), intent(inout) :: mesh !< the mesh we are assembling neighbours on
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: new_halos !< New halo indices
-    
+
     integer(ccs_int) :: ng  ! The current number of cells (total = local + halos)
-    
+
     integer(ccs_int) :: global_num_cells ! The number of global cells
     integer(ccs_int) :: total_num_cells
 
@@ -2607,7 +2606,7 @@ contains
       print *, total_num_cells, size(mesh%topo%global_indices), size(new_halos)
       call error_abort("ERROR: Local total cell count and size of global indices + new halos not in agreement")
     end if
-    
+
   end subroutine add_new_halo_neighbour
 
   !v Count the number of faces in the mesh
@@ -3056,7 +3055,7 @@ contains
     print *, ""
     if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_face_indices(1:"  //  str(nb_elem / 2)  //  ", "  //  str(i)  //  ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
+        print *, par_env%proc_id, "global_face_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "global_face_indices   : UNALLOCATED"
@@ -3065,7 +3064,7 @@ contains
     print *, ""
     if (associated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_vertex_indices(1:"  //  str(nb_elem / 2)  //  ", "  //  str(i)  //  ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
+        print *, par_env%proc_id, "global_vertex_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
       end do
     else
       print *, par_env%proc_id, "global_vertex_indices : UNALLOCATED"
@@ -3183,7 +3182,6 @@ contains
     call nullify_mesh_object()
 
   end subroutine
-
 
   ! Naively distribute cells equally across all processes
   subroutine set_naive_distribution(par_env, num_cells, graph_conn)
