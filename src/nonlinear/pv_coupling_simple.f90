@@ -293,6 +293,7 @@ contains
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
+    use timers, only: timer_register_start, timer_stop
 
     ! Arguments
     type(fluid), intent(inout) :: flow
@@ -316,6 +317,7 @@ contains
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: timer_coeffs
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -346,7 +348,9 @@ contains
     call get_field(flow, field_viscosity, viscosity)
     call get_field(flow, field_density, density)
     
+    call timer_register_start("Building coefficients", timer_coeffs)
     call compute_fluxes(u, mf, viscosity, density, component, M, vec)
+    call timer_stop(timer_coeffs)
 
     call apply_timestep(u, invAu, M, vec)
 
@@ -632,6 +636,7 @@ contains
   subroutine calculate_pressure_correction(par_env, invAu, invAv, invAw, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
+    use timers, only: timer_register_start, timer_stop
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -690,7 +695,9 @@ contains
     real(ccs_real) :: dxmag
 
     integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: timer_coeffs
 
+    call timer_register_start("Building coefficients", timer_coeffs)
     ! First zero matrix
     call zero(M)
 
@@ -831,6 +838,7 @@ contains
     call update(M)
     call update(vec)
     call finalise(M)
+    call timer_stop(timer_coeffs)
 
     ! Create linear solver
     call dprint("P': create lin sys")
