@@ -7,10 +7,9 @@ program test_square_mesh_point_distribution
   use testing_lib
   use mesh_utils, only: build_square_mesh
   use meshing, only: get_local_num_cells, get_global_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   implicit none
-
-  type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: n
   integer(ccs_int) :: nlocal
@@ -27,8 +26,9 @@ program test_square_mesh_point_distribution
   do mctr = 1, size(m)
     n = m(mctr)
     mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real)
+    call set_mesh_object(mesh)
 
-    call get_local_num_cells(mesh, nlocal)
+    call get_local_num_cells(nlocal)
     if (nlocal < 0) then
       ! XXX: Zero cells on a PE is not necessarily invalid...
       ! ? exit
@@ -63,10 +63,11 @@ program test_square_mesh_point_distribution
       call stop_test(message)
     end if
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     call assert_eq(n_expected, global_num_cells, &
                    "(test_mesh:test_mesh_point_distribution/2)")
 
+    call nullify_mesh_object()
   end do
 
   call fin()

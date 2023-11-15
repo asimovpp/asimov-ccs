@@ -16,12 +16,12 @@ program test_partition_square_mesh
   use mesh_utils, only: build_square_topology
   use meshing, only: get_local_num_cells, get_global_num_cells, &
                      create_cell_locator, get_global_index
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   use utils, only: debug_print
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   integer :: i, j, n
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%graph_conn%adjncy(1))
@@ -33,6 +33,7 @@ program test_partition_square_mesh
   call build_square_topology(par_env, shared_env, 4, mesh)
 
   call compute_partitioner_input(par_env, shared_env, mesh)
+  call set_mesh_object(mesh)
 
   ! Run test to check we agree
   call check_topology("pre")
@@ -48,7 +49,7 @@ program test_partition_square_mesh
 
   if (par_env%proc_id == 0) then
     print *, "Global partition after partitioning:"
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     do i = 1, global_num_cells
       print *, mesh%topo%graph_conn%global_partition(i)
     end do
@@ -58,6 +59,7 @@ program test_partition_square_mesh
   call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
   call check_topology("post")
+  call nullify_mesh_object()
 
   call clean_test()
   call fin()
@@ -148,7 +150,7 @@ contains
       ctr = ctr + int(topo%graph_conn%vtxdist(i) - topo%graph_conn%vtxdist(i - 1))
     end do
 
-    call get_global_num_cells(topo, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     if (ctr /= global_num_cells) then
       write (message, *) "ERROR: global vertex distribution count is wrong " // stage // "- partitioning."
       call stop_test(message)
@@ -166,9 +168,9 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       do j = int(mesh%topo%graph_conn%xadj(i)), int(mesh%topo%graph_conn%xadj(i + 1)) - 1
@@ -189,7 +191,7 @@ contains
 
     integer(ccs_int) :: i, local_num_cells
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells ! Loop over local cells
       call check_connectivity_cell(mesh%topo, stage)
     end do

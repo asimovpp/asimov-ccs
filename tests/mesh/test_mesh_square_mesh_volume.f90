@@ -6,11 +6,10 @@ program test_mesh_square_mesh_volume
 
   use testing_lib
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
 
   implicit none
-
-  type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: n
   real(ccs_real) :: l
@@ -37,6 +36,7 @@ program test_mesh_square_mesh_volume
     n = m(mctr)
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, shared_env, n, l)
+    call set_mesh_object(mesh)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
     CV = (l / n)**2 ! Expected cell volume
@@ -44,9 +44,9 @@ program test_mesh_square_mesh_volume
     vol = 0.0_ccs_real
     nneg_vol = 0
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1
@@ -80,6 +80,8 @@ program test_mesh_square_mesh_volume
       write (message, *) "FAIL: encountered negative cell volume."
       call stop_test(message)
     end if
+
+    call nullify_mesh_object()
   end do
 
   call fin()

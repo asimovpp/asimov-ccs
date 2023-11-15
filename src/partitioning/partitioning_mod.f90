@@ -66,9 +66,8 @@ module partitioning
     !  - The "surface to volume ratio" nhalo / nlocal (averaged)
     !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
     !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
-    module subroutine print_partition_quality(par_env, mesh)
+    module subroutine print_partition_quality(par_env) 
       class(parallel_environment), intent(in) :: par_env
-      type(ccs_mesh), intent(in) :: mesh
     end subroutine print_partition_quality
     
   end interface

@@ -45,7 +45,7 @@ contains
         call MatCreate(par_env%comm, M%M, ierr)
 
         associate (mesh => mat_properties%mesh)
-          call get_local_num_cells(mesh, local_num_cells)
+          call get_local_num_cells(local_num_cells)
           call MatSetSizes(M%M, local_num_cells, local_num_cells, &
                            PETSC_DETERMINE, PETSC_DETERMINE, ierr)
         end associate

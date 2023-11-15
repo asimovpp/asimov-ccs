@@ -4,6 +4,7 @@ program scalar_advection
 #include "ccs_macros.inc"
 
   ! ASiMoV-CCS uses
+  use ccs_base, only: mesh
   use kinds, only: ccs_real, ccs_int
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, write_gradients, &
@@ -50,7 +51,6 @@ program scalar_advection
   type(vector_spec) :: vec_properties
   type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
-  type(ccs_mesh) :: mesh
 
   type(field_ptr), allocatable :: output_list(:)
 
@@ -105,6 +105,7 @@ program scalar_advection
   ! Set up the square mesh
   if (irank == par_env%root) print *, "Building mesh"
   mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -158,7 +159,7 @@ program scalar_advection
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(mesh, u, v, scalar, mf, viscosity, density)
+  call initialise_flow(u, v, scalar, mf, viscosity, density)
   call update(u%values)
   call update(v%values)
   call update(scalar%values)
@@ -187,7 +188,7 @@ program scalar_advection
 
   ! Actually compute the values to fill the matrix
   if (irank == par_env%root) print *, "Compute fluxes"
-  call compute_fluxes(scalar, mf, viscosity, density, mesh, direction, M, source)
+  call compute_fluxes(scalar, mf, viscosity, density, direction, M, source)
 
   call update(M) ! parallel assembly for M
   call update(scalar%values) ! parallel assembly for source
@@ -219,10 +220,11 @@ program scalar_advection
     print *, "Elapsed time = ", (end_time - start_time)
   end if
 
+  call nullify_mesh_object()
   call cleanup_parallel_environment(par_env)
 contains
 
-  subroutine initialise_flow(mesh, u, v, scalar, mf, viscosity, density)
+  subroutine initialise_flow(u, v, scalar, mf, viscosity, density)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -234,7 +236,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, scalar, mf, viscosity, density
 
     ! Local variables
@@ -255,7 +256,7 @@ contains
     integer(ccs_int) :: j
 
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -266,7 +267,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_centre(loc_p, x_p)
@@ -301,10 +302,10 @@ contains
     n = 0
 
     ! Loop over local cells and faces
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
     do index_p = 1, n_local
 
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
@@ -314,7 +315,7 @@ contains
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then ! XXX: abstract this test
 
-          call create_face_locator(mesh, index_p, j, loc_f)
+          call create_face_locator(index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)

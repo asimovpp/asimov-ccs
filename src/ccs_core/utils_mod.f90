@@ -255,7 +255,7 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate kinetic energy over density
-  subroutine calc_kinetic_energy(par_env, mesh, u, v, w)
+  subroutine calc_kinetic_energy(par_env, u, v, w)
 
     use mpi
 
@@ -269,7 +269,6 @@ contains
     use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
-    type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
@@ -301,9 +300,9 @@ contains
     call get_vector_data(v%values, v_data)
     call get_vector_data(w%values, w_data)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_volume(loc_p, volume)
 
       ek_local = ek_local + 0.5 * rho * volume * &
@@ -344,7 +343,7 @@ contains
 
   !TODO: move this subroutine to more appropriate module
   !> Calculate enstrophy
-  subroutine calc_enstrophy(par_env, mesh, u, v, w)
+  subroutine calc_enstrophy(par_env, u, v, w)
 
     use mpi
 
@@ -358,7 +357,6 @@ contains
     use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
-    type(ccs_mesh), intent(in) :: mesh !< the mesh
     class(field), intent(inout) :: u !< solve x velocity field
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
@@ -385,7 +383,7 @@ contains
     call get_vector_data(w%x_gradients, dwdx)
     call get_vector_data(w%y_gradients, dwdy)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
 
       ens_local = ens_local + (dwdy(index_p) - dvdz(index_p))**2 + &
