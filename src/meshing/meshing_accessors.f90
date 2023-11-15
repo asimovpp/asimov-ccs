@@ -32,6 +32,14 @@ contains
 
   end subroutine
 
+  !> Returns whether or not the mesh pointer has been set
+  module function is_mesh_set()
+    logical :: is_mesh_set
+
+    is_mesh_set = associated(mesh)
+    
+  end function
+
   !> Sets topo object to the module
   ! needs to be run before any call to an accessor
   module subroutine set_topo_object(input_topo)
@@ -51,6 +59,16 @@ contains
     nullify(topo)
 
   end subroutine
+
+  !> Returns whether or not the topo pointer has been set
+  module function is_topo_set()
+    logical :: is_topo_set
+
+    is_topo_set = associated(topo)
+    
+  end function
+
+
 
   !> Sets the mesh topology local cell count.
   module subroutine set_local_num_cells(local_num_cells)

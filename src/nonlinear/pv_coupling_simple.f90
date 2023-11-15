@@ -28,7 +28,7 @@ submodule(pv_coupling) pv_coupling_simple
                      create_cell_locator, get_volume, get_distance, &
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
-                     get_max_faces
+                     get_max_faces, is_mesh_set
   use scalars, only: update_scalars
   use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
   use bc_constants, only: bc_type_dirichlet
@@ -83,6 +83,11 @@ contains
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
     class(field), pointer :: viscosity !< field containing the viscosity
     class(field), pointer :: density !< field containing the density
+
+
+    if (.not. is_mesh_set()) then
+      call error_abort("Mesh object needs to be set")
+    end if
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)

@@ -14,8 +14,10 @@ module meshing
   private
   public :: set_mesh_object
   public :: nullify_mesh_object
+  public :: is_mesh_set
   public :: set_topo_object
   public :: nullify_topo_object
+  public :: is_topo_set
   public :: create_face_locator
   public :: create_cell_locator
   public :: create_neighbour_locator
@@ -145,6 +147,14 @@ module meshing
 
     module subroutine nullify_topo_object()
     end subroutine
+
+    module function is_mesh_set()
+      logical :: is_mesh_set
+    end function
+
+    module function is_topo_set()
+      logical :: is_topo_set
+    end function
 
     !v Constructs a cell locator object.
     !
