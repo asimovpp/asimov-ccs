@@ -8,7 +8,7 @@ program simple
   use petscvec
   use petscsys
 
-  use globals, only: mesh
+  use ccs_base, only: mesh
   use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                     field_viscosity, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int

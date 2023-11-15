@@ -4,7 +4,7 @@ program scalar_advection
 #include "ccs_macros.inc"
 
   ! ASiMoV-CCS uses
-  use globals, only: mesh
+  use ccs_base, only: mesh
   use kinds, only: ccs_real, ccs_int
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, write_gradients, &

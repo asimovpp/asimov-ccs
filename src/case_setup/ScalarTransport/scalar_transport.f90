@@ -8,7 +8,7 @@ program scalar_transport
   use petscvec
   use petscsys
 
-  use globals, only: mesh
+  use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, cps, domain_size, case_name, &
                          res_target, write_gradients, dt, write_frequency
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &

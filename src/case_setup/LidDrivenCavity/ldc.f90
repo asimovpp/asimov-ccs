@@ -8,7 +8,7 @@ program ldc
   use petscvec
   use petscsys
 
-  use globals, only: mesh
+  use ccs_base, only: mesh
   use case_config, only: num_iters, cps, domain_size, case_name, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &

@@ -5,7 +5,7 @@ program bfs
   use petscvec
   use petscsys
 
-  use globals, only: mesh
+  use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &

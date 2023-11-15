@@ -133,7 +133,7 @@ program poisson
   use problem_setup
 
   ! ASiMoV-CCS uses
-  use globals, only: mesh
+  use ccs_base, only: mesh
   use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
   use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
