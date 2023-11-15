@@ -218,6 +218,9 @@ contains
 
     call set_num_faces(count_mesh_faces())
 
+    call sync(shared_env)
+    call destroy_shared_array(shared_env, cell_faces, cell_faces_window)
+
   end subroutine compute_face_connectivity
 
   subroutine store_global_vertex_connectivity(par_env, shared_env, roots_env, mesh)
