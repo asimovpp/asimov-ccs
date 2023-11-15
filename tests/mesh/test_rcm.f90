@@ -26,14 +26,14 @@ program test_rcm
   integer(ccs_int) :: nnb
   integer(ccs_int), dimension(:, :), allocatable :: global_neighbours_ref
 
-  type(ccs_mesh), allocatable :: empty_mesh
+  type(ccs_mesh), allocatable :: tmp_mesh
 
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
   do mctr = 1, size(m)
-    allocate(empty_mesh)
-    mesh = empty_mesh
+    allocate(tmp_mesh)
+    mesh = tmp_mesh
     n = m(mctr)
 
     l = parallel_random(par_env)
@@ -56,7 +56,7 @@ program test_rcm
 
     call test_global_connectivity()
     call nullify_mesh_object()
-    deallocate(empty_mesh)
+    deallocate(tmp_mesh)
 
   end do
 
