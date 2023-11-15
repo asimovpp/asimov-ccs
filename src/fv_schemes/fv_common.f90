@@ -297,6 +297,7 @@ contains
     real(ccs_real) :: b !< The RHS value (explicit component)
     integer(ccs_int) :: index_p
 
+    print*, "inside compute_boundary_values"
     call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     call get_local_index(loc_p, index_p)
@@ -758,6 +759,8 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: timer_index
 
+    print*,"inside update_gradient"
+
     call timer_register_start("Compute gradient", timer_index)
 
     call get_local_num_cells(mesh, local_num_cells)
@@ -765,10 +768,13 @@ contains
     allocate(y_gradients(local_num_cells))
     allocate(z_gradients(local_num_cells))
 
+    print*, "line 11"
     call dprint("Compute x gradient")
     call update_gradient_component(mesh, 1, phi, x_gradients)
+    print*, "line 12"
     call dprint("Compute y gradient")
     call update_gradient_component(mesh, 2, phi, y_gradients)
+    print*, "line 13"
     call dprint("Compute z gradient")
     call update_gradient_component(mesh, 3, phi, z_gradients)
 
@@ -826,9 +832,10 @@ contains
 
     real(ccs_real) :: V
 
+    print*, "inside update_gradient_component"
     call get_local_num_cells(mesh, local_num_cells)
     do index_p = 1, local_num_cells
-
+      print*, "not boundary"
       grad = 0.0_ccs_int
 
       call create_cell_locator(mesh, index_p, loc_p)
@@ -862,6 +869,7 @@ contains
           end if
 
         else
+          print*, "is boundary"
           call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif)
         end if
 

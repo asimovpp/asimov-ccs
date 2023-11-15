@@ -84,18 +84,41 @@ contains
     class(field), pointer :: viscosity !< field containing the viscosity
     class(field), pointer :: density !< field containing the density
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p)
-    call get_field(flow, field_p_prime, p_prime)
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity)
-    call get_field(flow, field_density, density)
+    real(ccs_real), dimension(:), pointer :: u_data !temp
+    integer(ccs_int) :: i, local_num_cells !temp
+
+    print*, "start solve_nonlinear"
+    !call get_field(flow, field_u, u) 
+    !call get_field(flow, field_v, v)
+    !call get_field(flow, field_w, w)
+    !call get_field(flow, field_p, p)
+    !call get_field(flow, field_p_prime, p_prime)
+    !call get_field(flow, field_mf, mf)
+    !call get_field(flow, field_viscosity, viscosity)
+    !call get_field(flow, field_density, density)
+
+    call get_field(flow, "u", u) !make in this manner
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p", p)
+    call get_field(flow, "p_prime", p_prime)
+    call get_field(flow, "mf", mf)
+    call get_field(flow, "viscosity", viscosity)
+    call get_field(flow, "density", density)
+    print*,"fields obtained"
+    call get_vector_data(u%values, u_data)
+    print*, "vector data obtained"
+    call get_local_num_cells(mesh, local_num_cells) 
+    print*, "obtained local number of cells"
+    do i=1,local_num_cells
+      print*,"u,",i,"=",u_data(i)
+    end do
+
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_p, p_sol)
+    print*, "line 1"
 
     ! Initialising SIMPLE solver
     nvar = 0
@@ -105,12 +128,14 @@ contains
     call update_old_values(u)
     call update_old_values(v)
     call update_old_values(w)
+    print*, "line 2"
 
     ! Initialise linear system
     call dprint("NONLINEAR: init")
     call initialise(vec_properties)
     call initialise(mat_properties)
     call initialise(lin_system)
+    print*, "line 3"
 
     ! Create coefficient matrix
     call dprint("NONLINEAR: setup matrix")
@@ -118,17 +143,20 @@ contains
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
+    print*, "line 4"
 
     ! Create RHS vector
     call dprint("NONLINEAR: setup RHS")
     call set_size(par_env, mesh, vec_properties)
     call create_vector(vec_properties, source)
+    print*, "line 5"
 
     ! Create vectors for storing inverse of velocity central coefficients
     call dprint("NONLINEAR: setup ind coeff")
     call create_vector(vec_properties, invAu)
     call create_vector(vec_properties, invAv)
     call create_vector(vec_properties, invAw)
+    print*, "line 6"
 
     ! Create vectors for storing residuals
     call dprint("NONLINEAR: setup residuals")
@@ -139,13 +167,16 @@ contains
     if (p_sol) nvar = nvar + 2 ! (Pressure residual & mass imbalance)
     allocate (residuals(2 * nvar))
     residuals(:) = 0.0_ccs_real
+    print*, "line 7"
 
     ! Get pressure gradient
     call dprint("NONLINEAR: compute gradients")
     call update_gradient(mesh, p)
+    print*, "line 8"
     if (u_sol) call update_gradient(mesh, u)
     if (v_sol) call update_gradient(mesh, v)
     if (w_sol) call update_gradient(mesh, w)
+    print*, "line 9"
 
     outerloop: do i = it_start, it_end
       call dprint("NONLINEAR: iteration " // str(i))
@@ -240,10 +271,17 @@ contains
     class(field), pointer :: w
     class(field), pointer :: p
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p)
+    print*, "start calculate_velocity"
+    !call get_field(flow, field_u, u)
+    !call get_field(flow, field_v, v)
+    !call get_field(flow, field_w, w)
+    !call get_field(flow, field_p, p)
+
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p", p)
+    
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -314,6 +352,7 @@ contains
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: global_num_cells
 
+    print*, "start calculate_velocity_component"
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
@@ -339,9 +378,13 @@ contains
       call error_abort("Unsupported vector component: " // str(component))
     end if
 
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity)
-    call get_field(flow, field_density, density)
+    !call get_field(flow, field_mf, mf)
+    !call get_field(flow, field_viscosity, viscosity)
+    !call get_field(flow, field_density, density)
+
+    call get_field(flow, "mf", mf)
+    call get_field(flow, "viscosity", viscosity)
+    call get_field(flow, "density", density)
     
     call compute_fluxes(u, mf, viscosity, density, mesh, component, M, vec)
 
@@ -488,10 +531,15 @@ contains
     real(ccs_real) :: face_area
     real(ccs_real), dimension(:), pointer :: viscosity_data
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_viscosity, viscosity)
+    !call get_field(flow, field_u, u)
+    !call get_field(flow, field_v, v)
+    !call get_field(flow, field_w, w)
+    !call get_field(flow, field_viscosity, viscosity)
+
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "viscosity", viscosity)
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
@@ -905,11 +953,18 @@ contains
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p)
-    call get_field(flow, field_mf, mf)
+    !call get_field(flow, field_u, u)
+    !call get_field(flow, field_v, v)
+    !call get_field(flow, field_w, w)
+    !call get_field(flow, field_p, p)
+    !call get_field(flow, field_mf, mf)
+
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p", p)
+    call get_field(flow, "mf", mf)
+
 
     ! Set variable index for pressure
     if (first_time) then
@@ -1055,10 +1110,15 @@ contains
     class(field), pointer :: v       !< The y velocities being corrected
     class(field), pointer :: w       !< The z velocities being corrected
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p_prime, p_prime)
+    !call get_field(flow, field_u, u)
+    !call get_field(flow, field_v, v)
+    !call get_field(flow, field_w, w)
+    !call get_field(flow, field_p_prime, p_prime)
+
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p_prime", p_prime)
 
     ! First update gradients
     call zero_vector(p_prime%x_gradients)

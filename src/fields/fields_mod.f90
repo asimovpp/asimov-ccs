@@ -70,6 +70,8 @@ contains
 
         call update_gradient(vec_properties%mesh, phi)
       end if
+
+      phi%name= field_name
       !! --- End update ---
     end associate
 

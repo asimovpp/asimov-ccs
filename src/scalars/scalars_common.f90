@@ -26,10 +26,15 @@ submodule(scalars) scalars_common
   integer(ccs_int), save :: previous_step = -1
 
   !> List of fields not to be updated as transported scalars
-  integer(ccs_int), dimension(8), parameter :: skip_fields = &
-       [ field_u, field_v, field_w, &
-          field_p, field_p_prime, &
-          field_mf, field_viscosity, field_density ]
+  !integer(ccs_int), dimension(8), parameter :: skip_fields = &
+   !    [ field_u, field_v, field_w, &
+    !      field_p, field_p_prime, &
+   !       field_mf, field_viscosity, field_density ]
+
+  character (len=20), dimension(8), parameter :: skip_fields = &
+  [ "u", "v", "w", &
+     "p", "p_prime", &
+     "mf", "viscosity", "density" ]
 
 contains
   
@@ -45,7 +50,8 @@ contains
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
-    integer(ccs_int) :: field_id ! The field's numeric identifier
+    !integer(ccs_int) :: field_id ! The field's numeric identifier
+    character(len=20) :: field_id ! The field's numeric identifier
     class(field), pointer :: phi ! The scalar field
 
     logical :: do_update
@@ -96,7 +102,8 @@ contains
           cycle
        end if
 
-       call get_field(flow, field_id, phi)
+       !call get_field(flow, field_id, phi)
+       call get_field(flow, "field_id", phi)
        if (do_update) then
           call update_old_values(phi)
        end if
@@ -129,9 +136,14 @@ contains
     call zero(M)
 
     call dprint("SCALAR: compute coefficients")
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity) 
-    call get_field(flow, field_density, density)
+    !call get_field(flow, field_mf, mf)
+    !call get_field(flow, field_viscosity, viscosity) 
+    !call get_field(flow, field_density, density)
+
+    call get_field(flow, "mf", mf)
+    call get_field(flow, "viscosity", viscosity) 
+    call get_field(flow, "density", density)
+
     call compute_fluxes(phi, mf, viscosity, density, mesh, 0, M, rhs)
     call apply_timestep(mesh, phi, D, M, rhs)
 
@@ -171,7 +183,8 @@ contains
 
     type(fluid), intent(in) :: flow           !< The flowfield
     integer(ccs_int), intent(in) :: s         !< The field counter
-    integer(ccs_int), intent(out) :: field_id !< The field ID
+    !integer(ccs_int), intent(out) :: field_id !< The field ID
+    character(len=20), intent(out) :: field_id !< The field ID
 
     field_id = flow%field_names(s)
 

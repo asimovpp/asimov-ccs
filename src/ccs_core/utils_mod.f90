@@ -464,25 +464,31 @@ contains
 
   !> Gets the field from the fluid structure specified by field_name
   subroutine get_field(flow, field_name, flow_field)
+    !(flow, "u", u)
     type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
-    integer(ccs_int), intent(in) :: field_name        !< name of the field of interest
+    !integer(ccs_int), intent(in) :: field_name        !< name of the field of interest
+    character(len=*), intent(in) :: field_name
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     integer(ccs_int), dimension(1) :: field_index
 
-    field_index = findloc(flow%field_names, field_name)
+    !field_index = findloc(flow%field_names , field_name)
+    field_index = findloc(flow%field_names , field_name)
+    print*, "fields_index=",field_index(1)
     flow_field => flow%fields(field_index(1))%ptr
   end subroutine get_field
 
   !< Sets the pointer to the field and the corresponding field name in the fluid structure
-  subroutine set_field(field_index, field_name, flow_field, flow)
+  !subroutine set_field(field_index, field_name, flow_field, flow)
+  subroutine set_field(field_index, flow_field, flow)
     integer(ccs_int), intent(in) :: field_index     !< index of arrays at which to set the field pointer and name
-    integer(ccs_int), intent(in) :: field_name      !< the name of the field
+    !integer(ccs_int), intent(in) :: field_name      !< the name of the field
     class(field), target, intent(in) :: flow_field  !< the field
     type(fluid), intent(inout) :: flow              !< the fluid structure
 
     flow%fields(field_index)%ptr => flow_field
-    flow%field_names(field_index) = field_name
+    flow%field_names(field_index) = flow_field%name
+    !flow%field_names(field_index) = field_name
   end subroutine set_field
 
   !> Gets the solver selector for a specified field
