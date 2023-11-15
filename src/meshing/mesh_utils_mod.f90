@@ -2526,7 +2526,12 @@ contains
     found = .false.
 
     ! First look within existing mesh halos
-    i = findloc(mesh%topo%global_indices(local_num_cells + 1:ng), global_index_nb, dim=1)
+    if (ng > local_num_cells) then
+      i = findloc(mesh%topo%global_indices(local_num_cells + 1:ng), global_index_nb, dim=1)
+    else
+      i = 0
+    end if
+
     if (i > 0) then ! Found neighbour in halos
       found = .true.
 
