@@ -28,7 +28,6 @@ program test_partition_square_mesh
   integer(ccs_int) :: global_num_cells
 
   call init()
-  allocate(mesh)
 
   print *, "Building mesh."
   call build_square_topology(par_env, shared_env, 4, mesh)

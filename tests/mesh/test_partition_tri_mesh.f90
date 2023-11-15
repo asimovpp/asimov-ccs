@@ -313,7 +313,6 @@ contains
     ! N.B. in terms of "top"/"bottom" boundaries this graph should be reflected about the horizontal axis.
 
     ! --- read_topology() ---
-    allocate(mesh)
     call set_mesh_object(mesh)
 
     call set_global_num_cells(nrows * ncols)

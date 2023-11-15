@@ -25,7 +25,6 @@ program test_mesh_partitioning
 
   call init()
 
-  allocate(mesh)
   call set_mesh_object(mesh)
   call initialise_test()
 
