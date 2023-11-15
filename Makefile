@@ -88,7 +88,7 @@ endif
 
 ifdef PARMETIS
   INC += -I${PARMETIS}/include
-  LIB += -L${PARMETIS}/lib -lparmetis -Wl,-rpath,${PARMETIS}/lib
+  LIB += -L${PARMETIS}/lib -lGKlib -lmetis -lparmetis -Wl,-rpath,${PARMETIS}/lib
 endif
 
 ifeq ($(NEED_CMP),yes)
