@@ -22,7 +22,7 @@ submodule(pv_coupling) pv_coupling_simple
   use utils, only: debug_print, get_field, get_fluid_solver_selector
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell, field_u, field_v, field_w, field_p, field_p_prime, &
-                        field_mf, field_viscosity         
+                        field_mf, field_viscosity, field_density         
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
@@ -82,6 +82,7 @@ contains
     class(field), pointer :: p_prime !< field containing pressure-correction values
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
     class(field), pointer :: viscosity !< field containing the viscosity
+    class(field), pointer :: density !< field containing the density
 
     call get_field(flow, field_u, u)
     call get_field(flow, field_v, v)
@@ -89,7 +90,8 @@ contains
     call get_field(flow, field_p, p)
     call get_field(flow, field_p_prime, p_prime)
     call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity) 
+    call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, field_density, density)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -169,10 +171,14 @@ contains
       call dprint("NONLINEAR: correct pressure")
       call update_pressure(mesh, p_prime, p)
 
+      !< density values are in single digits (same as i/p)
+
       ! Transport scalars
       ! XXX: Should we distinguish active scalars (update in non-linear loop) and passive scalars
       !      (single update per timestep)?
       call update_scalars(par_env, mesh, flow)
+
+      !< density values change to exponential here after update
 
       call check_convergence(par_env, i, residuals, res_target, &
                              flow_solver_selector, converged)
@@ -186,6 +192,7 @@ contains
         exit outerloop
       end if
 
+      ! density values are in exponential
     end do outerloop
 
     deallocate (lin_solverP)
@@ -291,6 +298,7 @@ contains
     type(ccs_mesh), intent(in) :: mesh
     class(field), pointer :: mf
     class(field), pointer :: viscosity
+    class(field), pointer :: density
     class(field), intent(inout) :: p
     integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
@@ -335,9 +343,10 @@ contains
 
     call get_field(flow, field_mf, mf)
     call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, field_density, density)
 
     call timer_register_start("Building coefficients", timer_coeffs)
-    call compute_fluxes(u, mf, viscosity, mesh, component, M, vec)
+    call compute_fluxes(u, mf, viscosity, density, mesh, component, M, vec)
     call timer_stop(timer_coeffs)
 
     call apply_timestep(mesh, u, invAu, M, vec)

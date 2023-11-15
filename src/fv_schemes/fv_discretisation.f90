@@ -65,6 +65,26 @@ contains
   end subroutine calc_advection_coeff_uds
 
   !> Calculates advection coefficient for neighbouring cell using gamma discretisation
+  !
+  ! The implementation of the Gamma scheme is based on the Dolfyn implementation
+  ! https://bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
+  ! The original code is distributed under the APACHE-2.0 license reproduced below
+  !
+  ! Copyright 2003-2014 Henk Krus, Cyclone Fluid Dynamics BV
+  ! All Rights Reserved.
+  !
+  ! Licensed under the Apache License, Version 2.0 (the "License");
+  ! you may not use this file except in compliance with the License.
+  ! You may obtain a copy of the License at
+  !
+  ! http://www.dolfyn.net/license.html
+  !
+  ! Unless required by applicable law or agreed to in writing, software
+  ! distributed under the License is distributed on an
+  ! "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+  ! either express or implied. See the License for the specific
+  ! language governing permissions and limitations under the License.
+  !
   module subroutine calc_advection_coeff_gamma(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
     type(gamma_field), intent(inout) :: phi       !< scalar field
     type(face_locator), intent(in) :: loc_f       !< face locator
@@ -188,6 +208,26 @@ contains
   end subroutine calc_advection_coeff_gamma
 
   !> Calculates advection coefficient for neighbouring cell using Linear Upwind discretisation
+  !
+  ! The implementation of the linear upwind scheme is based on the Dolfyn implementation
+  ! https://bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
+  ! The original code is distributed under the APACHE-2.0 license reproduced below
+  !
+  ! Copyright 2003-2014 Henk Krus, Cyclone Fluid Dynamics BV
+  ! All Rights Reserved.
+  !
+  ! Licensed under the Apache License, Version 2.0 (the "License");
+  ! you may not use this file except in compliance with the License.
+  ! You may obtain a copy of the License at
+  !
+  ! http://www.dolfyn.net/license.html
+  !
+  ! Unless required by applicable law or agreed to in writing, software
+  ! distributed under the License is distributed on an
+  ! "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+  ! either express or implied. See the License for the specific
+  ! language governing permissions and limitations under the License.
+  !
   module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
     type(linear_upwind_field), intent(inout) :: phi     !< scalar field
     type(face_locator), intent(in) :: loc_f       !< face locator

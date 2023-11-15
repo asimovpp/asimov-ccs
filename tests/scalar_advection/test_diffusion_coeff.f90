@@ -25,7 +25,8 @@ program test_diffusion_coeff
   real(ccs_real), parameter :: D = 1.0e-2_ccs_real ! Diffusion coefficient
 
   real(ccs_real) :: expected_coeff
-  real(ccs_real) :: visc_p, visc_nb        !< viscosity
+  real(ccs_real) :: visp, visnb        ! viscosity
+  real(ccs_real) :: dens_p, dens_nb    ! density
   real(ccs_real), parameter :: SchmidtNo = 1.0_ccs_real
 
   call init()
@@ -34,9 +35,11 @@ program test_diffusion_coeff
 
   index_p = 1
   j = 1
-  visc_p = SchmidtNo * D
-  visc_nb = SchmidtNo * D
-  call calc_diffusion_coeff(index_p, j, mesh, .false., visc_p, visc_nb, SchmidtNo, coeff)
+  visp = SchmidtNo * D
+  visnb = SchmidtNo * D
+  dens_p = 1.0_ccs_real
+  dens_nb = 1.0_ccs_real
+  call calc_diffusion_coeff(index_p, j, mesh, .false., visp, visnb, dens_p, dens_nb, SchmidtNo, coeff)
 
   call create_cell_locator(mesh, index_p, loc_p)
   call create_neighbour_locator(loc_p, j, loc_nb)
