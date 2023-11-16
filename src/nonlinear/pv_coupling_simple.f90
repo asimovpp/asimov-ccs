@@ -85,7 +85,7 @@ contains
     class(field), pointer :: density !< field containing the density
 
     real(ccs_real), dimension(:), pointer :: u_data !temp
-    integer(ccs_int) :: i, local_num_cells !temp
+    integer(ccs_int) :: local_num_cells !temp
 
     print*, "start solve_nonlinear"
     !call get_field(flow, field_u, u) 
@@ -106,13 +106,13 @@ contains
     call get_field(flow, "viscosity", viscosity)
     call get_field(flow, "density", density)
     print*,"fields obtained"
-    call get_vector_data(u%values, u_data)
+    !call get_vector_data(u%values, u_data)
     print*, "vector data obtained"
-    call get_local_num_cells(mesh, local_num_cells) 
+    !call get_local_num_cells(mesh, local_num_cells) 
     print*, "obtained local number of cells"
-    do i=1,local_num_cells
-      print*,"u,",i,"=",u_data(i)
-    end do
+    !do i=1,local_num_cells
+    !  print*,"u,",i,"=",u_data(i)
+    !end do
 
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
