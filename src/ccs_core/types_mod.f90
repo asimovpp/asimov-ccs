@@ -296,7 +296,7 @@ module types
   ! Type for accumulating all the fluid data
   type, public :: fluid
     type(field_ptr), dimension(:), allocatable :: fields
-    !integer(ccs_int), dimension(:), allocatable :: field_names
+    integer(ccs_int), dimension(:), allocatable :: field_ids
     character(len=20), dimension(:), allocatable :: field_names
   end type fluid
 

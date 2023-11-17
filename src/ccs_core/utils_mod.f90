@@ -471,10 +471,18 @@ contains
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     integer(ccs_int), dimension(1) :: field_index
+    integer(ccs_int) :: i
+
+    field_index(1) = 0
+    do i = 1, size(flow%field_names)
+      if (trim(flow%field_names(i)) == field_name) then
+        field_index(1) = i
+        exit
+      end if
+    end do
 
     !field_index = findloc(flow%field_names , field_name)
-    field_index = findloc(flow%field_names , field_name)
-    print*, "fields_index=",field_index(1)
+    print*, "field_index=",field_index(1)
     flow_field => flow%fields(field_index(1))%ptr
   end subroutine get_field
 
