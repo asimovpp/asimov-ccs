@@ -31,10 +31,10 @@ submodule(scalars) scalars_common
     !      field_p, field_p_prime, &
    !       field_mf, field_viscosity, field_density ]
 
-  character (len=20), dimension(8), parameter :: skip_fields = &
-  [ "u", "v", "w", &
-     "p", "p_prime", &
-     "mf", "viscosity", "density" ]
+  character (len=20), dimension(*), parameter :: skip_fields = &
+  [ character(len=20) :: "u", "v", "w", &
+                         "p", "p_prime", &
+                         "mf", "viscosity", "density" ]
 
 contains
   
@@ -50,8 +50,8 @@ contains
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
-    !integer(ccs_int) :: field_id ! The field's numeric identifier
-    character(len=20) :: field_id ! The field's numeric identifier
+    integer(ccs_int) :: field_id ! The field's numeric identifier
+    character(len=20) :: field_name ! The field's name
     class(field), pointer :: phi ! The scalar field
 
     logical :: do_update
@@ -96,14 +96,14 @@ contains
     ! Transport the scalars
     call count_fields(flow, nfields)
     do s = 1, nfields
-       call get_field_id(flow, s, field_id)
-       if (any(skip_fields == field_id)) then
+       call get_field_name(flow, s, field_name)
+      
+       if (any(skip_fields == field_name)) then
           ! Not a scalar to solve
           cycle
        end if
 
-       !call get_field(flow, field_id, phi)
-       call get_field(flow, "field_id", phi)
+       call get_field(flow, field_name, phi)
        if (do_update) then
           call update_old_values(phi)
        end if
@@ -183,11 +183,21 @@ contains
 
     type(fluid), intent(in) :: flow           !< The flowfield
     integer(ccs_int), intent(in) :: s         !< The field counter
-    !integer(ccs_int), intent(out) :: field_id !< The field ID
-    character(len=20), intent(out) :: field_id !< The field ID
+    integer(ccs_int), intent(out) :: field_id !< The field ID
 
-    field_id = flow%field_names(s)
+    field_id = flow%field_ids(s)
 
   end subroutine get_field_id
+
+  !> Get the name of the i'th field
+  subroutine get_field_name(flow, s, field_name)
+
+   type(fluid), intent(in) :: flow              !< The flowfield
+   integer(ccs_int), intent(in) :: s            !< The field counter
+   character(len=*), intent(out) :: field_name !< The field name
+
+   field_name = flow%field_names(s)
+
+ end subroutine get_field_name
   
 end submodule scalars_common
