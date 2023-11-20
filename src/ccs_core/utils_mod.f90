@@ -488,7 +488,6 @@ contains
 
     flow%fields(field_index)%ptr => flow_field
     flow%field_names(field_index) = flow_field%name
-    !flow%field_names(field_index) = field_name
   end subroutine set_field
 
   !> Gets the solver selector for a specified field

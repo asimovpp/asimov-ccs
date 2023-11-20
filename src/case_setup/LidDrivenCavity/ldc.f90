@@ -199,7 +199,7 @@ program ldc
   !call set_field(8, field_density, density, flow_fields)
 
   !pass the field character for it to recognize field name"
-  call set_field(1, u,flow_fields)
+  call set_field(1, u, flow_fields)
   call set_field(2, v, flow_fields)
   call set_field(3, w, flow_fields)
   call set_field(4, p, flow_fields)
