@@ -139,10 +139,7 @@ contains
     ! Local variable
     integer(ccs_int), dimension(1) :: index_tmp ! The intrinsic returns a rank-1 array ...
 
-    print*, "inside get_bc_index"
     index_tmp = findloc(phi%bcs%ids, -index_nb)
-    print*,"phi%bcs%ids=", phi%bcs%ids
-    print*, "index_tmp(1)=", index_tmp(1)
     if (index_tmp(1) == 0) then
       call error_abort("bc index not found. searching for " // str(-index_nb, "(I0)"))
     end if

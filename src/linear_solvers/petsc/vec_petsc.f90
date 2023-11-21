@@ -416,7 +416,6 @@ contains
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
 
-    print*, "inside get_vector_data"
     select type (vec)
     type is (vector_petsc)
       if (vec%checked_out) then
@@ -428,11 +427,9 @@ contains
       end if
 
       if (vec%ghosted) then
-        print *, "inside vec%ghosted"
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
         call VecGetArrayF90(vec%v_local, array, ierr)
       else
-        print *, "inside else vec%ghosted"
         call VecGetArrayF90(vec%v, array, ierr)
       end if
 
