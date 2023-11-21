@@ -1,4 +1,4 @@
-main: ldc
+main: poiseuille
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip
