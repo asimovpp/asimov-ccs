@@ -33,7 +33,7 @@ program simple
   type(vector_spec) :: vec_sizes
   logical :: use_mpi_splitting
 
-  class(field), allocatable :: u, v, w, p, pp, mf, viscosity
+  class(field), allocatable :: u, v, w, p, p_prime, mf, viscosity, density
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
@@ -77,7 +77,7 @@ program simple
   allocate (upwind_field :: v)
   allocate (upwind_field :: w)
   allocate (central_field :: p)
-  allocate (central_field :: pp)
+  allocate (central_field :: p_prime)
   allocate (central_field :: viscosity)
   allocate (face_field :: mf)
   
@@ -94,10 +94,10 @@ program simple
   call create_vector(vec_sizes, p%x_gradients)
   call create_vector(vec_sizes, p%y_gradients)
   call create_vector(vec_sizes, p%z_gradients)
-  call create_vector(vec_sizes, pp%values)
-  call create_vector(vec_sizes, pp%x_gradients)
-  call create_vector(vec_sizes, pp%y_gradients)
-  call create_vector(vec_sizes, pp%z_gradients)
+  call create_vector(vec_sizes, p_prime%values)
+  call create_vector(vec_sizes, p_prime%x_gradients)
+  call create_vector(vec_sizes, p_prime%y_gradients)
+  call create_vector(vec_sizes, p_prime%z_gradients)
   call create_vector(vec_sizes, viscosity%values)
   call update(u%values)
   call update(v%values)
@@ -105,11 +105,11 @@ program simple
   call update(p%x_gradients)
   call update(p%y_gradients)
   call update(p%z_gradients)
-  call update(pp%values)
-  call update(pp%x_gradients)
-  call update(pp%y_gradients)
-  call update(pp%z_gradients)
-  call update(viscosity%values)
+  call update(p_prime%values)
+  call update(p_prime%x_gradients)
+  call update(p_prime%y_gradients)
+  call update(p_prime%z_gradients)
+  call update(p_prime%values)
 
   call set_vector_location(face, vec_sizes)
   call set_size(par_env, square_mesh, vec_sizes)
@@ -129,13 +129,15 @@ program simple
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
   call allocate_fluid_fields(7, flow_fields)
-  call set_field(1, field_u, u, flow_fields)
-  call set_field(2, field_v, v, flow_fields)
-  call set_field(3, field_w, w, flow_fields)
-  call set_field(4, field_p, p, flow_fields)
-  call set_field(5, field_p_prime, pp, flow_fields)
-  call set_field(6, field_mf, mf, flow_fields)
-  call set_field(7, field_viscosity, viscosity, flow_fields)
+
+  call set_field(1, u, flow_fields)
+  call set_field(2, v, flow_fields)
+  call set_field(3, w, flow_fields)
+  call set_field(4, p, flow_fields)
+  call set_field(5, p_prime, flow_fields)
+  call set_field(6, mf, flow_fields)
+  call set_field(7, viscosity, flow_fields) 
+  call set_field(8, density, flow_fields)  
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
@@ -147,7 +149,7 @@ program simple
   deallocate (v)
   deallocate (w)
   deallocate (p)
-  deallocate (pp)
+  deallocate (p_prime)
 
   call timer(end_time)
 

@@ -1,4 +1,4 @@
-main: poiseuille
+main: simple
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip
