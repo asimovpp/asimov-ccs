@@ -12,7 +12,8 @@ program scalar_transport
                          res_target, write_gradients, dt, write_frequency
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, face_centred, cell_centred_central, ccs_split_type_low_high
+                       field_density, face_centred, cell_centred_central, cell_centred_upwind, &
+                       ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, field_elt, fluid
@@ -47,7 +48,9 @@ program scalar_transport
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
-  
+  class(field), allocatable, target :: whisky, water
+  !type(field_elt), allocatable, target :: whisky, water
+
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
@@ -134,13 +137,25 @@ program scalar_transport
   call set_field_store_residuals(store_residuals, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  allocate(field_list(size(variable_names)))
-  do i = 1, size(variable_names)
-     call set_field_type(variable_types(i), field_properties)
-     call set_field_name(variable_names(i), field_properties)
-     call create_field(field_properties, field_list(i)%f)
-     field_list(i)%name = variable_names(i)
-  end do
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("whisky", field_properties)
+  call create_field(field_properties, whisky)
+  call set_field_name("viscosity", field_properties)
+  call create_field(field_properties, viscosity) 
+  call set_field_name("density", field_properties)
+  call create_field(field_properties, density) 
+
+  call set_field_type(cell_centred_upwind, field_properties)
+  call set_field_name("water", field_properties)
+  call create_field(field_properties, water)
+
+  !allocate(field_list(size(variable_names)))
+  !do i = 1, size(variable_names)
+     !call set_field_type(variable_types(i), field_properties)
+     !call set_field_name(variable_names(i), field_properties)
+     !call create_field(field_properties, field_list(i)%f)
+     !field_list(i)%name = variable_names(i)
+  !end do
   
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -149,26 +164,24 @@ program scalar_transport
   call set_field_name("mf", field_properties)
   call create_field(field_properties, mf)
 
-  call set_vector_location(cell, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-  call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity) 
-  call set_field_name("density", field_properties)
-  call create_field(field_properties, density) 
-
   ! Add fields to output list
-  do i = 1, size(field_list)
-     fptr => field_list(i)%f
-     call add_field_to_outputlist(fptr, field_list(i)%name, output_list)
-  end do
+  !do i = 1, size(field_list)
+     !fptr => field_list(i)%f
+     !call add_field_to_outputlist(fptr, field_list(i)%name, output_list)
+  !end do
+
+  call add_field_to_outputlist(whisky, "whisky", output_list)
+  call add_field_to_outputlist(water, "water", output_list)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise flow field"
-  call initialise_case(mesh, field_list, mf, viscosity, density)
-  do i = 1, size(field_list)
-     call update(field_list(i)%f%values)
-  end do
+  !call initialise_case(mesh, field_list, mf, viscosity, density)
+  call initialise_case(mesh, whisky, water, mf, viscosity, density) 
+  !do i = 1, size(field_list)
+     !call update(field_list(i)%f%values)
+  !end do
+  call update(whisky%values)
+  call update(water%values)
   call update(mf%values)
   call update(viscosity%values)
   call update(density%values)
@@ -179,20 +192,26 @@ program scalar_transport
   ! call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   ! call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
   call allocate_fluid_fields(5, flow_fields)
-  field_ctr = 1
-  call set_field(field_ctr, field_mf, mf, flow_fields)
-  field_ctr = 2
-  call set_field(field_ctr, field_viscosity, viscosity, flow_fields)
-  field_ctr = 3
-  call set_field(field_ctr, field_density, density, flow_fields)
+  !field_ctr = 1
+  !call set_field(field_ctr, field_mf, mf, flow_fields)
+  !field_ctr = 2
+  !call set_field(field_ctr, field_viscosity, viscosity, flow_fields)
+  !field_ctr = 3
+  !call set_field(field_ctr, field_density, density, flow_fields)
 
-  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density ]) + 1
-  do i = 1, size(field_list)
-     field_ctr = field_ctr + 1
-     call set_field(field_ctr, scalar_index, field_list(i)%f, flow_fields)
-     scalar_index = scalar_index + 1
-  end do
+  !scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density ]) + 1
+  !do i = 1, size(field_list)
+     !field_ctr = field_ctr + 1
+     !call set_field(field_ctr, scalar_index, field_list(i)%f, flow_fields)
+     !scalar_index = scalar_index + 1
+  !end do
   
+  call set_field(1, whisky, flow_fields)
+  call set_field(2, water, flow_fields)
+  call set_field(3, mf, flow_fields)
+  call set_field(4, viscosity, flow_fields) 
+  call set_field(5, density, flow_fields) 
+
   if (irank == par_env%root) then
     call print_configuration()
   end if
@@ -222,10 +241,12 @@ program scalar_transport
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
-  do i = 1, size(field_list)
-     deallocate(field_list(i)%f)
-  end do
-  deallocate (field_list)
+  !do i = 1, size(field_list)
+     !deallocate(field_list(i)%f)
+  !end do
+
+  deallocate (whisky)
+  deallocate (water)
   deallocate (mf)
   deallocate (viscosity)
   deallocate (density)
@@ -268,12 +289,13 @@ contains
     if (size(variable_types) /= size(variable_names)) then
        call error_abort("The number of variable types does not match the number of named variables")
     end if
-    if (par_env%proc_id == par_env%root) then
-       print *, "Found variables: "
-       do i = 1, size(variable_names)
-          print *, "+ ", trim(variable_names(i)), " scheme ", trim(get_scheme_name(variable_types(i)))
-       end do
-    end if
+    
+    !if (par_env%proc_id == par_env%root) then
+       !print *, "Found variables: "
+       !do i = 1, size(variable_names)
+          !print *, "+ ", trim(variable_names(i)), " scheme ", trim(get_scheme_name(variable_types(i)))
+       !end do
+    !end if
     
     call get_value(config_file, 'steps', num_steps)
     if (num_steps == huge(0)) then
@@ -341,7 +363,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_case(mesh, field_list, mf, viscosity, density)
+  subroutine initialise_case(mesh, whisky, water, mf, viscosity, density)
 
     use constants, only: insert_mode
     use types, only: vector_values, cell_locator, neighbour_locator, face_locator
@@ -352,7 +374,8 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
-    type(field_elt), dimension(:), intent(inout) :: field_list
+    !type(field_elt), dimension(:), intent(inout) :: field_list
+    class(field) :: whisky, water
     class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
@@ -452,18 +475,21 @@ contains
          end if
 
       end do
-      
+
     end do
 
-    do i = 1, size(field_list)
-       if (field_list(i)%name == "whisky") then
-          call set_values(whisky_vals, field_list(i)%f%values)
-       else if (field_list(i)%name == "water") then
-          call set_values(water_vals, field_list(i)%f%values)
-       else
-          call error_abort("Unknown field " // field_list(i)%name)
-       end if
-    end do
+    call set_values(whisky_vals, whisky%values)
+    call set_values(water_vals, water%values)
+
+    !do i = 1, size(field_list)
+       !if (field_list(i)%name == "whisky") then
+          !call set_values(whisky_vals, field_list(i)%f%values)
+       !else if (field_list(i)%name == "water") then
+          !call set_values(water_vals, field_list(i)%f%values)
+       !else
+          !call error_abort("Unknown field " // field_list(i)%name)
+       !end if
+    !end do
     
     deallocate (whisky_vals%global_indices)
     deallocate (water_vals%global_indices)
