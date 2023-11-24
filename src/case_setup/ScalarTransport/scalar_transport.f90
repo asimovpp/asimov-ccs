@@ -55,10 +55,7 @@ program scalar_transport
 
   type(field_spec) :: field_properties
   class(field), allocatable, target :: mf, viscosity, density
-  class(field), pointer :: fptr
-
   type(field_ptr), allocatable :: output_list(:)
-  type(field_elt), allocatable, target :: field_list(:)
   
   integer(ccs_int) :: n_boundaries
 
@@ -77,10 +74,6 @@ program scalar_transport
 
   real(ccs_real) :: L
   integer(ccs_int) :: t
-
-  integer(ccs_int) :: scalar_index ! ID for defining scalars
-  integer(ccs_int) :: field_ctr
-  integer :: i
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -234,8 +227,6 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
-
-    integer :: i
     
     config_file => parse(config_filename, error)
     if (allocated(error)) then
@@ -347,8 +338,6 @@ contains
     real(ccs_real), dimension(3) :: x, r, c, face_normal
     real(ccs_real), dimension(3) :: v
     real(ccs_real) :: theta, rmag
-
-    integer :: i
     
     ! Set alias
     call get_local_num_cells(mesh, n_local)
