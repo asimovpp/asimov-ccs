@@ -50,7 +50,6 @@ contains
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
-    integer(ccs_int) :: field_id ! The field's numeric identifier
     character(len=20) :: field_name ! The field's name
     class(field), pointer :: phi ! The scalar field
 

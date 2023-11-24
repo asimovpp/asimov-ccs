@@ -49,7 +49,6 @@ program scalar_transport
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
   class(field), allocatable, target :: whisky, water
-  !type(field_elt), allocatable, target :: whisky, water
 
   type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
@@ -434,7 +433,7 @@ contains
 
     call set_values(whisky_vals, whisky%values)
     call set_values(water_vals, water%values)
-        
+
     deallocate (whisky_vals%global_indices)
     deallocate (water_vals%global_indices)
     deallocate (whisky_vals%values)
