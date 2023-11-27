@@ -1,7 +1,7 @@
 submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int, ccs_err
+  use kinds, only: ccs_int, ccs_err, ccs_real
   use types, only: topology, graph_connectivity, cell_locator, neighbour_locator, vertex_neighbour_locator
   use utils, only: str, debug_print, exit_print
   use parallel_types_mpi, only: parallel_environment_mpi
@@ -18,7 +18,6 @@ submodule(partitioning) partitioning_common
                      get_count_vertex_neighbours
   use case_config, only: vertex_neighbours
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
-
 
   implicit none
 
@@ -38,7 +37,8 @@ contains
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
     integer(ccs_int) :: i
-
+    integer(ccs_int) :: partition_rank
+    
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -51,11 +51,23 @@ contains
     call compute_connectivity_get_local_cells(par_env, mesh)
 
     ! Recompute vtxdist array based on the new partition
-    mesh%topo%graph_conn%vtxdist(1) = 1
-    do i = 2, isize + 1
-      mesh%topo%graph_conn%vtxdist(i) = count(mesh%topo%graph_conn%global_partition == (i - 2)) + mesh%topo%graph_conn%vtxdist(i - 1)
-    end do
+    associate(global_partition => mesh%topo%graph_conn%global_partition, &
+              vtxdist => mesh%topo%graph_conn%vtxdist)
+      vtxdist(:) = 0
 
+      ! Store counts at rank + 1
+      do i = 1, size(global_partition)
+        partition_rank = int(global_partition(i), ccs_int) + 1 ! Ranks are C-indexed...
+        vtxdist(partition_rank + 1) = vtxdist(partition_rank + 1) + 1
+      end do
+
+      ! Compute distribution offsets
+      vtxdist(1) = 1
+      do i= 2, isize + 1
+        vtxdist(i) = vtxdist(i) + vtxdist(i - 1)
+      end do
+    end associate
+    
     if (irank == 0) then
       do i = 1, isize + 1
         call dprint("new vtxdist(" // str(i) // "): " // str(int(mesh%topo%graph_conn%vtxdist(i))))
@@ -919,4 +931,102 @@ contains
 
   end subroutine cleanup_partitioner_data_graphconn
 
+  !v Compute and report the partitioning quality.
+  !
+  !  The following metrics are implemented
+  !  - The "surface to volume ratio" nhalo / nlocal (averaged)
+  !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
+  !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
+  module subroutine print_partition_quality(par_env, mesh)
+
+    use case_config, only : compute_partqual
+    
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(in) :: mesh
+
+    real(ccs_real) :: s2v ! Surface to volume ratio
+    real(ccs_real) :: ulb ! Under load balance (minimum)
+    real(ccs_real) :: olb ! Over load balance (maximum)
+
+    if (compute_partqual) then
+      call compute_partition_quality(par_env, mesh, s2v, ulb, olb)
+      if (is_root(par_env)) then
+        print *, "Partitioning report:"
+        print *, "- Surface:Volume ratio:", s2v
+        print *, "- Under load balance:", ulb
+        print *, "- Over load balance:", olb
+      end if
+    end if
+    
+  end subroutine print_partition_quality
+
+  !v Compute the partitioning quality.
+  !
+  !  The following metrics are implemented
+  !  - The "surface to volume ratio" nhalo / nlocal (averaged)
+  !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
+  !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
+  subroutine compute_partition_quality(par_env, mesh, s2v, ulb, olb)
+
+    use mpi
+    
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(in) :: mesh
+    real(ccs_real), intent(out) :: s2v ! Surface to volume ratio
+    real(ccs_real), intent(out) :: ulb ! Under load balance (minimum)
+    real(ccs_real), intent(out) :: olb ! Over load balance (maximum)
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: halo_num_cells
+
+    integer(ccs_int) :: local_num_cells_stat
+    
+    real(ccs_real) :: local_num_cells_avg
+
+    integer(ccs_err) :: ierr
+
+    call get_local_num_cells(mesh, local_num_cells)
+    call get_halo_num_cells(mesh, halo_num_cells)
+
+    associate(nprocs => real(par_env%num_procs, ccs_real))
+      ! Compute average surface to volume ratio
+      s2v = real(halo_num_cells, ccs_real) / real(local_num_cells, ccs_real)
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(MPI_IN_PLACE, s2v, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      s2v = s2v / nprocs
+
+      ! Compute average local cell count
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(local_num_cells, local_num_cells_stat, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      local_num_cells_avg = real(local_num_cells_stat, ccs_real) / nprocs
+
+      ! Compute under load balance
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(local_num_cells, local_num_cells_stat, 1, MPI_INTEGER, MPI_MIN, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      ulb = real(local_num_cells_stat, ccs_real) / local_num_cells_avg
+
+      ! Compute over load balance
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(local_num_cells, local_num_cells_stat, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      olb = real(local_num_cells_stat, ccs_real) / local_num_cells_avg
+    end associate
+    
+  end subroutine compute_partition_quality
+  
 end submodule

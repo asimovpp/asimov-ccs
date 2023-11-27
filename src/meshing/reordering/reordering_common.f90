@@ -15,7 +15,7 @@ submodule(reordering) reordering_common
                      set_natural_index, &
                      get_total_num_cells, &
                      get_vert_per_cell
-  use parallel, only: create_shared_array, destroy_shared_array
+  use parallel, only: create_shared_array, destroy_shared_array, is_root
 
   implicit none
 
@@ -316,7 +316,43 @@ contains
 
   end subroutine
 
-  module subroutine compute_bandwidth(mesh, bw_max, bw_avg)
+  module subroutine print_bandwidth(par_env, mesh)
+
+    use mpi
+    
+    use case_config, only: compute_bwidth
+    use parallel_types_mpi, only: parallel_environment_mpi
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), intent(in) :: mesh
+    
+    integer(ccs_int) :: bw_max
+    real(ccs_real) :: bw_avg
+
+    integer(ccs_int) :: ierr
+    real(ccs_real) :: sum_bw_avg
+
+    if (.not. compute_bwidth) then
+      return
+    end if
+
+    call compute_bandwidth(mesh, bw_max, bw_avg)
+    
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, bw_max, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+      call MPI_Allreduce(bw_avg, sum_bw_avg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      if(is_root(par_env)) then 
+        print *, "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
+      end if
+
+    class default
+      call error_abort("Unsupported parallel environment!")
+    end select
+    
+  end subroutine
+
+  subroutine compute_bandwidth(mesh, bw_max, bw_avg)
 
     type(ccs_mesh), intent(in) :: mesh !< the mesh to evaluate
     integer(ccs_int), intent(out) :: bw_max

@@ -44,6 +44,8 @@ module constants
   integer(ccs_int), public, parameter :: field_p = 3
   integer(ccs_int), public, parameter :: field_p_prime = 4
   integer(ccs_int), public, parameter :: field_mf = 5
+  integer(ccs_int), public, parameter :: field_viscosity = 6 
+  integer(ccs_int), public, parameter :: field_density = 7 
 
   ! Constants for splitting mpi communicator
   integer, public, parameter :: ccs_split_type_shared = 0

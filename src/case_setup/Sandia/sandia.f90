@@ -10,7 +10,7 @@ program sandia
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
+                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -22,7 +22,7 @@ program sandia
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, query_stop_run, create_new_par_env
+                      read_command_line_arguments, sync, query_stop_run, create_new_par_env, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
@@ -41,7 +41,8 @@ program sandia
   use io_visualisation, only: write_solution
   use fv, only: update_gradient
   use utils, only: str
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
+                    timer_print, timer_get_time, timer_print_all, timer_export_csv
 
   implicit none
 
@@ -57,7 +58,7 @@ program sandia
   type(vector_spec):: vec_properties
 
   type(field_spec):: field_properties
-  class(field), allocatable, target:: u, v, w, p, p_prime, mf
+  class(field), allocatable, target:: u, v, w, p, p_prime, mf, viscosity, density
   class(field), allocatable, target:: scalar_field
 
   type(field_ptr), allocatable:: output_list(:)
@@ -90,7 +91,7 @@ program sandia
 
   type(fluid):: flow_fields
   type(fluid_solver_selector):: fluid_sol
-  type(bc_profile), allocatable:: profile
+  ! type(bc_profile), allocatable:: profile
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -117,7 +118,7 @@ program sandia
   ! Read case name and runtime parameters from configuration file
   call read_configuration(ccs_config_file)
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -176,6 +177,10 @@ program sandia
   call create_field(field_properties, p)
   call set_field_name("p_prime", field_properties)
   call create_field(field_properties, p_prime)
+  call set_field_name("viscosity", field_properties)
+  call create_field(field_properties, viscosity)
+  call set_field_name("density", field_properties)
+  call create_field(field_properties, density)
 
   call set_field_name("scalar", field_properties)
   call create_field(field_properties, scalar_field)
@@ -188,7 +193,6 @@ program sandia
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  allocate (output_list(5))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(w, "w", output_list)
@@ -197,7 +201,7 @@ program sandia
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(mesh, u, v, w, p, mf, scalar_field)
+  call initialise_flow(mesh, u, v, w, p, mf, viscosity, density, scalar_field)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -220,16 +224,18 @@ program sandia
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(7, flow_fields)
+  call allocate_fluid_fields(9, flow_fields)
   call set_field(1, field_u, u, flow_fields)
   call set_field(2, field_v, v, flow_fields)
   call set_field(3, field_w, w, flow_fields)
   call set_field(4, field_p, p, flow_fields)
   call set_field(5, field_p_prime, p_prime, flow_fields)
   call set_field(6, field_mf, mf, flow_fields)
+  call set_field(7, field_viscosity, viscosity, flow_fields)
+  call set_field(8, field_density, density, flow_fields)
 
-  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf ]) + 1
-  call set_field(7, scalar_index, scalar_field, flow_fields)
+  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density]) + 1
+  call set_field(9, scalar_index, scalar_field, flow_fields)
 
   call timer_stop(timer_index_init)
   call timer_register("I/O time for solution", timer_index_io_sol)
@@ -270,6 +276,7 @@ program sandia
   call timer_stop(timer_index_total)
 
   call timer_print_all(par_env)
+  call timer_export_csv(par_env)
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
@@ -355,7 +362,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(mesh, u, v, w, p, mf, scalar_field)
+  subroutine initialise_flow(mesh, u, v, w, p, mf, viscosity, density, scalar_field)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -368,7 +375,7 @@ contains
 
     ! Arguments
     class(ccs_mesh), intent(in):: mesh
-    class(field), intent(inout):: u, v, w, p, mf
+    class(field), intent(inout):: u, v, w, p, mf, viscosity, density
     class(field), intent(inout):: scalar_field
 
     ! Local variables
@@ -380,7 +387,7 @@ contains
     type(face_locator):: loc_f
     type(neighbour_locator):: loc_nb
     type(vector_values):: u_vals, v_vals, w_vals, p_vals, scalar_vals
-    real(ccs_real), dimension(:), pointer:: mf_data
+    real(ccs_real), dimension(:), pointer:: mf_data, viscosity_data, density_data
 
     real(ccs_real), dimension(ndim):: x_p, x_f
     real(ccs_real), dimension(ndim):: face_normal
@@ -483,12 +490,22 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
+    call get_vector_data(viscosity%values, viscosity_data)
+    viscosity_data(:) =  1.58e-5_ccs_real
+    call restore_vector_data(viscosity%values, viscosity_data)
+
+    call get_vector_data(density%values, density_data)
+    density_data(:) = 1.21643_ccs_real
+    call restore_vector_data(density%values, density_data)
+
     call update(u%values)
     call update(v%values)
     call update(w%values)
     call update(p%values)
     call update(scalar_field%values)
     call update(mf%values)
+    call update(viscosity%values)
+    call update(density%values)
 
   end subroutine initialise_flow
 

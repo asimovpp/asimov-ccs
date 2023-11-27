@@ -11,8 +11,8 @@ program scalar_transport
   use case_config, only: num_steps, num_iters, cps, domain_size, case_name, &
                          res_target, write_gradients, dt, write_frequency
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
-                       field_w, field_p, field_p_prime, field_mf, &
-                       face_centred, ccs_split_type_low_high
+                       field_w, field_p, field_p_prime, field_mf, field_viscosity, &
+                       field_density, face_centred, cell_centred_central, ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, field_elt, fluid
@@ -52,7 +52,7 @@ program scalar_transport
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: mf
+  class(field), allocatable, target :: mf, viscosity, density
   class(field), pointer :: fptr
 
   type(field_ptr), allocatable :: output_list(:)
@@ -149,8 +149,15 @@ program scalar_transport
   call set_field_name("mf", field_properties)
   call create_field(field_properties, mf)
 
+  call set_vector_location(cell, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("viscosity", field_properties)
+  call create_field(field_properties, viscosity) 
+  call set_field_name("density", field_properties)
+  call create_field(field_properties, density) 
+
   ! Add fields to output list
-  allocate (output_list(2))
   do i = 1, size(field_list)
      fptr => field_list(i)%f
      call add_field_to_outputlist(fptr, field_list(i)%name, output_list)
@@ -158,21 +165,28 @@ program scalar_transport
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise flow field"
-  call initialise_case(mesh, field_list, mf)
+  call initialise_case(mesh, field_list, mf, viscosity, density)
   do i = 1, size(field_list)
      call update(field_list(i)%f%values)
   end do
   call update(mf%values)
+  call update(viscosity%values)
+  call update(density%values)
 
   ! ! XXX: This should get incorporated as part of create_field subroutines
   ! call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
   ! call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   ! call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   ! call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(3, flow_fields)
+  call allocate_fluid_fields(5, flow_fields)
   field_ctr = 1
   call set_field(field_ctr, field_mf, mf, flow_fields)
-  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf ]) + 1
+  field_ctr = 2
+  call set_field(field_ctr, field_viscosity, viscosity, flow_fields)
+  field_ctr = 3
+  call set_field(field_ctr, field_density, density, flow_fields)
+
+  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density ]) + 1
   do i = 1, size(field_list)
      field_ctr = field_ctr + 1
      call set_field(field_ctr, scalar_index, field_list(i)%f, flow_fields)
@@ -204,7 +218,6 @@ program scalar_transport
     end if
 
     call finalise_timestep()
-   
   end do
 
   ! Clean-up
@@ -214,6 +227,8 @@ program scalar_transport
   end do
   deallocate (field_list)
   deallocate (mf)
+  deallocate (viscosity)
+  deallocate (density)
   deallocate (output_list)
 
   call timer(end_time)
@@ -326,7 +341,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_case(mesh, field_list, mf)
+  subroutine initialise_case(mesh, field_list, mf, viscosity, density)
 
     use constants, only: insert_mode
     use types, only: vector_values, cell_locator, neighbour_locator, face_locator
@@ -338,7 +353,7 @@ contains
     ! Arguments
     class(ccs_mesh), intent(in) :: mesh
     type(field_elt), dimension(:), intent(inout) :: field_list
-    class(field), intent(inout) :: mf
+    class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
     integer(ccs_int) :: index_p, global_index_p, n_local
@@ -347,7 +362,7 @@ contains
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: whisky_vals, water_vals
-    real(ccs_real), dimension(:), pointer :: mf_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
     integer(ccs_int) :: j, nnb
     integer(ccs_int) :: index_nb, index_f
@@ -456,6 +471,14 @@ contains
     deallocate (water_vals%values)
 
     call restore_vector_data(mf%values, mf_data)
+
+    call get_vector_data(viscosity%values, viscosity_data)
+    viscosity_data(:) =  1.e-2_ccs_real
+    call restore_vector_data(viscosity%values, viscosity_data)
+
+    call get_vector_data(density%values, density_data)
+    density_data(:) = 1.0_ccs_real
+    call restore_vector_data(density%values, density_data)
 
   end subroutine initialise_case
 
