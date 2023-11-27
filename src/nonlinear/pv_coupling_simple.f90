@@ -345,10 +345,6 @@ contains
       call error_abort("Unsupported vector component: " // str(component))
     end if
 
-    !call get_field(flow, field_mf, mf)
-    !call get_field(flow, field_viscosity, viscosity)
-    !call get_field(flow, field_density, density)
-
     call get_field(flow, "mf", mf)
     call get_field(flow, "viscosity", viscosity)
     call get_field(flow, "density", density)
@@ -922,12 +918,6 @@ contains
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
 
-    !call get_field(flow, field_u, u)
-    !call get_field(flow, field_v, v)
-    !call get_field(flow, field_w, w)
-    !call get_field(flow, field_p, p)
-    !call get_field(flow, field_mf, mf)
-
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
     call get_field(flow, "w", w)
@@ -1076,11 +1066,6 @@ contains
     class(field), pointer :: u       !< The x velocities being corrected
     class(field), pointer :: v       !< The y velocities being corrected
     class(field), pointer :: w       !< The z velocities being corrected
-
-    !call get_field(flow, field_u, u)
-    !call get_field(flow, field_v, v)
-    !call get_field(flow, field_w, w)
-    !call get_field(flow, field_p_prime, p_prime)
 
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
