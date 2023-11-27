@@ -25,8 +25,7 @@ module timestepping
 
   interface
     !> Apply one timestep correction
-    module subroutine apply_timestep(mesh, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
+    module subroutine apply_timestep(phi, diag, M, b)
       class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
       class(ccs_matrix), intent(inout) :: M !< equation system
@@ -111,8 +110,7 @@ module timestepping
     end subroutine
 
     !> Apply first order timestep correction
-    module subroutine apply_timestep_first_order(mesh, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
+    module subroutine apply_timestep_first_order(phi, diag, M, b)
       class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
       class(ccs_matrix), intent(inout) :: M !< equation system
@@ -120,8 +118,7 @@ module timestepping
     end subroutine
 
     !> Apply second order timestep correction
-    module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
+    module subroutine apply_timestep_second_order(phi, diag, M, b)
       class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
       class(ccs_matrix), intent(inout) :: M !< equation system
@@ -129,8 +126,7 @@ module timestepping
     end subroutine
 
     !> Apply mixed order timestep correction (theta scheme)
-    module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
+    module subroutine apply_timestep_theta(theta, phi, diag, M, b)
       real(ccs_real), intent(in) :: theta !< timestepping scheme mixing factor
       class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal

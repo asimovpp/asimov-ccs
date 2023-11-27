@@ -17,12 +17,12 @@ program test_compute_fluxes
   use meshing, only: get_global_index, get_local_index, get_boundary_status, &
                      create_cell_locator, create_neighbour_locator, create_face_locator, &
                      count_neighbours, get_local_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use boundary_conditions, only: allocate_bc_arrays
 
   implicit none
 
   real(ccs_real), parameter :: diffusion_factor = 1.e-2_ccs_real ! XXX: temporarily hard-coded
-  type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
   class(field), allocatable :: scalar
   class(field), allocatable :: mf
@@ -34,6 +34,7 @@ program test_compute_fluxes
   call init()
 
   mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  call set_mesh_object(mesh)
 
   allocate (central_field :: scalar)
   allocate (face_field :: mf)
@@ -62,11 +63,13 @@ program test_compute_fluxes
 
   do i = 1, size(mf_values)
     call set_mass_flux(mf, mf_values(i))
-    call run_compute_fluxes_test(scalar, mf, mesh)
+    call run_compute_fluxes_test(scalar, mf)
   end do
 
   deallocate (scalar)
   deallocate (mf)
+
+  call nullify_mesh_object()
 
   call fin()
 
@@ -85,10 +88,9 @@ contains
   end subroutine set_mass_flux
 
   !> Tests that the flux coefficients are in a sensible range
-  subroutine run_compute_fluxes_test(scalar, mf, mesh)
+  subroutine run_compute_fluxes_test(scalar, mf)
     class(field), intent(inout) :: scalar   !< The scalar field structure
     class(field), intent(inout) :: mf       !< The mass flux field
-    type(ccs_mesh), intent(in) :: mesh      !< The mesh structure
 
     real(ccs_real), dimension(:), pointer :: mf_data
     
@@ -106,12 +108,12 @@ contains
 
     select type(scalar)
     type is (central_field)
-      call get_local_num_cells(mesh, local_num_cells)
+      call get_local_num_cells(local_num_cells)
 
       call get_vector_data(mf%values, mf_data)
 
       do index_p = 1, local_num_cells
-        call create_cell_locator(mesh, index_p, loc_p)
+        call create_cell_locator(index_p, loc_p)
         call count_neighbours(loc_p, nnb)
 
         do j = 1, nnb
@@ -119,7 +121,7 @@ contains
           call get_boundary_status(loc_nb, is_boundary)
           call get_local_index(loc_nb, index_nb)
           
-          call create_face_locator(mesh, index_p, j, loc_f)
+          call create_face_locator(index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
 
           if (.not. is_boundary) then

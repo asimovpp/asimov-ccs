@@ -67,7 +67,7 @@ contains
 
     integer(ccs_int) :: global_num_cells
 
-    call get_global_num_cells(topo, global_num_cells)
+    call get_global_num_cells(global_num_cells)
 
     call partition_kway_graphconn(par_env, shared_env, roots_env, global_num_cells, topo%graph_conn)
     

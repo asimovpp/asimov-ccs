@@ -9,13 +9,12 @@ program test_rcm
   use meshing, only: create_cell_locator, create_face_locator, create_vert_locator, get_centre, &
                      get_local_num_cells, get_global_index, create_neighbour_locator, get_boundary_status, &
                      get_natural_index
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_topology, partition_stride
   use partitioning, only: compute_partitioner_input, compute_connectivity
   use reordering, only: reorder_cells
 
   implicit none
-
-  type(ccs_mesh), allocatable :: mesh
 
   real(ccs_real) :: l
   integer(ccs_int) :: n
@@ -27,13 +26,14 @@ program test_rcm
   integer(ccs_int) :: nnb
   integer(ccs_int), dimension(:, :), allocatable :: global_neighbours_ref
 
+  type(ccs_mesh), allocatable :: tmp_mesh
+
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
   do mctr = 1, size(m)
-
-    allocate (mesh)
-
+    allocate(tmp_mesh)
+    mesh = tmp_mesh
     n = m(mctr)
 
     l = parallel_random(par_env)
@@ -41,10 +41,12 @@ program test_rcm
     ! Build topology
     call build_square_topology(par_env, shared_env, n, mesh)
     call compute_partitioner_input(par_env, shared_env, mesh)
+
+    call set_mesh_object(mesh)
     call partition_stride(par_env, shared_env, roots_env, mesh)
     call compute_connectivity(par_env, shared_env, roots_env, mesh)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
 
     call get_reference_connectivity(global_neighbours_ref)
 
@@ -53,8 +55,8 @@ program test_rcm
     call reorder_cells(par_env, shared_env, mesh)
 
     call test_global_connectivity()
-
-    deallocate (mesh)
+    call nullify_mesh_object()
+    deallocate(tmp_mesh)
 
   end do
 
@@ -77,7 +79,7 @@ contains
     character(len=:), allocatable :: msg
 
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_natural_index(loc_p, natural_index_p)
 
       do j = 1, nnb
@@ -116,7 +118,7 @@ contains
     global_neighbours_ref(:, :) = 0
 
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       do j = 1, nnb

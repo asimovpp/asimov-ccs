@@ -67,19 +67,19 @@ contains
     if (present(step) .and. present(maxstep) .and. present(dt)) then
       ! Unsteady case
       call timer_start(timer_index_write_xdmf)
-      call write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
+      call write_xdmf(par_env, case_name, output_list, step, maxstep, dt)
       call timer_stop(timer_index_write_xdmf)
     else
       ! Steady case
       call timer_start(timer_index_write_xdmf)
-      call write_xdmf(par_env, case_name, mesh, output_list)
+      call write_xdmf(par_env, case_name, output_list)
       call timer_stop(timer_index_write_xdmf)
     end if
 
   end subroutine
 
   !> Write the XML descriptor file, which describes the grid and flow data in the 'heavy' data files
-  module subroutine write_xdmf(par_env, case_name, mesh, output_list, step, maxstep, dt)
+  module subroutine write_xdmf(par_env, case_name, output_list, step, maxstep, dt)
 
     use case_config, only: write_gradients
     use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices, get_mesh_generated
@@ -87,7 +87,6 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
-    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
     type(field_ptr), dimension(:), intent(inout) :: output_list              !< List of fields to output
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
@@ -150,9 +149,9 @@ contains
         write (ioxdmf, '(a,a)') l1, '<Domain>'
       end if
 
-      call get_global_num_cells(mesh, ncel)
-      call get_vert_per_cell(mesh, vert_per_cell)
-      call get_global_num_vertices(mesh, nvrt)
+      call get_global_num_cells(ncel)
+      call get_vert_per_cell(vert_per_cell)
+      call get_global_num_vertices(nvrt)
 
       write (ioxdmf, '(a,a)') l3, '<Grid Name = "Mesh">'
 
@@ -161,7 +160,7 @@ contains
       end if
 
       ! Check whether mesh was read or generated and set data path root appropriately
-      call get_mesh_generated(mesh, is_generated)
+      call get_mesh_generated(is_generated)
       if (is_generated) then
         mesh_data_root = "/Step0"
       else
