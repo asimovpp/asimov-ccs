@@ -41,7 +41,7 @@ contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
   module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    flow_solver_selector, flow)
+                                    flow_solver_selector, flow, diverged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env   !< parallel environment
@@ -51,6 +51,7 @@ contains
     real(ccs_real), intent(in) :: res_target                          !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector   !< determines which fluid fields need to be solved for
     type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
+    logical, optional, intent(out) :: diverged                        !< returns true if the solution diverged
 
     ! Local variables
     integer(ccs_int) :: i
@@ -186,7 +187,7 @@ contains
       !< density values change to exponential here after update
 
       call check_convergence(par_env, i, residuals, res_target, &
-                             flow_solver_selector, converged)
+                             flow_solver_selector, converged, diverged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (par_env%proc_id == par_env%root) then
@@ -197,7 +198,17 @@ contains
         exit outerloop
       end if
 
-      ! density values are in exponential
+      if (present(diverged)) then
+        if (diverged) then
+          if (par_env%proc_id == par_env%root) then
+            write (*, *)
+            write (*, '(a)') 'Diverged!'
+            write (*, *)
+          end if
+        exit outerloop
+        end if
+      end if
+
     end do outerloop
 
     deallocate (lin_solverP)
@@ -1206,7 +1217,7 @@ contains
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, itr, residuals, res_target, &
-                               flow_solver_selector, converged)
+                               flow_solver_selector, converged, diverged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
@@ -1215,6 +1226,7 @@ contains
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     type(fluid_solver_selector), intent(in) :: flow_solver_selector
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
+    logical, optional, intent(out) :: diverged                      !< Has solution diverged (true/false)
 
     ! Local variables
     integer :: io_unit
@@ -1300,8 +1312,8 @@ contains
     ! checks if RMS of residuals is below target
     if (maxval(residuals(1:nvar)) < res_target) converged = .true.
 
-    if (maxval(residuals) > huge(1.0_ccs_real)) then
-      call error_abort("Computation diverging")
+    if (present(diverged)) then
+      diverged = (maxval(residuals) > huge(1.0_ccs_real)) 
     end if
 
   end subroutine check_convergence

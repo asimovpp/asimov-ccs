@@ -97,6 +97,12 @@ contains
       bcs%ids(boundary_index) = 7
     case ("other2")
       bcs%ids(boundary_index) = 8
+    case ("other3")
+      bcs%ids(boundary_index) = 9
+    case ("other4")
+      bcs%ids(boundary_index) = 10
+    case ("other5")
+      bcs%ids(boundary_index) = 11
     case default
       call error_abort("unexpected bc name " // name)
     end select
