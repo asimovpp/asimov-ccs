@@ -11,12 +11,22 @@ module mortif
 !< [2] *On Spatial Orders and Location Codes*, Stocco, LJ and Schrack, G, IEEE Transaction on Computers, vol 58, n 3, March 2009.
 !< [3] *Out-of-Core Construction of Sparse Voxel Octrees*, J. Baert, A. Lagae and Ph. Dutré, Proceedings of the Fifth ACM
 !< SIGGRAPH/Eurographics conference on High-Performance Graphics, 2013.
-use penf
+
+use iso_fortran_env
+use kinds, only: ccs_int, ccs_real, ccs_long
 
 implicit none
 save
 private
 public :: morton2D, demorton2D, morton3D, demorton3D
+
+integer, parameter :: I8P = kind(1_int64) !< Range \([-2^{63},+2^{63} - 1]\), 19 digits plus sign; 64 bits.
+integer, parameter :: I4P = kind(1_int32)  !< Range \([-2^{31},+2^{31} - 1]\), 10 digits plus sign; 32 bits.
+integer, parameter :: I2P = kind(1_int16)  !< Range \([-2^{15},+2^{15} - 1]\), 5  digits plus sign; 16 bits.
+integer, parameter :: I1P = kind(1_int8)  !< Range \([-2^{7} ,+2^{7}  - 1]\), 3  digits plus sign; 8  bits.
+integer, parameter :: I_P = I4P                   !< Default integer precision.
+
+integer, parameter :: R4P  = selected_real_kind(6,37)    !< 6  digits, range \([10^{-37}  , 10^{+37}   - 1]\); 32 bits.
 
 ! Binary masks: used into the bits dilating and contracting algorithms.
 !> 0000000000000000000000000000000011111111111111111111111111111111.
