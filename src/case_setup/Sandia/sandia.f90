@@ -491,7 +491,8 @@ contains
     call restore_vector_data(mf%values, mf_data)
 
     call get_vector_data(viscosity%values, viscosity_data)
-    viscosity_data(:) =  1.58e-5_ccs_real
+    ! Kinematic viscosity of 1.58e-5_ccs_real
+    viscosity_data(:) =  1.92196e-5_ccs_real ! = Dynamic viscosity
     call restore_vector_data(viscosity%values, viscosity_data)
 
     call get_vector_data(density%values, density_data)
