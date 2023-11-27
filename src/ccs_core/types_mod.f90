@@ -211,7 +211,7 @@ module types
     real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
     character(len=20) :: name
-    end type field
+  end type field
 
   type, public, extends(field) :: upwind_field
   end type
