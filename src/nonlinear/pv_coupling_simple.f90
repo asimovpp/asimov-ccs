@@ -494,11 +494,6 @@ contains
     real(ccs_real) :: face_area
     real(ccs_real), dimension(:), pointer :: viscosity_data
 
-    !call get_field(flow, field_u, u)
-    !call get_field(flow, field_v, v)
-    !call get_field(flow, field_w, w)
-    !call get_field(flow, field_viscosity, viscosity)
-
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
     call get_field(flow, "w", w)
