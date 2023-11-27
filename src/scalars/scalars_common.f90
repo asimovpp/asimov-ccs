@@ -67,7 +67,7 @@ contains
     call initialise(mat_properties)
 
     call dprint("SCALAR: setup matrix")
-    call get_max_faces(mesh, max_faces)
+    call get_max_faces(max_faces)
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
@@ -107,16 +107,15 @@ contains
           call update_old_values(phi)
        end if
 
-       call transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
+       call transport_scalar(par_env, flow, M, rhs, D, phi)
     end do
     
   end subroutine update_scalars
 
   !> Subroutine to transport a scalar field.
-  subroutine transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
+  subroutine transport_scalar(par_env, flow, M, rhs, D, phi)
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
-    type(ccs_mesh), intent(in) :: mesh                              !< the mesh
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: rhs
@@ -135,16 +134,11 @@ contains
     call zero(M)
 
     call dprint("SCALAR: compute coefficients")
-    !call get_field(flow, field_mf, mf)
-    !call get_field(flow, field_viscosity, viscosity) 
-    !call get_field(flow, field_density, density)
-
     call get_field(flow, "mf", mf)
     call get_field(flow, "viscosity", viscosity) 
     call get_field(flow, "density", density)
-
-    call compute_fluxes(phi, mf, viscosity, density, mesh, 0, M, rhs)
-    call apply_timestep(mesh, phi, D, M, rhs)
+    call compute_fluxes(phi, mf, viscosity, density, 0, M, rhs)
+    call apply_timestep(phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")
     call update(M)
@@ -161,7 +155,7 @@ contains
     call create_solver(lin_system, lin_solver)
 
     call solve(lin_solver)
-    call update_gradient(mesh, phi)
+    call update_gradient(phi)
 
     deallocate(lin_solver)
     

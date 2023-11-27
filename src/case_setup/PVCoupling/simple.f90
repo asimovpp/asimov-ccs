@@ -8,6 +8,7 @@ program simple
   use petscvec
   use petscsys
 
+  use ccs_base, only: mesh
   use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                     field_viscosity, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
@@ -29,7 +30,6 @@ program simple
 
   class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: shared_env
-  type(ccs_mesh) :: square_mesh
   type(vector_spec) :: vec_sizes
   logical :: use_mpi_splitting
 
@@ -69,7 +69,8 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -86,7 +87,7 @@ program simple
 
   print *, "Create vectors"
   call set_vector_location(cell, vec_sizes)
-  call set_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, mesh, vec_sizes)
   call create_vector(vec_sizes, u%values)
   call create_vector(vec_sizes, v%values)
   call create_vector(vec_sizes, w%values)
@@ -112,13 +113,13 @@ program simple
   call update(p_prime%values)
 
   call set_vector_location(face, vec_sizes)
-  call set_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, mesh, vec_sizes)
   call create_vector(vec_sizes, mf%values)
   call update(mf%values)
 
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(square_mesh, u, v, w, mf, viscosity)
+  call initialise_velocity(u, v, w, mf, viscosity)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
@@ -141,7 +142,7 @@ program simple
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, square_mesh, it_start, it_end, res_target, &
+  call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                        fluid_sol, flow_fields)
 
   ! Clean-up
@@ -157,11 +158,12 @@ program simple
     print *, "Elapsed time = ", (end_time - start_time)
   end if
 
+  call nullify_mesh_object()
   call cleanup_parallel_environment(par_env)
 
 contains
 
-  subroutine initialise_velocity(cell_mesh, u, v, w, mf, viscosity)
+  subroutine initialise_velocity(u, v, w, mf, viscosity)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -171,7 +173,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: u, v, w, mf, viscosity
 
     ! Local variables
@@ -184,7 +185,7 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, mf_data, viscosity_data
 
     ! Set alias
-    call get_local_num_cells(cell_mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -196,7 +197,7 @@ contains
 
     ! Set initial values for velocity fields
     do local_idx = 1, n_local
-      call create_cell_locator(cell_mesh, local_idx, self_loc)
+      call create_cell_locator(local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call calc_cell_coords(self_idx, cps, row, col)
 

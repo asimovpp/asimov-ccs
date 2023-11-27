@@ -8,6 +8,7 @@ program scalar_transport
   use petscvec
   use petscsys
 
+  use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, cps, domain_size, case_name, &
                          res_target, write_gradients, dt, write_frequency
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
@@ -27,7 +28,7 @@ program scalar_transport
   use mesh_utils, only: build_mesh, write_mesh
   use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
-                     get_local_index, get_boundary_status, get_face_normal
+                     get_local_index, get_boundary_status, get_face_normal, set_mesh_object, nullify_mesh_object
   use vec, only: create_vector, set_vector_location
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
@@ -48,9 +49,9 @@ program scalar_transport
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
+
   class(field), allocatable, target :: whisky, water
 
-  type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
@@ -108,6 +109,7 @@ program scalar_transport
   if (irank == par_env%root) print *, "Building mesh"
   L = 1.0_ccs_real
   mesh = build_mesh(par_env, shared_env, cps, cps, cps, L)   ! 3-D mesh
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -153,7 +155,7 @@ program scalar_transport
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise flow field"
-  call initialise_case(mesh, whisky, water, mf, viscosity, density) 
+  call initialise_case(whisky, water, mf, viscosity, density) 
 
   call update(whisky%values)
   call update(water%values)
@@ -214,6 +216,7 @@ program scalar_transport
   end if
 
   ! Finalise MPI
+  call nullify_mesh_object()
   call cleanup_parallel_environment(par_env)
 
 contains
@@ -286,7 +289,7 @@ contains
 
     integer(ccs_int) :: global_num_cells
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
@@ -308,7 +311,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_case(mesh, whisky, water, mf, viscosity, density)
+  subroutine initialise_case(whisky, water, mf, viscosity, density)
 
     use constants, only: insert_mode
     use types, only: vector_values, cell_locator, neighbour_locator, face_locator
@@ -318,7 +321,7 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
+    !class(ccs_mesh), intent(in) :: mesh
     class(field) :: whisky, water
     class(field), intent(inout) :: mf, viscosity, density
 
@@ -340,7 +343,7 @@ contains
     real(ccs_real) :: theta, rmag
     
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, whisky_vals)
     call create_vector_values(n_local, water_vals)
@@ -354,7 +357,7 @@ contains
     
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       ! Get domain centre offset
@@ -375,7 +378,7 @@ contains
 
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-         call create_face_locator(mesh, index_p, j, loc_f)
+         call create_face_locator(index_p, j, loc_f)
          call get_local_index(loc_f, index_f)
          call get_boundary_status(loc_f, is_boundary)
 
@@ -384,7 +387,7 @@ contains
             call get_local_index(loc_nb, index_nb)
 
             if (index_nb > index_p) then
-               call create_face_locator(mesh, index_p, j, loc_f)
+               call create_face_locator(index_p, j, loc_f)
                call get_face_normal(loc_f, face_normal)
                call get_centre(loc_f, x)
 

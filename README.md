@@ -14,6 +14,7 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
 - `ParHIP` - https://github.com/KaHIP/KaHIP
 - `ParMETIS` - https://github.com/KarypisLab/ParMETIS
+- `rcm-f90` - https://git.ecdf.ed.ac.uk/asimov/rcm-f90
 
 **N.B.** although the build system currently requires both, only one of ParHIP or ParMETIS is used to partition the problem.
 
@@ -26,6 +27,7 @@ Set the following environment variables:
 - `ADIOS2` to point to the ADIOS2 install directory
 - `PARHIP` to point to the root of the ParHIP install directory (optional)
 - `PARMETIS` to point to the root of the ParMETIS install directory (optional)
+- `RCMF90` to point to the root of the rcm-f90 install directory
 
 **N.B.** at least one of `PARHIP` or `PARMETIS` must be set when building.
 
