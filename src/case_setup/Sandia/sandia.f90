@@ -5,6 +5,7 @@ program sandia
   use petscvec
   use petscsys
 
+  use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
@@ -13,6 +14,7 @@ program sandia
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -52,8 +54,6 @@ program sandia
   character(len=:), allocatable:: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable:: ccs_config_file  ! Config file for CCS
   character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
-
-  type(ccs_mesh):: mesh
 
   type(vector_spec):: vec_properties
 
@@ -137,6 +137,7 @@ program sandia
   call timer_register_start("Mesh read time", timer_index_build)
   if (irank == par_env%root) print *, "Reading mesh file"
   call read_mesh(par_env, shared_env, case_name, mesh)
+  call set_mesh_object(mesh)
   call timer_stop(timer_index_build)
 
   ! Initialise fields
@@ -201,7 +202,7 @@ program sandia
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(mesh, u, v, w, p, mf, viscosity, density, scalar_field)
+  call initialise_flow(u, v, w, p, mf, viscosity, density, scalar_field)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -362,7 +363,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(mesh, u, v, w, p, mf, viscosity, density, scalar_field)
+  subroutine initialise_flow(u, v, w, p, mf, viscosity, density, scalar_field)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -374,7 +375,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in):: mesh
     class(field), intent(inout):: u, v, w, p, mf, viscosity, density
     class(field), intent(inout):: scalar_field
 
@@ -396,7 +396,7 @@ contains
     integer(ccs_int):: j
 
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -411,7 +411,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_centre(loc_p, x_p)
@@ -463,10 +463,10 @@ contains
     n = 0
 
     ! Loop over local cells and faces
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
     do index_p = 1, n_local
 
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
@@ -476,7 +476,7 @@ contains
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then  ! XXX: abstract this test
 
-          call create_face_locator(mesh, index_p, j, loc_f)
+          call create_face_locator(index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)
