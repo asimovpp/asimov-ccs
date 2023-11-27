@@ -71,7 +71,7 @@ contains
         call update_gradient(phi)
       end if
 
-      phi%name= field_name
+      phi%name = field_name
       !! --- End update ---
     end associate
 
