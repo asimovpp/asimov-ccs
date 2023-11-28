@@ -1,3 +1,34 @@
+!!! Modified BSD License
+!!! ====================
+!!! 
+!!! Copyright © 2016, Stefano Zaghi
+!!! 
+!!! All rights reserved.
+!!! 
+!!! Redistribution and use in source and binary forms, with or without
+!!! modification, are permitted provided that the following conditions are met:
+!!! 
+!!! 1. Redistributions of source code must retain the above copyright
+!!!    notice, this list of conditions and the following disclaimer.
+!!! 2. Redistributions in binary form must reproduce the above copyright
+!!!    notice, this list of conditions and the following disclaimer in the
+!!!    documentation and/or other materials provided with the distribution.
+!!! 3. Neither the name of the MORTIF nor the
+!!!    names of its contributors may be used to endorse or promote products
+!!!    derived from this software without specific prior written permission.
+!!! 
+!!! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND
+!!! ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+!!! WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+!!! DISCLAIMED. IN NO EVENT SHALL Stefano Zaghi BE LIABLE FOR ANY
+!!! DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+!!! (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+!!! LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+!!! ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+!!! (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+!!! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
 !< MORTIF, MORTon Indexer (Z-order) Fortran environment.
 module mortif
 !< MORTIF, MORTon Indexer (Z-order) Fortran environment.
@@ -20,13 +51,13 @@ save
 private
 public :: morton2D, demorton2D, morton3D, demorton3D
 
-integer, parameter :: I8P = kind(1_int64) !< Range \([-2^{63},+2^{63} - 1]\), 19 digits plus sign; 64 bits.
-integer, parameter :: I4P = kind(1_int32)  !< Range \([-2^{31},+2^{31} - 1]\), 10 digits plus sign; 32 bits.
+integer, parameter :: I8P = ccs_long !< Range \([-2^{63},+2^{63} - 1]\), 19 digits plus sign; 64 bits.
+integer, parameter :: I4P = ccs_int  !< Range \([-2^{31},+2^{31} - 1]\), 10 digits plus sign; 32 bits.
 integer, parameter :: I2P = kind(1_int16)  !< Range \([-2^{15},+2^{15} - 1]\), 5  digits plus sign; 16 bits.
 integer, parameter :: I1P = kind(1_int8)  !< Range \([-2^{7} ,+2^{7}  - 1]\), 3  digits plus sign; 8  bits.
 integer, parameter :: I_P = I4P                   !< Default integer precision.
 
-integer, parameter :: R4P  = selected_real_kind(6,37)    !< 6  digits, range \([10^{-37}  , 10^{+37}   - 1]\); 32 bits.
+integer, parameter :: R4P  = ccs_real    !< 6  digits, range \([10^{-37}  , 10^{+37}   - 1]\); 32 bits.
 
 ! Binary masks: used into the bits dilating and contracting algorithms.
 !> 0000000000000000000000000000000011111111111111111111111111111111.
