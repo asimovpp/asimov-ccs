@@ -228,6 +228,10 @@ contains
     ! Free up memory
     deallocate (residuals)
 
+    deallocate(invAu)
+    deallocate(invAv)
+    deallocate(invAw)
+    
   end subroutine solve_nonlinear
 
   !v Computes the guessed velocity fields based on a frozen pressure field
