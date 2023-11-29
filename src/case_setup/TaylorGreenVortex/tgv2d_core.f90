@@ -4,13 +4,15 @@ module tgv2d_core
   use petscvec
   use petscsys
 
+  use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name, compute_bwidth
+                         pressure_solver_method_name, pressure_solver_precon_name, &
+                         compute_bwidth, compute_partqual
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       cell_centred_central, cell_centred_upwind, face_centred
+                       field_density, cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
@@ -55,11 +57,10 @@ contains
     character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
     character(len=:), allocatable :: ccs_config_file ! Config file for CCS
 
-    type(ccs_mesh) :: mesh
     type(vector_spec) :: vec_properties
 
     type(field_spec) :: field_properties
-    class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity
+    class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
     type(field_ptr), allocatable :: output_list(:)
 
@@ -113,6 +114,7 @@ contains
       if (irank == par_env%root) print *, "Building mesh"
       mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
     end if
+    call set_mesh_object(mesh)
 
     if (present(input_dt)) then
       dt = input_dt
@@ -165,6 +167,8 @@ contains
     call create_field(field_properties, p_prime)
     call set_field_name("viscosity", field_properties)
     call create_field(field_properties, viscosity)
+    call set_field_name("density", field_properties)
+    call create_field(field_properties, density)
 
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
@@ -187,11 +191,11 @@ contains
 
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
-    call initialise_flow(mesh, u, v, w, p, mf, viscosity)
+    call initialise_flow(u, v, w, p, mf, viscosity, density)
 
-    call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
-    call calc_kinetic_energy(par_env, mesh, u, v, w)
-    call calc_enstrophy(par_env, mesh, u, v, w)
+    call calc_tgv2d_error(par_env, u, v, w, p, error_L2, error_Linf)
+    call calc_kinetic_energy(par_env, u, v, w)
+    call calc_enstrophy(par_env, u, v, w)
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
@@ -201,7 +205,7 @@ contains
 
     ! Print the run configuration
     if (irank == par_env%root) then
-      call print_configuration(mesh)
+      call print_configuration()
     end if
 
     ! XXX: This should get incorporated as part of create_field subroutines
@@ -209,7 +213,7 @@ contains
     call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
     call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
     call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-    call allocate_fluid_fields(7, flow_fields)
+    call allocate_fluid_fields(8, flow_fields)
     call set_field(1, field_u, u, flow_fields)
     call set_field(2, field_v, v, flow_fields)
     call set_field(3, field_w, w, flow_fields)
@@ -217,16 +221,17 @@ contains
     call set_field(5, field_p_prime, p_prime, flow_fields)
     call set_field(6, field_mf, mf, flow_fields)
     call set_field(7, field_viscosity, viscosity, flow_fields)
+    call set_field(8, field_density, density, flow_fields)
     
     call timer(init_time)
 
     do t = 1, num_steps
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                            fluid_sol, flow_fields)
-      call calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
-      call calc_kinetic_energy(par_env, mesh, u, v, w)
+      call calc_tgv2d_error(par_env, u, v, w, p, error_L2, error_Linf)
+      call calc_kinetic_energy(par_env, u, v, w)
 
-      call calc_enstrophy(par_env, mesh, u, v, w)
+      call calc_enstrophy(par_env, u, v, w)
 
       if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
         call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
@@ -244,6 +249,7 @@ contains
     call reset_timestepping()
     call reset_outputlist_counter()
     call reset_io_visualisation()
+    call nullify_mesh_object()
 
     call timer(end_time)
 
@@ -310,18 +316,17 @@ contains
       call error_abort("No values assigned to velocity and pressure underrelaxation.")
     end if
 
+    call get_value(config_file, 'compute_partqual', compute_partqual)
     call get_value(config_file, 'compute_bwidth', compute_bwidth)
 
   end subroutine
 
   ! Print test case configuration
-  subroutine print_configuration(mesh)
-
-    class(ccs_mesh), intent(in) :: mesh
+  subroutine print_configuration()
 
     integer(ccs_int) :: global_num_cells
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
@@ -346,7 +351,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(mesh, u, v, w, p, mf, viscosity)
+  subroutine initialise_flow(u, v, w, p, mf, viscosity, density)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -358,8 +363,7 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, p, mf, viscosity
+    class(field), intent(inout) :: u, v, w, p, mf, viscosity, density
 
     ! Local variables
     integer(ccs_int) :: n_local
@@ -370,7 +374,7 @@ contains
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, w_vals, p_vals
-    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
     real(ccs_real), dimension(ndim) :: face_normal
@@ -379,7 +383,7 @@ contains
     integer(ccs_int) :: j
 
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -392,7 +396,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_centre(loc_p, x_p)
@@ -434,7 +438,7 @@ contains
     ! Loop over local cells and faces
     do index_p = 1, n_local
 
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
@@ -444,7 +448,7 @@ contains
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then ! XXX: abstract this test
 
-          call create_face_locator(mesh, index_p, j, loc_f)
+          call create_face_locator(index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)
@@ -461,6 +465,10 @@ contains
     viscosity_data(:) =  1.e-2_ccs_real
     call restore_vector_data(viscosity%values, viscosity_data)
 
+    call get_vector_data(density%values, density_data)
+    density_data(:) = 1.0_ccs_real
+    call restore_vector_data(density%values, density_data)
+
     call restore_vector_data(mf%values, mf_data)
 
     call update(u%values)
@@ -469,10 +477,11 @@ contains
     call update(p%values)
     call update(mf%values)
     call update(viscosity%values)
+    call update(density%values)
 
   end subroutine initialise_flow
 
-  subroutine calc_tgv2d_error(par_env, mesh, u, v, w, p, error_L2, error_Linf)
+  subroutine calc_tgv2d_error(par_env, u, v, w, p, error_L2, error_Linf)
 
     use constants, only: ndim
     use types, only: cell_locator
@@ -487,7 +496,6 @@ contains
     use timestepping, only: get_current_time, get_current_step
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
-    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, w, p
     real(ccs_real), dimension(3), intent(out) :: error_L2
     real(ccs_real), dimension(3), intent(out) :: error_Linf
@@ -531,10 +539,10 @@ contains
     call get_current_time(time)
     call get_current_step(step)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
 
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_centre(loc_p, x_p)
 
       ! Compute analytical solution
@@ -570,7 +578,7 @@ contains
       call error_abort("ERROR: Unknown type")
     end select
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     error_L2(:) = sqrt(error_L2(:) / global_num_cells)
 
     if (par_env%proc_id == par_env%root) then

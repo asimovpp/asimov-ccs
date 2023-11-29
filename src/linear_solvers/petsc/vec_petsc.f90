@@ -53,8 +53,8 @@ contains
 
           select case (vec_properties%storage_location)
           case (cell)
-            call get_local_num_cells(mesh, nlocal)
-            call get_halo_num_cells(mesh, nhalo)
+            call get_local_num_cells(nlocal)
+            call get_halo_num_cells(nhalo)
             associate (idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo
@@ -69,7 +69,7 @@ contains
             ! Vector has ghost points, store this information
             v%ghosted = .true.
           case (face)
-            call get_num_faces(mesh, num_faces)
+            call get_num_faces(num_faces)
 
             call VecCreate(par_env%comm, v%v, ierr)
             call VecSetSizes(v%v, num_faces, PETSC_DECIDE, ierr)

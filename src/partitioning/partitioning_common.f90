@@ -1,7 +1,7 @@
 submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int, ccs_err
+  use kinds, only: ccs_int, ccs_err, ccs_real
   use types, only: topology, graph_connectivity, cell_locator, neighbour_locator, vertex_neighbour_locator
   use utils, only: str, debug_print, exit_print
   use parallel_types_mpi, only: parallel_environment_mpi
@@ -15,10 +15,11 @@ submodule(partitioning) partitioning_common
                      create_cell_locator, create_neighbour_locator, &
                      get_global_index, &
                      get_local_index, set_local_index, &
-                     get_count_vertex_neighbours
+                     get_count_vertex_neighbours, &
+                     set_mesh_object, nullify_mesh_object, &
+                     set_topo_object, nullify_topo_object
   use case_config, only: vertex_neighbours
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
-
 
   implicit none
 
@@ -115,7 +116,7 @@ contains
 
     irank = par_env%proc_id
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
 
     ! Deallocate old xadj array
     if (allocated(mesh%topo%graph_conn%xadj)) then
@@ -125,7 +126,7 @@ contains
     ! Allocate new adjacency index array xadj based on new vtxdist
     allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
 
-    call get_max_faces(mesh, max_faces)
+    call get_max_faces(max_faces)
 
     ! Allocate temporary 2D integer work array and initialise to 0
     allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), max_faces + 1))
@@ -139,13 +140,13 @@ contains
 
 
     ! Construct a cell->faces lookup table 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     call create_shared_array(shared_env, [global_num_cells, max_faces], cell_faces, cell_faces_window)
     if (is_root(shared_env)) then
       allocate (cell_faces_counters(global_num_cells))
       cell_faces(:,:) = -1
       cell_faces_counters(:) = 1
-      call get_global_num_faces(mesh, global_num_faces)
+      call get_global_num_faces(global_num_faces)
       do i = 1, global_num_faces
         face_nb1 = mesh%topo%face_cell1(i)
         face_nb2 = mesh%topo%face_cell2(i)
@@ -207,16 +208,16 @@ contains
 
     call flatten_connectivity(tmp_int2d, mesh)
 
-    call get_halo_num_cells(mesh, halo_num_cells)
+    call get_halo_num_cells(halo_num_cells)
     call dprint("Number of halo cells after partitioning: " // str(halo_num_cells))
 
-    call get_total_num_cells(mesh, total_num_cells)
+    call get_total_num_cells(total_num_cells)
     call dprint("Total number of cells (local + halo) after partitioning: " // str(total_num_cells))
 
-    call set_cell_face_indices(mesh)
+    call set_cell_face_indices()
 
-    call set_num_faces(count_mesh_faces(mesh), mesh)
-    
+    call set_num_faces(count_mesh_faces())
+
     call sync(shared_env)
     call destroy_shared_array(shared_env, cell_faces, cell_faces_window)
 
@@ -339,8 +340,8 @@ contains
       end if
     end if
 
-    call get_global_num_cells(mesh, global_num_cells)
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_global_num_cells(global_num_cells)
+    call get_local_num_cells(local_num_cells)
 
     max_vert_nb = maxval(mesh%topo%num_vert_nb)
     select type (par_env)
@@ -369,7 +370,7 @@ contains
     mesh%topo%vert_nb_indices(:, :) = 0
 
     do local_idx = 1, local_num_cells
-      call create_cell_locator(mesh, local_idx, loc_p)
+      call create_cell_locator(local_idx, loc_p)
       call get_global_index(loc_p, global_idx)
 
       mesh%topo%vert_nb_indices(:, local_idx) = pack(mesh%topo%global_vert_nb_indices(:, global_idx), mesh%topo%global_vert_nb_indices(:, global_idx) /= 0)
@@ -385,9 +386,9 @@ contains
     end if
 
     ! Convert global->local indices
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
 
       !call get_count_vertex_neighbours(loc_p, nvnb)
       nvnb = mesh%topo%num_vert_nb(i)
@@ -405,7 +406,7 @@ contains
           if (local_idx == 0) then
             ! New global index
             call add_new_global_index(global_idx, mesh)
-            call get_total_num_cells(mesh, total_num_cells)
+            call get_total_num_cells(total_num_cells)
             local_idx = total_num_cells
           end if
 
@@ -430,17 +431,17 @@ contains
 
     integer(ccs_int), dimension(:), allocatable :: tmp_global_indices
 
-    call get_total_num_cells(mesh, total_num_cells)
+    call get_total_num_cells(total_num_cells)
 
     allocate (tmp_global_indices(total_num_cells + 1))
     tmp_global_indices(1:total_num_cells) = mesh%topo%global_indices(1:total_num_cells)
     tmp_global_indices(total_num_cells + 1) = global_index
 
     ! Update total and halo cell counts
-    call set_total_num_cells(total_num_cells + 1, mesh)
-    call get_total_num_cells(mesh, total_num_cells)
-    call get_halo_num_cells(mesh, halo_num_cells)
-    call set_halo_num_cells(halo_num_cells + 1, mesh)
+    call set_total_num_cells(total_num_cells + 1)
+    call get_total_num_cells(total_num_cells)
+    call get_halo_num_cells(halo_num_cells)
+    call set_halo_num_cells(halo_num_cells + 1)
 
     ! Copy extended global indices back into mesh object
     deallocate (mesh%topo%global_indices)
@@ -466,8 +467,8 @@ contains
     ! Count the new number of local cells per rank
     local_num_cells = count(mesh%topo%graph_conn%global_partition == irank)
 
-    call set_local_num_cells(local_num_cells, mesh)
-    call get_local_num_cells(mesh, local_num_cells) ! Ensure using value set within mesh
+    call set_local_num_cells(local_num_cells)
+    call get_local_num_cells(local_num_cells) ! Ensure using value set within mesh
     ! Abort the execution if any rank has 0 local cells
     ! caused by partitioner error
     call dprint("Number of local cells after partitioning: " // str(local_num_cells))
@@ -476,7 +477,7 @@ contains
     end if
 
     ! Allocate and then compute global indices
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     if (allocated(mesh%topo%global_indices)) then
       deallocate (mesh%topo%global_indices)
     end if
@@ -486,7 +487,7 @@ contains
     ctr = 1
     associate (irank => par_env%proc_id, &
                partition => mesh%topo%graph_conn%global_partition)
-      call get_global_num_cells(mesh, global_num_cells)
+      call get_global_num_cells(global_num_cells)
       do i = 1, global_num_cells
         if (partition(i) == irank) then
           mesh%topo%global_indices(ctr) = i
@@ -503,7 +504,7 @@ contains
       call error_abort("Didn't register all cells properly!")
     end if
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     if (maxval(mesh%topo%global_indices) > global_num_cells) then
       call error_abort("Global index exceeds range!")
     end if
@@ -522,7 +523,7 @@ contains
     integer :: fctr
     integer(ccs_int) :: max_faces
 
-    call get_max_faces(mesh, max_faces)
+    call get_max_faces(max_faces)
     fctr = tmp_int2d(face_nb1_local_index, max_faces + 1) + 1 ! Increment number of faces for this cell
     tmp_int2d(face_nb1_local_index, fctr) = face_nb2          ! Store global index of neighbour cell
     tmp_int2d(face_nb1_local_index, max_faces + 1) = fctr     ! Store number of faces for this cell
@@ -559,10 +560,10 @@ contains
 
     type(neighbour_locator) :: loc_nb
 
-    call set_halo_num_cells(0, mesh)
-    call get_halo_num_cells(mesh, halo_num_cells)
-    call get_local_num_cells(mesh, local_num_cells)
-    call get_max_faces(mesh, max_faces)
+    call set_halo_num_cells(0)
+    call get_halo_num_cells(halo_num_cells)
+    call get_local_num_cells(local_num_cells)
+    call get_max_faces(max_faces)
 
     ctr = 1
 
@@ -577,10 +578,10 @@ contains
     ! Initialise neighbour indices
     mesh%topo%nb_indices(:, :) = 0_ccs_int
 
-    call get_halo_num_cells(mesh, halo_num_cells)
-    call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
+    call get_halo_num_cells(halo_num_cells)
+    call set_total_num_cells(local_num_cells + halo_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
 
       mesh%topo%graph_conn%xadj(i) = ctr
 
@@ -593,10 +594,10 @@ contains
               ! New halo cell
               ! Copy and extend size of halo cells buffer
 
-              call get_halo_num_cells(mesh, halo_num_cells)
-              call set_halo_num_cells(halo_num_cells + 1, mesh)
-              call get_halo_num_cells(mesh, halo_num_cells)
-              call set_total_num_cells(local_num_cells + halo_num_cells, mesh)
+              call get_halo_num_cells(halo_num_cells)
+              call set_halo_num_cells(halo_num_cells + 1)
+              call get_halo_num_cells(halo_num_cells)
+              call set_total_num_cells(local_num_cells + halo_num_cells)
               if (halo_num_cells > size(tmp1)) then
                 allocate (tmp2(size(tmp1) + local_num_cells))
 
@@ -643,7 +644,7 @@ contains
 
     allocate (tmp2(local_num_cells + halo_num_cells))
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
       tmp2(i) = global_index_p
     end do
@@ -656,7 +657,7 @@ contains
     deallocate (tmp1)
     deallocate (tmp2)
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     if (minval(mesh%topo%global_indices) < 1) then
       call error_abort("Global index < 0! " // str(minval(mesh%topo%global_indices)))
     end if
@@ -688,6 +689,7 @@ contains
     integer(ccs_int) :: irank
     integer(ccs_int) :: local_num_cells
     
+    call set_topo_object(topo)
     irank = par_env%proc_id
 
     call compute_partitioner_input_generic_graphconn(par_env, shared_env, topo%global_num_cells, &
@@ -696,8 +698,8 @@ contains
 
     ! Count and store the number of local cells per rank
     local_num_cells = count(topo%graph_conn%global_partition == irank)
-    call set_local_num_cells(local_num_cells, topo)
-    call get_local_num_cells(topo, local_num_cells) ! Ensure using true value
+    call set_local_num_cells(local_num_cells)
+    call get_local_num_cells(local_num_cells) ! Ensure using true value
     call dprint("Initial number of local cells: " // str(local_num_cells))
 
     ! Count halo cells
@@ -710,6 +712,8 @@ contains
     call dprint("Initial number of halo cells: " // str(topo%halo_num_cells))
     topo%total_num_cells = local_num_cells + topo%halo_num_cells
     call dprint("Total number of cells (local + halo): " // str(topo%total_num_cells))
+
+    call nullify_topo_object()
     
   end subroutine compute_partitioner_input_generic_topo
 
@@ -932,4 +936,100 @@ contains
 
   end subroutine cleanup_partitioner_data_graphconn
 
+  !v Compute and report the partitioning quality.
+  !
+  !  The following metrics are implemented
+  !  - The "surface to volume ratio" nhalo / nlocal (averaged)
+  !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
+  !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
+  module subroutine print_partition_quality(par_env)
+
+    use case_config, only : compute_partqual
+    
+    class(parallel_environment), intent(in) :: par_env
+
+    real(ccs_real) :: s2v ! Surface to volume ratio
+    real(ccs_real) :: ulb ! Under load balance (minimum)
+    real(ccs_real) :: olb ! Over load balance (maximum)
+
+    if (compute_partqual) then
+      call compute_partition_quality(par_env, s2v, ulb, olb)
+      if (is_root(par_env)) then
+        print *, "Partitioning report:"
+        print *, "- Surface:Volume ratio:", s2v
+        print *, "- Under load balance:", ulb
+        print *, "- Over load balance:", olb
+      end if
+    end if
+    
+  end subroutine print_partition_quality
+
+  !v Compute the partitioning quality.
+  !
+  !  The following metrics are implemented
+  !  - The "surface to volume ratio" nhalo / nlocal (averaged)
+  !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
+  !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
+  subroutine compute_partition_quality(par_env, s2v, ulb, olb)
+
+    use mpi
+    
+    class(parallel_environment), intent(in) :: par_env
+    real(ccs_real), intent(out) :: s2v ! Surface to volume ratio
+    real(ccs_real), intent(out) :: ulb ! Under load balance (minimum)
+    real(ccs_real), intent(out) :: olb ! Over load balance (maximum)
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: halo_num_cells
+
+    integer(ccs_int) :: local_num_cells_stat
+    
+    real(ccs_real) :: local_num_cells_avg
+
+    integer(ccs_err) :: ierr
+
+    call get_local_num_cells(local_num_cells)
+    call get_halo_num_cells(halo_num_cells)
+
+    associate(nprocs => real(par_env%num_procs, ccs_real))
+      ! Compute average surface to volume ratio
+      s2v = real(halo_num_cells, ccs_real) / real(local_num_cells, ccs_real)
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(MPI_IN_PLACE, s2v, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      s2v = s2v / nprocs
+
+      ! Compute average local cell count
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(local_num_cells, local_num_cells_stat, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      local_num_cells_avg = real(local_num_cells_stat, ccs_real) / nprocs
+
+      ! Compute under load balance
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(local_num_cells, local_num_cells_stat, 1, MPI_INTEGER, MPI_MIN, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      ulb = real(local_num_cells_stat, ccs_real) / local_num_cells_avg
+
+      ! Compute over load balance
+      select type(par_env)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(local_num_cells, local_num_cells_stat, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
+      class default
+        call error_abort("Unsupported parallel environment")
+      end select
+      olb = real(local_num_cells_stat, ccs_real) / local_num_cells_avg
+    end associate
+    
+  end subroutine compute_partition_quality
+  
 end submodule

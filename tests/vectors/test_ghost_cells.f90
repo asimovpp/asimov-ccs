@@ -11,6 +11,7 @@ program test_ghost_cells
                      get_global_index, get_local_index, get_face_area, get_face_normal, &
                      get_local_num_cells, &
                      get_total_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use utils, only: update, initialise, &
                    set_size, set_values
   use petsctypes, only: vector_petsc
@@ -18,7 +19,6 @@ program test_ghost_cells
   implicit none
 
   type(vector_spec) :: vec_properties
-  type(ccs_mesh) :: mesh
   class(ccs_vector), allocatable :: v
   real(ccs_real), dimension(:), pointer :: values
 
@@ -37,7 +37,8 @@ program test_ghost_cells
   num_procs = par_env%num_procs
 
   mesh = build_square_mesh(par_env, shared_env, 11, 1.0_ccs_real)
-  call get_local_num_cells(mesh, local_num_cells)
+  call set_mesh_object(mesh)
+  call get_local_num_cells(local_num_cells)
 
   ! Specify vector size based on the mesh
   call initialise(vec_properties)
@@ -51,7 +52,7 @@ program test_ghost_cells
 
   ! Set vector values to global mesh indices
   do i = 1, local_num_cells
-    call create_cell_locator(mesh, i, loc_p)
+    call create_cell_locator(i, loc_p)
     call get_global_index(loc_p, global_index_p)
     values(i) = global_index_p
   end do
@@ -65,9 +66,9 @@ program test_ghost_cells
   ! Retrieve the new vector values (including ghost cells)
   call get_vector_data(v, values)
 
-  call get_total_num_cells(mesh, total_num_cells)
+  call get_total_num_cells(total_num_cells)
   do i = 1, total_num_cells
-    call create_cell_locator(mesh, i, loc_p)
+    call create_cell_locator(i, loc_p)
     call get_global_index(loc_p, global_index_p)
     if (values(i) /= global_index_p) then
       write (message, *) 'FAIL: wrong vector value. Expected ', global_index_p, ', got ', values(i)
@@ -77,6 +78,8 @@ program test_ghost_cells
 
   ! Remove reference to the values array
   call restore_vector_data(v, values)
+
+  call nullify_mesh_object()
 
   call fin()
 

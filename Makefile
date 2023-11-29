@@ -78,14 +78,21 @@ FFLAGS += -DACCS_PETSC
 INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 
+INC += -I${RCMF90}/include
+LIB += -L${RCMF90}/lib -lrcm
+
 INC += -I${FYAMLC}/modules 
 LIB += -Wl,-rpath,${FYAMLC}/lib -L${FYAMLC}/lib -lfortran-yaml-c
 
-INC += -I${PARHIP}/include
-LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
+ifdef PARHIP
+  INC += -I${PARHIP}/include
+  LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
+endif
 
-INC += -I${PARMETIS}/include
-LIB += -L${PARMETIS}/lib -lparmetis -Wl,-rpath,${PARMETIS}/lib
+ifdef PARMETIS
+  INC += -I${PARMETIS}/include
+  LIB += -L${PARMETIS}/lib -lGKlib -lmetis -lparmetis -Wl,-rpath,${PARMETIS}/lib
+endif
 
 ifeq ($(NEED_CMP),yes)
   INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)

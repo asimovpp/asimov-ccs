@@ -4,9 +4,9 @@
 
 submodule(scalars) scalars_common
 #include "ccs_macros.inc"
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity
+  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density
 
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_real !< added here
   use types, only: ccs_matrix, ccs_vector, &
        vector_spec, matrix_spec, &
        linear_solver, equation_system
@@ -14,7 +14,7 @@ submodule(scalars) scalars_common
   use fv, only: compute_fluxes, update_gradient
   use timestepping, only: update_old_values, get_current_step, apply_timestep
 
-  use vec, only: create_vector
+  use vec, only: create_vector, get_vector_data, restore_vector_data !< added here
   use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system
 
@@ -26,10 +26,10 @@ submodule(scalars) scalars_common
   integer(ccs_int), save :: previous_step = -1
 
   !> List of fields not to be updated as transported scalars
-  integer(ccs_int), dimension(7), parameter :: skip_fields = &
+  integer(ccs_int), dimension(8), parameter :: skip_fields = &
        [ field_u, field_v, field_w, &
           field_p, field_p_prime, &
-          field_mf, field_viscosity ]
+          field_mf, field_viscosity, field_density ]
 
 contains
   
@@ -55,14 +55,14 @@ contains
     type(matrix_spec) :: mat_properties
 
     integer(ccs_int) :: max_faces
-    
+
     ! Initialise equation system (reused across scalars)
     call dprint("SCALAR: init")
     call initialise(vec_properties)
     call initialise(mat_properties)
 
     call dprint("SCALAR: setup matrix")
-    call get_max_faces(mesh, max_faces)
+    call get_max_faces(max_faces)
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
@@ -100,16 +100,16 @@ contains
        if (do_update) then
           call update_old_values(phi)
        end if
-       call transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
+
+       call transport_scalar(par_env, flow, M, rhs, D, phi)
     end do
     
   end subroutine update_scalars
 
   !> Subroutine to transport a scalar field.
-  subroutine transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
+  subroutine transport_scalar(par_env, flow, M, rhs, D, phi)
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
-    type(ccs_mesh), intent(in) :: mesh                              !< the mesh
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: rhs
@@ -118,9 +118,11 @@ contains
 
     class(field), pointer :: mf  ! The advecting velocity field
     class(field), pointer :: viscosity  ! viscosity
+    class(field), pointer :: density ! density
     class(linear_solver), allocatable :: lin_solver
     type(equation_system) :: lin_system
     
+    !print*,"inside transport_scalar"
     call initialise(lin_system)
     call zero(rhs)
     call zero(M)
@@ -128,8 +130,9 @@ contains
     call dprint("SCALAR: compute coefficients")
     call get_field(flow, field_mf, mf)
     call get_field(flow, field_viscosity, viscosity) 
-    call compute_fluxes(phi, mf, viscosity, mesh, 0, M, rhs)
-    call apply_timestep(mesh, phi, D, M, rhs)
+    call get_field(flow, field_density, density)
+    call compute_fluxes(phi, mf, viscosity, density, 0, M, rhs)
+    call apply_timestep(phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")
     call update(M)
@@ -141,12 +144,12 @@ contains
     else
        call set_equation_system(par_env, rhs, phi%values, M, lin_system)
     end if
-       
+     
     call dprint("SCALAR: solve linear system")
     call create_solver(lin_system, lin_solver)
-    call solve(lin_solver)
 
-    call update_gradient(mesh, phi)
+    call solve(lin_solver)
+    call update_gradient(phi)
 
     deallocate(lin_solver)
     

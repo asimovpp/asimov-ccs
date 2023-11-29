@@ -99,17 +99,17 @@ contains
       call open_file(sol_file, "write", sol_writer)
     end if
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
 
     ! Need to get data relating to first cell
-    call create_cell_locator(mesh, 1, loc_p)
+    call create_cell_locator(1, loc_p)
 
     call get_global_index(loc_p, index_global)
 
     ! 1D data
     sel_shape(1) = global_num_cells
     sel_start(1) = index_global - 1
-    call get_local_num_cells(mesh, sel_count(1))
+    call get_local_num_cells(sel_count(1))
 
     ! 2D data
     sel2_shape(1) = ndim
@@ -117,7 +117,7 @@ contains
     sel2_start(1) = 0
     sel2_start(2) = index_global - 1
     sel2_count(1) = ndim
-    call get_local_num_cells(mesh, sel2_count(2))
+    call get_local_num_cells(sel2_count(2))
 
     ! Begin step
     call begin_step(sol_writer)
