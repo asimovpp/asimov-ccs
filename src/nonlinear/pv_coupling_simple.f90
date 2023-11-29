@@ -37,6 +37,12 @@ submodule(pv_coupling) pv_coupling_simple
 
   integer(ccs_int), save :: varp = 0
 
+  ! Temporary inverse coefficients until we can confirm correctness of applying pressure correction
+  ! using a single coefficient
+  class(ccs_vector), allocatable :: invAu
+  class(ccs_vector), allocatable :: invAv
+  class(ccs_vector), allocatable :: invAw
+  
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
@@ -86,7 +92,6 @@ contains
     class(field), pointer :: viscosity !< field containing the viscosity
     class(field), pointer :: density !< field containing the density
 
-
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
     end if
@@ -134,6 +139,9 @@ contains
     ! Create vectors for storing inverse of velocity central coefficients
     call dprint("NONLINEAR: setup inv coeff")
     call create_vector(vec_properties, invA)
+    call create_vector(vec_properties, invAu)
+    call create_vector(vec_properties, invAv)
+    call create_vector(vec_properties, invAw)
 
     ! Create workspace vector
     call dprint("NONLINEAR: setup workspace")
@@ -174,7 +182,7 @@ contains
       call dprint("NONLINEAR: correct face velocity")
       call update_face_velocity(invA, p_prime, mf, res, residuals)
       call dprint("NONLINEAR: correct velocity")
-      call update_velocity(invA, flow)
+      call update_velocity(flow)
 
       ! Update pressure field with pressure correction
       call dprint("NONLINEAR: correct pressure")
@@ -290,24 +298,33 @@ contains
     ! u-velocity
     ! ----------
     if (u_sol) then
-      call calculate_velocity_component(flow, par_env, varu, p, 1, M, vec, lin_sys, u, invA, &
-                                        workvec, res, residuals)
+      call zero_vector(invAu)
+      call calculate_velocity_component(flow, par_env, varu, p, 1, M, vec, lin_sys, u, invAu, &
+           workvec, res, residuals)
+      call axpy(1.0_ccs_real, invAu, invA)
+      call vec_reciprocal(invAu)
       dim = dim + 1.0_ccs_real
     end if
 
     ! v-velocity
     ! ----------
     if (v_sol) then
-      call calculate_velocity_component(flow, par_env, varv, p, 2, M, vec, lin_sys, v, invA, &
+      call zero_vector(invAv)
+      call calculate_velocity_component(flow, par_env, varv, p, 2, M, vec, lin_sys, v, invAv, &
                                         workvec, res, residuals)
+      call axpy(1.0_ccs_real, invAv, invA)
+      call vec_reciprocal(invAv)
       dim = dim + 1.0_ccs_real
     end if
 
     ! w-velocity
     ! ----------
     if (w_sol) then
-      call calculate_velocity_component(flow, par_env, varw, p, 3, M, vec, lin_sys, w, invA, &
+      call zero_vector(invAw)
+      call calculate_velocity_component(flow, par_env, varw, p, 3, M, vec, lin_sys, w, invAw, &
                                         workvec, res, residuals)
+      call axpy(1.0_ccs_real, invAw, invA)
+      call vec_reciprocal(invAw)
       dim = dim + 1.0_ccs_real
     end if
 
@@ -1052,12 +1069,11 @@ contains
   end subroutine update_pressure
 
   !> Corrects the velocity field using the pressure correction gradient
-  subroutine update_velocity(invA, flow)
+  subroutine update_velocity(flow)
 
     use vec, only: zero_vector
 
     ! Arguments
-    class(ccs_vector), intent(in) :: invA !< The inverse momentum equation diagonal coefficient
     type(fluid), intent(inout) :: flow
 
     class(field), pointer :: p_prime !< The pressure correction
@@ -1077,9 +1093,11 @@ contains
     call update_gradient(p_prime)
 
     ! Multiply gradients by inverse diagonal coefficients
-    call mult(invA, p_prime%x_gradients)
-    call mult(invA, p_prime%y_gradients)
-    call mult(invA, p_prime%z_gradients)
+    ! XXX: Temporarily use the equation-specific invAu etc.
+    ! TODO: Investigate use of a common invA (as used in continuity equation, see also Dolfyn)
+    call mult(invAu, p_prime%x_gradients)
+    call mult(invAv, p_prime%y_gradients)
+    call mult(invAw, p_prime%z_gradients)
 
     ! Compute correction source on velocity
     call calculate_momentum_pressure_source(p_prime%x_gradients, u%values)
