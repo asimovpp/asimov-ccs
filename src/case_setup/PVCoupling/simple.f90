@@ -110,7 +110,7 @@ program simple
   call update(p_prime%x_gradients)
   call update(p_prime%y_gradients)
   call update(p_prime%z_gradients)
-  call update(p_prime%values)
+  call update(viscosity%values)
 
   call set_vector_location(face, vec_sizes)
   call set_size(par_env, mesh, vec_sizes)

@@ -352,7 +352,7 @@ contains
       call get_global_index(loc_p, global_index_p)
       call calc_cell_coords(global_index_p, cps, row, col)
 
-      u_val = 10.0_ccs_real
+      u_val = 0.0_ccs_real
       v_val = 0.0_ccs_real
       w_val = 0.0_ccs_real
 

@@ -469,6 +469,7 @@ contains
 
     integer(ccs_int), dimension(1) :: field_index
     integer(ccs_int) :: i
+    character(len=:), allocatable :: msg                   !< Constructed message
 
     field_index(1) = 0
     do i = 1, size(flow%field_names)
@@ -476,6 +477,12 @@ contains
         field_index(1) = i
         exit
       end if
+
+      if (field_index(1) == 0) then
+        msg = "Field " // field_name // " not found"
+        call error_abort(msg)
+      end if
+           
     end do
 
     !field_index = findloc(flow%field_names , field_name)
