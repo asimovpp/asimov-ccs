@@ -191,14 +191,15 @@ program ldc
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
   call allocate_fluid_fields(8, flow_fields) 
-  call set_field(1, field_u, u, flow_fields)
-  call set_field(2, field_v, v, flow_fields)
-  call set_field(3, field_w, w, flow_fields)
-  call set_field(4, field_p, p, flow_fields)
-  call set_field(5, field_p_prime, p_prime, flow_fields)
-  call set_field(6, field_mf, mf, flow_fields)
-  call set_field(7, field_viscosity, viscosity, flow_fields) 
-  call set_field(8, field_density, density, flow_fields)
+
+  call set_field(1, u, flow_fields)
+  call set_field(2, v, flow_fields)
+  call set_field(3, w, flow_fields)
+  call set_field(4, p, flow_fields)
+  call set_field(5, p_prime, flow_fields)
+  call set_field(6, mf, flow_fields)
+  call set_field(7, viscosity, flow_fields) 
+  call set_field(8, density, flow_fields)  
 
   if (irank == par_env%root) then
     call print_configuration()
