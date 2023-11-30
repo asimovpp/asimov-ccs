@@ -108,34 +108,30 @@ module fv
     end subroutine
 
     !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-    module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
-      class(field), intent(inout) :: u_field               !< x velocities field
-      class(field), intent(inout) :: v_field               !< y velocities field
-      class(field), intent(inout) :: w_field               !< z velocities field
-      real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
-      real(ccs_real), dimension(:), intent(in) :: dpdx  !< pressure gradients in x
-      real(ccs_real), dimension(:), intent(in) :: dpdy  !< pressure gradients in y
-      real(ccs_real), dimension(:), intent(in) :: dpdz  !< pressure gradients in z
-      real(ccs_real), dimension(:), intent(in) :: invAu !< inverse momentum diagonal in x
-      real(ccs_real), dimension(:), intent(in) :: invAv !< inverse momentum diagonal in y
-      real(ccs_real), dimension(:), intent(in) :: invAw !< inverse momentum diagonal in z
-      type(face_locator), intent(in) :: loc_f           !< face locator
-      logical, intent(in) :: enable_cell_corrections    !< whether or not cell shape corrections are to be used
-      real(ccs_real) :: flux                            !< the flux across the boundary
+    module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
+      class(field), intent(inout) :: u_field           !< x velocities field
+      class(field), intent(inout) :: v_field           !< y velocities field
+      class(field), intent(inout) :: w_field           !< z velocities field
+      real(ccs_real), dimension(:), intent(in) :: p    !< array containing pressure
+      real(ccs_real), dimension(:), intent(in) :: dpdx !< pressure gradients in x
+      real(ccs_real), dimension(:), intent(in) :: dpdy !< pressure gradients in y
+      real(ccs_real), dimension(:), intent(in) :: dpdz !< pressure gradients in z
+      real(ccs_real), dimension(:), intent(in) :: invA !< inverse momentum diagonal
+      type(face_locator), intent(in) :: loc_f          !< face locator
+      logical, intent(in) :: enable_cell_corrections   !< whether or not cell shape corrections are to be used
+      real(ccs_real) :: flux                           !< the flux across the boundary
     end function calc_mass_flux_uvw
 
     !> Computes Rhie-Chow correction
-    module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invAu, invAv, invAw, loc_f, enable_cell_corrections) result(flux)
-      real(ccs_real), dimension(:), intent(in) :: p     !< array containing pressure
-      real(ccs_real), dimension(:), intent(in) :: dpdx  !< pressure gradients in x
-      real(ccs_real), dimension(:), intent(in) :: dpdy  !< pressure gradients in y
-      real(ccs_real), dimension(:), intent(in) :: dpdz  !< pressure gradients in z
-      real(ccs_real), dimension(:), intent(in) :: invAu !< inverse momentum diagonal in x
-      real(ccs_real), dimension(:), intent(in) :: invAv !< inverse momentum diagonal in y
-      real(ccs_real), dimension(:), intent(in) :: invAw !< inverse momentum diagonal in z
-      type(face_locator), intent(in) :: loc_f           !< face locator
-      logical, intent(in) :: enable_cell_corrections    !< whether or not cell shape corrections are to be used
-      real(ccs_real) :: flux                            !< the flux across the boundary
+    module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
+      real(ccs_real), dimension(:), intent(in) :: p    !< array containing pressure
+      real(ccs_real), dimension(:), intent(in) :: dpdx !< pressure gradients in x
+      real(ccs_real), dimension(:), intent(in) :: dpdy !< pressure gradients in y
+      real(ccs_real), dimension(:), intent(in) :: dpdz !< pressure gradients in z
+      real(ccs_real), dimension(:), intent(in) :: invA !< inverse momentum diagonal
+      type(face_locator), intent(in) :: loc_f          !< face locator
+      logical, intent(in) :: enable_cell_corrections   !< whether or not cell shape corrections are to be used
+      real(ccs_real) :: flux                           !< the flux across the boundary
     end function calc_mass_flux_no_uvw
 
     !> Calculates the row and column indices from flattened vector index. Assumes square mesh
