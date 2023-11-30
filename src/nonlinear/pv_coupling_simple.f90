@@ -10,7 +10,8 @@ submodule(pv_coupling) pv_coupling_simple
                    linear_solver, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
-  use vec, only: create_vector, vec_reciprocal, get_vector_data, restore_vector_data, scale_vec, &
+  use vec, only: create_vector, vec_reciprocal, scale_vec, &
+                 get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
                  create_vector_values, set_vector_location, zero_vector, vec_aypx, &
                  mult_vec_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
@@ -488,7 +489,7 @@ contains
     call set_mode(add_mode, vec_values)
 
     ! Temporary storage for p values
-    call get_vector_data(p_gradients, p_gradient_data)
+    call get_vector_data_readonly(p_gradients, p_gradient_data)
 
     ! Loop over cells
     call get_local_num_cells(local_num_cells)
@@ -509,7 +510,7 @@ contains
     deallocate (vec_values%global_indices)
     deallocate (vec_values%values)
 
-    call restore_vector_data(p_gradients, p_gradient_data)
+    call restore_vector_data_readonly(p_gradients, p_gradient_data)
 
   end subroutine calculate_momentum_pressure_source
 
@@ -555,19 +556,19 @@ contains
     call set_mode(add_mode, vec_values)
 
     ! Extracting the necessary data    
-    call get_vector_data(viscosity%values, viscosity_data)
+    call get_vector_data_readonly(viscosity%values, viscosity_data)
     ! x-component velocity gradient values
-    call get_vector_data(u%x_gradients, dux_data)
-    call get_vector_data(v%x_gradients, dvx_data)
-    call get_vector_data(w%x_gradients, dwx_data)
+    call get_vector_data_readonly(u%x_gradients, dux_data)
+    call get_vector_data_readonly(v%x_gradients, dvx_data)
+    call get_vector_data_readonly(w%x_gradients, dwx_data)
     ! y-component velocity gradient values
-    call get_vector_data(u%y_gradients, duy_data)
-    call get_vector_data(v%y_gradients, dvy_data)
-    call get_vector_data(w%y_gradients, dwy_data)
+    call get_vector_data_readonly(u%y_gradients, duy_data)
+    call get_vector_data_readonly(v%y_gradients, dvy_data)
+    call get_vector_data_readonly(w%y_gradients, dwy_data)
     ! z-component velocity gradient values
-    call get_vector_data(u%z_gradients, duz_data)
-    call get_vector_data(v%z_gradients, dvz_data)
-    call get_vector_data(w%z_gradients, dwz_data)
+    call get_vector_data_readonly(u%z_gradients, duz_data)
+    call get_vector_data_readonly(v%z_gradients, dvz_data)
+    call get_vector_data_readonly(w%z_gradients, dwz_data)
 
     ! Loop over cells
     call get_local_num_cells(local_num_cells)
@@ -667,19 +668,19 @@ contains
     deallocate (vec_values%values)
 
     ! Restoring the necessary data    
-    call restore_vector_data(viscosity%values, viscosity_data)
+    call restore_vector_data_readonly(viscosity%values, viscosity_data)
     ! x-component velocity gradient values
-    call restore_vector_data(u%x_gradients, dux_data)
-    call restore_vector_data(v%x_gradients, dvx_data)
-    call restore_vector_data(w%x_gradients, dwx_data)
+    call restore_vector_data_readonly(u%x_gradients, dux_data)
+    call restore_vector_data_readonly(v%x_gradients, dvx_data)
+    call restore_vector_data_readonly(w%x_gradients, dwx_data)
     ! y-component velocity gradient values
-    call restore_vector_data(u%y_gradients, duy_data)
-    call restore_vector_data(v%y_gradients, dvy_data)
-    call restore_vector_data(w%y_gradients, dwy_data)
+    call restore_vector_data_readonly(u%y_gradients, duy_data)
+    call restore_vector_data_readonly(v%y_gradients, dvy_data)
+    call restore_vector_data_readonly(w%y_gradients, dwy_data)
     ! z-component velocity gradient values
-    call restore_vector_data(u%z_gradients, duz_data)
-    call restore_vector_data(v%z_gradients, dvz_data)
-    call restore_vector_data(w%z_gradients, dwz_data)
+    call restore_vector_data_readonly(u%z_gradients, duz_data)
+    call restore_vector_data_readonly(v%z_gradients, dvz_data)
+    call restore_vector_data_readonly(w%z_gradients, dwz_data)
     
   end subroutine calculate_momentum_viscous_source
 
@@ -761,7 +762,7 @@ contains
     call update(M)
 
     call dprint("P': get invA")
-    call get_vector_data(invA, invA_data)
+    call get_vector_data_readonly(invA, invA_data)
 
     ! Loop over cells
     call dprint("P': cell loop")
@@ -871,7 +872,7 @@ contains
     end do
 
     call dprint("P': restore invA")
-    call restore_vector_data(invA, invA_data)
+    call restore_vector_data_readonly(invA, invA_data)
 
     ! Assembly of coefficient matrix and source vector
     call dprint("P': assemble matrix, RHS")
@@ -980,12 +981,14 @@ contains
     call update(p%x_gradients)
     call update(p%y_gradients)
     call update(p%z_gradients)
+
+    call get_vector_data_readonly(p%values, p_data)
+    call get_vector_data_readonly(p%x_gradients, dpdx_data)
+    call get_vector_data_readonly(p%y_gradients, dpdy_data)
+    call get_vector_data_readonly(p%z_gradients, dpdz_data)
+    call get_vector_data_readonly(invA, invA_data)
+
     call get_vector_data(mf%values, mf_data)
-    call get_vector_data(p%values, p_data)
-    call get_vector_data(p%x_gradients, dpdx_data)
-    call get_vector_data(p%y_gradients, dpdy_data)
-    call get_vector_data(p%z_gradients, dpdz_data)
-    call get_vector_data(invA, invA_data)
 
     call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
@@ -1032,12 +1035,14 @@ contains
       call set_values(vec_values, b)
     end do
 
+    call restore_vector_data_readonly(p%values, p_data)
+    call restore_vector_data_readonly(p%x_gradients, dpdx_data)
+    call restore_vector_data_readonly(p%y_gradients, dpdy_data)
+    call restore_vector_data_readonly(p%z_gradients, dpdz_data)
+    call restore_vector_data_readonly(invA, invA_data)
+
     call restore_vector_data(mf%values, mf_data)
-    call restore_vector_data(p%values, p_data)
-    call restore_vector_data(p%x_gradients, dpdx_data)
-    call restore_vector_data(p%y_gradients, dpdy_data)
-    call restore_vector_data(p%z_gradients, dpdz_data)
-    call restore_vector_data(invA, invA_data)
+
     ! Update vectors on exit (just in case)
     call update(u%values)
     call update(v%values)
@@ -1163,8 +1168,10 @@ contains
 
     ! Update vector to make sure data is up to date
     call update(p_prime%values)
-    call get_vector_data(p_prime%values, pp_data)
-    call get_vector_data(invA, invA_data)
+
+    call get_vector_data_readonly(p_prime%values, pp_data)
+    call get_vector_data_readonly(invA, invA_data)
+
     call get_vector_data(mf%values, mf_data)
 
     allocate (zero_arr(size(pp_data)))
@@ -1207,8 +1214,9 @@ contains
 
     deallocate (zero_arr)
 
-    call restore_vector_data(p_prime%values, pp_data)
-    call restore_vector_data(invA, invA_data)
+    call restore_vector_data_readonly(p_prime%values, pp_data)
+    call restore_vector_data_readonly(invA, invA_data)
+
     call restore_vector_data(mf%values, mf_data)
 
     call update(mf%values)
@@ -1355,7 +1363,7 @@ contains
     call get_matrix_diagonal(M, diag)
 
     call dprint("UR: get phi, diag, b")
-    call get_vector_data(phi%values, phi_data)
+    call get_vector_data_readonly(phi%values, phi_data)
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
@@ -1369,7 +1377,7 @@ contains
     end do
 
     call dprint("UR: Restore data")
-    call restore_vector_data(phi%values, phi_data)
+    call restore_vector_data_readonly(phi%values, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
 
