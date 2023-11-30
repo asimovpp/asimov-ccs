@@ -23,7 +23,8 @@ program scalar_transport
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments
+                      read_command_line_arguments, &
+                      is_root
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh
   use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
@@ -50,13 +51,12 @@ program scalar_transport
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
-  class(field), allocatable, target :: whisky, water
-
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
   class(field), allocatable, target :: mf, viscosity, density
   type(field_ptr), allocatable :: output_list(:)
+  type(field_elt), allocatable, target :: field_list(:)
   
   integer(ccs_int) :: n_boundaries
 
@@ -76,6 +76,8 @@ program scalar_transport
   real(ccs_real) :: L
   integer(ccs_int) :: t
 
+  integer :: i
+  
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   use_mpi_splitting = .false.
@@ -130,19 +132,33 @@ program scalar_transport
   call set_field_n_boundaries(n_boundaries, field_properties)
   call set_field_store_residuals(store_residuals, field_properties)
 
+  ! Build viscosity and density explicitly (for time being)
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("whisky", field_properties)
-  call create_field(field_properties, whisky)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
+  call set_field_type(cell_centred_central, field_properties)
   call set_field_name("density", field_properties)
   call create_field(field_properties, density) 
 
-  call set_field_type(cell_centred_upwind, field_properties)
-  call set_field_name("water", field_properties)
-  call create_field(field_properties, water)
-
+  if (is_root(par_env)) then
+    print *, "Build field list"
+  end if
+  allocate(field_list(size(variable_names)))
+  do i = 1, size(variable_names)
+    if (is_root(par_env)) then
+      print *, "Creating field ", trim(variable_names(i))
+    end if
+    call set_field_type(variable_types(i), field_properties)
+    call set_field_name(variable_names(i), field_properties)
+    call create_field(field_properties, field_list(i)%f)
+    field_list(i)%name = variable_names(i)
+  end do
+  if (is_root(par_env)) then
+    print *, "Built ", size(field_list), " dynamically-defined fields"
+  end if
+  
+  !! Create mass flux as a special variable
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
@@ -150,26 +166,29 @@ program scalar_transport
   call set_field_name("mf", field_properties)
   call create_field(field_properties, mf)
 
-  call add_field_to_outputlist(whisky, "whisky", output_list)
-  call add_field_to_outputlist(water, "water", output_list)
+  do i = 1, size(field_list)
+    if ((field_list(i)%name == "whisky") .or. (field_list(i)%name == "water")) then
+      call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
+    end if
+  end do
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise flow field"
-  call initialise_case(whisky, water, mf, viscosity, density) 
+  call initialise_case(field_list, mf, viscosity, density) 
 
-  call update(whisky%values)
-  call update(water%values)
+  do i = 1, size(field_list)
+    call update(field_list(i)%f%values)
+  end do
   call update(mf%values)
-  call update(viscosity%values)
-  call update(density%values)
 
   ! ! XXX: This should get incorporated as part of create_field subroutines
-  call allocate_fluid_fields(5, flow_fields)
-  call set_field(1, whisky, flow_fields)
-  call set_field(2, water, flow_fields)
-  call set_field(3, mf, flow_fields)
-  call set_field(4, viscosity, flow_fields) 
-  call set_field(5, density, flow_fields) 
+  call allocate_fluid_fields(size(field_list) + 3, flow_fields)
+  do i = 1, size(field_list)
+    call set_field(i, field_list(i)%f, flow_fields)
+  end do
+  call set_field(size(field_list) + 1, density, flow_fields)
+  call set_field(size(field_list) + 2, viscosity, flow_fields)
+  call set_field(size(field_list) + 3, mf, flow_fields)
 
   if (irank == par_env%root) then
     call print_configuration()
@@ -201,8 +220,10 @@ program scalar_transport
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
 
-  deallocate (whisky)
-  deallocate (water)
+  do i = 1, size(field_list)
+    deallocate(field_list(i)%f)
+  end do
+  deallocate(field_list)
   deallocate (mf)
   deallocate (viscosity)
   deallocate (density)
@@ -311,7 +332,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_case(whisky, water, mf, viscosity, density)
+  subroutine initialise_case(field_list, mf, viscosity, density)
 
     use constants, only: insert_mode
     use types, only: vector_values, cell_locator, neighbour_locator, face_locator
@@ -321,8 +342,7 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    !class(ccs_mesh), intent(in) :: mesh
-    class(field) :: whisky, water
+    type(field_elt), dimension(:), intent(inout) :: field_list
     class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
@@ -423,8 +443,15 @@ contains
 
     end do
 
-    call set_values(whisky_vals, whisky%values)
-    call set_values(water_vals, water%values)
+    do i = 1, size(field_list)
+      if (field_list(i)%name == "whisky") then
+        call set_values(whisky_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "water") then
+        call set_values(water_vals, field_list(i)%f%values)
+      else
+        print *, "Unrecognised field name ", field_list(i)%name
+      end if
+    end do
 
     deallocate (whisky_vals%global_indices)
     deallocate (water_vals%global_indices)
