@@ -210,6 +210,7 @@ module types
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
     real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
+    character(len=20) :: name
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -290,7 +291,8 @@ module types
   ! Type for accumulating all the fluid data
   type, public :: fluid
     type(field_ptr), dimension(:), allocatable :: fields
-    integer(ccs_int), dimension(:), allocatable :: field_names
+    integer(ccs_int), dimension(:), allocatable :: field_ids
+    character(len=20), dimension(:), allocatable :: field_names
   end type fluid
 
   !v Fluid solve selector

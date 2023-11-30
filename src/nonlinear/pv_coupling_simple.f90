@@ -95,15 +95,16 @@ contains
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
     end if
+    
+    call get_field(flow, "u", u) 
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p", p)
+    call get_field(flow, "p_prime", p_prime)
+    call get_field(flow, "mf", mf)
+    call get_field(flow, "viscosity", viscosity)
+    call get_field(flow, "density", density)
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p)
-    call get_field(flow, field_p_prime, p_prime)
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity)
-    call get_field(flow, field_density, density)
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -274,10 +275,11 @@ contains
     dim = 0.0_ccs_real
     call zero_vector(invA)
     
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p)
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p", p)
+    
     call get_fluid_solver_selector(flow_solver_selector, field_u, u_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_v, v_sol)
     call get_fluid_solver_selector(flow_solver_selector, field_w, w_sol)
@@ -396,9 +398,9 @@ contains
       call error_abort("Unsupported vector component: " // str(component))
     end if
 
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity)
-    call get_field(flow, field_density, density)
+    call get_field(flow, "mf", mf)
+    call get_field(flow, "viscosity", viscosity)
+    call get_field(flow, "density", density)
     
     call timer_register_start("Building coefficients", timer_coeffs)
     call compute_fluxes(u, mf, viscosity, density, component, M, vec)
@@ -544,10 +546,10 @@ contains
     real(ccs_real) :: face_area
     real(ccs_real), dimension(:), pointer :: viscosity_data
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_viscosity, viscosity)
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "viscosity", viscosity)
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
@@ -944,11 +946,12 @@ contains
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p, p)
-    call get_field(flow, field_mf, mf)
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p", p)
+    call get_field(flow, "mf", mf)
+
 
     ! Set variable index for pressure
     if (first_time) then
@@ -1085,10 +1088,10 @@ contains
     class(field), pointer :: v       !< The y velocities being corrected
     class(field), pointer :: w       !< The z velocities being corrected
 
-    call get_field(flow, field_u, u)
-    call get_field(flow, field_v, v)
-    call get_field(flow, field_w, w)
-    call get_field(flow, field_p_prime, p_prime)
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_field(flow, "p_prime", p_prime)
 
     ! First update gradients
     call zero_vector(p_prime%x_gradients)

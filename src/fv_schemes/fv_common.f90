@@ -38,7 +38,6 @@ contains
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
-    !print*,"inside compute_fluxes"
 
     associate (mf_values => mf%values)
       call dprint("CF: get mf")
@@ -126,8 +125,7 @@ contains
 
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
-      !print*, "cell_num=", index_p, "densp=",dens(index_p)
-
+      
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
@@ -815,7 +813,6 @@ contains
 
     call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-
       grad = 0.0_ccs_int
 
       call create_cell_locator(index_p, loc_p)

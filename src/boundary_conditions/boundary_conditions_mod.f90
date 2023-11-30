@@ -149,6 +149,7 @@ contains
     if (index_tmp(1) == 0) then
       call error_abort("bc index not found. searching for " // str(-index_nb, "(I0)"))
     end if
+    
     index_bc = index_tmp(1)
   end subroutine get_bc_index
 
