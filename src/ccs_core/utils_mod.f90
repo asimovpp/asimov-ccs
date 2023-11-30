@@ -476,14 +476,13 @@ contains
       if (trim(flow%field_names(i)) == field_name) then
         field_index(1) = i
         exit
-      end if
-
-      if (field_index(1) == 0) then
-        msg = "Field " // field_name // " not found"
-        call error_abort(msg)
-      end if
-           
+      end if           
     end do
+
+    if (field_index(1) == 0) then
+      msg = "Field " // field_name // " not found"
+      call error_abort(msg)
+    end if
 
     !field_index = findloc(flow%field_names , field_name)
     flow_field => flow%fields(field_index(1))%ptr
