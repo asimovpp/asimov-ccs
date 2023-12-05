@@ -184,29 +184,42 @@ program ldc
   call update(mf%values)
   call update(viscosity%values)
   call update(density%values)
-
+  print*, "line 11"
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(8, flow_fields) 
+  print*,"line 12"
+  !call allocate_fluid_fields(8, flow_fields) 
 
-  call set_field(1, u, flow_fields)
-  call set_field(2, v, flow_fields)
-  call set_field(3, w, flow_fields)
-  call set_field(4, p, flow_fields)
-  call set_field(5, p_prime, flow_fields)
-  call set_field(6, mf, flow_fields)
-  call set_field(7, viscosity, flow_fields) 
-  call set_field(8, density, flow_fields)  
+  !call set_field(1, u, flow_fields)
+  !call set_field(2, v, flow_fields)
+  !call set_field(3, w, flow_fields)
+  !call set_field(4, p, flow_fields)
+  !call set_field(5, p_prime, flow_fields)
+  !call set_field(6, mf, flow_fields)
+  !call set_field(7, viscosity, flow_fields) 
+  !call set_field(8, density, flow_fields)  
+
+  call set_field(u, flow_fields)
+  call set_field(v, flow_fields)
+  call set_field(w, flow_fields)
+  call set_field(p, flow_fields)
+  call set_field(p_prime, flow_fields)
+  call set_field(mf, flow_fields)
+  call set_field(viscosity, flow_fields) 
+  call set_field(density, flow_fields)  
 
   if (irank == par_env%root) then
     call print_configuration()
   end if
 
+  print*,"step 1"
   call timer_stop(timer_index_init)
+  print*, "step 2"
   call timer_register_start("Solver time inc I/O", timer_index_sol)
+  print*, "step 3"
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &

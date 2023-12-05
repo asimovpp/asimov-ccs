@@ -20,7 +20,7 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, fluid, fluid_solver_selector
+  use types, only: field, fluid, fluid_solver_selector, field_ptr
   use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind
 
@@ -489,13 +489,39 @@ contains
   end subroutine get_field
 
   !< Sets the pointer to the field and the corresponding field name in the fluid structure
-  subroutine set_field(field_index, flow_field, flow)
-    integer(ccs_int), intent(in) :: field_index     !< index of arrays at which to set the field pointer and name
+  !subroutine set_field(field_index, flow_field, flow)
+  subroutine set_field(flow_field, flow)
+    !integer(ccs_int), intent(in) :: field_index     !< index of arrays at which to set the field pointer and name
+    integer(ccs_int) :: field_index     !< index of arrays at which to set the field pointer and name
     class(field), target, intent(in) :: flow_field  !< the field
     type(fluid), intent(inout) :: flow              !< the fluid structure
+    type(field_ptr) :: tmp_field_ptr
+    logical, save :: first_call = .true.
+    
+    if (first_call) then
+      print*, "inside first call"
+      allocate (flow%fields(1))
+      print*, "a"
+      allocate (flow%field_names(1))
+      print*, "b"
+      flow%fields(1)%ptr => flow_field
+      print*, "c"
+      flow%field_names(1) = flow_field%name
+      print*, "d"
+      first_call = .false.
+      print*, "e"
 
-    flow%fields(field_index)%ptr => flow_field
-    flow%field_names(field_index) = flow_field%name
+    else
+      print*, "inside 2nd call"
+      tmp_field_ptr%ptr => flow_field
+      flow%fields = [ flow%fields, tmp_field_ptr]
+      field_index = size(flow%fields) !creating issue
+      print*, "field index=",field_index
+
+      flow%fields(field_index)%ptr => flow_field
+      flow%field_names(field_index) = flow_field%name
+    end if 
+    
   end subroutine set_field
 
   !> Gets the solver selector for a specified field
