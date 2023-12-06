@@ -14,7 +14,7 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
 - `ParHIP` - https://github.com/KaHIP/KaHIP
 - `ParMETIS` - https://github.com/KarypisLab/ParMETIS
-- `rcm-f90` - https://git.ecdf.ed.ac.uk/asimov/rcm-f90
+- `rcm-f90` - https://github.com/asimovpp/RCM-f90
 
 **N.B.** although the build system currently requires both, only one of ParHIP or ParMETIS is used to partition the problem.
 
