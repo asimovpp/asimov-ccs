@@ -515,11 +515,11 @@ contains
       print*, "inside 2nd call"
       tmp_field_ptr%ptr => flow_field
       flow%fields = [ flow%fields, tmp_field_ptr]
+      flow%field_names = [flow%field_names, flow_field%name]
       field_index = size(flow%fields) !creating issue
       print*, "field index=",field_index
 
       flow%fields(field_index)%ptr => flow_field
-      flow%field_names(field_index) = flow_field%name
     end if 
     
   end subroutine set_field
