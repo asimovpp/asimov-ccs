@@ -51,7 +51,7 @@ module utils
   public :: reset_outputlist_counter
   public :: get_field
   public :: get_fluid_solver_selector
-  public :: set_field
+  public :: add_field
   public :: set_fluid_solver_selector
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
@@ -489,9 +489,7 @@ contains
   end subroutine get_field
 
   !< Sets the pointer to the field and the corresponding field name in the fluid structure
-  !subroutine set_field(field_index, flow_field, flow)
-  subroutine set_field(flow_field, flow)
-    !integer(ccs_int), intent(in) :: field_index     !< index of arrays at which to set the field pointer and name
+  subroutine add_field(flow_field, flow)
     integer(ccs_int) :: field_index     !< index of arrays at which to set the field pointer and name
     class(field), target, intent(in) :: flow_field  !< the field
     type(fluid), intent(inout) :: flow              !< the fluid structure
@@ -499,30 +497,20 @@ contains
     logical, save :: first_call = .true.
     
     if (first_call) then
-      print*, "inside first call"
       allocate (flow%fields(1))
-      print*, "a"
       allocate (flow%field_names(1))
-      print*, "b"
       flow%fields(1)%ptr => flow_field
-      print*, "c"
       flow%field_names(1) = flow_field%name
-      print*, "d"
       first_call = .false.
-      print*, "e"
-
     else
-      print*, "inside 2nd call"
       tmp_field_ptr%ptr => flow_field
       flow%fields = [ flow%fields, tmp_field_ptr]
       flow%field_names = [flow%field_names, flow_field%name]
-      field_index = size(flow%fields) !creating issue
-      print*, "field index=",field_index
-
+      field_index = size(flow%fields) 
       flow%fields(field_index)%ptr => flow_field
     end if 
     
-  end subroutine set_field
+  end subroutine add_field
 
   !> Gets the solver selector for a specified field
   subroutine get_fluid_solver_selector(solver_selector, field_name, selector)
