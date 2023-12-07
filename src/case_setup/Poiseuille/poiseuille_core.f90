@@ -36,7 +36,7 @@ module poiseuille_core
   use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
   use mesh_utils, only: read_mesh, build_square_mesh, write_mesh, compute_face_interpolation
-  use meshing, only: get_total_num_cells, get_global_num_cells
+  use meshing, only: get_total_num_cells, get_global_num_cells, set_mesh_object, nullify_mesh_object
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution, reset_io_visualisation
@@ -221,16 +221,6 @@ module poiseuille_core
     call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
     call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
     call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-    call allocate_fluid_fields(8, flow_fields)
-
-    !call set_field(1, u, flow_fields)
-    !call set_field(2, v, flow_fields)
-    !call set_field(3, w, flow_fields)
-    !call set_field(4, p, flow_fields)
-    !call set_field(5, p_prime, flow_fields)
-    !call set_field(6, mf, flow_fields)
-    !call set_field(7, viscosity, flow_fields) 
-    !call set_field(8, density, flow_fields)  
 
     call add_field(u, flow_fields)
     call add_field(v, flow_fields)
