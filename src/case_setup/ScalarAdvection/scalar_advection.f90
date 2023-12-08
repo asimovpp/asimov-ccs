@@ -26,6 +26,7 @@ program scalar_advection
   use solver, only: create_solver, solve, set_equation_system
   use utils, only: update, initialise, set_size, add_field_to_outputlist, exit_print, finalise, zero
   use mesh_utils, only: build_square_mesh, write_mesh, compute_face_interpolation
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &

@@ -1,4 +1,4 @@
-main: sandia
+main: scalar_advection
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip
