@@ -1,4 +1,4 @@
-main: scalar_advection
+main: scalar_transport
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip
