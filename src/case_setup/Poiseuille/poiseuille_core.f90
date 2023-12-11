@@ -36,7 +36,7 @@ module poiseuille_core
   use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
   use mesh_utils, only: read_mesh, build_square_mesh, write_mesh, compute_face_interpolation
-  use meshing, only: get_total_num_cells, get_global_num_cells
+  use meshing, only: get_total_num_cells, get_global_num_cells, set_mesh_object, nullify_mesh_object
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution, reset_io_visualisation
