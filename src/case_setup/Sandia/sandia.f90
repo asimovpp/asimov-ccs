@@ -64,7 +64,6 @@ program sandia
   type(field_ptr), allocatable:: output_list(:)
 
   integer(ccs_int):: n_boundaries
-  integer(ccs_int):: scalar_index
 
   integer(ccs_int):: it_start, it_end
   integer(ccs_int):: irank  ! MPI rank ID
