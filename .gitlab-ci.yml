@@ -3,6 +3,7 @@
   except:
     variables:
       - $NIGHTLY
+      - $NIGHTLY_VERIFICATION
       - $A2_PERFORMANCE
 
 .setup_gnu:
