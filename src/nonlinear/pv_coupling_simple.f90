@@ -421,7 +421,7 @@ contains
 
     !calculate viscous source term and populate RHS vector 
     call dprint("compute viscous souce term")
-    call calculate_momentum_viscous_source(flow, component, vec)
+    ! call calculate_momentum_viscous_source(flow, component, vec)
 
     ! Underrelax the equations
     call dprint("GV: underrelax u")

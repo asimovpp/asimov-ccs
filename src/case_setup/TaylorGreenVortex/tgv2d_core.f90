@@ -23,7 +23,7 @@ module tgv2d_core
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
   use parallel_types, only: parallel_environment
-  use meshing, only: get_global_num_cells
+  use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh, write_mesh
   use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
