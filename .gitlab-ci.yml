@@ -332,7 +332,6 @@ A2_perf_2nodes_database_update:
 #-----------------------------------------------------------------------------#
 # Nightly tests on the CI desktop
 
-
 nightly_verification_trigger:
   only:
     - $NIGHTLY_VERIFICATION
@@ -345,13 +344,16 @@ verification_trigger:
   script:
     - echo "Manual trigger" 
 
-nightly_gnu_verification:
+verification_gnu:
   extends: [.setup_gnu]
   needs:
     - job: verification_trigger
       optional: true
     - job: nightly_verification_trigger
       optional: true
+  except:
+    variables:
+      - $NIGHTLY
   script:
     - HOME=${CI_HOME} CMP=gnu make
     - HOME=${CI_HOME} RUNTESTS=nightly/verification CMP=gnu make tests
