@@ -332,12 +332,6 @@ A2_perf_2nodes_database_update:
 #-----------------------------------------------------------------------------#
 # Nightly tests on the CI desktop
 
-nightly_verification_trigger:
-  only:
-    - $NIGHTLY_VERIFICATION
-  script:
-    - echo "Nightly verification trigger" 
-
 verification_trigger:
   extends: [.general_setup]
   when: manual
@@ -348,8 +342,6 @@ verification_gnu:
   extends: [.setup_gnu]
   needs:
     - job: verification_trigger
-      optional: true
-    - job: nightly_verification_trigger
       optional: true
   except:
     variables:
