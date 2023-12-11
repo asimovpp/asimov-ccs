@@ -225,18 +225,6 @@ program sandia
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  !call allocate_fluid_fields(9, flow_fields)
-  !call set_field(1, u, flow_fields)
-  !call set_field(2, v, flow_fields)
-  !call set_field(3, w, flow_fields)
-  !call set_field(4, p, flow_fields)
-  !call set_field(5, p_prime, flow_fields)
-  !call set_field(6, mf, flow_fields)
-  !call set_field(7, viscosity, flow_fields)
-  !call set_field(8, density, flow_fields)
-
-  !scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density]) + 1
-  !call set_field(9, scalar_field, flow_fields)
 
   call add_field(u, flow_fields)
   call add_field(v, flow_fields)

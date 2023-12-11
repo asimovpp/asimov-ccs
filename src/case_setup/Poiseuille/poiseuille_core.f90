@@ -172,7 +172,6 @@ module poiseuille_core
     call set_field_name("density", field_properties)
     call create_field(field_properties, density) 
 
-
     ! Set to 1st boundary condition (inlet)
     call get_inlet_profile(profile)
     call set_bc_profile(u, profile, 1)

@@ -234,7 +234,6 @@ program tgv
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  !call allocate_fluid_fields(8, flow_fields)
 
   call add_field(u, flow_fields)
   call add_field(v, flow_fields)

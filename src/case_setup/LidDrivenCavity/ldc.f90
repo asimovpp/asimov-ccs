@@ -190,16 +190,6 @@ program ldc
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  !call allocate_fluid_fields(8, flow_fields) 
-
-  !call set_field(1, u, flow_fields)
-  !call set_field(2, v, flow_fields)
-  !call set_field(3, w, flow_fields)
-  !call set_field(4, p, flow_fields)
-  !call set_field(5, p_prime, flow_fields)
-  !call set_field(6, mf, flow_fields)
-  !call set_field(7, viscosity, flow_fields) 
-  !call set_field(8, density, flow_fields)  
 
   call add_field(u, flow_fields)
   call add_field(v, flow_fields)
@@ -236,8 +226,8 @@ program ldc
   deallocate (p)
   deallocate (p_prime)
   deallocate (output_list)
-  !deallocate (viscosity)
-  !deallocate (density)
+  deallocate (viscosity)
+  deallocate (density)
 
   call timer_stop(timer_index_total)
 
