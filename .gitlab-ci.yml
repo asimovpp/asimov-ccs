@@ -112,7 +112,7 @@ test_intelx:
 
 #-----------------------------------------------------------------------------#
 #don't run cray debug build because it fails on the CI
-.debug_build_cray:
+debug_build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
@@ -126,7 +126,7 @@ build_cray:
     paths: [obj/]
 
 #don't run cray tests because slurm is broken on the CI
-.test_cray:
+test_cray:
   needs: 
     - job: build_cray
       artifacts: true
