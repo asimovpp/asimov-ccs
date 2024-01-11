@@ -86,7 +86,9 @@ Currently, a manual process is required to push the contribution to the upstream
 2. Ensure that the `upstreaming` branch is up to date by rebasing and pushing to GitHub if
    necessary, this might raise merge conflicts with the pull request if it has drifted from upstream
    developments, work with the contributor to resolve these.
-3. Once satisfied with a contribution, accept the pull request into `upstreaming` on GitHub.
+3. Once satisfied with a contribution, accept the pull request into `upstreaming` on GitHub. Note that
+   additional care should be taken when contributions affect tests or the running of tests, as a policy
+   two developers should approve such contributions.
 4. Pull `upstreaming` locally and merge into your local `develop` branch, if `upstreaming` was up to 
    date there should be no issues here.
 5. Push `develop` to the upstream repository (this will then be mirrored back to GitHub)
