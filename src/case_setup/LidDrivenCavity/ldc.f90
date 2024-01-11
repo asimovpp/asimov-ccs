@@ -8,12 +8,13 @@ program ldc
   use petscvec
   use petscsys
 
+  use ccs_base, only: mesh
   use case_config, only: num_iters, cps, domain_size, case_name, &
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
-                       field_w, field_p, field_p_prime, field_mf, field_viscosity, &
+                       field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density, &
                        cell_centred_central, cell_centred_upwind, cell_centred_gamma, cell_centred_linear_upwind, &
                        face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high
@@ -27,6 +28,7 @@ program ldc
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
   use meshing, only: get_global_num_cells
@@ -50,11 +52,10 @@ program ldc
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
-  type(ccs_mesh) :: mesh
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity 
+  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
   type(field_ptr), allocatable :: output_list(:)
 
@@ -122,6 +123,7 @@ program ldc
   if (irank == par_env%root) print *, "Building mesh"
   !mesh = build_mesh(par_env, cps, cps, cps, 1.0_ccs_real)   ! 3-D mesh
   mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)      ! 2-D mesh
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -157,6 +159,8 @@ program ldc
   call create_field(field_properties, p_prime)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
+  call set_field_name("density", field_properties)
+  call create_field(field_properties, density)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -173,26 +177,29 @@ program ldc
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(mesh, u, v, w, mf, viscosity) 
+  call initialise_velocity(u, v, w, mf, viscosity, density) 
   call update(u%values)
   call update(v%values)
   call update(w%values)
   call update(mf%values)
   call update(viscosity%values)
+  call update(density%values)
 
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(7, flow_fields) 
-  call set_field(1, field_u, u, flow_fields)
-  call set_field(2, field_v, v, flow_fields)
-  call set_field(3, field_w, w, flow_fields)
-  call set_field(4, field_p, p, flow_fields)
-  call set_field(5, field_p_prime, p_prime, flow_fields)
-  call set_field(6, field_mf, mf, flow_fields)
-  call set_field(7, field_viscosity, viscosity, flow_fields) 
+  call allocate_fluid_fields(8, flow_fields) 
+
+  call set_field(1, u, flow_fields)
+  call set_field(2, v, flow_fields)
+  call set_field(3, w, flow_fields)
+  call set_field(4, p, flow_fields)
+  call set_field(5, p_prime, flow_fields)
+  call set_field(6, mf, flow_fields)
+  call set_field(7, viscosity, flow_fields) 
+  call set_field(8, density, flow_fields)  
 
   if (irank == par_env%root) then
     call print_configuration()
@@ -220,10 +227,14 @@ program ldc
   deallocate (p)
   deallocate (p_prime)
   deallocate (output_list)
+  !deallocate (viscosity)
+  !deallocate (density)
 
   call timer_stop(timer_index_total)
 
   call timer_print_all(par_env)
+
+  call nullify_mesh_object()
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
@@ -281,7 +292,7 @@ contains
 
     integer(ccs_int) :: global_num_cells
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
@@ -305,7 +316,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(mesh, u, v, w, mf, viscosity)
+  subroutine initialise_velocity(u, v, w, mf, viscosity, density)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -315,8 +326,7 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, w, mf, viscosity
+    class(field), intent(inout) :: u, v, w, mf, viscosity, density
 
     ! Local variables
     integer(ccs_int) :: row, col
@@ -324,10 +334,10 @@ contains
     real(ccs_real) :: u_val, v_val, w_val
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals, w_vals
-    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -338,7 +348,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
       call calc_cell_coords(global_index_p, cps, row, col)
 
@@ -372,6 +382,10 @@ contains
     call get_vector_data(viscosity%values, viscosity_data)
     viscosity_data(:) =  1.e-2_ccs_real
     call restore_vector_data(viscosity%values, viscosity_data)
+
+    call get_vector_data(density%values, density_data)
+    density_data(:) = 1.0_ccs_real
+    call restore_vector_data(density%values, density_data)
 
   end subroutine initialise_velocity
 

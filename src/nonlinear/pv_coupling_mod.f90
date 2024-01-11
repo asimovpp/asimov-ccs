@@ -17,13 +17,14 @@ module pv_coupling
   interface
 
     module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                      flow_solver_selector, flow)
+                                      flow_solver_selector, flow, diverged)
       class(parallel_environment), allocatable, intent(in) :: par_env
       type(ccs_mesh), intent(in) :: mesh
       integer(ccs_int), intent(in) :: it_start, it_end
       real(ccs_real), intent(in) :: res_target
       type(fluid_solver_selector), intent(in) :: flow_solver_selector
       type(fluid), intent(inout) :: flow
+      logical, optional, intent(out) :: diverged
     end subroutine solve_nonlinear
 
   end interface

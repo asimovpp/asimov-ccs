@@ -8,11 +8,13 @@ program scalar_transport
   use petscvec
   use petscsys
 
+  use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, cps, domain_size, case_name, &
                          res_target, write_gradients, dt, write_frequency
   use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
                        field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       face_centred, cell_centred_central, ccs_split_type_low_high
+                       field_density, face_centred, cell_centred_central, cell_centred_upwind, &
+                       ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, field_elt, fluid
@@ -21,12 +23,13 @@ program scalar_transport
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments
+                      read_command_line_arguments, &
+                      is_root
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh
   use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
-                     get_local_index, get_boundary_status, get_face_normal
+                     get_local_index, get_boundary_status, get_face_normal, set_mesh_object, nullify_mesh_object
   use vec, only: create_vector, set_vector_location
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
@@ -47,14 +50,11 @@ program scalar_transport
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
-  
-  type(ccs_mesh) :: mesh
+
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: mf, viscosity
-  class(field), pointer :: fptr
-
+  class(field), allocatable, target :: mf, viscosity, density
   type(field_ptr), allocatable :: output_list(:)
   type(field_elt), allocatable, target :: field_list(:)
   
@@ -76,10 +76,8 @@ program scalar_transport
   real(ccs_real) :: L
   integer(ccs_int) :: t
 
-  integer(ccs_int) :: scalar_index ! ID for defining scalars
-  integer(ccs_int) :: field_ctr
   integer :: i
-
+  
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   use_mpi_splitting = .false.
@@ -113,6 +111,7 @@ program scalar_transport
   if (irank == par_env%root) print *, "Building mesh"
   L = 1.0_ccs_real
   mesh = build_mesh(par_env, shared_env, cps, cps, cps, L)   ! 3-D mesh
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -133,15 +132,33 @@ program scalar_transport
   call set_field_n_boundaries(n_boundaries, field_properties)
   call set_field_store_residuals(store_residuals, field_properties)
 
+  ! Build viscosity and density explicitly (for time being)
   call set_field_vector_properties(vec_properties, field_properties)
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("viscosity", field_properties)
+  call create_field(field_properties, viscosity) 
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("density", field_properties)
+  call create_field(field_properties, density) 
+
+  if (is_root(par_env)) then
+    print *, "Build field list"
+  end if
   allocate(field_list(size(variable_names)))
   do i = 1, size(variable_names)
-     call set_field_type(variable_types(i), field_properties)
-     call set_field_name(variable_names(i), field_properties)
-     call create_field(field_properties, field_list(i)%f)
-     field_list(i)%name = variable_names(i)
+    if (is_root(par_env)) then
+      print *, "Creating field ", trim(variable_names(i))
+    end if
+    call set_field_type(variable_types(i), field_properties)
+    call set_field_name(variable_names(i), field_properties)
+    call create_field(field_properties, field_list(i)%f)
+    field_list(i)%name = variable_names(i)
   end do
+  if (is_root(par_env)) then
+    print *, "Built ", size(field_list), " dynamically-defined fields"
+  end if
   
+  !! Create mass flux as a special variable
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
@@ -149,45 +166,30 @@ program scalar_transport
   call set_field_name("mf", field_properties)
   call create_field(field_properties, mf)
 
-  call set_vector_location(cell, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-  call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity) 
-
-  ! Add fields to output list
   do i = 1, size(field_list)
-     fptr => field_list(i)%f
-     call add_field_to_outputlist(fptr, field_list(i)%name, output_list)
+    if ((field_list(i)%name == "whisky") .or. (field_list(i)%name == "water")) then
+      call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
+    end if
   end do
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise flow field"
-  call initialise_case(mesh, field_list, mf, viscosity)
+  call initialise_case(field_list, mf, viscosity, density) 
+
   do i = 1, size(field_list)
-     call update(field_list(i)%f%values)
+    call update(field_list(i)%f%values)
   end do
   call update(mf%values)
-  call update(viscosity%values)
 
   ! ! XXX: This should get incorporated as part of create_field subroutines
-  ! call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
-  ! call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
-  ! call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
-  ! call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(4, flow_fields)
-  field_ctr = 1
-  call set_field(field_ctr, field_mf, mf, flow_fields)
-  field_ctr = 2
-  call set_field(field_ctr, field_viscosity, viscosity, flow_fields)
-
-  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity ]) + 1
+  call allocate_fluid_fields(size(field_list) + 3, flow_fields)
   do i = 1, size(field_list)
-     field_ctr = field_ctr + 1
-     call set_field(field_ctr, scalar_index, field_list(i)%f, flow_fields)
-     scalar_index = scalar_index + 1
+    call set_field(i, field_list(i)%f, flow_fields)
   end do
-  
+  call set_field(size(field_list) + 1, density, flow_fields)
+  call set_field(size(field_list) + 2, viscosity, flow_fields)
+  call set_field(size(field_list) + 3, mf, flow_fields)
+
   if (irank == par_env%root) then
     call print_configuration()
   end if
@@ -217,12 +219,14 @@ program scalar_transport
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
+
   do i = 1, size(field_list)
-     deallocate(field_list(i)%f)
+    deallocate(field_list(i)%f)
   end do
-  deallocate (field_list)
+  deallocate(field_list)
   deallocate (mf)
   deallocate (viscosity)
+  deallocate (density)
   deallocate (output_list)
 
   call timer(end_time)
@@ -233,6 +237,7 @@ program scalar_transport
   end if
 
   ! Finalise MPI
+  call nullify_mesh_object()
   call cleanup_parallel_environment(par_env)
 
 contains
@@ -246,8 +251,6 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
-
-    integer :: i
     
     config_file => parse(config_filename, error)
     if (allocated(error)) then
@@ -261,12 +264,6 @@ contains
     call get_variable_types(config_file, variable_types)
     if (size(variable_types) /= size(variable_names)) then
        call error_abort("The number of variable types does not match the number of named variables")
-    end if
-    if (par_env%proc_id == par_env%root) then
-       print *, "Found variables: "
-       do i = 1, size(variable_names)
-          print *, "+ ", trim(variable_names(i)), " scheme ", trim(get_scheme_name(variable_types(i)))
-       end do
     end if
     
     call get_value(config_file, 'steps', num_steps)
@@ -313,7 +310,7 @@ contains
 
     integer(ccs_int) :: global_num_cells
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
 
     ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
     print *, " "
@@ -335,7 +332,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_case(mesh, field_list, mf, viscosity)
+  subroutine initialise_case(field_list, mf, viscosity, density)
 
     use constants, only: insert_mode
     use types, only: vector_values, cell_locator, neighbour_locator, face_locator
@@ -345,9 +342,8 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
     type(field_elt), dimension(:), intent(inout) :: field_list
-    class(field), intent(inout) :: mf, viscosity
+    class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
     integer(ccs_int) :: index_p, global_index_p, n_local
@@ -356,7 +352,7 @@ contains
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: whisky_vals, water_vals
-    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
     integer(ccs_int) :: j, nnb
     integer(ccs_int) :: index_nb, index_f
@@ -365,11 +361,9 @@ contains
     real(ccs_real), dimension(3) :: x, r, c, face_normal
     real(ccs_real), dimension(3) :: v
     real(ccs_real) :: theta, rmag
-
-    integer :: i
     
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, whisky_vals)
     call create_vector_values(n_local, water_vals)
@@ -383,7 +377,7 @@ contains
     
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       ! Get domain centre offset
@@ -404,7 +398,7 @@ contains
 
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
-         call create_face_locator(mesh, index_p, j, loc_f)
+         call create_face_locator(index_p, j, loc_f)
          call get_local_index(loc_f, index_f)
          call get_boundary_status(loc_f, is_boundary)
 
@@ -413,7 +407,7 @@ contains
             call get_local_index(loc_nb, index_nb)
 
             if (index_nb > index_p) then
-               call create_face_locator(mesh, index_p, j, loc_f)
+               call create_face_locator(index_p, j, loc_f)
                call get_face_normal(loc_f, face_normal)
                call get_centre(loc_f, x)
 
@@ -446,19 +440,19 @@ contains
          end if
 
       end do
-      
+
     end do
 
     do i = 1, size(field_list)
-       if (field_list(i)%name == "whisky") then
-          call set_values(whisky_vals, field_list(i)%f%values)
-       else if (field_list(i)%name == "water") then
-          call set_values(water_vals, field_list(i)%f%values)
-       else
-          call error_abort("Unknown field " // field_list(i)%name)
-       end if
+      if (field_list(i)%name == "whisky") then
+        call set_values(whisky_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "water") then
+        call set_values(water_vals, field_list(i)%f%values)
+      else
+        print *, "Unrecognised field name ", field_list(i)%name
+      end if
     end do
-    
+
     deallocate (whisky_vals%global_indices)
     deallocate (water_vals%global_indices)
     deallocate (whisky_vals%values)
@@ -469,6 +463,10 @@ contains
     call get_vector_data(viscosity%values, viscosity_data)
     viscosity_data(:) =  1.e-2_ccs_real
     call restore_vector_data(viscosity%values, viscosity_data)
+
+    call get_vector_data(density%values, density_data)
+    density_data(:) = 1.0_ccs_real
+    call restore_vector_data(density%values, density_data)
 
   end subroutine initialise_case
 

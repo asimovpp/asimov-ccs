@@ -32,14 +32,12 @@ module reordering
     end subroutine
 
     !> Print statistics on the local matrix bandwidth
-    module subroutine print_bandwidth(par_env, mesh)
+    module subroutine print_bandwidth(par_env)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-      type(ccs_mesh), intent(in) :: mesh
     end subroutine print_bandwidth
     
     !> Generate a mesh cell reordering mapping.
-    module subroutine get_reordering(mesh, new_indices)
-      type(ccs_mesh), intent(in) :: mesh
+    module subroutine get_reordering(new_indices)
       integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices
     end subroutine
 

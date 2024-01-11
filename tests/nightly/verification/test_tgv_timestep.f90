@@ -11,7 +11,6 @@ program test_tgv_timestep
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   integer(ccs_int), parameter :: num_dt = 4
   integer(ccs_int), parameter :: nvar = 3
   real(ccs_real), dimension(nvar, num_dt) :: errors_L2

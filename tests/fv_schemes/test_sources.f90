@@ -10,6 +10,7 @@ program test_sources
   use meshing, only: get_centre, get_local_num_cells, &
        create_cell_locator, get_volume
   use vec, only: get_vector_data, restore_vector_data
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   use utils, only: zero
 
@@ -18,7 +19,6 @@ program test_sources
   ! Mesh / geometry information
   integer(ccs_int), parameter :: n = 5
   real(ccs_real), parameter :: l = 1.0_ccs_real
-  type(ccs_mesh) :: mesh
 
   ! Linear system
   class(ccs_vector), allocatable :: rhs ! Right hand side vector
@@ -31,6 +31,8 @@ program test_sources
   call init_case()
   call test_fixed_source()
   call test_linear_source()
+
+  call nullify_mesh_object()
   
   call fin()
 
@@ -55,12 +57,12 @@ contains
     
     call zero(rhs) ! Just a precaution / to simplify the error check.
 
-    call add_fixed_source(mesh, S, rhs)
+    call add_fixed_source(S, rhs)
 
     call get_vector_data(rhs, rhs_data)
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-       call create_cell_locator(mesh, index_p, loc_p)
+       call create_cell_locator(index_p, loc_p)
        call get_centre(loc_p, x_p)
        call get_volume(loc_p, V_p)
 
@@ -95,7 +97,7 @@ contains
     call zero(rhs) ! Just a precaution / to simplify the error check.
     call zero(M)
 
-    call add_linear_source(mesh, S, M)
+    call add_linear_source(S, M)
 
     call finalise_matrix(M)
     
@@ -103,9 +105,9 @@ contains
     call mat_vec_product(M, x, rhs)
     
     call get_vector_data(rhs, rhs_data)
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-       call create_cell_locator(mesh, index_p, loc_p)
+       call create_cell_locator(index_p, loc_p)
        call get_centre(loc_p, x_p)
        call get_volume(loc_p, V_p)
 
@@ -141,6 +143,7 @@ contains
     
     ! Initialise mesh
     mesh = build_mesh(par_env, shared_env, n, n, n, l)
+    call set_mesh_object(mesh)
 
     ! Initialise vectors
     call initialise(vec_sizes)
@@ -161,9 +164,9 @@ contains
     
     call get_vector_data(x, x_data)
     call get_vector_data(S, S_data)
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-       call create_cell_locator(mesh, index_p, loc_p)
+       call create_cell_locator(index_p, loc_p)
        call get_centre(loc_p, x_p)
 
        x_data(index_p) = set_solution(x_p)

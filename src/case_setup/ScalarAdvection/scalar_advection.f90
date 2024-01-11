@@ -4,6 +4,7 @@ program scalar_advection
 #include "ccs_macros.inc"
 
   ! ASiMoV-CCS uses
+  use ccs_base, only: mesh
   use kinds, only: ccs_real, ccs_int
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, write_gradients, &
@@ -14,7 +15,7 @@ program scalar_advection
                    field, upwind_field, central_field, bc_config, face_locator
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       cell_centred_central, cell_centred_upwind, face_centred, &
+                       field_density, cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use meshing, only: get_boundary_status, create_face_locator, get_total_num_cells, get_global_num_cells
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
@@ -50,7 +51,6 @@ program scalar_advection
   type(vector_spec) :: vec_properties
   type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
-  type(ccs_mesh) :: mesh
 
   type(field_ptr), allocatable :: output_list(:)
 
@@ -58,7 +58,7 @@ program scalar_advection
   logical :: enable_cell_corrections
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, mf, viscosity
+  class(field), allocatable, target :: u, v, mf, viscosity, density
   class(field), allocatable, target :: scalar
 
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
@@ -105,6 +105,7 @@ program scalar_advection
   ! Set up the square mesh
   if (irank == par_env%root) print *, "Building mesh"
   mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -141,6 +142,8 @@ program scalar_advection
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
+  call set_field_name("density", field_properties)
+  call create_field(field_properties, density) 
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -150,19 +153,19 @@ program scalar_advection
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  allocate (output_list(3))
   call add_field_to_outputlist(u, "u", output_list)
   call add_field_to_outputlist(v, "v", output_list)
   call add_field_to_outputlist(scalar, "scalar", output_list)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(mesh, u, v, scalar, mf, viscosity)
+  call initialise_flow(u, v, scalar, mf, viscosity, density)
   call update(u%values)
   call update(v%values)
   call update(scalar%values)
   call update(mf%values)
   call update(viscosity%values)
+  call update(density%values)
 
   ! Initialise with default values
   if (irank == par_env%root) print *, "Initialise mat"
@@ -185,7 +188,7 @@ program scalar_advection
 
   ! Actually compute the values to fill the matrix
   if (irank == par_env%root) print *, "Compute fluxes"
-  call compute_fluxes(scalar, mf, viscosity, mesh, direction, M, source)
+  call compute_fluxes(scalar, mf, viscosity, density, direction, M, source)
 
   call update(M) ! parallel assembly for M
   call update(scalar%values) ! parallel assembly for source
@@ -201,12 +204,14 @@ program scalar_advection
 
   call write_mesh(par_env, case_path, mesh)
   call write_solution(par_env, case_path, mesh, output_list)
+
   ! Clean up
   deallocate (scalar)
   deallocate (source)
   deallocate (M)
   deallocate (mf)
   deallocate (viscosity)
+  deallocate (density)
   deallocate (scalar_solver)
 
   call timer(end_time)
@@ -215,11 +220,11 @@ program scalar_advection
     print *, "Elapsed time = ", (end_time - start_time)
   end if
 
+  call nullify_mesh_object()
   call cleanup_parallel_environment(par_env)
-
 contains
 
-  subroutine initialise_flow(mesh, u, v, scalar, mf, viscosity)
+  subroutine initialise_flow(u, v, scalar, mf, viscosity, density)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -231,8 +236,7 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: u, v, scalar, mf, viscosity
+    class(field), intent(inout) :: u, v, scalar, mf, viscosity, density
 
     ! Local variables
     integer(ccs_int) :: n, count
@@ -243,7 +247,7 @@ contains
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, scalar_vals
-    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data
+    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
     real(ccs_real), dimension(ndim) :: face_normal
@@ -252,7 +256,7 @@ contains
     integer(ccs_int) :: j
 
     ! Set alias
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -263,7 +267,7 @@ contains
 
     ! Set initial values for velocity fields
     do index_p = 1, n_local
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call get_centre(loc_p, x_p)
@@ -298,10 +302,10 @@ contains
     n = 0
 
     ! Loop over local cells and faces
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
     do index_p = 1, n_local
 
-      call create_cell_locator(mesh, index_p, loc_p)
+      call create_cell_locator(index_p, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
 
@@ -311,7 +315,7 @@ contains
         ! if neighbour index is greater than previous face index
         if (index_nb > index_p) then ! XXX: abstract this test
 
-          call create_face_locator(mesh, index_p, j, loc_f)
+          call create_face_locator(index_p, j, loc_f)
           call get_local_index(loc_f, index_f)
           call get_face_normal(loc_f, face_normal)
           call get_centre(loc_f, x_f)
@@ -330,11 +334,16 @@ contains
     viscosity_data(:) =  1.e-2_ccs_real
     call restore_vector_data(viscosity%values, viscosity_data)
 
+    call get_vector_data(density%values, density_data)
+    density_data(:) = 1.0_ccs_real
+    call restore_vector_data(density%values, density_data)
+
     call update(u%values)
     call update(v%values)
     call update(scalar%values)
     call update(mf%values)
     call update(viscosity%values)
+    call update(density%values)
 
   end subroutine initialise_flow
 

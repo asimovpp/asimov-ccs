@@ -8,6 +8,7 @@ program simple
   use petscvec
   use petscsys
 
+  use ccs_base, only: mesh
   use constants, only: cell, face, field_u, field_v, field_w, field_p, field_p_prime, field_mf, &
                     field_viscosity, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
@@ -29,11 +30,10 @@ program simple
 
   class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: shared_env
-  type(ccs_mesh) :: square_mesh
   type(vector_spec) :: vec_sizes
   logical :: use_mpi_splitting
 
-  class(field), allocatable :: u, v, w, p, pp, mf, viscosity
+  class(field), allocatable :: u, v, w, p, p_prime, mf, viscosity, density
 
   integer(ccs_int) :: cps = 50 !< Default value for cells per side
 
@@ -69,7 +69,8 @@ program simple
 
   ! Create a square mesh
   print *, "Building mesh"
-  square_mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  call set_mesh_object(mesh)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -77,7 +78,7 @@ program simple
   allocate (upwind_field :: v)
   allocate (upwind_field :: w)
   allocate (central_field :: p)
-  allocate (central_field :: pp)
+  allocate (central_field :: p_prime)
   allocate (central_field :: viscosity)
   allocate (face_field :: mf)
   
@@ -86,7 +87,7 @@ program simple
 
   print *, "Create vectors"
   call set_vector_location(cell, vec_sizes)
-  call set_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, mesh, vec_sizes)
   call create_vector(vec_sizes, u%values)
   call create_vector(vec_sizes, v%values)
   call create_vector(vec_sizes, w%values)
@@ -94,10 +95,10 @@ program simple
   call create_vector(vec_sizes, p%x_gradients)
   call create_vector(vec_sizes, p%y_gradients)
   call create_vector(vec_sizes, p%z_gradients)
-  call create_vector(vec_sizes, pp%values)
-  call create_vector(vec_sizes, pp%x_gradients)
-  call create_vector(vec_sizes, pp%y_gradients)
-  call create_vector(vec_sizes, pp%z_gradients)
+  call create_vector(vec_sizes, p_prime%values)
+  call create_vector(vec_sizes, p_prime%x_gradients)
+  call create_vector(vec_sizes, p_prime%y_gradients)
+  call create_vector(vec_sizes, p_prime%z_gradients)
   call create_vector(vec_sizes, viscosity%values)
   call update(u%values)
   call update(v%values)
@@ -105,20 +106,20 @@ program simple
   call update(p%x_gradients)
   call update(p%y_gradients)
   call update(p%z_gradients)
-  call update(pp%values)
-  call update(pp%x_gradients)
-  call update(pp%y_gradients)
-  call update(pp%z_gradients)
+  call update(p_prime%values)
+  call update(p_prime%x_gradients)
+  call update(p_prime%y_gradients)
+  call update(p_prime%z_gradients)
   call update(viscosity%values)
 
   call set_vector_location(face, vec_sizes)
-  call set_size(par_env, square_mesh, vec_sizes)
+  call set_size(par_env, mesh, vec_sizes)
   call create_vector(vec_sizes, mf%values)
   call update(mf%values)
 
   ! Initialise velocity field
   print *, "Initialise velocity field"
-  call initialise_velocity(square_mesh, u, v, w, mf, viscosity)
+  call initialise_velocity(u, v, w, mf, viscosity)
   call update(u%values)
   call update(v%values)
   call update(mf%values)
@@ -129,17 +130,19 @@ program simple
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
   call allocate_fluid_fields(7, flow_fields)
-  call set_field(1, field_u, u, flow_fields)
-  call set_field(2, field_v, v, flow_fields)
-  call set_field(3, field_w, w, flow_fields)
-  call set_field(4, field_p, p, flow_fields)
-  call set_field(5, field_p_prime, pp, flow_fields)
-  call set_field(6, field_mf, mf, flow_fields)
-  call set_field(7, field_viscosity, viscosity, flow_fields)
+
+  call set_field(1, u, flow_fields)
+  call set_field(2, v, flow_fields)
+  call set_field(3, w, flow_fields)
+  call set_field(4, p, flow_fields)
+  call set_field(5, p_prime, flow_fields)
+  call set_field(6, mf, flow_fields)
+  call set_field(7, viscosity, flow_fields) 
+  call set_field(8, density, flow_fields)  
 
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, square_mesh, it_start, it_end, res_target, &
+  call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                        fluid_sol, flow_fields)
 
   ! Clean-up
@@ -147,7 +150,7 @@ program simple
   deallocate (v)
   deallocate (w)
   deallocate (p)
-  deallocate (pp)
+  deallocate (p_prime)
 
   call timer(end_time)
 
@@ -155,11 +158,12 @@ program simple
     print *, "Elapsed time = ", (end_time - start_time)
   end if
 
+  call nullify_mesh_object()
   call cleanup_parallel_environment(par_env)
 
 contains
 
-  subroutine initialise_velocity(cell_mesh, u, v, w, mf, viscosity)
+  subroutine initialise_velocity(u, v, w, mf, viscosity)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -169,7 +173,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(ccs_mesh), intent(in) :: cell_mesh
     class(field), intent(inout) :: u, v, w, mf, viscosity
 
     ! Local variables
@@ -182,7 +185,7 @@ contains
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, mf_data, viscosity_data
 
     ! Set alias
-    call get_local_num_cells(cell_mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
@@ -194,7 +197,7 @@ contains
 
     ! Set initial values for velocity fields
     do local_idx = 1, n_local
-      call create_cell_locator(cell_mesh, local_idx, self_loc)
+      call create_cell_locator(local_idx, self_loc)
       call get_global_index(self_loc, self_idx)
       call calc_cell_coords(self_idx, cps, row, col)
 

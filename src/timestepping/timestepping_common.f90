@@ -136,14 +136,13 @@ contains
 
   end subroutine
 
-  module subroutine apply_timestep_first_order(mesh, phi, diag, M, b)
+  module subroutine apply_timestep_first_order(phi, diag, M, b)
 
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
     use vec, only: get_vector_data, restore_vector_data
     use utils, only: update, finalise
 
-    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
@@ -166,9 +165,9 @@ contains
     call update(b)
     call get_vector_data(b, b_data)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V_p)
 
       ! A = A + V/dt
@@ -184,13 +183,12 @@ contains
 
   end subroutine apply_timestep_first_order
 
-  module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
+  module subroutine apply_timestep_second_order(phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
     use vec, only: get_vector_data, restore_vector_data
     use utils, only: update, finalise
 
-    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
@@ -218,9 +216,9 @@ contains
     call update(b)
     call get_vector_data(b, b_data)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V_p)
 
       ! A = A + 1.5*rho*V/dt
@@ -236,14 +234,13 @@ contains
     call set_matrix_diagonal(diag, M)
   end subroutine apply_timestep_second_order
 
-  module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
+  module subroutine apply_timestep_theta(theta, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
     use vec, only: get_vector_data, restore_vector_data
     use utils, only: update, finalise
     use meshing, only: get_local_num_cells
 
-    type(ccs_mesh), intent(in) :: mesh
     real(ccs_real), intent(in) :: theta
     class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
@@ -272,9 +269,9 @@ contains
     call update(b)
     call get_vector_data(b, b_data)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V_p)
 
       ! A = A + (1.0 + 0.5 * theta)*rho*V/dt

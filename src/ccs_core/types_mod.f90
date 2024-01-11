@@ -210,6 +210,7 @@ module types
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
     real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
+    character(len=20) :: name
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -250,7 +251,6 @@ module types
   !
   ! Lightweight type to provide easy cell location based on a cell's cell connectivity.
   type, public :: cell_locator
-    type(ccs_mesh), pointer :: mesh !< Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: index_p     !< Cell index
   end type cell_locator
 
@@ -258,7 +258,6 @@ module types
   !
   !  Lightweight type to provide easy face location based on a cell's face connectivity.
   type, public :: face_locator
-    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: index_p       !< Cell index
     integer(ccs_int) :: cell_face_ctr !< Cell-face ctr i.e. I want to access face "3" of the cell.
   end type face_locator
@@ -267,7 +266,6 @@ module types
   !
   !  Lightweight type to provide easy cell-neighbour connection.
   type, public :: neighbour_locator
-    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh
     integer(ccs_int) :: index_p       !< the cell index relative to which this is a neighbour
     integer(ccs_int) :: nb_counter    !< the cell-relative counter identifying this neighbour
   end type neighbour_locator
@@ -276,7 +274,6 @@ module types
   !
   !  Lightweight type to provide easy vertex location based on a cell's vertex connectivity.
   type, public :: vert_locator
-    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: index_p       !< Cell index
     integer(ccs_int) :: cell_vert_ctr !< Cell-vertex ctr i.e. I want to access vertex "3" of the cell.
   end type vert_locator
@@ -285,7 +282,6 @@ module types
   !
   !  Lightweight type to provide easy cell-neighbour connection via vertices.
   type, public :: vertex_neighbour_locator
-    type(ccs_mesh), pointer :: mesh       !< Pointer to the mesh
     integer(ccs_int) :: index_p           !< the cell index relative to which this is a vertex neighbour
     integer(ccs_int) :: vert_nb_counter   !< the cell-relative counter identifying this neighbour
   end type vertex_neighbour_locator
@@ -295,7 +291,8 @@ module types
   ! Type for accumulating all the fluid data
   type, public :: fluid
     type(field_ptr), dimension(:), allocatable :: fields
-    integer(ccs_int), dimension(:), allocatable :: field_names
+    integer(ccs_int), dimension(:), allocatable :: field_ids
+    character(len=20), dimension(:), allocatable :: field_names
   end type fluid
 
   !v Fluid solve selector
