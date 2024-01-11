@@ -17,14 +17,14 @@ program bfs
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector, bc_profile
+                   field_ptr, fluid, fluid_solver_selector, bc_profile, field_elt
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, &
-                      create_new_par_env
+                      create_new_par_env, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
@@ -34,7 +34,8 @@ program bfs
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections, &
+                          get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, write_mesh
   use meshing, only: set_mesh_object, nullify_mesh_object
@@ -52,6 +53,7 @@ program bfs
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
+  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
   type(vector_spec) :: vec_properties
 
@@ -59,6 +61,7 @@ program bfs
   class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
   type(field_ptr), allocatable :: output_list(:)
+  type(field_elt), allocatable, target :: field_list(:)
 
   integer(ccs_int) :: n_boundaries
 
@@ -78,6 +81,7 @@ program bfs
 
   integer(ccs_int) :: t          ! Timestep counter
   logical :: use_mpi_splitting
+  integer :: i
 
   type(fluid) :: flow_fields
   type(fluid_solver_selector) :: fluid_sol
@@ -169,6 +173,25 @@ program bfs
   call set_field_name("density", field_properties)
   call create_field(field_properties, density)
 
+  if (is_root(par_env)) then
+    print *, "Build field list"
+  end if
+
+  allocate(field_list(size(variable_names)))
+  do i = 1, size(variable_names)
+    if (is_root(par_env)) then
+      print *, "Creating field ", trim(variable_names(i))
+    end if
+    call set_field_type(variable_types(i), field_properties)
+    call set_field_name(variable_names(i), field_properties)
+    call create_field(field_properties, field_list(i)%f)
+    field_list(i)%name = variable_names(i)
+  end do
+
+  if (is_root(par_env)) then
+    print *, "Built ", size(field_list), " dynamically-defined fields"
+  end if
+
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
@@ -186,14 +209,18 @@ program bfs
   call set_bc_profile(u, profile, 3)
 
   ! Add fields to output list
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(w, "w", output_list)
-  call add_field_to_outputlist(p, "p", output_list)
+  !call add_field_to_outputlist(u, "u", output_list)
+  !call add_field_to_outputlist(v, "v", output_list)
+  !call add_field_to_outputlist(w, "w", output_list)
+  !call add_field_to_outputlist(p, "p", output_list)
+  do i = 1, size(field_list)
+    call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
+  end do
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(u, v, w, p, mf, viscosity, density)
+  !call initialise_flow(u, v, w, p, mf, viscosity, density)
+  call initialise_flow(field_list, mf, viscosity, density) 
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -215,10 +242,13 @@ program bfs
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
 
-  call add_field(u, flow_fields)
-  call add_field(v, flow_fields)
-  call add_field(w, flow_fields)
-  call add_field(p, flow_fields)
+  !call add_field(u, flow_fields)
+  !call add_field(v, flow_fields)
+  !call add_field(w, flow_fields)
+  !call add_field(p, flow_fields)
+  do i = 1, size(field_list)
+    call add_field(field_list(i)%f, flow_fields)
+  end do
   call add_field(p_prime, flow_fields)
   call add_field(mf, flow_fields)
   call add_field(viscosity, flow_fields) 
@@ -237,10 +267,13 @@ program bfs
   end do
 
   ! Clean-up
-  deallocate (u)
-  deallocate (v)
-  deallocate (w)
-  deallocate (p)
+  !deallocate (u)
+  !deallocate (v)
+  !deallocate (w)
+  !deallocate (p)
+  do i = 1, size(field_list)
+    deallocate(field_list(i)%f)
+  end do
   deallocate (p_prime)
   deallocate (output_list)
 
@@ -273,6 +306,14 @@ contains
     end if
 
     call get_variables(config_file, variable_names)
+    if (size(variable_names) == 0) then
+      call error_abort("No variables were specified.")
+    end if
+    print*,"no. of variables=",size(variable_names)
+    call get_variable_types(config_file, variable_types)
+    if (size(variable_types) /= size(variable_names)) then
+       call error_abort("The number of variable types does not match the number of named variables")
+    end if
 
     call get_value(config_file, 'steps', num_steps)
     if (num_steps == huge(0)) then
@@ -335,7 +376,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(u, v, w, p, mf, viscosity, density)
+  subroutine initialise_flow(field_list, mf, viscosity, density)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -347,7 +388,8 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(field), intent(inout) :: u, v, w, p, mf, viscosity, density
+    !class(field), intent(inout) :: u, v, w, p, mf, viscosity, density
+    class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
     integer(ccs_int) :: n, count
@@ -359,6 +401,7 @@ contains
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, w_vals, p_vals
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
+    type(field_elt), dimension(:), intent(inout) :: field_list
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
     real(ccs_real), dimension(ndim) :: face_normal
@@ -400,10 +443,24 @@ contains
       call set_entry(p_val, p_vals)
     end do
 
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
-    call set_values(w_vals, w%values)
-    call set_values(p_vals, p%values)
+    !call set_values(u_vals, u%values)
+    !call set_values(v_vals, v%values)
+    !call set_values(w_vals, w%values)
+    !call set_values(p_vals, p%values)
+
+    do i = 1, size(field_list)
+      if (field_list(i)%name == "u") then
+        call set_values(u_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "v") then
+        call set_values(v_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "w") then
+        call set_values(w_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "p") then
+        
+      else
+        print *, "Unrecognised field name ", field_list(i)%name
+      end if
+    end do
 
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
@@ -455,10 +512,13 @@ contains
     density_data(:) = 1.0_ccs_real
     call restore_vector_data(density%values, density_data)
 
-    call update(u%values)
-    call update(v%values)
-    call update(w%values)
-    call update(p%values)
+    do i = 1, size(field_list)
+      call update(field_list(i)%f%values)
+    end do
+    !call update(u%values)
+    !call update(v%values)
+    !call update(w%values)
+    !call update(p%values)
     call update(mf%values)
     call update(viscosity%values)
     call update(density%values)
