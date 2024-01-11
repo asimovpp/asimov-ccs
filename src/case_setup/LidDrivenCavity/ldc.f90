@@ -20,14 +20,14 @@ program ldc
                        ccs_split_type_shared, ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, gamma_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
+                   vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector, field_elt
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync
+                      read_command_line_arguments, sync, is_root
   use meshing, only: set_mesh_object, nullify_mesh_object
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
@@ -39,7 +39,7 @@ program ldc
                    get_field, add_field, get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count, get_store_residuals
+  use read_config, only: get_variables, get_boundary_count, get_store_residuals, get_variable_types
   use io_visualisation, only: write_solution
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
 
@@ -51,6 +51,7 @@ program ldc
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
+  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
   type(vector_spec) :: vec_properties
 
@@ -58,6 +59,7 @@ program ldc
   class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
   type(field_ptr), allocatable :: output_list(:)
+  type(field_elt), allocatable, target :: field_list(:)
 
   integer(ccs_int) :: n_boundaries
 
@@ -66,6 +68,7 @@ program ldc
   integer(ccs_int) :: isize ! Size of MPI world
 
   integer(ccs_int) :: timer_index_init, timer_index_total, timer_index_sol
+  integer :: i
 
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
@@ -138,29 +141,47 @@ program ldc
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
   call set_field_store_residuals(store_residuals, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  call set_field_type(cell_centred_upwind, field_properties)
-  call set_field_name("u", field_properties)
-  call create_field(field_properties, u)
-  call set_field_name("v", field_properties)
-  call create_field(field_properties, v)
-  call set_field_name("w", field_properties)
-  call create_field(field_properties, w)
+  !call set_field_type(cell_centred_upwind, field_properties)
+  !call set_field_name("u", field_properties)
+  !call create_field(field_properties, u)
+  !call set_field_name("v", field_properties)
+  !call create_field(field_properties, v)
+  !call set_field_name("w", field_properties)
+  !call create_field(field_properties, w)
 
   call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("p", field_properties)
-  call create_field(field_properties, p)
+  !call set_field_name("p", field_properties)
+  !call create_field(field_properties, p)
   call set_field_name("p_prime", field_properties)
   call create_field(field_properties, p_prime)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
   call set_field_name("density", field_properties)
   call create_field(field_properties, density)
+
+  if (is_root(par_env)) then
+    print *, "Build field list"
+  end if
+
+  allocate(field_list(size(variable_names)))
+  do i = 1, size(variable_names)
+    if (is_root(par_env)) then
+      print *, "Creating field ", trim(variable_names(i))
+    end if
+    call set_field_type(variable_types(i), field_properties)
+    call set_field_name(variable_names(i), field_properties)
+    call create_field(field_properties, field_list(i)%f)
+    field_list(i)%name = variable_names(i)
+  end do
+
+  if (is_root(par_env)) then
+    print *, "Built ", size(field_list), " dynamically-defined fields"
+  end if
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -170,17 +191,25 @@ program ldc
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(w, "w", output_list)
-  call add_field_to_outputlist(p, "p", output_list)
+  !call add_field_to_outputlist(u, "u", output_list)
+  !call add_field_to_outputlist(v, "v", output_list)
+  !call add_field_to_outputlist(w, "w", output_list)
+  !call add_field_to_outputlist(p, "p", output_list)
+
+  do i = 1, size(field_list)
+    call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
+  end do
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(u, v, w, mf, viscosity, density) 
-  call update(u%values)
-  call update(v%values)
-  call update(w%values)
+  !call initialise_velocity(u, v, w, mf, viscosity, density) 
+  call initialise_velocity(field_list, mf, viscosity, density) 
+  do i = 1, size(field_list)
+    call update(field_list(i)%f%values)
+  end do
+  !call update(u%values)
+  !call update(v%values)
+  !call update(w%values)
   call update(mf%values)
   call update(viscosity%values)
   call update(density%values)
@@ -191,10 +220,13 @@ program ldc
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
 
-  call add_field(u, flow_fields)
-  call add_field(v, flow_fields)
-  call add_field(w, flow_fields)
-  call add_field(p, flow_fields)
+  !call add_field(u, flow_fields)
+  !call add_field(v, flow_fields)
+  !call add_field(w, flow_fields)
+  !call add_field(p, flow_fields)
+  do i = 1, size(field_list)
+    call add_field(field_list(i)%f, flow_fields)
+  end do
   call add_field(p_prime, flow_fields)
   call add_field(mf, flow_fields)
   call add_field(viscosity, flow_fields) 
@@ -220,10 +252,14 @@ program ldc
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
-  deallocate (u)
-  deallocate (v)
-  deallocate (w)
-  deallocate (p)
+  !deallocate (u)
+  !deallocate (v)
+  !deallocate (w)
+  !deallocate (p)
+  do i = 1, size(field_list)
+    deallocate(field_list(i)%f)
+  end do
+  
   deallocate (p_prime)
   deallocate (output_list)
   deallocate (viscosity)
@@ -256,6 +292,14 @@ contains
     end if
 
     call get_variables(config_file, variable_names)
+    if (size(variable_names) == 0) then
+      call error_abort("No variables were specified.")
+    end if
+    print*,"no. of variables=",size(variable_names)
+    call get_variable_types(config_file, variable_types)
+    if (size(variable_types) /= size(variable_names)) then
+       call error_abort("The number of variable types does not match the number of named variables")
+    end if
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
@@ -315,7 +359,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(u, v, w, mf, viscosity, density)
+  subroutine initialise_velocity(field_list, mf, viscosity, density)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -325,7 +369,9 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(field), intent(inout) :: u, v, w, mf, viscosity, density
+    !class(field), intent(inout) :: u, v, w, mf, viscosity, density
+    class(field), intent(inout) :: mf, viscosity, density
+    type(field_elt), dimension(:), intent(inout) :: field_list
 
     ! Local variables
     integer(ccs_int) :: row, col
@@ -363,9 +409,23 @@ contains
       call set_entry(w_val, w_vals)
     end do
 
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
-    call set_values(w_vals, w%values)
+    !call set_values(u_vals, u%values)
+    !call set_values(v_vals, v%values)
+    !call set_values(w_vals, w%values)
+
+    do i = 1, size(field_list)
+      if (field_list(i)%name == "u") then
+        call set_values(u_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "v") then
+        call set_values(v_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "w") then
+        call set_values(w_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "p") then
+        
+      else
+        print *, "Unrecognised field name ", field_list(i)%name
+      end if
+    end do
 
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
