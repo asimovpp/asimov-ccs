@@ -98,6 +98,7 @@ module mesh_utils
   public :: partition_stride
   public :: print_topo
   public :: print_geo
+  public :: build_adjacency_matrix
 
 contains
 
@@ -3184,5 +3185,47 @@ contains
       j = j + k
     end do
   end subroutine set_naive_distribution
+
+
+  ! Build adjacency matrix for local cells
+  subroutine build_adjacency_matrix(mesh, xadj, adjncy)
+
+    type(ccs_mesh), intent(in) :: mesh                                 !< The mesh to be represented
+    integer(ccs_int), allocatable, dimension(:), intent(out) :: xadj   !< Array that points to where in adjncy 
+                                                                       !  the list for each cell begins and ends
+    integer(ccs_int), allocatable, dimension(:), intent(out) :: adjncy !< Array storing adjacency lists for each cell consecutively
+    
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: ctr
+    integer(ccs_int) :: idx
+    integer(ccs_int) :: i, j, nnb
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    logical :: cell_local
+
+
+    allocate (xadj(0))
+    allocate (adjncy(0))
+    ctr = 1
+    xadj = [xadj, ctr]
+    
+    call get_local_num_cells(mesh, local_num_cells)
+    do i = 1, local_num_cells
+      call create_cell_locator(mesh, i, loc_p)
+      call count_neighbours(loc_p, nnb)
+      do j = 1, nnb
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_local_status(loc_nb, cell_local)
+        if (cell_local) then
+          call get_local_index(loc_nb, idx)
+          adjncy = [adjncy, idx]
+          ctr = ctr + 1
+        end if
+      end do
+      xadj = [xadj, ctr]
+    end do
+
+  end subroutine build_adjacency_matrix
+
 
 end module mesh_utils
