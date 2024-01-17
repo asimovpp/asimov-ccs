@@ -12,7 +12,7 @@ program scalar_advection
                          pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, field_spec, &
                    equation_system, linear_solver, ccs_mesh, field_ptr, &
-                   field, upwind_field, central_field, bc_config, face_locator
+                   field, upwind_field, central_field, bc_config, face_locator, field_elt
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        field_density, cell_centred_central, cell_centred_upwind, face_centred, &
@@ -30,10 +30,10 @@ program scalar_advection
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments
+                      read_command_line_arguments, is_root
   use fv, only: compute_fluxes, update_gradient
   use io_visualisation, only: write_solution
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections
+  use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections, get_variable_types
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
 
@@ -48,12 +48,14 @@ program scalar_advection
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
+  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
   type(vector_spec) :: vec_properties
   type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
 
   type(field_ptr), allocatable :: output_list(:)
+  type(field_elt), allocatable, target :: field_list(:)
 
   integer(ccs_int) :: n_boundaries
   logical :: enable_cell_corrections
@@ -65,6 +67,7 @@ program scalar_advection
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
   integer(ccs_int) :: irank ! MPI rank ID
   integer(ccs_int) :: isize ! Size of MPI world
+  integer(ccs_int) :: i
 
   double precision :: start_time
   double precision :: end_time
@@ -131,20 +134,39 @@ program scalar_advection
   call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  call set_field_type(cell_centred_upwind, field_properties)
-  call set_field_name("u", field_properties)
-  call create_field(field_properties, u)
-  call set_field_name("v", field_properties)
-  call create_field(field_properties, v)
+  !call set_field_type(cell_centred_upwind, field_properties)
+  !call set_field_name("u", field_properties)
+  !call create_field(field_properties, u)
+  !call set_field_name("v", field_properties)
+  !call create_field(field_properties, v)
 
-  call set_field_name("scalar", field_properties)
-  call create_field(field_properties, scalar)
+  !call set_field_name("scalar", field_properties)
+  !call create_field(field_properties, scalar)
 
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
   call set_field_name("density", field_properties)
   call create_field(field_properties, density) 
+
+  if (is_root(par_env)) then
+    print *, "Build field list"
+  end if
+
+  allocate(field_list(size(variable_names)))
+  do i = 1, size(variable_names)
+    if (is_root(par_env)) then
+      print *, "Creating field ", trim(variable_names(i))
+    end if
+    call set_field_type(variable_types(i), field_properties)
+    call set_field_name(variable_names(i), field_properties)
+    call create_field(field_properties, field_list(i)%f)
+    field_list(i)%name = variable_names(i)
+  end do
+
+  if (is_root(par_env)) then
+    print *, "Built ", size(field_list), " dynamically-defined fields"
+  end if
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
@@ -154,16 +176,26 @@ program scalar_advection
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(scalar, "scalar", output_list)
+  !call add_field_to_outputlist(u, "u", output_list)
+  !call add_field_to_outputlist(v, "v", output_list)
+  !call add_field_to_outputlist(scalar, "scalar", output_list)
+
+  do i = 1, size(field_list)
+    call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
+  end do
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(u, v, scalar, mf, viscosity, density)
-  call update(u%values)
-  call update(v%values)
-  call update(scalar%values)
+  !call initialise_flow(u, v, scalar, mf, viscosity, density)
+  call initialise_flow(field_list, mf, viscosity, density)
+  !call update(u%values)
+  !call update(v%values)
+  !call update(scalar%values)
+
+  do i = 1, size(field_list)
+    call update(field_list(i)%f%values)
+  end do
+
   call update(mf%values)
   call update(viscosity%values)
   call update(density%values)
@@ -189,6 +221,11 @@ program scalar_advection
 
   ! Actually compute the values to fill the matrix
   if (irank == par_env%root) print *, "Compute fluxes"
+  do i = 1, size(field_list)
+    if(field_list(i)%name == 'scalar') then
+      scalar = field_list(i)%f
+    end if 
+  end do
   call compute_fluxes(scalar, mf, viscosity, density, direction, M, source)
 
   call update(M) ! parallel assembly for M
@@ -207,7 +244,10 @@ program scalar_advection
   call write_solution(par_env, case_path, mesh, output_list)
 
   ! Clean up
-  deallocate (scalar)
+  do i = 1, size(field_list)
+    deallocate(field_list(i)%f)
+  end do
+  !deallocate (scalar)
   deallocate (source)
   deallocate (M)
   deallocate (mf)
@@ -225,8 +265,8 @@ program scalar_advection
   call cleanup_parallel_environment(par_env)
 contains
 
-  subroutine initialise_flow(u, v, scalar, mf, viscosity, density)
-
+  !subroutine initialise_flow(u, v, scalar, mf, viscosity, density)
+  subroutine initialise_flow(field_list, mf, viscosity, density)
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
     use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
@@ -237,7 +277,9 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(field), intent(inout) :: u, v, scalar, mf, viscosity, density
+    !class(field), intent(inout) :: u, v, scalar, mf, viscosity, density
+    class(field), intent(inout) :: mf, viscosity, density
+    type(field_elt), allocatable, target :: field_list(:)
 
     ! Local variables
     integer(ccs_int) :: n, count
@@ -286,9 +328,25 @@ contains
       call set_entry(scalar_val, scalar_vals)
     end do
 
-    call set_values(u_vals, u%values)
-    call set_values(v_vals, v%values)
-    call set_values(scalar_vals, scalar%values)
+    !call set_values(u_vals, u%values)
+    !call set_values(v_vals, v%values)
+    !call set_values(scalar_vals, scalar%values)
+
+    do i = 1, size(field_list)
+      if (field_list(i)%name == "u") then
+        call set_values(u_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "v") then
+        call set_values(v_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "scalar") then
+        call set_values(scalar_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "p") then
+
+      else if (field_list(i)%name == "p_prime") then
+
+      else
+        print *, "Unrecognised field name ", field_list(i)%name
+      end if
+    end do
 
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
@@ -339,9 +397,12 @@ contains
     density_data(:) = 1.0_ccs_real
     call restore_vector_data(density%values, density_data)
 
-    call update(u%values)
-    call update(v%values)
-    call update(scalar%values)
+    !call update(u%values)
+    !call update(v%values)
+    !call update(scalar%values)
+    do i = 1, size(field_list)
+      call update(field_list(i)%f%values)
+    end do
     call update(mf%values)
     call update(viscosity%values)
     call update(density%values)
@@ -365,6 +426,14 @@ contains
     end if
 
     call get_variables(config_file, variable_names)
+    if (size(variable_names) == 0) then
+      call error_abort("No variables were specified.")
+    end if
+    print*,"no. of variables=",size(variable_names)
+    call get_variable_types(config_file, variable_types)
+    if (size(variable_types) /= size(variable_names)) then
+       call error_abort("The number of variable types does not match the number of named variables")
+    end if
 
     call get_value(config_file, 'steps', num_steps)
     if (num_steps == huge(0)) then
