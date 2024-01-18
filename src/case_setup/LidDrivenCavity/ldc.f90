@@ -68,7 +68,7 @@ program ldc
   integer(ccs_int) :: isize ! Size of MPI world
 
   integer(ccs_int) :: timer_index_init, timer_index_total, timer_index_sol
-  integer :: i
+  integer(ccs_int) :: i
 
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
