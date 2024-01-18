@@ -50,6 +50,9 @@ module poiseuille_core
 
   public :: run_poiseuille
 
+  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
+  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
+
   contains
 
   subroutine run_poiseuille(par_env, shared_env, error_L2, error_Linf, input_mesh)
@@ -62,8 +65,6 @@ module poiseuille_core
     character(len=:), allocatable :: input_path  ! Path to input directory
     character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
     character(len=:), allocatable :: ccs_config_file ! Config file for CCS
-    character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
-    integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
     type(vector_spec) :: vec_properties
 
@@ -305,7 +306,6 @@ module poiseuille_core
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
 
-    character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
     config_file => parse(config_filename, error)
     if (allocated(error)) then
