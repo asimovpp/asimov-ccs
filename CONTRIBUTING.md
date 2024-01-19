@@ -14,10 +14,8 @@ passes.
 If you have not done so already, create a fork of the ASiMoV-CCS repository where you can prepare
 your contributions.
 
-We request that contributions are based on, and target, the `upstreaming` branch - this will help us
-to upstream the contributions.
-The `upstreaming` branch should be kept up to date with the `develop` branch to include the latest
-developments.
+The `develop` branch contains the latest version of the code, new contributions should therefore
+start from this branch.
 
 ## Before starting a contribution
 
@@ -33,13 +31,12 @@ Hopefully there are no clashes with the proposed contribution and ongoing work a
 can proceed.
 In the issue proposing the contribution click the `Create a branch` link, this will open a popup
 where you can name your branch and select your forked repository as the branch destination.
-You should also click `Change branch source` and select `upstreaming` as the basis for your branch.
 At this point you will be able to checkout your branch locally and begin working.
 
 ### Before you start
 
-Although the ASiMoV-CCS developers will try to keep `upstreaming` synchronised with `develop` it is
-worth ensuring your working branch is up to date before beginning development.
+If you have already worked on CCS then you should ensure your local repository view of `develop` is
+up to date before beginning new work.
 To do so we recommend using `git rebase` to keep the git history clean, assuming that the main
 ASiMoV-CCS repository is `origin` and your branch is called `my-branch`:
 ```
@@ -61,7 +58,8 @@ stray too far from the eventual merge target.
 
 Once you are satisfied with your contribution, open a pull request against `upstreaming` on the main
 repository, linking it to the issue where you proposed the change - if you followed the above steps
-to create a new branch this linking should occur automatically.
+to create a new branch this linking should occur automatically, except you may need to change the
+target branch of the pull request on GitHub.
 This will begin a process of further interaction with the ASiMoV-CCS developers, who may request
 changes before the contribution is accepted.
 
