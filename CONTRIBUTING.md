@@ -38,7 +38,7 @@ At this point you will be able to checkout your branch locally and begin working
 
 ### Before you start
 
-Although the ASiMoV-CCS developers will try to keep `upstreamin` synchronised with `develop` it is
+Although the ASiMoV-CCS developers will try to keep `upstreaming` synchronised with `develop` it is
 worth ensuring your working branch is up to date before beginning development.
 To do so we recommend using `git rebase` to keep the git history clean, assuming that the main
 ASiMoV-CCS repository is `origin` and your branch is called `my-branch`:
