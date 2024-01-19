@@ -166,8 +166,8 @@ program bfs
   call set_field_type(cell_centred_central, field_properties)
   !call set_field_name("p", field_properties)
   !call create_field(field_properties, p)
-  call set_field_name("p_prime", field_properties)
-  call create_field(field_properties, p_prime)
+  !call set_field_name("p_prime", field_properties)
+  !call create_field(field_properties, p_prime)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity)
   call set_field_name("density", field_properties)
@@ -246,10 +246,10 @@ program bfs
   !call add_field(v, flow_fields)
   !call add_field(w, flow_fields)
   !call add_field(p, flow_fields)
+  !call add_field(p_prime, flow_fields)
   do i = 1, size(field_list)
     call add_field(field_list(i)%f, flow_fields)
   end do
-  call add_field(p_prime, flow_fields)
   call add_field(mf, flow_fields)
   call add_field(viscosity, flow_fields) 
   call add_field(density, flow_fields)  
@@ -271,10 +271,10 @@ program bfs
   !deallocate (v)
   !deallocate (w)
   !deallocate (p)
+  !deallocate (p_prime)
   do i = 1, size(field_list)
     deallocate(field_list(i)%f)
   end do
-  deallocate (p_prime)
   deallocate (output_list)
 
   call timer(end_time)
@@ -456,6 +456,8 @@ contains
       else if (field_list(i)%name == "w") then
         call set_values(w_vals, field_list(i)%f%values)
       else if (field_list(i)%name == "p") then
+        call set_values(p_vals, p%values)  
+      else if (field_list(i)%name == "p_prime") then
         
       else
         print *, "Unrecognised field name ", field_list(i)%name

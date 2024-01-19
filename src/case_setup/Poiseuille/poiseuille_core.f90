@@ -170,8 +170,8 @@ module poiseuille_core
     call set_field_type(cell_centred_central, field_properties)
     !call set_field_name("p", field_properties)
     !call create_field(field_properties, p)
-    call set_field_name("p_prime", field_properties)
-    call create_field(field_properties, p_prime)
+    !call set_field_name("p_prime", field_properties)
+    !call create_field(field_properties, p_prime)
     call set_field_name("viscosity", field_properties)
     call create_field(field_properties, viscosity) 
     call set_field_name("density", field_properties)
@@ -195,6 +195,25 @@ module poiseuille_core
     if (is_root(par_env)) then
       print *, "Built ", size(field_list), " dynamically-defined fields"
     end if
+
+    do i = 1, size(field_list)
+      if(field_list(i)%name == 'u') then
+        u = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'v') then
+        v = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'w') then
+        w = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'p') then
+        p = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'p_prime') then
+        p_prime = field_list(i)%f
+        print*,field_list(i)%name
+      end if 
+    end do
 
     ! Set to 1st boundary condition (inlet)
     call get_inlet_profile(profile)
@@ -231,6 +250,27 @@ module poiseuille_core
     call update(mf%values)
     call update(viscosity%values)
     call update(density%values)
+
+    do i = 1, size(field_list)
+      if(field_list(i)%name == 'u') then
+        u = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'v') then
+        v = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'w') then
+        w = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'p') then
+        p = field_list(i)%f
+        print*,field_list(i)%name
+      else if(field_list(i)%name == 'p_prime') then
+        p_prime = field_list(i)%f
+        print*,field_list(i)%name
+      end if 
+    end do
+
+
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
 
@@ -253,11 +293,14 @@ module poiseuille_core
     call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
     call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
 
-    call add_field(u, flow_fields)
-    call add_field(v, flow_fields)
-    call add_field(w, flow_fields)
-    call add_field(p, flow_fields)
-    call add_field(p_prime, flow_fields)
+    !call add_field(u, flow_fields)
+    !call add_field(v, flow_fields)
+    !call add_field(w, flow_fields)
+    !call add_field(p, flow_fields)
+    !call add_field(p_prime, flow_fields)
+    do i = 1, size(field_list)
+      call add_field(field_list(i)%f, flow_fields)
+    end do
     call add_field(mf, flow_fields)
     call add_field(viscosity, flow_fields) 
     call add_field(density, flow_fields) 
@@ -276,11 +319,14 @@ module poiseuille_core
     call timer_stop(timer_index_sol)
 
     ! Clean-up
-    deallocate (u)
-    deallocate (v)
-    deallocate (w)
-    deallocate (p)
-    deallocate (p_prime)
+    !deallocate (u)
+    !deallocate (v)
+    !deallocate (w)
+    !deallocate (p)
+    !deallocate (p_prime)
+    do i = 1, size(field_list)
+      deallocate(field_list(i)%f)
+    end do
     deallocate (output_list)
 
     call timer_stop(timer_index_total)
@@ -480,7 +526,9 @@ module poiseuille_core
       else if (field_list(i)%name == "w") then
         call set_values(w_vals, field_list(i)%f%values)
       else if (field_list(i)%name == "p") then
-        
+        call set_values(p_vals, field_list(i)%f%values)
+      else if (field_list(i)%name == "p_prime") then
+
       else
         print *, "Unrecognised field name ", field_list(i)%name
       end if
@@ -542,17 +590,7 @@ module poiseuille_core
     !call update(w%values)
     !call update(p%values)
     do i = 1, size(field_list)
-      if (field_list(i)%name == "u") then
-        call set_values(u_vals, field_list(i)%f%values)
-      else if (field_list(i)%name == "v") then
-        call set_values(v_vals, field_list(i)%f%values)
-      else if (field_list(i)%name == "w") then
-        call set_values(w_vals, field_list(i)%f%values)
-      else if (field_list(i)%name == "p") then
-        
-      else
-        print *, "Unrecognised field name ", field_list(i)%name
-      end if
+      call update(field_list(i)%f%values)
     end do
 
     call update(mf%values)
