@@ -6,8 +6,8 @@ As described in the build tools documentation (`build_tools/build_system_readme.
 program is used to apply linting rules to the ASiMoV-CCS source.
 
 Before a contribution is merged it will be reviewed by one of the ASiMoV-CCS developers, in
-particular to check the coding standard is followed and to verify the full test suite must still
-pass.
+particular to check the coding standard is followed and to verify the full test suite still
+passes.
 
 # Instructions for contributing on GitHub
 
