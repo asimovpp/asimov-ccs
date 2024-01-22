@@ -200,18 +200,6 @@ module poiseuille_core
       if(field_list(i)%name == 'u') then
         u = field_list(i)%f
         print*,field_list(i)%name
-      else if(field_list(i)%name == 'v') then
-        v = field_list(i)%f
-        print*,field_list(i)%name
-      else if(field_list(i)%name == 'w') then
-        w = field_list(i)%f
-        print*,field_list(i)%name
-      else if(field_list(i)%name == 'p') then
-        p = field_list(i)%f
-        print*,field_list(i)%name
-      else if(field_list(i)%name == 'p_prime') then
-        p_prime = field_list(i)%f
-        print*,field_list(i)%name
       end if 
     end do
 
@@ -263,9 +251,6 @@ module poiseuille_core
         print*,field_list(i)%name
       else if(field_list(i)%name == 'p') then
         p = field_list(i)%f
-        print*,field_list(i)%name
-      else if(field_list(i)%name == 'p_prime') then
-        p_prime = field_list(i)%f
         print*,field_list(i)%name
       end if 
     end do

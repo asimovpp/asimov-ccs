@@ -205,6 +205,13 @@ program bfs
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
   profile%centre(:) = [ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real ] 
 
+
+  do i = 1, size(field_list)
+    if(field_list(i)%name == 'u') then
+      u = field_list(i)%f
+      print*,field_list(i)%name
+    end if 
+  end do
   ! Set to 3rd boundary condition (inlet)
   call set_bc_profile(u, profile, 3)
 
