@@ -839,6 +839,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           case ("name")
             call get_value(dict2, bc_field, bc_field_string)
             call set_bc_id(i, bc_field_string, phi%bcs)
+            !print*,"field=",bc_field_string
           case ("type")
             call get_value(dict2, bc_field, bc_type, field_exists, required=required)
             if (field_exists) then

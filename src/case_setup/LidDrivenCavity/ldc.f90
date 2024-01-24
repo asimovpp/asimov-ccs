@@ -28,11 +28,11 @@ program ldc
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
-  use meshing, only: set_mesh_object, nullify_mesh_object
+  use meshing, only: set_mesh_object, nullify_mesh_object, get_local_num_cells
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
   use meshing, only: get_global_num_cells
-  use vec, only: create_vector, set_vector_location
+  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
@@ -69,6 +69,10 @@ program ldc
 
   integer(ccs_int) :: timer_index_init, timer_index_total, timer_index_sol
   integer(ccs_int) :: i
+
+  integer(ccs_int) :: local_num_cells
+  integer(ccs_int) :: index_p
+  real(ccs_real), dimension(:), pointer :: u_data
 
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case

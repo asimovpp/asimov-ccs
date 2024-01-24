@@ -37,7 +37,7 @@ module poiseuille_core
                           get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
   use mesh_utils, only: read_mesh, build_square_mesh, write_mesh, compute_face_interpolation
-  use meshing, only: get_total_num_cells, get_global_num_cells, set_mesh_object, nullify_mesh_object
+  use meshing, only: get_total_num_cells, get_global_num_cells, set_mesh_object, nullify_mesh_object, get_local_num_cells
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: write_solution, reset_io_visualisation
@@ -45,6 +45,7 @@ module poiseuille_core
   use utils, only: str
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_reset
+  use vec, only: get_vector_data, restore_vector_data
 
   implicit none
 
@@ -94,6 +95,10 @@ module poiseuille_core
 
     type(fluid) :: flow_fields
     type(fluid_solver_selector) :: fluid_sol
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: index_p
+    real(ccs_real), dimension(:), pointer :: u_data
 
     call timer_init()
     irank = par_env%proc_id
@@ -192,16 +197,16 @@ module poiseuille_core
       field_list(i)%name = variable_names(i)
     end do
 
-    if (is_root(par_env)) then
-      print *, "Built ", size(field_list), " dynamically-defined fields"
-    end if
-
     do i = 1, size(field_list)
       if(field_list(i)%name == 'u') then
         u = field_list(i)%f
-        print*,field_list(i)%name
+        !print*,field_list(i)%name
       end if 
     end do
+
+    if (is_root(par_env)) then
+      print *, "Built ", size(field_list), " dynamically-defined fields"
+    end if
 
     ! Set to 1st boundary condition (inlet)
     call get_inlet_profile(profile)
@@ -255,6 +260,12 @@ module poiseuille_core
       end if 
     end do
 
+    !call get_local_num_cells(local_num_cells)
+    !call get_vector_data(u%values, u_data)
+    !do index_p = 1, local_num_cells
+      !print*,"u=",u_data(index_p)
+    !end do
+    !call restore_vector_data (u%values, u_data)
 
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)

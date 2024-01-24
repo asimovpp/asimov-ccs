@@ -115,6 +115,7 @@ contains
     type(bc_config), intent(inout) :: bcs          !< the bcs struct
 
     bcs%values(boundary_index) = val
+    !print*, "val=", val
   end subroutine set_bc_real_value
 
   !> Allocates arrays of the appropriate size for the name, type and value of the bcs
