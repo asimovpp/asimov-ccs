@@ -58,7 +58,8 @@ program bfs
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
+  class(field), allocatable, target :: mf, viscosity, density
+  type(field_ptr) :: u, v, w, p, p_prime
 
   type(field_ptr), allocatable :: output_list(:)
   type(field_elt), allocatable, target :: field_list(:)
@@ -183,9 +184,9 @@ program bfs
       print *, "Creating field ", trim(variable_names(i))
     end if
     call set_field_type(variable_types(i), field_properties)
-    call set_field_name(variable_names(i), field_properties)
+    call set_field_name(trim(variable_names(i)), field_properties)
     call create_field(field_properties, field_list(i)%f)
-    field_list(i)%name = variable_names(i)
+    field_list(i)%name = trim(variable_names(i))
   end do
 
   if (is_root(par_env)) then
@@ -208,12 +209,12 @@ program bfs
 
   do i = 1, size(field_list)
     if(field_list(i)%name == 'u') then
-      u = field_list(i)%f
+      u%ptr => field_list(i)%f
       print*,field_list(i)%name
     end if 
   end do
   ! Set to 3rd boundary condition (inlet)
-  call set_bc_profile(u, profile, 3)
+  call set_bc_profile(u%ptr, profile, 3)
 
   ! Add fields to output list
   !call add_field_to_outputlist(u, "u", output_list)
@@ -463,7 +464,7 @@ contains
       else if (field_list(i)%name == "w") then
         call set_values(w_vals, field_list(i)%f%values)
       else if (field_list(i)%name == "p") then
-        call set_values(p_vals, p%values)  
+        call set_values(p_vals, field_list(i)%f%values)  
       else if (field_list(i)%name == "p_prime") then
         
       else
