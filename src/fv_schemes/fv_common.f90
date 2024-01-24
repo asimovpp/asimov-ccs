@@ -334,19 +334,19 @@ contains
 
     select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
-      print*, "bc_type_dirichlet"
+      !print*, "bc_type_dirichlet"
       a = -1.0_ccs_real
       b = 2.0_ccs_real * phi%bcs%values(index_bc)
-      print*,"b=",b
+      !print*,"b=",b
     case (bc_type_extrapolate)
-      print*, "bc_type_extrapolate"
+      !print*, "bc_type_extrapolate"
       call get_distance(loc_p, loc_f, dx)
 
       a = 1.0_ccs_real
       b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(index_p) * dx(2) + phi%z_gradients_ro(index_p) * dx(3))
-      print*, "b=",b
+      !print*, "b=",b
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
-      print*, "bc_type_sym"
+      !print*, "bc_type_sym"
       select case (component)
       case (0)
         parallel_component_map = [1, 1, 1]
@@ -373,33 +373,33 @@ contains
       ! Get value of phi at boundary cell
       a = phi_face_parallel_component_portion
       b = 0.0_ccs_real
-      print*, "a=",a
+      !print*, "a=",a
     case (bc_type_neumann)
-      print*, "bc_type_neumann"
+      !print*, "bc_type_neumann"
       call get_distance(loc_p, loc_f, dx)
       dxmag = norm2(dx)
 
       a = 1.0_ccs_real
       b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
-      print*, "b=",b
+      !print*, "b=",b
     case (bc_type_profile)
-      print*,"bc_type_profile---------------------"
+      !print*,"bc_type_profile---------------------"
       call get_centre(loc_f, x)
       if (allocated(phi%bcs%profiles(index_bc)%centre)) then
         call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
-        print*,"allocated, bc_value=",bc_value
+        !print*,"allocated, bc_value=",bc_value
       else
         bc_value = 0.0_ccs_real
-        print*,"bc_value=",bc_value
+        !print*,"bc_value=",bc_value
       end if
 
       a = -1.0_ccs_real
       b = 2.0_ccs_real * bc_value
-      print*,"b=",b
+      !print*,"b=",b
     case default
       ! Set coefficients to cause divergence
       ! Prevents "unused variable" compiler errors
-      print*, "default case"
+      !print*, "default case"
       a = 0.0_ccs_real
       b = huge(1.0_ccs_real)
 

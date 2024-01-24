@@ -193,6 +193,7 @@ contains
     type(field_spec), intent(inout) :: field_properties
 
     field_properties%field_name = name
+    print*,"field name = '",name,"'"
 
   end subroutine set_field_name
 

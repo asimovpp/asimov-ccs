@@ -70,7 +70,8 @@ module poiseuille_core
     type(vector_spec) :: vec_properties
 
     type(field_spec) :: field_properties
-    class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
+    class(field), allocatable, target :: mf, viscosity, density
+    type(field_ptr) :: u, v, w, p, p_prime
     type(bc_profile), allocatable :: profile
 
     type(field_ptr), allocatable :: output_list(:)
@@ -192,14 +193,14 @@ module poiseuille_core
         print *, "Creating field ", trim(variable_names(i))
       end if
       call set_field_type(variable_types(i), field_properties)
-      call set_field_name(variable_names(i), field_properties)
+      call set_field_name(trim(variable_names(i)), field_properties)
       call create_field(field_properties, field_list(i)%f)
-      field_list(i)%name = variable_names(i)
+      field_list(i)%name = trim(variable_names(i))
     end do
 
     do i = 1, size(field_list)
       if(field_list(i)%name == 'u') then
-        u = field_list(i)%f
+        u%ptr => field_list(i)%f
         !print*,field_list(i)%name
       end if 
     end do
@@ -210,7 +211,7 @@ module poiseuille_core
 
     ! Set to 1st boundary condition (inlet)
     call get_inlet_profile(profile)
-    call set_bc_profile(u, profile, 1)
+    call set_bc_profile(u%ptr, profile, 1)
 
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
@@ -246,16 +247,16 @@ module poiseuille_core
 
     do i = 1, size(field_list)
       if(field_list(i)%name == 'u') then
-        u = field_list(i)%f
+        u%ptr => field_list(i)%f
         print*,field_list(i)%name
       else if(field_list(i)%name == 'v') then
-        v = field_list(i)%f
+        v%ptr => field_list(i)%f
         print*,field_list(i)%name
       else if(field_list(i)%name == 'w') then
-        w = field_list(i)%f
+        w%ptr => field_list(i)%f
         print*,field_list(i)%name
       else if(field_list(i)%name == 'p') then
-        p = field_list(i)%f
+        p%ptr => field_list(i)%f
         print*,field_list(i)%name
       end if 
     end do
@@ -267,13 +268,13 @@ module poiseuille_core
     !end do
     !call restore_vector_data (u%values, u_data)
 
-    call calc_kinetic_energy(par_env, u, v, w)
-    call calc_enstrophy(par_env, u, v, w)
+    call calc_kinetic_energy(par_env, u%ptr, v%ptr, w%ptr)
+    call calc_enstrophy(par_env, u%ptr, v%ptr, w%ptr)
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
-    call calc_kinetic_energy(par_env, u, v, w)
-    call calc_enstrophy(par_env, u, v, w)
+    call calc_kinetic_energy(par_env, u%ptr, v%ptr, w%ptr)
+    call calc_enstrophy(par_env, u%ptr, v%ptr, w%ptr)
 
     ! Write out mesh to file
     call write_mesh(par_env, case_path, mesh)
@@ -306,10 +307,10 @@ module poiseuille_core
 
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                           fluid_sol, flow_fields)
-    call calc_kinetic_energy(par_env, u, v, w)
-    call calc_enstrophy(par_env, u, v, w)
+    call calc_kinetic_energy(par_env, u%ptr, v%ptr, w%ptr)
+    call calc_enstrophy(par_env, u%ptr, v%ptr, w%ptr)
 
-    call calc_error(par_env, u, v, p, error_L2, error_Linf)
+    call calc_error(par_env, u%ptr, v%ptr, p%ptr, error_L2, error_Linf)
     call write_solution(par_env, case_path, mesh, output_list)
 
     call timer_stop(timer_index_sol)
