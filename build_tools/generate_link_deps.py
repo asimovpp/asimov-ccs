@@ -33,8 +33,7 @@ def check_for_conflicts(config):
   #      sys.exit(1)
 
 
-def get_link_rule(config, deps):
-  link_obj = "ccs_app: "
+def get_link_rule(link_obj, config, deps):
   # keep track of link files in a list
   link_deps = []
   # add main and common files
@@ -47,7 +46,7 @@ def get_link_rule(config, deps):
   add_config_extras(link_deps, config)
 
   # turn array of filenames to a string with object postfix
-  return link_obj + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in link_deps])
+  return link_obj + ": "+ " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in link_deps])
 
 
 def apply_config_mapping(config, config_mapping):
@@ -134,8 +133,8 @@ def add_config_extras(deps, config):
         deps.append(extra)
 
 
-def get_min_link_rule(mindeps):
-  return "ccs_app: " + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in mindeps.keys()])
+def get_min_link_rule(link_obj, mindeps):
+  return link_obj + ": " + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in mindeps.keys()])
 
 
 if __name__ == "__main__":
@@ -168,12 +167,16 @@ if __name__ == "__main__":
   if len(sys.argv) > 4:
     mindeps = generate_minimal_deps(deps, mapped_config["main"], sys.argv[4], mapped_config)
     add_config_extras(mindeps, mapped_config)
-    link_rule = get_min_link_rule(mindeps)
+    link_rule = get_min_link_rule("ccs_app", mindeps)
+    lib_rule = get_min_link_rule("lib", mindeps)
   else:
-    link_rule = get_link_rule(mapped_config, deps)
+    link_rule = get_link_rule("ccs_app", mapped_config, deps)
+    link_rule = get_link_rule("lib", mapped_config, deps)
 
   log.debug("Configurator produced link rule:\n%s", link_rule)
   with open(sys.argv[3], "w") as f:
     f.write(link_rule)
+    f.write("\n")
+    f.write(lib_rule)
 
   sys.exit(0)
