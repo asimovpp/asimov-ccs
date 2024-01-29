@@ -150,19 +150,7 @@ program ldc
   call set_field_store_residuals(store_residuals, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  !call set_field_type(cell_centred_upwind, field_properties)
-  !call set_field_name("u", field_properties)
-  !call create_field(field_properties, u)
-  !call set_field_name("v", field_properties)
-  !call create_field(field_properties, v)
-  !call set_field_name("w", field_properties)
-  !call create_field(field_properties, w)
-
   call set_field_type(cell_centred_central, field_properties)
-  !call set_field_name("p", field_properties)
-  !call create_field(field_properties, p)
-  !call set_field_name("p_prime", field_properties)
-  !call create_field(field_properties, p_prime)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
   call set_field_name("density", field_properties)
@@ -174,9 +162,6 @@ program ldc
 
   allocate(field_list(size(variable_names)))
   do i = 1, size(variable_names)
-    if (is_root(par_env)) then
-      print *, "Creating field ", trim(variable_names(i))
-    end if
     call set_field_type(variable_types(i), field_properties)
     call set_field_name(variable_names(i), field_properties)
     call create_field(field_properties, field_list(i)%f)
@@ -195,11 +180,6 @@ program ldc
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  !call add_field_to_outputlist(u, "u", output_list)
-  !call add_field_to_outputlist(v, "v", output_list)
-  !call add_field_to_outputlist(w, "w", output_list)
-  !call add_field_to_outputlist(p, "p", output_list)
-
   do i = 1, size(field_list)
     call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
   end do
@@ -211,9 +191,6 @@ program ldc
   do i = 1, size(field_list)
     call update(field_list(i)%f%values)
   end do
-  !call update(u%values)
-  !call update(v%values)
-  !call update(w%values)
   call update(mf%values)
   call update(viscosity%values)
   call update(density%values)
@@ -224,14 +201,9 @@ program ldc
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
 
-  !call add_field(u, flow_fields)
-  !call add_field(v, flow_fields)
-  !call add_field(w, flow_fields)
-  !call add_field(p, flow_fields)
   do i = 1, size(field_list)
     call add_field(field_list(i)%f, flow_fields)
   end do
-  !call add_field(p_prime, flow_fields)
   call add_field(mf, flow_fields)
   call add_field(viscosity, flow_fields) 
   call add_field(density, flow_fields)  
@@ -256,15 +228,9 @@ program ldc
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
-  !deallocate (u)
-  !deallocate (v)
-  !deallocate (w)
-  !deallocate (p)
   do i = 1, size(field_list)
     deallocate(field_list(i)%f)
   end do
-  
-  !deallocate (p_prime)
   deallocate (output_list)
   deallocate (viscosity)
   deallocate (density)
