@@ -1,4 +1,4 @@
-main: ldc
+main: bfs
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip
