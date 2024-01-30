@@ -66,7 +66,6 @@ contains
     type(field_spec) :: field_properties
     type(field_ptr) :: u, v, w, p, p_prime
     class(field), allocatable, target :: mf, viscosity, density
-    !class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
     type(field_ptr), allocatable :: output_list(:)
     type(field_elt), allocatable, target :: field_list(:)
@@ -160,19 +159,7 @@ contains
     call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
     call set_field_vector_properties(vec_properties, field_properties)
-    !call set_field_type(cell_centred_central, field_properties)
-    !call set_field_name("u", field_properties)
-    !call create_field(field_properties, u)
-    !call set_field_name("v", field_properties)
-    !all create_field(field_properties, v)
-    !call set_field_name("w", field_properties)
-    !call create_field(field_properties, w)
-
     call set_field_type(cell_centred_central, field_properties)
-    !call set_field_name("p", field_properties)
-    !call create_field(field_properties, p)
-    !call set_field_name("p_prime", field_properties)
-    !call create_field(field_properties, p_prime)
     call set_field_name("viscosity", field_properties)
     call create_field(field_properties, viscosity)
     call set_field_name("density", field_properties)
@@ -185,7 +172,6 @@ contains
     print*, size(variable_names)
     allocate(field_list(size(variable_names)))
     do i = 1, size(variable_names)
-      print*,i
       if (is_root(par_env)) then
         print *, "Creating field ", trim(variable_names(i))
       end if
@@ -207,11 +193,6 @@ contains
     call create_field(field_properties, mf)
    
     ! Add fields to output list
-    !call add_field_to_outputlist(u, "u", output_list)
-    !call add_field_to_outputlist(v, "v", output_list)
-    !call add_field_to_outputlist(w, "w", output_list)
-    !call add_field_to_outputlist(p, "p", output_list)
-
     do i = 1, size(field_list)
       call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
     end do
@@ -224,32 +205,23 @@ contains
 
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
-    !call initialise_flow(u, v, w, p, mf, viscosity, density)
     call initialise_flow(field_list, mf, viscosity, density)
 
     do i = 1, size(field_list)
       if(field_list(i)%name == 'u') then
         u%ptr => field_list(i)%f
-        print*,field_list(i)%name
       else if(field_list(i)%name == 'v') then
         v%ptr => field_list(i)%f
-        print*,field_list(i)%name
       else if(field_list(i)%name == 'w') then
         w%ptr => field_list(i)%f
-        print*,field_list(i)%name
       else if(field_list(i)%name == 'p') then
         p%ptr => field_list(i)%f
-        print*,field_list(i)%name
       end if 
     end do
 
-    print*, "line 1"
     call calc_tgv2d_error(par_env, u%ptr, v%ptr, w%ptr, p%ptr, error_L2, error_Linf)
-    print*, "line 2"
     call calc_kinetic_energy(par_env, u%ptr, v%ptr, w%ptr)
-    print*, "line 3"
     call calc_enstrophy(par_env, u%ptr, v%ptr, w%ptr)
-    print*, "line 4"
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
@@ -268,11 +240,6 @@ contains
     call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
     call set_fluid_solver_selector(field_p, p_sol, fluid_sol) 
 
-    !call add_field(u, flow_fields)
-    !call add_field(v, flow_fields)
-    !call add_field(w, flow_fields)
-    !call add_field(p, flow_fields)
-    !call add_field(p_prime, flow_fields)
     do i = 1, size(field_list)
       call add_field(field_list(i)%f, flow_fields)
     end do
@@ -296,11 +263,6 @@ contains
     end do
 
     ! Clean-up
-    !deallocate (u)
-    !deallocate (v)
-    !deallocate (w)
-    !deallocate (p)
-    !deallocate (p_prime)
     do i = 1, size(field_list)
       deallocate(field_list(i)%f)
     end do
@@ -329,8 +291,6 @@ contains
 
     class(*), pointer :: config_file  !< Pointer to CCS config file
     character(:), allocatable :: error
-
-    !character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
 
     config_file => parse(config_filename, error)
     if (allocated(error)) then
@@ -419,7 +379,6 @@ contains
 
   end subroutine
 
-  !subroutine initialise_flow(u, v, w, p, mf, viscosity, density)
   subroutine initialise_flow(field_list, mf, viscosity, density)
 
     use constants, only: insert_mode, ndim
@@ -432,7 +391,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    !class(field), intent(inout) :: u, v, w, p, mf, viscosity, density
     class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
@@ -486,11 +444,6 @@ contains
       call set_row(global_index_p, p_vals)
       call set_entry(p_val, p_vals)
     end do
-
-    !call set_values(u_vals, u%values)
-    !call set_values(v_vals, v%values)
-    !call set_values(w_vals, w%values)
-    !call set_values(p_vals, p%values)
 
     do i = 1, size(field_list)
       if (field_list(i)%name == "u") then
@@ -556,10 +509,6 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-    !call update(u%values)
-    !call update(v%values)
-    !call update(w%values)
-    !call update(p%values)
     do i = 1, size(field_list)
       call update(field_list(i)%f%values)
     end do
@@ -585,7 +534,6 @@ contains
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
     class(field), intent(inout) :: u, v, w, p
-    !type(field_ptr), intent(inout) :: u, v, w, p
     real(ccs_real), dimension(3), intent(out) :: error_L2
     real(ccs_real), dimension(3), intent(out) :: error_Linf
 
@@ -621,15 +569,10 @@ contains
     error_Linf_local(:) = 0.0_ccs_real
     error_L2_local(:) = 0.0_ccs_real
 
-    print*,"line a"
     call get_vector_data(u%values, u_data)
-    print*,"line b"
     call get_vector_data(v%values, v_data)
     call get_vector_data(w%values, w_data)
     call get_vector_data(p%values, p_data)
-    print*,"line c"
-    !do i=1, size()
-
 
     call get_current_time(time)
     call get_current_step(step)

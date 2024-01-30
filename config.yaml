@@ -1,4 +1,4 @@
-main: scalar_advection
+main: tgv2d
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip
