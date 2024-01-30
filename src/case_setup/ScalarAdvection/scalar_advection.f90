@@ -134,15 +134,6 @@ program scalar_advection
   call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  !call set_field_type(cell_centred_upwind, field_properties)
-  !call set_field_name("u", field_properties)
-  !call create_field(field_properties, u)
-  !call set_field_name("v", field_properties)
-  !call create_field(field_properties, v)
-
-  !call set_field_name("scalar", field_properties)
-  !call create_field(field_properties, scalar)
-
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity) 
@@ -176,21 +167,13 @@ program scalar_advection
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  !call add_field_to_outputlist(u, "u", output_list)
-  !call add_field_to_outputlist(v, "v", output_list)
-  !call add_field_to_outputlist(scalar, "scalar", output_list)
-
   do i = 1, size(field_list)
     call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
   end do
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  !call initialise_flow(u, v, scalar, mf, viscosity, density)
   call initialise_flow(field_list, mf, viscosity, density)
-  !call update(u%values)
-  !call update(v%values)
-  !call update(scalar%values)
 
   do i = 1, size(field_list)
     call update(field_list(i)%f%values)
@@ -247,7 +230,6 @@ program scalar_advection
   do i = 1, size(field_list)
     deallocate(field_list(i)%f)
   end do
-  !deallocate (scalar)
   deallocate (source)
   deallocate (M)
   deallocate (mf)
@@ -265,7 +247,6 @@ program scalar_advection
   call cleanup_parallel_environment(par_env)
 contains
 
-  !subroutine initialise_flow(u, v, scalar, mf, viscosity, density)
   subroutine initialise_flow(field_list, mf, viscosity, density)
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -277,7 +258,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    !class(field), intent(inout) :: u, v, scalar, mf, viscosity, density
     class(field), intent(inout) :: mf, viscosity, density
     type(field_elt), allocatable, target :: field_list(:)
 
@@ -327,10 +307,6 @@ contains
       call set_row(global_index_p, scalar_vals)
       call set_entry(scalar_val, scalar_vals)
     end do
-
-    !call set_values(u_vals, u%values)
-    !call set_values(v_vals, v%values)
-    !call set_values(scalar_vals, scalar%values)
 
     do i = 1, size(field_list)
       if (field_list(i)%name == "u") then
@@ -397,9 +373,6 @@ contains
     density_data(:) = 1.0_ccs_real
     call restore_vector_data(density%values, density_data)
 
-    !call update(u%values)
-    !call update(v%values)
-    !call update(scalar%values)
     do i = 1, size(field_list)
       call update(field_list(i)%f%values)
     end do
