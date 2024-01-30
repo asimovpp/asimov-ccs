@@ -186,7 +186,6 @@ program ldc
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  !call initialise_velocity(u, v, w, mf, viscosity, density) 
   call initialise_velocity(field_list, mf, viscosity, density) 
   do i = 1, size(field_list)
     call update(field_list(i)%f%values)
@@ -339,7 +338,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    !class(field), intent(inout) :: u, v, w, mf, viscosity, density
     class(field), intent(inout) :: mf, viscosity, density
     type(field_elt), dimension(:), intent(inout) :: field_list
 
@@ -353,7 +351,6 @@ contains
 
     ! Set alias
     call get_local_num_cells(n_local)
-
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
     call create_vector_values(n_local, w_vals)
@@ -378,10 +375,6 @@ contains
       call set_row(global_index_p, w_vals)
       call set_entry(w_val, w_vals)
     end do
-
-    !call set_values(u_vals, u%values)
-    !call set_values(v_vals, v%values)
-    !call set_values(w_vals, w%values)
 
     do i = 1, size(field_list)
       if (field_list(i)%name == "u") then

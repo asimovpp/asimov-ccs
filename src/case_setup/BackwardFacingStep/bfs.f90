@@ -368,7 +368,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    !class(field), intent(inout) :: u, v, w, p, mf, viscosity, density
     class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
@@ -422,11 +421,6 @@ contains
       call set_row(global_index_p, p_vals)
       call set_entry(p_val, p_vals)
     end do
-
-    !call set_values(u_vals, u%values)
-    !call set_values(v_vals, v%values)
-    !call set_values(w_vals, w%values)
-    !call set_values(p_vals, p%values)
 
     do i = 1, size(field_list)
       if (field_list(i)%name == "u") then
@@ -497,10 +491,6 @@ contains
     do i = 1, size(field_list)
       call update(field_list(i)%f%values)
     end do
-    !call update(u%values)
-    !call update(v%values)
-    !call update(w%values)
-    !call update(p%values)
     call update(mf%values)
     call update(viscosity%values)
     call update(density%values)
