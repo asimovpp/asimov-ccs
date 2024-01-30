@@ -177,19 +177,7 @@ program tgv
   call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  !call set_field_type(cell_centred_upwind, field_properties)
-  !call set_field_name("u", field_properties)
-  !call create_field(field_properties, u)
-  !call set_field_name("v", field_properties)
-  !call create_field(field_properties, v)
-  !call set_field_name("w", field_properties)
-  !call create_field(field_properties, w)
-
   call set_field_type(cell_centred_central, field_properties)
-  !call set_field_name("p", field_properties)
-  !call create_field(field_properties, p)
-  !call set_field_name("p_prime", field_properties)
-  !call create_field(field_properties, p_prime)
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, viscosity)
   call set_field_name("density", field_properties)
@@ -222,11 +210,6 @@ program tgv
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  !call add_field_to_outputlist(u, "u", output_list)
-  !call add_field_to_outputlist(v, "v", output_list)
-  !call add_field_to_outputlist(w, "w", output_list)
-  !call add_field_to_outputlist(p, "p", output_list)
-
   do i = 1, size(field_list)
     call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
   end do
@@ -236,7 +219,6 @@ program tgv
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  !call initialise_flow(u, v, w, p, mf, viscosity, density)
   call initialise_flow(field_list, mf, viscosity, density)
   do i = 1, size(field_list)
     if(field_list(i)%name == 'u') then
@@ -271,11 +253,6 @@ program tgv
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
 
-  !call add_field(u, flow_fields)
-  !call add_field(v, flow_fields)
-  !call add_field(w, flow_fields)
-  !call add_field(p, flow_fields)
-  !call add_field(p_prime, flow_fields)
   do i = 1, size(field_list)
     call add_field(field_list(i)%f, flow_fields)
   end do
@@ -316,11 +293,6 @@ program tgv
   call timer_stop(timer_index_sol)
 
   ! Clean-up
-  !deallocate (u)
-  !deallocate (v)
-  !deallocate (w)
-  !deallocate (p)
-  !deallocate (p_prime)
   do i = 1, size(field_list)
     deallocate(field_list(i)%f)
   end do
@@ -463,7 +435,6 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    !class(field), intent(inout) :: u, v, w, p, mf, viscosity, density
     class(field), intent(inout) :: mf, viscosity, density
     type(field_elt), allocatable, target :: field_list(:)
 
@@ -517,11 +488,6 @@ contains
       call set_row(global_index_p, p_vals)
       call set_entry(p_val, p_vals)
     end do
-
-    !call set_values(u_vals, u%values)
-    !call set_values(v_vals, v%values)
-    !call set_values(w_vals, w%values)
-    !call set_values(p_vals, p%values)
 
     do i = 1, size(field_list)
       if (field_list(i)%name == "u") then
@@ -590,10 +556,6 @@ contains
     density_data(:) = 1.0_ccs_real
     call restore_vector_data(density%values, density_data)
 
-    !call update(u%values)
-    !call update(v%values)
-    !call update(w%values)
-    !call update(p%values)
     do i = 1, size(field_list)
       call update(field_list(i)%f%values)
     end do
