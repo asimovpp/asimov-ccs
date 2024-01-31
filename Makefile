@@ -170,7 +170,7 @@ clean-docs:
   
 
 clean:
-	rm -f $(EXE) *.o *.mod *.smod *.deps
+	rm -f $(EXE) $(LIB_CCS) *.o *.mod *.smod *.deps
 	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt $(OBJ_DIR)/*.lst opt_info.txt
 clean-tests:
 	make -C $(CCS_DIR)/tests clean
