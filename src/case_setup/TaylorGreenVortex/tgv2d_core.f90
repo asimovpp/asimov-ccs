@@ -64,7 +64,7 @@ contains
     type(vector_spec) :: vec_properties
 
     type(field_spec) :: field_properties
-    type(field_ptr) :: u, v, w, p, p_prime
+    type(field_ptr) :: u, v, w, p
     class(field), allocatable, target :: mf, viscosity, density
 
     type(field_ptr), allocatable :: output_list(:)
@@ -550,7 +550,7 @@ contains
 
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: x_p
-    integer(ccs_int) :: index_p, local_num_cells, i
+    integer(ccs_int) :: index_p, local_num_cells
 
     character(len=ccs_string_len) :: fmt
     real(ccs_real) :: time
