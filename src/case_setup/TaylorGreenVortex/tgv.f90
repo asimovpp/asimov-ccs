@@ -60,7 +60,7 @@ program tgv
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
+  class(field), allocatable, target :: u, v, w, mf, viscosity, density
 
   type(field_ptr), allocatable :: output_list(:)
   type(field_elt), allocatable, target :: field_list(:)
