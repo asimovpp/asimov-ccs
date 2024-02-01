@@ -61,7 +61,6 @@ program sandia
 
   type(field_spec):: field_properties
   class(field), allocatable, target:: mf, viscosity, density
-  class(field), allocatable, target:: scalar_field
 
   type(field_ptr), allocatable:: output_list(:)
   type(field_elt), allocatable, target :: field_list(:)
