@@ -55,7 +55,7 @@ target_residual: 1.0e-10
 
 variables:
   store_residuals: false
-  n_variables: 4
+  n_variables: 5
   variable_1:
     name: u
     type: central

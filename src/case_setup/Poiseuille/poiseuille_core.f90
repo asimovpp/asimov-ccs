@@ -71,7 +71,7 @@ module poiseuille_core
 
     type(field_spec) :: field_properties
     class(field), allocatable, target :: mf, viscosity, density
-    type(field_ptr) :: u, v, w, p, p_prime
+    type(field_ptr) :: u, v, w, p
     type(bc_profile), allocatable :: profile
 
     type(field_ptr), allocatable :: output_list(:)
@@ -96,10 +96,6 @@ module poiseuille_core
 
     type(fluid) :: flow_fields
     type(fluid_solver_selector) :: fluid_sol
-
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: index_p
-    real(ccs_real), dimension(:), pointer :: u_data
 
     call timer_init()
     irank = par_env%proc_id
