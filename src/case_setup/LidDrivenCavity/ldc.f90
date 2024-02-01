@@ -56,7 +56,7 @@ program ldc
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
+  class(field), allocatable, target :: mf, viscosity, density
 
   type(field_ptr), allocatable :: output_list(:)
   type(field_elt), allocatable, target :: field_list(:)
@@ -69,11 +69,6 @@ program ldc
 
   integer(ccs_int) :: timer_index_init, timer_index_total, timer_index_sol
   integer(ccs_int) :: i
-
-  integer(ccs_int) :: local_num_cells
-  integer(ccs_int) :: index_p
-  real(ccs_real), dimension(:), pointer :: u_data
-
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
