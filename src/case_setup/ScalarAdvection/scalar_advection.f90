@@ -61,7 +61,7 @@ program scalar_advection
   logical :: enable_cell_corrections
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, mf, viscosity, density
+  class(field), allocatable, target :: mf, viscosity, density
   class(field), allocatable, target :: scalar
 
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
