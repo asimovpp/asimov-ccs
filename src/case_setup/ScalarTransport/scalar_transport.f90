@@ -33,7 +33,7 @@ program scalar_transport
   use vec, only: create_vector, set_vector_location
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
-                   get_field, set_field, &
+                   get_field, add_field, &
                    allocate_fluid_fields, dealloc_fluid_fields, &
                    get_scheme_name
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
@@ -182,13 +182,13 @@ program scalar_transport
   call update(mf%values)
 
   ! ! XXX: This should get incorporated as part of create_field subroutines
-  call allocate_fluid_fields(size(field_list) + 3, flow_fields)
   do i = 1, size(field_list)
-    call set_field(i, field_list(i)%f, flow_fields)
+    call add_field(field_list(i)%f, flow_fields)
   end do
-  call set_field(size(field_list) + 1, density, flow_fields)
-  call set_field(size(field_list) + 2, viscosity, flow_fields)
-  call set_field(size(field_list) + 3, mf, flow_fields)
+
+  call add_field(density, flow_fields)
+  call add_field(viscosity, flow_fields)
+  call add_field(mf, flow_fields)
 
   if (irank == par_env%root) then
     call print_configuration()

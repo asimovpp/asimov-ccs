@@ -36,7 +36,7 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
-                   get_field, set_field, get_fluid_solver_selector, set_fluid_solver_selector, &
+                   get_field, add_field, get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_variables, get_boundary_count, get_store_residuals
@@ -190,16 +190,15 @@ program ldc
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(8, flow_fields) 
 
-  call set_field(1, u, flow_fields)
-  call set_field(2, v, flow_fields)
-  call set_field(3, w, flow_fields)
-  call set_field(4, p, flow_fields)
-  call set_field(5, p_prime, flow_fields)
-  call set_field(6, mf, flow_fields)
-  call set_field(7, viscosity, flow_fields) 
-  call set_field(8, density, flow_fields)  
+  call add_field(u, flow_fields)
+  call add_field(v, flow_fields)
+  call add_field(w, flow_fields)
+  call add_field(p, flow_fields)
+  call add_field(p_prime, flow_fields)
+  call add_field(mf, flow_fields)
+  call add_field(viscosity, flow_fields) 
+  call add_field(density, flow_fields)  
 
   if (irank == par_env%root) then
     call print_configuration()
@@ -227,8 +226,8 @@ program ldc
   deallocate (p)
   deallocate (p_prime)
   deallocate (output_list)
-  !deallocate (viscosity)
-  !deallocate (density)
+  deallocate (viscosity)
+  deallocate (density)
 
   call timer_stop(timer_index_total)
 

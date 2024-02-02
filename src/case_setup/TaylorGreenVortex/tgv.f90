@@ -40,7 +40,7 @@ program tgv
                    field_ptr, fluid, fluid_solver_selector
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist, get_field, set_field, &
+                   add_field_to_outputlist, get_field, add_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields, str, debug_print
   use vec, only: create_vector, set_vector_location
@@ -234,16 +234,15 @@ program tgv
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(8, flow_fields)
 
-  call set_field(1, u, flow_fields)
-  call set_field(2, v, flow_fields)
-  call set_field(3, w, flow_fields)
-  call set_field(4, p, flow_fields)
-  call set_field(5, p_prime, flow_fields)
-  call set_field(6, mf, flow_fields)
-  call set_field(7, viscosity, flow_fields) 
-  call set_field(8, density, flow_fields)  
+  call add_field(u, flow_fields)
+  call add_field(v, flow_fields)
+  call add_field(w, flow_fields)
+  call add_field(p, flow_fields)
+  call add_field(p_prime, flow_fields)
+  call add_field(mf, flow_fields)
+  call add_field(viscosity, flow_fields) 
+  call add_field(density, flow_fields) 
 
   call timer_stop(timer_index_init)
   call timer_register("I/O time for solution", timer_index_io_sol)

@@ -31,7 +31,7 @@ program sandia
   use pv_coupling, only: solve_nonlinear
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, &
-                   add_field_to_outputlist, get_field, set_field, &
+                   add_field_to_outputlist, get_field, add_field, &
                    get_fluid_solver_selector, set_fluid_solver_selector, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
@@ -64,7 +64,6 @@ program sandia
   type(field_ptr), allocatable:: output_list(:)
 
   integer(ccs_int):: n_boundaries
-  integer(ccs_int):: scalar_index
 
   integer(ccs_int):: it_start, it_end
   integer(ccs_int):: irank  ! MPI rank ID
@@ -225,18 +224,16 @@ program sandia
   call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
   call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
   call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
-  call allocate_fluid_fields(9, flow_fields)
-  call set_field(1, u, flow_fields)
-  call set_field(2, v, flow_fields)
-  call set_field(3, w, flow_fields)
-  call set_field(4, p, flow_fields)
-  call set_field(5, p_prime, flow_fields)
-  call set_field(6, mf, flow_fields)
-  call set_field(7, viscosity, flow_fields)
-  call set_field(8, density, flow_fields)
 
-  scalar_index = maxval([ field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density]) + 1
-  call set_field(9, scalar_field, flow_fields)
+  call add_field(u, flow_fields)
+  call add_field(v, flow_fields)
+  call add_field(w, flow_fields)
+  call add_field(p, flow_fields)
+  call add_field(p_prime, flow_fields)
+  call add_field(mf, flow_fields)
+  call add_field(viscosity, flow_fields) 
+  call add_field(density, flow_fields)  
+  call add_field(scalar_field, flow_fields)
 
   call timer_stop(timer_index_init)
   call timer_register("I/O time for solution", timer_index_io_sol)

@@ -20,7 +20,7 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, fluid, fluid_solver_selector
+  use types, only: field, fluid, fluid_solver_selector, field_ptr
   use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
                        cell_centred_central, cell_centred_upwind
 
@@ -51,7 +51,7 @@ module utils
   public :: reset_outputlist_counter
   public :: get_field
   public :: get_fluid_solver_selector
-  public :: set_field
+  public :: add_field
   public :: set_fluid_solver_selector
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
@@ -489,14 +489,28 @@ contains
   end subroutine get_field
 
   !< Sets the pointer to the field and the corresponding field name in the fluid structure
-  subroutine set_field(field_index, flow_field, flow)
-    integer(ccs_int), intent(in) :: field_index     !< index of arrays at which to set the field pointer and name
+  subroutine add_field(flow_field, flow)
+    integer(ccs_int) :: field_index     !< index of arrays at which to set the field pointer and name
     class(field), target, intent(in) :: flow_field  !< the field
     type(fluid), intent(inout) :: flow              !< the fluid structure
-
-    flow%fields(field_index)%ptr => flow_field
-    flow%field_names(field_index) = flow_field%name
-  end subroutine set_field
+    type(field_ptr) :: tmp_field_ptr
+    logical, save :: first_call = .true.
+    
+    if (first_call) then
+      allocate (flow%fields(1))
+      allocate (flow%field_names(1))
+      flow%fields(1)%ptr => flow_field
+      flow%field_names(1) = flow_field%name
+      first_call = .false.
+    else
+      tmp_field_ptr%ptr => flow_field
+      flow%fields = [ flow%fields, tmp_field_ptr]
+      flow%field_names = [flow%field_names, flow_field%name]
+      field_index = size(flow%fields) 
+      flow%fields(field_index)%ptr => flow_field
+    end if 
+    
+  end subroutine add_field
 
   !> Gets the solver selector for a specified field
   subroutine get_fluid_solver_selector(solver_selector, field_name, selector)
