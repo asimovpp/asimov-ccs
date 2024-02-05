@@ -59,7 +59,7 @@ program bfs
 
   type(field_spec) :: field_properties
   class(field), allocatable, target :: mf, viscosity, density
-  type(field_ptr) :: u, v, w, p, p_prime
+  type(field_ptr) :: u
 
   type(field_ptr), allocatable :: output_list(:)
   type(field_elt), allocatable, target :: field_list(:)
@@ -193,11 +193,10 @@ program bfs
   call read_bc_profile(case_path // '.blasius.prf', 1, profile)
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
   profile%centre(:) = [ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real ] 
-
+  
   do i = 1, size(field_list)
     if(field_list(i)%name == 'u') then
       u%ptr => field_list(i)%f
-      print*,field_list(i)%name
     end if 
   end do
   ! Set to 3rd boundary condition (inlet)
