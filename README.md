@@ -36,11 +36,16 @@ With the prerequisites in place, ASiMoV-CCS can be built from the root directory
 make CMP=<compiler> all
 ```
 where `<compiler>` is one of: `gnu`, `intel` or `cray`. `CMP` sets the compilation environment according to files in `build_tools/archs/Makefile.<compiler>`, which can be customised according to your environment. 
+This also packages up the compiled code into a library `libccs.a`, which can be built explicity with
+```
+make CMP=<compiler> lib
+```
 
 Tests can be run with
 ```
 make CMP=<compiler> tests
 ```
+
 
 
 ## Configuring

@@ -52,6 +52,8 @@ SMOD_DEPS=$(DEP_PREFIX)/submodules.deps
 TAG_DEPS=$(DEP_PREFIX)/build_tags.deps
 RULE_DEPS=$(DEP_PREFIX)/rules.deps
 
+LIB_CCS=libccs.a
+
 # check makedepf90 version
 MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
@@ -109,7 +111,11 @@ ifeq ($(BUILD),debug)
   FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 endif
 
-all: obj app
+all: obj lib app
+
+lib: $(EXE_DEPS)
+	rm -f $(LIB_CCS)
+	ar rcs $(LIB_CCS) $(filter-out $(EXE_DEPS),$^)
 
 app: $(EXE)
 
@@ -164,7 +170,7 @@ clean-docs:
   
 
 clean:
-	rm -f $(EXE) *.o *.mod *.smod *.deps
+	rm -f $(EXE) $(LIB_CCS) *.o *.mod *.smod *.deps
 	rm -f $(OBJ_DIR)/*.o $(OBJ_DIR)/*.mod $(OBJ_DIR)/*.smod $(DEP_PREFIX)/*.deps $(OBJ_DIR)/*.html $(OBJ_DIR)/*.optrpt $(OBJ_DIR)/*.lst opt_info.txt
 clean-tests:
 	make -C $(CCS_DIR)/tests clean

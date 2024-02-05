@@ -9,11 +9,10 @@ program test_tgv_prism_layer
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d, domain_size
   use mesh_utils, only: compute_face_interpolation
-  use meshing, only: get_local_num_cells
+  use meshing, only: get_local_num_cells, set_mesh_object, nullify_mesh_object
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   integer(ccs_int), parameter :: num_cps = 5
   integer(ccs_int), parameter :: nvar = 3
   real(ccs_real), dimension(nvar, num_cps) :: error_L2
@@ -49,7 +48,7 @@ program test_tgv_prism_layer
 
     call generate_prism_layer(growth_rate, cps, mesh)
 
-    call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), mesh)
+    call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do
 
   if (par_env%proc_id == par_env%root) then
@@ -82,6 +81,8 @@ contains
     real(ccs_real) :: power, dx
     integer(ccs_int) :: iface, icell, local_num_cells
 
+    call set_mesh_object(mesh)
+    
     dx = domain_size / real(cps)
 
     ! Update face centers
@@ -91,7 +92,7 @@ contains
     mesh%geo%vert_coords(1, :, :) = apply_gr(mesh%geo%vert_coords(1, :, :), growth_rate)
 
     ! Update face areas
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do icell = 1, local_num_cells
       do iface = 1, 4
         if (abs(mesh%geo%face_normals(2, iface, icell)) .gt. 0.01) then
@@ -109,6 +110,8 @@ contains
     ! Update face interpolation
     call compute_face_interpolation(mesh)
 
+    call nullify_mesh_object()
+    
   end subroutine
 
   !v applies a growth rate to the x coordinate

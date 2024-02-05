@@ -9,11 +9,10 @@ program test_poiseuille_disturb_cartesian
   use mesh_utils, only: build_square_mesh
   use poiseuille_core, only: run_poiseuille, domain_size
   use mesh_utils, only: compute_face_interpolation
-  use meshing, only: get_total_num_cells
+  use meshing, only: get_total_num_cells, set_mesh_object, nullify_mesh_object
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   integer(ccs_int), parameter :: num_cps = 3
   integer(ccs_int), parameter :: nvar = 3
   real(ccs_real), dimension(nvar, num_cps) :: error_L2
@@ -43,9 +42,11 @@ program test_poiseuille_disturb_cartesian
     cps = cps_list(i)
     mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
 
+    call set_mesh_object(mesh)
     call disturb_cartesian(cps, domain_size, mesh)
-
-    call run_poiseuille(par_env, shared_env, error_L2(:, i), error_Linf(:, i), mesh)
+    call nullify_mesh_object()
+    
+    call run_poiseuille(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do
 
   if (par_env%proc_id == par_env%root) then
