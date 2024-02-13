@@ -461,11 +461,6 @@ module poiseuille_core
       call set_entry(p_val, p_vals)
     end do
 
-    !call set_values(u_vals, u%values)
-    !call set_values(v_vals, v%values)
-    !call set_values(w_vals, w%values)
-    !call set_values(p_vals, p%values)
-
     do i = 1, size(field_list)
       if (field_list(i)%name == "u") then
         call set_values(u_vals, field_list(i)%f%values)
@@ -533,10 +528,6 @@ module poiseuille_core
     density_data(:) = 1.0_ccs_real
     call restore_vector_data(density%values, density_data)
 
-    !all update(u%values)
-    !call update(v%values)
-    !call update(w%values)
-    !call update(p%values)
     do i = 1, size(field_list)
       call update(field_list(i)%f%values)
     end do
