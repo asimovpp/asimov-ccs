@@ -222,16 +222,12 @@ module poiseuille_core
     do i = 1, size(field_list)
       if(field_list(i)%name == 'u') then
         u%ptr => field_list(i)%f
-        print*,field_list(i)%name
       else if(field_list(i)%name == 'v') then
         v%ptr => field_list(i)%f
-        print*,field_list(i)%name
       else if(field_list(i)%name == 'w') then
         w%ptr => field_list(i)%f
-        print*,field_list(i)%name
       else if(field_list(i)%name == 'p') then
         p%ptr => field_list(i)%f
-        print*,field_list(i)%name
       end if 
     end do
 
