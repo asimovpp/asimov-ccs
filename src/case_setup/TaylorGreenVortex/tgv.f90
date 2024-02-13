@@ -336,7 +336,6 @@ contains
     if (size(variable_names) == 0) then
       call error_abort("No variables were specified.")
     end if
-    print*,"no. of variables=",size(variable_names)
     call get_variable_types(config_file, variable_types)
     if (size(variable_types) /= size(variable_names)) then
        call error_abort("The number of variable types does not match the number of named variables")
