@@ -15,7 +15,7 @@
 
   <io name="sol_writer">
 
-    <engine type="BP5">
+    <engine type="HDF5">
     </engine>
 
   </io>
