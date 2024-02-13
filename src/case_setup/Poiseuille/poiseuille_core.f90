@@ -240,8 +240,6 @@ module poiseuille_core
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
-    call calc_kinetic_energy(par_env, u%ptr, v%ptr, w%ptr)
-    call calc_enstrophy(par_env, u%ptr, v%ptr, w%ptr)
 
     ! Write out mesh to file
     call write_mesh(par_env, case_path, mesh)
