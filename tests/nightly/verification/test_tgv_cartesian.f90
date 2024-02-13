@@ -17,15 +17,15 @@ program test_tgv_cartesian
   real(ccs_real), dimension(nvar, num_cps) :: error_Linf
   real(ccs_real), dimension(:), allocatable :: orders_L2
   real(ccs_real), dimension(:), allocatable :: orders_Linf
-  real(ccs_real), dimension(:), allocatable :: min_error_L2
-  real(ccs_real), dimension(:), allocatable :: min_error_Linf
+  !real(ccs_real), dimension(:), allocatable :: min_error_L2
+  !real(ccs_real), dimension(:), allocatable :: min_error_Linf
   real(ccs_real), dimension(num_cps) :: refinements
   integer(ccs_int), dimension(num_cps) :: cps_list
   integer(ccs_int) :: cps
 
   character(len=12), dimension(nvar) :: variable_labels
 
-  integer(ccs_int) :: i, j
+  integer(ccs_int) :: i
 
   call init()
 

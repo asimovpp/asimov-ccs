@@ -496,6 +496,11 @@ contains
     type(field_ptr) :: tmp_field_ptr
     logical, save :: first_call = .true.
     
+    ! Handle the case when a program body is called in a loop (e.g. as part of a convergence test)
+    if ((.not. allocated(flow%fields)) .and. (.not. allocated(flow%field_names))) then
+      first_call = .true.
+    end if
+
     if (first_call) then
       allocate (flow%fields(1))
       allocate (flow%field_names(1))
