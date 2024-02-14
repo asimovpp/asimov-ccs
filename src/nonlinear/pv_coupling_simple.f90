@@ -244,7 +244,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
-    type(fluid), intent(inout) :: flow
+    type(fluid), intent(inout) :: flow                   !< Container for flow fields
     integer(ccs_int), intent(inout) :: ivar              !< flow variable counter
     class(ccs_matrix), allocatable, intent(inout) :: M   !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec !< vector object
@@ -347,7 +347,7 @@ contains
     use timers, only: timer_register_start, timer_stop
 
     ! Arguments
-    type(fluid), intent(inout) :: flow
+    type(fluid), intent(inout) :: flow                   !< Container for flow fields
     class(parallel_environment), allocatable, intent(in) :: par_env
     integer(ccs_int), intent(in) :: ivar
     class(field), pointer :: mf
@@ -513,7 +513,7 @@ contains
 
   !v Adds the momentum source due to variation in viscosity
   subroutine calculate_momentum_viscous_source(flow, component, vec)
-    type(fluid), intent(inout) :: flow
+    type(fluid), intent(inout) :: flow                   !< Container for flow fields
     integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
     class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
     class(field), pointer :: u  ! x-component of velocity 
@@ -902,7 +902,7 @@ contains
 
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
     integer(ccs_int), intent(inout) :: ivar  !< Counter for flow variables
-    type(fluid), intent(inout) :: flow
+    type(fluid), intent(inout) :: flow                   !< Container for flow fields
     class(ccs_vector), target, intent(inout) :: input_b   !< The per-cell mass imbalance
     real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
 
@@ -1083,7 +1083,7 @@ contains
     use vec, only: zero_vector
 
     ! Arguments
-    type(fluid), intent(inout) :: flow
+    type(fluid), intent(inout) :: flow                   !< Container for flow fields
 
     class(field), pointer :: p_prime !< The pressure correction
     class(field), pointer :: u       !< The x velocities being corrected
@@ -1237,7 +1237,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
-    type(fluid), intent(in) :: flow
+    type(fluid), intent(inout) :: flow                              !< Container for flow fields
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
     real(ccs_real), dimension(:), intent(in) :: residuals           !< RMS and Linf of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual

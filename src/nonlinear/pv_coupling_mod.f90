@@ -22,7 +22,7 @@ module pv_coupling
       type(ccs_mesh), intent(in) :: mesh
       integer(ccs_int), intent(in) :: it_start, it_end
       real(ccs_real), intent(in) :: res_target
-      type(fluid), intent(inout) :: flow
+      type(fluid), intent(inout) :: flow                              !< Container for flow fields
       logical, optional, intent(out) :: diverged
     end subroutine solve_nonlinear
 
