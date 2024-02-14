@@ -57,8 +57,6 @@ program ldc
   type(field_spec) :: field_properties
   class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
-  type(field_ptr), allocatable :: output_list(:)
-
   integer(ccs_int) :: n_boundaries
 
   integer(ccs_int) :: it_start, it_end
@@ -170,10 +168,10 @@ program ldc
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(w, "w", output_list)
-  call add_field_to_outputlist(p, "p", output_list)
+  call add_field_to_outputlist(u)
+  call add_field_to_outputlist(v)
+  call add_field_to_outputlist(w)
+  call add_field_to_outputlist(p)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
@@ -214,7 +212,7 @@ program ldc
   ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
   
-  call write_solution(par_env, case_path, mesh, output_list)
+  call write_solution(par_env, case_path, mesh, flow_fields)
 
   call timer_stop(timer_index_sol)
 
@@ -225,7 +223,6 @@ program ldc
   deallocate (w)
   deallocate (p)
   deallocate (p_prime)
-  deallocate (output_list)
   deallocate (viscosity)
   deallocate (density)
 

@@ -61,8 +61,6 @@ program tgv
   type(field_spec) :: field_properties
   class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
-  type(field_ptr), allocatable :: output_list(:)
-
   integer(ccs_int) :: n_boundaries
 
   integer(ccs_int) :: it_start, it_end
@@ -200,10 +198,10 @@ program tgv
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(w, "w", output_list)
-  call add_field_to_outputlist(p, "p", output_list)
+  call add_field_to_outputlist(u)
+  call add_field_to_outputlist(v)
+  call add_field_to_outputlist(w)
+  call add_field_to_outputlist(p)
 
   call activate_timestepping()
   call set_timestep(dt)
@@ -260,7 +258,7 @@ program tgv
     ! If a STOP file exist, write solution and exit the main simulation loop
     if (query_stop_run(par_env) .eqv. .true.) then
       call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
       call timer_stop(timer_index_io_sol)
       call dprint("STOP file found. Writing output and ending simulation.")
       exit
@@ -268,7 +266,7 @@ program tgv
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
       call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
       call timer_stop(timer_index_io_sol)
     end if
 
@@ -282,7 +280,6 @@ program tgv
   deallocate (w)
   deallocate (p)
   deallocate (p_prime)
-  deallocate (output_list)
 
   call timer_stop(timer_index_total)
 

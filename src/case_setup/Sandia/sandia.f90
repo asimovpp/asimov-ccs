@@ -61,8 +61,6 @@ program sandia
   class(field), allocatable, target:: u, v, w, p, p_prime, mf, viscosity, density
   class(field), allocatable, target:: scalar_field
 
-  type(field_ptr), allocatable:: output_list(:)
-
   integer(ccs_int):: n_boundaries
 
   integer(ccs_int):: it_start, it_end
@@ -193,11 +191,11 @@ program sandia
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(w, "w", output_list)
-  call add_field_to_outputlist(p, "p", output_list)
-  call add_field_to_outputlist(scalar_field, "scalar", output_list)
+  call add_field_to_outputlist(u)
+  call add_field_to_outputlist(v)
+  call add_field_to_outputlist(w)
+  call add_field_to_outputlist(p)
+  call add_field_to_outputlist(scalar_field)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
@@ -249,14 +247,14 @@ program sandia
     ! If a STOP file exist, write solution and exit the main simulation loop
     if (query_stop_run(par_env) .or. diverged) then
       call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
       call timer_stop(timer_index_io_sol)
       exit
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
       call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
       call timer_stop(timer_index_io_sol)
     end if
   end do
@@ -269,7 +267,6 @@ program sandia
   deallocate (w)
   deallocate (p)
   deallocate (p_prime)
-  deallocate (output_list)
 
   call timer_stop(timer_index_total)
 

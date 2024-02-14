@@ -55,7 +55,6 @@ program scalar_transport
 
   type(field_spec) :: field_properties
   class(field), allocatable, target :: mf, viscosity, density
-  type(field_ptr), allocatable :: output_list(:)
   type(field_elt), allocatable, target :: field_list(:)
   
   integer(ccs_int) :: n_boundaries
@@ -168,7 +167,7 @@ program scalar_transport
 
   do i = 1, size(field_list)
     if ((field_list(i)%name == "whisky") .or. (field_list(i)%name == "water")) then
-      call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
+      call add_field_to_outputlist(field_list(i)%f)
     end if
   end do
 
@@ -203,7 +202,7 @@ program scalar_transport
 
   ! ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
-  call write_solution(par_env, case_path, mesh, output_list, 0, num_steps, dt)
+  call write_solution(par_env, case_path, mesh, flow_fields, 0, num_steps, dt)
   do t = 1, num_steps
     call update_scalars(par_env, mesh, flow_fields)
     if (par_env%proc_id == par_env%root) then
@@ -211,7 +210,7 @@ program scalar_transport
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
     end if
 
     call finalise_timestep()
@@ -227,7 +226,6 @@ program scalar_transport
   deallocate (mf)
   deallocate (viscosity)
   deallocate (density)
-  deallocate (output_list)
 
   call timer(end_time)
 

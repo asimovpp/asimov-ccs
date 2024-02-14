@@ -211,6 +211,7 @@ module types
     real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
     character(len=20) :: name
+    logical :: output = .false.                                   !< Should field be written in output?
   end type field
 
   type, public, extends(field) :: upwind_field
