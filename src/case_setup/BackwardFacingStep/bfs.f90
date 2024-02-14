@@ -11,13 +11,12 @@ program bfs
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, cell_centred_central, cell_centred_upwind, face_centred, &
+                       cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector, bc_profile
+                   field_ptr, fluid, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
@@ -80,7 +79,6 @@ program bfs
   logical :: use_mpi_splitting
 
   type(fluid) :: flow_fields
-  type(fluid_solver_selector) :: fluid_sol
   type(bc_profile), allocatable :: profile
 
   ! Launch MPI
@@ -210,10 +208,10 @@ program bfs
   call set_timestep(dt)
 
   ! XXX: This should get incorporated as part of create_field subroutines
-  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
-  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
-  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
-  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call set_fluid_solver_selector(u_sol, u)
+  call set_fluid_solver_selector(v_sol, v)
+  call set_fluid_solver_selector(w_sol, w)
+  call set_fluid_solver_selector(p_sol, p)
 
   call add_field(u, flow_fields)
   call add_field(v, flow_fields)
@@ -226,7 +224,7 @@ program bfs
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields)
+                         flow_fields)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
     end if

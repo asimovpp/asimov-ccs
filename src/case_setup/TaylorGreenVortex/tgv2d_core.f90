@@ -11,11 +11,10 @@ module tgv2d_core
                          pressure_solver_method_name, pressure_solver_precon_name, &
                          compute_bwidth, compute_partqual
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, cell_centred_central, cell_centred_upwind, face_centred
+                       cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
+                   vector_spec, ccs_vector, field_ptr, fluid
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
@@ -84,7 +83,6 @@ contains
     integer(ccs_int) :: t         ! Timestep counter
 
     type(fluid) :: flow_fields
-    type(fluid_solver_selector) :: fluid_sol
 
     irank = par_env%proc_id
     isize = par_env%num_procs
@@ -209,10 +207,10 @@ contains
     end if
 
     ! XXX: This should get incorporated as part of create_field subroutines
-    call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
-    call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
-    call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
-    call set_fluid_solver_selector(field_p, p_sol, fluid_sol) 
+    call set_fluid_solver_selector(u_sol, u)
+    call set_fluid_solver_selector(v_sol, v)
+    call set_fluid_solver_selector(w_sol, w)
+    call set_fluid_solver_selector(p_sol, p) 
 
     call add_field(u, flow_fields)
     call add_field(v, flow_fields)
@@ -227,7 +225,7 @@ contains
 
     do t = 1, num_steps
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                           fluid_sol, flow_fields)
+                           flow_fields)
       call calc_tgv2d_error(par_env, u, v, w, p, error_L2, error_Linf)
       call calc_kinetic_energy(par_env, u, v, w)
 

@@ -7,10 +7,7 @@
 submodule(io_visualisation) io_visualisation_common
 #include "ccs_macros.inc"
 
-  use constants, only: ndim, &
-                       field_u, field_v, field_w, &
-                       field_p, field_p_prime, &
-                       field_mf
+  use constants, only: ndim
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
 
   implicit none
