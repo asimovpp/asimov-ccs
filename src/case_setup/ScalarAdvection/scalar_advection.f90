@@ -14,8 +14,7 @@ program scalar_advection
                    equation_system, linear_solver, ccs_mesh, field_ptr, &
                    field, upwind_field, central_field, bc_config, face_locator
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, cell_centred_central, cell_centred_upwind, face_centred, &
+                       cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use meshing, only: get_boundary_status, create_face_locator, get_total_num_cells, get_global_num_cells
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &

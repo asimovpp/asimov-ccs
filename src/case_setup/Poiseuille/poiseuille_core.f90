@@ -11,12 +11,11 @@ module poiseuille_core
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, cell_centred_central, cell_centred_upwind, face_centred
+                       cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector, bc_profile
+                   field_ptr, fluid, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
        set_field_type, set_field_vector_properties, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
@@ -30,7 +29,7 @@ module poiseuille_core
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &
-                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   set_is_field_solved, &
                    allocate_fluid_fields, reset_outputlist_counter
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
   use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections
@@ -87,7 +86,6 @@ module poiseuille_core
     logical :: p_sol = .true.
 
     type(fluid) :: flow_fields
-    type(fluid_solver_selector) :: fluid_sol
 
     call timer_init()
     irank = par_env%proc_id
@@ -216,10 +214,10 @@ module poiseuille_core
     end if
 
     ! XXX: This should get incorporated as part of create_field subroutines
-    call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
-    call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
-    call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
-    call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+    call set_is_field_solved(u_sol, u)
+    call set_is_field_solved(v_sol, v)
+    call set_is_field_solved(w_sol, w)
+    call set_is_field_solved(p_sol, p)
 
     call add_field(u, flow_fields)
     call add_field(v, flow_fields)
@@ -234,7 +232,7 @@ module poiseuille_core
     call timer_register_start("Solver time inc I/O", timer_index_sol)
 
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                          fluid_sol, flow_fields)
+                          flow_fields)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
 

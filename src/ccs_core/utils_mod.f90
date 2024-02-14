@@ -20,9 +20,8 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, fluid, fluid_solver_selector, field_ptr
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       cell_centred_central, cell_centred_upwind
+  use types, only: field, fluid, field_ptr
+  use constants, only: cell_centred_central, cell_centred_upwind
 
   implicit none
 
@@ -50,9 +49,9 @@ module utils
   public :: add_field_to_outputlist
   public :: reset_outputlist_counter
   public :: get_field
-  public :: get_fluid_solver_selector
+  public :: get_is_field_solved
   public :: add_field
-  public :: set_fluid_solver_selector
+  public :: set_is_field_solved
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
   public :: get_natural_data
@@ -517,45 +516,23 @@ contains
     
   end subroutine add_field
 
-  !> Gets the solver selector for a specified field
-  subroutine get_fluid_solver_selector(solver_selector, field_name, selector)
-    type(fluid_solver_selector), intent(in) :: solver_selector  !< Structure containing all of the solver selectors
-    integer(ccs_int), intent(in) :: field_name                  !< name of field
-    logical, intent(out) :: selector                            !< flag indicating whether to solve for the given field
+  !> Gets the solve flag for a field
+  subroutine get_is_field_solved(phi, solve)
+    class(field), intent(in) :: phi !< Field variable
+    logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
-    select case (field_name)
-    case (field_u)
-      selector = solver_selector%u
-    case (field_v)
-      selector = solver_selector%v
-    case (field_w)
-      selector = solver_selector%w
-    case (field_p)
-      selector = solver_selector%p
-    case default
-      call error_abort("Unrecognised field index.")
-    end select
-  end subroutine get_fluid_solver_selector
+    solve = phi%solve
+    
+  end subroutine get_is_field_solved
 
-  !> Sets the solver selector for a specified field
-  subroutine set_fluid_solver_selector(field_name, selector, solver_selector)
-    integer(ccs_int), intent(in) :: field_name                      !< name of field
-    logical, intent(in) :: selector                                 !< flag indicating whether to solve for the given field
-    type(fluid_solver_selector), intent(inout) :: solver_selector   !< Structure containing all of the solver selectors
+  !> Sets the solve flag for a field
+  subroutine set_is_field_solved(solve, phi)
+    logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
+    type(field), intent(inout) :: phi !< Field variable
 
-    select case (field_name)
-    case (field_u)
-      solver_selector%u = selector
-    case (field_v)
-      solver_selector%v = selector
-    case (field_w)
-      solver_selector%w = selector
-    case (field_p)
-      solver_selector%p = selector
-    case default
-      call error_abort("Unrecognised field index.")
-    end select
-  end subroutine set_fluid_solver_selector
+    phi%solve = solve
+    
+  end subroutine set_is_field_solved
 
   ! Allocates arrays in fluid field structure to specified size
   subroutine allocate_fluid_fields(n_fields, flow)

@@ -13,8 +13,7 @@ program tgv
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours, &
                          compute_bwidth, compute_partqual
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, cell_centred_central, cell_centred_upwind, face_centred
+                       cell_centred_central, cell_centred_upwind, face_centred
   use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use meshing, only: set_mesh_object, nullify_mesh_object
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
@@ -37,11 +36,11 @@ program tgv
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector
+                   field_ptr, fluid
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &
-                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   set_is_field_solved, &
                    allocate_fluid_fields, str, debug_print
   use vec, only: create_vector, set_vector_location
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
@@ -88,7 +87,6 @@ program tgv
   integer(ccs_int) :: t          ! Timestep counter
 
   type(fluid) :: flow_fields
-  type(fluid_solver_selector) :: fluid_sol
 
   logical :: use_mpi_splitting
 
@@ -230,10 +228,10 @@ program tgv
   end if
 
   ! XXX: This should get incorporated as part of create_field subroutines
-  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
-  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
-  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
-  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call set_is_field_solved(u_sol, u)
+  call set_is_field_solved(v_sol, v)
+  call set_is_field_solved(w_sol, w)
+  call set_is_field_solved(p_sol, p)
 
   call add_field(u, flow_fields)
   call add_field(v, flow_fields)
@@ -250,7 +248,7 @@ program tgv
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields)
+                         flow_fields)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
     if (par_env%proc_id == par_env%root) then

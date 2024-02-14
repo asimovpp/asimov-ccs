@@ -211,6 +211,7 @@ module types
     real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
     character(len=20) :: name
+    logical :: solve = .true.                                     !< Whether to solve a linear system for this variable or not
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -294,16 +295,6 @@ module types
     integer(ccs_int), dimension(:), allocatable :: field_ids
     character(len=20), dimension(:), allocatable :: field_names
   end type fluid
-
-  !v Fluid solve selector
-  !
-  ! Type for storing which fields are being solved for
-  type, public :: fluid_solver_selector
-    logical :: u
-    logical :: v
-    logical :: w
-    logical :: p
-  end type fluid_solver_selector
 
   !>  IO environment type
   type, public :: io_environment

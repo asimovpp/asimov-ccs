@@ -4,7 +4,6 @@
 
 submodule(scalars) scalars_common
 #include "ccs_macros.inc"
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density
 
   use kinds, only: ccs_int, ccs_real !< added here
   use types, only: ccs_matrix, ccs_vector, &

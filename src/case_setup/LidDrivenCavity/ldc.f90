@@ -13,14 +13,13 @@ program ldc
                          velocity_relax, pressure_relax, res_target, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
-  use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
-                       field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density, &
+  use constants, only: cell, face, ccsconfig, ccs_string_len, &
                        cell_centred_central, cell_centred_upwind, cell_centred_gamma, cell_centred_linear_upwind, &
                        face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, gamma_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, fluid, fluid_solver_selector
+                   vector_spec, ccs_vector, field_ptr, fluid
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
@@ -36,7 +35,7 @@ program ldc
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
-                   get_field, add_field, get_fluid_solver_selector, set_fluid_solver_selector, &
+                   get_field, add_field, set_is_field_solved, &
                    allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_variables, get_boundary_count, get_store_residuals
@@ -76,7 +75,6 @@ program ldc
   logical :: store_residuals
 
   type(fluid) :: flow_fields
-  type(fluid_solver_selector) :: fluid_sol
 
   logical :: use_mpi_splitting
 
@@ -186,10 +184,10 @@ program ldc
   call update(density%values)
 
   ! XXX: This should get incorporated as part of create_field subroutines
-  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
-  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
-  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
-  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call set_is_field_solved(u_sol, u)
+  call set_is_field_solved(v_sol, v)
+  call set_is_field_solved(w_sol, w)
+  call set_is_field_solved(p_sol, p)
 
   call add_field(u, flow_fields)
   call add_field(v, flow_fields)
@@ -209,7 +207,7 @@ program ldc
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
   call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                       fluid_sol, flow_fields)
+                       flow_fields)
   
   ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
