@@ -29,7 +29,7 @@ module poiseuille_core
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &
-                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   set_is_field_solved, &
                    allocate_fluid_fields, reset_outputlist_counter
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
   use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections
@@ -214,10 +214,10 @@ module poiseuille_core
     end if
 
     ! XXX: This should get incorporated as part of create_field subroutines
-    call set_fluid_solver_selector(u_sol, u)
-    call set_fluid_solver_selector(v_sol, v)
-    call set_fluid_solver_selector(w_sol, w)
-    call set_fluid_solver_selector(p_sol, p)
+    call set_is_field_solved(u_sol, u)
+    call set_is_field_solved(v_sol, v)
+    call set_is_field_solved(w_sol, w)
+    call set_is_field_solved(p_sol, p)
 
     call add_field(u, flow_fields)
     call add_field(v, flow_fields)

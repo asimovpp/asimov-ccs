@@ -40,7 +40,7 @@ program tgv
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &
-                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   set_is_field_solved, &
                    allocate_fluid_fields, str, debug_print
   use vec, only: create_vector, set_vector_location
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
@@ -228,10 +228,10 @@ program tgv
   end if
 
   ! XXX: This should get incorporated as part of create_field subroutines
-  call set_fluid_solver_selector(u_sol, u)
-  call set_fluid_solver_selector(v_sol, v)
-  call set_fluid_solver_selector(w_sol, w)
-  call set_fluid_solver_selector(p_sol, p)
+  call set_is_field_solved(u_sol, u)
+  call set_is_field_solved(v_sol, v)
+  call set_is_field_solved(w_sol, w)
+  call set_is_field_solved(p_sol, p)
 
   call add_field(u, flow_fields)
   call add_field(v, flow_fields)

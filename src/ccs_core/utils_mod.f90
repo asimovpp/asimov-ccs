@@ -49,9 +49,9 @@ module utils
   public :: add_field_to_outputlist
   public :: reset_outputlist_counter
   public :: get_field
-  public :: get_fluid_solver_selector
+  public :: get_is_field_solved
   public :: add_field
-  public :: set_fluid_solver_selector
+  public :: set_is_field_solved
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
   public :: get_natural_data
@@ -516,23 +516,23 @@ contains
     
   end subroutine add_field
 
-  !> Gets the solver selector for a specified field
-  subroutine get_fluid_solver_selector(phi, selector)
-    class(field), intent(in) :: phi  !< Field variable
-    logical, intent(out) :: selector !< flag indicating whether to solve for the given field
+  !> Gets the solve flag for a field
+  subroutine get_is_field_solved(phi, solve)
+    class(field), intent(in) :: phi !< Field variable
+    logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
-    selector = phi%solve
+    solve = phi%solve
     
-  end subroutine get_fluid_solver_selector
+  end subroutine get_is_field_solved
 
-  !> Sets the solver selector for a specified field
-  subroutine set_fluid_solver_selector(selector, phi)
-    logical, intent(in) :: selector   !< flag indicating whether to solve for the given field
+  !> Sets the solve flag for a field
+  subroutine set_is_field_solved(solve, phi)
+    logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
     type(field), intent(inout) :: phi !< Field variable
 
-    phi%solve = selector
+    phi%solve = solve
     
-  end subroutine set_fluid_solver_selector
+  end subroutine set_is_field_solved
 
   ! Allocates arrays in fluid field structure to specified size
   subroutine allocate_fluid_fields(n_fields, flow)

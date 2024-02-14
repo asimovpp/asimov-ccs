@@ -20,7 +20,7 @@ submodule(pv_coupling) pv_coupling_simple
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print
 
-  use utils, only: debug_print, get_field, get_fluid_solver_selector
+  use utils, only: debug_print, get_field, get_is_field_solved
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -104,10 +104,10 @@ contains
     call get_field(flow, "viscosity", viscosity)
     call get_field(flow, "density", density)
 
-    call get_fluid_solver_selector(u, u_sol)
-    call get_fluid_solver_selector(v, v_sol)
-    call get_fluid_solver_selector(w, w_sol)
-    call get_fluid_solver_selector(p, p_sol)
+    call get_is_field_solved(u, u_sol)
+    call get_is_field_solved(v, v_sol)
+    call get_is_field_solved(w, w_sol)
+    call get_is_field_solved(p, p_sol)
 
     ! Initialising SIMPLE solver
     nvar = 0
@@ -278,9 +278,9 @@ contains
     call get_field(flow, "w", w)
     call get_field(flow, "p", p)
     
-    call get_fluid_solver_selector(u, u_sol)
-    call get_fluid_solver_selector(v, v_sol)
-    call get_fluid_solver_selector(w, w_sol)
+    call get_is_field_solved(u, u_sol)
+    call get_is_field_solved(v, v_sol)
+    call get_is_field_solved(w, w_sol)
 
     ! Set flow variable identifiers (for residuals)
     if (first_time) then
@@ -1268,10 +1268,10 @@ contains
     call get_field(flow, "w", w)
     call get_field(flow, "p", p)
 
-    call get_fluid_solver_selector(u, u_sol)
-    call get_fluid_solver_selector(v, v_sol)
-    call get_fluid_solver_selector(w, w_sol)
-    call get_fluid_solver_selector(p, p_sol)
+    call get_is_field_solved(u, u_sol)
+    call get_is_field_solved(v, v_sol)
+    call get_is_field_solved(w, w_sol)
+    call get_is_field_solved(p, p_sol)
     call get_current_step(step)
     call get_current_time(time)
 
