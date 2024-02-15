@@ -64,7 +64,7 @@ module poiseuille_core
     type(vector_spec) :: vec_properties
 
     type(field_spec) :: field_properties
-    class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
+    class(field), pointer :: u, v, w, p, mf, viscosity, density
     type(bc_profile), allocatable :: profile
 
     integer(ccs_int) :: n_boundaries
@@ -152,32 +152,41 @@ module poiseuille_core
     call set_field_vector_properties(vec_properties, field_properties)
     call set_field_type(cell_centred_central, field_properties)
     call set_field_name("u", field_properties)
-    call create_field(field_properties, u)
+    call create_field(field_properties, flow_fields)
     call set_field_name("v", field_properties)
-    call create_field(field_properties, v)
+    call create_field(field_properties, flow_fields)
     call set_field_name("w", field_properties)
-    call create_field(field_properties, w)
+    call create_field(field_properties, flow_fields)
 
     call set_field_type(cell_centred_central, field_properties)
     call set_field_name("p", field_properties)
-    call create_field(field_properties, p)
+    call create_field(field_properties, flow_fields)
     call set_field_name("p_prime", field_properties)
-    call create_field(field_properties, p_prime)
+    call create_field(field_properties, flow_fields)
     call set_field_name("viscosity", field_properties)
-    call create_field(field_properties, viscosity) 
+    call create_field(field_properties, flow_fields)
     call set_field_name("density", field_properties)
-    call create_field(field_properties, density) 
-
-    ! Set to 1st boundary condition (inlet)
-    call get_inlet_profile(profile)
-    call set_bc_profile(u, profile, 1)
+    call create_field(field_properties, flow_fields)
 
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     call set_field_vector_properties(vec_properties, field_properties)
     call set_field_type(face_centred, field_properties)
     call set_field_name("mf", field_properties)
-    call create_field(field_properties, mf)
+    call create_field(field_properties, flow_fields)
+
+    ! Get field pointers
+    call get_field(flow_fields, "u", u)
+    call get_field(flow_fields, "v", v)
+    call get_field(flow_fields, "w", w)
+    call get_field(flow_fields, "p", p)
+    call get_field(flow_fields, "mf", mf)
+    call get_field(flow_fields, "viscosity", viscosity)
+    call get_field(flow_fields, "density", density)
+    
+    ! Set to 1st boundary condition (inlet)
+    call get_inlet_profile(profile)
+    call set_bc_profile(u, profile, 1)
 
     ! Add fields to output list
     call add_field_to_outputlist(u)
@@ -217,34 +226,41 @@ module poiseuille_core
     call set_is_field_solved(w_sol, w)
     call set_is_field_solved(p_sol, p)
 
-    call add_field(u, flow_fields)
-    call add_field(v, flow_fields)
-    call add_field(w, flow_fields)
-    call add_field(p, flow_fields)
-    call add_field(p_prime, flow_fields)
-    call add_field(mf, flow_fields)
-    call add_field(viscosity, flow_fields) 
-    call add_field(density, flow_fields) 
+    ! Nullify pointers for safety
+    nullify(u)
+    nullify(v)
+    nullify(w)
+    nullify(p)
+    nullify(mf)
+    nullify(viscosity)
+    nullify(density)
 
     call timer_stop(timer_index_init)
     call timer_register_start("Solver time inc I/O", timer_index_sol)
 
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                           flow_fields)
+
+    ! This could be a postprocessing subroutine
+    call get_field(flow_fields, "u", u)
+    call get_field(flow_fields, "v", v)
+    call get_field(flow_fields, "w", w)
+    call get_field(flow_fields, "p", p)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
 
     call calc_error(par_env, u, v, p, error_L2, error_Linf)
+    nullify(u)
+    nullify(v)
+    nullify(w)
+    nullify(p)
+    nullify(mf)
+
     call write_solution(par_env, case_path, mesh, flow_fields)
 
     call timer_stop(timer_index_sol)
 
     ! Clean-up
-    deallocate (u)
-    deallocate (v)
-    deallocate (w)
-    deallocate (p)
-    deallocate (p_prime)
 
     call timer_stop(timer_index_total)
 

@@ -455,25 +455,27 @@ contains
     character(len=*), intent(in) :: field_name
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
-    integer(ccs_int), dimension(1) :: field_index
     integer(ccs_int) :: i
     character(len=:), allocatable :: msg                   !< Constructed message
 
-    field_index(1) = 0
-    do i = 1, size(flow%field_names)
-      if (trim(flow%field_names(i)) == field_name) then
-        field_index(1) = i
+    logical :: found
+    
+    do i = 1, size(flow%fields)
+      call get_field_byidx(flow, i, flow_field)
+      if (trim(flow_field%name) == field_name) then
+        found = .true.
         exit
+      else
+        found = .false.
+        nullify(flow_field)
       end if           
     end do
 
-    if (field_index(1) == 0) then
+    if (.not. found) then
       msg = "Field " // field_name // " not found"
       call error_abort(msg)
     end if
 
-    !field_index = findloc(flow%field_names , field_name)
-    flow_field => flow%fields(field_index(1))%ptr
   end subroutine get_field_byname
 
   !> Gets the field from the fluid structure specified by field_index
@@ -491,30 +493,23 @@ contains
   end subroutine get_field_byidx
   
   !< Sets the pointer to the field and the corresponding field name in the fluid structure
-  subroutine add_field(flow_field, flow)
-    integer(ccs_int) :: field_index     !< index of arrays at which to set the field pointer and name
-    class(field), target, intent(in) :: flow_field  !< the field
-    type(fluid), intent(inout) :: flow              !< the fluid structure
-    type(field_ptr) :: tmp_field_ptr
+  subroutine add_field(flow_field_ptr, flow)
+    type(field_ptr), target, intent(in) :: flow_field_ptr !< the field
+    type(fluid), intent(inout) :: flow                    !< the fluid structure
+
     logical, save :: first_call = .true.
     
     ! Handle the case when a program body is called in a loop (e.g. as part of a convergence test)
-    if ((.not. allocated(flow%fields)) .and. (.not. allocated(flow%field_names))) then
+    if (.not. allocated(flow%fields)) then
       first_call = .true.
     end if
 
     if (first_call) then
       allocate (flow%fields(1))
-      allocate (flow%field_names(1))
-      flow%fields(1)%ptr => flow_field
-      flow%field_names(1) = flow_field%name
+      flow%fields(1) = flow_field_ptr
       first_call = .false.
     else
-      tmp_field_ptr%ptr => flow_field
-      flow%fields = [ flow%fields, tmp_field_ptr]
-      flow%field_names = [flow%field_names, flow_field%name]
-      field_index = size(flow%fields) 
-      flow%fields(field_index)%ptr => flow_field
+      flow%fields = [ flow%fields, flow_field_ptr]
     end if 
     
   end subroutine add_field
@@ -543,7 +538,6 @@ contains
     type(fluid), intent(out) :: flow          !< the fluid structure
 
     allocate (flow%fields(n_fields))
-    allocate (flow%field_names(n_fields))
   end subroutine allocate_fluid_fields
 
   ! Deallocates fluid arrays
@@ -551,7 +545,6 @@ contains
     type(fluid), intent(inout) :: flow  !< The fluid structure to deallocate
 
     deallocate (flow%fields)
-    deallocate (flow%field_names)
   end subroutine dealloc_fluid_fields
 
   !> Convert advection scheme name -> ID.

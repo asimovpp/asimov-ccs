@@ -55,7 +55,7 @@ program bfs
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
+  class(field), pointer :: u, v, w, p, mf, viscosity, density
 
   integer(ccs_int) :: n_boundaries
 
@@ -149,28 +149,28 @@ program bfs
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
   call set_field_name("u", field_properties)
-  call create_field(field_properties, u)
+  call create_field(field_properties, flow_fields)
   call set_field_name("v", field_properties)
-  call create_field(field_properties, v)
+  call create_field(field_properties, flow_fields)
   call set_field_name("w", field_properties)
-  call create_field(field_properties, w)
+  call create_field(field_properties, flow_fields)
 
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("p", field_properties)
-  call create_field(field_properties, p)
+  call create_field(field_properties, flow_fields)
   call set_field_name("p_prime", field_properties)
-  call create_field(field_properties, p_prime)
+  call create_field(field_properties, flow_fields)
   call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity)
+  call create_field(field_properties, flow_fields)
   call set_field_name("density", field_properties)
-  call create_field(field_properties, density)
+  call create_field(field_properties, flow_fields)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(face_centred, field_properties)
   call set_field_name("mf", field_properties)
-  call create_field(field_properties, mf)
+  call create_field(field_properties, flow_fields)
 
   ! Read and set BC profiles
   ! Read u componemt (1st column)
@@ -178,6 +178,15 @@ program bfs
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
   profile%centre(:) = [ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real ] 
 
+  ! Get field pointers to set specific options
+  call get_field(flow_fields, "u", u)
+  call get_field(flow_fields, "v", v)
+  call get_field(flow_fields, "w", w)
+  call get_field(flow_fields, "p", p)
+  call get_field(flow_fields, "mf", mf)
+  call get_field(flow_fields, "viscosity", viscosity)
+  call get_field(flow_fields, "density", density)
+  
   ! Set to 3rd boundary condition (inlet)
   call set_bc_profile(u, profile, 3)
 
@@ -211,14 +220,14 @@ program bfs
   call set_is_field_solved(w_sol, w)
   call set_is_field_solved(p_sol, p)
 
-  call add_field(u, flow_fields)
-  call add_field(v, flow_fields)
-  call add_field(w, flow_fields)
-  call add_field(p, flow_fields)
-  call add_field(p_prime, flow_fields)
-  call add_field(mf, flow_fields)
-  call add_field(viscosity, flow_fields) 
-  call add_field(density, flow_fields)  
+  ! Finished using pointers
+  nullify(u)
+  nullify(v)
+  nullify(w)
+  nullify(p)
+  nullify(mf)
+  nullify(viscosity)
+  nullify(density)
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -233,11 +242,6 @@ program bfs
   end do
 
   ! Clean-up
-  deallocate (u)
-  deallocate (v)
-  deallocate (w)
-  deallocate (p)
-  deallocate (p_prime)
 
   call timer(end_time)
 
