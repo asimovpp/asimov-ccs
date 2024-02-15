@@ -12,7 +12,8 @@ program scalar_advection
                          pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, field_spec, &
                    equation_system, linear_solver, ccs_mesh, field_ptr, &
-                   field, upwind_field, central_field, bc_config, face_locator
+                   field, upwind_field, central_field, bc_config, face_locator, &
+                   fluid
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
@@ -23,7 +24,8 @@ program scalar_advection
   use vec, only: create_vector, set_vector_location
   use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system
-  use utils, only: update, initialise, set_size, add_field_to_outputlist, exit_print, finalise, zero
+  use utils, only: update, initialise, set_size, add_field_to_outputlist, exit_print, finalise, zero, &
+                   add_field
   use mesh_utils, only: build_square_mesh, write_mesh, compute_face_interpolation
   use meshing, only: set_mesh_object, nullify_mesh_object
   use parallel_types, only: parallel_environment
@@ -52,8 +54,6 @@ program scalar_advection
   type(matrix_spec) :: mat_properties
   type(equation_system) :: scalar_equation_system
 
-  type(field_ptr), allocatable :: output_list(:)
-
   integer(ccs_int) :: n_boundaries
   logical :: enable_cell_corrections
 
@@ -68,6 +68,8 @@ program scalar_advection
   double precision :: start_time
   double precision :: end_time
   logical :: use_mpi_splitting
+
+  type(fluid) :: flow_fields
 
   call initialise_parallel_environment(par_env)
   use_mpi_splitting = .false.
@@ -153,9 +155,9 @@ program scalar_advection
   call create_field(field_properties, mf)
 
   ! Add fields to output list
-  call add_field_to_outputlist(u, "u", output_list)
-  call add_field_to_outputlist(v, "v", output_list)
-  call add_field_to_outputlist(scalar, "scalar", output_list)
+  call add_field_to_outputlist(u)
+  call add_field_to_outputlist(v)
+  call add_field_to_outputlist(scalar)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
@@ -167,6 +169,10 @@ program scalar_advection
   call update(viscosity%values)
   call update(density%values)
 
+  call add_field(u, flow_fields)
+  call add_field(v, flow_fields)
+  call add_field(scalar, flow_fields)
+  
   ! Initialise with default values
   if (irank == par_env%root) print *, "Initialise mat"
   call initialise(mat_properties)
@@ -203,7 +209,7 @@ program scalar_advection
   call solve(scalar_solver)
 
   call write_mesh(par_env, case_path, mesh)
-  call write_solution(par_env, case_path, mesh, output_list)
+  call write_solution(par_env, case_path, mesh, flow_fields)
 
   ! Clean up
   deallocate (scalar)

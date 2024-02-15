@@ -67,8 +67,6 @@ module poiseuille_core
     class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
     type(bc_profile), allocatable :: profile
 
-    type(field_ptr), allocatable :: output_list(:)
-
     integer(ccs_int) :: n_boundaries
     logical :: enable_cell_corrections
 
@@ -182,10 +180,10 @@ module poiseuille_core
     call create_field(field_properties, mf)
 
     ! Add fields to output list
-    call add_field_to_outputlist(u, "u", output_list)
-    call add_field_to_outputlist(v, "v", output_list)
-    call add_field_to_outputlist(w, "w", output_list)
-    call add_field_to_outputlist(p, "p", output_list)
+    call add_field_to_outputlist(u)
+    call add_field_to_outputlist(v)
+    call add_field_to_outputlist(w)
+    call add_field_to_outputlist(p)
 
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
@@ -237,7 +235,7 @@ module poiseuille_core
     call calc_enstrophy(par_env, u, v, w)
 
     call calc_error(par_env, u, v, p, error_L2, error_Linf)
-    call write_solution(par_env, case_path, mesh, output_list)
+    call write_solution(par_env, case_path, mesh, flow_fields)
 
     call timer_stop(timer_index_sol)
 
@@ -247,7 +245,6 @@ module poiseuille_core
     deallocate (w)
     deallocate (p)
     deallocate (p_prime)
-    deallocate (output_list)
 
     call timer_stop(timer_index_total)
 

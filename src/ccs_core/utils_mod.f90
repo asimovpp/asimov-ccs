@@ -161,6 +161,12 @@ module utils
     module procedure get_natural_data_vec
   end interface get_natural_data
 
+  !> Generic interface to get a field from the flow
+  interface get_field
+    module procedure get_field_byname
+    module procedure get_field_byidx
+  end interface get_field
+  
   integer(ccs_int), save :: outputlist_counter = 0
 
 contains
@@ -424,31 +430,15 @@ contains
   !v Append new field to output list.
   !
   ! @note does not check for duplicates
-  subroutine add_field_to_outputlist(var, name, list)
+  subroutine add_field_to_outputlist(var)
 
     use types, only: field, field_ptr
 
     ! Arguments
-    class(field), pointer, intent(in) :: var !< The field to be added
-    character(len=*), intent(in) :: name     !< The name of the field
-    type(field_ptr), dimension(:), allocatable, intent(inout) :: list !< The output list
+    class(field), intent(inout) :: var !< The field to be added
 
-    ! Local variables
-    type(field_ptr) :: new_element
+    var%output = .true.
 
-    new_element%ptr => var
-    new_element%name = name
-    
-    if (allocated(list)) then
-      if (size(list) > outputlist_counter) then
-        list(outputlist_counter) = new_element
-      else
-        list = [list, new_element]
-      end if
-    else
-      list = [new_element]
-    end if
-    
     outputlist_counter = outputlist_counter + 1
     
   end subroutine add_field_to_outputlist
@@ -460,8 +450,7 @@ contains
   end subroutine
 
   !> Gets the field from the fluid structure specified by field_name
-  subroutine get_field(flow, field_name, flow_field)
-    !(flow, "u", u)
+  subroutine get_field_byname(flow, field_name, flow_field)
     type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
     character(len=*), intent(in) :: field_name
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
@@ -485,8 +474,22 @@ contains
 
     !field_index = findloc(flow%field_names , field_name)
     flow_field => flow%fields(field_index(1))%ptr
-  end subroutine get_field
+  end subroutine get_field_byname
 
+  !> Gets the field from the fluid structure specified by field_index
+  subroutine get_field_byidx(flow, field_index, flow_field)
+    type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
+    integer, intent(in) :: field_index
+    class(field), pointer, intent(out) :: flow_field  !< the field of interest
+
+    if (field_index > size(flow%fields)) then
+      call error_abort("Field index exceeds number of flow fields")
+    end if
+
+    flow_field => flow%fields(field_index)%ptr
+    
+  end subroutine get_field_byidx
+  
   !< Sets the pointer to the field and the corresponding field name in the fluid structure
   subroutine add_field(flow_field, flow)
     integer(ccs_int) :: field_index     !< index of arrays at which to set the field pointer and name

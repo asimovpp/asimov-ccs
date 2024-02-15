@@ -61,8 +61,6 @@ contains
     type(field_spec) :: field_properties
     class(field), allocatable, target :: u, v, w, p, p_prime, mf, viscosity, density
 
-    type(field_ptr), allocatable :: output_list(:)
-
     integer(ccs_int) :: n_boundaries
 
     integer(ccs_int) :: it_start, it_end
@@ -176,10 +174,10 @@ contains
     call create_field(field_properties, mf)
    
     ! Add fields to output list
-    call add_field_to_outputlist(u, "u", output_list)
-    call add_field_to_outputlist(v, "v", output_list)
-    call add_field_to_outputlist(w, "w", output_list)
-    call add_field_to_outputlist(p, "p", output_list)
+    call add_field_to_outputlist(u)
+    call add_field_to_outputlist(v)
+    call add_field_to_outputlist(w)
+    call add_field_to_outputlist(p)
 
     ! Write gradients to solution file
     write_gradients = .true.
@@ -232,7 +230,7 @@ contains
       call calc_enstrophy(par_env, u, v, w)
 
       if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-        call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+        call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
       end if
     end do
 
@@ -242,7 +240,6 @@ contains
     deallocate (w)
     deallocate (p)
     deallocate (p_prime)
-    deallocate (output_list)
 
     call reset_timestepping()
     call reset_outputlist_counter()
