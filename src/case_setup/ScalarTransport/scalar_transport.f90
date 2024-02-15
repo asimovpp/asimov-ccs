@@ -16,7 +16,7 @@ program scalar_transport
                        ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, field_elt, fluid
+                   vector_spec, ccs_vector, field_ptr, fluid
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
@@ -53,8 +53,8 @@ program scalar_transport
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: mf, viscosity, density
-  type(field_elt), allocatable, target :: field_list(:)
+  class(field), pointer :: mf, viscosity, density
+  type(field_ptr), allocatable :: field_list(:)
   
   integer(ccs_int) :: n_boundaries
 
@@ -149,7 +149,7 @@ program scalar_transport
     end if
     call set_field_type(variable_types(i), field_properties)
     call set_field_name(variable_names(i), field_properties)
-    call create_field(field_properties, field_list(i)%f)
+    call create_field(field_properties, field_list(i)%ptr)
     field_list(i)%name = variable_names(i)
   end do
   if (is_root(par_env)) then
@@ -166,7 +166,7 @@ program scalar_transport
 
   do i = 1, size(field_list)
     if ((field_list(i)%name == "whisky") .or. (field_list(i)%name == "water")) then
-      call add_field_to_outputlist(field_list(i)%f)
+      call add_field_to_outputlist(field_list(i)%ptr)
     end if
   end do
 
@@ -175,13 +175,13 @@ program scalar_transport
   call initialise_case(field_list, mf, viscosity, density) 
 
   do i = 1, size(field_list)
-    call update(field_list(i)%f%values)
+    call update(field_list(i)%ptr%values)
   end do
   call update(mf%values)
 
   ! ! XXX: This should get incorporated as part of create_field subroutines
   do i = 1, size(field_list)
-    call add_field(field_list(i)%f, flow_fields)
+    call add_field(field_list(i)%ptr, flow_fields)
   end do
 
   call add_field(density, flow_fields)
@@ -219,7 +219,7 @@ program scalar_transport
   call dealloc_fluid_fields(flow_fields)
 
   do i = 1, size(field_list)
-    deallocate(field_list(i)%f)
+    deallocate(field_list(i)%ptr)
   end do
   deallocate(field_list)
   deallocate (mf)
@@ -339,7 +339,7 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    type(field_elt), dimension(:), intent(inout) :: field_list
+    type(field_ptr), dimension(:), intent(inout) :: field_list
     class(field), intent(inout) :: mf, viscosity, density
 
     ! Local variables
@@ -442,9 +442,9 @@ contains
 
     do i = 1, size(field_list)
       if (field_list(i)%name == "whisky") then
-        call set_values(whisky_vals, field_list(i)%f%values)
+        call set_values(whisky_vals, field_list(i)%ptr%values)
       else if (field_list(i)%name == "water") then
-        call set_values(water_vals, field_list(i)%f%values)
+        call set_values(water_vals, field_list(i)%ptr%values)
       else
         print *, "Unrecognised field name ", field_list(i)%name
       end if

@@ -38,7 +38,7 @@ contains
     implicit none
 
     type(field_spec), intent(in) :: field_properties !< Field descriptor
-    class(field), allocatable, intent(out) :: phi    !< The field being constructed
+    class(field), pointer, intent(out) :: phi    !< The field being constructed
 
     associate (ccs_config_file => field_properties%ccs_config_file, &
                vec_properties => field_properties%vec_properties, &
@@ -89,7 +89,7 @@ contains
     integer, intent(in) :: field_type               !< Identifier for what kind of field
     integer(ccs_int), intent(in) :: n_boundaries    !< Mesh boundary count
     logical, intent(in) :: store_residuals          !< Wether or not residual field needs to be stored (and allocated)
-    class(field), allocatable, intent(out) :: phi   !< The field being constructed
+    class(field), pointer, intent(out) :: phi       !< The field being constructed
 
     if (field_type == face_centred) then
       call dprint("Create face field")
