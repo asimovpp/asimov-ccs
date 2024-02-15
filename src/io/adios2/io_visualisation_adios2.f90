@@ -166,14 +166,14 @@ contains
 
           ! y-gradient
           call timer_start(timer_index_nat_data)
-          call get_natural_data(par_env, mesh, phi%x_gradients, data)
+          call get_natural_data(par_env, mesh, phi%y_gradients, data)
           call timer_stop(timer_index_nat_data)
           data_name = "/d" // trim(phi%name) // "dy"
           call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
           ! z-gradient
           call timer_start(timer_index_nat_data)
-          call get_natural_data(par_env, mesh, phi%x_gradients, data)
+          call get_natural_data(par_env, mesh, phi%z_gradients, data)
           call timer_stop(timer_index_nat_data)
           data_name = "/d" // trim(phi%name) // "dz"
           call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
