@@ -331,13 +331,6 @@ contains
     type(cell_locator) :: loc_p
     type(vector_values) :: u_vals, v_vals, w_vals
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
-
-    print *, u%name
-    print *, v%name
-    print *, w%name
-    print *, mf%name
-    print *, viscosity%name
-    print *, density%name
     
     ! Set alias
     call get_local_num_cells(n_local)
