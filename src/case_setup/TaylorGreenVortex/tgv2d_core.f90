@@ -59,7 +59,7 @@ contains
     type(vector_spec) :: vec_properties
 
     type(field_spec) :: field_properties
-    class(field), pointer :: u, v, w, p, p_prime, mf, viscosity, density
+    class(field), pointer :: u, v, w, p, mf, viscosity, density
 
     integer(ccs_int) :: n_boundaries
 
@@ -252,11 +252,6 @@ contains
     end do
 
     ! Clean-up
-    deallocate (u)
-    deallocate (v)
-    deallocate (w)
-    deallocate (p)
-    deallocate (p_prime)
 
     call reset_timestepping()
     call reset_outputlist_counter()
