@@ -243,12 +243,6 @@ module types
     character(len=:), allocatable :: name    !< Name of the field
   end type field_ptr
 
-  !> Type for storing an allocatable field (for use in arrays, etc.)
-  type, public :: field_elt
-    class(field), allocatable :: f           !< The field data
-    character(len=:), allocatable :: name    !< Name of the field
-  end type field_elt
-
   !v Cell locator
   !
   ! Lightweight type to provide easy cell location based on a cell's cell connectivity.
@@ -293,8 +287,6 @@ module types
   ! Type for accumulating all the fluid data
   type, public :: fluid
     type(field_ptr), dimension(:), allocatable :: fields
-    integer(ccs_int), dimension(:), allocatable :: field_ids
-    character(len=20), dimension(:), allocatable :: field_names
   end type fluid
 
   !>  IO environment type

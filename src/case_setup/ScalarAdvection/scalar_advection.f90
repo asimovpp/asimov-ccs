@@ -25,7 +25,7 @@ program scalar_advection
   use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system
   use utils, only: update, initialise, set_size, add_field_to_outputlist, exit_print, finalise, zero, &
-                   add_field
+                   get_field
   use mesh_utils, only: build_square_mesh, write_mesh, compute_face_interpolation
   use meshing, only: set_mesh_object, nullify_mesh_object
   use parallel_types, only: parallel_environment
@@ -58,8 +58,8 @@ program scalar_advection
   logical :: enable_cell_corrections
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: u, v, mf, viscosity, density
-  class(field), allocatable, target :: scalar
+  class(field), pointer :: u, v, mf, viscosity, density
+  class(field), pointer :: scalar
 
   integer(ccs_int) :: direction = 0 ! pass zero for "direction" of scalar field when computing fluxes
   integer(ccs_int) :: irank ! MPI rank ID
@@ -134,25 +134,32 @@ program scalar_advection
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
   call set_field_name("u", field_properties)
-  call create_field(field_properties, u)
+  call create_field(field_properties, flow_fields)
   call set_field_name("v", field_properties)
-  call create_field(field_properties, v)
+  call create_field(field_properties, flow_fields)
 
   call set_field_name("scalar", field_properties)
-  call create_field(field_properties, scalar)
+  call create_field(field_properties, flow_fields)
 
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity) 
+  call create_field(field_properties, flow_fields) 
   call set_field_name("density", field_properties)
-  call create_field(field_properties, density) 
+  call create_field(field_properties, flow_fields) 
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(face_centred, field_properties)
   call set_field_name("mf", field_properties)
-  call create_field(field_properties, mf)
+  call create_field(field_properties, flow_fields)
+
+  call get_field(flow_fields, "u", u)
+  call get_field(flow_fields, "v", v)
+  call get_field(flow_fields, "mf", mf)
+  call get_field(flow_fields, "viscosity", viscosity)
+  call get_field(flow_fields, "density", density)
+  call get_field(flow_fields, "scalar", scalar)
 
   ! Add fields to output list
   call add_field_to_outputlist(u)
@@ -168,10 +175,6 @@ program scalar_advection
   call update(mf%values)
   call update(viscosity%values)
   call update(density%values)
-
-  call add_field(u, flow_fields)
-  call add_field(v, flow_fields)
-  call add_field(scalar, flow_fields)
   
   ! Initialise with default values
   if (irank == par_env%root) print *, "Initialise mat"
@@ -212,13 +215,15 @@ program scalar_advection
   call write_solution(par_env, case_path, mesh, flow_fields)
 
   ! Clean up
-  deallocate (scalar)
-  deallocate (source)
-  deallocate (M)
-  deallocate (mf)
-  deallocate (viscosity)
-  deallocate (density)
-  deallocate (scalar_solver)
+  deallocate(source)
+  deallocate(M)
+  deallocate(scalar_solver)
+  nullify(u)
+  nullify(v)
+  nullify(mf)
+  nullify(viscosity)
+  nullify(density)
+  nullify(scalar)
 
   call timer(end_time)
 

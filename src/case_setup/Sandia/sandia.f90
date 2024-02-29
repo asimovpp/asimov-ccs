@@ -57,8 +57,8 @@ program sandia
   type(vector_spec):: vec_properties
 
   type(field_spec):: field_properties
-  class(field), allocatable, target:: u, v, w, p, p_prime, mf, viscosity, density
-  class(field), allocatable, target:: scalar_field
+  class(field), pointer :: u, v, w, p, mf, viscosity, density
+  class(field), pointer :: scalar_field
 
   integer(ccs_int):: n_boundaries
 
@@ -162,32 +162,41 @@ program sandia
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_upwind, field_properties)
   call set_field_name("u", field_properties)
-  call create_field(field_properties, u)
+  call create_field(field_properties, flow_fields)
   call set_field_name("v", field_properties)
-  call create_field(field_properties, v)
+  call create_field(field_properties, flow_fields)
   call set_field_name("w", field_properties)
-  call create_field(field_properties, w)
+  call create_field(field_properties, flow_fields)
 
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("p", field_properties)
-  call create_field(field_properties, p)
+  call create_field(field_properties, flow_fields)
   call set_field_name("p_prime", field_properties)
-  call create_field(field_properties, p_prime)
+  call create_field(field_properties, flow_fields)
   call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity)
+  call create_field(field_properties, flow_fields)
   call set_field_name("density", field_properties)
-  call create_field(field_properties, density)
+  call create_field(field_properties, flow_fields)
 
   call set_field_name("scalar", field_properties)
-  call create_field(field_properties, scalar_field)
+  call create_field(field_properties, flow_fields)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(face_centred, field_properties)
   call set_field_name("mf", field_properties)
-  call create_field(field_properties, mf)
+  call create_field(field_properties, flow_fields)
 
+  call get_field(flow_fields, "u", u)
+  call get_field(flow_fields, "v", v)
+  call get_field(flow_fields, "w", w)
+  call get_field(flow_fields, "w", p)
+  call get_field(flow_fields, "mf", mf)
+  call get_field(flow_fields, "viscosity", viscosity)
+  call get_field(flow_fields, "density", density)
+  call get_field(flow_fields, "scalar", scalar_field)
+  
   ! Add fields to output list
   call add_field_to_outputlist(u)
   call add_field_to_outputlist(v)
@@ -221,15 +230,15 @@ program sandia
   call set_is_field_solved(w_sol, w)
   call set_is_field_solved(p_sol, p)
 
-  call add_field(u, flow_fields)
-  call add_field(v, flow_fields)
-  call add_field(w, flow_fields)
-  call add_field(p, flow_fields)
-  call add_field(p_prime, flow_fields)
-  call add_field(mf, flow_fields)
-  call add_field(viscosity, flow_fields) 
-  call add_field(density, flow_fields)  
-  call add_field(scalar_field, flow_fields)
+  ! Nullify pointers for safety
+  nullify(u)
+  nullify(v)
+  nullify(w)
+  nullify(p)
+  nullify(mf)
+  nullify(viscosity)
+  nullify(density)
+  nullify(scalar_field)
 
   call timer_stop(timer_index_init)
   call timer_register("I/O time for solution", timer_index_io_sol)
@@ -260,11 +269,6 @@ program sandia
   call timer_stop(timer_index_sol)
 
   ! Clean-up
-  deallocate (u)
-  deallocate (v)
-  deallocate (w)
-  deallocate (p)
-  deallocate (p_prime)
 
   call timer_stop(timer_index_total)
 
