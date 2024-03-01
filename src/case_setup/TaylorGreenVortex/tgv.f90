@@ -290,10 +290,10 @@ program tgv
   call timer_stop(timer_index_sol)
 
   ! Clean-up
-  deallocate (u)
-  deallocate (v)
-  deallocate (w)
-  deallocate (p)
+  nullify(u)
+  nullify(v)
+  nullify(w)
+  nullify(p)
 
   call timer_stop(timer_index_total)
 
