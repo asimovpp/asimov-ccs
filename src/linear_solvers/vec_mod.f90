@@ -54,7 +54,7 @@ module vec
       class(ccs_vector), intent(inout) :: v !< the vector.
     end subroutine set_vector_values
 
-    module subroutine clear_vector_values_entries(val_dat)
+    pure module subroutine clear_vector_values_entries(val_dat)
       type(vector_values), intent(inout) :: val_dat
     end subroutine clear_vector_values_entries
 

@@ -372,7 +372,7 @@ contains
 
   end function
 
-  module subroutine clear_vector_values_entries(val_dat)
+  pure module subroutine clear_vector_values_entries(val_dat)
     type(vector_values), intent(inout) :: val_dat
 
     val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
