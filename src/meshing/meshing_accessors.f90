@@ -663,7 +663,7 @@ contains
   end subroutine get_vertex_neighbour_boundary_status
 
   !> Returns the boundary status of a face
-  pure module subroutine get_face_boundary_status(loc_f, is_boundary)
+  module subroutine get_face_boundary_status(loc_f, is_boundary)
     type(face_locator), intent(in) :: loc_f !< the face locator object.
     logical, intent(out) :: is_boundary     !< the boundary status of the neighbour.
 
