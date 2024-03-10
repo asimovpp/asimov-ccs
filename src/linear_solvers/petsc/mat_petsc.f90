@@ -265,7 +265,7 @@ contains
   end subroutine
 
   !> Clear working set of values to begin new working set.
-  module subroutine clear_matrix_values_entries(val_dat)
+  pure module subroutine clear_matrix_values_entries(val_dat)
     type(matrix_values), intent(inout) :: val_dat !< Working set object
 
     val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator

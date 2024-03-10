@@ -65,7 +65,7 @@ module mat
     end subroutine
 
     !> Clear working set of values to begin new working set.
-    module subroutine clear_matrix_values_entries(val_dat)
+    pure module subroutine clear_matrix_values_entries(val_dat)
 
       ! Arguments
       type(matrix_values), intent(inout) :: val_dat !< Working set object
