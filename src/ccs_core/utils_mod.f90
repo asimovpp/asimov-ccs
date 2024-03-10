@@ -22,6 +22,7 @@ module utils
   use kinds, only: ccs_int, ccs_real
   use types, only: field, fluid, field_ptr
   use constants, only: cell_centred_central, cell_centred_upwind
+  use error_codes
 
   implicit none
 
@@ -327,7 +328,8 @@ contains
       call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
-      call error_abort("ERROR: Unknown type")
+      ! call error_abort("ERROR: Unknown type")
+      error stop unknown_type
     end select
 
     ek_global = ek_global / volume_global
@@ -410,8 +412,9 @@ contains
       call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
-      call error_abort("ERROR: Unknown type")
-    end select
+      ! call error_abort("ERROR: Unknown type")
+    error stop unknown_type
+  end select
 
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
@@ -472,8 +475,9 @@ contains
     end do
 
     if (.not. found) then
-      msg = "Field " // field_name // " not found"
-      call error_abort(msg)
+      ! msg = "Field " // field_name // " not found"
+      ! call error_abort(msg)
+      error stop field_not_found
     end if
 
   end subroutine get_field_byname
@@ -485,7 +489,8 @@ contains
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     if (field_index > size(flow%fields)) then
-      call error_abort("Field index exceeds number of flow fields")
+      ! call error_abort("Field index exceeds number of flow fields")
+      error stop field_index_exceeded
     end if
 
     flow_field => flow%fields(field_index)%ptr
@@ -548,7 +553,7 @@ contains
   end subroutine dealloc_fluid_fields
 
   !> Convert advection scheme name -> ID.
-  integer(ccs_int) function get_scheme_id(scheme_name)
+  pure integer(ccs_int) function get_scheme_id(scheme_name)
 
     character(len=*), intent(in) :: scheme_name
     integer(ccs_int) :: id
@@ -560,14 +565,15 @@ contains
     else if (scheme == "upwind") then
        id = cell_centred_upwind
     else
-       call error_abort("Uknown scheme "//scheme)
+      !  call error_abort("Uknown scheme "//scheme)
+      error stop unknown_scheme
     end if
 
     get_scheme_id = id
   end function get_scheme_id
 
   !> Convert advection scheme ID -> name.
-  function get_scheme_name(scheme_id) result(scheme_name)
+  pure function get_scheme_name(scheme_id) result(scheme_name)
 
     integer(ccs_int), intent(in) :: scheme_id
     character(len=:), allocatable :: scheme_name
@@ -577,7 +583,8 @@ contains
     else if (scheme_id == cell_centred_upwind) then
        scheme_name = "upwind"
     else
-       call error_abort("Uknown scheme ID")
+      !  call error_abort("Uknown scheme ID")
+      error stop unknown_scheme
     end if
 
   end function get_scheme_name
