@@ -83,7 +83,7 @@ module mat
     end subroutine set_matrix_values_entry
 
     !> Set the storage mode.
-    module subroutine set_matrix_values_mode(mode, val_dat)
+    pure module subroutine set_matrix_values_mode(mode, val_dat)
 
       ! Arguments
       integer(ccs_int), intent(in) :: mode          !< The storage mode
@@ -107,7 +107,7 @@ module mat
     end subroutine set_matrix_values_col
 
     !> Set number of rows in working set specifier
-    module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
+    pure module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
 
       ! Arguments
       integer(ccs_int), intent(in) :: nrows               !< Number of rows to be used in the working set
@@ -116,7 +116,7 @@ module mat
     end subroutine set_matrix_values_spec_nrows
 
     !> Set number of columns in working set specifier
-    module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
+    pure module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
 
       ! Arguments
       integer(ccs_int), intent(in) :: ncols               !< Number of columns to be used in the working set
@@ -186,7 +186,7 @@ module mat
     end subroutine
 
     !> Constructor for default matrix values
-    module subroutine initialise_matrix(mat_properties)
+    pure module subroutine initialise_matrix(mat_properties)
       type(matrix_spec), intent(inout) :: mat_properties !< the initialised matrix values
     end subroutine initialise_matrix
 
@@ -198,7 +198,7 @@ module mat
     end subroutine
 
     !> Setter for matrix number of non-zeros
-    module subroutine set_nnz(nnz, mat_properties)
+    pure module subroutine set_nnz(nnz, mat_properties)
       integer(ccs_int), intent(in) :: nnz                !< the number of non-zeros
       type(matrix_spec), intent(inout) :: mat_properties !< the matrix data object
     end subroutine
