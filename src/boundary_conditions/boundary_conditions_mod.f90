@@ -11,6 +11,7 @@ module boundary_conditions
   use fortran_yaml_c_interface, only: parse
   use read_config, only: get_bc_field
   use bc_constants
+  use error_codes
 
   implicit none
 
@@ -47,7 +48,7 @@ contains
   end subroutine read_bc_config
 
   !> Sets the appropriate integer values for strings with given by the key-value pair attribute, value
-  subroutine set_bc_type(boundary_index, bc_type, bcs)
+  pure subroutine set_bc_type(boundary_index, bc_type, bcs)
     integer(ccs_int), intent(in) :: boundary_index !< Index of the boundary within bcs struct arrays
     character(len=*), intent(in) :: bc_type        !< string giving the bc type
     type(bc_config), intent(inout) :: bcs          !< bcs struct
@@ -68,13 +69,14 @@ contains
     case ("profile")
       bcs%bc_types(boundary_index) = bc_type_profile
     case default
-      call error_abort("invalid string. received " // bc_type)
+      ! call error_abort("invalid string. received " // bc_type)
+      error stop invalid_bc_name
     end select
 
   end subroutine set_bc_type
 
   !> Sets the bc struct's id field to the appropriate integer value
-  subroutine set_bc_id(boundary_index, name, bcs)
+  pure subroutine set_bc_id(boundary_index, name, bcs)
     integer(ccs_int), intent(in) :: boundary_index !< index of the boundary within the bc struct's arrays
     character(len=*), intent(in) :: name           !< string giving the bc name
     type(bc_config), intent(inout) :: bcs          !< the bcs struct
@@ -104,8 +106,10 @@ contains
     case ("other5")
       bcs%ids(boundary_index) = 11
     case default
-      call error_abort("unexpected bc name " // name)
+      ! call error_abort("unexpected bc name " // name)
+      error stop invalid_bc_id
     end select
+
   end subroutine set_bc_id
 
   !> Sets the bc struct's value field to the given real value
@@ -118,7 +122,7 @@ contains
   end subroutine set_bc_real_value
 
   !> Allocates arrays of the appropriate size for the name, type and value of the bcs
-  subroutine allocate_bc_arrays(n_boundaries, bcs)
+  pure subroutine allocate_bc_arrays(n_boundaries, bcs)
     integer(ccs_int), intent(in) :: n_boundaries !< the number of boundaries
     type(bc_config), intent(inout) :: bcs        !< the bc struct
 
@@ -137,7 +141,7 @@ contains
   end subroutine allocate_bc_arrays
 
   !> Gets the index of the given boundary condition within the bc struct arrays
-  subroutine get_bc_index(phi, index_nb, index_bc)
+  pure subroutine get_bc_index(phi, index_nb, index_bc)
     class(field), intent(in) :: phi           !< The field whose bc we're getting
     integer(ccs_int), intent(in) :: index_nb  !< The index of the neighbouring boundary cell
     integer(ccs_int), intent(out) :: index_bc !< The index of the appropriate boundary in the bc struct
@@ -147,7 +151,8 @@ contains
 
     index_tmp = findloc(phi%bcs%ids, -index_nb)
     if (index_tmp(1) == 0) then
-      call error_abort("bc index not found. searching for " // str(-index_nb, "(I0)"))
+      ! call error_abort("bc index not found. searching for " // str(-index_nb, "(I0)"))
+      error stop bc_index_not_found
     end if
     
     index_bc = index_tmp(1)

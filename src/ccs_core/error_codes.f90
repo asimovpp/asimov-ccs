@@ -15,7 +15,9 @@ module error_codes
   integer, public, parameter :: unknown_type = 101
   integer, public, parameter :: field_not_found = 102
   integer, public, parameter :: field_index_exceeded = 103 ! Field index exceeds number of flow fields
-
+  integer, public, parameter :: invalid_bc_name = 104 
+  integer, public, parameter :: invalid_bc_id = 105 
+  integer, public, parameter :: bc_index_not_found = 106 
 
 
 
