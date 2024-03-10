@@ -18,6 +18,8 @@ module error_codes
   integer, public, parameter :: invalid_bc_name = 104 
   integer, public, parameter :: invalid_bc_id = 105 
   integer, public, parameter :: bc_index_not_found = 106 
+  integer, public, parameter :: no_access_to_cell = 107
+  integer, public, parameter :: self_not_neighbour = 108 ! attempted to set self as neighbour
 
 
 

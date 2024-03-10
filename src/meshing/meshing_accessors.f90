@@ -2,6 +2,7 @@ submodule(meshing) meshing_accessors
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, str
+  use error_codes
 
   implicit none
 
@@ -295,7 +296,7 @@ contains
   end subroutine set_face_interpolation
 
   !v Retrieves face interpolation from a face locator
-  module subroutine get_face_interpolation(loc_f, interpol_factor)
+  pure module subroutine get_face_interpolation(loc_f, interpol_factor)
     type(face_locator), intent(in) :: loc_f        !< the face locator object
     real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
 
@@ -324,7 +325,7 @@ contains
   !
   !  Creates the association between a mesh and cell index, storing it in the
   !  returned cell locator object.
-  module subroutine create_cell_locator(index_p, loc_p)
+  pure module subroutine create_cell_locator(index_p, loc_p)
     integer(ccs_int), intent(in) :: index_p    !< the cell index.
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
 
@@ -341,9 +342,10 @@ contains
       call get_local_num_cells(local_num_cells)
       ! XXX: could be made pure without error check - would allow
       ! a number of subroutines that call this to also become pure
-      msg = "ERROR: trying to access cell I don't have access to." // str(index_p) // " " //  &
-            str(local_num_cells) // " " // str(total_num_cells)
-      call error_abort(msg)
+      ! msg = "ERROR: trying to access cell I don't have access to." // str(index_p) // " " //  &
+      !       str(local_num_cells) // " " // str(total_num_cells)
+      ! call error_abort(msg)
+      error stop no_access_to_cell
     end if
   end subroutine create_cell_locator
 
@@ -351,7 +353,7 @@ contains
   !
   !  Creates the association between a neighbour cell F relative to cell P, i.e. to
   !  access the nth neighbour of cell i.
-  module subroutine create_face_neighbour_locator(loc_p, nb_counter, loc_nb)
+  pure module subroutine create_face_neighbour_locator(loc_p, nb_counter, loc_nb)
     type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell
     !< whose neighbour is being accessed.
     integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
@@ -376,7 +378,8 @@ contains
     associate (i => loc_nb%index_p, &
                j => loc_nb%nb_counter)
       if (mesh%topo%nb_indices(j, i) == i) then
-        call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
+        ! call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
+        error stop self_not_neighbour
       end if
     end associate
   end subroutine create_face_neighbour_locator
@@ -385,7 +388,7 @@ contains
   !
   !  Creates the association between a neighbour cell F relative to cell P via a vertex, i.e. to
   !  access the nth vertex neighbour of cell i.
-  module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
+  pure module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
     type(cell_locator), intent(in) :: loc_p
     integer(ccs_int), intent(in) :: vert_nb_counter
     type(vertex_neighbour_locator), intent(out) :: loc_nb
@@ -397,7 +400,8 @@ contains
     associate (i => loc_nb%index_p, &
                j => loc_nb%vert_nb_counter)
       if (mesh%topo%vert_nb_indices(j, i) == i) then
-        call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // " " // str(j))
+        ! call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // " " // str(j))
+        error stop self_not_neighbour
       end if
     end associate
   end subroutine create_vertex_neighbour_locator
@@ -659,7 +663,7 @@ contains
   end subroutine get_vertex_neighbour_boundary_status
 
   !> Returns the boundary status of a face
-  module subroutine get_face_boundary_status(loc_f, is_boundary)
+  pure module subroutine get_face_boundary_status(loc_f, is_boundary)
     type(face_locator), intent(in) :: loc_f !< the face locator object.
     logical, intent(out) :: is_boundary     !< the boundary status of the neighbour.
 
@@ -783,7 +787,7 @@ contains
     end associate
   end subroutine get_face_local_index
 
-  subroutine get_neighbour_cell_locator(loc_nb, loc_p)
+  pure subroutine get_neighbour_cell_locator(loc_nb, loc_p)
     type(neighbour_locator), intent(in) :: loc_nb
     type(cell_locator), intent(out) :: loc_p
 

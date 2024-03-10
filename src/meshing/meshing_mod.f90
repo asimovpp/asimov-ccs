@@ -160,7 +160,7 @@ module meshing
     !
     !  Creates the association between a mesh and cell index, storing it in the
     !  returned cell locator object.
-    module subroutine create_cell_locator(index_p, loc_p)
+    pure module subroutine create_cell_locator(index_p, loc_p)
       integer(ccs_int), intent(in) :: index_p    !< the cell index.
       type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with teh mesh.
     end subroutine create_cell_locator
@@ -179,7 +179,7 @@ module meshing
     !
     !  Creates the association between a neighbour cell F relative to cell P, i.e. to
     !  access the nth neighbour of cell i.
-    module subroutine create_face_neighbour_locator(loc_p, nb_counter, loc_nb)
+    pure module subroutine create_face_neighbour_locator(loc_p, nb_counter, loc_nb)
       type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell whose neighbour is being accessed.
       integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
       type(neighbour_locator), intent(out) :: loc_nb !< the neighbour locator object linking a cell-relative index with the mesh.
@@ -189,7 +189,7 @@ module meshing
     !
     !  Creates the association between a neighbour cell F relative to cell P via a specified vertex, i.e. to
     !  access the nth vertex neighbour of cell i.
-    module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
+    pure module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
       type(cell_locator), intent(in) :: loc_p           !< the cell locator object of the cell whose neighbour is being accessed.
       integer(ccs_int), intent(in) :: vert_nb_counter   !< the cell-local index of the neighbour.
       type(vertex_neighbour_locator), intent(out) :: loc_nb    !< the neighbour locator object linking a cell-relative index with the mesh.
@@ -564,7 +564,7 @@ module meshing
     end subroutine set_face_interpolation
 
     !v Retrieves face interpolation from a face locator
-    module subroutine get_face_interpolation(loc_f, interpol_factor)
+    pure module subroutine get_face_interpolation(loc_f, interpol_factor)
       type(face_locator), intent(in) :: loc_f        !< the face locator object
       real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
     end subroutine get_face_interpolation
