@@ -205,7 +205,7 @@ contains
   end subroutine
 
   !> Convert integer to string.
-  function int2str(in_int, format_str) result(out_string)
+  pure function int2str(in_int, format_str) result(out_string)
     integer(ccs_int), intent(in) :: in_int           !< integer to convert
     character(*), optional, intent(in) :: format_str !< format string to use
     character(:), allocatable :: out_string          !< formatted string from input integer
@@ -221,7 +221,7 @@ contains
   end function
 
   !> Convert real to string.
-  function real2str(in_real, format_str) result(out_string)
+  pure function real2str(in_real, format_str) result(out_string)
     real(ccs_real), intent(in) :: in_real            !< real number to convert
     character(*), optional, intent(in) :: format_str !< format string to use
     character(:), allocatable :: out_string          !< formatted string from input real
@@ -237,7 +237,7 @@ contains
   end function
 
   !> Convert bool to string.
-  function bool2str(in_bool) result(out_string)
+  pure function bool2str(in_bool) result(out_string)
     logical, intent(in) :: in_bool          !< bool to convert
     character(:), allocatable :: out_string !< string from input bool
 
@@ -515,7 +515,7 @@ contains
   end subroutine add_field
 
   !> Gets the solve flag for a field
-  subroutine get_is_field_solved(phi, solve)
+  pure subroutine get_is_field_solved(phi, solve)
     class(field), intent(in) :: phi !< Field variable
     logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
@@ -524,7 +524,7 @@ contains
   end subroutine get_is_field_solved
 
   !> Sets the solve flag for a field
-  subroutine set_is_field_solved(solve, phi)
+  pure subroutine set_is_field_solved(solve, phi)
     logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
     type(field), intent(inout) :: phi !< Field variable
 
