@@ -8,7 +8,7 @@ submodule(vec) vec_common
 contains
 
   !> Constructor for default vector values
-  module subroutine initialise_vector(vec_properties)
+  pure module subroutine initialise_vector(vec_properties)
     type(vector_spec), intent(inout) :: vec_properties !< the initialised vector values
     vec_properties%par_env => null()
     vec_properties%mesh => null()
@@ -26,7 +26,7 @@ contains
   end subroutine set_vector_size
 
   !> Set vector values to be located at either cell-centre or face
-  module subroutine set_vector_location(loc, vec_properties)
+  pure module subroutine set_vector_location(loc, vec_properties)
     integer(ccs_int), intent(in) :: loc
     type(vector_spec), intent(inout) :: vec_properties
 
@@ -43,7 +43,7 @@ contains
     val_dat%values(:) = 0.0_ccs_real
   end subroutine create_vector_values
 
-  module subroutine set_vector_values_mode(mode, val_dat)
+  pure module subroutine set_vector_values_mode(mode, val_dat)
     integer(ccs_int), intent(in) :: mode
     type(vector_values), intent(inout) :: val_dat
 
