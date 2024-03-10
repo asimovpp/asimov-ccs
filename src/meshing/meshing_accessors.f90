@@ -339,7 +339,8 @@ contains
     call get_total_num_cells(total_num_cells)
     if (index_p > total_num_cells) then
       call get_local_num_cells(local_num_cells)
-      ! XXX: could be made pure with error check
+      ! XXX: could be made pure without error check - would allow
+      ! a number of subroutines that call this to also become pure
       msg = "ERROR: trying to access cell I don't have access to." // str(index_p) // " " //  &
             str(local_num_cells) // " " // str(total_num_cells)
       call error_abort(msg)
