@@ -41,7 +41,7 @@ module timestepping
     end subroutine reset_timestepping
 
     !> Returns the expected theoretical order of the method
-    module subroutine get_theoretical_order(order)
+    pure module subroutine get_theoretical_order(order)
       real(ccs_real), intent(out) :: order
     end subroutine
 

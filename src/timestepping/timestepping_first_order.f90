@@ -20,7 +20,7 @@ contains
 
   end subroutine reset_timestepping
 
-  module subroutine get_theoretical_order(order)
+  pure module subroutine get_theoretical_order(order)
     real(ccs_real), intent(out) :: order
 
     order = theoretical_order
