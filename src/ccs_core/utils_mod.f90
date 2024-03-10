@@ -459,7 +459,7 @@ contains
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     integer(ccs_int) :: i
-    character(len=:), allocatable :: msg                   !< Constructed message
+    ! character(len=:), allocatable :: msg                   !< Constructed message
 
     logical :: found
     
