@@ -135,7 +135,7 @@ module fv
     end function calc_mass_flux_no_uvw
 
     !> Calculates the row and column indices from flattened vector index. Assumes square mesh
-    module subroutine calc_cell_coords(index, cps, row, col)
+    pure module subroutine calc_cell_coords(index, cps, row, col)
       integer(ccs_int), intent(in) :: index !< cell index
       integer(ccs_int), intent(in) :: cps   !< number of cells per side
       integer(ccs_int), intent(out) :: row  !< cell row within mesh
@@ -170,7 +170,7 @@ module fv
     end subroutine
 
     !> Linear interpolate of BC profile 
-    module subroutine get_value_from_bc_profile(x, profile, bc_value)
+    pure module subroutine get_value_from_bc_profile(x, profile, bc_value)
         real(ccs_real), dimension(:), intent(in) :: x !< Location of the interpolation
         type(bc_profile), intent(in) :: profile       !< boundary condition profile
         real(ccs_real), intent(out) :: bc_value       !< Interpolated value
