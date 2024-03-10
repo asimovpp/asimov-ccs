@@ -332,7 +332,7 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: total_num_cells
 
-    character(len=:), allocatable :: msg
+    ! character(len=:), allocatable :: msg
 
     loc_p%index_p = index_p
 
