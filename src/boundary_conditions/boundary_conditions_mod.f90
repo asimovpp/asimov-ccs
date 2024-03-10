@@ -109,7 +109,7 @@ contains
   end subroutine set_bc_id
 
   !> Sets the bc struct's value field to the given real value
-  subroutine set_bc_real_value(boundary_index, val, bcs)
+  pure subroutine set_bc_real_value(boundary_index, val, bcs)
     integer(ccs_int), intent(in) :: boundary_index !< index of the boundary within the bc struct's arrays
     real(ccs_real), intent(in) :: val              !< the value to set
     type(bc_config), intent(inout) :: bcs          !< the bcs struct
@@ -154,7 +154,7 @@ contains
   end subroutine get_bc_index
 
   !> Set boundary condition profile to the index_bc boundary
-  subroutine set_bc_profile(phi, profile, index_bc)
+  pure subroutine set_bc_profile(phi, profile, index_bc)
     class(field), intent(inout) :: phi           !< The field whose profile we are setting
     type(bc_profile), intent(in) :: profile      !< BC profile
     integer(ccs_int), intent(in) :: index_bc     !< The index of the appropriate boundary in the bc struct
