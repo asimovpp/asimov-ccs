@@ -56,12 +56,12 @@ module timestepping
     end function
 
     !> Get the current (time)step, i.e. an integer
-    module subroutine get_current_step(step)
+    pure module subroutine get_current_step(step)
       integer(ccs_int), intent(out) :: step
     end subroutine
 
     !> Get the current time
-    module subroutine get_current_time(time)
+    pure module subroutine get_current_time(time)
       real(ccs_real), intent(out) :: time
     end subroutine
 
@@ -86,7 +86,7 @@ module timestepping
     end subroutine
 
     !> Check whether timestepping is active
-    module function timestepping_is_active() result(active)
+    pure module function timestepping_is_active() result(active)
       logical :: active
     end function
 
