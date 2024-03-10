@@ -147,7 +147,7 @@ contains
   end subroutine allocate_field
 
   !> Set config file used for field creation
-  subroutine set_field_config_file(ccs_config_file, field_properties)
+  pure subroutine set_field_config_file(ccs_config_file, field_properties)
 
     character(len=*), intent(in) :: ccs_config_file
     type(field_spec), intent(inout) :: field_properties
@@ -167,7 +167,7 @@ contains
   end subroutine set_field_vector_properties
 
   !> Set the number of boundaries used for field creation
-  subroutine set_field_n_boundaries(n_boundaries, field_properties)
+  pure subroutine set_field_n_boundaries(n_boundaries, field_properties)
 
     integer(ccs_int), intent(in) :: n_boundaries
     type(field_spec), intent(inout) :: field_properties
@@ -177,7 +177,7 @@ contains
   end subroutine set_field_n_boundaries
 
   !> Set whether or not residuals should be stored
-  subroutine set_field_store_residuals(store_residuals, field_properties)
+  pure subroutine set_field_store_residuals(store_residuals, field_properties)
 
     logical, intent(in) :: store_residuals
     type(field_spec), intent(inout) :: field_properties
@@ -187,7 +187,7 @@ contains
   end subroutine set_field_store_residuals
 
   !> Set whether or not cell shape corrections should be used
-  subroutine set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
+  pure subroutine set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
     logical, intent(in) :: enable_cell_corrections 
     type(field_spec), intent(inout) :: field_properties
@@ -197,7 +197,7 @@ contains
   end subroutine set_field_enable_cell_corrections
 
   !> Set the name of a field to be created
-  subroutine set_field_name(name, field_properties)
+  pure subroutine set_field_name(name, field_properties)
 
     character(len=*), intent(in) :: name
     type(field_spec), intent(inout) :: field_properties
@@ -207,7 +207,7 @@ contains
   end subroutine set_field_name
 
   !> Set the type of field to be created
-  subroutine set_field_type(field_type, field_properties)
+  pure subroutine set_field_type(field_type, field_properties)
 
     integer(ccs_int), intent(in) :: field_type
     type(field_spec), intent(inout) :: field_properties
