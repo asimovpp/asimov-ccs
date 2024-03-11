@@ -96,12 +96,12 @@ module mat
     !  Sets the current row in the matrix value object, the implementation of this is
     !  backend-dependent as it should immediately convert to the correct indexing
     !  (whether that's 0, 1 or X-based) as used by the backend.
-    module subroutine set_matrix_values_row(row, val_dat)
+    pure module subroutine set_matrix_values_row(row, val_dat)
       integer(ccs_int), intent(in) :: row           !< the row
       type(matrix_values), intent(inout) :: val_dat !< the matrix values object
     end subroutine set_matrix_values_row
 
-    module subroutine set_matrix_values_col(col, val_dat)
+    pure module subroutine set_matrix_values_col(col, val_dat)
       integer(ccs_int), intent(in) :: col
       type(matrix_values), intent(inout) :: val_dat
     end subroutine set_matrix_values_col
