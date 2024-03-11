@@ -476,7 +476,7 @@ contains
   end subroutine get_cell_centre
 
   !> Returns the centre of a neighbour cell
-  module subroutine get_neighbour_centre(loc_nb, x)
+  pure module subroutine get_neighbour_centre(loc_nb, x)
     type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
     real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the neighbour cell centre.
 
@@ -523,7 +523,7 @@ contains
   end subroutine get_cell_volume
 
   !> Returns the volume of a neighbour cell
-  module subroutine get_neighbour_volume(loc_nb, V)
+  pure module subroutine get_neighbour_volume(loc_nb, V)
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     real(ccs_real), intent(out) :: V              !< the neighbour cell volume.
 
@@ -586,7 +586,7 @@ contains
   end subroutine set_cell_natural_index
 
   !> Returns the global index of a neighbouring cell
-  module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
+  pure module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
     type(neighbour_locator), intent(in) :: loc_nb    !< the neighbour locator object.
     integer(ccs_int), intent(out) :: global_index_nb !< the global index of the neighbour cell.
 
@@ -596,7 +596,7 @@ contains
   end subroutine get_neighbour_global_index
 
   !> Returns the natural index of a neighbouring cell
-  module subroutine get_neighbour_natural_index(loc_nb, natural_index_nb)
+  pure module subroutine get_neighbour_natural_index(loc_nb, natural_index_nb)
     type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
     integer(ccs_int), intent(out) :: natural_index_nb !< the natural index of the neighbour cell.
 
@@ -627,7 +627,7 @@ contains
   end subroutine get_cell_count_neighbours
 
   !> Returns the boundary status of a neighbouring cell
-  module subroutine get_neighbour_boundary_status(loc_nb, is_boundary)
+  pure module subroutine get_neighbour_boundary_status(loc_nb, is_boundary)
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
 
@@ -640,12 +640,13 @@ contains
     else if (index_nb < 0) then
       is_boundary = .true.
     else
-      call error_abort("ERROR: neighbour index (0) is invalid.")
+      ! call error_abort("ERROR: neighbour index (0) is invalid.")
+      error stop invalid_neighbour
     end if
   end subroutine get_neighbour_boundary_status
 
   !> Returns the boundary status of a neighbouring cell
-  module subroutine get_vertex_neighbour_boundary_status(loc_vnb, is_boundary)
+  pure module subroutine get_vertex_neighbour_boundary_status(loc_vnb, is_boundary)
     type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the neighbour locator object.
     logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
 
@@ -658,12 +659,13 @@ contains
     else if (index_nb < 0) then
       is_boundary = .true.
     else
-      call error_abort("ERROR: neighbour index (0) is invalid.")
+      ! call error_abort("ERROR: neighbour index (0) is invalid.")
+      error stop invalid_neighbour
     end if
   end subroutine get_vertex_neighbour_boundary_status
 
   !> Returns the boundary status of a face
-  module subroutine get_face_boundary_status(loc_f, is_boundary)
+  pure module subroutine get_face_boundary_status(loc_f, is_boundary)
     type(face_locator), intent(in) :: loc_f !< the face locator object.
     logical, intent(out) :: is_boundary     !< the boundary status of the neighbour.
 
