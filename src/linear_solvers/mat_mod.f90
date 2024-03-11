@@ -74,7 +74,7 @@ module mat
 
     !v Store a coefficient in the current working set at the current row,col coordinate, using the
     !  current storage mode.
-    module subroutine set_matrix_values_entry(val, val_dat)
+    pure module subroutine set_matrix_values_entry(val, val_dat)
 
       ! Arguments
       real(ccs_real), intent(in) :: val             !< The coefficient value
@@ -125,7 +125,7 @@ module mat
     end subroutine set_matrix_values_spec_ncols
 
     !> Interface to create a matrix values object.
-    module subroutine create_matrix_values(val_spec, val_dat)
+    pure module subroutine create_matrix_values(val_spec, val_dat)
       type(matrix_values_spec), intent(in) :: val_spec !< how many rows will be set?
       type(matrix_values), intent(out) :: val_dat      !< the matrix values object
     end subroutine create_matrix_values

@@ -2,6 +2,7 @@ submodule(mat) mat_common
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, str
+  use error_codes
 
   implicit none
 
@@ -60,7 +61,7 @@ contains
   end subroutine set_nnz
 
   !> Constructor for matrix values object
-  module subroutine create_matrix_values(val_spec, val_dat)
+  pure module subroutine create_matrix_values(val_spec, val_dat)
 
     ! Arguments
     type(matrix_values_spec), intent(in) :: val_spec !< Object describing the size (nrows, ncol) of working set.
@@ -86,7 +87,7 @@ contains
 
   !v Store a coefficient in the current working set at the current row,col coordinate, using the
   !  current storage mode.
-  module subroutine set_matrix_values_entry(val, val_dat)
+  pure module subroutine set_matrix_values_entry(val, val_dat)
 
     use constants, only: add_mode, insert_mode
 
@@ -114,7 +115,8 @@ contains
       else if (mode == add_mode) then
         x = x + val
       else
-        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+        ! call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+        error stop unknown_mode
       end if
 
     end associate
