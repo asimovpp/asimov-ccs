@@ -85,7 +85,7 @@ module fv
 
     !> Sets the diffusion coefficient
     ! XXX: why is this a function when the equivalent advection ones are subroutines?
-    module subroutine calc_diffusion_coeff(index_p, index_nb, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff)
+    pure module subroutine calc_diffusion_coeff(index_p, index_nb, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff)
       integer(ccs_int), intent(in) :: index_p  !< the local cell index
       integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
       logical, intent(in) :: enable_cell_corrections !< whether or not cell corrections shouls be used
@@ -123,7 +123,7 @@ module fv
     end function calc_mass_flux_uvw
 
     !> Computes Rhie-Chow correction
-    module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
+    pure module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
       real(ccs_real), dimension(:), intent(in) :: p    !< array containing pressure
       real(ccs_real), dimension(:), intent(in) :: dpdx !< pressure gradients in x
       real(ccs_real), dimension(:), intent(in) :: dpdy !< pressure gradients in y
@@ -150,7 +150,7 @@ module fv
     end subroutine update_gradient
 
     !> Computes the value of the scalar field on the boundary
-    module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
+    pure module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
       class(field), intent(inout) :: phi                         !< the field for which boundary values are being computed
       integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
       type(cell_locator), intent(in) :: loc_p                 !< location of cell
@@ -159,7 +159,7 @@ module fv
       real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
     end subroutine
   
-    module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
+    pure module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
       class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
       integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
       type(cell_locator), intent(in) :: loc_p                 !< location of cell
