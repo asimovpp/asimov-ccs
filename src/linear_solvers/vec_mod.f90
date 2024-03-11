@@ -79,7 +79,7 @@ module vec
     !  Sets the current row in the vector value object, the implementation of this is
     !  backend-dependent as it should immediately convert to the correct indexing
     !  (whether that's 0, 1 or X-based) as used by the backend.
-    module subroutine set_vector_values_row(row, val_dat)
+    pure module subroutine set_vector_values_row(row, val_dat)
       integer(ccs_int), intent(in) :: row           !< the row
       type(vector_values), intent(inout) :: val_dat !< the vector values object
     end subroutine set_vector_values_row

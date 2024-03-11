@@ -380,7 +380,7 @@ contains
 
   end subroutine clear_vector_values_entries
 
-  module subroutine set_vector_values_row(row, val_dat)
+  pure module subroutine set_vector_values_row(row, val_dat)
     integer(ccs_int), intent(in) :: row
     type(vector_values), intent(inout) :: val_dat
 
@@ -399,9 +399,9 @@ contains
       ! New entry
       idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
-      if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free entry in vector values.")
-      end if
+      ! if (i == 0) then
+      !   call error_abort("ERROR: Couldn't find a free entry in vector values.")
+      ! end if
     end if
 
     val_dat%current_entry = i
