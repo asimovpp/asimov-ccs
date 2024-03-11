@@ -13,6 +13,7 @@ submodule(vec) vec_petsc
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
   use utils, only: debug_print, exit_print, str
+  use error_codes
 
   implicit none
 
@@ -399,9 +400,10 @@ contains
       ! New entry
       idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
-      ! if (i == 0) then
+      if (i == 0) then
       !   call error_abort("ERROR: Couldn't find a free entry in vector values.")
-      ! end if
+        error stop no_free_entry
+      end if
     end if
 
     val_dat%current_entry = i
