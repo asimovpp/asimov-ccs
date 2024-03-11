@@ -23,7 +23,6 @@ module error_codes
   integer, public, parameter :: invalid_neighbour = 109 ! neighbour index (0) is invalid
   integer, public, parameter :: unknown_bc_type = 110
   integer, public, parameter :: invalid_component = 111 
-
-
+  integer, public, parameter :: unknown_mode = 112
 
 end module error_codes

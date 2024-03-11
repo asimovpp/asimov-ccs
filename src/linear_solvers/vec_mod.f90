@@ -58,13 +58,13 @@ module vec
       type(vector_values), intent(inout) :: val_dat
     end subroutine clear_vector_values_entries
 
-    module subroutine set_vector_values_entry(val, val_dat)
+    pure module subroutine set_vector_values_entry(val, val_dat)
       real(ccs_real), intent(in) :: val
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_entry
 
     !> Interface to create a vector values object.
-    module subroutine create_vector_values(nrows, val_dat)
+    pure module subroutine create_vector_values(nrows, val_dat)
       integer(ccs_int), intent(in) :: nrows       !< how many rows will be set?
       type(vector_values), intent(out) :: val_dat !< the vector values object
     end subroutine create_vector_values

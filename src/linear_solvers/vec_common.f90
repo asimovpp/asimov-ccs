@@ -3,6 +3,7 @@ submodule(vec) vec_common
 
   use utils, only: exit_print, str
   use constants, only: cell
+  use error_codes
   implicit none
 
 contains
@@ -33,7 +34,7 @@ contains
     vec_properties%storage_location = loc
   end subroutine set_vector_location
 
-  module subroutine create_vector_values(nrows, val_dat)
+  pure module subroutine create_vector_values(nrows, val_dat)
     integer(ccs_int), intent(in) :: nrows
     type(vector_values), intent(out) :: val_dat
     allocate (val_dat%global_indices(nrows))
@@ -50,7 +51,7 @@ contains
     val_dat%setter_mode = mode
   end subroutine set_vector_values_mode
 
-  module subroutine set_vector_values_entry(val, val_dat)
+  pure module subroutine set_vector_values_entry(val, val_dat)
 
     use constants, only: add_mode, insert_mode
 
@@ -64,7 +65,8 @@ contains
       else if (mode == add_mode) then
         x = x + val
       else
-        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+!        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+        error stop unknown_mode
       end if
     end associate
 
