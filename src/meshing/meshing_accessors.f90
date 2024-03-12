@@ -329,7 +329,6 @@ contains
     integer(ccs_int), intent(in) :: index_p    !< the cell index.
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
 
-    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: total_num_cells
 
     loc_p%index_p = index_p
@@ -337,7 +336,6 @@ contains
     ! XXX: Potentially expensive...
     call get_total_num_cells(total_num_cells)
     if (index_p > total_num_cells) then
-      call get_local_num_cells(local_num_cells)
       error stop no_access_to_cell ! Trying to access cell I don't have access to
     end if
   end subroutine create_cell_locator
