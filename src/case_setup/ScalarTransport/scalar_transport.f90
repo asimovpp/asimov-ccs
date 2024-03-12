@@ -167,9 +167,9 @@ program scalar_transport
   call create_field(field_properties, mf)
 
   do i = 1, size(field_list)
-    !if ((field_list(i)%name == "whisky") .or. (field_list(i)%name == "water")) then
+    if ((field_list(i)%name == "whisky") .or. (field_list(i)%name == "water")) then
       call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
-    !end if
+    end if
   end do
 
   ! Initialise velocity field
