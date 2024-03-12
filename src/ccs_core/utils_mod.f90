@@ -22,6 +22,7 @@ module utils
   use kinds, only: ccs_int, ccs_real
   use types, only: field, fluid, field_ptr
   use constants, only: cell_centred_central, cell_centred_upwind
+  use error_codes
 
   implicit none
 
@@ -205,7 +206,7 @@ contains
   end subroutine
 
   !> Convert integer to string.
-  function int2str(in_int, format_str) result(out_string)
+  pure function int2str(in_int, format_str) result(out_string)
     integer(ccs_int), intent(in) :: in_int           !< integer to convert
     character(*), optional, intent(in) :: format_str !< format string to use
     character(:), allocatable :: out_string          !< formatted string from input integer
@@ -221,7 +222,7 @@ contains
   end function
 
   !> Convert real to string.
-  function real2str(in_real, format_str) result(out_string)
+  pure function real2str(in_real, format_str) result(out_string)
     real(ccs_real), intent(in) :: in_real            !< real number to convert
     character(*), optional, intent(in) :: format_str !< format string to use
     character(:), allocatable :: out_string          !< formatted string from input real
@@ -237,7 +238,7 @@ contains
   end function
 
   !> Convert bool to string.
-  function bool2str(in_bool) result(out_string)
+  pure function bool2str(in_bool) result(out_string)
     logical, intent(in) :: in_bool          !< bool to convert
     character(:), allocatable :: out_string !< string from input bool
 
@@ -456,7 +457,6 @@ contains
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     integer(ccs_int) :: i
-    character(len=:), allocatable :: msg                   !< Constructed message
 
     logical :: found
     
@@ -472,8 +472,7 @@ contains
     end do
 
     if (.not. found) then
-      msg = "Field " // field_name // " not found"
-      call error_abort(msg)
+      error stop field_not_found ! Field name not found
     end if
 
   end subroutine get_field_byname
@@ -485,7 +484,7 @@ contains
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     if (field_index > size(flow%fields)) then
-      call error_abort("Field index exceeds number of flow fields")
+      error stop field_index_exceeded ! Field index exceeds number of flow fields
     end if
 
     flow_field => flow%fields(field_index)%ptr
@@ -515,7 +514,7 @@ contains
   end subroutine add_field
 
   !> Gets the solve flag for a field
-  subroutine get_is_field_solved(phi, solve)
+  pure subroutine get_is_field_solved(phi, solve)
     class(field), intent(in) :: phi !< Field variable
     logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
@@ -524,7 +523,7 @@ contains
   end subroutine get_is_field_solved
 
   !> Sets the solve flag for a field
-  subroutine set_is_field_solved(solve, phi)
+  pure subroutine set_is_field_solved(solve, phi)
     logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
     type(field), intent(inout) :: phi !< Field variable
 
@@ -548,7 +547,7 @@ contains
   end subroutine dealloc_fluid_fields
 
   !> Convert advection scheme name -> ID.
-  integer(ccs_int) function get_scheme_id(scheme_name)
+  pure integer(ccs_int) function get_scheme_id(scheme_name)
 
     character(len=*), intent(in) :: scheme_name
     integer(ccs_int) :: id
@@ -560,14 +559,14 @@ contains
     else if (scheme == "upwind") then
        id = cell_centred_upwind
     else
-       call error_abort("Uknown scheme "//scheme)
+      error stop unknown_scheme ! Unknown discretisation scheme
     end if
 
     get_scheme_id = id
   end function get_scheme_id
 
   !> Convert advection scheme ID -> name.
-  function get_scheme_name(scheme_id) result(scheme_name)
+  pure function get_scheme_name(scheme_id) result(scheme_name)
 
     integer(ccs_int), intent(in) :: scheme_id
     character(len=:), allocatable :: scheme_name
@@ -577,7 +576,7 @@ contains
     else if (scheme_id == cell_centred_upwind) then
        scheme_name = "upwind"
     else
-       call error_abort("Uknown scheme ID")
+      error stop unknown_scheme ! Unknown discretisation scheme ID
     end if
 
   end function get_scheme_name

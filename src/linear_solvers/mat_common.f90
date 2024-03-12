@@ -2,13 +2,14 @@ submodule(mat) mat_common
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, str
+  use error_codes
 
   implicit none
 
 contains
 
   !> Set number of rows in working set specifier
-  module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
+  pure module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
 
     ! Arguments
     integer(ccs_int), intent(in) :: nrows               !< Number of rows to be used in the working set
@@ -18,7 +19,7 @@ contains
   end subroutine set_matrix_values_spec_nrows
 
   !> Set number of columns in working set specifier
-  module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
+  pure module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
 
     ! Arguments
     integer(ccs_int), intent(in) :: ncols               !< Number of columns to be used in the working set
@@ -28,7 +29,7 @@ contains
   end subroutine set_matrix_values_spec_ncols
 
   !> Constructor for default matrix values
-  module subroutine initialise_matrix(mat_properties)
+  pure module subroutine initialise_matrix(mat_properties)
 
     ! Arguments
     type(matrix_spec), intent(inout) :: mat_properties !< The initialised matrix values
@@ -50,7 +51,7 @@ contains
   end subroutine set_matrix_size
 
   !> Setter for matrix number of non-zeros
-  module subroutine set_nnz(nnz, mat_properties)
+  pure module subroutine set_nnz(nnz, mat_properties)
 
     ! Arguments
     integer(ccs_int), intent(in) :: nnz                !< the number of non-zeros
@@ -60,7 +61,7 @@ contains
   end subroutine set_nnz
 
   !> Constructor for matrix values object
-  module subroutine create_matrix_values(val_spec, val_dat)
+  pure module subroutine create_matrix_values(val_spec, val_dat)
 
     ! Arguments
     type(matrix_values_spec), intent(in) :: val_spec !< Object describing the size (nrows, ncol) of working set.
@@ -77,7 +78,7 @@ contains
   end subroutine create_matrix_values
 
   !> Set the storage mode.
-  module subroutine set_matrix_values_mode(mode, val_dat)
+  pure module subroutine set_matrix_values_mode(mode, val_dat)
     integer(ccs_int), intent(in) :: mode          !< The storage mode
     type(matrix_values), intent(inout) :: val_dat !< The object storing the working set
 
@@ -86,7 +87,7 @@ contains
 
   !v Store a coefficient in the current working set at the current row,col coordinate, using the
   !  current storage mode.
-  module subroutine set_matrix_values_entry(val, val_dat)
+  pure module subroutine set_matrix_values_entry(val, val_dat)
 
     use constants, only: add_mode, insert_mode
 
@@ -114,7 +115,7 @@ contains
       else if (mode == add_mode) then
         x = x + val
       else
-        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+        error stop unknown_mode ! Unrecognised entry mode
       end if
 
     end associate

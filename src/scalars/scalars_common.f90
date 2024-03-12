@@ -156,7 +156,7 @@ contains
   end subroutine transport_scalar
 
   !> Get the count of stored fields - probably belongs somewhere else
-  subroutine count_fields(flow, nfields)
+  pure subroutine count_fields(flow, nfields)
 
     type(fluid), intent(in) :: flow          !< The flowfield
     integer(ccs_int), intent(out) :: nfields !< The count of fields

@@ -7,6 +7,7 @@ submodule(mat) mat_petsc
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only: ADD_VALUES, INSERT_VALUES
   use utils, only: debug_print, str, update, exit_print
+  use error_codes
 
   implicit none
 
@@ -265,7 +266,7 @@ contains
   end subroutine
 
   !> Clear working set of values to begin new working set.
-  module subroutine clear_matrix_values_entries(val_dat)
+  pure module subroutine clear_matrix_values_entries(val_dat)
     type(matrix_values), intent(inout) :: val_dat !< Working set object
 
     val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
@@ -274,7 +275,7 @@ contains
   end subroutine clear_matrix_values_entries
 
   !> Set working row.
-  module subroutine set_matrix_values_row(row, val_dat)
+  pure module subroutine set_matrix_values_row(row, val_dat)
 
     ! Arguments
     integer(ccs_int), intent(in) :: row           !< Which (global) row to work on?
@@ -302,7 +303,7 @@ contains
       rglobs = findloc(val_dat%global_row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free entry in matrix values.")
+        error stop no_free_entry ! Couldn't find a free entry in matrix values
       end if
     end if
 
@@ -312,7 +313,7 @@ contains
   end subroutine set_matrix_values_row
 
   !> Set working column.
-  module subroutine set_matrix_values_col(col, val_dat)
+  pure module subroutine set_matrix_values_col(col, val_dat)
 
     ! Arguments
     integer(ccs_int), intent(in) :: col           !< Which (global) column to work on ?
@@ -340,7 +341,7 @@ contains
       cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
       i = cglobs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free column entry in matrix values.")
+        error stop no_free_entry ! Couldn't find a free column entry in matrix values
       end if
     end if
 

@@ -54,22 +54,22 @@ module vec
       class(ccs_vector), intent(inout) :: v !< the vector.
     end subroutine set_vector_values
 
-    module subroutine clear_vector_values_entries(val_dat)
+    pure module subroutine clear_vector_values_entries(val_dat)
       type(vector_values), intent(inout) :: val_dat
     end subroutine clear_vector_values_entries
 
-    module subroutine set_vector_values_entry(val, val_dat)
+    pure module subroutine set_vector_values_entry(val, val_dat)
       real(ccs_real), intent(in) :: val
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_entry
 
     !> Interface to create a vector values object.
-    module subroutine create_vector_values(nrows, val_dat)
+    pure module subroutine create_vector_values(nrows, val_dat)
       integer(ccs_int), intent(in) :: nrows       !< how many rows will be set?
       type(vector_values), intent(out) :: val_dat !< the vector values object
     end subroutine create_vector_values
 
-    module subroutine set_vector_values_mode(mode, val_dat)
+    pure module subroutine set_vector_values_mode(mode, val_dat)
       integer(ccs_int), intent(in) :: mode
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_mode
@@ -79,7 +79,7 @@ module vec
     !  Sets the current row in the vector value object, the implementation of this is
     !  backend-dependent as it should immediately convert to the correct indexing
     !  (whether that's 0, 1 or X-based) as used by the backend.
-    module subroutine set_vector_values_row(row, val_dat)
+    pure module subroutine set_vector_values_row(row, val_dat)
       integer(ccs_int), intent(in) :: row           !< the row
       type(vector_values), intent(inout) :: val_dat !< the vector values object
     end subroutine set_vector_values_row
@@ -134,7 +134,7 @@ module vec
     end function
 
     !> Constructor for default vector values
-    module subroutine initialise_vector(vec_properties)
+    pure module subroutine initialise_vector(vec_properties)
       type(vector_spec), intent(inout) :: vec_properties !< the initialised vector values
     end subroutine initialise_vector
 
@@ -171,7 +171,7 @@ module vec
     end subroutine restore_vector_data_readonly
     
     !> Set vector values to be located at either cell-centre or face
-    module subroutine set_vector_location(loc, vec_properties)
+    pure module subroutine set_vector_location(loc, vec_properties)
       integer(ccs_int), intent(in) :: loc
       type(vector_spec), intent(inout) :: vec_properties
     end subroutine set_vector_location

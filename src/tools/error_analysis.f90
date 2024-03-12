@@ -61,7 +61,7 @@ contains
 
   !v Computes convergence orders from a refinement list and the associated errors
   ! The orders are computed as the slope of the linear regression of the log of error against the log of refinements
-  subroutine get_order(refinements, errors, orders)
+  pure subroutine get_order(refinements, errors, orders)
 
     real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
     real(ccs_real), dimension(:, :), intent(in) :: errors !< error values, error(variable, refinement)
