@@ -332,20 +332,13 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: total_num_cells
 
-    ! character(len=:), allocatable :: msg
-
     loc_p%index_p = index_p
 
     ! XXX: Potentially expensive...
     call get_total_num_cells(total_num_cells)
     if (index_p > total_num_cells) then
       call get_local_num_cells(local_num_cells)
-      ! XXX: could be made pure without error check - would allow
-      ! a number of subroutines that call this to also become pure
-      ! msg = "ERROR: trying to access cell I don't have access to." // str(index_p) // " " //  &
-      !       str(local_num_cells) // " " // str(total_num_cells)
-      ! call error_abort(msg)
-      error stop no_access_to_cell
+      error stop no_access_to_cell ! Trying to access cell I don't have access to
     end if
   end subroutine create_cell_locator
 
@@ -378,8 +371,7 @@ contains
     associate (i => loc_nb%index_p, &
                j => loc_nb%nb_counter)
       if (mesh%topo%nb_indices(j, i) == i) then
-        ! call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // str(j))
-        error stop self_not_neighbour
+        error stop self_not_neighbour ! Attempt to set self as neighbour
       end if
     end associate
   end subroutine create_face_neighbour_locator
@@ -400,8 +392,7 @@ contains
     associate (i => loc_nb%index_p, &
                j => loc_nb%vert_nb_counter)
       if (mesh%topo%vert_nb_indices(j, i) == i) then
-        ! call error_abort("ERROR: attempted to set self as neighbour. Cell: " // str(i) // " " // str(j))
-        error stop self_not_neighbour
+        error stop self_not_neighbour ! Attempt to set self as neighbour
       end if
     end associate
   end subroutine create_vertex_neighbour_locator
