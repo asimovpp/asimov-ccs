@@ -401,8 +401,7 @@ contains
       idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
-      !   call error_abort("ERROR: Couldn't find a free entry in vector values.")
-        error stop no_free_entry
+        error stop no_free_entry ! Couldn't find a free entry in vector values
       end if
     end if
 

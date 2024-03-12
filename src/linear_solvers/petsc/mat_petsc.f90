@@ -303,8 +303,7 @@ contains
       rglobs = findloc(val_dat%global_row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
-      !   call error_abort("ERROR: Couldn't find a free entry in matrix values.")
-        error stop no_free_entry
+        error stop no_free_entry ! Couldn't find a free entry in matrix values
       end if
     end if
 
@@ -342,8 +341,7 @@ contains
       cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
       i = cglobs(1) ! We want the first entry
       if (i == 0) then
-        ! call error_abort("ERROR: Couldn't find a free column entry in matrix values.")
-        error stop no_free_entry
+        error stop no_free_entry ! Couldn't find a free column entry in matrix values
       end if
     end if
 
