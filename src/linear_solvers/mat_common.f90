@@ -115,8 +115,7 @@ contains
       else if (mode == add_mode) then
         x = x + val
       else
-        ! call error_abort("ERROR: Unrecognised entry mode " // str(mode))
-        error stop unknown_mode
+        error stop unknown_mode ! Unrecognised entry mode
       end if
 
     end associate
