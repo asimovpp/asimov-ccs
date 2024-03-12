@@ -69,8 +69,7 @@ contains
     case ("profile")
       bcs%bc_types(boundary_index) = bc_type_profile
     case default
-      ! call error_abort("invalid string. received " // bc_type)
-      error stop invalid_bc_name
+      error stop invalid_bc_name ! Invalid BC type string received
     end select
 
   end subroutine set_bc_type
@@ -106,8 +105,7 @@ contains
     case ("other5")
       bcs%ids(boundary_index) = 11
     case default
-      ! call error_abort("unexpected bc name " // name)
-      error stop invalid_bc_id
+      error stop invalid_bc_id ! Invalid BC name ID received
     end select
 
   end subroutine set_bc_id
@@ -151,8 +149,7 @@ contains
 
     index_tmp = findloc(phi%bcs%ids, -index_nb)
     if (index_tmp(1) == 0) then
-      ! call error_abort("bc index not found. searching for " // str(-index_nb, "(I0)"))
-      error stop bc_index_not_found
+      error stop bc_index_not_found ! BC index not found
     end if
     
     index_bc = index_tmp(1)
