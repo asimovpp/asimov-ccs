@@ -354,8 +354,7 @@ contains
       case (3)
         parallel_component_map = [1, 1, 0]
       case default
-!        call error_abort("invalid component provided " // str(component))
-        error stop invalid_component
+        error stop invalid_component ! Invalid component provided
       end select
       ! Only keep the components of phi that are parallel to the surface
       phi_face_parallel_component_norm = 0
@@ -393,8 +392,7 @@ contains
       a = 0.0_ccs_real
       b = huge(1.0_ccs_real)
 
-!      call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
-      error stop unknown_bc_type
+      error stop unknown_bc_type ! Unknown BC type
     end select
 
   end subroutine
