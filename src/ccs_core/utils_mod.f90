@@ -328,8 +328,7 @@ contains
       call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
-      ! call error_abort("ERROR: Unknown type")
-      error stop unknown_type
+      call error_abort("ERROR: Unknown type")
     end select
 
     ek_global = ek_global / volume_global
@@ -412,9 +411,8 @@ contains
       call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
-      ! call error_abort("ERROR: Unknown type")
-    error stop unknown_type
-  end select
+      call error_abort("ERROR: Unknown type")
+    end select
 
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
@@ -459,7 +457,6 @@ contains
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     integer(ccs_int) :: i
-    ! character(len=:), allocatable :: msg                   !< Constructed message
 
     logical :: found
     
@@ -475,9 +472,7 @@ contains
     end do
 
     if (.not. found) then
-      ! msg = "Field " // field_name // " not found"
-      ! call error_abort(msg)
-      error stop field_not_found
+      error stop field_not_found ! Field name not found
     end if
 
   end subroutine get_field_byname
@@ -489,8 +484,7 @@ contains
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
     if (field_index > size(flow%fields)) then
-      ! call error_abort("Field index exceeds number of flow fields")
-      error stop field_index_exceeded
+      error stop field_index_exceeded ! Field index exceeds number of flow fields
     end if
 
     flow_field => flow%fields(field_index)%ptr
@@ -565,8 +559,7 @@ contains
     else if (scheme == "upwind") then
        id = cell_centred_upwind
     else
-      !  call error_abort("Uknown scheme "//scheme)
-      error stop unknown_scheme
+      error stop unknown_scheme ! Unknown discretisation scheme
     end if
 
     get_scheme_id = id
@@ -583,8 +576,7 @@ contains
     else if (scheme_id == cell_centred_upwind) then
        scheme_name = "upwind"
     else
-      !  call error_abort("Uknown scheme ID")
-      error stop unknown_scheme
+      error stop unknown_scheme ! Unknown discretisation scheme ID
     end if
 
   end function get_scheme_name
