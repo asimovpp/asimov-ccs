@@ -640,8 +640,7 @@ contains
     else if (index_nb < 0) then
       is_boundary = .true.
     else
-      ! call error_abort("ERROR: neighbour index (0) is invalid.")
-      error stop invalid_neighbour
+      error stop invalid_neighbour ! Neighbour index 0 is not valid
     end if
   end subroutine get_neighbour_boundary_status
 
@@ -659,8 +658,7 @@ contains
     else if (index_nb < 0) then
       is_boundary = .true.
     else
-      ! call error_abort("ERROR: neighbour index (0) is invalid.")
-      error stop invalid_neighbour
+      error stop invalid_neighbour ! Neighbour index 0 is not valid
     end if
   end subroutine get_vertex_neighbour_boundary_status
 
