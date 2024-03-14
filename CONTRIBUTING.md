@@ -50,8 +50,9 @@ You are now ready to begin.
 
 ### Keeping up to date
 
-We recommend periodically pulling the `origin/develop` branch and merging into your working branch
-if the development of your contribution continues for some time, this will ensure that it does not
+We recommend periodically pulling the `origin/develop` branch and rebasing your working branch onto
+`develop`.
+If the development of your contribution continues for some time, this will ensure that it does not
 stray too far from the eventual merge target.
 
 ## Submitting a contribution
