@@ -78,9 +78,7 @@ Currently, a manual process is required to push the contribution to the upstream
   template for bug reports and proposed changes.
 - check whether the proposed contribution conflicts or overlaps with any ongoing or planned work -
   try to discuss this with the contributor, perhaps they could collaborate on any preexisting work?
-- if the proposed contribution looks good to proceed ensure that `upstreaming` is up to date with
-  `develop` by rebasing (see above instructions) and push the updated `upstreaming` branch to GitHub
-1. When a pull request is opened check it is targetting the `upstreaming` branch, change the target
+1. When a pull request is opened check it targets the `upstreaming` branch, change the target
    branch if necessary.
 2. Ensure that the `upstreaming` branch is up to date by rebasing and pushing to GitHub if
    necessary, this might raise merge conflicts with the pull request if it has drifted from upstream
