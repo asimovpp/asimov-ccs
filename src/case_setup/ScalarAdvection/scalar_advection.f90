@@ -216,11 +216,9 @@ program scalar_advection
   nullify(density)
   nullify(viscosity)
 
-  print *, "Assemble"
   call update(M) ! parallel assembly for M
   call update(source) ! parallel assembly for source
 
-  print *, "Finalise"
   call finalise(M)
 
   ! Create linear solver & set options
