@@ -11,13 +11,12 @@ program scalar_transport
   use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, cps, domain_size, case_name, &
                          res_target, write_gradients, dt, write_frequency
-  use constants, only: cell, face, ccsconfig, ccs_string_len, field_u, field_v, &
-                       field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, face_centred, cell_centred_central, cell_centred_upwind, &
+  use constants, only: cell, face, ccsconfig, ccs_string_len, &
+                       face_centred, cell_centred_central, cell_centred_upwind, &
                        ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, field_elt, fluid
+                   vector_spec, ccs_vector, field_ptr, fluid
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
   use fortran_yaml_c_interface, only: parse
@@ -33,7 +32,7 @@ program scalar_transport
   use vec, only: create_vector, set_vector_location
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
-                   get_field, add_field, &
+                   get_field, &
                    allocate_fluid_fields, dealloc_fluid_fields, &
                    get_scheme_name
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
@@ -54,9 +53,7 @@ program scalar_transport
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: mf, viscosity, density
-  type(field_ptr), allocatable :: output_list(:)
-  type(field_elt), allocatable, target :: field_list(:)
+  class(field), pointer :: phi ! Generic field to work with
   
   integer(ccs_int) :: n_boundaries
 
@@ -136,26 +133,24 @@ program scalar_transport
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity) 
+  call create_field(field_properties, flow_fields) 
   call set_field_type(cell_centred_central, field_properties)
   call set_field_name("density", field_properties)
-  call create_field(field_properties, density) 
+  call create_field(field_properties, flow_fields) 
 
   if (is_root(par_env)) then
     print *, "Build field list"
   end if
-  allocate(field_list(size(variable_names)))
   do i = 1, size(variable_names)
     if (is_root(par_env)) then
       print *, "Creating field ", trim(variable_names(i))
     end if
     call set_field_type(variable_types(i), field_properties)
     call set_field_name(variable_names(i), field_properties)
-    call create_field(field_properties, field_list(i)%f)
-    field_list(i)%name = variable_names(i)
+    call create_field(field_properties, flow_fields)
   end do
   if (is_root(par_env)) then
-    print *, "Built ", size(field_list), " dynamically-defined fields"
+    print *, "Built ", size(variable_names), " dynamically-defined fields"
   end if
   
   !! Create mass flux as a special variable
@@ -164,31 +159,26 @@ program scalar_transport
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(face_centred, field_properties)
   call set_field_name("mf", field_properties)
-  call create_field(field_properties, mf)
+  call create_field(field_properties, flow_fields)
 
-  do i = 1, size(field_list)
-    if ((field_list(i)%name == "whisky") .or. (field_list(i)%name == "water")) then
-      call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
+  do i = 1, size(flow_fields%fields)
+    call get_field(flow_fields, i, phi)
+    if ((phi%name == "whisky") .or. (phi%name == "water")) then
+      call add_field_to_outputlist(phi)
     end if
   end do
+  nullify(phi)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise flow field"
-  call initialise_case(field_list, mf, viscosity, density) 
+  call initialise_case(flow_fields) 
 
-  do i = 1, size(field_list)
-    call update(field_list(i)%f%values)
+  ! XXX: Opportunity for utility subroutine: update(fluid)
+  do i = 1, size(flow_fields%fields)
+    call get_field(flow_fields, i, phi)
+    call update(phi%values)
+    nullify(phi)
   end do
-  call update(mf%values)
-
-  ! ! XXX: This should get incorporated as part of create_field subroutines
-  do i = 1, size(field_list)
-    call add_field(field_list(i)%f, flow_fields)
-  end do
-
-  call add_field(density, flow_fields)
-  call add_field(viscosity, flow_fields)
-  call add_field(mf, flow_fields)
 
   if (irank == par_env%root) then
     call print_configuration()
@@ -203,7 +193,7 @@ program scalar_transport
 
   ! ! Write out mesh and solution
   call write_mesh(par_env, case_path, mesh)
-  call write_solution(par_env, case_path, mesh, output_list, 0, num_steps, dt)
+  call write_solution(par_env, case_path, mesh, flow_fields, 0, num_steps, dt)
   do t = 1, num_steps
     call update_scalars(par_env, mesh, flow_fields)
     if (par_env%proc_id == par_env%root) then
@@ -211,7 +201,7 @@ program scalar_transport
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
     end if
 
     call finalise_timestep()
@@ -219,15 +209,6 @@ program scalar_transport
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
-
-  do i = 1, size(field_list)
-    deallocate(field_list(i)%f)
-  end do
-  deallocate(field_list)
-  deallocate (mf)
-  deallocate (viscosity)
-  deallocate (density)
-  deallocate (output_list)
 
   call timer(end_time)
 
@@ -332,7 +313,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_case(field_list, mf, viscosity, density)
+  subroutine initialise_case(flow)
 
     use constants, only: insert_mode
     use types, only: vector_values, cell_locator, neighbour_locator, face_locator
@@ -342,10 +323,10 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    type(field_elt), dimension(:), intent(inout) :: field_list
-    class(field), intent(inout) :: mf, viscosity, density
+    type(fluid), intent(inout) :: flow
 
     ! Local variables
+    class(field), pointer :: mf, viscosity, density, phi
     integer(ccs_int) :: index_p, global_index_p, n_local
     real(ccs_real) :: whisky_val, water_val
     type(cell_locator) :: loc_p
@@ -361,6 +342,8 @@ contains
     real(ccs_real), dimension(3) :: x, r, c, face_normal
     real(ccs_real), dimension(3) :: v
     real(ccs_real) :: theta, rmag
+
+    call get_field(flow, "mf", mf)
     
     ! Set alias
     call get_local_num_cells(n_local)
@@ -443,15 +426,13 @@ contains
 
     end do
 
-    do i = 1, size(field_list)
-      if (field_list(i)%name == "whisky") then
-        call set_values(whisky_vals, field_list(i)%f%values)
-      else if (field_list(i)%name == "water") then
-        call set_values(water_vals, field_list(i)%f%values)
-      else
-        print *, "Unrecognised field name ", field_list(i)%name
-      end if
-    end do
+    call get_field(flow, "whisky", phi)
+    call set_values(whisky_vals, phi%values)
+    nullify(phi)
+
+    call get_field(flow, "water", phi)
+    call set_values(whisky_vals, phi%values)
+    nullify(phi)
 
     deallocate (whisky_vals%global_indices)
     deallocate (water_vals%global_indices)
@@ -459,15 +440,20 @@ contains
     deallocate (water_vals%values)
 
     call restore_vector_data(mf%values, mf_data)
+    nullify(mf)
 
+    call get_field(flow, "viscosity", viscosity)
     call get_vector_data(viscosity%values, viscosity_data)
     viscosity_data(:) =  1.e-2_ccs_real
     call restore_vector_data(viscosity%values, viscosity_data)
+    nullify(viscosity)
 
+    call get_field(flow, "density", density)
     call get_vector_data(density%values, density_data)
     density_data(:) = 1.0_ccs_real
     call restore_vector_data(density%values, density_data)
-
+    nullify(density)
+    
   end subroutine initialise_case
 
 end program scalar_transport

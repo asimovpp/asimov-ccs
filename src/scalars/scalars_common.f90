@@ -4,7 +4,6 @@
 
 submodule(scalars) scalars_common
 #include "ccs_macros.inc"
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density
 
   use kinds, only: ccs_int, ccs_real !< added here
   use types, only: ccs_matrix, ccs_vector, &
@@ -45,7 +44,7 @@ contains
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
-    character(len=20) :: field_name ! The field's name
+    character(len=:), allocatable :: field_name ! The field's name
     class(field), pointer :: phi ! The scalar field
 
     logical :: do_update
@@ -157,34 +156,27 @@ contains
   end subroutine transport_scalar
 
   !> Get the count of stored fields - probably belongs somewhere else
-  subroutine count_fields(flow, nfields)
+  pure subroutine count_fields(flow, nfields)
 
     type(fluid), intent(in) :: flow          !< The flowfield
     integer(ccs_int), intent(out) :: nfields !< The count of fields
 
-    nfields = size(flow%field_names)
+    nfields = size(flow%fields)
     
   end subroutine count_fields
-
-  !> Get the numeric ID of the i'th field
-  subroutine get_field_id(flow, s, field_id)
-
-    type(fluid), intent(in) :: flow           !< The flowfield
-    integer(ccs_int), intent(in) :: s         !< The field counter
-    integer(ccs_int), intent(out) :: field_id !< The field ID
-
-    field_id = flow%field_ids(s)
-
-  end subroutine get_field_id
 
   !> Get the name of the i'th field
   subroutine get_field_name(flow, s, field_name)
 
-   type(fluid), intent(in) :: flow              !< The flowfield
-   integer(ccs_int), intent(in) :: s            !< The field counter
-   character(len=*), intent(out) :: field_name !< The field name
+   type(fluid), intent(in) :: flow                          !< The flowfield
+   integer(ccs_int), intent(in) :: s                        !< The field counter
+   character(len=:), allocatable, intent(out) :: field_name !< The field name
 
-   field_name = flow%field_names(s)
+   class(field), pointer :: phi
+   
+   call get_field(flow, s, phi)
+   field_name = phi%name
+   nullify(phi)
 
  end subroutine get_field_name
   

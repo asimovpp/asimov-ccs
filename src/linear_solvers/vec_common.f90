@@ -3,12 +3,13 @@ submodule(vec) vec_common
 
   use utils, only: exit_print, str
   use constants, only: cell
+  use error_codes
   implicit none
 
 contains
 
   !> Constructor for default vector values
-  module subroutine initialise_vector(vec_properties)
+  pure module subroutine initialise_vector(vec_properties)
     type(vector_spec), intent(inout) :: vec_properties !< the initialised vector values
     vec_properties%par_env => null()
     vec_properties%mesh => null()
@@ -26,14 +27,14 @@ contains
   end subroutine set_vector_size
 
   !> Set vector values to be located at either cell-centre or face
-  module subroutine set_vector_location(loc, vec_properties)
+  pure module subroutine set_vector_location(loc, vec_properties)
     integer(ccs_int), intent(in) :: loc
     type(vector_spec), intent(inout) :: vec_properties
 
     vec_properties%storage_location = loc
   end subroutine set_vector_location
 
-  module subroutine create_vector_values(nrows, val_dat)
+  pure module subroutine create_vector_values(nrows, val_dat)
     integer(ccs_int), intent(in) :: nrows
     type(vector_values), intent(out) :: val_dat
     allocate (val_dat%global_indices(nrows))
@@ -43,14 +44,14 @@ contains
     val_dat%values(:) = 0.0_ccs_real
   end subroutine create_vector_values
 
-  module subroutine set_vector_values_mode(mode, val_dat)
+  pure module subroutine set_vector_values_mode(mode, val_dat)
     integer(ccs_int), intent(in) :: mode
     type(vector_values), intent(inout) :: val_dat
 
     val_dat%setter_mode = mode
   end subroutine set_vector_values_mode
 
-  module subroutine set_vector_values_entry(val, val_dat)
+  pure module subroutine set_vector_values_entry(val, val_dat)
 
     use constants, only: add_mode, insert_mode
 
@@ -64,7 +65,7 @@ contains
       else if (mode == add_mode) then
         x = x + val
       else
-        call error_abort("ERROR: Unrecognised entry mode " // str(mode))
+        error stop unknown_mode ! Unrecognised entry mode
       end if
     end associate
 

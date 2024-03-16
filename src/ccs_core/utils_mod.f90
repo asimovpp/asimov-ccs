@@ -20,9 +20,9 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, fluid, fluid_solver_selector, field_ptr
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       cell_centred_central, cell_centred_upwind
+  use types, only: field, fluid, field_ptr
+  use constants, only: cell_centred_central, cell_centred_upwind
+  use error_codes
 
   implicit none
 
@@ -50,9 +50,9 @@ module utils
   public :: add_field_to_outputlist
   public :: reset_outputlist_counter
   public :: get_field
-  public :: get_fluid_solver_selector
+  public :: get_is_field_solved
   public :: add_field
-  public :: set_fluid_solver_selector
+  public :: set_is_field_solved
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
   public :: get_natural_data
@@ -162,6 +162,12 @@ module utils
     module procedure get_natural_data_vec
   end interface get_natural_data
 
+  !> Generic interface to get a field from the flow
+  interface get_field
+    module procedure get_field_byname
+    module procedure get_field_byidx
+  end interface get_field
+  
   integer(ccs_int), save :: outputlist_counter = 0
 
 contains
@@ -200,7 +206,7 @@ contains
   end subroutine
 
   !> Convert integer to string.
-  function int2str(in_int, format_str) result(out_string)
+  pure function int2str(in_int, format_str) result(out_string)
     integer(ccs_int), intent(in) :: in_int           !< integer to convert
     character(*), optional, intent(in) :: format_str !< format string to use
     character(:), allocatable :: out_string          !< formatted string from input integer
@@ -216,7 +222,7 @@ contains
   end function
 
   !> Convert real to string.
-  function real2str(in_real, format_str) result(out_string)
+  pure function real2str(in_real, format_str) result(out_string)
     real(ccs_real), intent(in) :: in_real            !< real number to convert
     character(*), optional, intent(in) :: format_str !< format string to use
     character(:), allocatable :: out_string          !< formatted string from input real
@@ -232,7 +238,7 @@ contains
   end function
 
   !> Convert bool to string.
-  function bool2str(in_bool) result(out_string)
+  pure function bool2str(in_bool) result(out_string)
     logical, intent(in) :: in_bool          !< bool to convert
     character(:), allocatable :: out_string !< string from input bool
 
@@ -425,31 +431,15 @@ contains
   !v Append new field to output list.
   !
   ! @note does not check for duplicates
-  subroutine add_field_to_outputlist(var, name, list)
+  subroutine add_field_to_outputlist(var)
 
     use types, only: field, field_ptr
 
     ! Arguments
-    class(field), pointer, intent(in) :: var !< The field to be added
-    character(len=*), intent(in) :: name     !< The name of the field
-    type(field_ptr), dimension(:), allocatable, intent(inout) :: list !< The output list
+    class(field), intent(inout) :: var !< The field to be added
 
-    ! Local variables
-    type(field_ptr) :: new_element
+    var%output = .true.
 
-    new_element%ptr => var
-    new_element%name = name
-    
-    if (allocated(list)) then
-      if (size(list) > outputlist_counter) then
-        list(outputlist_counter) = new_element
-      else
-        list = [list, new_element]
-      end if
-    else
-      list = [new_element]
-    end if
-    
     outputlist_counter = outputlist_counter + 1
     
   end subroutine add_field_to_outputlist
@@ -461,101 +451,85 @@ contains
   end subroutine
 
   !> Gets the field from the fluid structure specified by field_name
-  subroutine get_field(flow, field_name, flow_field)
-    !(flow, "u", u)
+  subroutine get_field_byname(flow, field_name, flow_field)
     type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
     character(len=*), intent(in) :: field_name
     class(field), pointer, intent(out) :: flow_field  !< the field of interest
 
-    integer(ccs_int), dimension(1) :: field_index
     integer(ccs_int) :: i
-    character(len=:), allocatable :: msg                   !< Constructed message
 
-    field_index(1) = 0
-    do i = 1, size(flow%field_names)
-      if (trim(flow%field_names(i)) == field_name) then
-        field_index(1) = i
+    logical :: found
+    
+    do i = 1, size(flow%fields)
+      call get_field_byidx(flow, i, flow_field)
+      if (trim(flow_field%name) == field_name) then
+        found = .true.
         exit
+      else
+        found = .false.
+        nullify(flow_field)
       end if           
     end do
 
-    if (field_index(1) == 0) then
-      msg = "Field " // field_name // " not found"
-      call error_abort(msg)
+    if (.not. found) then
+      error stop field_not_found ! Field name not found
     end if
 
-    !field_index = findloc(flow%field_names , field_name)
-    flow_field => flow%fields(field_index(1))%ptr
-  end subroutine get_field
+  end subroutine get_field_byname
 
+  !> Gets the field from the fluid structure specified by field_index
+  subroutine get_field_byidx(flow, field_index, flow_field)
+    type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
+    integer, intent(in) :: field_index
+    class(field), pointer, intent(out) :: flow_field  !< the field of interest
+
+    if (field_index > size(flow%fields)) then
+      error stop field_index_exceeded ! Field index exceeds number of flow fields
+    end if
+
+    flow_field => flow%fields(field_index)%ptr
+    
+  end subroutine get_field_byidx
+  
   !< Sets the pointer to the field and the corresponding field name in the fluid structure
-  subroutine add_field(flow_field, flow)
-    integer(ccs_int) :: field_index     !< index of arrays at which to set the field pointer and name
-    class(field), target, intent(in) :: flow_field  !< the field
-    type(fluid), intent(inout) :: flow              !< the fluid structure
-    type(field_ptr) :: tmp_field_ptr
+  subroutine add_field(flow_field_ptr, flow)
+    type(field_ptr), target, intent(in) :: flow_field_ptr !< the field
+    type(fluid), intent(inout) :: flow                    !< the fluid structure
+
     logical, save :: first_call = .true.
     
     ! Handle the case when a program body is called in a loop (e.g. as part of a convergence test)
-    if ((.not. allocated(flow%fields)) .and. (.not. allocated(flow%field_names))) then
+    if (.not. allocated(flow%fields)) then
       first_call = .true.
     end if
 
     if (first_call) then
       allocate (flow%fields(1))
-      allocate (flow%field_names(1))
-      flow%fields(1)%ptr => flow_field
-      flow%field_names(1) = flow_field%name
+      flow%fields(1) = flow_field_ptr
       first_call = .false.
     else
-      tmp_field_ptr%ptr => flow_field
-      flow%fields = [ flow%fields, tmp_field_ptr]
-      flow%field_names = [flow%field_names, flow_field%name]
-      field_index = size(flow%fields) 
-      flow%fields(field_index)%ptr => flow_field
+      flow%fields = [ flow%fields, flow_field_ptr]
     end if 
     
   end subroutine add_field
 
-  !> Gets the solver selector for a specified field
-  subroutine get_fluid_solver_selector(solver_selector, field_name, selector)
-    type(fluid_solver_selector), intent(in) :: solver_selector  !< Structure containing all of the solver selectors
-    integer(ccs_int), intent(in) :: field_name                  !< name of field
-    logical, intent(out) :: selector                            !< flag indicating whether to solve for the given field
+  !> Gets the solve flag for a field
+  pure subroutine get_is_field_solved(phi, solve)
+    class(field), intent(in) :: phi !< Field variable
+    logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
-    select case (field_name)
-    case (field_u)
-      selector = solver_selector%u
-    case (field_v)
-      selector = solver_selector%v
-    case (field_w)
-      selector = solver_selector%w
-    case (field_p)
-      selector = solver_selector%p
-    case default
-      call error_abort("Unrecognised field index.")
-    end select
-  end subroutine get_fluid_solver_selector
+    solve = phi%solve
+    
+  end subroutine get_is_field_solved
 
-  !> Sets the solver selector for a specified field
-  subroutine set_fluid_solver_selector(field_name, selector, solver_selector)
-    integer(ccs_int), intent(in) :: field_name                      !< name of field
-    logical, intent(in) :: selector                                 !< flag indicating whether to solve for the given field
-    type(fluid_solver_selector), intent(inout) :: solver_selector   !< Structure containing all of the solver selectors
+  !> Sets the solve flag for a field
+  pure subroutine set_is_field_solved(solve, phi)
+    logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
+    type(field), intent(inout) :: phi !< Field variable
 
-    select case (field_name)
-    case (field_u)
-      solver_selector%u = selector
-    case (field_v)
-      solver_selector%v = selector
-    case (field_w)
-      solver_selector%w = selector
-    case (field_p)
-      solver_selector%p = selector
-    case default
-      call error_abort("Unrecognised field index.")
-    end select
-  end subroutine set_fluid_solver_selector
+    phi%solve = solve
+    
+  end subroutine set_is_field_solved
 
   ! Allocates arrays in fluid field structure to specified size
   subroutine allocate_fluid_fields(n_fields, flow)
@@ -563,7 +537,6 @@ contains
     type(fluid), intent(out) :: flow          !< the fluid structure
 
     allocate (flow%fields(n_fields))
-    allocate (flow%field_names(n_fields))
   end subroutine allocate_fluid_fields
 
   ! Deallocates fluid arrays
@@ -571,11 +544,10 @@ contains
     type(fluid), intent(inout) :: flow  !< The fluid structure to deallocate
 
     deallocate (flow%fields)
-    deallocate (flow%field_names)
   end subroutine dealloc_fluid_fields
 
   !> Convert advection scheme name -> ID.
-  integer(ccs_int) function get_scheme_id(scheme_name)
+  pure integer(ccs_int) function get_scheme_id(scheme_name)
 
     character(len=*), intent(in) :: scheme_name
     integer(ccs_int) :: id
@@ -587,14 +559,14 @@ contains
     else if (scheme == "upwind") then
        id = cell_centred_upwind
     else
-       call error_abort("Uknown scheme "//scheme)
+      error stop unknown_scheme ! Unknown discretisation scheme
     end if
 
     get_scheme_id = id
   end function get_scheme_id
 
   !> Convert advection scheme ID -> name.
-  function get_scheme_name(scheme_id) result(scheme_name)
+  pure function get_scheme_name(scheme_id) result(scheme_name)
 
     integer(ccs_int), intent(in) :: scheme_id
     character(len=:), allocatable :: scheme_name
@@ -604,7 +576,7 @@ contains
     else if (scheme_id == cell_centred_upwind) then
        scheme_name = "upwind"
     else
-       call error_abort("Uknown scheme ID")
+      error stop unknown_scheme ! Unknown discretisation scheme ID
     end if
 
   end function get_scheme_name

@@ -15,7 +15,7 @@ submodule(fv) fv_discretisation
 
 contains
   !> Calculates advection coefficient for neighbouring cell using CDS discretisation
-  module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+  pure module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
     type(central_field), intent(in) :: phi  !< scalar field
     type(face_locator), intent(in) :: loc_f !< face locator
     real(ccs_real), intent(in) :: mf        !< mass flux at the face
@@ -42,7 +42,7 @@ contains
   end subroutine calc_advection_coeff_cds
 
   !> Calculates advection coefficient for neighbouring cell using UDS discretisation
-  module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+  pure module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
     type(upwind_field), intent(in) :: phi   !< scalar field
     type(face_locator), intent(in) :: loc_f !< face locator
     real(ccs_real), intent(in) :: mf        !< mass flux at the face

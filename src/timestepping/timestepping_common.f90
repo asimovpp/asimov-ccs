@@ -18,7 +18,7 @@ contains
     timestepping_active = .true.
   end subroutine
 
-  module function timestepping_is_active() result(active)
+  pure module function timestepping_is_active() result(active)
     logical :: active
     active = timestepping_active
   end function
@@ -57,7 +57,7 @@ contains
 
   end function
 
-  module subroutine get_current_step(step)
+  pure module subroutine get_current_step(step)
 
     integer(ccs_int), intent(out) :: step
 
@@ -69,7 +69,7 @@ contains
 
   end subroutine
 
-  module subroutine get_current_time(time)
+  pure module subroutine get_current_time(time)
 
     real(ccs_real), intent(out) :: time
 

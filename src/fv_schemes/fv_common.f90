@@ -20,6 +20,7 @@ submodule(fv) fv_common
   use boundary_conditions, only: get_bc_index
   use timers, only: timer_register_start, timer_stop
   use bc_constants
+  use error_codes
 
   implicit none
 
@@ -280,7 +281,7 @@ contains
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary
-  module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
+  pure module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
 
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
@@ -301,7 +302,7 @@ contains
   end subroutine compute_boundary_values
 
   !> Compute the coefficients of the boundary condition
-  module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
+  pure module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
@@ -352,7 +353,7 @@ contains
       case (3)
         parallel_component_map = [1, 1, 0]
       case default
-        call error_abort("invalid component provided " // str(component))
+        error stop invalid_component ! Invalid component provided
       end select
       ! Only keep the components of phi that are parallel to the surface
       phi_face_parallel_component_norm = 0
@@ -390,13 +391,13 @@ contains
       a = 0.0_ccs_real
       b = huge(1.0_ccs_real)
 
-      call error_abort("unknown bc type " // str(phi%bcs%bc_types(index_bc)))
+      error stop unknown_bc_type ! Unknown BC type
     end select
 
   end subroutine
 
   !> Linear interpolate of BC profile 
-  module subroutine get_value_from_bc_profile(x, profile, bc_value)
+  pure module subroutine get_value_from_bc_profile(x, profile, bc_value)
     real(ccs_real), dimension(:), intent(in) :: x
     type(bc_profile), intent(in) :: profile
     real(ccs_real), intent(out) :: bc_value
@@ -425,7 +426,7 @@ contains
   end subroutine
 
   !> Sets the diffusion coefficient
-  module subroutine calc_diffusion_coeff(index_p, index_nb, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff) 
+  pure module subroutine calc_diffusion_coeff(index_p, index_nb, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff) 
     integer(ccs_int), intent(in) :: index_p  !< the local cell index
     integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
     logical, intent(in) :: enable_cell_corrections !< Whether or not cell shape corrections are used
@@ -496,7 +497,7 @@ contains
 
   !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field
   ! spec) using Ferziger & Peric 4th ed, sec 9.7.1
-  subroutine interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
+  pure subroutine interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
 
     class(field), intent(inout) :: phi
     type(face_locator), intent(in) :: loc_f                         !< face locator
@@ -611,7 +612,7 @@ contains
   end function calc_mass_flux_uvw
 
   ! Computes Rhie-Chow correction
-  module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
+  pure module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
     real(ccs_real), dimension(:), intent(in) :: p                !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz !< arrays containing pressure gradient in x, y and z
     real(ccs_real), dimension(:), intent(in) :: invA             !< array containing inverse momentum diagonal
@@ -717,7 +718,7 @@ contains
   end function calc_mass_flux_no_uvw
 
   !> Calculates the row and column indices from flattened vector index. Assumes square mesh
-  module subroutine calc_cell_coords(index, cps, row, col)
+  pure module subroutine calc_cell_coords(index, cps, row, col)
     integer(ccs_int), intent(in) :: index !< cell index
     integer(ccs_int), intent(in) :: cps   !< number of cells per side
     integer(ccs_int), intent(out) :: row  !< cell row within mesh
@@ -777,7 +778,7 @@ contains
   end subroutine update_gradient
 
   !> Helper subroutine to calculate a gradient component at a time.
-  subroutine update_gradient_component(component, phi, gradients)
+  pure subroutine update_gradient_component(component, phi, gradients)
 
     integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
     class(field), intent(inout) :: phi !< the field whose gradient we want to compute

@@ -11,13 +11,12 @@ program bfs
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, &
-                       field_density, cell_centred_central, cell_centred_upwind, face_centred, &
+                       cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, fluid_solver_selector, bc_profile, field_elt
+                   field_ptr, fluid, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
@@ -31,7 +30,7 @@ program bfs
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, add_field, &
-                   get_fluid_solver_selector, set_fluid_solver_selector, &
+                   set_is_field_solved, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
   use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections, &
@@ -58,11 +57,7 @@ program bfs
   type(vector_spec) :: vec_properties
 
   type(field_spec) :: field_properties
-  class(field), allocatable, target :: mf, viscosity, density
-  type(field_ptr) :: u
-
-  type(field_ptr), allocatable :: output_list(:)
-  type(field_elt), allocatable, target :: field_list(:)
+  class(field), pointer :: u, v, p, mf, viscosity, density
 
   integer(ccs_int) :: n_boundaries
 
@@ -75,7 +70,6 @@ program bfs
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
-  logical :: w_sol = .false.
   logical :: p_sol = .true.
 
   logical :: store_residuals, enable_cell_corrections
@@ -85,7 +79,6 @@ program bfs
   integer :: i
 
   type(fluid) :: flow_fields
-  type(fluid_solver_selector) :: fluid_sol
   type(bc_profile), allocatable :: profile
 
   ! Launch MPI
@@ -156,60 +149,63 @@ program bfs
   call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("viscosity", field_properties)
-  call create_field(field_properties, viscosity)
-  call set_field_name("density", field_properties)
-  call create_field(field_properties, density)
 
   if (is_root(par_env)) then
     print *, "Build field list"
   end if
 
-  allocate(field_list(size(variable_names)))
   do i = 1, size(variable_names)
     if (is_root(par_env)) then
       print *, "Creating field ", trim(variable_names(i))
     end if
     call set_field_type(variable_types(i), field_properties)
     call set_field_name(trim(variable_names(i)), field_properties)
-    call create_field(field_properties, field_list(i)%f)
-    field_list(i)%name = trim(variable_names(i))
+    call create_field(field_properties, flow_fields)
   end do
 
   if (is_root(par_env)) then
-    print *, "Built ", size(field_list), " dynamically-defined fields"
+    print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
   end if
+
+  ! Expect u, w, p, p_prime to be created dynamically
+  call create_field(field_properties, flow_fields)
+  call set_field_name("viscosity", field_properties)
+  call create_field(field_properties, flow_fields)
+  call set_field_name("density", field_properties)
+  call create_field(field_properties, flow_fields)
 
   call set_vector_location(face, vec_properties)
   call set_size(par_env, mesh, vec_properties)
   call set_field_vector_properties(vec_properties, field_properties)
   call set_field_type(face_centred, field_properties)
   call set_field_name("mf", field_properties)
-  call create_field(field_properties, mf)
+  call create_field(field_properties, flow_fields)
 
   ! Read and set BC profiles
   ! Read u componemt (1st column)
   call read_bc_profile(case_path // '.blasius.prf', 1, profile)
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
   profile%centre(:) = [ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real ] 
+
+  ! Get field pointers to set specific options
+  call get_field(flow_fields, "u", u)
+  call get_field(flow_fields, "v", v)
+  call get_field(flow_fields, "p", p)
+  call get_field(flow_fields, "mf", mf)
+  call get_field(flow_fields, "viscosity", viscosity)
+  call get_field(flow_fields, "density", density)
   
-  do i = 1, size(field_list)
-    if(field_list(i)%name == 'u') then
-      u%ptr => field_list(i)%f
-    end if 
-  end do
   ! Set to 3rd boundary condition (inlet)
-  call set_bc_profile(u%ptr, profile, 3)
+  call set_bc_profile(u, profile, 3)
 
   ! Add fields to output list
-  do i = 1, size(field_list)
-    call add_field_to_outputlist(field_list(i)%f, field_list(i)%name, output_list)
-  end do
+  call add_field_to_outputlist(u)
+  call add_field_to_outputlist(v)
+  call add_field_to_outputlist(p)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(field_list, mf, viscosity, density) 
+  call initialise_flow(flow_fields) 
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
@@ -226,35 +222,31 @@ program bfs
   call set_timestep(dt)
 
   ! XXX: This should get incorporated as part of create_field subroutines
-  call set_fluid_solver_selector(field_u, u_sol, fluid_sol)
-  call set_fluid_solver_selector(field_v, v_sol, fluid_sol)
-  call set_fluid_solver_selector(field_w, w_sol, fluid_sol)
-  call set_fluid_solver_selector(field_p, p_sol, fluid_sol)
+  call set_is_field_solved(u_sol, u)
+  call set_is_field_solved(v_sol, v)
+  call set_is_field_solved(p_sol, p)
 
-  do i = 1, size(field_list)
-    call add_field(field_list(i)%f, flow_fields)
-  end do
-  call add_field(mf, flow_fields)
-  call add_field(viscosity, flow_fields) 
-  call add_field(density, flow_fields)  
+  ! Finished using pointers
+  nullify(u)
+  nullify(v)
+  nullify(p)
+  nullify(mf)
+  nullify(viscosity)
+  nullify(density)
 
   do t = 1, num_steps
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         fluid_sol, flow_fields)
+                         flow_fields)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call write_solution(par_env, case_path, mesh, output_list, t, num_steps, dt)
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
     end if
   end do
 
   ! Clean-up
-  do i = 1, size(field_list)
-    deallocate(field_list(i)%f)
-  end do
-  deallocate (output_list)
 
   call timer(end_time)
 
@@ -354,7 +346,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_flow(field_list, mf, viscosity, density)
+  subroutine initialise_flow(flow_fields)
 
     use constants, only: insert_mode, ndim
     use types, only: vector_values, cell_locator, face_locator, neighbour_locator
@@ -366,9 +358,10 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(field), intent(inout) :: mf, viscosity, density
+    type(fluid), intent(inout) :: flow_fields
 
     ! Local variables
+    class(field), pointer :: u, v, w, p, mf, mu, rho
     integer(ccs_int) :: n, count
     integer(ccs_int) :: n_local
     integer(ccs_int) :: index_p, global_index_p, index_f, index_nb
@@ -378,7 +371,6 @@ contains
     type(neighbour_locator) :: loc_nb
     type(vector_values) :: u_vals, v_vals, w_vals, p_vals
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
-    type(field_elt), dimension(:), intent(inout) :: field_list
 
     real(ccs_real), dimension(ndim) :: x_p, x_f
     real(ccs_real), dimension(ndim) :: face_normal
@@ -420,21 +412,22 @@ contains
       call set_entry(p_val, p_vals)
     end do
 
-    do i = 1, size(field_list)
-      if (field_list(i)%name == "u") then
-        call set_values(u_vals, field_list(i)%f%values)
-      else if (field_list(i)%name == "v") then
-        call set_values(v_vals, field_list(i)%f%values)
-      else if (field_list(i)%name == "w") then
-        call set_values(w_vals, field_list(i)%f%values)
-      else if (field_list(i)%name == "p") then
-        call set_values(p_vals, field_list(i)%f%values)  
-      else if (field_list(i)%name == "p_prime") then
-        
-      else
-        print *, "Unrecognised field name ", field_list(i)%name
-      end if
-    end do
+    call get_field(flow_fields, "u", u)
+    call get_field(flow_fields, "v", v)
+    call get_field(flow_fields, "w", w)
+    call get_field(flow_fields, "p", p)
+    call set_values(u_vals, u%values)
+    call set_values(v_vals, v%values)
+    call set_values(w_vals, w%values)
+    call set_values(p_vals, p%values)  
+    call update(u%values)
+    call update(v%values)
+    call update(w%values)
+    call update(p%values)
+    nullify(u)
+    nullify(v)
+    nullify(w)
+    nullify(p)
 
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
@@ -445,6 +438,9 @@ contains
     deallocate (w_vals%values)
     deallocate (p_vals%values)
 
+    call get_field(flow_fields, "mf", mf)
+    call get_field(flow_fields, "viscosity", mu)
+    call get_field(flow_fields, "density", rho)
     call get_vector_data(mf%values, mf_data)
 
     count = 0
@@ -478,20 +474,21 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-    call get_vector_data(viscosity%values, viscosity_data)
+    call get_vector_data(mu%values, viscosity_data)
     viscosity_data(:) =  1.e-2_ccs_real
-    call restore_vector_data(viscosity%values, viscosity_data)
+    call restore_vector_data(mu%values, viscosity_data)
 
-    call get_vector_data(density%values, density_data)
+    call get_vector_data(rho%values, density_data)
     density_data(:) = 1.0_ccs_real
-    call restore_vector_data(density%values, density_data)
+    call restore_vector_data(rho%values, density_data)
 
-    do i = 1, size(field_list)
-      call update(field_list(i)%f%values)
-    end do
     call update(mf%values)
-    call update(viscosity%values)
-    call update(density%values)
+    call update(mu%values)
+    call update(rho%values)
+
+    nullify(mf)
+    nullify(mu)
+    nullify(rho)
 
   end subroutine initialise_flow
 

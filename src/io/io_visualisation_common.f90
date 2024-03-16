@@ -7,12 +7,12 @@
 submodule(io_visualisation) io_visualisation_common
 #include "ccs_macros.inc"
 
-  use constants, only: ndim, &
-                       field_u, field_v, field_w, &
-                       field_p, field_p_prime, &
-                       field_mf
+  use constants, only: ndim
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
 
+  use types, only: field
+  use utils, only: get_field
+  
   implicit none
 
   character(len=1), dimension(4), parameter :: skip_fields = &
@@ -32,18 +32,18 @@ contains
   end subroutine
 
   !> Write the flow solution for the current time-step to file
-  module subroutine write_solution(par_env, case_name, mesh, output_list, step, maxstep, dt)
+  module subroutine write_solution(par_env, case_name, mesh, flow, step, maxstep, dt)
 
     use parallel, only: timer
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
-    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
-    type(field_ptr), dimension(:), intent(inout) :: output_list              !< List of fields to output
-    integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
-    integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
-    real(ccs_real), optional, intent(in) :: dt                               !< The time-step size
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                  !< The case name
+    type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
+    type(fluid), intent(inout) :: flow                                       !< The flow variables
+    integer(ccs_int), optional, intent(in) :: step                          !< The current time-step count
+    integer(ccs_int), optional, intent(in) :: maxstep                       !< The maximum time-step count
+    real(ccs_real), optional, intent(in) :: dt                              !< The time-step size
     integer(ccs_int) :: timer_index_write_field
     integer(ccs_int) :: timer_index_write_xdmf
 
@@ -54,12 +54,12 @@ contains
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
       call timer_start(timer_index_write_field)
-      call write_fields(par_env, case_name, mesh, output_list, step, maxstep)
+      call write_fields(par_env, case_name, mesh, flow, step, maxstep)
       call timer_stop(timer_index_write_field)
     else
       ! Steady case
       call timer_start(timer_index_write_field)
-      call write_fields(par_env, case_name, mesh, output_list)
+      call write_fields(par_env, case_name, mesh, flow)
       call timer_stop(timer_index_write_field)
     end if
 
@@ -67,19 +67,19 @@ contains
     if (present(step) .and. present(maxstep) .and. present(dt)) then
       ! Unsteady case
       call timer_start(timer_index_write_xdmf)
-      call write_xdmf(par_env, case_name, output_list, step, maxstep, dt)
+      call write_xdmf(par_env, case_name, flow, step, maxstep, dt)
       call timer_stop(timer_index_write_xdmf)
     else
       ! Steady case
       call timer_start(timer_index_write_xdmf)
-      call write_xdmf(par_env, case_name, output_list)
+      call write_xdmf(par_env, case_name, flow)
       call timer_stop(timer_index_write_xdmf)
     end if
 
   end subroutine
 
   !> Write the XML descriptor file, which describes the grid and flow data in the 'heavy' data files
-  module subroutine write_xdmf(par_env, case_name, output_list, step, maxstep, dt)
+  module subroutine write_xdmf(par_env, case_name, flow, step, maxstep, dt)
 
     use case_config, only: write_gradients
     use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices, get_mesh_generated
@@ -87,7 +87,7 @@ contains
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
-    type(field_ptr), dimension(:), intent(inout) :: output_list              !< List of fields to output
+    type(fluid), intent(inout) :: flow                                       !< The flow variables
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
     real(ccs_real), optional, intent(in) :: dt                               !< The time-step size
@@ -116,6 +116,8 @@ contains
     logical :: is_generated
     character(len=:), allocatable :: mesh_data_root ! Where in the mesh data path is topology/geometry stored?
 
+    class(field), pointer :: phi
+    
     xdmf_file = case_name // '.sol.xmf'
     sol_file = case_name // '.sol.h5'
     geo_file = case_name // '.geo'
@@ -188,13 +190,12 @@ contains
       ! Velocity vector
       ! Count number of velocity components in list of fields to be written out
       num_vel_cmp = 0
-      do i = 1, size(output_list)
-        if (trim(output_list(i)%name) == 'u') then
-          num_vel_cmp = num_vel_cmp + 1
-        else if (trim(output_list(i)%name) == 'v') then
-          num_vel_cmp = num_vel_cmp + 1
-        else if (trim(output_list(i)%name) == 'w') then
-          num_vel_cmp = num_vel_cmp + 1
+      do i = 1, size(flow%fields)
+        call get_field(flow, i, phi)
+        if (phi%output) then
+          if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
+            num_vel_cmp = num_vel_cmp + 1
+          end if
         end if
       end do
 
@@ -212,16 +213,13 @@ contains
 
         fmt = '(a,a,i0,3(a),i0,a)'
 
-        do i = 1, size(output_list)
-          if (trim(output_list(i)%name) == 'u') then
-            write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
-              step_counter, '/u</DataItem>'
-          else if (trim(output_list(i)%name) == 'v') then
-            write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
-              step_counter, '/v</DataItem>'
-          else if (trim(output_list(i)%name) == 'w') then
-            write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
-              step_counter, '/w</DataItem>'
+        do i = 1, size(flow%fields)
+          call get_field(flow, i, phi)
+          if (phi%output) then
+            if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
+              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+                   step_counter, '/'//trim(phi%name)//'</DataItem>'
+            end if
           end if
         end do
         write (ioxdmf, '(a,a)') l5, '</DataItem>'
@@ -230,8 +228,9 @@ contains
 
       ! Pressure
       fmt = '(a,a,i0,3(a),i0,a)'
-      do i = 1, size(output_list)
-        if (trim(output_list(i)%name) == 'p') then
+      do i = 1, size(flow%fields)
+        call get_field(flow, i, phi)
+        if (trim(phi%name) == 'p') then
           write (ioxdmf, '(a,a)') l4, '<Attribute Name = "pressure" AttributeType = "Scalar" Center = "Cell">'
           write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
             step_counter, '/p</DataItem>'
@@ -241,13 +240,16 @@ contains
 
       ! Scalars
       fmt = '(a,a,i0,3(a),i0,a)'
-      do i = 1, size(output_list)
-         if (.not. any(skip_fields == trim(output_list(i)%name))) then
-          write (ioxdmf, '(a,a)') l4, '<Attribute Name = "'//output_list(i)%name//'" AttributeType = "Scalar" Center = "Cell">'
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
-            step_counter, '/'//output_list(i)%name//'</DataItem>'
-          write (ioxdmf, '(a,a)') l4, '</Attribute>'
-         end if
+      do i = 1, size(flow%fields)
+        call get_field(flow, i, phi)
+        if (phi%output) then
+          if (.not. any(skip_fields == trim(phi%name))) then
+            write (ioxdmf, '(a,a)') l4, '<Attribute Name = "'//phi%name//'" AttributeType = "Scalar" Center = "Cell">'
+            write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
+                 step_counter, '/'//trim(phi%name)//'</DataItem>'
+            write (ioxdmf, '(a,a)') l4, '</Attribute>'
+          end if
+        end if
       end do
 
       ! Kinetic Energy
@@ -269,16 +271,13 @@ contains
 
         fmt = '(a,a,i0,3(a),i0,a)'
 
-        do i = 1, size(output_list)
-          if (trim(output_list(i)%name) == 'u') then
-            write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
-              step_counter, '/u</DataItem>'
-          else if (trim(output_list(i)%name) == 'v') then
-            write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
-              step_counter, '/v</DataItem>'
-          else if (trim(output_list(i)%name) == 'w') then
-            write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
-              step_counter, '/w</DataItem>'
+        do i = 1, size(flow%fields)
+          call get_field(flow, i, phi)
+          if (phi%output) then
+            if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
+              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+                   step_counter, '/'//trim(phi%name)//'</DataItem>'
+            end if
           end if
         end do
         write (ioxdmf, '(a,a)') l5, '</DataItem>'
@@ -311,11 +310,12 @@ contains
       end if
 
       ! Residuals
-      do i = 1, size(output_list)
-        if (allocated(output_list(i)%ptr%residuals)) then
-          write (ioxdmf, '(a,a)') l4, '<Attribute Name = "residuals_' // trim(output_list(i)%name) // '" AttributeType = "Scalar" Center = "Cell">'
+      do i = 1, size(flow%fields)
+        call get_field(flow, i, phi)
+        if (allocated(phi%residuals)) then
+          write (ioxdmf, '(a,a)') l4, '<Attribute Name = "residuals_' // trim(phi%name) // '" AttributeType = "Scalar" Center = "Cell">'
           write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
-            step_counter, '/' // trim(output_list(i)%name) // '_res</DataItem>'
+            step_counter, '/' // trim(phi%name) // '_res</DataItem>'
           write (ioxdmf, '(a,a)') l4, '</Attribute>'
         end if
       end do
