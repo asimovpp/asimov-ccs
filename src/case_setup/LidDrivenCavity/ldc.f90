@@ -26,19 +26,19 @@ program ldc
   use parallel, only: initialise_parallel_environment, &
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync
-  use meshing, only: set_mesh_object, nullify_mesh_object
+                      read_command_line_arguments, sync, is_root
+  use meshing, only: set_mesh_object, nullify_mesh_object, get_local_num_cells
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
   use meshing, only: get_global_num_cells
-  use vec, only: create_vector, set_vector_location
+  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
                    get_field, set_is_field_solved, &
                    allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count, get_store_residuals
+  use read_config, only: get_variables, get_boundary_count, get_store_residuals, get_variable_types
   use io_visualisation, only: write_solution
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
 
@@ -50,6 +50,7 @@ program ldc
   character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable :: ccs_config_file ! Config file for CCS
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
+  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
   type(vector_spec) :: vec_properties
 
@@ -63,7 +64,7 @@ program ldc
   integer(ccs_int) :: isize ! Size of MPI world
 
   integer(ccs_int) :: timer_index_init, timer_index_total, timer_index_sol
-
+  integer(ccs_int) :: i
 
   logical :: u_sol = .true.  ! Default equations to solve for LDC case
   logical :: v_sol = .true.
@@ -134,25 +135,26 @@ program ldc
 
   call set_vector_location(cell, vec_properties)
   call set_size(par_env, mesh, vec_properties)
-
   call set_field_config_file(ccs_config_file, field_properties)
   call set_field_n_boundaries(n_boundaries, field_properties)
   call set_field_store_residuals(store_residuals, field_properties)
 
   call set_field_vector_properties(vec_properties, field_properties)
-  call set_field_type(cell_centred_upwind, field_properties)
-  call set_field_name("u", field_properties)
-  call create_field(field_properties, flow_fields)
-  call set_field_name("v", field_properties)
-  call create_field(field_properties, flow_fields)
-  call set_field_name("w", field_properties)
-  call create_field(field_properties, flow_fields)
 
-  call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("p", field_properties)
-  call create_field(field_properties, flow_fields)
-  call set_field_name("p_prime", field_properties)
-  call create_field(field_properties, flow_fields)
+  if (is_root(par_env)) then
+    print *, "Build field list"
+  end if
+
+  ! We expect to find u,v,w,p,p_prime
+  do i = 1, size(variable_names)
+    call set_field_type(variable_types(i), field_properties)
+    call set_field_name(variable_names(i), field_properties)
+    call create_field(field_properties, flow_fields)
+  end do
+
+  if (is_root(par_env)) then
+    print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
+  end if
   call set_field_name("viscosity", field_properties)
   call create_field(field_properties, flow_fields) 
   call set_field_name("density", field_properties)
@@ -182,13 +184,7 @@ program ldc
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_velocity(u, v, w, mf, viscosity, density) 
-  call update(u%values)
-  call update(v%values)
-  call update(w%values)
-  call update(mf%values)
-  call update(viscosity%values)
-  call update(density%values)
+  call initialise_velocity(flow_fields) 
 
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_is_field_solved(u_sol, u)
@@ -253,6 +249,14 @@ contains
     end if
 
     call get_variables(config_file, variable_names)
+    if (size(variable_names) == 0) then
+      call error_abort("No variables were specified.")
+    end if
+    print*,"no. of variables=",size(variable_names)
+    call get_variable_types(config_file, variable_types)
+    if (size(variable_types) /= size(variable_names)) then
+       call error_abort("The number of variable types does not match the number of named variables")
+    end if
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
@@ -312,7 +316,7 @@ contains
 
   end subroutine
 
-  subroutine initialise_velocity(u, v, w, mf, viscosity, density)
+  subroutine initialise_velocity(flow_fields)
 
     use constants, only: add_mode
     use types, only: vector_values, cell_locator
@@ -322,9 +326,10 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    class(field), intent(inout) :: u, v, w, mf, viscosity, density
+    type(fluid), intent(inout) :: flow_fields
 
     ! Local variables
+    class(field), pointer :: u, v, w, mf, mu, rho
     integer(ccs_int) :: row, col
     integer(ccs_int) :: index_p, global_index_p, n_local
     real(ccs_real) :: u_val, v_val, w_val
@@ -334,7 +339,6 @@ contains
     
     ! Set alias
     call get_local_num_cells(n_local)
-
     call create_vector_values(n_local, u_vals)
     call create_vector_values(n_local, v_vals)
     call create_vector_values(n_local, w_vals)
@@ -360,9 +364,20 @@ contains
       call set_entry(w_val, w_vals)
     end do
 
+    call get_field(flow_fields, "u", u)
+    call get_field(flow_fields, "v", v)
+    call get_field(flow_fields, "w", w)
+    
     call set_values(u_vals, u%values)
     call set_values(v_vals, v%values)
     call set_values(w_vals, w%values)
+
+    call update(u%values)
+    call update(v%values)
+    call update(w%values)
+    nullify(u)
+    nullify(v)
+    nullify(w)
 
     deallocate (u_vals%global_indices)
     deallocate (v_vals%global_indices)
@@ -371,17 +386,28 @@ contains
     deallocate (v_vals%values)
     deallocate (w_vals%values)
 
+    call get_field(flow_fields, "mf", mf)
+    call get_field(flow_fields, "viscosity", mu)
+    call get_field(flow_fields, "density", rho)
+
     call get_vector_data(mf%values, mf_data)
     mf_data(:) = 0.0_ccs_real
     call restore_vector_data(mf%values, mf_data)
 
-    call get_vector_data(viscosity%values, viscosity_data)
+    call get_vector_data(mu%values, viscosity_data)
     viscosity_data(:) =  1.e-2_ccs_real
-    call restore_vector_data(viscosity%values, viscosity_data)
+    call restore_vector_data(mu%values, viscosity_data)
 
-    call get_vector_data(density%values, density_data)
+    call get_vector_data(rho%values, density_data)
     density_data(:) = 1.0_ccs_real
-    call restore_vector_data(density%values, density_data)
+    call restore_vector_data(rho%values, density_data)
+
+    call update(mf%values)
+    call update(mu%values)
+    call update(rho%values)
+    nullify(mf)
+    nullify(mu)
+    nullify(rho)
 
   end subroutine initialise_velocity
 
