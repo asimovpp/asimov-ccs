@@ -1,4 +1,7 @@
 submodule(reordering) reordering_none
+#include "ccs_macros.inc"
+
+  use utils, only: debug_print
 
   implicit none
 
@@ -15,6 +18,7 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i
 
+    call dprint("Reordering with no-reordering.")
     call get_local_num_cells(mesh, local_num_cells)
 
     allocate (new_indices(local_num_cells))

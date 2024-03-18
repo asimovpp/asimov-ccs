@@ -1,5 +1,7 @@
 submodule(reordering) reordering_zcurve
+#include "ccs_macros.inc"
 
+  use utils, only: debug_print
   use types, only: cell_locator, neighbour_locator
   use kinds, only: ccs_long
   use parallel, only: is_root
@@ -31,6 +33,8 @@ contains
     integer(ccs_int) :: fidx(2)
     integer(ccs_int) :: row, col
     integer(ccs_int), dimension(:), allocatable :: perm 
+
+    call dprint("Reordering with z-curve.")
 
     ! First build adjacency matrix for local cells
     call build_adjacency_matrix(mesh, xadj, adjncy)

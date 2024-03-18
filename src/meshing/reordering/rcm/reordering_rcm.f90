@@ -1,5 +1,7 @@
 submodule(reordering) reordering_rcm
+#include "ccs_macros.inc"
 
+  use utils, only: debug_print
   use types, only: cell_locator, neighbour_locator
 
   implicit none
@@ -24,6 +26,7 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i
 
+    call dprint("Reordering with RCM.")
     ! First build adjacency matrix for local cells
     call build_adjacency_matrix(mesh, xadj, adjncy)
 
