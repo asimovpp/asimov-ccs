@@ -1,4 +1,10 @@
 #!/bin/bash
+# From a ccs error code passed as argument, outputs the associated error name and message
+# stored in error_codes.f90
+# example:
+#   $ explain-ccs 17
+#     ERROR 17: error name ! associated comment if present in the source
+
 
 code=$1
 error_path=$CCS_DIR/src/ccs_core/error_codes.f90
