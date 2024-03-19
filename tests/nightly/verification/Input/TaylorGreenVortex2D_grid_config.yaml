@@ -61,7 +61,7 @@ viscocity : 1.0e-3
 
 variables:
   enable_cell_corrections: true
-  n_variables: 4
+  n_variables: 5
   variable_1:
     name: u
     type: central
@@ -69,9 +69,12 @@ variables:
     name: v
     type: central
   variable_3:
-    name: p
+    name: w
     type: central
   variable_4:
+    name: p
+    type: central
+  variable_5:
     name: p_prime
     type: central
 
