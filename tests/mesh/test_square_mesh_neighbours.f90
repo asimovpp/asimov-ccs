@@ -23,7 +23,7 @@ program test_square_mesh_neighbours
   integer(ccs_int) :: nnb
   integer(ccs_int) :: j
 
-  integer(ccs_int) :: index_nb, index_vnb
+  integer(ccs_int) :: index_nb
   
   type(neighbour_locator) :: loc_nb
   logical :: is_boundary
