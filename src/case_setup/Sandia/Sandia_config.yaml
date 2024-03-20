@@ -68,7 +68,7 @@ compute_bwidth : false
 
 variables:
   enable_cell_corrections: false
-  n_variables: 5
+  n_variables: 6
   variable_1:
     name: u
     type: central
