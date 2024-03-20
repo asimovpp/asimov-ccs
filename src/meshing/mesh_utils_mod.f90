@@ -509,7 +509,7 @@ contains
     call sync(shared_env)
     call destroy_shared_array(shared_env, temp_x_p, temp_window)
 
-    ! Allocate temporary arrays for face centres, face normals, face areas and ! coords
+    ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
     call get_global_num_faces(global_num_faces)
 
     call create_shared_array(shared_env, [ndim, global_num_faces], temp_x_f, &
@@ -2100,7 +2100,6 @@ contains
     integer(ccs_int), intent(in) :: nx                        !< Mesh size in x direction
     integer(ccs_int), intent(in) :: ny                        !< Mesh size in y direction
     integer(ccs_int), intent(in) :: nz                        !< Mesh size in z direction
-    ! logical, intent(in) :: vertex_flag                        !< Flag to indicate whether this is a vertex neighbour
     type(ccs_mesh), intent(inout) :: mesh                     !< The mesh
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: new_halos !< New halo indices
 
@@ -2185,7 +2184,6 @@ contains
     integer(ccs_int), intent(in) :: index_p_nb !< the cell-relative neighbour index
     integer(ccs_int), intent(in) :: index_nb !< the local index of the neighbour cell
     integer(ccs_int), intent(in) :: global_index_nb !< the global index of the neighbour cell
-    ! logical, intent(in) :: vertex_nb_flag !< flag indicating whether the neighbour being added is a vertex neighbour
     type(ccs_mesh), intent(inout) :: mesh !< the mesh we are assembling neighbours on
     integer(ccs_int), dimension(:), allocatable, intent(inout) :: new_halos !< New halo indices
 
