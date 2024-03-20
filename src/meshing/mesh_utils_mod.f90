@@ -147,7 +147,7 @@ contains
     call timer_start(timer_read_topo)
     call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
     call timer_stop(timer_read_topo)
-    
+
     call timer_start(timer_partitioner_input)
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
@@ -282,8 +282,11 @@ contains
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8, topo) ! 8 vertices per cell
       call set_vert_nb_per_cell(20, topo)
+    else if (max_faces == 4) then ! if cell are tetrahedral
+      call set_vert_per_cell(4, topo) ! 4 vertices per cell
+      call set_vert_nb_per_cell(20, topo)
     else
-      call error_abort("Currently only supporting hex cells.")
+      call error_abort("Currently only supporting hex or tet cells.")
     end if
 
     call get_global_num_faces(topo, global_num_faces)
@@ -576,6 +579,8 @@ contains
     call get_max_faces(mesh, max_faces)
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8, mesh) ! 8 vertices per cell
+    else if (max_faces == 4) then ! if cell are tetrahedral
+      call set_vert_per_cell(4, mesh) ! 4 vertices per cell
     else
       call error_abort("Currently only supporting hex cells.")
     end if
