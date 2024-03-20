@@ -10,7 +10,7 @@ program tgv
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name, vertex_neighbours, &
+                         pressure_solver_method_name, pressure_solver_precon_name, &
                          compute_bwidth, compute_partqual
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred
@@ -129,9 +129,6 @@ program tgv
   ! Set start and end iteration numbers (read from input file)
   it_start = 1
   it_end = num_iters
-
-  ! Hard coding to whether or not vertex neighbours are built
-  vertex_neighbours = .true. ! set to .false. to avoid building
 
   ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...

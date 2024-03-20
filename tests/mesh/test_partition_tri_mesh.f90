@@ -63,7 +63,7 @@ program test_partition_tri_mesh
   end if
 
   ! Compute new connectivity after partitioning
-  call compute_connectivity(par_env, shared_env, roots_env, mesh)
+  call compute_connectivity(par_env, shared_env, mesh)
 
   call check_topology("post")
   call nullify_mesh_object()
@@ -363,9 +363,6 @@ contains
     call set_vert_per_cell(6) ! Interior cells are hexagonal
     call get_vert_per_cell(vert_per_cell)
     allocate (mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
-    allocate (mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
-    allocate (mesh%topo%num_vert_nb(local_num_cells))
-    mesh%topo%num_vert_nb(:) = 0
 
     call set_halo_num_cells(0)
     call set_total_num_cells(local_num_cells)
@@ -390,19 +387,13 @@ contains
   subroutine clean_test
     call clean_test_topo(mesh%topo)
   end subroutine clean_test
+
   subroutine clean_test_topo(topo)
     type(topology), intent(inout) :: topo
 
-    if (allocated(topo%vert_nb_indices)) then
-      deallocate(topo%vert_nb_indices)
-    end if
-
-    if (allocated(topo%num_vert_nb)) then
-      deallocate(topo%num_vert_nb)
-    end if
-
     call clean_test_graphconn(topo%graph_conn)
   end subroutine clean_test_topo
+
   subroutine clean_test_graphconn(graph_conn)
     type(graph_connectivity), intent(inout) :: graph_conn
 

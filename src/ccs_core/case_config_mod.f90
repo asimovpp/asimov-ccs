@@ -42,9 +42,6 @@ module case_config
 
   logical, save, public :: write_gradients = .false.
 
-  ! Logical to toggle whether the vertex neighbours are build or not
-  logical, save, public :: vertex_neighbours = .true.
-
   ! Logical to toggle whether the partition quality and matrix bandwidth is computed or not
   logical, save, public :: compute_partqual = .true.
   logical, save, public :: compute_bwidth = .true.

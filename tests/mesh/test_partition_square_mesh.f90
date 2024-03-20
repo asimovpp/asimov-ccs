@@ -56,7 +56,7 @@ program test_partition_square_mesh
   end if
 
   ! Compute new connectivity after partitioning
-  call compute_connectivity(par_env, shared_env, roots_env, mesh)
+  call compute_connectivity(par_env, shared_env, mesh)
 
   call check_topology("post")
   call nullify_mesh_object()
@@ -226,89 +226,6 @@ contains
     deallocate (face_cell2_expected)
     
   end subroutine check_connectivity_cell
-  ! subroutine check_connectivity_cell_graphconn(i, graph_conn, loc_p, stage)
-
-  !   integer(ccs_int), intent(in) :: i
-  !   type(graph_connectivity), intent(in) :: graph_conn
-  !   type(cell_locator), intent(in) :: loc_p
-  !   character(len=*), intent(in) :: stage
-
-  !   integer :: j
-  !   integer :: nadj
-  !   integer(ccs_int) :: global_index_p
-  !   integer, dimension(:), allocatable :: adjncy_global_expected
-    
-  !   call get_global_index(loc_p, global_index_p)
-
-  !   nadj = int(graph_conn%xadj(i + 1) - graph_conn%xadj(i))
-  !   allocate (adjncy_global_expected(nadj))
-
-  !   call compute_expected_global_adjncy(i, adjncy_global_expected)
-
-  !   do j = int(graph_conn%xadj(i)), int(graph_conn%xadj(i + 1)) - 1
-  !      if (.not. any(adjncy_global_expected == graph_conn%adjncy(j)) .and. graph_conn%adjncy(j) .gt. 0) then
-  !         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
-  !         print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-  !         write (message, *) "ERROR: neighbours are wrong " // stage // "- partitioning."
-  !         call stop_test(message)
-  !      end if
-  !   end do
-
-  !   do j = 1, size(adjncy_global_expected)
-  !      if (.not. any(graph_conn%adjncy == adjncy_global_expected(j)) .and. adjncy_global_expected(j) /= 0) then
-  !         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
-  !         print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
-  !         write (message, *) "ERROR: neighbours are missing " // stage // "- partitioning."
-  !         call stop_test(message)
-  !      end if
-  !   end do
-
-  !   deallocate (adjncy_global_expected)
-
-  ! end subroutine check_connectivity_cell_graphconn
-  
-  ! subroutine compute_expected_global_adjncy(i, adjncy_global_expected)
-
-  !   integer, intent(in) :: i
-  !   integer, dimension(:), intent(inout) :: adjncy_global_expected
-
-  !   integer :: interior_ctr
-
-  !   type(cell_locator) :: loc_p
-  !   integer(ccs_int) :: idx_global, cidx_global
-
-  !   adjncy_global_expected(:) = 0
-  !   interior_ctr = 1
-
-  !   call create_cell_locator(mesh, i, loc_p)
-  !   call get_global_index(loc_p, idx_global)
-  !   cidx_global = idx_global - 1 ! C-style indexing
-
-  !   if ((modulo(cidx_global, 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
-  !     ! NOT @ left boundary
-  !     adjncy_global_expected(interior_ctr) = idx_global - 1
-  !     interior_ctr = interior_ctr + 1
-  !   end if
-
-  !   if ((modulo(cidx_global, 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
-  !     ! NOT @ right boundary
-  !     adjncy_global_expected(interior_ctr) = idx_global + 1
-  !     interior_ctr = interior_ctr + 1
-  !   end if
-
-  !   if (((cidx_global / 4) /= 0) .and. (interior_ctr <= size(adjncy_global_expected))) then
-  !     ! NOT @ bottom boundary
-  !     adjncy_global_expected(interior_ctr) = idx_global - 4
-  !     interior_ctr = interior_ctr + 1
-  !   end if
-
-  !   if (((cidx_global / 4) /= (4 - 1)) .and. (interior_ctr <= size(adjncy_global_expected))) then
-  !     ! NOT @ top boundary
-  !     adjncy_global_expected(interior_ctr) = idx_global + 4
-  !     interior_ctr = interior_ctr + 1
-  !   end if
-
-  ! end subroutine
 
 !  subroutine initialise_test
 !

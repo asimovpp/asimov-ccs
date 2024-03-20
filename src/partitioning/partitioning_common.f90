@@ -2,7 +2,7 @@ submodule(partitioning) partitioning_common
 #include "ccs_macros.inc"
 
   use kinds, only: ccs_int, ccs_err, ccs_real
-  use types, only: topology, graph_connectivity, cell_locator, neighbour_locator, vertex_neighbour_locator
+  use types, only: topology, graph_connectivity, cell_locator, neighbour_locator
   use utils, only: str, debug_print, exit_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use mesh_utils, only: count_mesh_faces, set_cell_face_indices
@@ -15,10 +15,8 @@ submodule(partitioning) partitioning_common
                      create_cell_locator, create_neighbour_locator, &
                      get_global_index, &
                      get_local_index, set_local_index, &
-                     get_count_vertex_neighbours, &
                      set_mesh_object, nullify_mesh_object, &
                      set_topo_object, nullify_topo_object
-  use case_config, only: vertex_neighbours
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
 
   implicit none
@@ -26,13 +24,12 @@ submodule(partitioning) partitioning_common
 contains
 
   ! Compute the new topology connectivity after partitioning
-  module subroutine compute_connectivity(par_env, shared_env, roots_env, mesh)
+  module subroutine compute_connectivity(par_env, shared_env, mesh)
 
     use mpi
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
 
     ! Local variables
@@ -43,11 +40,6 @@ contains
     
     irank = par_env%proc_id
     isize = par_env%num_procs
-
-    if (vertex_neighbours) then
-      ! Prepare global data needed later
-      call store_global_vertex_connectivity(par_env, shared_env, roots_env, mesh)
-    end if
 
     ! Get global indices of local cells
     call compute_connectivity_get_local_cells(par_env, mesh)
@@ -77,10 +69,6 @@ contains
     end if
 
     call compute_face_connectivity(par_env, shared_env, mesh)
-
-    if (vertex_neighbours) then
-      call compute_vertex_connectivity(par_env, shared_env, mesh)
-    end if
 
   end subroutine compute_connectivity
 
@@ -222,201 +210,6 @@ contains
     call destroy_shared_array(shared_env, cell_faces, cell_faces_window)
 
   end subroutine compute_face_connectivity
-
-  subroutine store_global_vertex_connectivity(par_env, shared_env, roots_env, mesh)
-
-    use mpi
-
-    class(parallel_environment), intent(in) :: par_env
-    class(parallel_environment), intent(in) :: shared_env
-    class(parallel_environment), intent(in) :: roots_env
-    type(ccs_mesh), intent(inout) :: mesh
-
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: global_num_cells
-    integer(ccs_int) :: max_vert_nb
-
-    integer(ccs_int), dimension(:), pointer :: tmp_arr
-    integer(ccs_int) :: i, j
-    integer(ccs_int) :: idx
-    integer(ccs_int) :: vert_nb_idx
-
-    integer(ccs_err) :: ierr
-    integer :: tmp_arr_window = 0
-
-    ! Copies local vert_nb_indices to the global one
-
-    global_num_cells = mesh%topo%global_num_cells
-
-    max_vert_nb = maxval(mesh%topo%num_vert_nb)
-    select type (par_env)
-    type is (parallel_environment_mpi)
-      call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
-    class default
-      call error_abort("Unsupported parallel environment!")
-    end select
-
-    call create_shared_array(shared_env, max_vert_nb * global_num_cells, tmp_arr, tmp_arr_window)
-
-    if (is_root(shared_env)) then
-      tmp_arr(:) = 0
-    end if
-    call sync(shared_env)
-
-    ! XXX: cannot read local_num_cells - arrays haven't been resized!
-    local_num_cells = size(mesh%topo%num_vert_nb)
-
-    do i = 1, local_num_cells
-      idx = max_vert_nb * (mesh%topo%global_indices(i) - 1)
-
-      do j = 1, mesh%topo%num_vert_nb(i)
-        vert_nb_idx = mesh%topo%vert_nb_indices(j, i)
-        if (vert_nb_idx > 0) then
-          tmp_arr(idx + j) = mesh%topo%global_indices(vert_nb_idx)
-        else
-          tmp_arr(idx + j) = vert_nb_idx
-        end if
-      end do
-    end do
-    call sync(shared_env)
-
-    if (is_valid(roots_env)) then
-      select type (roots_env)
-      type is (parallel_environment_mpi)
-        call MPI_Allreduce(MPI_IN_PLACE, tmp_arr, max_vert_nb * global_num_cells, MPI_INTEGER, MPI_SUM, roots_env%comm, ierr)
-      class default
-        call error_abort("Unsupported parallel environment!")
-      end select
-    end if
-    call sync(shared_env)
-
-    call create_shared_array(shared_env, [max_vert_nb, global_num_cells], mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
-    if (is_root(shared_env)) then
-      mesh%topo%global_vert_nb_indices(:, :) = 0
-      
-      do i = 1, global_num_cells
-        do j = 1, max_vert_nb
-          idx = max_vert_nb * (i - 1) + j
-          mesh%topo%global_vert_nb_indices(j, i) = tmp_arr(idx)
-        end do
-      end do
-    end if
-
-    call sync(shared_env)
-    call destroy_shared_array(shared_env, tmp_arr, tmp_arr_window)
-
-  end subroutine store_global_vertex_connectivity
-
-  subroutine compute_vertex_connectivity(par_env, shared_env, mesh)
-
-    use mpi
-
-    class(parallel_environment), intent(in) :: par_env
-    class(parallel_environment), intent(in) :: shared_env
-    type(ccs_mesh), target, intent(inout) :: mesh !< The mesh for which to compute the parition
-
-    integer(ccs_int) :: local_num_cells
-
-    integer(ccs_int) :: i, j
-    integer(ccs_int) :: local_idx
-    integer(ccs_int) :: global_idx
-
-    integer(ccs_int) :: max_vert_nb
-
-    integer(ccs_err) :: ierr
-
-    type(cell_locator) :: loc_p
-    integer(ccs_int) :: nvnb
-
-    integer(ccs_int) :: total_num_cells
-
-    integer(ccs_int) :: global_num_cells
-
-    if (.not. associated(mesh%topo%global_vertex_indices)) then
-      call error_abort("The global vertex indices array was deallocated prematurely!")
-    else
-      if (size(mesh%topo%global_vertex_indices, 2) /= mesh%topo%global_num_cells) then
-        call error_abort("Need the global cell-vertex connnectivity, not just local!")
-      end if
-    end if
-
-    call get_global_num_cells(global_num_cells)
-    call get_local_num_cells(local_num_cells)
-
-    max_vert_nb = maxval(mesh%topo%num_vert_nb)
-    select type (par_env)
-    type is (parallel_environment_mpi)
-      call MPI_Allreduce(MPI_IN_PLACE, max_vert_nb, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
-    class default
-      call error_abort("Unsupported parallel environment!")
-    end select
-
-    !! XXX: Need to get the maximum number of vertex neighbours BEFORE deallocating
-    if (allocated(mesh%topo%num_vert_nb)) then
-      deallocate(mesh%topo%num_vert_nb)
-    end if
-    allocate (mesh%topo%num_vert_nb(local_num_cells))
-
-    ! Check vertex neighbours as input
-    if (any(mesh%topo%global_vert_nb_indices > global_num_cells)) then
-      call error_abort("Global vertex neighbour indices > global_num_cells")
-    end if
-
-    ! Copy vertex neighbour indices from global array
-    if (allocated(mesh%topo%vert_nb_indices)) then
-       deallocate(mesh%topo%vert_nb_indices)
-    end if
-    allocate(mesh%topo%vert_nb_indices(max_vert_nb, local_num_cells))
-    mesh%topo%vert_nb_indices(:, :) = 0
-
-    do local_idx = 1, local_num_cells
-      call create_cell_locator(local_idx, loc_p)
-      call get_global_index(loc_p, global_idx)
-
-      mesh%topo%vert_nb_indices(:, local_idx) = pack(mesh%topo%global_vert_nb_indices(:, global_idx), mesh%topo%global_vert_nb_indices(:, global_idx) /= 0)
-      mesh%topo%num_vert_nb(local_idx) = count(mesh%topo%vert_nb_indices(:, local_idx) /= 0)
-    end do
-    call sync(shared_env)
-    call destroy_shared_array(shared_env, mesh%topo%global_vert_nb_indices, mesh%topo%global_vert_nb_indices_window)
-
-    ! Check localised vertex neighbours
-    if (any(mesh%topo%vert_nb_indices > global_num_cells)) then
-      print *, mesh%topo%vert_nb_indices
-      call error_abort("Local vertex neighbour indices > global_num_cells")
-    end if
-
-    ! Convert global->local indices
-    call get_global_num_cells(global_num_cells)
-    do i = 1, local_num_cells
-      call create_cell_locator(i, loc_p)
-
-      !call get_count_vertex_neighbours(loc_p, nvnb)
-      nvnb = mesh%topo%num_vert_nb(i)
-      do j = 1, nvnb
-        ! We can't use the neighbour index because currently we have global indices and this breaks the error checking.
-        global_idx = mesh%topo%vert_nb_indices(j, i)
-
-        if (global_idx > 0) then
-          if (global_idx > global_num_cells) then
-            print *, "Global index exceeds global cell count", global_idx, global_num_cells
-            call error_abort("Global index exceeds global cell count")
-          end if
-
-          local_idx = findloc(mesh%topo%global_indices, global_idx, 1)
-          if (local_idx == 0) then
-            ! New global index
-            call add_new_global_index(global_idx, mesh)
-            call get_total_num_cells(total_num_cells)
-            local_idx = total_num_cells
-          end if
-
-          ! As above, can't use vertex neighbour locators as currently have global indices in the arrays.
-          mesh%topo%vert_nb_indices(j, i) = local_idx
-        end if
-      end do
-    end do
-
-  end subroutine compute_vertex_connectivity
 
   !v Adds a new global index
   !
