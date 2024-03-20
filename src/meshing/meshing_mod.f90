@@ -6,8 +6,8 @@ module meshing
 
   use constants, only: ndim
   use kinds, only: ccs_int, ccs_real, ccs_long
-  use types, only: ccs_mesh, topology, face_locator, cell_locator, neighbour_locator, &
-                   vert_locator !, vertex_neighbour_locator
+  use types, only: ccs_mesh, topology, face_locator, &
+                   cell_locator, neighbour_locator, vert_locator
 
   implicit none
 

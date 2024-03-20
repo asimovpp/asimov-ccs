@@ -509,7 +509,7 @@ contains
     call sync(shared_env)
     call destroy_shared_array(shared_env, temp_x_p, temp_window)
 
-    ! Allocate temporary arrays for face centres, face normals, face areas and vertex coords
+    ! Allocate temporary arrays for face centres, face normals, face areas and ! coords
     call get_global_num_faces(global_num_faces)
 
     call create_shared_array(shared_env, [ndim, global_num_faces], temp_x_f, &
