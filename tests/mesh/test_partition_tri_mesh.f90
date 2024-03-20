@@ -363,9 +363,9 @@ contains
     call set_vert_per_cell(6) ! Interior cells are hexagonal
     call get_vert_per_cell(vert_per_cell)
     allocate (mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
-    allocate (mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
-    allocate (mesh%topo%num_vert_nb(local_num_cells))
-    mesh%topo%num_vert_nb(:) = 0
+    ! allocate (mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
+    ! allocate (mesh%topo%num_vert_nb(local_num_cells))
+    ! mesh%topo%num_vert_nb(:) = 0
 
     call set_halo_num_cells(0)
     call set_total_num_cells(local_num_cells)
@@ -393,13 +393,13 @@ contains
   subroutine clean_test_topo(topo)
     type(topology), intent(inout) :: topo
 
-    if (allocated(topo%vert_nb_indices)) then
-      deallocate(topo%vert_nb_indices)
-    end if
+    ! if (allocated(topo%vert_nb_indices)) then
+    !   deallocate(topo%vert_nb_indices)
+    ! end if
 
-    if (allocated(topo%num_vert_nb)) then
-      deallocate(topo%num_vert_nb)
-    end if
+    ! if (allocated(topo%num_vert_nb)) then
+    !   deallocate(topo%num_vert_nb)
+    ! end if
 
     call clean_test_graphconn(topo%graph_conn)
   end subroutine clean_test_topo

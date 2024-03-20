@@ -378,22 +378,22 @@ contains
   !
   !  Creates the association between a neighbour cell F relative to cell P via a vertex, i.e. to
   !  access the nth vertex neighbour of cell i.
-  pure module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
-    type(cell_locator), intent(in) :: loc_p
-    integer(ccs_int), intent(in) :: vert_nb_counter
-    type(vertex_neighbour_locator), intent(out) :: loc_nb
+  ! pure module subroutine create_vertex_neighbour_locator(loc_p, vert_nb_counter, loc_nb)
+  !   type(cell_locator), intent(in) :: loc_p
+  !   integer(ccs_int), intent(in) :: vert_nb_counter
+  !   type(vertex_neighbour_locator), intent(out) :: loc_nb
 
-    loc_nb%index_p = loc_p%index_p
+  !   loc_nb%index_p = loc_p%index_p
 
-    loc_nb%vert_nb_counter = vert_nb_counter
+  !   loc_nb%vert_nb_counter = vert_nb_counter
 
-    associate (i => loc_nb%index_p, &
-               j => loc_nb%vert_nb_counter)
-      if (mesh%topo%vert_nb_indices(j, i) == i) then
-        error stop self_not_neighbour ! Attempt to set self as neighbour
-      end if
-    end associate
-  end subroutine create_vertex_neighbour_locator
+  !   associate (i => loc_nb%index_p, &
+  !              j => loc_nb%vert_nb_counter)
+  !     if (mesh%topo%vert_nb_indices(j, i) == i) then
+  !       error stop self_not_neighbour ! Attempt to set self as neighbour
+  !     end if
+  !   end associate
+  ! end subroutine create_vertex_neighbour_locator
 
   !v Constructs a vertex locator object.
   !
@@ -634,22 +634,22 @@ contains
   end subroutine get_neighbour_boundary_status
 
   !> Returns the boundary status of a neighbouring cell
-  pure module subroutine get_vertex_neighbour_boundary_status(loc_vnb, is_boundary)
-    type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the neighbour locator object.
-    logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
+  ! pure module subroutine get_vertex_neighbour_boundary_status(loc_vnb, is_boundary)
+  !   type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the neighbour locator object.
+  !   logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
 
-    integer :: index_nb
+  !   integer :: index_nb
 
-    call get_vertex_neighbour_local_index(loc_vnb, index_nb)
+  !   call get_vertex_neighbour_local_index(loc_vnb, index_nb)
 
-    if (index_nb > 0) then
-      is_boundary = .false.
-    else if (index_nb < 0) then
-      is_boundary = .true.
-    else
-      error stop invalid_neighbour ! Neighbour index 0 is not valid
-    end if
-  end subroutine get_vertex_neighbour_boundary_status
+  !   if (index_nb > 0) then
+  !     is_boundary = .false.
+  !   else if (index_nb < 0) then
+  !     is_boundary = .true.
+  !   else
+  !     error stop invalid_neighbour ! Neighbour index 0 is not valid
+  !   end if
+  ! end subroutine get_vertex_neighbour_boundary_status
 
   !> Returns the boundary status of a face
   pure module subroutine get_face_boundary_status(loc_f, is_boundary)
@@ -693,21 +693,21 @@ contains
   !  Given a distributed mesh, a processor needs both the cells within its partition
   !  and cells from the surrounding halo - this subroutine get_indicates whether a
   !  cell's vertex neighbour is within the local partition or the halo.
-  pure module subroutine get_vertex_neighbour_local_status(loc_vnb, is_local)
-    type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the vertex neighbour locator object.
-    logical, intent(out) :: is_local !< the local status of the neighbour.
+  ! pure module subroutine get_vertex_neighbour_local_status(loc_vnb, is_local)
+  !   type(vertex_neighbour_locator), intent(in) :: loc_vnb !< the vertex neighbour locator object.
+  !   logical, intent(out) :: is_local !< the local status of the neighbour.
 
-    integer(ccs_int) :: index_nb
-    integer(ccs_int) :: local_num_cells
+  !   integer(ccs_int) :: index_nb
+  !   integer(ccs_int) :: local_num_cells
 
-    call get_vertex_neighbour_local_index(loc_vnb, index_nb)
-    call get_local_num_cells(local_num_cells)
-    if ((index_nb > 0) .and. (index_nb <= local_num_cells)) then
-      is_local = .true.
-    else
-      is_local = .false.
-    end if
-  end subroutine get_vertex_neighbour_local_status
+  !   call get_vertex_neighbour_local_index(loc_vnb, index_nb)
+  !   call get_local_num_cells(local_num_cells)
+  !   if ((index_nb > 0) .and. (index_nb <= local_num_cells)) then
+  !     is_local = .true.
+  !   else
+  !     is_local = .false.
+  !   end if
+  ! end subroutine get_vertex_neighbour_local_status
 
   !v Returns the local index of a cell
   !
@@ -744,26 +744,26 @@ contains
   end subroutine set_neighbour_local_index
 
   !> Returns the local index of a vertex neighbour cell
-  pure module subroutine get_vertex_neighbour_local_index(loc_nb, index_nb)
-    type(vertex_neighbour_locator), intent(in) :: loc_nb  !< the vertex neighbour locator object.
-    integer(ccs_int), intent(out) :: index_nb             !< the local index of the neighbour cell.
+  ! pure module subroutine get_vertex_neighbour_local_index(loc_nb, index_nb)
+  !   type(vertex_neighbour_locator), intent(in) :: loc_nb  !< the vertex neighbour locator object.
+  !   integer(ccs_int), intent(out) :: index_nb             !< the local index of the neighbour cell.
 
-    associate (i => loc_nb%index_p, &
-               j => loc_nb%vert_nb_counter)
-      index_nb = mesh%topo%vert_nb_indices(j, i)
-    end associate
-  end subroutine get_vertex_neighbour_local_index
+  !   associate (i => loc_nb%index_p, &
+  !              j => loc_nb%vert_nb_counter)
+  !     index_nb = mesh%topo%vert_nb_indices(j, i)
+  !   end associate
+  ! end subroutine get_vertex_neighbour_local_index
 
   !> Sets the local index of a vertex-neighbouring cell
-  module subroutine set_vertex_neighbour_local_index(index_nb, loc_nb)
-    integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
-    type(vertex_neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
+  ! module subroutine set_vertex_neighbour_local_index(index_nb, loc_nb)
+  !   integer(ccs_int), intent(in) :: index_nb     !< the local index of the neighbour cell.
+  !   type(vertex_neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
 
-    associate (i => loc_nb%index_p, &
-               j => loc_nb%vert_nb_counter)
-      mesh%topo%vert_nb_indices(j, i) = index_nb
-    end associate
-  end subroutine set_vertex_neighbour_local_index
+  !   associate (i => loc_nb%index_p, &
+  !              j => loc_nb%vert_nb_counter)
+  !     mesh%topo%vert_nb_indices(j, i) = index_nb
+  !   end associate
+  ! end subroutine set_vertex_neighbour_local_index
 
   !> Returns the local index of a face
   pure module subroutine get_face_local_index(loc_f, index_f)
@@ -848,16 +848,6 @@ contains
       end do
     end associate
   end subroutine set_normal
-
-  !> Counts the number of neighbours via vertices of a given cell
-  pure module subroutine get_count_vertex_neighbours(loc_p, nvnb)
-    type(cell_locator), intent(in) :: loc_p
-    integer(ccs_int), intent(out) :: nvnb
-
-    associate (cell => loc_p%index_p)
-      nvnb = mesh%topo%num_vert_nb(cell)
-    end associate
-  end subroutine get_count_vertex_neighbours
 
   !> Query whether mesh was generated or read
   pure module subroutine get_mesh_generated(is_generated)
