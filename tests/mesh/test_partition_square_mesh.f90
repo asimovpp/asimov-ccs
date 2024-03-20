@@ -56,7 +56,7 @@ program test_partition_square_mesh
   end if
 
   ! Compute new connectivity after partitioning
-  call compute_connectivity(par_env, shared_env, roots_env, mesh)
+  call compute_connectivity(par_env, shared_env, mesh)
 
   call check_topology("post")
   call nullify_mesh_object()

@@ -44,7 +44,7 @@ program test_rcm
 
     call set_mesh_object(mesh)
     call partition_stride(par_env, shared_env, roots_env, mesh)
-    call compute_connectivity(par_env, shared_env, roots_env, mesh)
+    call compute_connectivity(par_env, shared_env, mesh)
 
     call get_local_num_cells(local_num_cells)
 
