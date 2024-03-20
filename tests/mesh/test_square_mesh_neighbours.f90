@@ -27,9 +27,9 @@ program test_square_mesh_neighbours
   
   type(neighbour_locator) :: loc_nb
   logical :: is_boundary
-  integer(ccs_int) :: boundary_ctr, vertex_boundary_ctr
-  integer(ccs_int) :: global_boundary_ctr, global_vertex_boundary_ctr
-  integer(ccs_int) :: expected_boundary_ctr, expected_vertex_boundary_ctr
+  integer(ccs_int) :: boundary_ctr
+  integer(ccs_int) :: global_boundary_ctr
+  integer(ccs_int) :: expected_boundary_ctr
 
   integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
   integer(ccs_int) :: n_v, n_e
@@ -46,7 +46,6 @@ program test_square_mesh_neighbours
     call set_mesh_object(mesh)
 
     boundary_ctr = 0
-    vertex_boundary_ctr = 0
     call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
 
@@ -83,7 +82,6 @@ program test_square_mesh_neighbours
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(boundary_ctr, global_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
-      ! call MPI_Allreduce(vertex_boundary_ctr, global_vertex_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
     class default
       write (message, *) "ERROR: Unknown parallel environment!"
       call stop_test(message)
