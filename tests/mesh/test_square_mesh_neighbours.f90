@@ -20,13 +20,12 @@ program test_square_mesh_neighbours
   integer(ccs_int) :: local_num_cells
   integer(ccs_int) :: i
 
-  integer(ccs_int) :: nnb, nvnb
+  integer(ccs_int) :: nnb
   integer(ccs_int) :: j
 
   integer(ccs_int) :: index_nb, index_vnb
   
   type(neighbour_locator) :: loc_nb
-  ! type(vertex_neighbour_locator) :: loc_vnb
   logical :: is_boundary
   integer(ccs_int) :: boundary_ctr, vertex_boundary_ctr
   integer(ccs_int) :: global_boundary_ctr, global_vertex_boundary_ctr
@@ -53,17 +52,12 @@ program test_square_mesh_neighbours
 
       call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
-      ! call get_count_vertex_neighbours(loc_p, nvnb)
 
       ! In the case of a cell at the end of a chain of cells it should have 1 interior neighbour
       ! and 1 boundary/external neighbour - c.f. 1D boundary cell.
       ! Even in the limit of single 1D cell should have 2 boundary neighbours.
       call assert_gt(nnb, 1, "FAIL: cell should have 2 or more neighbours ")
       call assert_lt(nnb, 5, "FAIL: cell should have at most 4 neighbours ")
-
-      ! Now check the vertex neighbours
-      ! call assert_gt(nvnb, 1, "FAIL: cell should have 2 or more vertex neighbours ")
-      ! call assert_lt(nvnb, 5, "FAIL: cell should have at most 4 vertex neighbours ")
 
       ! Loop over neighbours
       do j = 1, nnb
@@ -83,24 +77,6 @@ program test_square_mesh_neighbours
         end if
       end do
 
-      ! ! Loop over vertex neighbours
-      ! do j = 1, nvnb
-      !   call create_neighbour_locator(loc_p, j, loc_vnb)
-
-      !   ! Check for zero vertex neighbour index. This indicates a cell was not linked as a vertex
-      !   ! neighbour. For the build mesh case we should always be able to fill our vertex neighbours
-      !   call get_local_index(loc_vnb, index_vnb)
-      !   call assert_neq(index_vnb, 0, "All vertex neighbours should be filled!")
-        
-      !   call get_boundary_status(loc_vnb, is_boundary)
-      !   if (is_boundary) then
-      !     ! Boundary neighbour/face
-      !     vertex_boundary_ctr = vertex_boundary_ctr + 1
-      !   ! else
-      !   !   call test_mesh_internal_vertex_neighbours(loc_vnb)
-      !   end if
-      ! end do
-
     end do
 
     ! Check total boundary neighbours
@@ -116,10 +92,8 @@ program test_square_mesh_neighbours
     expected_boundary_ctr = 4 * n ! XXX: specific to 2D Cartesian mesh. This just counts the boundary neighbours on the perimeter of the square mesh.
     n_v = 4
     n_e = 4 * n - 8
-    ! expected_vertex_boundary_ctr = 3 * n_v + 2 * n_e ! A square should have 3 boundary neighbours for each corner, and 3 for
     ! each cell on the edge excluding square vertices
-    ! call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
-    ! call assert_eq(global_vertex_boundary_ctr, expected_vertex_boundary_ctr, "FAIL: mesh vertex boundary count is incorrect")
+    call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
 
     call nullify_mesh_object()
   end do
