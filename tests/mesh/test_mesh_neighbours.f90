@@ -27,12 +27,11 @@ program test_mesh_neighbours
 
   type(neighbour_locator) :: loc_nb
   logical :: is_boundary
-  integer(ccs_int) :: boundary_ctr !, vertex_boundary_ctr
-  integer(ccs_int) :: global_boundary_ctr !, global_vertex_boundary_ctr
-  integer(ccs_int) :: expected_boundary_ctr !, expected_vertex_boundary_ctr
+  integer(ccs_int) :: boundary_ctr
+  integer(ccs_int) :: global_boundary_ctr
+  integer(ccs_int) :: expected_boundary_ctr
 
   integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
-  integer(ccs_int) :: n_v, n_e, n_f
   integer(ccs_int) :: mctr
 
   call init()
@@ -49,7 +48,6 @@ program test_mesh_neighbours
     mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
     call set_mesh_object(mesh)
 
-    ! vertex_boundary_ctr = 0
     boundary_ctr = 0
     call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
@@ -87,16 +85,11 @@ program test_mesh_neighbours
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(boundary_ctr, global_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
-      ! call MPI_Allreduce(vertex_boundary_ctr, global_vertex_boundary_ctr, 1, MPI_INT, MPI_SUM, par_env%comm, ierr)
     class default
       call stop_test("ERROR: Unknown parallel environment!")
     end select
 
     expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh. For a cube this just counts the surface area in terms of cells.
-    n_v = 8
-    n_e = 4 * (nx + ny + nz - 6)
-    n_f = 2 * ((nx - 2) * (ny - 2) + (ny - 2) * (nz - 2) + (nx - 2) * (nz - 2))
-    ! expected_vertex_boundary_ctr = 16 * n_v + 13 * n_e + 8 * n_f ! A cube should have 16 boundary neighbours for each (cube) vertex, 13 for
     ! each cell on the edge excluding cube vertices, and 8 for each cell on a face
     ! excluding cube vertices and edges
     call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")
