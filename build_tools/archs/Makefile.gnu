@@ -18,9 +18,6 @@ ifeq ($(BUILD),debug)
   #FFLAGS += -ffpe-trap=invalid,overflow,zero # -- causes issues in ParHIP...
   #FFLAGS += -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -Wall -Wpedantic -Wno-uninitialized -Werror # Wuninitialized is buggy
-  ifeq ($(GFORTRAN_VER_GTE10),0)
-    FFLAGS += -fno-range-check -Wno-conversion # allow compilation of zcurve mortif library using GCC 9
-  endif
   FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 else
   FFLAGS += -O3
@@ -31,6 +28,9 @@ ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
 
+ifeq ($(GFORTRAN_VER_GTE10),0)
+  FFLAGS += -fno-range-check -Wno-conversion # allow compilation of zcurve mortif library using GCC 9
+endif
 ifeq ($(GFORTRAN_VER_GTE10),1)
   FFLAGS += -fallow-argument-mismatch
 endif
