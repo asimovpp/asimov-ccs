@@ -24,7 +24,7 @@ contains
     integer(ccs_int), allocatable, dimension(:) :: xadj, adjncy
     integer(ccs_int) :: local_num_cells
 
-    integer(ccs_int) :: i, j
+    integer(ccs_int) :: i
     integer(ccs_int) :: ctr
 
     integer(ccs_long) :: mcode

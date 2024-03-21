@@ -2,7 +2,10 @@ CC = mpicc
 CFLAGS = -O3
 
 FC = mpif90
-FFLAGS = -cpp -std=f2018 -ffree-line-length-none -fimplicit-none -fno-range-check -g
+# Check for gfortran version >= 10
+GFORTRAN_VER_GTE10 := $(shell echo `${FC} -dumpversion | cut -f1 -d.` \>= 10 | bc)
+
+FFLAGS = -cpp -std=f2018 -ffree-line-length-none -fimplicit-none -g
 CAFFLAGS = -fcoarray=single
 ifeq ($(VERBOSE),yes)
   FFLAGS += -DVERBOSE
@@ -15,6 +18,9 @@ ifeq ($(BUILD),debug)
   #FFLAGS += -ffpe-trap=invalid,overflow,zero # -- causes issues in ParHIP...
   #FFLAGS += -Wimplicit-interface -Wimplicit-procedure
   FFLAGS += -Wall -Wpedantic -Wno-uninitialized -Werror # Wuninitialized is buggy
+  ifeq ($(GFORTRAN_VER_GTE10),0)
+    FFLAGS += -fno-range-check -Wno-conversion # allow compilation of zcurve mortif library using GCC 9
+  endif
   FFLAGS += -DEXCLUDE_MISSING_INTERFACE
 else
   FFLAGS += -O3
@@ -25,8 +31,6 @@ ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
 
-# Check for gfortran version >= 10
-GFORTRAN_VER_GTE10 := $(shell echo `gfortran -dumpversion | cut -f1 -d.` \>= 10 | bc)
 ifeq ($(GFORTRAN_VER_GTE10),1)
   FFLAGS += -fallow-argument-mismatch
 endif
