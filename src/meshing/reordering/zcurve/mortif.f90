@@ -1,3 +1,5 @@
+! @dont_fail_linter
+!
 ! The MIT License
 ! ===============
 ! 
