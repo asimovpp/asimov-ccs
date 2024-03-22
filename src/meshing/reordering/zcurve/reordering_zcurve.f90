@@ -28,7 +28,7 @@ contains
     integer(ccs_int) :: ctr
 
     integer(ccs_long) :: mcode
-    integer(ccs_int) :: max_mcode
+    integer(ccs_long) :: max_mcode
     integer(ccs_int) :: midx(2)
     integer(ccs_int) :: fidx(2)
     integer(ccs_int) :: row, col
