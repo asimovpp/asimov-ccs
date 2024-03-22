@@ -286,10 +286,8 @@ contains
     call get_max_faces(max_faces)
     if (max_faces == 6) then ! if cell are hexes
       call set_vert_per_cell(8) ! 8 vertices per cell
-      call set_vert_nb_per_cell(20)
     else if (max_faces == 4) then ! if cell are tetrahedral
       call set_vert_per_cell(4) ! 4 vertices per cell
-      call set_vert_nb_per_cell(20)
     else
       call error_abort("Currently only supporting hex or tet cells.")
     end if
