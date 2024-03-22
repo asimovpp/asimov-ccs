@@ -107,7 +107,6 @@ module types
     integer(ccs_int) :: halo_num_cells                                      !< Local number of halo cells
     integer(ccs_int) :: global_num_vertices                                 !< Global number of vertices
     integer(ccs_int) :: vert_per_cell                                       !< Number of vertices per cell
-    integer(ccs_int) :: vert_nb_per_cell                                    !< Number of neighbours via vertices per cell
     integer(ccs_int) :: total_num_cells                                     !< Number of local + halo cells
     integer(ccs_int) :: global_num_faces                                    !< Global number of faces
     integer(ccs_int) :: num_faces                                           !< Local number of faces
@@ -130,12 +129,8 @@ module types
                                                                             !<   (no special treatment for halo or boundary faces)
     integer(ccs_int), dimension(:, :), allocatable :: nb_indices            !< Cell face index in local face vector (face, cell)
                                                                             !<   nb_icell = nb_indices(cell_iface, icell) -> returns <0 on boundaries
-    integer(ccs_int), dimension(:, :), pointer :: global_vert_nb_indices    !< neighbour cell index via vertex in local neighbour vertex vector (neighbour, cell)
-    integer :: global_vert_nb_indices_window                                !< Associated shared window
-    integer(ccs_int), dimension(:, :), allocatable :: vert_nb_indices       !< neighbour cell index via vertex in local neighbour vertex vector (neighbour, cell)
     integer(ccs_int), dimension(:), allocatable :: num_nb                   !< The local number of neighbours per cell
                                                                             !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted
-    integer(ccs_int), dimension(:), allocatable :: num_vert_nb              !< The local number of vertex neighbours per cell
     integer(ccs_int), dimension(:), pointer :: face_cell1                   !< Array of 1st face cells
                                                                             !<   global_icell1 = face_cell1(global_iface).
     integer :: face_cell1_window                                            !< Associated shared window
@@ -210,6 +205,9 @@ module types
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
     real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
+    character(len=20) :: name
+    logical :: output = .false.                                   !< Should field be written in output?
+    logical :: solve = .true.                                     !< Whether to solve a linear system for this variable or not
   end type field
 
   type, public, extends(field) :: upwind_field
@@ -240,17 +238,10 @@ module types
     character(len=:), allocatable :: name    !< Name of the field
   end type field_ptr
 
-  !> Type for storing an allocatable field (for use in arrays, etc.)
-  type, public :: field_elt
-    class(field), allocatable :: f           !< The field data
-    character(len=:), allocatable :: name    !< Name of the field
-  end type field_elt
-
   !v Cell locator
   !
   ! Lightweight type to provide easy cell location based on a cell's cell connectivity.
   type, public :: cell_locator
-    type(ccs_mesh), pointer :: mesh !< Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: index_p     !< Cell index
   end type cell_locator
 
@@ -258,7 +249,6 @@ module types
   !
   !  Lightweight type to provide easy face location based on a cell's face connectivity.
   type, public :: face_locator
-    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: index_p       !< Cell index
     integer(ccs_int) :: cell_face_ctr !< Cell-face ctr i.e. I want to access face "3" of the cell.
   end type face_locator
@@ -267,7 +257,6 @@ module types
   !
   !  Lightweight type to provide easy cell-neighbour connection.
   type, public :: neighbour_locator
-    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh
     integer(ccs_int) :: index_p       !< the cell index relative to which this is a neighbour
     integer(ccs_int) :: nb_counter    !< the cell-relative counter identifying this neighbour
   end type neighbour_locator
@@ -276,37 +265,16 @@ module types
   !
   !  Lightweight type to provide easy vertex location based on a cell's vertex connectivity.
   type, public :: vert_locator
-    type(ccs_mesh), pointer :: mesh   !< Pointer to the mesh -- we DON'T want to copy this!
     integer(ccs_int) :: index_p       !< Cell index
     integer(ccs_int) :: cell_vert_ctr !< Cell-vertex ctr i.e. I want to access vertex "3" of the cell.
   end type vert_locator
-
-  !v Vertex neighbour locator
-  !
-  !  Lightweight type to provide easy cell-neighbour connection via vertices.
-  type, public :: vertex_neighbour_locator
-    type(ccs_mesh), pointer :: mesh       !< Pointer to the mesh
-    integer(ccs_int) :: index_p           !< the cell index relative to which this is a vertex neighbour
-    integer(ccs_int) :: vert_nb_counter   !< the cell-relative counter identifying this neighbour
-  end type vertex_neighbour_locator
 
   !v Fluid type
   !
   ! Type for accumulating all the fluid data
   type, public :: fluid
     type(field_ptr), dimension(:), allocatable :: fields
-    integer(ccs_int), dimension(:), allocatable :: field_names
   end type fluid
-
-  !v Fluid solve selector
-  !
-  ! Type for storing which fields are being solved for
-  type, public :: fluid_solver_selector
-    logical :: u
-    logical :: v
-    logical :: w
-    logical :: p
-  end type fluid_solver_selector
 
   !>  IO environment type
   type, public :: io_environment

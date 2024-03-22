@@ -61,7 +61,7 @@ contains
 
   !v Computes convergence orders from a refinement list and the associated errors
   ! The orders are computed as the slope of the linear regression of the log of error against the log of refinements
-  subroutine get_order(refinements, errors, orders)
+  pure subroutine get_order(refinements, errors, orders)
 
     real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
     real(ccs_real), dimension(:, :), intent(in) :: errors !< error values, error(variable, refinement)
@@ -118,7 +118,7 @@ contains
 
     dx = domain_size / real(cps)
 
-    call get_total_num_cells(mesh, total_num_cells)
+    call get_total_num_cells(total_num_cells)
     do icell = 1, total_num_cells
       icell_global = mesh%topo%global_indices(icell)
 

@@ -5,11 +5,10 @@ program test_square_mesh_indices
 
   use meshing, only: create_cell_locator, get_global_index, get_local_num_cells, get_global_num_cells
   use meshing, only: get_total_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
 
   implicit none
-
-  type(ccs_mesh) :: mesh
 
   real(ccs_real) :: l
   integer(ccs_int) :: n
@@ -31,12 +30,13 @@ program test_square_mesh_indices
     n = m(mctr)
     l = parallel_random(par_env)
     mesh = build_square_mesh(par_env, shared_env, n, l)
+    call set_mesh_object(mesh)
 
-    call get_local_num_cells(mesh, nlocal)
-    call get_total_num_cells(mesh, ntotal)
-    call get_global_num_cells(mesh, nglobal)
+    call get_local_num_cells(nlocal)
+    call get_total_num_cells(ntotal)
+    call get_global_num_cells(nglobal)
     do i = 1, nlocal
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index)
       if ((global_index < 1) .or. (global_index > nglobal)) then
         if (global_index /= -1) then
@@ -46,6 +46,8 @@ program test_square_mesh_indices
         exit
       end if
     end do
+
+    call nullify_mesh_object()
   end do
 
   call fin()

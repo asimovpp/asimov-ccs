@@ -41,10 +41,9 @@ module partitioning
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh
     end subroutine cleanup_partitioner_data
 
-    module subroutine compute_connectivity(par_env,shared_env, roots_env, mesh)
+    module subroutine compute_connectivity(par_env,shared_env, mesh)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-      class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
     end subroutine compute_connectivity
 
@@ -66,9 +65,8 @@ module partitioning
     !  - The "surface to volume ratio" nhalo / nlocal (averaged)
     !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
     !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
-    module subroutine print_partition_quality(par_env, mesh)
+    module subroutine print_partition_quality(par_env) 
       class(parallel_environment), intent(in) :: par_env
-      type(ccs_mesh), intent(in) :: mesh
     end subroutine print_partition_quality
     
   end interface

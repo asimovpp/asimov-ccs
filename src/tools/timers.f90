@@ -65,7 +65,7 @@ contains
   end subroutine
   
   !> Get timer index from its name
-  subroutine timer_get_index(timer_name, timer_index)
+  pure subroutine timer_get_index(timer_name, timer_index)
     character(len=*), intent(in) :: timer_name
     integer(ccs_int), intent(out) :: timer_index
     integer(ccs_int) :: i
@@ -219,9 +219,9 @@ contains
   end subroutine
 
   !> Get raw time from timer
-  subroutine timer_get_time(timer_index, time)
+  pure subroutine timer_get_time(timer_index, time)
     integer(ccs_int), intent(in) :: timer_index
-    double precision :: time
+    double precision, intent(out) :: time
 
     time = tocks(timer_index) - ticks(timer_index)
 

@@ -14,6 +14,7 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
 - `ParHIP` - https://github.com/KaHIP/KaHIP
 - `ParMETIS` - https://github.com/KarypisLab/ParMETIS
+- `rcm-f90` - https://github.com/asimovpp/RCM-f90
 
 **N.B.** although the build system currently requires both, only one of ParHIP or ParMETIS is used to partition the problem.
 
@@ -26,6 +27,7 @@ Set the following environment variables:
 - `ADIOS2` to point to the ADIOS2 install directory
 - `PARHIP` to point to the root of the ParHIP install directory (optional)
 - `PARMETIS` to point to the root of the ParMETIS install directory (optional)
+- `RCMF90` to point to the root of the rcm-f90 install directory
 
 **N.B.** at least one of `PARHIP` or `PARMETIS` must be set when building.
 
@@ -34,11 +36,16 @@ With the prerequisites in place, ASiMoV-CCS can be built from the root directory
 make CMP=<compiler> all
 ```
 where `<compiler>` is one of: `gnu`, `intel` or `cray`. `CMP` sets the compilation environment according to files in `build_tools/archs/Makefile.<compiler>`, which can be customised according to your environment. 
+This also packages up the compiled code into a library `libccs.a`, which can be built explicity with
+```
+make CMP=<compiler> lib
+```
 
 Tests can be run with
 ```
 make CMP=<compiler> tests
 ```
+
 
 
 ## Configuring

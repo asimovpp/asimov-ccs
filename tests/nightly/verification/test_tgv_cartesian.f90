@@ -11,22 +11,21 @@ program test_tgv_cartesian
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   integer(ccs_int), parameter :: num_cps = 5
   integer(ccs_int), parameter :: nvar = 3
   real(ccs_real), dimension(nvar, num_cps) :: error_L2
   real(ccs_real), dimension(nvar, num_cps) :: error_Linf
   real(ccs_real), dimension(:), allocatable :: orders_L2
   real(ccs_real), dimension(:), allocatable :: orders_Linf
-  real(ccs_real), dimension(:), allocatable :: min_error_L2
-  real(ccs_real), dimension(:), allocatable :: min_error_Linf
+  !real(ccs_real), dimension(:), allocatable :: min_error_L2
+  !real(ccs_real), dimension(:), allocatable :: min_error_Linf
   real(ccs_real), dimension(num_cps) :: refinements
   integer(ccs_int), dimension(num_cps) :: cps_list
   integer(ccs_int) :: cps
 
   character(len=12), dimension(nvar) :: variable_labels
 
-  integer(ccs_int) :: i, j
+  integer(ccs_int) :: i
 
   call init()
 
@@ -43,7 +42,7 @@ program test_tgv_cartesian
     cps = cps_list(i)
     mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
 
-    call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), mesh)
+    call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do
 
   if (par_env%proc_id == par_env%root) then

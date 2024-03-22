@@ -13,6 +13,7 @@ submodule(vec) vec_petsc
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
   use utils, only: debug_print, exit_print, str
+  use error_codes
 
   implicit none
 
@@ -53,8 +54,8 @@ contains
 
           select case (vec_properties%storage_location)
           case (cell)
-            call get_local_num_cells(mesh, nlocal)
-            call get_halo_num_cells(mesh, nhalo)
+            call get_local_num_cells(nlocal)
+            call get_halo_num_cells(nhalo)
             associate (idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo
@@ -69,7 +70,7 @@ contains
             ! Vector has ghost points, store this information
             v%ghosted = .true.
           case (face)
-            call get_num_faces(mesh, num_faces)
+            call get_num_faces(num_faces)
 
             call VecCreate(par_env%comm, v%v, ierr)
             call VecSetSizes(v%v, num_faces, PETSC_DECIDE, ierr)
@@ -372,7 +373,7 @@ contains
 
   end function
 
-  module subroutine clear_vector_values_entries(val_dat)
+  pure module subroutine clear_vector_values_entries(val_dat)
     type(vector_values), intent(inout) :: val_dat
 
     val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
@@ -380,7 +381,7 @@ contains
 
   end subroutine clear_vector_values_entries
 
-  module subroutine set_vector_values_row(row, val_dat)
+  pure module subroutine set_vector_values_row(row, val_dat)
     integer(ccs_int), intent(in) :: row
     type(vector_values), intent(inout) :: val_dat
 
@@ -400,7 +401,7 @@ contains
       idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free entry in vector values.")
+        error stop no_free_entry ! Couldn't find a free entry in vector values
       end if
     end if
 

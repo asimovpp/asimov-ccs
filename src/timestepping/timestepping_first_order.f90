@@ -20,16 +20,15 @@ contains
 
   end subroutine reset_timestepping
 
-  module subroutine get_theoretical_order(order)
+  pure module subroutine get_theoretical_order(order)
     real(ccs_real), intent(out) :: order
 
     order = theoretical_order
 
   end subroutine
 
-  module subroutine apply_timestep(mesh, phi, diag, M, b)
+  module subroutine apply_timestep(phi, diag, M, b)
 
-    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
@@ -39,7 +38,7 @@ contains
       return
     end if
 
-    call apply_timestep_first_order(mesh, phi, diag, M, b)
+    call apply_timestep_first_order(phi, diag, M, b)
 
   end subroutine apply_timestep
 

@@ -1,0 +1,260 @@
+---
+title: Sandia
+
+#  number of timesteps
+steps: 10000
+#  number of iterations
+iterations: 18
+# time step size
+dt: 1.0e-5
+
+# Square/cubic mesh generation parameters
+# cells per side
+# cps: 8
+# domain size
+L: 3.1415926535
+
+relaxation_factor:
+  u: 0.7
+  v: 0.7
+  w: 0.7
+  p: 0.30
+
+target_residual: 1.0e-10
+
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 20
+
+# Fluid properties
+viscocity : 1.0e-3
+
+# Report partition quality (true/false)
+compute_partqual : false
+
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
+
+### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
+
+#reference_numbers:
+#    pressure: 101325.0
+#    temperature: 289.0
+#    density: 1.0
+#    viscosity: 1.0e-03
+#    pref_at_cell: 4096
+
+#solve:
+#  w: off
+
+#init: 
+#  type: user
+
+#monitor_cell: 1990
+
+# 1 = central
+#convection_scheme:
+#  u: 1 
+#  v: 1
+#  w: 1
+
+#blending_factor:
+#  u: 1.0
+#  v: 1.0
+#  w: 1.0
+
+#post:
+#  type: center
+#  variables: [u, v, w, p]
+
+variables:
+  enable_cell_corrections: false
+  n_variables: 6
+  variable_1:
+    name: u
+    type: central
+  variable_2:
+    name: v
+    type: central
+  variable_3:
+    name: w
+    type: central
+  variable_4:
+    name: p
+    type: central
+  variable_5:
+    name: p_prime
+    type: central
+  variable_6:
+    name: scalar
+    type: central
+
+boundaries:
+  n_boundaries: 10
+  boundary_1: 
+    name: left
+    type: neumann
+    value: 0
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_2: # atmos
+    name: right
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
+  boundary_3: #coflow
+    name: bottom
+    type: neumann
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 0.9
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: dirichlet
+      value: 0
+  boundary_4: #jet
+    name: top
+    type: neumann
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 49.6
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: dirichlet
+      value: 1
+  boundary_5: #pilot
+    name: back
+    type: neumann
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 11.4 
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: dirichlet
+      value: 0
+  boundary_6: #wall
+    name: front
+    type: neumann
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
+  boundary_7: #rims
+    name: other1
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
+  boundary_8: #walls_pilot
+    name: other2
+    type: neumann
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
+  boundary_9: #walls_jet
+    name: other3
+    type: neumann
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: neumann
+      value: 0
+  boundary_10: #outflow
+    name: other4
+    type: neumann
+    value: 0
+    variable_p:
+      type: dirichlet
+      value: 0
+    variable_p_prime:
+      type: dirichlet
+      value: 0
+    variable_scalar:
+      type: neumann
+      value: 0

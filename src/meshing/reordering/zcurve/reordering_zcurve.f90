@@ -11,14 +11,13 @@ submodule(reordering) reordering_zcurve
 contains
 
   !v Determine how the mesh should be reordered according to the Morton space filling curve
-  module subroutine get_reordering(mesh, new_indices)
+  module subroutine get_reordering(new_indices)
 
     use mortif, only: demorton2D  
     use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
                        get_local_index, create_neighbour_locator, get_local_status
     use mesh_utils, only: build_adjacency_matrix
 
-    type(ccs_mesh), intent(in) :: mesh                                      !< the mesh to be reordered
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format
 
     integer(ccs_int), allocatable, dimension(:) :: xadj, adjncy
@@ -37,11 +36,11 @@ contains
     call dprint("Reordering with z-curve.")
 
     ! First build adjacency matrix for local cells
-    call build_adjacency_matrix(mesh, xadj, adjncy)
+    call build_adjacency_matrix(xadj, adjncy)
 
     ! Space filling curve needs to be big enough to cover the adjacency matrix.
     ! Deal with non-power-of-2-cases
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     max_mcode = 1
     do while (max_mcode < local_num_cells)
       max_mcode = max_mcode * 2

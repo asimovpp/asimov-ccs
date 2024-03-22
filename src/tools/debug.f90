@@ -9,7 +9,7 @@ contains
 
 
 !v Export fields as well as mpi rank and local cell ID to text file
-  subroutine dump_flow_tofile(par_env, mesh, u, v, w, p)
+  subroutine dump_flow_tofile(par_env, u, v, w, p)
 
     use constants, only: ndim
     use types, only: cell_locator
@@ -21,7 +21,6 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
-    class(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: u, v, w, p
 
     ! Local variables
@@ -33,7 +32,7 @@ contains
     real(ccs_real), dimension(ndim) :: x_p
     real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data, p_data
 
-    call get_local_num_cells(mesh, n_local)
+    call get_local_num_cells(n_local)
 
     call get_vector_data(u%values, u_data)
     call get_vector_data(v%values, v_data)
@@ -53,7 +52,7 @@ contains
         end if
 
         do index_p = 1, n_local
-          call create_cell_locator(mesh, index_p, loc_p)
+          call create_cell_locator(index_p, loc_p)
           call get_centre(loc_p, x_p)
 
           write (io_unit, '(7(1x,e12.4), 1x,i12, 1x,i12)') x_p(:), u_data(index_p), v_data(index_p), w_data(index_p), p_data(index_p), irank, index_p

@@ -3,6 +3,7 @@
   except:
     variables:
       - $NIGHTLY
+      - $NIGHTLY_VERIFICATION
       - $A2_PERFORMANCE
 
 .setup_gnu:
@@ -110,8 +111,7 @@ test_intelx:
     - HOME=${CI_HOME} CMP=intelx make tests
 
 #-----------------------------------------------------------------------------#
-#don't run cray debug build because it fails on the CI
-.debug_build_cray:
+debug_build_cray:
   extends: [.general_setup, .setup_cray]
   script:
     - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make all"
@@ -124,8 +124,7 @@ build_cray:
   artifacts:
     paths: [obj/]
 
-#don't run cray tests because slurm is broken on the CI
-.test_cray:
+test_cray:
   needs: 
     - job: build_cray
       artifacts: true
@@ -331,12 +330,29 @@ A2_perf_2nodes_database_update:
 #-----------------------------------------------------------------------------#
 # Nightly tests on the CI desktop
 
+verification_trigger:
+  extends: [.general_setup]
+  when: manual
+  script:
+    - echo "Manual trigger" 
+
+verification_gnu:
+  extends: [.setup_gnu]
+  needs:
+    - job: verification_trigger
+      optional: true
+  except:
+    variables:
+      - $NIGHTLY
+  script:
+    - HOME=${CI_HOME} CMP=gnu make
+    - HOME=${CI_HOME} RUNTESTS=nightly/verification CMP=gnu make tests
+
 .setup_nightly:
   only:
     variables:
       - $NIGHTLY
   dependencies: []
-  allow_failure: true
 
 nightly_gnu_performance:
   extends: [.setup_nightly, .setup_gnu]
@@ -353,31 +369,9 @@ nightly_gnu_performance:
     - git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
     - git push
 
-nightly_gnu_verification:
-  needs:
-    - job: nightly_gnu_performance
-  extends: [.setup_nightly, .setup_gnu]
-  script:
-    - HOME=${CI_HOME} CMP=gnu make
-    - HOME=${CI_HOME} RUNTESTS=nightly/verification CMP=gnu make tests
-
-nightly_dummy:
-  needs:
-    - job: nightly_gnu_verification
-  extends: [.setup_nightly, .setup_intel]
-  script:
-    - echo "just a test"
-      #- HOME=${CI_HOME} RUNTESTS=nightly CMP=intel make tests
-      #- git clone https://gitlab-ci-token:${RESULTS_REPO_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs-nightly-data.git
-      #- asimov-ccs-nightly-data/append_data.py asimov-ccs-nightly-data/ccs_data.csv tests/nightly/*/output.txt  
-      #- cd asimov-ccs-nightly-data
-      #- git add ccs_data.csv
-      #- git -c user.name='CI' -c user.email='ci' commit -m "CI adds data"
-      #- git push
-
 nightly_wiki_update:
   needs: 
-    - job: nightly_dummy
+    - job: nightly_gnu_performance
   extends: [.setup_nightly]
   script:
     - git clone https://gitlab-ci-token:${WIKI_TOKEN}@git.ecdf.ed.ac.uk/asimov/asimov-ccs.wiki.git 

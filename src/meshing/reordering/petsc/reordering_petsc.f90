@@ -14,14 +14,13 @@ submodule(reordering) reordering_petsc
 contains
 
   !v Determine how the mesh should be reordered using PETSc reordering
-  module subroutine get_reordering(mesh, new_indices)
+  module subroutine get_reordering(new_indices)
 #include "petsc/finclude/petscmat.h"
 
     use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER, INSERT_VALUES
     use petscmat
     use petscis, only: tIS, ISGetIndicesF90, ISRestoreIndicesF90, ISDestroy
 
-    type(ccs_mesh), intent(in) :: mesh                                      !< the mesh to be reordered
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format
 
     type(tMat) :: M
@@ -43,11 +42,11 @@ contains
 
     call dprint("Reordering with PETSc.")
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
 
     max_nb = 0
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
       max_nb = max(max_nb, nnb)
     end do
@@ -70,7 +69,7 @@ contains
       idx(ctr) = i
       ctr = ctr + 1
 
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)

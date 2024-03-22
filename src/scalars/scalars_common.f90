@@ -4,7 +4,6 @@
 
 submodule(scalars) scalars_common
 #include "ccs_macros.inc"
-  use constants, only: field_u, field_v, field_w, field_p, field_p_prime, field_mf, field_viscosity, field_density
 
   use kinds, only: ccs_int, ccs_real !< added here
   use types, only: ccs_matrix, ccs_vector, &
@@ -26,10 +25,10 @@ submodule(scalars) scalars_common
   integer(ccs_int), save :: previous_step = -1
 
   !> List of fields not to be updated as transported scalars
-  integer(ccs_int), dimension(8), parameter :: skip_fields = &
-       [ field_u, field_v, field_w, &
-          field_p, field_p_prime, &
-          field_mf, field_viscosity, field_density ]
+  character (len=20), dimension(*), parameter :: skip_fields = &
+  [ character(len=20) :: "u", "v", "w", &
+                         "p", "p_prime", &
+                         "mf", "viscosity", "density" ]
 
 contains
   
@@ -45,7 +44,7 @@ contains
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
-    integer(ccs_int) :: field_id ! The field's numeric identifier
+    character(len=:), allocatable :: field_name ! The field's name
     class(field), pointer :: phi ! The scalar field
 
     logical :: do_update
@@ -62,7 +61,7 @@ contains
     call initialise(mat_properties)
 
     call dprint("SCALAR: setup matrix")
-    call get_max_faces(mesh, max_faces)
+    call get_max_faces(max_faces)
     call set_size(par_env, mesh, mat_properties)
     call set_nnz(max_faces + 1, mat_properties)
     call create_matrix(mat_properties, M)
@@ -90,27 +89,27 @@ contains
     ! Transport the scalars
     call count_fields(flow, nfields)
     do s = 1, nfields
-       call get_field_id(flow, s, field_id)
-       if (any(skip_fields == field_id)) then
+       call get_field_name(flow, s, field_name)
+      
+       if (any(skip_fields == field_name)) then
           ! Not a scalar to solve
           cycle
        end if
 
-       call get_field(flow, field_id, phi)
+       call get_field(flow, field_name, phi)
        if (do_update) then
           call update_old_values(phi)
        end if
 
-       call transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
+       call transport_scalar(par_env, flow, M, rhs, D, phi)
     end do
     
   end subroutine update_scalars
 
   !> Subroutine to transport a scalar field.
-  subroutine transport_scalar(par_env, mesh, flow, M, rhs, D, phi)
+  subroutine transport_scalar(par_env, flow, M, rhs, D, phi)
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
-    type(ccs_mesh), intent(in) :: mesh                              !< the mesh
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: rhs
@@ -129,11 +128,11 @@ contains
     call zero(M)
 
     call dprint("SCALAR: compute coefficients")
-    call get_field(flow, field_mf, mf)
-    call get_field(flow, field_viscosity, viscosity) 
-    call get_field(flow, field_density, density)
-    call compute_fluxes(phi, mf, viscosity, density, mesh, 0, M, rhs)
-    call apply_timestep(mesh, phi, D, M, rhs)
+    call get_field(flow, "mf", mf)
+    call get_field(flow, "viscosity", viscosity) 
+    call get_field(flow, "density", density)
+    call compute_fluxes(phi, mf, viscosity, density, 0, M, rhs)
+    call apply_timestep(phi, D, M, rhs)
 
     call dprint("SCALAR: assemble linear system")
     call update(M)
@@ -150,31 +149,35 @@ contains
     call create_solver(lin_system, lin_solver)
 
     call solve(lin_solver)
-    call update_gradient(mesh, phi)
+    call update_gradient(phi)
 
     deallocate(lin_solver)
     
   end subroutine transport_scalar
 
   !> Get the count of stored fields - probably belongs somewhere else
-  subroutine count_fields(flow, nfields)
+  pure subroutine count_fields(flow, nfields)
 
     type(fluid), intent(in) :: flow          !< The flowfield
     integer(ccs_int), intent(out) :: nfields !< The count of fields
 
-    nfields = size(flow%field_names)
+    nfields = size(flow%fields)
     
   end subroutine count_fields
 
-  !> Get the numeric ID of the i'th field
-  subroutine get_field_id(flow, s, field_id)
+  !> Get the name of the i'th field
+  subroutine get_field_name(flow, s, field_name)
 
-    type(fluid), intent(in) :: flow           !< The flowfield
-    integer(ccs_int), intent(in) :: s         !< The field counter
-    integer(ccs_int), intent(out) :: field_id !< The field ID
+   type(fluid), intent(in) :: flow                          !< The flowfield
+   integer(ccs_int), intent(in) :: s                        !< The field counter
+   character(len=:), allocatable, intent(out) :: field_name !< The field name
 
-    field_id = flow%field_names(s)
+   class(field), pointer :: phi
+   
+   call get_field(flow, s, phi)
+   field_name = phi%name
+   nullify(phi)
 
-  end subroutine get_field_id
+ end subroutine get_field_name
   
 end submodule scalars_common
