@@ -637,13 +637,19 @@ contains
     class(io_process), allocatable :: geo_writer
 
     logical :: is_generated
-
+    
     call get_mesh_generated(is_generated)
 
     if (.not. is_generated) then
       ! Mesh was read, no need to write again
       return
     end if
+
+    ! XXX: Return early to prevent memory issues with write_mesh
+    if (is_root(par_env)) then
+      print *, "WARNING: write mesh is disabled, if you want mesh output edit the subroutine by removing the early return."
+    end if
+    return
 
     ! Set ADIOS2 config file name
     adios2_file = case_name // adiosconfig
