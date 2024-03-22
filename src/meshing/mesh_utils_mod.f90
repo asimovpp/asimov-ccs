@@ -638,6 +638,12 @@ contains
 
     logical :: is_generated
 
+    ! XXX: Return early to prevent memory issues with write_mesh
+    if (is_root(par_env)) then
+      print *, "WARNING: write mesh is disabled, if you want mesh output edit the subroutine by removing the early return."
+    end if
+    return
+    
     call get_mesh_generated(is_generated)
 
     if (.not. is_generated) then
