@@ -2935,7 +2935,7 @@ contains
 
 
   ! Build adjacency matrix for local cells
-  subroutine build_adjacency_matrix(xadj, adjncy)
+  pure subroutine build_adjacency_matrix(xadj, adjncy)
 
     integer(ccs_int), allocatable, dimension(:), intent(out) :: xadj   !< Array that points to where in adjncy 
                                                                        !  the list for each cell begins and ends
