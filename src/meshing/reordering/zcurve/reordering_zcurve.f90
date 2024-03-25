@@ -29,6 +29,7 @@ contains
     integer(ccs_long) :: mcode
     integer(ccs_long) :: max_mcode
     integer(ccs_int) :: row, col
+    logical :: isfound
     integer(ccs_int), dimension(:), allocatable :: perm 
 
     call dprint("Reordering with z-curve.")
@@ -55,9 +56,20 @@ contains
       col = col + 1
       row = row + 1
 
+      ! the zcurve traverses a bigger area than encompassed by the adjacency matrix, so check if we are inside the adj matrix
       if (max(col, row) <= local_num_cells) then
+
         ! find if the (col, row) cell is in the adjacency matrix
-        if (any(col .eq. adjncy(xadj(row):xadj(row+1)-1)) .or. (col .eq. row)) then
+        isfound = .false.
+        ! the col==row non-zeros are not explicitly in the adj matrix
+        if (col .eq. row) then
+          isfound = .true.
+        else if (any(col .eq. adjncy(xadj(row):xadj(row+1)-1))) then 
+          isfound = .true.
+        end if
+
+        if (isfound) then
+          ! make sure each column is permuted only once
           !if (.not. any(col == perm(1:ctr))) then !TODO: check this optimisation
           if (.not. any(col == perm(:))) then
             perm(ctr) = col
