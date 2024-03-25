@@ -28,8 +28,6 @@ contains
 
     integer(ccs_long) :: mcode
     integer(ccs_long) :: max_mcode
-    integer(ccs_int) :: midx(2)
-    integer(ccs_int) :: fidx(2)
     integer(ccs_int) :: row, col
     integer(ccs_int), dimension(:), allocatable :: perm 
 
@@ -52,15 +50,13 @@ contains
 
     ! Now traverse space filling curve and generate new indices
     do mcode = 0, max_mcode**2 - 1
-      call demorton2D(code=mcode, i=midx(1), j=midx(2))
+      call demorton2D(code=mcode, i=col, j=row)
       ! morton is calculated as 0 index, so I should add 1 to each dim when addressing Fortran arrays
-      fidx(:) = midx(:) + 1
+      col = col + 1
+      row = row + 1
 
-      if (all(fidx <= local_num_cells)) then
-        col = fidx(1)
-        row = fidx(2)
-
-        ! find if fidx cell is in the adjacency matrix
+      if (max(col, row) <= local_num_cells) then
+        ! find if the (col, row) cell is in the adjacency matrix
         if (any(col .eq. adjncy(xadj(row):xadj(row+1)-1)) .or. (col .eq. row)) then
           !if (.not. any(col == perm(1:ctr))) then !TODO: check this optimisation
           if (.not. any(col == perm(:))) then
