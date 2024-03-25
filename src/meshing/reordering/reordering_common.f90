@@ -20,13 +20,8 @@ submodule(reordering) reordering_common
   implicit none
 
   logical :: write_csr = .false.
-  logical :: perform_reordering = .true.
 
 contains
-
-  module subroutine disable_reordering()
-    perform_reordering = .false.
-  end subroutine disable_reordering
 
   !v Cell reordering.
   !
@@ -43,13 +38,9 @@ contains
 
     integer(ccs_int), dimension(:), allocatable :: new_indices
 
-    if (.not. perform_reordering) then
-      return
-    end if
-
     call get_local_num_cells(local_num_cells)
 
-    if (write_csr) then
+    if (write_csr .and. is_root(par_env)) then
       open (newunit=wrunit, FILE="csr_orig.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
         write (wrunit, *) mesh%topo%nb_indices(:, i)
@@ -72,7 +63,7 @@ contains
     end do
     call dprint("*********END   REORDERING*****************")
 
-    if (write_csr) then
+    if (write_csr .and. is_root(par_env)) then
       open (newunit=wrunit, FILE="csr_new.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
         write (wrunit, *) mesh%topo%nb_indices(:, i)

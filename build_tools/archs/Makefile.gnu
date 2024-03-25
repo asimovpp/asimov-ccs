@@ -2,6 +2,9 @@ CC = mpicc
 CFLAGS = -O3
 
 FC = mpif90
+# Check for gfortran version >= 10
+GFORTRAN_VER_GTE10 := $(shell echo `${FC} -dumpversion | cut -f1 -d.` \>= 10 | bc)
+
 FFLAGS = -cpp -std=f2018 -ffree-line-length-none -fimplicit-none -g
 CAFFLAGS = -fcoarray=single
 ifeq ($(VERBOSE),yes)
@@ -25,8 +28,9 @@ ifeq ($(PROFILE),yes)
   FFLAGS += -fopt-info-missed-optall=opt_info.txt
 endif
 
-# Check for gfortran version >= 10
-GFORTRAN_VER_GTE10 := $(shell echo `gfortran -dumpversion | cut -f1 -d.` \>= 10 | bc)
+ifeq ($(GFORTRAN_VER_GTE10),0)
+  FFLAGS += -fno-range-check -Wno-conversion # allow compilation of zcurve mortif library using GCC 9
+endif
 ifeq ($(GFORTRAN_VER_GTE10),1)
   FFLAGS += -fallow-argument-mismatch
 endif

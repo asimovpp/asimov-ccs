@@ -30,7 +30,7 @@ bases:
       scalars_common: scalars_common
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
-      reordering: [reordering_rcm, reordering_petsc]
+      reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
       poisson_discretisation: [poisson_discretisation_ref]
       partitioning: [partitioning_parhip, partitioning_parmetis]
   mpi:
@@ -64,6 +64,6 @@ bases:
       scalars_common: scalars_common
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
-      reordering: [reordering_rcm, reordering_petsc]
+      reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
       poisson_discretisation: [poisson_discretisation_ref]
       partitioning: [partitioning_parhip, partitioning_parmetis]

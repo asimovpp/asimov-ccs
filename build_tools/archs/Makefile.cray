@@ -14,7 +14,7 @@ ifeq ($(BUILD),debug)
   FFLAGS += -g
   FFLAGS += -R bcdps
   FFLAGS += -O0
-  FFLAGS += -eN
+  FFLAGS += -en
 else
 endif
 ifeq ($(PROFILE),yes)

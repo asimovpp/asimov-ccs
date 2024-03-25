@@ -1,5 +1,7 @@
 submodule(reordering) reordering_petsc
+#include "ccs_macros.inc"
 
+  use utils, only: debug_print
   use kinds, only: ccs_real, ccs_err
   use types, only: cell_locator, neighbour_locator
   use meshing, only: create_cell_locator, create_neighbour_locator, &
@@ -37,6 +39,8 @@ contains
     type(neighbour_locator) :: loc_nb
 
     integer(ccs_int) :: idx_new
+
+    call dprint("Reordering with PETSc.")
 
     call get_local_num_cells(local_num_cells)
 
