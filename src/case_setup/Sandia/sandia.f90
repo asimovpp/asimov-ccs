@@ -54,13 +54,13 @@ program sandia
   character(len=:), allocatable:: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable:: ccs_config_file  ! Config file for CCS
   character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
-  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
+  integer(ccs_int), dimension(:), allocatable:: variable_types              ! cell centred upwind, central, etc.
 
   type(vector_spec):: vec_properties
 
   type(field_spec):: field_properties
-  class(field), pointer :: u, v, w, p, mf, viscosity, density
-  class(field), pointer :: scalar_field
+  class(field), pointer:: u, v, w, p, mf, viscosity, density
+  class(field), pointer:: scalar_field
 
   integer(ccs_int):: n_boundaries
 
@@ -74,7 +74,7 @@ program sandia
   integer(ccs_int):: timer_index_io_init
   integer(ccs_int):: timer_index_io_sol
   integer(ccs_int):: timer_index_sol
-  integer(ccs_int) :: i
+  integer(ccs_int):: i
 
   logical:: u_sol = .true.  ! Default equations to solve for LDC case
   logical:: v_sol = .true.
@@ -161,7 +161,7 @@ program sandia
 
   call set_field_vector_properties(vec_properties, field_properties)
 
-  ! Expect to find u,v,w,p,p_prime,scalar
+  ! Expect to find u, v, w, p, p_prime, scalar
   if (is_root(par_env)) then
     print *, "Build field list"
   end if
@@ -245,9 +245,10 @@ program sandia
 
   call timer_stop(timer_index_init)
   call timer_register("I/O time for solution", timer_index_io_sol)
-  call timer_register_start("Solver time inc I/O", timer_index_sol)
+  call timer_register("Solver time inc I/O", timer_index_sol)
 
   do t = 1, num_steps
+    call timer_start(timer_index_sol)
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          flow_fields, diverged)
     if (par_env%proc_id == par_env%root) then
@@ -267,9 +268,8 @@ program sandia
       call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
       call timer_stop(timer_index_io_sol)
     end if
+    call timer_stop(timer_index_sol)
   end do
-
-  call timer_stop(timer_index_sol)
 
   ! Clean-up
 
@@ -382,11 +382,11 @@ contains
     use vec, only: get_vector_data, restore_vector_data, create_vector_values
 
     ! Arguments
-    type(fluid), intent(inout) :: flow_fields
+    type(fluid), intent(inout):: flow_fields
 
     ! Local variables
-    class(field), pointer :: u, v, w, p, scalar
-    class(field), pointer :: mf, mu, rho
+    class(field), pointer:: u, v, w, p, scalar
+    class(field), pointer:: mf, mu, rho
     integer(ccs_int):: n, count
     integer(ccs_int):: n_local
     integer(ccs_int):: index_p, global_index_p, index_f, index_nb
