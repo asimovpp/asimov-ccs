@@ -94,7 +94,7 @@ contains
 
     use io_visualisation, only: write_solution
 
-    class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), par_env, intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: t
     type(fluid), intent(inout) :: flow_fields
