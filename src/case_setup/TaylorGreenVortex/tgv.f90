@@ -579,4 +579,34 @@ contains
 
   end subroutine initialise_flow
 
+  subroutine get_init_flow(x_p, field_name, init_val)
+    real(ccs_real), dimension(ndim), intent(in) :: x_p
+    character(len=*), intent(in) :: field_name
+    real(ccs_real), intent(inout) :: init_val
+
+
+    select case (field_name)
+    case ("u")
+      init_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
+    case ("v")
+      init_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
+    case default
+      init_val = 0.0_ccs_real
+    end select
+
+  end subroutine
+  
+  subroutine get_init_mass_flux(index_f, init_val)
+    integer(ccs_int), intent(in) :: index_f
+    real(ccs_real), intent(inout) :: init_val
+
+    call create_face_locator(index_p, j, loc_f)
+    call get_face_normal(loc_f, face_normal)
+
+    init_val = sin(x_f(1)) * cos(x_f(2)) * cos(x_f(3)) * face_normal(1) &
+             - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
+
+  end subroutine
+
+
 end program tgv

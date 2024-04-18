@@ -4,6 +4,7 @@
 
 module core
 
+  use flow_init
   implicit none
 
   private
