@@ -171,15 +171,15 @@ contains
   end subroutine allocate_field
 
   !> Get whether a field is face based or not
-  pure subroutine get_field_is_face_based(field, is_face_based)
-    class(field), intent(in) :: field
-    logical, intent(inout) :: is_face_based
+  pure subroutine get_field_is_face_based(my_field, is_face_based)
+    class(field), intent(inout) :: my_field
+    logical, intent(out) :: is_face_based
 
-    select type (field)
-    type (face_centered)
-      is_face_based = .true.
-    type default
-      is_face_based = .false.
+    select type (my_field)
+      type is (face_field)
+        is_face_based = .true.
+      class default
+        is_face_based = .false.
     end select
 
   end subroutine

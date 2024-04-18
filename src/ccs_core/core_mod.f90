@@ -4,9 +4,13 @@
 
 module core
 
+  use kinds, only: ccs_int, ccs_real
+  use types, only: fluid
+
   implicit none
 
   private
+
   public :: core_initialise_flow
   public :: core_initialise_mass_flux
 
@@ -17,6 +21,8 @@ module core
       type(fluid), intent(inout) :: flow_fields
       interface 
         pure subroutine get_init_flow(x_p, field_name, init_val)
+          use kinds, only: ccs_real
+          use constants, only: ndim
           real(ccs_real), dimension(ndim), intent(in) :: x_p
           character(len=*), intent(in) :: field_name
           real(ccs_real), intent(inout) :: init_val
@@ -29,6 +35,7 @@ module core
       type(fluid), intent(inout) :: flow_fields
       interface
         pure subroutine get_init_mass_flux(index_f, init_flux)
+          use kinds, only: ccs_int, ccs_real
           integer(ccs_int), intent(in) :: index_f
           real(ccs_real), intent(inout) :: init_flux
         end subroutine

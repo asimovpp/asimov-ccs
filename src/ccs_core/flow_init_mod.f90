@@ -1,9 +1,6 @@
-module flow_init
 submodule(core) initialise_flow
 
-  use kinds, only: ccs_int
-  use case_setup, only: get_init_flow, get_init_mass_flux
-
+  use kinds, only: ccs_int, ccs_real
 
   use fields, only: get_field_is_face_based
   use kinds, only: ccs_real, ccs_int
@@ -23,7 +20,6 @@ submodule(core) initialise_flow
 
   implicit none
 
-  private
 
   contains
 
