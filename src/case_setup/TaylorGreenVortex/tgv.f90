@@ -579,7 +579,7 @@ contains
 
   end subroutine initialise_flow
 
-  subroutine get_init_flow(x_p, field_name, init_val)
+  pure subroutine get_init_flow(x_p, field_name, init_val)
     real(ccs_real), dimension(ndim), intent(in) :: x_p
     character(len=*), intent(in) :: field_name
     real(ccs_real), intent(inout) :: init_val
@@ -596,7 +596,7 @@ contains
 
   end subroutine
   
-  subroutine get_init_mass_flux(index_f, init_val)
+  pure subroutine get_init_mass_flux(index_f, init_val)
     integer(ccs_int), intent(in) :: index_f
     real(ccs_real), intent(inout) :: init_val
 
@@ -607,6 +607,5 @@ contains
              - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
 
   end subroutine
-
 
 end program tgv

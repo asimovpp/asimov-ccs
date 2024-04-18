@@ -541,11 +541,10 @@ contains
   end subroutine initialise_flow
 
 
-  subroutine get_init_flow(x_p, field_name, init_val)
+  pure subroutine get_init_flow(x_p, field_name, init_val)
     real(ccs_real), dimension(ndim), intent(in) :: x_p
     character(len=*), intent(in) :: field_name
     real(ccs_real), intent(inout) :: init_val
-
 
     if (field_name == "scalar") then
       if (x_p(1) < -0.08) then
@@ -557,10 +556,9 @@ contains
       init_val = 0.0_ccs_real
     end if
 
-
   end subroutine
   
-  subroutine get_init_mass_flux(index_f, init_val)
+  pure subroutine get_init_mass_flux(index_f, init_val)
     integer(ccs_int), intent(in) :: index_f
     real(ccs_real), intent(inout) :: init_val
 
