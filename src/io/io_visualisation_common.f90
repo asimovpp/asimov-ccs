@@ -37,7 +37,7 @@ contains
     use parallel, only: timer
 
     ! Arguments
-    class(parallel_environment), target, intent(in) :: par_env !< The parallel environment
+    class(parallel_environment), target, allocatable, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name     !< The case name
     type(ccs_mesh), intent(in) :: mesh                         !< The mesh
     type(fluid), intent(inout) :: flow                            !< The flow variables
@@ -85,7 +85,7 @@ contains
     use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices, get_mesh_generated
 
     ! Arguments
-    class(parallel_environment), target, intent(in) :: par_env  !< The parallel environment
+    class(parallel_environment), target, allocatable, intent(in) :: par_env  !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                   !< The case name
     type(fluid), intent(inout) :: flow                                       !< The flow variables
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
