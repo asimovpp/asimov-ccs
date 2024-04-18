@@ -23,6 +23,7 @@ module fields
   private
 
   public :: create_field
+  public :: get_field_is_face_based
   public :: set_field_config_file
   public :: set_field_vector_properties
   public :: set_field_n_boundaries
@@ -168,6 +169,20 @@ contains
     call add_field(phi_ptr, flow)
     
   end subroutine allocate_field
+
+  !> Get whether a field is face based or not
+  pure subroutine get_field_is_face_based(field, is_face_based)
+    class(field), intent(in) :: field
+    logical, intent(inout) :: is_face_based
+
+    select type (field)
+    type (face_centered)
+      is_face_based = .true.
+    type default
+      is_face_based = .false.
+    end select
+
+  end subroutine
 
   !> Set config file used for field creation
   pure subroutine set_field_config_file(ccs_config_file, field_properties)
