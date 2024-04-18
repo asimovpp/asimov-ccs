@@ -11,15 +11,6 @@ module types
 
   private
 
-  type, public :: ccs_options
-    logical :: build_mesh
-    character(len=:), allocatable :: case_name
-    character(len=:), allocatable :: case_path
-    character(len=:), allocatable :: mesh_path
-    integer(ccs_int) :: cps
-    real(ccs_real) :: domain_size
-  end type ccs_options
-
   !> Stub type for vectors to be extended in sub-modules.
   type, public :: ccs_vector
     character(len=:), allocatable :: name  !< Name of the vector object

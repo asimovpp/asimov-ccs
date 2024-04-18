@@ -5,7 +5,7 @@ program sandia
   use petscvec
   use petscsys
 
-  use core, only: initialise_mesh
+  use core
   use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
@@ -16,7 +16,7 @@ program sandia
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use meshing, only: set_mesh_object, nullify_mesh_object
   use kinds, only: ccs_real, ccs_int, ccs_long
-  use types, only: ccs_options, field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
+  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
                    field_ptr, fluid, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
@@ -84,8 +84,6 @@ program sandia
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
 
-  type(ccs_options) :: run_options
-  
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   use_mpi_splitting = .true.
@@ -244,14 +242,14 @@ program sandia
   !call timer_stop(timer_index_init)
 
   ! XXX: These values should be set during configuration
-  run_options%case_path = case_path
-  run_options%num_steps = num_steps
-  run_options%dt = dt
-  run_options%write_frequency = write_frequency
-  run_options%it_start = it_start
-  run_options%it_end = it_end
-  run_options%res_target = res_target
-  call run_solver(par_env, run_options, flow_fields)
+  !run_options%case_path = case_path
+  !run_options%num_steps = num_steps
+  !run_options%dt = dt
+  !run_options%write_frequency = write_frequency
+  !run_options%it_start = it_start
+  !run_options%it_end = it_end
+  !run_options%res_target = res_target
+  !call run_solver(par_env, run_options, flow_fields)
   
   ! Clean-up
 

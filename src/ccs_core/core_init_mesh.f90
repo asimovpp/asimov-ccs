@@ -1,4 +1,4 @@
-submodule(core) initialise
+submodule(core) core_init_mesh
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, debug_print, str
@@ -26,6 +26,8 @@ contains
     type is (parallel_environment_mpi)
       call timer_register_start("Mesh read time", timer_index_build)
       call dprint("initialising mesh cps " // str(cps))
+      ! XXX: run_options%build_mesh_type should be a named integer constant to select whether 
+      ! to build 2d, 3d or read mesh. Value to be set in config file parser.
       if (run_options%build_mesh) then
         ! Create a cubic mesh
         if (par_env%proc_id == par_env%root) print *, "Building mesh"
@@ -47,4 +49,4 @@ contains
     end associate
   end subroutine initialise_mesh
 
-end submodule initialise
+end submodule core_init_mesh
