@@ -11,6 +11,10 @@ module types
 
   private
 
+  type, public :: ccs_options
+    character(len=:), allocatable :: ccs_case
+  end type ccs_options
+
   !> Stub type for vectors to be extended in sub-modules.
   type, public :: ccs_vector
     character(len=:), allocatable :: name  !< Name of the vector object

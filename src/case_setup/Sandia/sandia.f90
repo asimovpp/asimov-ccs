@@ -129,11 +129,7 @@ program sandia
   it_end = num_iters
 
   ! Read mesh from .geo file
-  call timer_register_start("Mesh read time", timer_index_build)
-  if (irank == par_env%root) print *, "Reading mesh file"
-  call read_mesh(par_env, shared_env, case_name, mesh)
-  call set_mesh_object(mesh)
-  call timer_stop(timer_index_build)
+  call initialise_mesh(par_env, shared_env, config_params)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -214,11 +210,6 @@ program sandia
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
-
-  ! Write out mesh to file
-  call timer_register_start("I/O time for mesh", timer_index_io_init)
-  call write_mesh(par_env, case_path, mesh)
-  call timer_stop(timer_index_io_init)
 
   ! Print the run configuration
   if (irank == par_env%root) then
