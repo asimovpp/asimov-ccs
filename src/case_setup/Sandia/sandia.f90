@@ -24,11 +24,10 @@ program sandia
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, query_stop_run, create_new_par_env, is_root
+                      read_command_line_arguments, sync, create_new_par_env, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
-  use pv_coupling, only: solve_nonlinear
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, add_field, &
@@ -41,7 +40,6 @@ program sandia
   use mesh_utils, only: read_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
-  use io_visualisation, only: write_solution
   use fv, only: update_gradient
   use utils, only: str
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
@@ -73,8 +71,6 @@ program sandia
   integer(ccs_int):: timer_index_init
   integer(ccs_int):: timer_index_build
   integer(ccs_int):: timer_index_io_init
-  integer(ccs_int):: timer_index_io_sol
-  integer(ccs_int):: timer_index_sol
   integer(ccs_int):: i
 
   logical:: u_sol = .true.  ! Default equations to solve for LDC case
@@ -82,16 +78,15 @@ program sandia
   logical:: w_sol = .true.
   logical:: p_sol = .true.
 
-  logical:: diverged = .false.
-
   logical:: store_residuals, enable_cell_corrections
 
-  integer(ccs_int):: t          ! Timestep counter
   logical:: use_mpi_splitting
 
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
 
+  type(ccs_options) :: run_options
+  
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   use_mpi_splitting = .true.
@@ -246,33 +241,17 @@ program sandia
   nullify(scalar_field)
 
   call timer_stop(timer_index_init)
-  call timer_register("I/O time for solution", timer_index_io_sol)
-  call timer_register("Solver time inc I/O", timer_index_sol)
 
-  do t = 1, num_steps
-    call timer_start(timer_index_sol)
-    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         flow_fields, diverged)
-    if (par_env%proc_id == par_env%root) then
-      print *, "TIME = ", t
-    end if
-
-    ! If a STOP file exist, write solution and exit the main simulation loop
-    if (query_stop_run(par_env) .or. diverged) then
-      call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
-      call timer_stop(timer_index_io_sol)
-      exit
-    end if
-
-    if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
-      call timer_stop(timer_index_io_sol)
-    end if
-    call timer_stop(timer_index_sol)
-  end do
-
+  ! XXX: These values should be set during configuration
+  run_options%case_path = case_path
+  run_options%num_steps = num_steps
+  run_options%dt = dt
+  run_options%write_frequency = write_frequency
+  run_options%it_start = it_start
+  run_options%it_end = it_end
+  run_options%res_target = res_target
+  call run_solver(par_env, run_options, flow_fields)
+  
   ! Clean-up
 
   call timer_stop(timer_index_total)
