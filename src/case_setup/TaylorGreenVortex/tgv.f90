@@ -596,12 +596,10 @@ contains
 
   end subroutine
   
-  pure subroutine get_init_mass_flux(index_f, init_val)
-    integer(ccs_int), intent(in) :: index_f
+  pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
+    real(ccs_real), dimension(ndim), intent(in) :: x_f
+    real(ccs_real), dimension(ndim), intent(in) :: face_normal
     real(ccs_real), intent(inout) :: init_val
-
-    call create_face_locator(index_p, j, loc_f)
-    call get_face_normal(loc_f, face_normal)
 
     init_val = sin(x_f(1)) * cos(x_f(2)) * cos(x_f(3)) * face_normal(1) &
              - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)

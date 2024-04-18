@@ -558,8 +558,9 @@ contains
 
   end subroutine
   
-  pure subroutine get_init_mass_flux(index_f, init_val)
-    integer(ccs_int), intent(in) :: index_f
+  pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
+    real(ccs_real), dimension(ndim), intent(in) :: x_f
+    real(ccs_real), dimension(ndim), intent(in) :: face_normal
     real(ccs_real), intent(inout) :: init_val
 
     return

@@ -34,10 +34,12 @@ module core
     module subroutine core_initialise_mass_flux(flow_fields, get_init_mass_flux)
       type(fluid), intent(inout) :: flow_fields
       interface
-        pure subroutine get_init_mass_flux(index_f, init_flux)
+        pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
           use kinds, only: ccs_int, ccs_real
-          integer(ccs_int), intent(in) :: index_f
-          real(ccs_real), intent(inout) :: init_flux
+          use constants, only: ndim
+          real(ccs_real), dimension(ndim), intent(in) :: x_f
+          real(ccs_real), dimension(ndim), intent(in) :: face_normal
+          real(ccs_real), intent(inout) :: init_val
         end subroutine
       end interface
     end subroutine

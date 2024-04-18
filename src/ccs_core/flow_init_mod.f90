@@ -13,6 +13,7 @@ submodule(core) initialise_flow
                        get_face_interpolation
 
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
+  use fv, only: compute_boundary_values
 
   use constants, only: insert_mode, ndim
 
@@ -30,6 +31,8 @@ submodule(core) initialise_flow
 
     interface 
       pure subroutine get_init_flow(x_p, field_name, init_val)
+        use kinds, only: ccs_real
+        use constants, only: ndim
         real(ccs_real), dimension(ndim), intent(in) :: x_p
         character(len=*), intent(in) :: field_name
         real(ccs_real), intent(inout) :: init_val
@@ -83,16 +86,19 @@ submodule(core) initialise_flow
 
     end do
 
-  end subroutine initialise_flow
+  end subroutine
 
   module subroutine core_initialise_mass_flux(flow_fields, get_init_mass_flux)
 
     type(fluid), intent(inout) :: flow_fields
 
     interface
-      pure subroutine get_init_mass_flux(index_f, init_flux)
-        integer(ccs_int), intent(in) :: index_f
-        real(ccs_real), intent(inout) :: init_flux
+      pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
+        use kinds, only: ccs_int, ccs_real
+        use constants, only: ndim
+        real(ccs_real), dimension(ndim), intent(in) :: x_f
+        real(ccs_real), dimension(ndim), intent(in) :: face_normal
+        real(ccs_real), intent(inout) :: init_val
       end subroutine
     end interface
 
@@ -100,7 +106,7 @@ submodule(core) initialise_flow
     real(ccs_real), dimension(ndim) :: velocity
 
     class(field), pointer :: u, v, w
-    class(field), pointer :: mf, rho
+    class(field), pointer :: mf
     
     real(ccs_real), dimension(:), pointer:: mf_data
 
@@ -138,12 +144,12 @@ submodule(core) initialise_flow
 
         if (is_boundary) then
           ! Get boundary values
-          call compute_boundary_values(current_field, 1, loc_p, loc_f, face_normal, velocity(1))
-          call compute_boundary_values(current_field, 2, loc_p, loc_f, face_normal, velocity(2))
-          call compute_boundary_values(current_field, 3, loc_p, loc_f, face_normal, velocity(3))
+          call compute_boundary_values(mf, 1, loc_p, loc_f, face_normal, velocity(1))
+          call compute_boundary_values(mf, 2, loc_p, loc_f, face_normal, velocity(2))
+          call compute_boundary_values(mf, 3, loc_p, loc_f, face_normal, velocity(3))
 
           mf_data(index_f) = area * dot_product(velocity, face_normal)
-          call get_init_mass_flux(index_f, mf_data(index_f))
+          call get_init_mass_flux(x_f, face_normal, mf_data(index_f))
 
         else if (index_p < index_nb) then  
           call get_centre(loc_f, x_f)
@@ -157,7 +163,7 @@ submodule(core) initialise_flow
           mf_data(index_f) = area * dot_product(velocity, face_normal)
 
           ! Allow case to overwrite interpolated value
-          call get_init_mass_flux(index_f, mf_data(index_f))
+          call get_init_mass_flux(x_f, face_normal, mf_data(index_f))
         end if
 
       end do
@@ -166,7 +172,7 @@ submodule(core) initialise_flow
     call restore_vector_data(mf%values, mf_data)
     call update(mf%values)
 
-  end subroutine initialise_mass_flux
+  end subroutine
 
 
 
