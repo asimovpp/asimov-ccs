@@ -5,6 +5,7 @@ program sandia
   use petscvec
   use petscsys
 
+  use core
   use ccs_base, only: mesh
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
