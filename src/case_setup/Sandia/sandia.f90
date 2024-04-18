@@ -99,7 +99,7 @@ program sandia
   run_options%case_name = case_name
   run_options%case_path = case_path
   run_options%mesh_path = case_name // "_mesh" // geoext
-  run_options%cps = 100
+  run_options%cps = 10
 
   if (allocated(input_path)) then
     case_path = input_path // "/" // case_name
