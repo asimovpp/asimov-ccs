@@ -55,7 +55,8 @@ program sandia
   character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable:: variable_types              ! cell centred upwind, central, etc.
 
-  type(vector_spec):: vec_properties
+  type(ccs_options) :: run_options
+  type(vector_spec) :: vec_properties
 
   type(field_spec):: field_properties
   class(field), pointer:: u, v, w, p, mf, viscosity, density
@@ -69,8 +70,6 @@ program sandia
 
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
-  integer(ccs_int):: timer_index_build
-  integer(ccs_int):: timer_index_io_init
   integer(ccs_int):: i
 
   logical:: u_sol = .true.  ! Default equations to solve for LDC case
@@ -83,8 +82,6 @@ program sandia
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
 
-  type(ccs_options) :: run_options
-  
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
@@ -96,6 +93,13 @@ program sandia
   isize = par_env%num_procs
 
   call read_command_line_arguments(par_env, case_name = case_name, in_dir = input_path)
+
+  ! XXX: set case name (should be absorbed into generic command line options reading later)
+  run_options%init_mesh_type = build_mesh_3d
+  run_options%case_name = case_name
+  run_options%case_path = case_path
+  run_options%mesh_path = case_name // "_mesh" // geoext
+  run_options%cps = 10
 
   if (allocated(input_path)) then
     case_path = input_path // "/" // case_name
@@ -125,11 +129,7 @@ program sandia
   it_end = num_iters
 
   ! Read mesh from .geo file
-  call timer_register_start("Mesh read time", timer_index_build)
-  if (irank == par_env%root) print *, "Reading mesh file"
-  call read_mesh(par_env, shared_env, case_name, mesh)
-  call set_mesh_object(mesh)
-  call timer_stop(timer_index_build)
+  call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -210,11 +210,6 @@ program sandia
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
-
-  ! Write out mesh to file
-  call timer_register_start("I/O time for mesh", timer_index_io_init)
-  call write_mesh(par_env, case_path, mesh)
-  call timer_stop(timer_index_io_init)
 
   ! Print the run configuration
   if (irank == par_env%root) then
