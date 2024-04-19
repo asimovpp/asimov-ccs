@@ -14,9 +14,9 @@ module core
   public :: initialise_mesh
   public :: run_solver
   public :: ccs_options
-  integer(ccs_int), parameter, public :: build_mesh_2d = 1
-  integer(ccs_int), parameter, public :: build_mesh_3d = 2
-  integer(ccs_int), parameter, public :: read_input_mesh = 3
+  integer(ccs_int), parameter, public :: read_input_mesh = 1
+  integer(ccs_int), parameter, public :: build_mesh_2d = 2
+  integer(ccs_int), parameter, public :: build_mesh_3d = 3
 
   !v Type to contain the configuration of the CCS run
   type :: ccs_options
