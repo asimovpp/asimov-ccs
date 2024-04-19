@@ -24,7 +24,7 @@ program sandia
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, create_new_par_env, is_root
+                      read_command_line_arguments, sync, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
@@ -79,16 +79,16 @@ program sandia
 
   logical:: store_residuals, enable_cell_corrections
 
-  logical:: use_mpi_splitting
-
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-  use_mpi_splitting = .true.
-  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
+  ! XXX: These values should be set by configuration (i.e. call after config)
+  run_options%split_type = ccs_split_type_shared
+  run_options%use_mpi_splitting = .true.
+  call configure_parallelism(run_options, par_env, shared_env)
   irank = par_env%proc_id
   isize = par_env%num_procs
 

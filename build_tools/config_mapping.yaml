@@ -29,6 +29,7 @@ bases:
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
       core: core_solver
+      core_par: core_parallel
       core_mesh: core_init_mesh
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
@@ -65,6 +66,7 @@ bases:
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
       core: core_solver
+      core_par: core_parallel
       core_mesh: core_init_mesh
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
