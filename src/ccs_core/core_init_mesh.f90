@@ -24,26 +24,27 @@ contains
 
     associate (cps => run_options%cps)
       call timer_register_start("Mesh read time", timer_index_build)
-      if (run_options%init_mesh_type == build_mesh_2d) then
+      select case (run_options%init_mesh_type)
+      case (build_mesh_2d)
         ! Create a cubic mesh
         if (is_root(par_env)) then
           print *, "Building mesh"
         end if
         mesh = build_square_mesh(par_env, shared_env, cps, run_options%domain_size)
-      else if (run_options%init_mesh_type == build_mesh_3d) then
+      case (build_mesh_3d) 
         ! Create a cubic mesh
         if (is_root(par_env)) then
           print *, "Building mesh"
         end if
         mesh = build_mesh(par_env, shared_env, cps, cps, cps, run_options%domain_size)
-      else if (run_options%init_mesh_type == read_input_mesh) then
+      case (read_input_mesh)
         if (is_root(par_env)) then
           print *, "Reading mesh file"
         end if
         call read_mesh(par_env, shared_env, run_options%case_name, mesh)
-      else
+      case default
         call error_abort("invalid init mesh type specified")
-      end if
+      end select
       call set_mesh_object(mesh)
       call timer_stop(timer_index_build)
   
