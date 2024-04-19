@@ -14,6 +14,9 @@ module core
   public :: initialise_mesh
   public :: run_solver
   public :: ccs_options
+  integer(ccs_int), parameter, public :: build_mesh_2d = 1
+  integer(ccs_int), parameter, public :: build_mesh_3d = 2
+  integer(ccs_int), parameter, public :: read_input_mesh = 3
 
   !v Type to contain the configuration of the CCS run
   type :: ccs_options
@@ -26,7 +29,7 @@ module core
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
     real(ccs_real) :: res_target
-    logical :: build_mesh
+    integer(ccs_int) :: init_mesh_type
     integer(ccs_int) :: cps
     real(ccs_real) :: domain_size
   end type ccs_options

@@ -4,7 +4,7 @@ submodule(core) core_init_mesh
   use utils, only: exit_print, debug_print, str
   use ccs_base, only: mesh
   use parallel_types_mpi, only: parallel_environment_mpi
-  use mesh_utils, only: build_mesh, read_mesh, write_mesh
+  use mesh_utils, only: build_mesh, build_square_mesh, read_mesh, write_mesh
   use meshing, only: set_mesh_object
   use timers, only: timer_register_start, timer_stop
   use kinds, only: ccs_int
@@ -25,16 +25,19 @@ contains
     select type(par_env)
     type is (parallel_environment_mpi)
       call timer_register_start("Mesh read time", timer_index_build)
-      call dprint("initialising mesh cps " // str(cps))
-      ! XXX: run_options%build_mesh_type should be a named integer constant to select whether 
-      ! to build 2d, 3d or read mesh. Value to be set in config file parser.
-      if (run_options%build_mesh) then
+      if (run_options%init_mesh_type == build_mesh_2d) then
+        ! Create a cubic mesh
+        if (par_env%proc_id == par_env%root) print *, "Building mesh"
+        mesh = build_square_mesh(par_env, shared_env, cps, run_options%domain_size)
+      else if (run_options%init_mesh_type == build_mesh_3d) then
         ! Create a cubic mesh
         if (par_env%proc_id == par_env%root) print *, "Building mesh"
         mesh = build_mesh(par_env, shared_env, cps, cps, cps, run_options%domain_size)
-      else
+      else if (run_options%init_mesh_type == read_input_mesh) then
         if (par_env%proc_id == par_env%root) print *, "Reading mesh file"
         call read_mesh(par_env, shared_env, run_options%case_name, mesh)
+      else 
+        call error_abort("invalid init mesh type specified")
       end if
       call set_mesh_object(mesh)
       call timer_stop(timer_index_build)

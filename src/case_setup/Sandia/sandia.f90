@@ -95,7 +95,7 @@ program sandia
   call read_command_line_arguments(par_env, case_name = case_name, in_dir = input_path)
 
   ! XXX: set case name (should be absorbed into generic command line options reading later)
-  run_options%build_mesh = .true.
+  run_options%init_mesh_type = build_mesh_3d
   run_options%case_name = case_name
   run_options%case_path = case_path
   run_options%mesh_path = case_name // "_mesh" // geoext
