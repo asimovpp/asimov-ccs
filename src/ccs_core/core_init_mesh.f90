@@ -4,6 +4,7 @@ submodule(core) core_init_mesh
   use utils, only: exit_print, debug_print, str
   use ccs_base, only: mesh
   use parallel_types_mpi, only: parallel_environment_mpi
+  use parallel, only: is_root
   use mesh_utils, only: build_mesh, build_square_mesh, read_mesh, write_mesh
   use meshing, only: set_mesh_object
   use timers, only: timer_register_start, timer_stop
@@ -22,19 +23,23 @@ contains
     integer(ccs_int):: timer_index_io_init
 
     associate (cps => run_options%cps)
-    select type(par_env)
-    type is (parallel_environment_mpi)
       call timer_register_start("Mesh read time", timer_index_build)
       if (run_options%init_mesh_type == build_mesh_2d) then
         ! Create a cubic mesh
-        if (par_env%proc_id == par_env%root) print *, "Building mesh"
+        if (is_root(par_env)) then 
+          print *, "Building mesh"
+        end if
         mesh = build_square_mesh(par_env, shared_env, cps, run_options%domain_size)
       else if (run_options%init_mesh_type == build_mesh_3d) then
         ! Create a cubic mesh
-        if (par_env%proc_id == par_env%root) print *, "Building mesh"
+        if (is_root(par_env)) then 
+          print *, "Building mesh"
+        end if
         mesh = build_mesh(par_env, shared_env, cps, cps, cps, run_options%domain_size)
       else if (run_options%init_mesh_type == read_input_mesh) then
-        if (par_env%proc_id == par_env%root) print *, "Reading mesh file"
+        if (is_root(par_env)) then 
+          print *, "Reading mesh file"
+        end if
         call read_mesh(par_env, shared_env, run_options%case_name, mesh)
       else 
         call error_abort("invalid init mesh type specified")
@@ -46,9 +51,6 @@ contains
       call timer_register_start("I/O time for mesh", timer_index_io_init)
       call write_mesh(par_env, run_options%case_path, mesh)
       call timer_stop(timer_index_io_init)
-    class default
-      call error_abort("Invalid parallel environment")
-    end select
     end associate
   end subroutine initialise_mesh
 
