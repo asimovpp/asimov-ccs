@@ -11,8 +11,8 @@ contains
   module subroutine configure_parallelism(run_options, par_env, shared_env)
 
     type(ccs_options), intent(in) :: run_options
-    class(parallel_environment), allocatable, intent(in) ::  par_env ! The main parallel environment
-    class(parallel_environment), allocatable, intent(out) :: shared_env ! The shared parallel environment
+    class(parallel_environment), allocatable, intent(in) ::  par_env    !< The main parallel environment
+    class(parallel_environment), allocatable, intent(out) :: shared_env !< The shared parallel environment
 
     call create_new_par_env(par_env, run_options%split_type, run_options%use_mpi_splitting, shared_env)
 
