@@ -137,119 +137,115 @@ program sandia
   ! Write gradients to solution file
   write_gradients = .false.
 
-  !! Read boundary conditions
-  !if (irank == par_env%root) print *, "Read and allocate BCs"
-  !call get_boundary_count(ccs_config_file, n_boundaries)
-  !call get_store_residuals(ccs_config_file, store_residuals)
-  !call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
+  ! Read boundary conditions
+  if (irank == par_env%root) print *, "Read and allocate BCs"
+  call get_boundary_count(ccs_config_file, n_boundaries)
+  call get_store_residuals(ccs_config_file, store_residuals)
+  call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
 
-  !! Create and initialise field vectors
-  !if (irank == par_env%root) print *, "Initialise field vectors"
-  !call initialise(vec_properties)
+  ! Create and initialise field vectors
+  if (irank == par_env%root) print *, "Initialise field vectors"
+  call initialise(vec_properties)
 
-  !call set_vector_location(cell, vec_properties)
-  !call set_size(par_env, mesh, vec_properties)
+  call set_vector_location(cell, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
 
-  !call set_field_config_file(ccs_config_file, field_properties)
-  !call set_field_n_boundaries(n_boundaries, field_properties)
-  !call set_field_store_residuals(store_residuals, field_properties)
-  !call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
+  call set_field_config_file(ccs_config_file, field_properties)
+  call set_field_n_boundaries(n_boundaries, field_properties)
+  call set_field_store_residuals(store_residuals, field_properties)
+  call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
-  !call set_field_vector_properties(vec_properties, field_properties)
+  call set_field_vector_properties(vec_properties, field_properties)
 
-  !! Expect to find u, v, w, p, p_prime, scalar
-  !if (is_root(par_env)) then
-  !  print *, "Build field list"
-  !end if
+  ! Expect to find u, v, w, p, p_prime, scalar
+  if (is_root(par_env)) then
+    print *, "Build field list"
+  end if
 
-  !do i = 1, size(variable_names)
-  !  if (is_root(par_env)) then
-  !    print *, "Creating field ", trim(variable_names(i))
-  !  end if
-  !  call set_field_type(variable_types(i), field_properties)
-  !  call set_field_name(variable_names(i), field_properties)
-  !  call create_field(par_env, field_properties, flow_fields)
-  !end do
+  do i = 1, size(variable_names)
+    if (is_root(par_env)) then
+      print *, "Creating field ", trim(variable_names(i))
+    end if
+    call set_field_type(variable_types(i), field_properties)
+    call set_field_name(variable_names(i), field_properties)
+    call create_field(par_env, field_properties, flow_fields)
+  end do
 
-  !if (is_root(par_env)) then
-  !  print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
-  !end if
+  if (is_root(par_env)) then
+    print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
+  end if
 
-  !call set_field_type(cell_centred_central, field_properties)
-  !call set_field_name("viscosity", field_properties)
-  !call create_field(par_env, field_properties, flow_fields)
-  !call set_field_name("density", field_properties)
-  !call create_field(par_env, field_properties, flow_fields)
+  call set_field_type(cell_centred_central, field_properties)
+  call set_field_name("viscosity", field_properties)
+  call create_field(par_env, field_properties, flow_fields)
+  call set_field_name("density", field_properties)
+  call create_field(par_env, field_properties, flow_fields)
 
-  !call set_vector_location(face, vec_properties)
-  !call set_size(par_env, mesh, vec_properties)
-  !call set_field_vector_properties(vec_properties, field_properties)
-  !call set_field_type(face_centred, field_properties)
-  !call set_field_name("mf", field_properties)
-  !call create_field(par_env, field_properties, flow_fields)
+  call set_vector_location(face, vec_properties)
+  call set_size(par_env, mesh, vec_properties)
+  call set_field_vector_properties(vec_properties, field_properties)
+  call set_field_type(face_centred, field_properties)
+  call set_field_name("mf", field_properties)
+  call create_field(par_env, field_properties, flow_fields)
 
-  !call get_field(flow_fields, "u", u)
-  !call get_field(flow_fields, "v", v)
-  !call get_field(flow_fields, "w", w)
-  !call get_field(flow_fields, "w", p)
-  !call get_field(flow_fields, "mf", mf)
-  !call get_field(flow_fields, "viscosity", viscosity)
-  !call get_field(flow_fields, "density", density)
-  !call get_field(flow_fields, "scalar", scalar_field)
+  call get_field(flow_fields, "u", u)
+  call get_field(flow_fields, "v", v)
+  call get_field(flow_fields, "w", w)
+  call get_field(flow_fields, "w", p)
+  call get_field(flow_fields, "mf", mf)
+  call get_field(flow_fields, "viscosity", viscosity)
+  call get_field(flow_fields, "density", density)
+  call get_field(flow_fields, "scalar", scalar_field)
   
-  !! Add fields to output list
-  !call add_field_to_outputlist(u)
-  !call add_field_to_outputlist(v)
-  !call add_field_to_outputlist(w)
-  !call add_field_to_outputlist(p)
-  !call add_field_to_outputlist(scalar_field)
+  ! Add fields to output list
+  call add_field_to_outputlist(u)
+  call add_field_to_outputlist(v)
+  call add_field_to_outputlist(w)
+  call add_field_to_outputlist(p)
+  call add_field_to_outputlist(scalar_field)
 
-  !! Initialise velocity field
-  !if (irank == par_env%root) print *, "Initialise velocity field"
-  !call initialise_flow(flow_fields)
+  ! Initialise velocity field
+  if (irank == par_env%root) print *, "Initialise velocity field"
+  call initialise_flow(flow_fields)
 
-  !! Solve using SIMPLE algorithm
-  !if (irank == par_env%root) print *, "Start SIMPLE"
+  ! Solve using SIMPLE algorithm
+  if (irank == par_env%root) print *, "Start SIMPLE"
 
-  !! Print the run configuration
-  !if (irank == par_env%root) then
-  !  call print_configuration()
-  !end if
+  ! Print the run configuration
+  if (irank == par_env%root) then
+    call print_configuration()
+  end if
 
-  !call activate_timestepping()
-  !call set_timestep(dt)
+  call activate_timestepping()
+  call set_timestep(dt)
 
-  !! XXX: This should get incorporated as part of create_field subroutines
-  !call set_is_field_solved(u_sol, u)
-  !call set_is_field_solved(v_sol, v)
-  !call set_is_field_solved(w_sol, w)
-  !call set_is_field_solved(p_sol, p)
+  ! XXX: This should get incorporated as part of create_field subroutines
+  call set_is_field_solved(u_sol, u)
+  call set_is_field_solved(v_sol, v)
+  call set_is_field_solved(w_sol, w)
+  call set_is_field_solved(p_sol, p)
 
-  !! Nullify pointers for safety
-  !nullify(u)
-  !nullify(v)
-  !nullify(w)
-  !nullify(p)
-  !nullify(mf)
-  !nullify(viscosity)
-  !nullify(density)
-  !nullify(scalar_field)
+  ! Nullify pointers for safety
+  nullify(u)
+  nullify(v)
+  nullify(w)
+  nullify(p)
+  nullify(mf)
+  nullify(viscosity)
+  nullify(density)
+  nullify(scalar_field)
 
-  !call timer_stop(timer_index_init)
-  !call timer_register("I/O time for solution", timer_index_io_sol)
-  !call timer_register("Solver time inc I/O", timer_index_sol)
-
-  !call timer_stop(timer_index_init)
+  call timer_stop(timer_index_init)
 
   ! XXX: These values should be set during configuration
-  !run_options%case_path = case_path
-  !run_options%num_steps = num_steps
-  !run_options%dt = dt
-  !run_options%write_frequency = write_frequency
-  !run_options%it_start = it_start
-  !run_options%it_end = it_end
-  !run_options%res_target = res_target
-  !call run_solver(par_env, run_options, flow_fields)
+  run_options%case_path = case_path
+  run_options%num_steps = num_steps
+  run_options%dt = dt
+  run_options%write_frequency = write_frequency
+  run_options%it_start = it_start
+  run_options%it_end = it_end
+  run_options%res_target = res_target
+  call run_solver(par_env, run_options, flow_fields)
   
   ! Clean-up
 
