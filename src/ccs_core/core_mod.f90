@@ -41,8 +41,8 @@ module core
     !
     ! This is responsible for the building or reading of the mesh (whichever is specified in the config file)
     module subroutine initialise_mesh(par_env, shared_env, run_options)
-      class(parallel_environment), intent(in) :: par_env
-      class(parallel_environment), intent(in) :: shared_env
+      class(parallel_environment), intent(in), allocatable :: par_env
+      class(parallel_environment), intent(in), allocatable :: shared_env
       type(ccs_options), intent(in) :: run_options
     end subroutine initialise_mesh
 
