@@ -27,6 +27,12 @@ module core
   end type ccs_options
 
   interface
+    !v Subroutine to get the runtime configuration.
+    module subroutine get_config(par_env, run_options)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_options), intent(out) :: run_options
+    end subroutine get_config
+
     !v Subroutine to run a flow problem.
     !
     ! This is responsible for the time loop, calling post-processing subroutines and performing
