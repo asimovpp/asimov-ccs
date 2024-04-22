@@ -7,8 +7,7 @@ program sandia
 
   use core
   use ccs_base, only: mesh
-  use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
-                         velocity_relax, pressure_relax, res_target, case_name, &
+  use case_config, only: case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
@@ -21,21 +20,19 @@ program sandia
                    field_ptr, fluid, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
-  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, is_root
+                      sync, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use scalars, only: update_scalars
+  use read_config, only: get_enable_cell_corrections, get_boundary_count, get_case_name, get_store_residuals
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections, &
-                          get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
@@ -49,8 +46,6 @@ program sandia
 
   class(parallel_environment), allocatable:: par_env
   class(parallel_environment), allocatable:: shared_env
-  character(len=:), allocatable:: input_path  ! Path to input directory
-  character(len=:), allocatable:: case_path  ! Path to input directory with case name appended
   character(len=:), allocatable:: ccs_config_file  ! Config file for CCS
   character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable:: variable_types              ! cell centred upwind, central, etc.
@@ -64,7 +59,6 @@ program sandia
 
   integer(ccs_int):: n_boundaries
 
-  integer(ccs_int):: it_start, it_end
   integer(ccs_int):: irank  ! MPI rank ID
   integer(ccs_int):: isize  ! Size of MPI world
 
@@ -85,36 +79,14 @@ program sandia
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
-  ! XXX: These values should be set by configuration (i.e. call after config)
-  run_options%split_type = ccs_split_type_shared
-  run_options%use_mpi_splitting = .true.
+  call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call read_command_line_arguments(par_env, case_name = case_name, in_dir = input_path)
-
-  ! XXX: set case name (should be absorbed into generic command line options reading later)
-  run_options%init_mesh_type = build_mesh_3d
-  run_options%case_name = case_name
-  run_options%case_path = case_path
-  run_options%mesh_path = case_name // "_mesh" // geoext
-  run_options%cps = 10
-
-  if (allocated(input_path)) then
-    case_path = input_path // "/" // case_name
-  else
-    case_path = case_name
-  end if
-
-  ccs_config_file = case_path // ccsconfig
-
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 
   call timer_register_start("Init time", timer_index_init)
-
-  ! Read case name and runtime parameters from configuration file
-  call read_configuration(ccs_config_file)
 
   if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
@@ -123,10 +95,6 @@ program sandia
   velocity_solver_precon_name = "bjacobi"
   pressure_solver_method_name = "cg"
   pressure_solver_precon_name = "gamg"
-
-  ! Set start and end iteration numbers (read from input file)
-  it_start = 1
-  it_end = num_iters
 
   ! Read mesh from .geo file
   call initialise_mesh(par_env, shared_env, run_options)
@@ -211,13 +179,8 @@ program sandia
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
 
-  ! Print the run configuration
-  if (irank == par_env%root) then
-    call print_configuration()
-  end if
-
   call activate_timestepping()
-  call set_timestep(dt)
+  call set_timestep(run_options%solve%dt)
 
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_is_field_solved(u_sol, u)
@@ -237,14 +200,6 @@ program sandia
 
   call timer_stop(timer_index_init)
 
-  ! XXX: These values should be set during configuration
-  run_options%case_path = case_path
-  run_options%num_steps = num_steps
-  run_options%dt = dt
-  run_options%write_frequency = write_frequency
-  run_options%it_start = it_start
-  run_options%it_end = it_end
-  run_options%res_target = res_target
   call run_solver(par_env, run_options, flow_fields)
   
   ! Clean-up
@@ -258,93 +213,6 @@ program sandia
   call cleanup_parallel_environment(par_env)
 
 contains
-
-  ! Read YAML configuration file
-  subroutine read_configuration(config_filename)
-
-    use read_config, only: get_reference_number, get_value, &
-                           get_relaxation_factors
-
-    character(len=*), intent(in):: config_filename
-
-    class(*), pointer:: config_file  !< Pointer to CCS config file
-    character(:), allocatable:: error
-
-    config_file => parse(config_filename, error)
-    if (allocated(error)) then
-      call error_abort(trim(error))
-    end if
-
-    call get_variables(config_file, variable_names)
-    if (size(variable_names) == 0) then
-      call error_abort("No variables were specified.")
-    end if
-    call get_variable_types(config_file, variable_types)
-    if (size(variable_types) /= size(variable_names)) then
-       call error_abort("The number of variable types does not match the number of named variables")
-    end if
-
-
-    call get_value(config_file, 'steps', num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num_steps.")
-    end if
-
-    call get_value(config_file, 'iterations', num_iters)
-    if (num_iters == huge(0)) then
-      call error_abort("No value assigned to num_iters.")
-    end if
-
-    call get_value(config_file, 'dt', dt)
-    if (dt == huge(0.0)) then
-      call error_abort("No value assigned to dt.")
-    end if
-
-    call get_value(config_file, 'write_frequency', write_frequency)
-    if (write_frequency == huge(0.0)) then
-      call error_abort("No value assigned to write_frequency.")
-    end if
-
-    call get_value(config_file, 'L', domain_size)
-    if (domain_size == huge(0.0)) then
-      call error_abort("No value assigned to domain_size.")
-    end if
-
-    call get_value(config_file, 'target_residual', res_target)
-    if (res_target == huge(0.0)) then
-      call error_abort("No value assigned to target residual.")
-    end if
-
-    call get_relaxation_factors(config_file, u_relax = velocity_relax, p_relax = pressure_relax)
-    if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
-      call error_abort("No values assigned to velocity and pressure underrelaxation.")
-    end if
-
-  end subroutine
-
-  ! Print test case configuration
-  subroutine print_configuration()
-
-    ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
-    print *, " "
-    print *, "******************************************************************************"
-    print *, "* Solving the ", case_name, " case"
-    print *, "******************************************************************************"
-    print *, " "
-    print *, "******************************************************************************"
-    print *, "* SIMULATION LENGTH"
-    print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-    write (*, '(1x, a, e10.3)') "* Time step size: ", dt
-    print *, "******************************************************************************"
-    print *, "* MESH SIZE"
-    print *, "* Global number of cells is ", mesh%topo%global_num_cells
-    print *, "******************************************************************************"
-    print *, "* RELAXATION FACTORS"
-    write (*, '(1x, a, e10.3)') "* velocity: ", velocity_relax
-    write (*, '(1x, a, e10.3)') "* pressure: ", pressure_relax
-    print *, "******************************************************************************"
-
-  end subroutine
 
   subroutine initialise_flow(flow_fields)
 

@@ -22,26 +22,26 @@ contains
     integer(ccs_int) :: timer_index_build
     integer(ccs_int) :: timer_index_io_init
 
-    associate (cps => run_options%cps)
+    associate (cps => run_options%mesh%cps)
       call timer_register_start("Mesh read time", timer_index_build)
-      select case (run_options%init_mesh_type)
+      select case (run_options%mesh%init_mesh_type)
       case (build_mesh_2d)
         ! Create a cubic mesh
         if (is_root(par_env)) then
           print *, "Building mesh"
         end if
-        mesh = build_square_mesh(par_env, shared_env, cps, run_options%domain_size)
+        mesh = build_square_mesh(par_env, shared_env, cps, run_options%mesh%domain_size)
       case (build_mesh_3d) 
         ! Create a cubic mesh
         if (is_root(par_env)) then
           print *, "Building mesh"
         end if
-        mesh = build_mesh(par_env, shared_env, cps, cps, cps, run_options%domain_size)
+        mesh = build_mesh(par_env, shared_env, cps, cps, cps, run_options%mesh%domain_size)
       case (read_input_mesh)
         if (is_root(par_env)) then
           print *, "Reading mesh file"
         end if
-        call read_mesh(par_env, shared_env, run_options%case_name, mesh)
+        call read_mesh(par_env, shared_env, run_options%paths%case_name, mesh)
       case default
         call error_abort("invalid init mesh type specified")
       end select
@@ -50,7 +50,7 @@ contains
   
       ! Write out mesh to file
       call timer_register_start("I/O time for mesh", timer_index_io_init)
-      call write_mesh(par_env, run_options%case_path, mesh)
+      call write_mesh(par_env, run_options%paths%case_path, mesh)
       call timer_stop(timer_index_io_init)
     end associate
   end subroutine initialise_mesh

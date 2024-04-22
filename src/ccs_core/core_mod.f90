@@ -4,6 +4,7 @@
 
 module core
 
+  use constants, only: ccs_string_len
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid
   use parallel_types, only: parallel_environment
@@ -12,37 +13,65 @@ module core
 
   private
 
+  public :: get_config
   public :: configure_parallelism
   public :: initialise_mesh
   public :: run_solver
   public :: ccs_options
+
   integer(ccs_int), parameter, public :: read_input_mesh = 1
   integer(ccs_int), parameter, public :: build_mesh_2d = 2
   integer(ccs_int), parameter, public :: build_mesh_3d = 3
 
-  !v Type to contain the configuration of the CCS run
-  type :: ccs_options
-    !! Generic/misc
+  !v Type to contain path-related options for the CCS run
+  type :: ccs_paths
     character(len=:), allocatable :: case_name
     character(len=:), allocatable :: case_path
+    character(len=:), allocatable :: mesh_path
+    character(len=:), allocatable :: ccs_config_file
+  end type ccs_paths
+  
+  !v Options for the mesh configuration
+  type :: mesh_options
+    integer(ccs_int) :: init_mesh_type
+    integer(ccs_int) :: cps
+    real(ccs_real) :: domain_size
+  end type mesh_options
+  
+  !v Options for IO configuration
+  type :: io_options
+    integer(ccs_int) :: write_frequency
+  end type io_options
+
+  !v Options for variable declarations
+  type :: variable_options
+    character(len=ccs_string_len), dimension(:), allocatable :: variable_names
+    integer(ccs_int), dimension(:), allocatable :: variable_types
+  end type variable_options
+
+  !v Options for solver configuration
+  type :: solver_options
+    integer(ccs_int) :: num_steps
+    integer(ccs_int) :: num_iters
+    integer(ccs_int) :: it_start
+    integer(ccs_int) :: it_end
+    real(ccs_real) :: dt
+    real(ccs_real) :: res_target
+    real(ccs_real) :: velocity_relax
+    real(ccs_real) :: pressure_relax
+  end type solver_options
+  
+  !v Type to contain the configuration of the CCS run
+  type :: ccs_options
+    type(ccs_paths) :: paths
+    type(mesh_options) :: mesh
+    type(io_options) :: io
+    type(variable_options) :: variables
+    type(solver_options) :: solve
 
     !! Parallel-related
     logical :: use_mpi_splitting
     integer :: split_type
-
-    !! Mesh-related
-    character(len=:), allocatable :: mesh_path
-
-    !! Solver-related
-    integer(ccs_int) :: num_steps
-    real(ccs_real) :: dt
-    integer(ccs_int) :: write_frequency
-    integer(ccs_int) :: it_start
-    integer(ccs_int) :: it_end
-    real(ccs_real) :: res_target
-    integer(ccs_int) :: init_mesh_type
-    integer(ccs_int) :: cps
-    real(ccs_real) :: domain_size
   end type ccs_options
 
 

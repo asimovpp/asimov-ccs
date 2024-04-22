@@ -741,6 +741,9 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       ! call error_handler(io_err)
 
       call get_value(dict, "n_variables", n_var)
+      if (allocated(variables)) then
+        deallocate(variables)
+      end if
       allocate (variables(n_var))
 
       do i = 1, n_var

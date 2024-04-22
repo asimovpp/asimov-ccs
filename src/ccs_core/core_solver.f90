@@ -37,14 +37,14 @@ contains
 
     integer(ccs_int) :: write_frequency
     
-    it_start = run_options%it_start
-    it_end = run_options%it_end
-    res_target = run_options%res_target
+    it_start = run_options%solve%it_start
+    it_end = run_options%solve%it_end
+    res_target = run_options%solve%res_target
 
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
     
-    write_frequency = run_options%write_frequency
+    write_frequency = run_options%io%write_frequency
     do t = 1, num_steps
       call timer_start(timer_index_sol)
       call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
@@ -83,8 +83,8 @@ contains
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: t
     
-    associate(num_steps => run_options%num_steps, &
-              write_frequency => run_options%write_frequency)
+    associate(num_steps => run_options%solve%num_steps, &
+              write_frequency => run_options%io%write_frequency)
       check_to_write = ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0))
     end associate
     
@@ -103,9 +103,9 @@ contains
     integer(ccs_int) :: num_steps
     real(ccs_real) :: dt
     
-    case_path = run_options%case_path
-    num_steps = run_options%num_steps
-    dt = run_options%dt
+    case_path = run_options%paths%case_path
+    num_steps = run_options%solve%num_steps
+    dt = run_options%solve%dt
     
     call timer_start(timer_index_io_sol)
     call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)

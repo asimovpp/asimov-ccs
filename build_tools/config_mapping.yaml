@@ -31,6 +31,7 @@ bases:
       core: core_solver
       core_par: core_parallel
       core_mesh: core_init_mesh
+      core_conf: core_configuration
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
@@ -68,6 +69,7 @@ bases:
       core: core_solver
       core_par: core_parallel
       core_mesh: core_init_mesh
+      core_conf: core_configuration
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
