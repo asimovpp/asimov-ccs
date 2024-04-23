@@ -7,7 +7,6 @@ program sandia
 
   use core
   use ccs_base, only: mesh
-
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
@@ -25,11 +24,10 @@ program sandia
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, query_stop_run, create_new_par_env, is_root
+                      read_command_line_arguments, sync, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
-  use pv_coupling, only: solve_nonlinear
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, add_field, &
@@ -42,7 +40,6 @@ program sandia
   use mesh_utils, only: read_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
-  use io_visualisation, only: write_solution
   use fv, only: update_gradient
   use utils, only: str
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
@@ -58,7 +55,8 @@ program sandia
   character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable:: variable_types              ! cell centred upwind, central, etc.
 
-  type(vector_spec):: vec_properties
+  type(ccs_options) :: run_options
+  type(vector_spec) :: vec_properties
 
   type(field_spec):: field_properties
   class(field), pointer:: u, v, w, p, mf, viscosity, density
@@ -72,10 +70,6 @@ program sandia
 
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
-  integer(ccs_int):: timer_index_build
-  integer(ccs_int):: timer_index_io_init
-  integer(ccs_int):: timer_index_io_sol
-  integer(ccs_int):: timer_index_sol
   integer(ccs_int):: i
 
   logical:: u_sol = .true.  ! Default equations to solve for LDC case
@@ -83,25 +77,29 @@ program sandia
   logical:: w_sol = .true.
   logical:: p_sol = .true.
 
-  logical:: diverged = .false.
-
   logical:: store_residuals, enable_cell_corrections
-
-  integer(ccs_int):: t          ! Timestep counter
-  logical:: use_mpi_splitting
 
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-  use_mpi_splitting = .true.
-  call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
+  ! XXX: These values should be set by configuration (i.e. call after config)
+  run_options%split_type = ccs_split_type_shared
+  run_options%use_mpi_splitting = .true.
+  call configure_parallelism(run_options, par_env, shared_env)
   irank = par_env%proc_id
   isize = par_env%num_procs
 
   call read_command_line_arguments(par_env, case_name = case_name, in_dir = input_path)
+
+  ! XXX: set case name (should be absorbed into generic command line options reading later)
+  run_options%init_mesh_type = build_mesh_3d
+  run_options%case_name = case_name
+  run_options%case_path = case_path
+  run_options%mesh_path = case_name // "_mesh" // geoext
+  run_options%cps = 10
 
   if (allocated(input_path)) then
     case_path = input_path // "/" // case_name
@@ -131,11 +129,7 @@ program sandia
   it_end = num_iters
 
   ! Read mesh from .geo file
-  call timer_register_start("Mesh read time", timer_index_build)
-  if (irank == par_env%root) print *, "Reading mesh file"
-  call read_mesh(par_env, shared_env, case_name, mesh)
-  call set_mesh_object(mesh)
-  call timer_stop(timer_index_build)
+  call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -217,11 +211,6 @@ program sandia
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
 
-  ! Write out mesh to file
-  call timer_register_start("I/O time for mesh", timer_index_io_init)
-  call write_mesh(par_env, case_path, mesh)
-  call timer_stop(timer_index_io_init)
-
   ! Print the run configuration
   if (irank == par_env%root) then
     call print_configuration()
@@ -247,33 +236,17 @@ program sandia
   nullify(scalar_field)
 
   call timer_stop(timer_index_init)
-  call timer_register("I/O time for solution", timer_index_io_sol)
-  call timer_register("Solver time inc I/O", timer_index_sol)
 
-  do t = 1, num_steps
-    call timer_start(timer_index_sol)
-    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                         flow_fields, diverged)
-    if (par_env%proc_id == par_env%root) then
-      print *, "TIME = ", t
-    end if
-
-    ! If a STOP file exist, write solution and exit the main simulation loop
-    if (query_stop_run(par_env) .or. diverged) then
-      call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
-      call timer_stop(timer_index_io_sol)
-      exit
-    end if
-
-    if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
-      call timer_stop(timer_index_io_sol)
-    end if
-    call timer_stop(timer_index_sol)
-  end do
-
+  ! XXX: These values should be set during configuration
+  run_options%case_path = case_path
+  run_options%num_steps = num_steps
+  run_options%dt = dt
+  run_options%write_frequency = write_frequency
+  run_options%it_start = it_start
+  run_options%it_end = it_end
+  run_options%res_target = res_target
+  call run_solver(par_env, run_options, flow_fields)
+  
   ! Clean-up
 
   call timer_stop(timer_index_total)
