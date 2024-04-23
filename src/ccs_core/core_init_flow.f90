@@ -1,4 +1,4 @@
-submodule(core) initialise_flow
+submodule(core) core_init_flow
 
   use kinds, only: ccs_int, ccs_real
 
