@@ -20,10 +20,10 @@ module core
     module subroutine core_initialise_flow(flow_fields, get_init_flow)
       type(fluid), intent(inout) :: flow_fields
       interface 
-        pure subroutine get_init_flow(x_p, field_name, init_val)
+        pure subroutine get_init_flow(loc_p, field_name, init_val)
           use kinds, only: ccs_real
-          use constants, only: ndim
-          real(ccs_real), dimension(ndim), intent(in) :: x_p
+          use types, only: cell_locator
+          type(cell_locator), intent(in) :: loc_p
           character(len=*), intent(in) :: field_name
           real(ccs_real), intent(inout) :: init_val
         end subroutine
@@ -34,11 +34,10 @@ module core
     module subroutine core_initialise_mass_flux(flow_fields, get_init_mass_flux)
       type(fluid), intent(inout) :: flow_fields
       interface
-        pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
-          use kinds, only: ccs_int, ccs_real
-          use constants, only: ndim
-          real(ccs_real), dimension(ndim), intent(in) :: x_f
-          real(ccs_real), dimension(ndim), intent(in) :: face_normal
+        pure subroutine get_init_mass_flux(loc_f, init_val)
+          use kinds, only: ccs_real
+          use types, only: face_locator
+          type(face_locator), intent(in) :: loc_f
           real(ccs_real), intent(inout) :: init_val
         end subroutine
       end interface

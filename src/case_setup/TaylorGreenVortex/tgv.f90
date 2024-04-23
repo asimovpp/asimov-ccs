@@ -580,16 +580,18 @@ contains
   end subroutine initialise_flow
 
   ! COMMENTED BECAUSE NOT USED YET, TO UNCOMMENT ONCE NEW INIT IS IN PLACE
-  ! pure subroutine get_init_flow(x_p, field_name, init_val)
-  !   real(ccs_real), dimension(ndim), intent(in) :: x_p
+  ! pure subroutine get_init_flow(loc_p, field_name, init_val)
+  !   type(cell_locator), intent(in) :: loc_p
   !   character(len=*), intent(in) :: field_name
   !   real(ccs_real), intent(inout) :: init_val
-
+  !   real(ccs_real), dimension(ndim) :: x_p
 
   !   select case (field_name)
   !   case ("u")
+  !     call get_centre(loc_p, x_p)
   !     init_val = sin(x_p(1)) * cos(x_p(2)) * cos(x_p(3))
   !   case ("v")
+  !     call get_centre(loc_p, x_p)
   !     init_val = -cos(x_p(1)) * sin(x_p(2)) * cos(x_p(3))
   !   case default
   !     init_val = 0.0_ccs_real
@@ -597,11 +599,15 @@ contains
 
   ! end subroutine
   
-  ! pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
-  !   real(ccs_real), dimension(ndim), intent(in) :: x_f
-  !   real(ccs_real), dimension(ndim), intent(in) :: face_normal
+  ! pure subroutine get_init_mass_flux(loc_f, init_val)
+  !   type(face_locator), intent(in) :: loc_f
   !   real(ccs_real), intent(inout) :: init_val
+  !   real(ccs_real), dimension(ndim) :: x_f
+  !   real(ccs_real), dimension(ndim) :: face_normal
 
+  !   call get_face_normal(loc_f, face_normal)
+  !   call get_centre(loc_f, x_f)
+  !
   !   init_val = sin(x_f(1)) * cos(x_f(2)) * cos(x_f(3)) * face_normal(1) &
   !            - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
 

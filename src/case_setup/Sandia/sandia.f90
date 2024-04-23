@@ -542,12 +542,14 @@ contains
 
 
   ! COMMENTED BECAUSE NOT USED YET, TO UNCOMMENT ONCE NEW INIT IS IN PLACE
-  ! pure subroutine get_init_flow(x_p, field_name, init_val)
-  !   real(ccs_real), dimension(ndim), intent(in) :: x_p
+  ! pure subroutine get_init_flow(loc_p, field_name, init_val)
+  !   type(cell_locator), intent(in) :: loc_p
   !   character(len=*), intent(in) :: field_name
   !   real(ccs_real), intent(inout) :: init_val
+  !   real(ccs_real), dimension(ndim) :: x_p
 
   !   if (field_name == "scalar") then
+  !     call get_centre(loc_p, x_p)
   !     if (x_p(1) < -0.08) then
   !       init_val = 1.0_ccs_real 
   !     else
@@ -559,13 +561,10 @@ contains
 
   ! end subroutine
   
-  ! pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
-  !   real(ccs_real), dimension(ndim), intent(in) :: x_f
-  !   real(ccs_real), dimension(ndim), intent(in) :: face_normal
+  ! pure subroutine get_init_mass_flux(loc_f, init_val)
+  !   type(face_locator), intent(in) :: loc_f
   !   real(ccs_real), intent(inout) :: init_val
-
   !   return
-
   ! end subroutine
 
 end program sandia

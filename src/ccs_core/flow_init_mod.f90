@@ -30,10 +30,10 @@ submodule(core) initialise_flow
     type(fluid), intent(inout) :: flow_fields
 
     interface 
-      pure subroutine get_init_flow(x_p, field_name, init_val)
+      pure subroutine get_init_flow(loc_p, field_name, init_val)
         use kinds, only: ccs_real
-        use constants, only: ndim
-        real(ccs_real), dimension(ndim), intent(in) :: x_p
+        use types, only: cell_locator
+        type(cell_locator), intent(in) :: loc_p
         character(len=*), intent(in) :: field_name
         real(ccs_real), intent(inout) :: init_val
       end subroutine
@@ -45,7 +45,6 @@ submodule(core) initialise_flow
     integer(ccs_int) :: index_p, global_index_p
     real(ccs_real) :: init_val
     type(cell_locator) :: loc_p
-    real(ccs_real), dimension(ndim) :: x_p
     type(vector_values):: values
     logical :: is_face_field
 
@@ -68,11 +67,9 @@ submodule(core) initialise_flow
         call create_cell_locator(index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
 
-        call get_centre(loc_p, x_p)
-
         init_val = 0.0_ccs_real
         ! Call case specific function
-        call get_init_flow(x_p, current_field%name, init_val)
+        call get_init_flow(loc_p, current_field%name, init_val)
 
         call set_row(global_index_p, values)
         call set_entry(init_val, values)
@@ -93,11 +90,10 @@ submodule(core) initialise_flow
     type(fluid), intent(inout) :: flow_fields
 
     interface
-      pure subroutine get_init_mass_flux(x_f, face_normal, init_val)
-        use kinds, only: ccs_int, ccs_real
-        use constants, only: ndim
-        real(ccs_real), dimension(ndim), intent(in) :: x_f
-        real(ccs_real), dimension(ndim), intent(in) :: face_normal
+      pure subroutine get_init_mass_flux(loc_f, init_val)
+        use kinds, only: ccs_real
+        use types, only: face_locator
+        type(face_locator), intent(in) :: loc_f
         real(ccs_real), intent(inout) :: init_val
       end subroutine
     end interface
@@ -149,7 +145,7 @@ submodule(core) initialise_flow
           call compute_boundary_values(mf, 3, loc_p, loc_f, face_normal, velocity(3))
 
           mf_data(index_f) = area * dot_product(velocity, face_normal)
-          call get_init_mass_flux(x_f, face_normal, mf_data(index_f))
+          call get_init_mass_flux(loc_f, mf_data(index_f))
 
         else if (index_p < index_nb) then  
           call get_centre(loc_f, x_f)
@@ -163,7 +159,7 @@ submodule(core) initialise_flow
           mf_data(index_f) = area * dot_product(velocity, face_normal)
 
           ! Allow case to overwrite interpolated value
-          call get_init_mass_flux(x_f, face_normal, mf_data(index_f))
+          call get_init_mass_flux(loc_f, mf_data(index_f))
         end if
 
       end do
