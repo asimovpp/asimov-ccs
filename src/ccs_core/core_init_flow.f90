@@ -24,6 +24,33 @@ submodule(core) initialise_flow
 
   contains
 
+  !> Initialise both cell centre values and mass fluxes
+  module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+    type(fluid), intent(inout) :: flow_fields
+    interface 
+      pure subroutine get_init_flow(loc_p, field_name, init_val)
+        use kinds, only: ccs_real
+        use types, only: cell_locator
+        type(cell_locator), intent(in) :: loc_p
+        character(len=*), intent(in) :: field_name
+        real(ccs_real), intent(inout) :: init_val
+      end subroutine
+
+      pure subroutine get_init_mass_flux(loc_f, init_val)
+        use kinds, only: ccs_real
+        use types, only: face_locator
+        type(face_locator), intent(in) :: loc_f
+        real(ccs_real), intent(inout) :: init_val
+      end subroutine
+    end interface
+
+
+    call initialise_cells(flow_fields, get_init_flow)
+    call initialise_mass_flux(flow_fields, get_init_mass_flux)
+
+  end subroutine
+
+
   module subroutine initialise_cells(flow_fields, get_init_flow)
 
     ! Arguments
