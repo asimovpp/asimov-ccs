@@ -10,7 +10,7 @@ submodule(core) core_init_flow
 
   use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
                        get_local_index, create_face_locator, get_face_normal, get_centre, get_face_area, &
-                       get_face_interpolation
+                       get_face_interpolation, get_local_num_cells, get_boundary_status
 
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
   use fv, only: compute_boundary_values

@@ -5,7 +5,7 @@ program tgv
   use petscsys
   use petscvec
 
-  use core
+  use core, only: initialise_flow
   use ccs_base, only: mesh
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
