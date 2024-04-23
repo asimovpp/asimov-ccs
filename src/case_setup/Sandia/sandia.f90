@@ -7,6 +7,7 @@ program sandia
 
   use core
   use ccs_base, only: mesh
+
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
@@ -372,178 +373,10 @@ contains
 
   end subroutine
 
-  ! subroutine initialise_flow(flow_fields)
 
-  !   use constants, only: insert_mode, ndim
-  !   use types, only: vector_values, cell_locator, face_locator, neighbour_locator
-  !   use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
-  !                      get_local_index, create_face_locator, get_local_index, get_face_normal, get_centre, &
-  !                      get_local_num_cells
-  !   use fv, only: calc_cell_coords
-  !   use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
-  !   use vec, only: get_vector_data, restore_vector_data, create_vector_values
-
-  !   ! Arguments
-  !   type(fluid), intent(inout):: flow_fields
-
-  !   ! Local variables
-  !   class(field), pointer:: u, v, w, p, scalar
-  !   class(field), pointer:: mf, mu, rho
-  !   integer(ccs_int):: n, count
-  !   integer(ccs_int):: n_local
-  !   integer(ccs_int):: index_p, global_index_p, index_f, index_nb
-  !   real(ccs_real):: u_val, v_val, w_val, p_val, scalar_val
-  !   type(cell_locator):: loc_p
-  !   type(face_locator):: loc_f
-  !   type(neighbour_locator):: loc_nb
-  !   type(vector_values):: u_vals, v_vals, w_vals, p_vals, scalar_vals
-  !   real(ccs_real), dimension(:), pointer:: mf_data, viscosity_data, density_data
-
-  !   real(ccs_real), dimension(ndim):: x_p, x_f
-  !   real(ccs_real), dimension(ndim):: face_normal
-
-  !   integer(ccs_int):: nnb
-  !   integer(ccs_int):: j
-
-  !   ! Set alias
-  !   call get_local_num_cells(n_local)
-
-  !   call create_vector_values(n_local, u_vals)
-  !   call create_vector_values(n_local, v_vals)
-  !   call create_vector_values(n_local, w_vals)
-  !   call create_vector_values(n_local, p_vals)
-  !   call create_vector_values(n_local, scalar_vals)
-  !   call set_mode(insert_mode, u_vals)
-  !   call set_mode(insert_mode, v_vals)
-  !   call set_mode(insert_mode, w_vals)
-  !   call set_mode(insert_mode, p_vals)
-  !   call set_mode(insert_mode, scalar_vals)
-
-  !   ! Set initial values for velocity fields
-  !   do index_p = 1, n_local
-  !     call create_cell_locator(index_p, loc_p)
-  !     call get_global_index(loc_p, global_index_p)
-
-  !     call get_centre(loc_p, x_p)
-
-  !     u_val = 0.0_ccs_real
-  !     v_val = 0.0_ccs_real
-  !     w_val = 0.0_ccs_real
-  !     p_val = 0.0_ccs_real 
-  !     ! Initialise the scalar to 1 inside the jet nozzle
-  !     if (x_p(1) < -0.08) then
-  !       scalar_val = 1.0_ccs_real 
-  !     else
-  !       scalar_val = 0.0_ccs_real 
-  !     end if
-
-  !     call set_row(global_index_p, u_vals)
-  !     call set_entry(u_val, u_vals)
-  !     call set_row(global_index_p, v_vals)
-  !     call set_entry(v_val, v_vals)
-  !     call set_row(global_index_p, w_vals)
-  !     call set_entry(w_val, w_vals)
-  !     call set_row(global_index_p, p_vals)
-  !     call set_entry(p_val, p_vals)
-
-  !     call set_row(global_index_p, scalar_vals)
-  !     call set_entry(scalar_val, scalar_vals)
-  !   end do
-
-  !   call get_field(flow_fields, "u", u)
-  !   call get_field(flow_fields, "v", v)
-  !   call get_field(flow_fields, "w", w)
-  !   call get_field(flow_fields, "p", p)
-  !   call get_field(flow_fields, "scalar", scalar)
-
-  !   call set_values(u_vals, u%values)
-  !   call set_values(v_vals, v%values)
-  !   call set_values(w_vals, w%values)
-  !   call set_values(p_vals, p%values)
-  !   call set_values(scalar_vals, scalar%values)
-
-  !   call update(u%values)
-  !   call update(v%values)
-  !   call update(w%values)
-  !   call update(p%values)
-  !   call update(scalar%values)
-
-  !   nullify(u)
-  !   nullify(v)
-  !   nullify(w)
-  !   nullify(p)
-  !   nullify(scalar)
-
-  !   deallocate (u_vals%global_indices)
-  !   deallocate (v_vals%global_indices)
-  !   deallocate (w_vals%global_indices)
-  !   deallocate (p_vals%global_indices)
-  !   deallocate (scalar_vals%global_indices)
-  !   deallocate (u_vals%values)
-  !   deallocate (v_vals%values)
-  !   deallocate (w_vals%values)
-  !   deallocate (p_vals%values)
-  !   deallocate (scalar_vals%values)
-
-  !   call get_field(flow_fields, "mf", mf)
-  !   call get_vector_data(mf%values, mf_data)
-
-  !   count = 0
-  !   n = 0
-
-  !   ! Loop over local cells and faces
-  !   call get_local_num_cells(n_local)
-  !   do index_p = 1, n_local
-
-  !     call create_cell_locator(index_p, loc_p)
-  !     call count_neighbours(loc_p, nnb)
-  !     do j = 1, nnb
-
-  !       call create_neighbour_locator(loc_p, j, loc_nb)
-  !       call get_local_index(loc_nb, index_nb)
-
-  !       ! if neighbour index is greater than previous face index
-  !       if (index_nb > index_p) then  ! XXX: abstract this test
-
-  !         call create_face_locator(index_p, j, loc_f)
-  !         call get_local_index(loc_f, index_f)
-  !         call get_face_normal(loc_f, face_normal)
-  !         call get_centre(loc_f, x_f)
-
-  !         ! compute initial value based on current face coordinates
-  !         mf_data(index_f) = 0.0_ccs_real
-  !       end if
-
-  !     end do
-  !   end do
-
-  !   call restore_vector_data(mf%values, mf_data)
-  !   call update(mf%values)
-  !   nullify(mf)
-
-  !   call get_field(flow_fields, "viscosity", mu)
-  !   call get_field(flow_fields, "density", rho)
-  !   call get_vector_data(mu%values, viscosity_data)
-  !   ! Kinematic viscosity of 1.58e-5_ccs_real
-  !   viscosity_data(:) =  1.92196e-5_ccs_real ! = Dynamic viscosity
-  !   call restore_vector_data(mu%values, viscosity_data)
-
-  !   call get_vector_data(rho%values, density_data)
-  !   density_data(:) = 1.21643_ccs_real
-  !   call restore_vector_data(rho%values, density_data)
-
-  !   call update(mu%values)
-  !   call update(rho%values)
-
-  !   nullify(mu)
-  !   nullify(rho)
-
-  ! end subroutine initialise_flow
-
-
-  ! COMMENTED BECAUSE NOT USED YET, TO UNCOMMENT ONCE NEW INIT IS IN PLACE
   pure subroutine get_init_flow(loc_p, field_name, init_val)
     use types, only: cell_locator
+    use meshing, only: get_centre
     type(cell_locator), intent(in) :: loc_p
     character(len=*), intent(in) :: field_name
     real(ccs_real), intent(inout) :: init_val
@@ -566,7 +399,11 @@ contains
     use types, only: face_locator
     type(face_locator), intent(in) :: loc_f
     real(ccs_real), intent(inout) :: init_val
-    return
+
+    associate (foo => loc_f, bar => init_val)
+
+    end associate
+
   end subroutine
 
 end program sandia
