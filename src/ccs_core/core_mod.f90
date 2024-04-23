@@ -14,8 +14,8 @@ module core
 
   private
 
-  public :: core_initialise_flow
-  public :: core_initialise_mass_flux
+  public :: initialise_cells
+  public :: initialise_mass_flux
   public :: initialise_mesh
   public :: run_solver
   public :: ccs_options
@@ -43,7 +43,7 @@ module core
   interface
 
     !> Initialise every cell based field prompting values from get_init_flow
-    module subroutine core_initialise_flow(flow_fields, get_init_flow)
+    module subroutine initialise_cells(flow_fields, get_init_flow)
       type(fluid), intent(inout) :: flow_fields
       interface 
         pure subroutine get_init_flow(loc_p, field_name, init_val)
@@ -56,8 +56,8 @@ module core
       end interface
     end subroutine
 
-    !> Initialise mass flux field using calling get_init_mass_flux
-    module subroutine core_initialise_mass_flux(flow_fields, get_init_mass_flux)
+    !> Initialise mass flux field using get_init_mass_flux
+    module subroutine initialise_mass_flux(flow_fields, get_init_mass_flux)
       type(fluid), intent(inout) :: flow_fields
       interface
         pure subroutine get_init_mass_flux(loc_f, init_val)
@@ -90,5 +90,34 @@ module core
     end subroutine run_solver
 
   end interface
+
+  contains
+
+  !> Initialise both cell centre values and mass fluxes
+  ! module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+  !   type(fluid), intent(inout) :: flow_fields
+  !   interface 
+  !     pure subroutine get_init_flow(loc_p, field_name, init_val)
+  !       use kinds, only: ccs_real
+  !       use types, only: cell_locator
+  !       type(cell_locator), intent(in) :: loc_p
+  !       character(len=*), intent(in) :: field_name
+  !       real(ccs_real), intent(inout) :: init_val
+  !     end subroutine
+
+  !     pure subroutine get_init_mass_flux(loc_f, init_val)
+  !       use kinds, only: ccs_real
+  !       use types, only: face_locator
+  !       type(face_locator), intent(in) :: loc_f
+  !       real(ccs_real), intent(inout) :: init_val
+  !     end subroutine
+  !   end interface
+
+
+  !   call initialise_cells(flow_fields, get_init_flow)
+  !   call initialise_mass_flux(flow_fields, get_init_mass_flux)
+
+  ! end subroutine
+
   
 end module core
