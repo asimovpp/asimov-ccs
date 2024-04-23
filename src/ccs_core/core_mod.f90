@@ -6,12 +6,15 @@ module core
 
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid
+
   use parallel_types, only: parallel_environment
+
 
   implicit none
 
   private
 
+  public :: initialise_flow
   public :: configure_parallelism
   public :: initialise_mesh
   public :: run_solver
@@ -58,6 +61,29 @@ module core
     end subroutine configure_parallelism
     
 
+    !> Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
+    !  on every cell or face
+    module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+      type(fluid), intent(inout) :: flow_fields
+      interface 
+        pure subroutine get_init_flow(loc_p, field_name, init_val)
+          use kinds, only: ccs_real
+          use types, only: cell_locator
+          type(cell_locator), intent(in) :: loc_p
+          character(len=*), intent(in) :: field_name
+          real(ccs_real), intent(inout) :: init_val
+        end subroutine
+
+        pure subroutine get_init_mass_flux(loc_f, init_val)
+          use kinds, only: ccs_real
+          use types, only: face_locator
+          type(face_locator), intent(in) :: loc_f
+          real(ccs_real), intent(inout) :: init_val
+        end subroutine
+      end interface
+    end subroutine
+
+
     !v Subroutine to initialise the mesh.
     !
     ! This is responsible for the building or reading of the mesh (whichever is specified in the config file)
@@ -76,6 +102,8 @@ module core
       type(ccs_options), intent(in) :: run_options
       type(fluid), intent(inout) :: flow_fields
     end subroutine run_solver
+
   end interface
-  
+
+    
 end module core
