@@ -172,7 +172,7 @@ contains
 
   !> Get whether a field is face based or not
   pure subroutine get_field_is_face_based(my_field, is_face_based)
-    class(field), intent(inout) :: my_field
+    class(field), intent(in) :: my_field
     logical, intent(out) :: is_face_based
 
     select type (my_field)
