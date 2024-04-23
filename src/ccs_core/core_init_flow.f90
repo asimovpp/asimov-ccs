@@ -51,7 +51,7 @@ submodule(core) core_init_flow
   end subroutine
 
 
-  module subroutine initialise_cells(flow_fields, get_init_flow)
+  subroutine initialise_cells(flow_fields, get_init_flow)
 
     ! Arguments
     type(fluid), intent(inout) :: flow_fields
@@ -112,7 +112,7 @@ submodule(core) core_init_flow
 
   end subroutine
 
-  module subroutine initialise_mass_flux(flow_fields, get_init_mass_flux)
+  subroutine initialise_mass_flux(flow_fields, get_init_mass_flux)
 
     type(fluid), intent(inout) :: flow_fields
 
