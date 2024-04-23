@@ -125,7 +125,6 @@ submodule(core) core_init_flow
       end subroutine
     end interface
 
-    real(ccs_real) :: area
     real(ccs_real), dimension(ndim) :: velocity
 
     class(field), pointer :: u, v, w
@@ -163,7 +162,6 @@ submodule(core) core_init_flow
         call create_face_locator(index_p, j, loc_f)
         call get_local_index(loc_f, index_f)
         call get_face_normal(loc_f, face_normal)
-        call get_face_area(loc_f, area)
 
         if (is_boundary) then
           ! Get boundary values
@@ -171,7 +169,7 @@ submodule(core) core_init_flow
           call compute_boundary_values(mf, 2, loc_p, loc_f, face_normal, velocity(2))
           call compute_boundary_values(mf, 3, loc_p, loc_f, face_normal, velocity(3))
 
-          mf_data(index_f) = area * dot_product(velocity, face_normal)
+          mf_data(index_f) = dot_product(velocity, face_normal)
           call get_init_mass_flux(loc_f, mf_data(index_f))
 
         else if (index_p < index_nb) then  
@@ -183,7 +181,7 @@ submodule(core) core_init_flow
           velocity = interpol_factor * u_p + (1-interpol_factor) * u_nb
 
           ! compute initial value based on current face coordinates
-          mf_data(index_f) = area * dot_product(velocity, face_normal)
+          mf_data(index_f) = dot_product(velocity, face_normal)
 
           ! Allow case to overwrite interpolated value
           call get_init_mass_flux(loc_f, mf_data(index_f))
