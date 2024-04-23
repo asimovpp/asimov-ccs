@@ -51,7 +51,6 @@ program sandia
   class(parallel_environment), allocatable:: shared_env
   character(len=:), allocatable:: input_path  ! Path to input directory
   character(len=:), allocatable:: case_path  ! Path to input directory with case name appended
-  character(len=:), allocatable:: ccs_config_file  ! Config file for CCS
   character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable:: variable_types              ! cell centred upwind, central, etc.
 
@@ -61,8 +60,6 @@ program sandia
   type(field_spec):: field_properties
   class(field), pointer:: u, v, w, p, mf, viscosity, density
   class(field), pointer:: scalar_field
-
-  integer(ccs_int):: n_boundaries
 
   integer(ccs_int):: it_start, it_end
   integer(ccs_int):: irank  ! MPI rank ID
@@ -76,8 +73,6 @@ program sandia
   logical:: v_sol = .true.
   logical:: w_sol = .true.
   logical:: p_sol = .true.
-
-  logical:: store_residuals, enable_cell_corrections
 
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
@@ -107,14 +102,14 @@ program sandia
     case_path = case_name
   end if
 
-  ccs_config_file = case_path // ccsconfig
+  run_options%config_file = case_path // ccsconfig
 
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 
   call timer_register_start("Init time", timer_index_init)
 
   ! Read case name and runtime parameters from configuration file
-  call read_configuration(ccs_config_file)
+  call read_configuration(run_options%config_file)
 
   if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
@@ -137,25 +132,8 @@ program sandia
   ! Write gradients to solution file
   write_gradients = .false.
 
-  ! Read boundary conditions
-  if (irank == par_env%root) print *, "Read and allocate BCs"
-  call get_boundary_count(ccs_config_file, n_boundaries)
-  call get_store_residuals(ccs_config_file, store_residuals)
-  call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
-
-  ! Create and initialise field vectors
-  if (irank == par_env%root) print *, "Initialise field vectors"
-  call initialise(vec_properties)
-
-  call set_vector_location(cell, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-
-  call set_field_config_file(ccs_config_file, field_properties)
-  call set_field_n_boundaries(n_boundaries, field_properties)
-  call set_field_store_residuals(store_residuals, field_properties)
-  call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
-
-  call set_field_vector_properties(vec_properties, field_properties)
+  ! Initialise the fields
+  call initialise_fields(par_env, run_options, flow_fields)
 
   ! Expect to find u, v, w, p, p_prime, scalar
   if (is_root(par_env)) then
@@ -191,7 +169,7 @@ program sandia
   call get_field(flow_fields, "u", u)
   call get_field(flow_fields, "v", v)
   call get_field(flow_fields, "w", w)
-  call get_field(flow_fields, "w", p)
+  call get_field(flow_fields, "p", p)
   call get_field(flow_fields, "mf", mf)
   call get_field(flow_fields, "viscosity", viscosity)
   call get_field(flow_fields, "density", density)

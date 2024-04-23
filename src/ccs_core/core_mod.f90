@@ -25,6 +25,7 @@ module core
     !! Generic/misc
     character(len=:), allocatable :: case_name
     character(len=:), allocatable :: case_path
+    character(len=:), allocatable :: config_file
 
     !! Parallel-related
     logical :: use_mpi_splitting
@@ -66,6 +67,12 @@ module core
       class(parallel_environment), intent(in), allocatable :: shared_env
       type(ccs_options), intent(in) :: run_options
     end subroutine initialise_mesh
+
+    module subroutine initialise_fields(par_env, run_options, flow_fields)
+      class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
+      type(ccs_options), intent(in) :: run_options    !< Object containing relevant options for building/reading the mesh
+      type(fluid), intent(out) :: flow_fields         !< The fluid fields object being initialised
+    end subroutine initialise_fields
 
     !v Subroutine to run a flow problem.
     !
