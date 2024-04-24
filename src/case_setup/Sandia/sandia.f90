@@ -34,7 +34,7 @@ program sandia
                    set_is_field_solved, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections, &
+  use read_config, only: get_variables, get_case_name, &
                           get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, write_mesh
@@ -111,6 +111,9 @@ program sandia
   ! Read case name and runtime parameters from configuration file
   call read_configuration(run_options%config_file)
 
+  run_options%variable_names = variable_names
+  run_options%variable_types = variable_types
+
   if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
   ! set solver and preconditioner info
@@ -135,36 +138,6 @@ program sandia
   ! Initialise the fields
   call initialise_fields(par_env, run_options, flow_fields)
 
-  ! Expect to find u, v, w, p, p_prime, scalar
-  if (is_root(par_env)) then
-    print *, "Build field list"
-  end if
-
-  do i = 1, size(variable_names)
-    if (is_root(par_env)) then
-      print *, "Creating field ", trim(variable_names(i))
-    end if
-    call set_field_type(variable_types(i), field_properties)
-    call set_field_name(variable_names(i), field_properties)
-    call create_field(par_env, field_properties, flow_fields)
-  end do
-
-  if (is_root(par_env)) then
-    print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
-  end if
-
-  call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("viscosity", field_properties)
-  call create_field(par_env, field_properties, flow_fields)
-  call set_field_name("density", field_properties)
-  call create_field(par_env, field_properties, flow_fields)
-
-  call set_vector_location(face, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-  call set_field_vector_properties(vec_properties, field_properties)
-  call set_field_type(face_centred, field_properties)
-  call set_field_name("mf", field_properties)
-  call create_field(par_env, field_properties, flow_fields)
 
   call get_field(flow_fields, "u", u)
   call get_field(flow_fields, "v", v)

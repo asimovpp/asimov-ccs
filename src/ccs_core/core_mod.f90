@@ -7,6 +7,7 @@ module core
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid
   use parallel_types, only: parallel_environment
+  use constants, only: ccs_string_len
 
   implicit none
 
@@ -14,6 +15,7 @@ module core
 
   public :: configure_parallelism
   public :: initialise_mesh
+  public :: initialise_fields
   public :: run_solver
   public :: ccs_options
   integer(ccs_int), parameter, public :: read_input_mesh = 1
@@ -26,6 +28,8 @@ module core
     character(len=:), allocatable :: case_name
     character(len=:), allocatable :: case_path
     character(len=:), allocatable :: config_file
+    character(len = ccs_string_len), dimension(:), allocatable :: variable_names  
+    integer(ccs_int), dimension(:), allocatable :: variable_types              
 
     !! Parallel-related
     logical :: use_mpi_splitting
