@@ -5,7 +5,7 @@ submodule(core) core_fields
   use constants, only: face, cell, face_centred, cell_centred_central
   use ccs_base, only: mesh
   use parallel, only: is_root
-  use utils, only: set_size, initialise
+  use utils, only: set_size, initialise, set_is_fluid_field_solved, add_fluid_field_to_outputlist
   use read_config, only: get_store_residuals, get_enable_cell_corrections, get_boundary_count
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
@@ -86,6 +86,8 @@ contains
       call set_field_type(run_options%variable_types(i), field_properties)
       call set_field_name(run_options%variable_names(i), field_properties)
       call create_field(par_env, field_properties, flow_fields)
+      call add_fluid_field_to_outputlist(i, flow_fields)
+      call set_is_fluid_field_solved(run_options%solve(i), i, flow_fields)
     end do
 
     if (is_root(par_env)) then

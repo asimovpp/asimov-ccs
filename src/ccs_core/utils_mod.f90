@@ -49,11 +49,13 @@ module utils
   public :: calc_kinetic_energy
   public :: calc_enstrophy
   public :: add_field_to_outputlist
+  public :: add_fluid_field_to_outputlist
   public :: reset_outputlist_counter
   public :: get_field
   public :: get_is_field_solved
   public :: add_field
   public :: set_is_field_solved
+  public :: set_is_fluid_field_solved
   public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
   public :: get_natural_data
@@ -450,6 +452,15 @@ contains
     
   end subroutine add_field_to_outputlist
 
+  !> Adds the field specified by field index to the outputlist
+  subroutine add_fluid_field_to_outputlist(field_index, flow)
+    integer(ccs_int), intent(in) :: field_index !< The index of the field being set
+    type(fluid), intent(inout) :: flow          !< The fluid fields object being initialised
+    
+    flow%fields(field_index)%ptr%output = .true.  ! XXX: see comment about using fluid index in set_is_fluid_field_solved
+    outputlist_counter = outputlist_counter + 1
+  end subroutine add_fluid_field_to_outputlist
+
   subroutine reset_outputlist_counter()
 
     outputlist_counter = 0
@@ -536,6 +547,17 @@ contains
     phi%solve = solve
     
   end subroutine set_is_field_solved
+
+  !> Sets the solve flag for field specified by field index
+  pure subroutine set_is_fluid_field_solved(solve, field_index, flow)
+    logical, intent(in) :: solve                !< flag indicating whether to solve for the given field
+    integer(ccs_int), intent(in) :: field_index !< The index of the field being set
+    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
+    
+    flow%fields(field_index)%ptr%solve = solve  ! XXX: Using the field index is simpler the way things are currently setup (i.e. looping over fields), 
+                                                !      however in the case that the fluid index is not immediately known it might be better to pass the string. 
+                                                !      Discuss if it is necessary to implement this approach also.
+  end subroutine set_is_fluid_field_solved
 
   ! Allocates arrays in fluid field structure to specified size
   subroutine allocate_fluid_fields(n_fields, flow)

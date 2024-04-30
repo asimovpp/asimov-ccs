@@ -68,6 +68,7 @@ program sandia
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
   integer(ccs_int):: i
+  integer(ccs_int):: n_variables
 
   logical:: u_sol = .true.  ! Default equations to solve for LDC case
   logical:: v_sol = .true.
@@ -136,6 +137,14 @@ program sandia
   write_gradients = .false.
 
   ! Initialise the fields
+  n_variables = size(run_options%variable_names)
+  allocate(run_options%output(n_variables))
+  allocate(run_options%solve(n_variables))
+  run_options%output(1:4) = .true.
+  run_options%output(5:7) = .false.
+  run_options%output(8) = .true.
+  run_options%solve(1:4) = .true.
+  run_options%solve(5:) = .false.
   call initialise_fields(par_env, run_options, flow_fields)
 
   call get_field(flow_fields, "u", u)
@@ -147,13 +156,6 @@ program sandia
   call get_field(flow_fields, "density", density)
   call get_field(flow_fields, "scalar", scalar_field)
   
-  ! Add fields to output list
-  call add_field_to_outputlist(u)
-  call add_field_to_outputlist(v)
-  call add_field_to_outputlist(w)
-  call add_field_to_outputlist(p)
-  call add_field_to_outputlist(scalar_field)
-
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
@@ -168,12 +170,6 @@ program sandia
 
   call activate_timestepping()
   call set_timestep(dt)
-
-  ! XXX: This should get incorporated as part of create_field subroutines
-  call set_is_field_solved(u_sol, u)
-  call set_is_field_solved(v_sol, v)
-  call set_is_field_solved(w_sol, w)
-  call set_is_field_solved(p_sol, p)
 
   ! Nullify pointers for safety
   nullify(u)
