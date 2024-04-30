@@ -58,8 +58,6 @@ program sandia
   type(vector_spec) :: vec_properties
 
   type(field_spec):: field_properties
-  class(field), pointer:: u, v, w, p, mf, viscosity, density
-  class(field), pointer:: scalar_field
 
   integer(ccs_int):: it_start, it_end
   integer(ccs_int):: irank  ! MPI rank ID
@@ -147,15 +145,6 @@ program sandia
   run_options%solve(5:) = .false.
   call initialise_fields(par_env, run_options, flow_fields)
 
-  call get_field(flow_fields, "u", u)
-  call get_field(flow_fields, "v", v)
-  call get_field(flow_fields, "w", w)
-  call get_field(flow_fields, "p", p)
-  call get_field(flow_fields, "mf", mf)
-  call get_field(flow_fields, "viscosity", viscosity)
-  call get_field(flow_fields, "density", density)
-  call get_field(flow_fields, "scalar", scalar_field)
-  
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
@@ -170,16 +159,6 @@ program sandia
 
   call activate_timestepping()
   call set_timestep(dt)
-
-  ! Nullify pointers for safety
-  nullify(u)
-  nullify(v)
-  nullify(w)
-  nullify(p)
-  nullify(mf)
-  nullify(viscosity)
-  nullify(density)
-  nullify(scalar_field)
 
   call timer_stop(timer_index_init)
 
