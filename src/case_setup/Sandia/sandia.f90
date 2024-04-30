@@ -55,9 +55,6 @@ program sandia
   integer(ccs_int), dimension(:), allocatable:: variable_types              ! cell centred upwind, central, etc.
 
   type(ccs_options) :: run_options
-  type(vector_spec) :: vec_properties
-
-  type(field_spec):: field_properties
 
   integer(ccs_int):: it_start, it_end
   integer(ccs_int):: irank  ! MPI rank ID
@@ -65,13 +62,7 @@ program sandia
 
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
-  integer(ccs_int):: i
   integer(ccs_int):: n_variables
-
-  logical:: u_sol = .true.  ! Default equations to solve for LDC case
-  logical:: v_sol = .true.
-  logical:: w_sol = .true.
-  logical:: p_sol = .true.
 
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile

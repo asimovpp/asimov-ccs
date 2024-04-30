@@ -57,7 +57,6 @@ contains
     type(fluid), intent(out) :: flow_fields                           !< The fluid fields object being initialised
     
     type(field_spec) :: field_properties
-    integer(ccs_int) :: i
     
     ! Set field properties
     call set_field_properties(par_env, run_options, field_properties)
