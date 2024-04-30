@@ -8,6 +8,7 @@ module utils
 
   use iso_c_binding
 
+  use core, only: ccs_options
   use vec, only: set_vector_values, update_vector, begin_update_vector, end_update_vector, &
                  initialise_vector, set_vector_size, &
                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
@@ -453,12 +454,18 @@ contains
   end subroutine add_field_to_outputlist
 
   !> Adds the field specified by field index to the outputlist
-  subroutine add_fluid_field_to_outputlist(field_index, flow)
-    integer(ccs_int), intent(in) :: field_index !< The index of the field being set
-    type(fluid), intent(inout) :: flow          !< The fluid fields object being initialised
+  subroutine add_fluid_field_to_outputlist(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for building/reading the mesh
+    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
+    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
+
+    class(field), pointer :: phi
     
-    flow%fields(field_index)%ptr%output = .true.  ! XXX: see comment about using fluid index in set_is_fluid_field_solved
-    outputlist_counter = outputlist_counter + 1
+    call get_field(flow, field_index, phi)
+    if (run_options%output(field_index)) then
+      call add_field_to_outputlist(phi)
+    end if
+    nullify(phi)
   end subroutine add_fluid_field_to_outputlist
 
   subroutine reset_outputlist_counter()
@@ -549,14 +556,16 @@ contains
   end subroutine set_is_field_solved
 
   !> Sets the solve flag for field specified by field index
-  pure subroutine set_is_fluid_field_solved(solve, field_index, flow)
+  subroutine set_is_fluid_field_solved(solve, field_index, flow)
     logical, intent(in) :: solve                !< flag indicating whether to solve for the given field
     integer(ccs_int), intent(in) :: field_index !< The index of the field being set
     type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
     
-    flow%fields(field_index)%ptr%solve = solve  ! XXX: Using the field index is simpler the way things are currently setup (i.e. looping over fields), 
-                                                !      however in the case that the fluid index is not immediately known it might be better to pass the string. 
-                                                !      Discuss if it is necessary to implement this approach also.
+    class(field), pointer :: phi
+    
+    call get_field(flow, field_index, phi)
+    call set_is_field_solved(solve, phi)
+    nullify(phi)
   end subroutine set_is_fluid_field_solved
 
   ! Allocates arrays in fluid field structure to specified size

@@ -85,7 +85,7 @@ contains
       call set_field_type(run_options%variable_types(i), field_properties)
       call set_field_name(run_options%variable_names(i), field_properties)
       call create_field(par_env, field_properties, flow_fields)
-      call add_fluid_field_to_outputlist(i, flow_fields)
+      call add_fluid_field_to_outputlist(run_options, i, flow_fields)
       call set_is_fluid_field_solved(run_options%solve(i), i, flow_fields)
     end do
 
