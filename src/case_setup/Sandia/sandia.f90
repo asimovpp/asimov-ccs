@@ -138,7 +138,6 @@ program sandia
   ! Initialise the fields
   call initialise_fields(par_env, run_options, flow_fields)
 
-
   call get_field(flow_fields, "u", u)
   call get_field(flow_fields, "v", v)
   call get_field(flow_fields, "w", w)

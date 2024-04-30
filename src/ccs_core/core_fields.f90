@@ -2,7 +2,7 @@ submodule(core) core_fields
 #include "ccs_macros.inc"
 
   use types, only: vector_spec, field_spec
-  use constants, only: cell
+  use constants, only: face, cell, face_centred, cell_centred_central
   use ccs_base, only: mesh
   use parallel, only: is_root
   use utils, only: set_size, initialise
@@ -63,20 +63,16 @@ contains
     call set_field_properties(par_env, run_options, field_properties)
 
     call build_common_fields(par_env, run_options, field_properties, flow_fields)
-  
-    call set_field_type(cell_centred_central, field_properties)
-    call set_field_name("viscosity", field_properties)
-    call create_field(par_env, field_properties, flow_fields)
-    call set_field_name("density", field_properties)
-    call create_field(par_env, field_properties, flow_fields)
-
   end subroutine initialise_fields
 
   subroutine build_common_fields(par_env, run_options, field_properties, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
     type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building/reading the mesh
-    type(field_spec), intent(in) :: field_properties                  !< The field spec object used to allocate the fields
+    type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
     type(fluid), intent(out) :: flow_fields                           !< The fluid fields object being initialised
+
+    integer(ccs_int) :: i
+    type(vector_spec) :: vec_properties
     
     ! Expect to find u, v, w, p, p_prime, scalar
     if (is_root(par_env)) then
