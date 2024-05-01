@@ -16,9 +16,10 @@ implicit none
 
 contains
 
+  !> Sets field spec based on specified run options in preparation for building fields
   subroutine set_field_properties(par_env, run_options, field_properties)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building/reading the mesh
+    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for setting field properties
     type(field_spec), intent(out) :: field_properties                 !< The resulting field_spec object
 
     integer(ccs_int) :: n_boundaries
@@ -53,7 +54,7 @@ contains
 
   module subroutine initialise_fields(par_env, run_options, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building/reading the mesh
+    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for initialising fields
     type(fluid), intent(out) :: flow_fields                           !< The fluid fields object being initialised
     
     type(field_spec) :: field_properties
@@ -66,7 +67,7 @@ contains
 
   subroutine build_common_fields(par_env, run_options, field_properties, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building/reading the mesh
+    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building fields
     type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
     type(fluid), intent(out) :: flow_fields                           !< The fluid fields object being initialised
 

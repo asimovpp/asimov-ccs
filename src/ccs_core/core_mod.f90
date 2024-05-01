@@ -68,7 +68,7 @@ module core
     end subroutine configure_parallelism
     
 
-    !> Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
+    !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
     !  on every cell or face
     module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
       type(fluid), intent(inout) :: flow_fields
@@ -100,10 +100,13 @@ module core
       type(ccs_options), intent(in) :: run_options
     end subroutine initialise_mesh
 
+    !v Subroutine to initialise fields
+    !
+    ! This is responsible for setting the building common fields and any other fields specified in the case config file
     module subroutine initialise_fields(par_env, run_options, flow_fields)
-      class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-      type(ccs_options), intent(in) :: run_options    !< Object containing relevant options for building/reading the mesh
-      type(fluid), intent(out) :: flow_fields         !< The fluid fields object being initialised
+      class(parallel_environment), intent(in), allocatable:: par_env    
+      type(ccs_options), intent(in) :: run_options
+      type(fluid), intent(out) :: flow_fields
     end subroutine initialise_fields
 
     !v Subroutine to run a flow problem.
