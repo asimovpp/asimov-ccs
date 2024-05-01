@@ -69,7 +69,7 @@ contains
     call build_common_fields(par_env, field_properties, flow_fields)
     
     ! Finally build any case specific fields.
-    call build_case_fields(par_env, field_properties, flow_fields)
+    call build_case_fields(par_env, run_options, field_properties, flow_fields)
   end subroutine initialise_fields
 
   !> Builds the user specified fields from the case config file
@@ -99,7 +99,7 @@ contains
       call set_field_name(run_options%variable_names(i), field_properties)
       call create_field(par_env, field_properties, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
-      call set_is_fluid_field_solved(run_options%solve(i), i, flow_fields)
+      call set_is_fluid_field_solved(run_options, i, flow_fields)
     end do
 
     if (is_root(par_env)) then
@@ -124,18 +124,19 @@ contains
   end subroutine build_common_fields
   
   !> builds any case specific fields not specified in the case config file.
-  subroutine build_case_fields(par_env, field_properties, flow_fields)
+  subroutine build_case_fields(par_env, run_options, field_properties, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building fields
     type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
-    type(fluid), intent(inout) :: flow_fields                           !< The fluid fields object being initialised
+    type(fluid), intent(inout) :: flow_fields                         !< The fluid fields object being initialised
 
     type(vector_spec) :: vec_properties
     character(len=ccs_string_len), dimension(:), allocatable :: field_names
     integer(ccs_int), dimension(:), allocatable :: field_types
     integer(ccs_int) :: i
+    integer(ccs_int) :: field_index
 
     allocate(field_names(2))
-    !field_names = ["viscosity", "density"]
     field_names(1) = "viscosity"
     field_names(2) = "density"
     field_types = [cell_centred_central, cell_centred_central]
@@ -143,11 +144,15 @@ contains
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     call set_field_vector_properties(vec_properties, field_properties)
+    field_index = size(flow_fields%fields) + 1
     do i = 1, size(field_names) 
       if (.not. is_field_built(field_names(i), flow_fields)) then
         call set_field_type(field_types(i), field_properties)
         call set_field_name(field_names(i), field_properties)
         call create_field(par_env, field_properties, flow_fields)
+        call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
+        call set_is_fluid_field_solved(run_options, field_index, flow_fields)
+        field_index = field_index + 1
       end if
     end do
   end subroutine build_case_fields

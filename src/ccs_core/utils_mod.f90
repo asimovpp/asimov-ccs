@@ -556,15 +556,15 @@ contains
   end subroutine set_is_field_solved
 
   !> Sets the solve flag for field specified by field index
-  subroutine set_is_fluid_field_solved(solve, field_index, flow)
-    logical, intent(in) :: solve                !< flag indicating whether to solve for the given field
-    integer(ccs_int), intent(in) :: field_index !< The index of the field being set
+  subroutine set_is_fluid_field_solved(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for setting whether the field should be solved
+    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
     type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
     
     class(field), pointer :: phi
     
     call get_field(flow, field_index, phi)
-    call set_is_field_solved(solve, phi)
+    call set_is_field_solved(run_options%solve(field_index), phi)
     nullify(phi)
   end subroutine set_is_fluid_field_solved
 
