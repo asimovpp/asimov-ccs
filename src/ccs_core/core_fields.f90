@@ -80,7 +80,6 @@ contains
     type(fluid), intent(out) :: flow_fields                           !< The fluid fields object being initialised
 
     integer(ccs_int) :: i
-    type(vector_spec) :: vec_properties
     
     ! Expect to find u, v, w, p, p_prime, scalar
     if (is_root(par_env)) then
@@ -131,11 +130,14 @@ contains
     type(fluid), intent(inout) :: flow_fields                           !< The fluid fields object being initialised
 
     type(vector_spec) :: vec_properties
-    character(len=:), dimension(:), allocatable :: field_names
+    character(len=ccs_string_len), dimension(:), allocatable :: field_names
     integer(ccs_int), dimension(:), allocatable :: field_types
     integer(ccs_int) :: i
 
-    field_names = ["viscosity", "density"]
+    allocate(field_names(2))
+    !field_names = ["viscosity", "density"]
+    field_names(1) = "viscosity"
+    field_names(2) = "density"
     field_types = [cell_centred_central, cell_centred_central]
 
     call set_vector_location(cell, vec_properties)
@@ -159,7 +161,7 @@ contains
     integer(ccs_int) :: i
 
     do i = 1, size(flow_fields%fields)
-      if (trim(field_name) == flow_fields%fields(i)%name) then
+      if (trim(field_name) == flow_fields%fields(i)%ptr%name) then
         is_built = .true.
         return
       end if
