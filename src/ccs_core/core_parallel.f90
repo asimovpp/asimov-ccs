@@ -14,8 +14,18 @@ contains
     class(parallel_environment), allocatable, intent(in) ::  par_env    !< The main parallel environment
     class(parallel_environment), allocatable, intent(out) :: shared_env !< The shared parallel environment
 
-    call create_new_par_env(par_env, run_options%split_type, run_options%use_mpi_splitting, shared_env)
+    call configure_parallelism_impl(run_options%parallel, par_env, shared_env)
 
   end subroutine configure_parallelism
+
+  subroutine configure_parallelism_impl(par_opt, par_env, shared_env)
+
+    type(parallel_options), intent(in) :: par_opt
+    class(parallel_environment), allocatable, intent(in) ::  par_env    !< The main parallel environment
+    class(parallel_environment), allocatable, intent(out) :: shared_env !< The shared parallel environment
+
+    call create_new_par_env(par_env, par_opt%split_type, par_opt%use_mpi_splitting, shared_env)
+
+  end subroutine configure_parallelism_impl
   
 end submodule core_parallel

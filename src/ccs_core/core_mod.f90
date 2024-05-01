@@ -62,6 +62,12 @@ module core
     real(ccs_real) :: velocity_relax
     real(ccs_real) :: pressure_relax
   end type solver_options
+
+  !v Options for parallelism
+  type :: parallel_options
+    logical :: use_mpi_splitting
+    integer :: split_type
+  end type parallel_options
   
   !v Type to contain the configuration of the CCS run
   type :: ccs_options
@@ -70,10 +76,7 @@ module core
     type(io_options) :: io
     type(variable_options) :: variables
     type(solver_options) :: solve
-
-    !! Parallel-related
-    logical :: use_mpi_splitting
-    integer :: split_type
+    type(parallel_options) :: parallel
   end type ccs_options
 
   interface
