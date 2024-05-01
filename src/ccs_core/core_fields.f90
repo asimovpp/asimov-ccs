@@ -62,10 +62,18 @@ contains
     ! Set field properties
     call set_field_properties(par_env, run_options, field_properties)
 
-    call build_common_fields(par_env, run_options, field_properties, flow_fields)
+    ! build the fields specified in the case config file.
+    call build_user_fields(par_env, run_options, field_properties, flow_fields)
+    
+    ! build the common fields specified.
+    call build_common_fields(par_env, field_properties, flow_fields)
+    
+    ! Finally build any case specific fields.
+    call build_case_fields(par_env, field_properties, flow_fields)
   end subroutine initialise_fields
 
-  subroutine build_common_fields(par_env, run_options, field_properties, flow_fields)
+  !> Builds the user specified fields from the case config file
+  subroutine build_user_fields(par_env, run_options, field_properties, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
     type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building fields
     type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
@@ -80,6 +88,11 @@ contains
     end if
 
     do i = 1, size(run_options%variable_names)
+      ! Make sure we don't attempt to define mf. 
+      if (trim(run_options%variable_names(i)) == 'mf') then 
+        cycle
+      end if
+
       if (is_root(par_env)) then
         print *, "Creating field ", trim(run_options%variable_names(i))
       end if
@@ -93,7 +106,16 @@ contains
     if (is_root(par_env)) then
       print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
     end if
-  
+  end subroutine build_user_fields
+
+  !> builds any common fields that should be inaccessible to the user.
+  subroutine build_common_fields(par_env, field_properties, flow_fields)
+    class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
+    type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
+    type(fluid), intent(inout) :: flow_fields                           !< The fluid fields object being initialised
+
+    type(vector_spec) :: vec_properties
+
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     call set_field_vector_properties(vec_properties, field_properties)
@@ -101,5 +123,48 @@ contains
     call set_field_name("mf", field_properties)
     call create_field(par_env, field_properties, flow_fields)
   end subroutine build_common_fields
+  
+  !> builds any case specific fields not specified in the case config file.
+  subroutine build_case_fields(par_env, field_properties, flow_fields)
+    class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
+    type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
+    type(fluid), intent(inout) :: flow_fields                           !< The fluid fields object being initialised
+
+    type(vector_spec) :: vec_properties
+    character(len=:), dimension(:), allocatable :: field_names
+    integer(ccs_int), dimension(:), allocatable :: field_types
+    integer(ccs_int) :: i
+
+    field_names = ["viscosity", "density"]
+    field_types = [cell_centred_central, cell_centred_central]
+
+    call set_vector_location(cell, vec_properties)
+    call set_size(par_env, mesh, vec_properties)
+    call set_field_vector_properties(vec_properties, field_properties)
+    do i = 1, size(field_names) 
+      if (.not. is_field_built(field_names(i), flow_fields)) then
+        call set_field_type(field_types(i), field_properties)
+        call set_field_name(field_names(i), field_properties)
+        call create_field(par_env, field_properties, flow_fields)
+      end if
+    end do
+  end subroutine build_case_fields
+
+  !> Checks whether the specified field has been built
+  function is_field_built(field_name, flow_fields) result(is_built)
+    character(len=*), intent(in) :: field_name    !< The name of the field being checked
+    type(fluid), intent(in) :: flow_fields        !< The fluid fields object
+    logical :: is_built
+
+    integer(ccs_int) :: i
+
+    do i = 1, size(flow_fields%fields)
+      if (trim(field_name) == flow_fields%fields(i)%name) then
+        is_built = .true.
+        return
+      end if
+    end do
+    is_built = .false.
+  end function is_field_built
 
 end submodule core_fields
