@@ -1,11 +1,11 @@
 submodule(core) core_fields
 #include "ccs_macros.inc"
 
-  use types, only: vector_spec, field_spec
+  use types, only: vector_spec, field_spec, field
   use constants, only: face, cell, face_centred, cell_centred_central
   use ccs_base, only: mesh
   use parallel, only: is_root
-  use utils, only: set_size, initialise, set_is_fluid_field_solved, add_fluid_field_to_outputlist
+  use utils, only: set_size, initialise, get_field, add_field_to_outputlist, set_is_field_solved
   use read_config, only: get_store_residuals, get_enable_cell_corrections, get_boundary_count
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
@@ -173,5 +173,34 @@ contains
     end do
     is_built = .false.
   end function is_field_built
+  
+  !> Adds the field specified by field index to the outputlist
+  subroutine add_fluid_field_to_outputlist(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for building/reading the mesh
+    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
+    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
+
+    class(field), pointer :: phi
+    
+    call get_field(flow, field_index, phi)
+    if (run_options%output(field_index)) then
+      call add_field_to_outputlist(phi)
+    end if
+    nullify(phi)
+  end subroutine add_fluid_field_to_outputlist
+
+  !> Sets the solve flag for field specified by field index
+  subroutine set_is_fluid_field_solved(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for setting whether the field should be solved
+    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
+    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
+    
+    class(field), pointer :: phi
+    
+    call get_field(flow, field_index, phi)
+    call set_is_field_solved(run_options%solve(field_index), phi)
+    nullify(phi)
+  end subroutine set_is_fluid_field_solved
+
 
 end submodule core_fields
