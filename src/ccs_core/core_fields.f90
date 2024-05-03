@@ -1,13 +1,13 @@
 submodule(core) core_fields
 #include "ccs_macros.inc"
 
-  use types, only: vector_spec, field_spec
+  use types, only: vector_spec, field_spec, field
   use constants, only: face, cell, face_centred, cell_centred_central
   use bc_constants
   use boundary_conditions, only: set_bc_type, allocate_bc_arrays
   use ccs_base, only: mesh
   use parallel, only: is_root
-  use utils, only: set_size, initialise, set_is_fluid_field_solved, add_fluid_field_to_outputlist
+  use utils, only: set_size, initialise, get_field, add_field_to_outputlist, set_is_field_solved
   use read_config, only: get_store_residuals, get_enable_cell_corrections, get_boundary_count
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
@@ -71,7 +71,7 @@ contains
     call build_common_fields(par_env, field_properties, flow_fields)
     
     ! Finally build any case specific fields.
-    call build_case_fields(par_env, field_properties, flow_fields)
+    call build_case_fields(par_env, run_options, field_properties, flow_fields)
   end subroutine initialise_fields
 
   !> Builds the user specified fields from the case config file
@@ -82,7 +82,6 @@ contains
     type(fluid), intent(out) :: flow_fields                           !< The fluid fields object being initialised
 
     integer(ccs_int) :: i
-    type(vector_spec) :: vec_properties
     
     ! Expect to find u, v, w, p, p_prime, scalar
     if (is_root(par_env)) then
@@ -102,7 +101,7 @@ contains
       call set_field_name(run_options%variable_names(i), field_properties)
       call create_field(par_env, field_properties, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
-      call set_is_fluid_field_solved(run_options%solve(i), i, flow_fields)
+      call set_is_fluid_field_solved(run_options, i, flow_fields)
     end do
 
     if (is_root(par_env)) then
@@ -127,28 +126,31 @@ contains
   end subroutine build_common_fields
   
   !> builds any case specific fields not specified in the case config file.
-  subroutine build_case_fields(par_env, field_properties, flow_fields)
+  subroutine build_case_fields(par_env, run_options, field_properties, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building fields
     type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
-    type(fluid), intent(inout) :: flow_fields                           !< The fluid fields object being initialised
+    type(fluid), intent(inout) :: flow_fields                         !< The fluid fields object being initialised
 
     type(vector_spec) :: vec_properties
-    character(len=:), dimension(:), allocatable :: field_names
+    character(len=ccs_string_len), dimension(:), allocatable :: field_names
     integer(ccs_int), dimension(:), allocatable :: field_types
     character(len=:), dimension(:), allocatable :: field_bc_types
     integer(ccs_int) :: i
     integer(ccs_int) :: bc_index
     integer(ccs_int) :: n_boundaries
-    integer(ccs_int) :: new_field_index
+    integer(ccs_int) :: field_index
 
-    field_names = ["viscosity", "density"]
+    allocate(field_names(2))
+    field_names(1) = "viscosity"
+    field_names(2) = "density"
     field_types = [cell_centred_central, cell_centred_central]
     field_bc_types = ["neumann", "neumann"]
 
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     call set_field_vector_properties(vec_properties, field_properties)
-    new_field_index = size(flow_fields%fields)
+    field_index = size(flow_fields%fields) + 1
     do i = 1, size(field_names) 
       if (.not. is_field_built(field_names(i), flow_fields)) then
         call set_field_type(field_types(i), field_properties)
@@ -156,7 +158,7 @@ contains
         call create_field(par_env, field_properties, flow_fields)
 
         ! For a field that's not specified in the case config file need to set the bcs manually
-        associate (bcs => flow_fields%fields(new_field_index)%ptr%bcs, &
+        associate (bcs => flow_fields%fields(field_index)%ptr%bcs, &
                    existing_bcs => flow_fields%fields(1)%ptr%bcs)
           n_boundaries = size(existing_bcs%ids)
           call allocate_bc_arrays(n_boundaries, bcs)
@@ -164,8 +166,11 @@ contains
           do bc_index = 1, n_boundaries
             call set_bc_type(bc_index, field_bc_types(i), bcs)
           end do
-          new_field_index = new_field_index + 1
         end associate
+
+        call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
+        call set_is_fluid_field_solved(run_options, field_index, flow_fields)
+        field_index = field_index + 1
       end if
     end do
   end subroutine build_case_fields
@@ -179,12 +184,41 @@ contains
     integer(ccs_int) :: i
 
     do i = 1, size(flow_fields%fields)
-      if (trim(field_name) == flow_fields%fields(i)%name) then
+      if (trim(field_name) == flow_fields%fields(i)%ptr%name) then
         is_built = .true.
         return
       end if
     end do
     is_built = .false.
   end function is_field_built
+  
+  !> Adds the field specified by field index to the outputlist
+  subroutine add_fluid_field_to_outputlist(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for building/reading the mesh
+    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
+    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
+
+    class(field), pointer :: phi
+    
+    call get_field(flow, field_index, phi)
+    if (run_options%output(field_index)) then
+      call add_field_to_outputlist(phi)
+    end if
+    nullify(phi)
+  end subroutine add_fluid_field_to_outputlist
+
+  !> Sets the solve flag for field specified by field index
+  subroutine set_is_fluid_field_solved(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for setting whether the field should be solved
+    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
+    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
+    
+    class(field), pointer :: phi
+    
+    call get_field(flow, field_index, phi)
+    call set_is_field_solved(run_options%solve(field_index), phi)
+    nullify(phi)
+  end subroutine set_is_fluid_field_solved
+
 
 end submodule core_fields
