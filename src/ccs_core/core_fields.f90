@@ -3,6 +3,8 @@ submodule(core) core_fields
 
   use types, only: vector_spec, field_spec
   use constants, only: face, cell, face_centred, cell_centred_central
+  use bc_constants
+  use boundary_conditions, only: set_bc_type, allocate_bc_arrays
   use ccs_base, only: mesh
   use parallel, only: is_root
   use utils, only: set_size, initialise, set_is_fluid_field_solved, add_fluid_field_to_outputlist
@@ -133,19 +135,37 @@ contains
     type(vector_spec) :: vec_properties
     character(len=:), dimension(:), allocatable :: field_names
     integer(ccs_int), dimension(:), allocatable :: field_types
+    character(len=:), dimension(:), allocatable :: field_bc_types
     integer(ccs_int) :: i
+    integer(ccs_int) :: bc_index
+    integer(ccs_int) :: n_boundaries
+    integer(ccs_int) :: new_field_index
 
     field_names = ["viscosity", "density"]
     field_types = [cell_centred_central, cell_centred_central]
+    field_bc_types = ["neumann", "neumann"]
 
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     call set_field_vector_properties(vec_properties, field_properties)
+    new_field_index = size(flow_fields%fields)
     do i = 1, size(field_names) 
       if (.not. is_field_built(field_names(i), flow_fields)) then
         call set_field_type(field_types(i), field_properties)
         call set_field_name(field_names(i), field_properties)
         call create_field(par_env, field_properties, flow_fields)
+
+        ! For a field that's not specified in the case config file need to set the bcs manually
+        associate (bcs => flow_fields%fields(new_field_index)%ptr%bcs, &
+                   existing_bcs => flow_fields%fields(1)%ptr%bcs)
+          n_boundaries = size(existing_bcs%ids)
+          call allocate_bc_arrays(n_boundaries, bcs)
+          bcs%ids = existing_bcs%ids  ! Not strictly necessary as we could just set to 1..n_boundaries since boundary types are all going to be the same, but leave it in for safety
+          do bc_index = 1, n_boundaries
+            call set_bc_type(bc_index, field_bc_types(i), bcs)
+          end do
+          new_field_index = new_field_index + 1
+        end associate
       end if
     end do
   end subroutine build_case_fields
