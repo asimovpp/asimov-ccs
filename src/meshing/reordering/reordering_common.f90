@@ -307,14 +307,15 @@ contains
 
   end subroutine
 
-  module subroutine print_bandwidth(par_env)
+  module subroutine print_bandwidth(par_env, run_options)
 
     use mpi
     
-    use case_config, only: compute_bwidth
     use parallel_types_mpi, only: parallel_environment_mpi
+    use core, only: ccs_options
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options
     
     integer(ccs_int) :: bw_max
     real(ccs_real) :: bw_avg
@@ -322,7 +323,7 @@ contains
     integer(ccs_int) :: ierr
     real(ccs_real) :: sum_bw_avg
 
-    if (.not. compute_bwidth) then
+    if (.not. run_options%mesh%compute_bwidth) then
       return
     end if
 

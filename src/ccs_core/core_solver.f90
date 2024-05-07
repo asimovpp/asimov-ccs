@@ -3,13 +3,13 @@
 ! This provides the interface that runs the solver.
 
 submodule (core) core_solver
-
+#include "ccs_macros.inc"
   use kinds, only: ccs_int
   use types, only: fluid
   use parallel_types, only: parallel_environment
+  use utils, only: debug_print
 
   use ccs_base, only: mesh
-  use case_config, only: num_iters, res_target
   
   use pv_coupling, only: solve_nonlinear
 
@@ -22,10 +22,18 @@ submodule (core) core_solver
 
 contains
 
-  module subroutine run_solver(par_env, run_options, flow_fields)
+  module subroutine run_solver(par_env, run_options, postproc, flow_fields)
 
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
+    interface
+      subroutine postproc(par_env, flow_fields)
+        use types, only: fluid
+        use parallel_types, only: parallel_environment
+        class(parallel_environment), allocatable, intent(in) :: par_env
+        type(fluid), intent(in) :: flow_fields
+      end subroutine
+    end interface
     type(fluid), intent(inout) :: flow_fields
 
     integer(ccs_int) :: t ! Timestep counter
@@ -39,7 +47,7 @@ contains
     
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
-    res_target = run_options%solve%res_target
+    num_steps = run_options%solve%num_steps
 
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
@@ -47,15 +55,17 @@ contains
     write_frequency = run_options%io%write_frequency
     do t = 1, num_steps
       call timer_start(timer_index_sol)
-      call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                           flow_fields, diverged)
+      call solve_nonlinear(par_env, run_options, mesh, flow_fields, diverged)
       if (par_env%proc_id == par_env%root) then
         print *, "TIME = ", t
       end if
 
+      call postproc(par_env, flow_fields)
+
       ! If a STOP file exist, write solution and exit the main simulation loop
       if (check_stop_run(par_env, diverged)) then
         call write_step(par_env, run_options, t, flow_fields)
+        call dprint("STOP run")
         exit
       end if
 

@@ -8,6 +8,7 @@ submodule(core) core_configuration
 
   implicit none
 
+  integer(ccs_int), save :: cps_cmdline = huge(0) ! Cells-per side, potentially read from commandline
 contains
 
   !v Subroutine to get the runtime configuration.
@@ -22,7 +23,8 @@ contains
     character(len=:), allocatable :: case_name
     character(len=:), allocatable :: input_path
     
-    call read_command_line_arguments(par_env, case_name = case_name, in_dir = input_path)
+    call read_command_line_arguments(par_env, cps = cps_cmdline, case_name = case_name, &
+                                     in_dir = input_path)
     call set_case_paths(input_path, case_name, run_options%paths)
 
     ! XXX: These values should be set by configuration (i.e. call after config)
@@ -96,7 +98,14 @@ contains
     if (mesh_opt%init_mesh_type == read_input_mesh) then
       call error_abort("Reading the mesh hasn't been implemented yet!")
     else
-      mesh_opt%cps = 10
+      if (cps_cmdline == huge(0)) then  ! cps was not set on the command line
+        call get_value(config_file, 'cps', mesh_opt%cps)
+        if (mesh_opt%cps == huge(0)) then
+          call error_abort("No value assigned to cps.")
+        end if
+      else
+        mesh_opt%cps = cps_cmdline
+      end if
 
       domain_size = huge(0.0_ccs_real)
       call get_value(config_file, 'L', domain_size)
@@ -105,6 +114,9 @@ contains
       end if
       mesh_opt%domain_size = domain_size
     end if
+
+    call get_value(config_file, 'compute_bwidth', mesh_opt%compute_bwidth)
+    call get_value(config_file, 'compute_partqual', mesh_opt%compute_partqual)
     
   end subroutine get_mesh_options
 
@@ -219,6 +231,8 @@ contains
            num_steps => run_options%solve%num_steps, &
            num_iters => run_options%solve%num_iters, &
            dt => run_options%solve%dt, &
+           cps => run_options%mesh%cps, &
+           domain_size => run_options%mesh%domain_size, &
            velocity_relax => run_options%solve%velocity_relax, &
            pressure_relax => run_options%solve%pressure_relax)
         ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
@@ -233,7 +247,11 @@ contains
         write (*, '(1x, a, e10.3)') "* Time step size: ", dt
         print *, "******************************************************************************"
         print *, "* MESH SIZE"
-        print *, "* Global number of cells is ", mesh%topo%global_num_cells
+        if (cps /= huge(0)) then
+          print *, "* Cells per side: ", cps
+          write (*, '(1x, a, e10.3)') "* Domain size: ", domain_size
+        end if
+        print *, "* Global number of cells is ", mesh%topo%global_num_cells ! XXX: unknown at this point
         print *, "******************************************************************************"
         print *, "* RELAXATION FACTORS"
         write (*, '(1x, a, e10.3)') "* velocity: ", velocity_relax

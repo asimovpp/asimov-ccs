@@ -36,13 +36,15 @@ module core
   !v Options for the mesh configuration
   type :: mesh_options
     integer(ccs_int) :: init_mesh_type
-    integer(ccs_int) :: cps
+    integer(ccs_int) :: cps = huge(0)
     real(ccs_real) :: domain_size
+    logical :: compute_bwidth = .true.
+    logical :: compute_partqual = .true.
   end type mesh_options
   
   !v Options for IO configuration
   type :: io_options
-    integer(ccs_int) :: write_frequency
+    integer(ccs_int) :: write_frequency = huge(0)
   end type io_options
 
   !v Options for variable declarations
@@ -53,14 +55,14 @@ module core
 
   !v Options for solver configuration
   type :: solver_options
-    integer(ccs_int) :: num_steps
-    integer(ccs_int) :: num_iters
+    integer(ccs_int) :: num_steps = huge(0)
+    integer(ccs_int) :: num_iters = huge(0)
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
-    real(ccs_real) :: dt
-    real(ccs_real) :: res_target
-    real(ccs_real) :: velocity_relax
-    real(ccs_real) :: pressure_relax
+    real(ccs_real) :: dt = huge(0.0_ccs_real)
+    real(ccs_real) :: res_target = huge(0.0_ccs_real)
+    real(ccs_real) :: velocity_relax = huge(0.0_ccs_real)
+    real(ccs_real) :: pressure_relax = huge(0.0_ccs_real)
   end type solver_options
 
   !v Options for parallelism
@@ -131,9 +133,17 @@ module core
     !
     ! This is responsible for the time loop, calling post-processing subroutines and performing
     ! solution output.
-    module subroutine run_solver(par_env, run_options, flow_fields)
+    module subroutine run_solver(par_env, run_options, postproc, flow_fields)
       class(parallel_environment), allocatable, intent(in) :: par_env
       type(ccs_options), intent(in) :: run_options
+      interface
+        subroutine postproc(par_env, flow_fields)
+          use types, only: fluid
+          use parallel_types, only: parallel_environment
+          class(parallel_environment), allocatable, intent(in) :: par_env
+          type(fluid), intent(in) :: flow_fields
+        end subroutine postproc
+      end interface
       type(fluid), intent(inout) :: flow_fields
     end subroutine run_solver
 

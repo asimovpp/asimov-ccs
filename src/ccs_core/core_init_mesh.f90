@@ -30,18 +30,18 @@ contains
         if (is_root(par_env)) then
           print *, "Building mesh"
         end if
-        mesh = build_square_mesh(par_env, shared_env, cps, run_options%mesh%domain_size)
+        mesh = build_square_mesh(par_env, shared_env, run_options, cps, run_options%mesh%domain_size)
       case (build_mesh_3d) 
         ! Create a cubic mesh
         if (is_root(par_env)) then
           print *, "Building mesh"
         end if
-        mesh = build_mesh(par_env, shared_env, cps, cps, cps, run_options%mesh%domain_size)
+        mesh = build_mesh(par_env, shared_env, run_options, cps, cps, cps, run_options%mesh%domain_size)
       case (read_input_mesh)
         if (is_root(par_env)) then
           print *, "Reading mesh file"
         end if
-        call read_mesh(par_env, shared_env, run_options%paths%case_name, mesh)
+        call read_mesh(par_env, shared_env, run_options, run_options%paths%case_name, mesh)
       case default
         call error_abort("invalid init mesh type specified")
       end select

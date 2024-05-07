@@ -3,6 +3,7 @@ module mesh_utils
 
   use mpi
 
+  use core, only: ccs_options
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
@@ -103,7 +104,7 @@ module mesh_utils
 contains
 
   !v Read mesh from file
-  subroutine read_mesh(par_env, shared_env, case_name, mesh)
+  subroutine read_mesh(par_env, shared_env, run_options, case_name, mesh)
 
     use partitioning, only: compute_connectivity_get_local_cells, &
                             compute_partitioner_input
@@ -113,6 +114,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options
     character(len=:), allocatable :: case_name
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
@@ -154,7 +156,7 @@ contains
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
 
-    call mesh_partition_reorder(par_env, shared_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call timer_start(timer_read_geo)
     call read_geometry(shared_env, reader_env, geo_reader, mesh)
@@ -829,12 +831,13 @@ contains
   !v Utility constructor to build a 2D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny cells.
-  function build_square_mesh(par_env, shared_env, cps, side_length) result(mesh)
+  function build_square_mesh(par_env, shared_env, run_options, cps, side_length) result(mesh)
 
     use partitioning, only: compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
+    type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
     real(ccs_real), intent(in) :: side_length          !< The length of the side.
 
@@ -856,7 +859,7 @@ contains
 
     call compute_partitioner_input(par_env, shared_env, mesh)
 
-    call mesh_partition_reorder(par_env, shared_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call build_square_geometry(par_env, cps, side_length, mesh)
 
@@ -1390,7 +1393,7 @@ contains
   !v Utility constructor to build a 3D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
-  function build_mesh(par_env, shared_env, nx, ny, nz, side_length) result(mesh)
+  function build_mesh(par_env, shared_env, run_options, nx, ny, nz, side_length) result(mesh)
 
     use partitioning, only: compute_partitioner_input
     use parallel, only: timer
@@ -1398,6 +1401,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
+    type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
     integer(ccs_int), intent(in) :: ny                 !< Number of cells in the y direction.
     integer(ccs_int), intent(in) :: nz                 !< Number of cells in the z direction.
@@ -1438,7 +1442,7 @@ contains
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
 
-    call mesh_partition_reorder(par_env, shared_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call timer_start(timer_build_geo)
     call build_geometry(par_env, nx, ny, nz, side_length, mesh)
@@ -2852,7 +2856,7 @@ contains
     end if
   end subroutine cleanup_topo
 
-  subroutine mesh_partition_reorder(par_env, shared_env, mesh)
+  subroutine mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     use partitioning, only: partition_kway, &
                             compute_connectivity, &
@@ -2864,8 +2868,10 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
-    class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
+    class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
+
 
     integer(ccs_int) :: timer_partitioning
     integer(ccs_int) :: timer_compute_connectivity
@@ -2884,7 +2890,7 @@ contains
     else
       call partition_stride(par_env, shared_env, roots_env, mesh)
     end if
-    call print_partition_quality(par_env)
+    call print_partition_quality(par_env, run_options)
     call timer_stop(timer_partitioning)
 
     call timer_start(timer_compute_connectivity)
@@ -2893,7 +2899,7 @@ contains
 
 ! insert halo / local cells computation here
 
-    call print_bandwidth(par_env)
+    call print_bandwidth(par_env, run_options)
 
     call timer_start(timer_reordering)
     call reorder_cells(par_env, shared_env, mesh)
@@ -2901,7 +2907,7 @@ contains
 
     call cleanup_partitioner_data(shared_env, mesh)
 
-    call print_bandwidth(par_env)
+    call print_bandwidth(par_env, run_options)
 
     call nullify_mesh_object()
 

@@ -735,17 +735,18 @@ contains
   !  - The "surface to volume ratio" nhalo / nlocal (averaged)
   !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
   !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
-  module subroutine print_partition_quality(par_env)
+  module subroutine print_partition_quality(par_env, run_options)
 
-    use case_config, only : compute_partqual
+    use core, only: ccs_options
     
     class(parallel_environment), intent(in) :: par_env
+    type(ccs_options), intent(in) :: run_options
 
     real(ccs_real) :: s2v ! Surface to volume ratio
     real(ccs_real) :: ulb ! Under load balance (minimum)
     real(ccs_real) :: olb ! Over load balance (maximum)
 
-    if (compute_partqual) then
+    if (run_options%mesh%compute_partqual) then
       call compute_partition_quality(par_env, s2v, ulb, olb)
       if (is_root(par_env)) then
         print *, "Partitioning report:"
