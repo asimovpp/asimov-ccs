@@ -54,6 +54,7 @@ contains
     call set_field_vector_properties(vec_properties, field_properties)
   end subroutine set_field_properties
 
+  !> Builds required fields, including user specified fields, required common fields, and those required by the specific case.
   module subroutine initialise_fields(par_env, run_options, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
     type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for initialising fields
