@@ -283,12 +283,12 @@ contains
   !> Computes the value of the scalar field on the boundary
   pure module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
 
-    class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
-    integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
-    type(cell_locator), intent(in) :: loc_p                 !< location of cell
-    type(face_locator), intent(in) :: loc_f                 !< location of face
-    real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
-    real(ccs_real), intent(out) :: bc_value                 !< the boundary value
+    class(field), intent(in) :: phi                       !< the field for which boundary values are being computed
+    integer(ccs_int), intent(in) :: component             !< integer indicating direction of velocity field component
+    type(cell_locator), intent(in) :: loc_p               !< location of cell
+    type(face_locator), intent(in) :: loc_f               !< location of face
+    real(ccs_real), dimension(ndim), intent(in) :: normal !< boundary face normal direction
+    real(ccs_real), intent(out) :: bc_value               !< the boundary value
 
     real(ccs_real) :: a !< The diagonal coeff (implicit component)
     real(ccs_real) :: b !< The RHS value (explicit component)
@@ -304,13 +304,13 @@ contains
   !> Compute the coefficients of the boundary condition
   pure module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
-    class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
-    integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
-    type(cell_locator), intent(in) :: loc_p                 !< location of cell
-    type(face_locator), intent(in) :: loc_f                 !< location of face
-    real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
-    real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
-    real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
+    class(field), intent(in) :: phi                       !< the field for which boundary values are being computed
+    integer(ccs_int), intent(in) :: component             !< integer indicating direction of velocity field component
+    type(cell_locator), intent(in) :: loc_p               !< location of cell
+    type(face_locator), intent(in) :: loc_f               !< location of face
+    real(ccs_real), dimension(ndim), intent(in) :: normal !< boundary face normal direction
+    real(ccs_real), intent(out) :: a                      !< The diagonal coeff (implicit)
+    real(ccs_real), intent(out) :: b                      !< The RHS entry (explicit)
 
     ! local variables
     integer(ccs_int) :: index_bc
@@ -744,6 +744,10 @@ contains
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: timer_index
 
+    integer(ccs_int) :: i
+    type(cell_locator) :: loc_p
+    real(ccs_real), dimension(3) :: grad_p ! Gradient at cell centre
+
     call timer_register_start("Compute gradient", timer_index)
 
     call get_local_num_cells(local_num_cells)
@@ -751,12 +755,13 @@ contains
     allocate(y_gradients(local_num_cells))
     allocate(z_gradients(local_num_cells))
 
-    call dprint("Compute x gradient")
-    call update_gradient_component(1, phi, x_gradients)
-    call dprint("Compute y gradient")
-    call update_gradient_component(2, phi, y_gradients)
-    call dprint("Compute z gradient")
-    call update_gradient_component(3, phi, z_gradients)
+    do i = 1, local_num_cells
+      call create_cell_locator(i, loc_p)
+      call update_gradient_at_point(phi, loc_p, grad_p)
+      x_gradients(i) = grad_p(1)
+      y_gradients(i) = grad_p(2)
+      z_gradients(i) = grad_p(3)
+    end do
 
     call get_vector_data(phi%x_gradients, gradients_data)
     gradients_data(1:local_num_cells) = x_gradients(:)
@@ -777,19 +782,15 @@ contains
 
   end subroutine update_gradient
 
-  !> Helper subroutine to calculate a gradient component at a time.
-  pure subroutine update_gradient_component(component, phi, gradients)
+  !> Helper subroutine to calculate a gradient at a point (cell centre)
+  pure subroutine update_gradient_at_point(phi, loc_p, gradients)
 
-    integer(ccs_int), intent(in) :: component !< which vector component (i.e. direction) to update?
-    class(field), intent(inout) :: phi !< the field whose gradient we want to compute
-    real(ccs_real), dimension(:), intent(inout) :: gradients !< a cell-centred array of the gradient
+    class(field), intent(in) :: phi         !< the field whose gradient we want to compute
+    type(cell_locator), intent(in) :: loc_p !< locator of the current cell gradient is being evaluated in
+    real(ccs_real), dimension(3), intent(out) :: gradients !< a cell-centred array of the gradient
 
-    real(ccs_real) :: grad
-
-    integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: index_p
     integer(ccs_int) :: j
-    type(cell_locator) :: loc_p
     type(face_locator) :: loc_f
     type(neighbour_locator) :: loc_nb
 
@@ -810,54 +811,51 @@ contains
     real(ccs_real), dimension(ndim) :: face_norm
 
     real(ccs_real) :: V
+    
+    gradients(:) = 0.0_ccs_int
 
-    call get_local_num_cells(local_num_cells)
-    do index_p = 1, local_num_cells
-      grad = 0.0_ccs_int
+    call get_local_index(loc_p, index_p)
+    call get_centre(loc_p, x_p)
+    
+    call count_neighbours(loc_p, nnb)
+    do j = 1, nnb
+      call create_face_locator(index_p, j, loc_f)
+      call get_boundary_status(loc_f, is_boundary)
+      call get_face_area(loc_f, face_area)
+      call get_face_normal(loc_f, face_norm)
 
-      call create_cell_locator(index_p, loc_p)
-      call count_neighbours(loc_p, nnb)
-      call get_centre(loc_p, x_p)
-      do j = 1, nnb
-        call create_face_locator(index_p, j, loc_f)
-        call get_boundary_status(loc_f, is_boundary)
-        call get_face_area(loc_f, face_area)
-        call get_face_normal(loc_f, face_norm)
+      call create_neighbour_locator(loc_p, j, loc_nb)
+      call get_local_index(loc_nb, index_nb)
+      if (.not. is_boundary) then
+        interpol_factor = 0.5_ccs_real
+        phif = interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb)
 
-        call create_neighbour_locator(loc_p, j, loc_nb)
-        call get_local_index(loc_nb, index_nb)
-        if (.not. is_boundary) then
-          interpol_factor = 0.5_ccs_real
-          phif = interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb)
+        if (phi%enable_cell_corrections) then
+          call get_face_normal(loc_f, n)
+          call get_centre(loc_nb, x_nb)
+          call get_centre(loc_f, x_f)
 
-          if (phi%enable_cell_corrections) then
-            call get_face_normal(loc_f, n)
-            call get_centre(loc_nb, x_nb)
-            call get_centre(loc_f, x_f)
+          grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+          grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
-            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
-            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+          dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+          rnb_k_prime = x_f + dx_orth*n
+          rp_prime = x_f - dx_orth*n
 
-            dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-            rnb_k_prime = x_f + dx_orth*n
-            rp_prime = x_f - dx_orth*n
-
-            phif = phif + 0.5_ccs_real*(dot_product(grad_phi_nb, rnb_k_prime - x_nb) + dot_product(grad_phi_p, rp_prime - x_p))
-          end if
-
-        else
-          call compute_boundary_values(phi, component, loc_p, loc_f, face_norm, phif)
+          phif = phif + 0.5_ccs_real*(dot_product(grad_phi_nb, rnb_k_prime - x_nb) + dot_product(grad_phi_p, rp_prime - x_p))
         end if
 
-        grad = grad + phif * (face_area * face_norm(component))
-      end do
+      else
+        call compute_boundary_values(phi, 0, loc_p, loc_f, face_norm, phif)
+      end if
 
-      call get_volume(loc_p, V)
-      grad = grad / V
-      gradients(index_p) = grad
+      gradients(:) = gradients(:) + phif * (face_area * face_norm(:))
     end do
 
-  end subroutine update_gradient_component
+    call get_volume(loc_p, V)
+    gradients(:) = gradients(:) / V
+
+  end subroutine update_gradient_at_point
 
   !> Adds a fixed source term to the righthand side of the equation
   module subroutine add_fixed_source(S, rhs)
