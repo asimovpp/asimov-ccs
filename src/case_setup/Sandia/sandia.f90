@@ -78,6 +78,7 @@ program sandia
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  call timer_init()
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
