@@ -201,7 +201,7 @@ program sandia
 
   call timer_stop(timer_index_init)
 
-  call run_solver(par_env, run_options, flow_fields)
+  call run_solver(par_env, run_options, postproc_sandia, flow_fields)
   
   ! Clean-up
 
@@ -246,5 +246,18 @@ contains
     end associate
 
   end subroutine
+
+  !> Subroutine to define case-specific postprocessing.
+  subroutine postproc_sandia(par_env, flow_fields)
+
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    type(fluid), intent(in) :: flow_fields
+
+    ! All cases must define this, but if they don't require case-specific processing then simply
+    ! make a no-op (use associate to silence unused variable compiler warnings)
+    associate(foo => par_env, bar => flow_fields)
+    end associate
+    
+  end subroutine postproc_sandia
 
 end program sandia
