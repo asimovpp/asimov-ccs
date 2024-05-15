@@ -183,12 +183,15 @@ contains
     logical :: is_built
 
     integer(ccs_int) :: i
+    class(field), pointer :: phi
 
     do i = 1, size(flow_fields%fields)
-      if (trim(field_name) == flow_fields%fields(i)%ptr%name) then
+      call get_field(flow_fields, i, phi)
+      if (trim(field_name) == phi%name) then
         is_built = .true.
         return
       end if
+      nullify(phi)
     end do
     is_built = .false.
   end function is_field_built
