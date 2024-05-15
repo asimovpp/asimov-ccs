@@ -33,7 +33,7 @@ module core
     character(len=:), allocatable :: config_file
     character(len = ccs_string_len), dimension(:), allocatable :: variable_names  
     integer(ccs_int), dimension(:), allocatable :: variable_types              
-    logical, dimension(:), allocatable :: output
+    character(len=:), dimension(:), allocatable :: output_variables
 
     !! Parallel-related
     logical :: use_mpi_splitting
@@ -43,7 +43,7 @@ module core
     character(len=:), allocatable :: mesh_path
 
     !! Solver-related
-    logical, dimension(:), allocatable :: solve
+    character(len=:), dimension(:), allocatable :: solved_variables
     integer(ccs_int) :: num_steps
     real(ccs_real) :: dt
     integer(ccs_int) :: write_frequency

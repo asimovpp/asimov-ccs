@@ -62,7 +62,6 @@ program sandia
 
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
-  integer(ccs_int):: n_variables
 
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
@@ -126,14 +125,8 @@ program sandia
   write_gradients = .false.
 
   ! Initialise the fields
-  n_variables = size(run_options%variable_names)
-  allocate(run_options%output(n_variables))
-  allocate(run_options%solve(n_variables))
-  run_options%output(1:4) = .true.
-  run_options%output(5:7) = .false.
-  run_options%output(8) = .true.
-  run_options%solve(1:4) = .true.
-  run_options%solve(5:) = .false.
+  run_options%output_variables = ["u", "v", "w", "p", "scalar"]
+  run_options%solved_variables = ["u", "v", "w", "p"]
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
@@ -162,7 +155,7 @@ program sandia
   run_options%it_end = it_end
   run_options%res_target = res_target
   call run_solver(par_env, run_options, flow_fields)
-  
+ 
   ! Clean-up
 
   call timer_stop(timer_index_total)

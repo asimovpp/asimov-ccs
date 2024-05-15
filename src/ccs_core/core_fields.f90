@@ -193,7 +193,7 @@ contains
     class(field), pointer :: phi
     
     call get_field(flow, field_index, phi)
-    if (run_options%output(field_index)) then
+    if (any(phi%name == run_options%output_variables)) then
       call add_field_to_outputlist(phi)
     end if
     nullify(phi)
@@ -208,7 +208,11 @@ contains
     class(field), pointer :: phi
     
     call get_field(flow, field_index, phi)
-    call set_is_field_solved(run_options%solve(field_index), phi)
+    if (any(phi%name == run_options%solved_variables)) then
+      call set_is_field_solved(.true., phi)
+    else
+      call set_is_field_solved(.false., phi)
+    end if
     nullify(phi)
   end subroutine set_is_fluid_field_solved
 
