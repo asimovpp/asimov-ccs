@@ -146,7 +146,6 @@ contains
     field_names(1) = "viscosity"
     field_names(2) = "density"
     field_types = [cell_centred_central, cell_centred_central]
-    field_bc_types = ["neumann", "neumann"]
 
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
@@ -157,17 +156,6 @@ contains
         call set_field_type(field_types(i), field_properties)
         call set_field_name(field_names(i), field_properties)
         call create_field(par_env, field_properties, flow_fields)
-
-        ! For a field that's not specified in the case config file need to set the bcs manually
-        associate (bcs => flow_fields%fields(field_index)%ptr%bcs, &
-                   existing_bcs => flow_fields%fields(1)%ptr%bcs)
-          n_boundaries = size(existing_bcs%ids)
-          call allocate_bc_arrays(n_boundaries, bcs)
-          bcs%ids = existing_bcs%ids  ! Not strictly necessary as we could just set to 1..n_boundaries since boundary types are all going to be the same, but leave it in for safety
-          do bc_index = 1, n_boundaries
-            call set_bc_type(bc_index, field_bc_types(i), bcs)
-          end do
-        end associate
 
         call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
         call set_is_fluid_field_solved(run_options, field_index, flow_fields)
