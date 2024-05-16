@@ -1,7 +1,7 @@
 submodule(core) core_init_mesh
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, debug_print, str
+  use utils, only: exit_print, str
   use ccs_base, only: mesh
   use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: is_root

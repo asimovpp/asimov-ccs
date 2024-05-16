@@ -34,7 +34,7 @@ program sandia
                    set_is_field_solved, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections, &
+  use read_config, only: get_variables, get_case_name, &
                           get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh, write_mesh
@@ -51,18 +51,10 @@ program sandia
   class(parallel_environment), allocatable:: shared_env
   character(len=:), allocatable:: input_path  ! Path to input directory
   character(len=:), allocatable:: case_path  ! Path to input directory with case name appended
-  character(len=:), allocatable:: ccs_config_file  ! Config file for CCS
   character(len = ccs_string_len), dimension(:), allocatable:: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable:: variable_types              ! cell centred upwind, central, etc.
 
   type(ccs_options) :: run_options
-  type(vector_spec) :: vec_properties
-
-  type(field_spec):: field_properties
-  class(field), pointer:: u, v, w, p, mf, viscosity, density
-  class(field), pointer:: scalar_field
-
-  integer(ccs_int):: n_boundaries
 
   integer(ccs_int):: it_start, it_end
   integer(ccs_int):: irank  ! MPI rank ID
@@ -70,14 +62,6 @@ program sandia
 
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
-  integer(ccs_int):: i
-
-  logical:: u_sol = .true.  ! Default equations to solve for LDC case
-  logical:: v_sol = .true.
-  logical:: w_sol = .true.
-  logical:: p_sol = .true.
-
-  logical:: store_residuals, enable_cell_corrections
 
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
@@ -107,14 +91,17 @@ program sandia
     case_path = case_name
   end if
 
-  ccs_config_file = case_path // ccsconfig
+  run_options%config_file = case_path // ccsconfig
 
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 
   call timer_register_start("Init time", timer_index_init)
 
   ! Read case name and runtime parameters from configuration file
-  call read_configuration(ccs_config_file)
+  call read_configuration(run_options%config_file)
+
+  run_options%variable_names = variable_names
+  run_options%variable_types = variable_types
 
   if (is_root(par_env)) print *, "Starting ", case_name, " case!"
 
@@ -137,72 +124,12 @@ program sandia
   ! Write gradients to solution file
   write_gradients = .false.
 
-  ! Read boundary conditions
-  if (irank == par_env%root) print *, "Read and allocate BCs"
-  call get_boundary_count(ccs_config_file, n_boundaries)
-  call get_store_residuals(ccs_config_file, store_residuals)
-  call get_enable_cell_corrections(ccs_config_file, enable_cell_corrections)
-
-  ! Create and initialise field vectors
-  if (irank == par_env%root) print *, "Initialise field vectors"
-  call initialise(vec_properties)
-
-  call set_vector_location(cell, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-
-  call set_field_config_file(ccs_config_file, field_properties)
-  call set_field_n_boundaries(n_boundaries, field_properties)
-  call set_field_store_residuals(store_residuals, field_properties)
-  call set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
-
-  call set_field_vector_properties(vec_properties, field_properties)
-
-  ! Expect to find u, v, w, p, p_prime, scalar
-  if (is_root(par_env)) then
-    print *, "Build field list"
-  end if
-
-  do i = 1, size(variable_names)
-    if (is_root(par_env)) then
-      print *, "Creating field ", trim(variable_names(i))
-    end if
-    call set_field_type(variable_types(i), field_properties)
-    call set_field_name(variable_names(i), field_properties)
-    call create_field(par_env, field_properties, flow_fields)
-  end do
-
-  if (is_root(par_env)) then
-    print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
-  end if
-
-  call set_field_type(cell_centred_central, field_properties)
-  call set_field_name("viscosity", field_properties)
-  call create_field(par_env, field_properties, flow_fields)
-  call set_field_name("density", field_properties)
-  call create_field(par_env, field_properties, flow_fields)
-
-  call set_vector_location(face, vec_properties)
-  call set_size(par_env, mesh, vec_properties)
-  call set_field_vector_properties(vec_properties, field_properties)
-  call set_field_type(face_centred, field_properties)
-  call set_field_name("mf", field_properties)
-  call create_field(par_env, field_properties, flow_fields)
-
-  call get_field(flow_fields, "u", u)
-  call get_field(flow_fields, "v", v)
-  call get_field(flow_fields, "w", w)
-  call get_field(flow_fields, "w", p)
-  call get_field(flow_fields, "mf", mf)
-  call get_field(flow_fields, "viscosity", viscosity)
-  call get_field(flow_fields, "density", density)
-  call get_field(flow_fields, "scalar", scalar_field)
-  
-  ! Add fields to output list
-  call add_field_to_outputlist(u)
-  call add_field_to_outputlist(v)
-  call add_field_to_outputlist(w)
-  call add_field_to_outputlist(p)
-  call add_field_to_outputlist(scalar_field)
+  ! Initialise the fields
+  allocate (run_options%output_variables(5))
+  run_options%output_variables(1:4) = ["u", "v", "w", "p"]
+  run_options%output_variables(5) = "scalar"
+  run_options%solved_variables = ["u", "v", "w", "p"]
+  call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
@@ -219,22 +146,6 @@ program sandia
   call activate_timestepping()
   call set_timestep(dt)
 
-  ! XXX: This should get incorporated as part of create_field subroutines
-  call set_is_field_solved(u_sol, u)
-  call set_is_field_solved(v_sol, v)
-  call set_is_field_solved(w_sol, w)
-  call set_is_field_solved(p_sol, p)
-
-  ! Nullify pointers for safety
-  nullify(u)
-  nullify(v)
-  nullify(w)
-  nullify(p)
-  nullify(mf)
-  nullify(viscosity)
-  nullify(density)
-  nullify(scalar_field)
-
   call timer_stop(timer_index_init)
 
   ! XXX: These values should be set during configuration
@@ -246,7 +157,7 @@ program sandia
   run_options%it_end = it_end
   run_options%res_target = res_target
   call run_solver(par_env, run_options, flow_fields)
-  
+ 
   ! Clean-up
 
   call timer_stop(timer_index_total)
