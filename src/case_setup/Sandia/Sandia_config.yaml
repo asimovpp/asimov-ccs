@@ -68,7 +68,7 @@ compute_bwidth : false
 
 variables:
   enable_cell_corrections: false
-  n_variables: 6
+  n_variables: 8
   variable_1:
     name: u
     type: central
@@ -85,6 +85,12 @@ variables:
     name: p_prime
     type: central
   variable_6:
+    name: viscosity
+    type: central
+  variable_7:
+    name: density
+    type: central
+  variable_8:
     name: scalar
     type: central
 

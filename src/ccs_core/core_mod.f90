@@ -9,6 +9,7 @@ module core
   use types, only: fluid
 
   use parallel_types, only: parallel_environment
+  use constants, only: ccs_string_len
 
   implicit none
 
@@ -18,6 +19,7 @@ module core
   public :: initialise_flow
   public :: configure_parallelism
   public :: initialise_mesh
+  public :: initialise_fields
   public :: run_solver
   public :: ccs_options
 
@@ -51,6 +53,8 @@ module core
   type :: variable_options
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
+    character(len=ccs_string_len), dimension(:), allocatable :: output_variables
+    character(len=ccs_string_len), dimension(:), allocatable :: solved_variables
   end type variable_options
 
   !v Options for solver configuration
@@ -98,7 +102,7 @@ module core
       class(parallel_environment), allocatable, intent(out) :: shared_env
     end subroutine configure_parallelism
     
-    !> Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
+    !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
     !  on every cell or face
     module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
       type(fluid), intent(inout) :: flow_fields
@@ -128,6 +132,15 @@ module core
       class(parallel_environment), intent(in), allocatable :: shared_env
       type(ccs_options), intent(in) :: run_options
     end subroutine initialise_mesh
+
+    !v Subroutine to initialise fields
+    !
+    ! This is responsible for setting the building common fields and any other fields specified in the case config file
+    module subroutine initialise_fields(par_env, run_options, flow_fields)
+      class(parallel_environment), intent(in), allocatable:: par_env    
+      type(ccs_options), intent(in) :: run_options
+      type(fluid), intent(out) :: flow_fields
+    end subroutine initialise_fields
 
     !v Subroutine to run a flow problem.
     !

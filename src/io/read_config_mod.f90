@@ -121,15 +121,10 @@ module read_config
     !
     !  By default, all variables will be solved. Using this
     !  "solve" keyword, the user can specifically request that
-    !  certain variables will not be solved by setting in to "off"
-    !
-    !  @todo extend list of variables
-    module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
+    !  certain variables will not be solved by setting it to "off"
+    module subroutine get_solve(config_file, solved_variables)
       class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-      character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
-      character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
-      character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
-      character(len=:), allocatable, optional, intent(inout) :: p_sol   !< solve p on/off
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: solved_variables
     end subroutine
 
     !v Get solvers to be used
@@ -214,8 +209,8 @@ module read_config
     !> Get output type variables
     module subroutine get_output_type(config_file, post_type, post_vars)
       class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
-      character(len=:), allocatable, intent(inout) :: post_type   !< values at cell centres or cell vertices?
-      character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
+      character(len=:), allocatable, intent(out) :: post_type   !< values at cell centres or cell vertices?
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: post_vars !< variables to be written out
     end subroutine
 
     !> Gets the specified field value from the config file and writes to given bcs struct

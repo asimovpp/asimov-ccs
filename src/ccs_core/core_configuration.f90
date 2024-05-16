@@ -3,7 +3,8 @@ submodule(core) core_configuration
 
   use read_config, only: get_variable_types, &
                          get_value, &
-                         get_variables, get_relaxation_factors
+                         get_variables, get_relaxation_factors, &
+                         get_output_type, get_solve
   use utils, only: exit_print
 
   implicit none
@@ -146,6 +147,8 @@ contains
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
 
+    character(len=:), allocatable :: post_type ! Where is I/O (cell/vertex)? Currently unused
+
     allocate(variable_names(0)) ! Default size to 0 for error checking
     call get_variables(config_file, variable_names)
     if (size(variable_names) == 0) then
@@ -159,6 +162,9 @@ contains
     variables%variable_names = variable_names
     variables%variable_types = variable_types
     
+    call get_output_type(config_file, post_type, variables%output_variables)
+    call get_solve(config_file, variables%solved_variables)
+
   end subroutine get_variable_definitions
 
   subroutine get_solver_options(config_file, solve)
@@ -214,7 +220,7 @@ contains
     ! XXX: Are these still relevant?
     solve%it_start = 1
     solve%it_end = num_iters
-    
+
   end subroutine get_solver_options
 
   ! Print test case configuration
@@ -225,6 +231,8 @@ contains
 
     class(parallel_environment), intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
+
+    integer :: i
 
     if (is_root(par_env)) then
       associate(case_name => run_options%paths%case_name, &
@@ -240,7 +248,10 @@ contains
         print *, "******************************************************************************"
         print *, "* Solving the ", case_name, " case"
         print *, "******************************************************************************"
-        print *, " "
+        print *, "Solved variables: "
+        do i = 1, size(run_options%variables%solved_variables)
+          print *, "- ", run_options%variables%solved_variables(i)
+        end do
         print *, "******************************************************************************"
         print *, "* SIMULATION LENGTH"
         print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"

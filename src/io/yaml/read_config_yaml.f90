@@ -298,41 +298,43 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
   !  certain variables will not be solved by setting in to "off"
   !
   !  @todo extend list of variables
-  module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
-
+  module subroutine get_solve(config_file, solved_variables)
+    
     class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-    character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
-    character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
-    character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
-    character(len=:), allocatable, optional, intent(inout) :: p_sol   !< solve p on/off
+    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: solved_variables
 
     class(*), pointer :: dict
+    class(*), pointer :: dict_var
     type(type_error), allocatable :: io_err
+    integer(ccs_int) :: n_var
+    integer :: i
+    character(len=25) :: key
+    character(len=:), allocatable :: solved
+    character(len=:), allocatable :: variable
 
+    allocate(solved_variables(0))
+    
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file%get_dictionary('solve', required=.true., error=io_err)
+      dict => config_file%get_dictionary('variables', required=.true., error=io_err)
+      call get_value(dict, "n_variables", n_var)
 
-      ! Solve u?
-      if (present(u_sol)) then
-        call get_value(dict, "u", u_sol)
-      end if
-
-      ! Solve v?
-      if (present(v_sol)) then
-        call get_value(dict, "v", v_sol)
-      end if
-
-      ! Solve w?
-      if (present(w_sol)) then
-        call get_value(dict, "w", w_sol)
-      end if
-
-      ! Solve p?
-      if (present(p_sol)) then
-        call get_value(dict, "p", p_sol)
-      end if
+      select type (dict)
+      type is(type_dictionary)
+        do i = 1, n_var
+          write (key, '(A, I0)') "variable_", i
+          dict_var => dict%get_dictionary(key, required=.true., error=io_err)
+          solved = ""
+          call get_value(dict_var, "solve", solved)
+          if (trim(solved) == "on") then
+            call get_value(dict_var, "name", variable)
+            solved_variables = [solved_variables, trim(variable)]
+          end if
+        end do
+      class default
+        call error_abort("Unknown type")
+      end select
 
     class default
       call error_abort("Unknown type")
@@ -593,16 +595,17 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
 
   !> Get output type and variables
   module subroutine get_output_type(config_file, post_type, post_vars)
-    class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
-    character(len=:), allocatable, intent(inout) :: post_type   !< values at cell centres or cell vertices?
-    character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
+    class(*), pointer, intent(in) :: config_file            !< the entry point to the config file
+    character(len=:), allocatable, intent(out) :: post_type !< values at cell centres or cell vertices?
+    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: post_vars !< variables to be written out
 
     class(*), pointer :: dict
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item
     type(type_error), allocatable :: io_err
-    integer :: idx
 
+    allocate(post_vars(0)) ! Set initial size to zero
+    
     select type (config_file)
     type is (type_dictionary)
 
@@ -617,14 +620,11 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
         ! call error_handler(io_err)
 
         item => list%first
-        idx = 1
         do while (associated(item))
           select type (element => item%node)
           class is (type_scalar)
-            post_vars(idx) = trim(element%string)
-            print *, post_vars(idx)
+            post_vars = [post_vars, trim(element%string)]
             item => item%next
-            idx = idx + 1
           end select
         end do
 
@@ -636,7 +636,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       call error_abort("Unknown type")
     end select
 
-  end subroutine
+  end subroutine get_output_type
 
   module subroutine get_boundary_count(filename, n_boundaries)
     character(len=*), intent(in) :: filename
