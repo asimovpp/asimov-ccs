@@ -92,6 +92,9 @@ contains
     do i = 1, size(run_options%variable_names)
       ! Make sure we don't attempt to define mf. 
       if (trim(run_options%variable_names(i)) == 'mf') then 
+        if (is_root(par_env)) then
+          print *, "mf already defined in code. skipping definition in case config file"
+        end if
         cycle
       end if
 
@@ -136,10 +139,7 @@ contains
     type(vector_spec) :: vec_properties
     character(len=ccs_string_len), dimension(:), allocatable :: field_names
     integer(ccs_int), dimension(:), allocatable :: field_types
-    character(len=:), dimension(:), allocatable :: field_bc_types
     integer(ccs_int) :: i
-    integer(ccs_int) :: bc_index
-    integer(ccs_int) :: n_boundaries
     integer(ccs_int) :: field_index
 
     allocate(field_names(2))

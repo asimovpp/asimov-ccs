@@ -125,7 +125,9 @@ program sandia
   write_gradients = .false.
 
   ! Initialise the fields
-  run_options%output_variables = ["u", "v", "w", "p", "scalar"]
+  allocate (run_options%output_variables(5))
+  run_options%output_variables(1:4) = ["u", "v", "w", "p"]
+  run_options%output_variables(5) = "scalar"
   run_options%solved_variables = ["u", "v", "w", "p"]
   call initialise_fields(par_env, run_options, flow_fields)
 
