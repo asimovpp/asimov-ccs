@@ -8,6 +8,7 @@ program simple
   use petscvec
   use petscsys
 
+  use core
   use ccs_base, only: mesh
   use constants, only: cell, face, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
@@ -35,7 +36,6 @@ program simple
   class(parallel_environment), allocatable, target :: par_env
   class(parallel_environment), allocatable, target :: shared_env
   type(vector_spec) :: vec_properties
-  logical :: use_mpi_splitting
 
   type(field_spec) :: field_properties
   class(field), pointer :: u, v, w, p, mf, viscosity
@@ -47,14 +47,14 @@ program simple
   double precision :: start_time
   double precision :: end_time
 
-  real(ccs_real) :: res_target = 1.0e-6 ! Default target residual
-
   logical :: u_sol = .true.  ! Solve u
   logical :: v_sol = .true.  ! Solve v
   logical :: w_sol = .false. ! Don't solve w
   logical :: p_sol = .true.  ! Solve p
 
   type(fluid) :: flow_fields
+
+  type(ccs_options) :: run_options
 
   ! Set start and end iteration numbers (eventually will be read from input file)
   it_start = 1
@@ -63,18 +63,15 @@ program simple
   print *, "Starting SIMPLE demo"
   call initialise_parallel_environment(par_env)
 
-  use_mpi_splitting = .false.
-  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
-
-  call read_command_line_arguments(par_env)
-
+  call get_config(par_env, run_options)
+  call configure_parallelism(run_options, par_env, shared_env)
+  
   call sync(par_env)
   call timer(start_time)
 
   ! Create a square mesh
   print *, "Building mesh"
-  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
-  call set_mesh_object(mesh)
+  call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
   print *, "Initialise fields"
@@ -139,8 +136,7 @@ program simple
   
   ! Solve using SIMPLE algorithm
   print *, "Start SIMPLE"
-  call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                       flow_fields)
+  call run_solver(par_env, run_options, postproc_simple, flow_fields)
 
   ! Clean-up
 
@@ -242,5 +238,18 @@ contains
     call restore_vector_data(viscosity%values, viscosity_data)
 
   end subroutine initialise_velocity
+
+  !> Subroutine to define case-specific postprocessing.
+  subroutine postproc_simple(par_env, flow_fields)
+
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    type(fluid), intent(in) :: flow_fields
+
+    ! All cases must define this, but if they don't require case-specific processing then simply
+    ! make a no-op (use associate to silence unused variable compiler warnings)
+    associate(foo => par_env, bar => flow_fields)
+    end associate
+    
+  end subroutine postproc_simple
 
 end program simple

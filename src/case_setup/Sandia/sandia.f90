@@ -132,7 +132,7 @@ contains
         init_val = 0.0_ccs_real 
       end if
     else ! anything but scalar field
-      init_val = 0.0_ccs_real
+      init_val = init_val ! Accept whatever initial value is set
     end if
 
   end subroutine
