@@ -133,6 +133,7 @@ program poisson
   use problem_setup
 
   ! ASiMoV-CCS uses
+  use core
   use ccs_base, only: mesh
   use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
@@ -174,18 +175,17 @@ program poisson
   type(matrix_spec) :: mat_properties
   type(equation_system) :: poisson_eq
 
-  integer(ccs_int) :: cps = 10 !< Default value for cells per side
-
   real(ccs_real) :: err_norm
-  logical :: use_mpi_splitting
 
   double precision :: start_time
   double precision :: end_time
 
+  type(ccs_options) :: run_options
+
   call initialise_parallel_environment(par_env)
-  use_mpi_splitting = .false.
-  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
-  call read_command_line_arguments(par_env, cps=cps)
+
+  call get_config(par_env, run_options)
+  call configure_parallelism(run_options, par_env, shared_env)
 
   ! set solver and preconditioner info
   velocity_solver_method_name = "gmres"
@@ -196,7 +196,7 @@ program poisson
   call sync(par_env)
   call timer(start_time)
 
-  call initialise_poisson(par_env, shared_env)
+  call initialise_poisson(par_env, shared_env, run_options)
 
   ! Initialise with default values
   call initialise(vec_properties)
@@ -299,14 +299,14 @@ contains
     call update(u_exact)
   end subroutine set_exact_sol
 
-  subroutine initialise_poisson(par_env, shared_env)
+  subroutine initialise_poisson(par_env, shared_env, run_options)
 
     class(parallel_environment), allocatable :: par_env
     class(parallel_environment), allocatable :: shared_env
+    type(ccs_options), intent(in) :: run_options
 
-    mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
-    call set_mesh_object(mesh)
-
+    call initialise_mesh(par_env, shared_env, run_options)
+    
   end subroutine initialise_poisson
 
   !> Forcing function
