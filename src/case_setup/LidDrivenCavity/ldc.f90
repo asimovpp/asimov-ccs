@@ -113,7 +113,7 @@ contains
 
   subroutine postproc_ldc(par_env, flow_fields)
 
-    class(parallel_environment), intent(in) :: par_env
+    class(parallel_environment), allocatable, intent(in) :: par_env
     type(fluid), intent(in) :: flow_fields
 
     ! Silence compiler warnings
