@@ -42,10 +42,12 @@ module read_config
   interface
 
     !> Gets the integer value associated with the keyword from dict
-    module subroutine get_integer_value(dict, keyword, int_val)
+    module subroutine get_integer_value(dict, keyword, int_val, value_present, required)
       class(*), pointer, intent(in) :: dict     !< The dictionary
       character(len=*), intent(in) :: keyword   !< The key
       integer, intent(out) :: int_val           !< The corresponding value
+      logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
     end subroutine
 
     !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating

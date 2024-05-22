@@ -21,10 +21,12 @@ submodule(read_config) read_config_utils
 contains
 
   !> Gets the integer value associated with the keyword from dict
-  module subroutine get_integer_value(dict, keyword, int_val)
+  module subroutine get_integer_value(dict, keyword, int_val, value_present, required)
     class(*), pointer, intent(in) :: dict     !< The dictionary
     character(len=*), intent(in) :: keyword   !< The key
     integer, intent(out) :: int_val           !< The corresponding value
+    logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+    logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
 
     type(type_error), allocatable :: io_err
 
@@ -34,14 +36,26 @@ contains
       int_val = dict%get_integer(keyword, error=io_err)
       ! call error_handler(io_err)
 
+      if (present(value_present)) then
+        if (allocated(io_err)) then
+          value_present = .false.
+        else
+          value_present = .true.
+        end if
+      end if
+
     class default
       call error_abort("Unknown type")
     end select
 
-    if (allocated(io_err) .eqv. .true.) then
-      call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
+    if (allocated(io_err)) then
+      if (present(required)) then
+        if (required) then
+          call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
+        end if
+      end if
     end if
-
+    
   end subroutine
 
   !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
@@ -603,6 +617,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item
     type(type_error), allocatable :: io_err
+    character(len=ccs_string_len) :: elt
 
     allocate(post_vars(0)) ! Set initial size to zero
     
@@ -611,26 +626,32 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
 
       dict => config_file%get_dictionary('post', required=.false., error=io_err)
 
-      call get_value(dict, "type", post_type)
+      if (.not. allocated(io_err)) then
+        ! print *, "Reading post type"
+        ! call get_value(dict, "type", post_type)
+        post_type = "center"
+        select type (dict)
+        type is (type_dictionary)
 
-      select type (dict)
-      type is (type_dictionary)
+          list => dict%get_list('variables', required=.false., error=io_err)
+          ! call error_handler(io_err)
 
-        list => dict%get_list('variables', required=.false., error=io_err)
-        ! call error_handler(io_err)
+          item => list%first
+          do while (associated(item))
+            select type (element => item%node)
+            class is (type_scalar)
+              elt = ""
+              elt = element%string
+              print *, elt
+              post_vars = [post_vars, elt]
+              item => item%next
+            end select
+          end do
 
-        item => list%first
-        do while (associated(item))
-          select type (element => item%node)
-          class is (type_scalar)
-            post_vars = [post_vars, trim(element%string)]
-            item => item%next
-          end select
-        end do
-
-      class default
-        call error_abort("Unknown type")
-      end select
+        class default
+          call error_abort("Unknown type")
+        end select
+      end if
 
     class default
       call error_abort("Unknown type")

@@ -150,7 +150,7 @@ contains
 
     character(len=:), allocatable :: post_type ! Where is I/O (cell/vertex)? Currently unused
 
-    allocate(variable_names(0)) ! Default size to 0 for error checking
+    ! allocate(variable_names(0)) ! Default size to 0 for error checking
     call get_variables(config_file, variable_names)
     if (size(variable_names) == 0) then
       call error_abort("No variables were specified.")
@@ -178,6 +178,7 @@ contains
     real(ccs_real) :: dt
     real(ccs_real) :: res_target
     real(ccs_real) :: velocity_relax, pressure_relax
+    logical :: present, required
 
     ! Default values for error checking
     num_steps = huge(0)
@@ -186,12 +187,6 @@ contains
     res_target = huge(0.0_ccs_real)
     velocity_relax = huge(0.0_ccs_real)
     pressure_relax = huge(0.0_ccs_real)
-    
-    call get_value(config_file, 'steps', num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num_steps.")
-    end if
-    solve%num_steps = num_steps
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
@@ -199,10 +194,15 @@ contains
     end if
     solve%num_iters = num_iters
 
-    call get_value(config_file, 'dt', dt)
-    if (dt == huge(0.0)) then
-      call error_abort("No value assigned to dt.")
+    required = .false.
+    call get_value(config_file, 'steps', num_steps, present, required)
+    call get_value(config_file, 'dt', dt, present, required)
+    if ((num_steps == huge(0)) .and. (dt == huge(0.0))) then
+      print *, "Steady-state solver"
+    else if ((num_steps == huge(0)) .or. (dt == huge(0.0))) then
+      call error_abort("No value assigned to either num_steps or dt.")
     end if
+    solve%num_steps = num_steps
     solve%dt = dt
 
     call get_value(config_file, 'target_residual', res_target)

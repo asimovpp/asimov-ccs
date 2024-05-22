@@ -49,9 +49,9 @@ target_residual: 1.0e-10
 #output:
 #  every: 1000
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+ type: center
+ variables: [u, v, w, p]
 
 variables:
   store_residuals: false
