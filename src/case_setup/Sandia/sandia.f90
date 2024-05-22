@@ -90,6 +90,8 @@ program sandia
   ! Initialise the fields
   call initialise_fields(par_env, run_options, flow_fields)
 
+  ! XXX: coupling BCs could be built here
+
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
   call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)

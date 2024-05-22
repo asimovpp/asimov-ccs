@@ -55,7 +55,13 @@ contains
     write_frequency = run_options%io%write_frequency
     do t = 1, num_steps
       call timer_start(timer_index_sol)
+
+      ! XXX: Coupler update here
+      
       call solve_nonlinear(par_env, run_options, mesh, flow_fields, diverged)
+
+      ! XXX: Or coupler update here?
+      
       if (par_env%proc_id == par_env%root) then
         print *, "TIME = ", t
       end if
