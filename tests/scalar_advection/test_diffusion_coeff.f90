@@ -4,6 +4,7 @@
 program test_diffusion_coeff
 
   use testing_lib
+  use core
   use meshing, only: create_cell_locator, create_neighbour_locator, get_boundary_status
   use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
@@ -29,9 +30,11 @@ program test_diffusion_coeff
   real(ccs_real) :: dens_p, dens_nb    ! density
   real(ccs_real), parameter :: SchmidtNo = 1.0_ccs_real
 
+  type(ccs_options) :: run_options
+  
   call init()
 
-  mesh = build_square_mesh(par_env, shared_env, cps, L)
+  mesh = build_square_mesh(par_env, shared_env, run_options, cps, L)
   call set_mesh_object(mesh)
 
   index_p = 1
