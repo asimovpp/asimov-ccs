@@ -2,6 +2,7 @@ program test_compute_bc_values
 #include "ccs_macros.inc"
 
   use testing_lib
+  use core
   use kinds, only: ccs_real, ccs_int
   use types, only: field, central_field, face_locator, cell_locator, neighbour_locator, vector_spec
   use utils, only: debug_print, exit_print, str, update, set_size, initialise
@@ -29,9 +30,11 @@ program test_compute_bc_values
 
   integer(ccs_int) :: index_p
 
+  type(ccs_options) :: run_options
+  
   call init()
 
-  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, run_options, cps, 1.0_ccs_real)
   call set_mesh_object(mesh)
 
   ! set locations

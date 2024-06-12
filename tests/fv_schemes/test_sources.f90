@@ -5,6 +5,8 @@ program test_sources
 
   use testing_lib
 
+  use core
+  
   use types, only: ccs_matrix, ccs_mesh, ccs_vector
 
   use meshing, only: get_centre, get_local_num_cells, &
@@ -25,6 +27,8 @@ program test_sources
   class(ccs_vector), allocatable :: x   ! Solution vector
   class(ccs_vector), allocatable :: S   ! Source vector
   class(ccs_matrix), allocatable :: M   ! System matrix
+  
+  type(ccs_options) :: run_options
   
   call init()
 
@@ -142,7 +146,7 @@ contains
     real(ccs_real), dimension(:), pointer :: S_data
     
     ! Initialise mesh
-    mesh = build_mesh(par_env, shared_env, n, n, n, l)
+    mesh = build_mesh(par_env, shared_env, run_options, n, n, n, l)
     call set_mesh_object(mesh)
 
     ! Initialise vectors
