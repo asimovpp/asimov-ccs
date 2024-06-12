@@ -6,6 +6,8 @@ program test_mesh_centres
 
   use testing_lib
 
+  use core
+  
   use constants, only: ndim
   use meshing, only: create_cell_locator, create_face_locator, create_vert_locator, get_centre, &
                      get_local_num_cells, get_vert_per_cell
@@ -35,6 +37,8 @@ program test_mesh_centres
   integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
   integer(ccs_int) :: mctr
 
+  type(ccs_options) :: run_options
+  
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
@@ -46,7 +50,7 @@ program test_mesh_centres
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
+    mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
     call set_mesh_object(mesh)
 
     call get_local_num_cells(local_num_cells)

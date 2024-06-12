@@ -6,6 +6,8 @@ program test_mesh_closed
 
   use testing_lib
 
+  use core
+  
   use constants
 
   use meshing, only: create_face_locator, get_face_normal, get_face_area, get_local_num_cells
@@ -31,6 +33,8 @@ program test_mesh_closed
   integer(ccs_int), dimension(4) :: m = (/4, 8, 16, 20/)
   integer(ccs_int) :: mctr
 
+  type(ccs_options) :: run_options
+  
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
@@ -42,7 +46,7 @@ program test_mesh_closed
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, shared_env, nx, nz, ny, l)
+    mesh = build_mesh(par_env, shared_env, run_options, nx, nz, ny, l)
     call set_mesh_object(mesh)
 
     A_expected = (l / n)**2
