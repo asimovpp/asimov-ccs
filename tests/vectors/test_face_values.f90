@@ -2,6 +2,7 @@
 program test_face_values
 
   use testing_lib
+  use core
   use kinds, only: ccs_int, ccs_real
   use constants, only: face
   use types, only: vector_spec, ccs_mesh, field, face_field
@@ -21,10 +22,12 @@ program test_face_values
   ! integer(ccs_int) :: nfaces
   integer(ccs_int) :: cps = 5 !< Cells per side of the mesh
 
+  type(ccs_options) :: run_options
+  
   call init()
 
   ! Create a square mesh
-  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  mesh = build_square_mesh(par_env, shared_env, run_options, cps, 1.0_ccs_real)
   call set_mesh_object(mesh)
 
   allocate (face_field :: mf)
