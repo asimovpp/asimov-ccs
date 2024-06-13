@@ -325,6 +325,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     character(len=25) :: key
     character(len=:), allocatable :: solved
     character(len=:), allocatable :: variable
+    character(len=ccs_string_len) :: var
 
     allocate(solved_variables(0))
     
@@ -343,7 +344,8 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           call get_value(dict_var, "solve", solved)
           if (trim(solved) == "on") then
             call get_value(dict_var, "name", variable)
-            solved_variables = [solved_variables, trim(variable)]
+            var = adjustl(variable)
+            solved_variables = [solved_variables, var]
           end if
         end do
       class default
