@@ -258,45 +258,47 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     type is (type_dictionary)
 
       dict => config_file%get_dictionary('reference_numbers', required=.true., error=io_err)
+      if (.not. allocated(io_err)) then
 
-      ! Pressure
-      if (present(p_ref)) then
-        call get_value(dict, "pressure", p_ref)
-      end if
+        ! Pressure
+        if (present(p_ref)) then
+          call get_value(dict, "pressure", p_ref, required=.false.)
+        end if
 
-      ! Pressure_total
-      if (present(p_total)) then
-        call get_value(dict, "pressure_total", p_total)
-      end if
+        ! Pressure_total
+        if (present(p_total)) then
+          call get_value(dict, "pressure_total", p_total, required = .false.)
+        end if
 
-      ! Temperature
-      if (present(temp_ref)) then
-        call get_value(dict, "temperature", temp_ref)
-      end if
+        ! Temperature
+        if (present(temp_ref)) then
+          call get_value(dict, "temperature", temp_ref, required = .false.)
+        end if
 
-      ! Density
-      if (present(dens_ref)) then
-        call get_value(dict, "density", dens_ref)
-      end if
+        ! Density
+        if (present(dens_ref)) then
+          call get_value(dict, "density", dens_ref, required = .false.)
+        end if
 
-      ! Viscosity
-      if (present(visc_ref)) then
-        call get_value(dict, "viscosity", visc_ref)
-      end if
+        ! Viscosity
+        if (present(visc_ref)) then
+          call get_value(dict, "viscosity", visc_ref, required = .false.)
+        end if
 
-      ! Velocity
-      if (present(velo_ref)) then
-        call get_value(dict, "velocity", velo_ref)
-      end if
+        ! Velocity
+        if (present(velo_ref)) then
+          call get_value(dict, "velocity", velo_ref, required = .false.)
+        end if
 
-      ! Length
-      if (present(len_ref)) then
-        call get_value(dict, "length", len_ref)
-      end if
+        ! Length
+        if (present(len_ref)) then
+          call get_value(dict, "length", len_ref, required = .false.)
+        end if
 
-      ! Pref_at_cell
-      if (present(pref_at_cell)) then
-        call get_value(dict, "pref_at_cell", pref_at_cell)
+        ! Pref_at_cell
+        if (present(pref_at_cell)) then
+          call get_value(dict, "pref_at_cell", pref_at_cell, required = .false.)
+        end if
       end if
 
     class default
