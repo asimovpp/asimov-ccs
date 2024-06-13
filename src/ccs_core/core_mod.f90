@@ -75,6 +75,18 @@ module core
     integer :: split_type
   end type parallel_options
   
+  !v Reference values for the problem
+  type :: ref_vals
+    real(ccs_real) :: p_ref    !< reference pressure
+    real(ccs_real) :: p_total  !< total pressure
+    real(ccs_real) :: temp_ref !< reference temperature
+    real(ccs_real) :: dens_ref !< reference density
+    real(ccs_real) :: visc_ref !< laminar viscosity
+    real(ccs_real) :: velo_ref !< reference velocity
+    real(ccs_real) :: len_ref  !< reference length, used to define the Reynolds number of the flow
+    integer :: pref_at_cell    !< cell at which the reference pressure is set
+  end type ref_vals
+  
   !v Type to contain the configuration of the CCS run
   type :: ccs_options
     type(ccs_paths) :: paths
@@ -83,6 +95,7 @@ module core
     type(variable_options) :: variables
     type(solver_options) :: solve
     type(parallel_options) :: parallel
+    type(ref_vals) :: reference_values
   end type ccs_options
 
   interface

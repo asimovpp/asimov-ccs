@@ -4,7 +4,8 @@ submodule(core) core_configuration
   use read_config, only: get_variable_types, &
                          get_value, &
                          get_variables, get_relaxation_factors, &
-                         get_output_type, get_solve
+                         get_output_type, get_solve, &
+                         get_reference_number
   use utils, only: exit_print
 
   implicit none
@@ -81,6 +82,7 @@ contains
     end if
 
     call get_variable_definitions(config_file, run_options%variables)
+    call get_reference_values(config_file, run_options%reference_values)
     call get_solver_options(config_file, run_options%solve)
     call get_io_options(config_file, run_options%io)
     call get_mesh_options(config_file, run_options%mesh)
@@ -168,6 +170,30 @@ contains
 
   end subroutine get_variable_definitions
 
+  subroutine get_reference_values(config_file, reference_values)
+
+    class(*), pointer, intent(in) :: config_file
+    type(ref_vals), intent(out) :: reference_values
+
+    ! Set defaults
+    reference_values%p_ref = 0.0
+    reference_values%p_total = 1.01325e5_ccs_real ! 1 Atmosphere
+    reference_values%temp_ref = 293.15_ccs_real          ! 20C (in Kelvin)
+    reference_values%dens_ref = 1.19_ccs_real             ! Air @ STP
+    reference_values%visc_ref = 1.0e-5_ccs_real         ! Air @ STP
+    reference_values%velo_ref = 1.0_ccs_real
+    reference_values%len_ref = 1.0_ccs_real
+    reference_values%pref_at_cell = -1 ! To be ignored
+    
+    ! Read
+    call get_reference_number(config_file, &
+         reference_values%p_ref, reference_values%p_total, reference_values%temp_ref, &
+         reference_values%dens_ref, reference_values%visc_ref, &
+         reference_values%velo_ref, reference_values%len_ref, &
+         reference_values%pref_at_cell)
+    
+  end subroutine get_reference_values
+  
   subroutine get_solver_options(config_file, solve)
 
     class(*), pointer, intent(in) :: config_file
@@ -274,6 +300,17 @@ contains
         write (*, '(1x, a, e10.3)') "* pressure: ", pressure_relax
         print *, "******************************************************************************"
       end associate
+      print *, "******************************************************************************"
+      print *, "* REFERENCE VALUES"
+      print *, "* Pressure      : ", run_options%reference_values%p_ref
+      print *, "* Total Pressure: ", run_options%reference_values%p_total
+      print *, "* Temperature   : ", run_options%reference_values%temp_ref
+      print *, "* Density       : ", run_options%reference_values%dens_ref
+      print *, "* Viscosity     : ", run_options%reference_values%visc_ref
+      print *, "* Velocity      : ", run_options%reference_values%velo_ref
+      print *, "* Length        : ", run_options%reference_values%len_ref
+      print *, "* Reference cell: ", run_options%reference_values%pref_at_cell
+      print *, "******************************************************************************"
     end if
     
   end subroutine
