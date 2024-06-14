@@ -172,8 +172,11 @@ contains
     variables%variable_names = variable_names
     variables%variable_types = variable_types
     
+    print *, "++ OUT"
     call get_output_type(config_file, post_type, variables%output_variables)
+    print *, "++ SOL"
     call get_solve(config_file, variables%solved_variables)
+    print *, "++ DONE"
 
   end subroutine get_variable_definitions
 
