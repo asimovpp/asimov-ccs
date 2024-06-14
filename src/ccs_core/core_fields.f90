@@ -126,15 +126,24 @@ contains
     type(vector_spec) :: vec_properties
     type(field_spec) :: my_field_properties
 
+    integer :: nfields_init
+
     ! Create local copy of field properties
     my_field_properties = field_properties
 
+    nfields_init = size(flow_fields%fields)
+    
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
     call set_field_vector_properties(vec_properties, my_field_properties)
     call set_field_type(face_centred, my_field_properties)
     call set_field_name("mf", my_field_properties)
-    call create_field(par_env, field_properties, flow_fields)
+    call create_field(par_env, my_field_properties, flow_fields)
+
+    if (is_root(par_env)) then
+      print *, "Built ", size(flow_fields%fields) - nfields_init, " common fields"
+    end if
+
   end subroutine build_common_fields
   
   !> builds any case specific fields not specified in the case config file.
