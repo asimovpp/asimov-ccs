@@ -25,8 +25,10 @@ contains
     character(len=:), allocatable :: case_name
     character(len=:), allocatable :: input_path
     
+    print *, "READ CMDLINE"
     call read_command_line_arguments(par_env, cps = cps_cmdline, case_name = case_name, &
                                      in_dir = input_path)
+    print *, "SET PATHS"
     call set_case_paths(input_path, case_name, run_options%paths)
 
     ! XXX: These values should be set by configuration (i.e. call after config)
@@ -34,6 +36,7 @@ contains
     run_options%parallel%use_mpi_splitting = .true.
 
     ! Read case name and runtime parameters from configuration file
+    print *, "BUILD CONFIG"
     call read_configuration(run_options)
 
     ! Print the run configuration
@@ -81,11 +84,17 @@ contains
       call error_abort(trim(error))
     end if
 
+    print *, "+ VARS"
     call get_variable_definitions(config_file, run_options%variables)
+    print *, "+ REFS"
     call get_reference_values(config_file, run_options%reference_values)
+    print *, "+ SOL"
     call get_solver_options(config_file, run_options%solve)
+    print *, "+ IO"
     call get_io_options(config_file, run_options%io)
+    print *, "+ MSH"
     call get_mesh_options(config_file, run_options%mesh)
+    print *, "+ DONE"
 
   end subroutine
 
