@@ -640,17 +640,21 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           list => dict%get_list('variables', required=.false., error=io_err)
           ! call error_handler(io_err)
 
-          item => list%first
-          do while (associated(item))
-            select type (element => item%node)
-            class is (type_scalar)
-              elt = ""
-              elt = element%string
-              print *, elt
-              post_vars = [post_vars, elt]
-              item => item%next
-            end select
-          end do
+          if (.not. allocated(io_err)) then
+            item => list%first
+            do while (associated(item))
+              select type (element => item%node)
+              class is (type_scalar)
+                elt = ""
+                elt = element%string
+                print *, elt
+                post_vars = [post_vars, elt]
+                item => item%next
+              end select
+            end do
+          else
+            print *, "COULDN'T FIND POST VARIABLES"
+          end if
 
         class default
           call error_abort("Unknown type")
