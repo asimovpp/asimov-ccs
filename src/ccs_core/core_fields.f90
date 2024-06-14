@@ -37,7 +37,7 @@ contains
     call get_store_residuals(run_options%paths%ccs_config_file, store_residuals)
     call get_enable_cell_corrections(run_options%paths%ccs_config_file, enable_cell_corrections)
 
-  	! Create and initialise field vectors
+    ! Create and initialise field vectors
     if (is_root(par_env)) then
       print *, "Initialise field vectors"
     end if
@@ -77,18 +77,22 @@ contains
 
   !> Builds the user specified fields from the case config file
   subroutine build_user_fields(par_env, run_options, field_properties, flow_fields)
-    class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building fields
-    type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
-    type(fluid), intent(out) :: flow_fields                           !< The fluid fields object being initialised
+    class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                   !< Object containing relevant options for building fields
+    type(field_spec), intent(in) :: field_properties               !< The field spec object used to allocate the fields
+    type(fluid), intent(inout) :: flow_fields                      !< The fluid fields object being initialised
 
     integer(ccs_int) :: i
+    type(field_spec) :: my_field_properties
     
     ! Expect to find u, v, w, p, p_prime, scalar
     if (is_root(par_env)) then
       print *, "Build field list"
     end if
 
+    ! Create a local copyt of field_properties
+    my_field_properties = field_properties
+    
     do i = 1, size(run_options%variables%variable_names)
       ! Make sure we don't attempt to define mf. 
       if (trim(run_options%variables%variable_names(i)) == 'mf') then 
@@ -101,9 +105,9 @@ contains
       if (is_root(par_env)) then
         print *, "Creating field ", trim(run_options%variables%variable_names(i))
       end if
-      call set_field_type(run_options%variables%variable_types(i), field_properties)
-      call set_field_name(run_options%variables%variable_names(i), field_properties)
-      call create_field(par_env, field_properties, flow_fields)
+      call set_field_type(run_options%variables%variable_types(i), my_field_properties)
+      call set_field_name(run_options%variables%variable_names(i), my_field_properties)
+      call create_field(par_env, my_field_properties, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
       call set_is_fluid_field_solved(run_options, i, flow_fields)
     end do
@@ -115,32 +119,41 @@ contains
 
   !> builds any common fields that should be inaccessible to the user.
   subroutine build_common_fields(par_env, field_properties, flow_fields)
-    class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-    type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
-    type(fluid), intent(inout) :: flow_fields                           !< The fluid fields object being initialised
+    class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+    type(field_spec), intent(in) :: field_properties               !< The field spec object used to allocate the fields
+    type(fluid), intent(inout) :: flow_fields                      !< The fluid fields object being initialised
 
     type(vector_spec) :: vec_properties
+    type(field_spec) :: my_field_properties
+
+    ! Create local copy of field properties
+    my_field_properties = field_properties
 
     call set_vector_location(face, vec_properties)
     call set_size(par_env, mesh, vec_properties)
-    call set_field_vector_properties(vec_properties, field_properties)
-    call set_field_type(face_centred, field_properties)
-    call set_field_name("mf", field_properties)
+    call set_field_vector_properties(vec_properties, my_field_properties)
+    call set_field_type(face_centred, my_field_properties)
+    call set_field_name("mf", my_field_properties)
     call create_field(par_env, field_properties, flow_fields)
   end subroutine build_common_fields
   
   !> builds any case specific fields not specified in the case config file.
   subroutine build_case_fields(par_env, run_options, field_properties, flow_fields)
-    class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for building fields
-    type(field_spec), intent(inout) :: field_properties               !< The field spec object used to allocate the fields
-    type(fluid), intent(inout) :: flow_fields                         !< The fluid fields object being initialised
+    class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                   !< Object containing relevant options for building fields
+    type(field_spec), intent(in) :: field_properties               !< The field spec object used to allocate the fields
+    type(fluid), intent(inout) :: flow_fields                      !< The fluid fields object being initialised
 
     type(vector_spec) :: vec_properties
     character(len=ccs_string_len), dimension(:), allocatable :: field_names
     integer(ccs_int), dimension(:), allocatable :: field_types
     integer(ccs_int) :: i
     integer(ccs_int) :: field_index
+
+    type(field_spec) :: my_field_properties
+
+    ! Create local copy of field properties
+    my_field_properties = field_properties
 
     allocate(field_names(2))
     field_names(1) = "viscosity"
@@ -149,13 +162,13 @@ contains
 
     call set_vector_location(cell, vec_properties)
     call set_size(par_env, mesh, vec_properties)
-    call set_field_vector_properties(vec_properties, field_properties)
+    call set_field_vector_properties(vec_properties, my_field_properties)
     field_index = size(flow_fields%fields) + 1
     do i = 1, size(field_names) 
       if (.not. is_field_built(field_names(i), flow_fields)) then
-        call set_field_type(field_types(i), field_properties)
-        call set_field_name(field_names(i), field_properties)
-        call create_field(par_env, field_properties, flow_fields)
+        call set_field_type(field_types(i), my_field_properties)
+        call set_field_name(field_names(i), my_field_properties)
+        call create_field(par_env, my_field_properties, flow_fields)
 
         call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
         call set_is_fluid_field_solved(run_options, field_index, flow_fields)
@@ -215,6 +228,5 @@ contains
     end if
     nullify(phi)
   end subroutine set_is_fluid_field_solved
-
 
 end submodule core_fields
