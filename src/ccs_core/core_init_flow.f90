@@ -115,6 +115,8 @@ submodule(core) core_init_flow
     select case(field_name)
     case ("density")
       init_val = 1.0_ccs_real ! Zero density will cause solver failure!
+    case ("viscosity")
+      init_val = 1.0e-2_ccs_real
     case default
       init_val = 0.0_ccs_real
     end select
