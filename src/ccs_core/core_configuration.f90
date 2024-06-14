@@ -96,12 +96,10 @@ contains
 
     real(ccs_real) :: domain_size
 
-
+    mesh_opt%init_mesh_type = build_mesh_2d
     if (mesh_opt%init_mesh_type == read_input_mesh) then
       call error_abort("Reading the mesh hasn't been implemented yet!")
     else
-      mesh_opt%init_mesh_type = build_mesh_3d
-
       if (cps_cmdline == huge(0)) then  ! cps was not set on the command line
         call get_value(config_file, 'cps', mesh_opt%cps)
         if (mesh_opt%cps == huge(0)) then
