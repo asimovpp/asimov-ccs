@@ -173,7 +173,8 @@ contains
     variables%variable_types = variable_types
     
     print *, "++ OUT"
-    call get_output_type(config_file, post_type, variables%output_variables)
+    ! call get_output_type(config_file, post_type, variables%output_variables)
+    variables%output_variables = ['u', 'v', 'w', 'p']
     print *, "++ SOL"
     call get_solve(config_file, variables%solved_variables)
     print *, "++ DONE"
