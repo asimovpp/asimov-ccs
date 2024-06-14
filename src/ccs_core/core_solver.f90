@@ -15,6 +15,8 @@ submodule (core) core_solver
 
   use timers, only: timer_register, timer_start, timer_stop
 
+  use timestepping, only: timestepping_is_active
+  
   implicit none
 
   integer(ccs_int):: timer_index_sol
@@ -47,8 +49,13 @@ contains
     
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
-    num_steps = run_options%solve%num_steps
-
+    if (timestepping_is_active()) then
+      num_steps = run_options%solve%num_steps
+    else
+      ! num steps may not have been set
+      num_steps = 1
+    end if
+    
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
     
