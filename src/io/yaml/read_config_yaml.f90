@@ -642,7 +642,9 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           list => dict%get_list('variables', required=.false., error=io_err)
           ! call error_handler(io_err)
 
+          print *, "+++++ 2.1"
           if (.not. allocated(io_err)) then
+            print *, "+++++ 2.2"
             item => list%first
             print *, "+++++ 3"
             do while (associated(item))
