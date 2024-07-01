@@ -1,0 +1,43 @@
+title: LidDrivenCavity
+cps: 16
+L: 1.0
+
+relaxation_factor:
+  pressure: 0.1
+
+target_residual: 1.0e-5
+  
+variables:
+  store_residuals: false
+  n_variables: 1
+  variable_1:
+    name: pressure
+    type: central
+    solve: on
+
+boundaries:
+  n_boundaries: 6
+  boundary_1: 
+    name: left
+    type: neumann
+    value: 0
+  boundary_2:
+    name: right
+    type: neumann
+    value: 0
+  boundary_3:
+    name: bottom
+    type: neumann
+    value: 0
+  boundary_4:
+    name: top
+    type: neumann
+    value: 0
+  boundary_5:
+    name: back
+    type: neumann
+    value: 0
+  boundary_6:
+    name: front
+    type: neumann
+    value: 0
