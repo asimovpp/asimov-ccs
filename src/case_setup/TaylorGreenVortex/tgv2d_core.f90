@@ -98,9 +98,8 @@ contains
 
     ! Initialise fields
     if (irank == par_env%root) print *, "Initialise fields"
-
-    ! Write gradients to solution file
     write_gradients = .true.
+    call initialise_fields(par_env, run_options, flow_fields)
 
     call activate_timestepping()
     call set_timestep(run_options%solve%dt)
