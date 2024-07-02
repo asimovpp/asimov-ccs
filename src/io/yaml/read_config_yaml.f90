@@ -127,10 +127,10 @@ contains
     end if
   end subroutine
 
-module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
+  module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
-    logical, intent(inout) :: logical_val                         !< The corresponding value
+    logical, intent(inout) :: logical_val                       !< The corresponding value
     logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
     logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
@@ -141,19 +141,27 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     type is (type_dictionary)
 
       string_val = dict%get_string(keyword, error=io_err)
-      if(string_val == 'true') then
-        logical_val = .true.
-      else if (string_val == 'false') then
-        logical_val = .false.
-      else if (.not. allocated(io_err)) then
-        call error_abort("Set the value for " // keyword // " to true or false, not " // string_val)
-      end if
+      if (.not. allocated(io_err)) then
+        if(string_val == 'true') then
+          logical_val = .true.
+        else if (string_val == 'false') then
+          logical_val = .false.
+        else 
+          call error_abort("Set the value for " // keyword // " to true or false, not " // string_val)
+        end if
 
-      if (present(value_present)) then
-        if (allocated(io_err)) then
-          value_present = .false.
-        else
+        if (present(value_present)) then
           value_present = .true.
+        end if
+      else
+        if (present(value_present)) then
+          value_present = .false.
+        end if
+
+        if (present(required)) then
+          if (required) then
+            call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
         end if
       end if
 
@@ -161,12 +169,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       call error_abort("Unknown type")
     end select
 
-    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
-      if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
-      end if
-    end if
-  end subroutine
+  end subroutine get_logical_value
  
   subroutine error_handler(io_err)
     type(type_error), pointer, intent(inout) :: io_err
