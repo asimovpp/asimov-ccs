@@ -79,6 +79,7 @@ contains
     ! Create a square mesh
     if (present(input_mesh)) then
       mesh = input_mesh
+      call set_mesh_object(mesh)
     else
       call initialise_mesh(par_env, shared_env, run_options)
     end if
