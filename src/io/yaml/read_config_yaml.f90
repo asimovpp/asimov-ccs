@@ -358,6 +358,8 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       call error_abort("Unknown type")
     end select
 
+    print *, "Solved variables = ", solved_variables
+
   end subroutine
 
   !v Get solvers to be used
