@@ -342,6 +342,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       type is(type_dictionary)
         do i = 1, n_var
           write (key, '(A, I0)') "variable_", i
+          print *, "i"
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
           solved = ""
           call get_value(dict_var, "solve", solved, value_present=val_present, required=.false.)
