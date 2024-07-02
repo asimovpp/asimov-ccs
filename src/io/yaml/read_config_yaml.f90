@@ -328,6 +328,7 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     character(len=:), allocatable :: solved
     character(len=:), allocatable :: variable
     character(len=ccs_string_len) :: var
+    logical :: val_present
 
     allocate(solved_variables(0))
     
@@ -343,11 +344,13 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
           write (key, '(A, I0)') "variable_", i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
           solved = ""
-          call get_value(dict_var, "solve", solved)
-          if (trim(solved) == "on") then
-            call get_value(dict_var, "name", variable)
-            var = adjustl(variable)
-            solved_variables = [solved_variables, var]
+          call get_value(dict_var, "solve", solved, value_present=val_present, required=.false.)
+          if (val_present) then
+            if (trim(solved) == "on") then
+              call get_value(dict_var, "name", variable)
+              var = adjustl(variable)
+              solved_variables = [solved_variables, var]
+            end if
           end if
         end do
       class default
