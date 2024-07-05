@@ -87,6 +87,8 @@ contains
 
     type(fluid) :: flow_fields
 
+    integer :: nbnd
+
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -116,6 +118,12 @@ contains
       mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
     end if
     call set_mesh_object(mesh)
+
+    ! Check the mesh boundaries
+    nbnd = minval(mesh%topo%nb_indices)
+    do i = 1, -nbnd
+      print *, irank, "Boundary ", i, "count = ", count(mesh%topo%nb_indices == -i)
+    end do
 
     if (present(input_dt)) then
       dt = input_dt
