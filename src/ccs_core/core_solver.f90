@@ -69,10 +69,12 @@ contains
 
       ! XXX: Or coupler update here?
       
-      if (par_env%proc_id == par_env%root) then
-        print *, "TIME = ", t
+      if (timestepping_is_active()) then
+        if (par_env%proc_id == par_env%root) then
+          print *, "TIME = ", t
+        end if
       end if
-
+      
       call postproc(par_env, flow_fields)
 
       ! If a STOP file exist, write solution and exit the main simulation loop
@@ -106,10 +108,15 @@ contains
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: t
     
-    associate(num_steps => run_options%solve%num_steps, &
-              write_frequency => run_options%io%write_frequency)
-      check_to_write = ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0))
-    end associate
+    if (timestepping_is_active()) then
+      associate(num_steps => run_options%solve%num_steps, &
+                write_frequency => run_options%io%write_frequency)
+        check_to_write = ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0))
+      end associate
+    else
+      ! End of steady run
+      check_to_write = .true.
+    end if
     
   end function check_to_write
   
