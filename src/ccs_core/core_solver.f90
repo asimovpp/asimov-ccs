@@ -138,7 +138,11 @@ contains
     dt = run_options%solve%dt
     
     call timer_start(timer_index_io_sol)
-    call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+    if (timestepping_is_active()) then
+      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+    else
+      call write_solution(par_env, case_path, mesh, flow_fields)
+    end if
     call timer_stop(timer_index_io_sol)
 
   end subroutine write_step
