@@ -33,7 +33,7 @@ program sandia
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh, write_mesh
+  use mesh_utils, only: read_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use fv, only: update_gradient

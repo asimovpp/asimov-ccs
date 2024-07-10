@@ -22,7 +22,7 @@ module tgv2d_core
                       read_command_line_arguments, sync, is_root
   use parallel_types, only: parallel_environment
   use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
-  use mesh_utils, only: build_square_mesh, write_mesh
+  use mesh_utils, only: build_square_mesh
   use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
   use pv_coupling, only: solve_nonlinear
@@ -34,7 +34,7 @@ module tgv2d_core
   use read_config, only: get_variables, get_boundary_count, get_store_residuals, get_enable_cell_corrections, &
                           get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
-  use io_visualisation, only: write_solution, reset_io_visualisation
+  use io_visualisation, only: reset_io_visualisation
   use fv, only: update_gradient
 
   implicit none
@@ -111,9 +111,6 @@ contains
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
-
-    ! Write out mesh to file
-    call write_mesh(par_env, run_options%paths%case_path, mesh)
     
     call timer(init_time)
 

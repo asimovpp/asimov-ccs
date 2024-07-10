@@ -9,7 +9,6 @@ program ldc
   use petscsys
 
   use core
-  use ccs_base, only: mesh
   use case_config, only: write_gradients, velocity_solver_method_name, &
        velocity_solver_precon_name, &
        pressure_solver_method_name, pressure_solver_precon_name
@@ -28,7 +27,7 @@ program ldc
                       read_command_line_arguments, sync, is_root
   use meshing, only: set_mesh_object, nullify_mesh_object, get_local_num_cells
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_mesh, write_mesh, build_square_mesh
+  use mesh_utils, only: build_mesh, build_square_mesh
   use meshing, only: get_global_num_cells
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use petsctypes, only: vector_petsc
@@ -37,7 +36,6 @@ program ldc
                    get_field, set_is_field_solved, &
                    allocate_fluid_fields, dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use io_visualisation, only: write_solution
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
 
   implicit none
@@ -94,11 +92,6 @@ program ldc
   call timer_stop(timer_index_init)
   call timer_register_start("Solver time inc I/O", timer_index_sol)
   call run_solver(par_env, run_options, postproc_ldc, flow_fields)
-  
-  ! Write out mesh and solution
-  call write_mesh(par_env, run_options%paths%case_name, mesh)
-  
-  call write_solution(par_env, run_options%paths%case_name, mesh, flow_fields)
 
   call timer_stop(timer_index_sol)
 

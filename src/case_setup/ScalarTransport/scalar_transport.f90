@@ -24,7 +24,7 @@ program scalar_transport
                       read_command_line_arguments, &
                       is_root
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_mesh, write_mesh
+  use mesh_utils, only: build_mesh
   use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_local_index, get_boundary_status, get_face_normal, set_mesh_object, nullify_mesh_object
@@ -36,7 +36,6 @@ program scalar_transport
                    get_scheme_name
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_boundary_count, get_store_residuals, get_variables, get_variable_types
-  use io_visualisation, only: write_solution
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, finalise_timestep
 
   implicit none

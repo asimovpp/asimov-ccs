@@ -35,11 +35,10 @@ program bfs
   use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections, &
                          get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh, write_mesh
+  use mesh_utils, only: read_mesh
   use meshing, only: set_mesh_object, nullify_mesh_object
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
-  use io_visualisation, only: write_solution
   use fv, only: update_gradient
   use utils, only: str
   use timers, only: timer_print_all, timer_export_csv
@@ -105,9 +104,6 @@ program bfs
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"
-
-  ! Write out mesh to file
-  call write_mesh(par_env, case_path, mesh)
 
   call activate_timestepping()
   call set_timestep(run_options%solve%dt)

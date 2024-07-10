@@ -20,7 +20,7 @@ program tgv
   use fortran_yaml_c_interface, only: parse
   use fv, only: update_gradient
   use kinds, only: ccs_real, ccs_int, ccs_long
-  use mesh_utils, only: read_mesh, build_mesh, write_mesh
+  use mesh_utils, only: read_mesh, build_mesh
   use parallel, only: initialise_parallel_environment, &
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
@@ -185,11 +185,6 @@ program tgv
   if (irank == par_env%root) print *, "Start SIMPLE"
   call calc_kinetic_energy(par_env, u, v, w)
   call calc_enstrophy(par_env, u, v, w)
-
-  ! Write out mesh to file
-  call timer_register_start("I/O time for mesh", timer_index_io_init)
-  call write_mesh(par_env, run_options%paths%case_path, mesh)
-  call timer_stop(timer_index_io_init)
 
   ! XXX: This should get incorporated as part of create_field subroutines
   call set_is_field_solved(u_sol, u)
