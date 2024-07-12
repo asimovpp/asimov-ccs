@@ -104,7 +104,7 @@ contains
 
     type(type_error), allocatable :: io_err
     integer :: u
-
+  
     select type (dict)
     type is (type_dictionary)
 
@@ -354,7 +354,7 @@ contains
           write (key, '(A, I0)') "variable_", i
           print *, i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
-          call get_value(dict_var, "solve", solved, value_present=val_present, required=.false.)
+          call get_value(dict_var, 'solve', solved, value_present=val_present, required=.false.)
           if (val_present) then
             if (trim(solved) == "on") then
               call get_value(dict_var, "name", variable)
