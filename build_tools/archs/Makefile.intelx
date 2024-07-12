@@ -2,7 +2,7 @@ CC = mpiicc -cc=icx
 CFLAGS = -O3
 
 FC = mpiifort -fc=ifx
-FFLAGS = -cpp -fPIC -stand f18
+FFLAGS = -cpp -fPIC -stand f18 -diag-disable=5268
 ifeq ($(VERBOSE),yes)
   FFLAGS += -DVERBOSE
 endif
