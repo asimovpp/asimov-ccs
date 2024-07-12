@@ -61,7 +61,6 @@ program tgv
 
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
-  integer(ccs_int):: timer_index_io_init
   integer(ccs_int):: timer_index_io_sol
   integer(ccs_int):: timer_index_sol
   integer(ccs_int):: i
