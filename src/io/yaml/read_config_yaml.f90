@@ -108,7 +108,6 @@ contains
     select type (dict)
     type is (type_dictionary)
 
-      print *, "keyword = ", keyword
       string_val = dict%get_string(keyword, error=io_err)
       string_val = trim(string_val)
 
@@ -355,17 +354,12 @@ contains
           print *, i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
           call get_value(dict_var, "solve", solved, value_present=val_present, required=.false.)
-          print *, "solved = ", solved
           if (val_present) then
             if (trim(solved) == "on") then
               call get_value(dict_var, "name", variable)
-              print *, "variable = ", variable
               var = adjustl(variable)
               solved_variables = [solved_variables, var]
-              print *, "var = ", var
             end if
-          else
-            print *, "value not present"
           end if
         end do
         class default
