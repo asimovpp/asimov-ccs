@@ -103,20 +103,27 @@ contains
     logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
     type(type_error), allocatable :: io_err
+    integer :: u
 
     select type (dict)
     type is (type_dictionary)
 
-      string_val = trim(dict%get_string(keyword, error=io_err))
-      if (present(value_present)) then
-        if (allocated(io_err)) then
+      print *, "keyword = ", keyword
+      string_val = dict%get_string(keyword, error=io_err)
+      string_val = trim(string_val)
+
+      if (present(value_present) .eqv. .true.) then
+        open(newunit=u,file='/dev/null',status='replace', action='write')
+        write(u,*) "value_present present?", present(value_present)
+        close(u)
+        if (allocated(io_err) .eqv. .true.) then
           value_present = .false.
         else
           value_present = .true.
         end if
       end if
 
-    class default
+      class default
       call error_abort("Unknown type")
     end select
 
@@ -333,7 +340,7 @@ contains
     character(len=ccs_string_len) :: var
     logical :: val_present
 
-    allocate(solved_variables(0))
+   allocate(solved_variables(0))
     
     select type (config_file)
     type is (type_dictionary)
@@ -347,18 +354,22 @@ contains
           write (key, '(A, I0)') "variable_", i
           print *, i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
-          solved = ""
           call get_value(dict_var, "solve", solved, value_present=val_present, required=.false.)
+          print *, "solved = ", solved
           if (val_present) then
             if (trim(solved) == "on") then
               call get_value(dict_var, "name", variable)
+              print *, "variable = ", variable
               var = adjustl(variable)
               solved_variables = [solved_variables, var]
+              print *, "var = ", var
             end if
+          else
+            print *, "value not present"
           end if
         end do
-      class default
-        call error_abort("Unknown type")
+        class default
+          call error_abort("Unknown type")
       end select
 
     class default
