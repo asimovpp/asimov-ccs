@@ -16,6 +16,11 @@
     - source setup_gitlab_runner_env
     - source ${INTEL_SETUP} 32bit
 
+.setup_intelx:
+  before_script:
+    - source setup_gitlab_runner_env
+    - source ${INTEL_SETUP} 32bit intelx
+
 .setup_cray:
   before_script:
     - source setup_gitlab_runner_env
@@ -90,13 +95,13 @@ test_intel:
 #-----------------------------------------------------------------------------#
 
 debug_build_intelx:
-  extends: [.general_setup, .setup_intel]
+  extends: [.general_setup, .setup_intelx]
   script:
     - HOME=${CI_HOME} CMP=intelx BUILD=debug make all
   allow_failure: true
 
 build_intelx:
-  extends: [.general_setup, .setup_intel]
+  extends: [.general_setup, .setup_intelx]
   script:
     - HOME=${CI_HOME} CMP=intelx make obj
   artifacts:
@@ -106,7 +111,7 @@ test_intelx:
   needs: 
     - job: build_intelx
       artifacts: true
-  extends: [.general_setup, .setup_intel, .test_common]
+  extends: [.general_setup, .setup_intelx, .test_common]
   script:
     - HOME=${CI_HOME} CMP=intelx make tests
 
