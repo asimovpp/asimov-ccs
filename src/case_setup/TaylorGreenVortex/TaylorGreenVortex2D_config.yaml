@@ -87,6 +87,7 @@ variables:
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 4
