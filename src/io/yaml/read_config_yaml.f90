@@ -108,19 +108,20 @@ contains
     select type (dict)
     type is (type_dictionary)
 
+      open(newunit=u,file='/dev/null',status='replace', action='write')
+      write(u,*) "keyword = ", keyword
       string_val = dict%get_string(keyword, error=io_err)
       string_val = trim(string_val)
 
       if (present(value_present) .eqv. .true.) then
-        open(newunit=u,file='/dev/null',status='replace', action='write')
         write(u,*) "value_present present?", present(value_present)
-        close(u)
         if (allocated(io_err) .eqv. .true.) then
           value_present = .false.
         else
           value_present = .true.
         end if
       end if
+      close(u)
 
       class default
       call error_abort("Unknown type")
