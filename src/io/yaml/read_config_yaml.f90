@@ -125,7 +125,7 @@ contains
       end if
       close(u)
 
-      class default
+    class default
       call error_abort("Unknown type")
     end select
 
@@ -149,14 +149,9 @@ contains
     call get_string_value(dict, keyword, string_val, value_present=string_present, &
                           required=required)
     if (string_present) then
-      ! Parse truth value of string
-      if(string_val == 'true') then
-        logical_val = .true.
-      else if (string_val == 'false') then
-        logical_val = .false.
-      else 
-        call error_abort("Set the value for " // keyword // " to true or false, not " // string_val)
-      end if
+      logical_val = parse_logic_string(string_val)
+    else
+      logical_val = .false.
     end if
 
     if (present(value_present)) then
@@ -164,6 +159,21 @@ contains
     end if
 
   end subroutine get_logical_value
+
+  logical function parse_logic_string(str)
+
+    character(len=*), intent(in) :: str
+
+    if(string_val == 'true') then
+      parse_logic_string = .true.
+    else if (string_val == 'false') then
+      parse_logic_string = .false.
+    else 
+      parse_logic_string = .false.
+      call error_abort("The string " // str // " cannot be parsed as a logic value")
+    end if
+
+  end function parse_logic_string
  
   subroutine error_handler(io_err)
     type(type_error), pointer, intent(inout) :: io_err
