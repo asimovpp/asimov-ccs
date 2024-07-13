@@ -12,10 +12,14 @@ program test_read_config_yaml
   character(len=*), parameter :: config_yaml = "config.yml"
   class(*), pointer :: config_file !< Pointer to config file
   
+  logical :: expected, required
+  
   call init()
   call setup()
 
-  call test_read_values(config_file)
+  expected = .true. ! Expect to find values
+  required = .true. ! Require to find values
+  call test_read_values(config_file, expected, required)
   call test_read_dict(config_file)
   
   call fin()
@@ -35,9 +39,11 @@ contains
 
   end subroutine setup
 
-  subroutine test_read_values(conf_file)
+  subroutine test_read_values(conf_file, expected, required)
 
     class(*), pointer, intent(in) :: conf_file
+    logical, intent(in) :: expected !< Is the value expected to be found?
+    logical, intent(in) :: required !< Is the value required to be found?
 
     integer :: ival
     real(ccs_real) :: rval
@@ -46,40 +52,40 @@ contains
 
     logical :: val_present
 
-    call get_value(conf_file, "integer", ival, val_present, required=.true.)
-    if (.not. val_present) then
+    call get_value(conf_file, "integer", ival, val_present, required=required)
+    if (val_present .neqv. expected) then
       call stop_test("Integer value was not found")
     end if
     if (ival /= 42) then
       call stop_test("Integer value does not match expectation")
     end if
 
-    call get_value(conf_file, "real", rval, val_present, required=.true.)
-    if (.not. val_present) then
-      call stop_test("Real value was not found")
+    call get_value(conf_file, "real", rval, val_present, required=required)
+    if (val_present .neqv. expected) then
+      call stop_test("Real value status does not meet expectation")
     end if
     if (rval /= 3.14_ccs_real) then
       call stop_test("Real value does not match expectation")
     end if
 
-    call get_value(conf_file, "string", sval, val_present, required=.true.)
-    if (.not. val_present) then
-      call stop_test("String value was not found")
+    call get_value(conf_file, "string", sval, val_present, required=required)
+    if (val_present .neqv. expected) then
+      call stop_test("String value status does not meet expectation")
     end if
     if (sval /= "Hello world!") then
       call stop_test("String value does not match expectation")
     end if
     
-    call get_value(conf_file, "yes", lval, val_present, required=.true.)
-    if (.not. val_present) then
-      call stop_test("Logical (true) value was not found")
+    call get_value(conf_file, "yes", lval, val_present, required=required)
+    if (val_present .neqv. expected) then
+      call stop_test("Logical (true) value status does not meet expectation")
     end if
     if (.not. lval) then
       call stop_test("Logial (true) value does not match expectation")
     end if
-    call get_value(conf_file, "no", lval, val_present, required=.true.)
-    if (.not. val_present) then
-      call stop_test("Logical (false) value was not found")
+    call get_value(conf_file, "no", lval, val_present, required=required)
+    if (val_present .neqv. expected) then
+      call stop_test("Logical (false) value status does not meet expectation")
     end if
     if (lval) then
       call stop_test("Logial (false) value does not match expectation")
@@ -97,13 +103,16 @@ contains
     class(*), pointer :: dict
     type(type_error), allocatable :: io_err
 
+    logical :: expected, required
+
     select type(conf_file)
     type is(type_dictionary)
 
       print *, "Reading dictionary values"
       dict => conf_file%get_dictionary("present", required=.true., error=io_err)
-
-      call test_read_values(dict)
+      expected = .true. ! Expect to find values
+      required = .true. ! Require to find values
+      call test_read_values(dict, expected, required)
 
     class default
       call stop_test("Invalid config file dictionary")
