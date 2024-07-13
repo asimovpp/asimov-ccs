@@ -164,9 +164,9 @@ contains
 
     character(len=*), intent(in) :: str
 
-    if(string_val == 'true') then
+    if(str == 'true') then
       parse_logic_string = .true.
-    else if (string_val == 'false') then
+    else if (str == 'false') then
       parse_logic_string = .false.
     else 
       parse_logic_string = .false.
