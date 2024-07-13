@@ -12,3 +12,6 @@ present:
   no: false
 
 absent:
+  foo: bar
+
+not_a_dict: baz

@@ -52,43 +52,58 @@ contains
 
     logical :: val_present
 
+    print *, "- read integer"
     call get_value(conf_file, "integer", ival, val_present, required=required)
     if (val_present .neqv. expected) then
-      call stop_test("Integer value was not found")
+      call stop_test("Integer value status does not meet expectation")
     end if
-    if (ival /= 42) then
-      call stop_test("Integer value does not match expectation")
+    if (val_present) then
+      if (ival /= 42) then
+        call stop_test("Integer value does not match expectation")
+      end if
     end if
 
+    print *, "- read real"
     call get_value(conf_file, "real", rval, val_present, required=required)
     if (val_present .neqv. expected) then
       call stop_test("Real value status does not meet expectation")
     end if
-    if (rval /= 3.14_ccs_real) then
-      call stop_test("Real value does not match expectation")
+    if (val_present) then
+      if (rval /= 3.14_ccs_real) then
+        call stop_test("Real value does not match expectation")
+      end if
     end if
 
+    print *, "- read string"
     call get_value(conf_file, "string", sval, val_present, required=required)
     if (val_present .neqv. expected) then
       call stop_test("String value status does not meet expectation")
     end if
-    if (sval /= "Hello world!") then
-      call stop_test("String value does not match expectation")
+    if (val_present) then
+      if (sval /= "Hello world!") then
+        call stop_test("String value does not match expectation")
+      end if
     end if
-    
+
+    print *, "- read logical true"
     call get_value(conf_file, "yes", lval, val_present, required=required)
     if (val_present .neqv. expected) then
       call stop_test("Logical (true) value status does not meet expectation")
     end if
-    if (.not. lval) then
-      call stop_test("Logial (true) value does not match expectation")
+    if (val_present) then
+      if (.not. lval) then
+        call stop_test("Logial (true) value does not match expectation")
+      end if
     end if
+    print *, "- read logical false"
     call get_value(conf_file, "no", lval, val_present, required=required)
     if (val_present .neqv. expected) then
       call stop_test("Logical (false) value status does not meet expectation")
     end if
-    if (lval) then
-      call stop_test("Logial (false) value does not match expectation")
+    if (val_present) then
+      if (lval) then
+        call stop_test("Logial (false) value does not match expectation")
+      end if
     end if
     
   end subroutine test_read_values
@@ -109,10 +124,26 @@ contains
     type is(type_dictionary)
 
       print *, "Reading dictionary values"
+
+      ! Read from dictionary with values
+      print *, "+ Dictionary: present"
       dict => conf_file%get_dictionary("present", required=.true., error=io_err)
       expected = .true. ! Expect to find values
       required = .true. ! Require to find values
       call test_read_values(dict, expected, required)
+
+      ! Read from dictionary without values
+      print *, "+ Dictionary: absent"
+      dict => conf_file%get_dictionary("absent", required=.true., error=io_err)
+      expected = .false. ! Expect to find values
+      required = .false. ! Require to find values
+      call test_read_values(dict, expected, required)
+
+      ! Try to read a value as a dictionary
+      dict => conf_file%get_dictionary("not_a_dict", required=.true., error=io_err)
+      if (.not. allocated(io_err)) then
+        call stop_test("Non-dictionary should have raised an error")
+      end if
 
     class default
       call stop_test("Invalid config file dictionary")
