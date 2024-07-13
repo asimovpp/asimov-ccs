@@ -16,6 +16,7 @@ program test_read_config_yaml
   call setup()
 
   call test_read_values(config_file)
+  call test_read_dict(config_file)
   
   call fin()
 
@@ -85,5 +86,29 @@ contains
     end if
     
   end subroutine test_read_values
+
+  ! Test reading values from a dictionary
+  subroutine test_read_dict(conf_file)
+
+    use fortran_yaml_c, only: type_dictionary, type_error
+
+    class(*), pointer, intent(in) :: conf_file
+
+    class(*), pointer :: dict
+    type(type_error), allocatable :: io_err
+
+    select type(conf_file)
+    type is(type_dictionary)
+
+      print *, "Reading dictionary values"
+      dict => conf_file%get_dictionary("present", required=.true., error=io_err)
+
+      call test_read_values(dict)
+
+    class default
+      call stop_test("Invalid config file dictionary")
+    end select
+
+  end subroutine test_read_dict
   
 end program test_read_config_yaml

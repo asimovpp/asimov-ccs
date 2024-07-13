@@ -3,3 +3,12 @@ real: 3.14
 string: Hello world!
 yes: true
 no: false
+
+present:
+  integer: 42
+  real: 3.14
+  string: Hello world!
+  yes: true
+  no: false
+
+absent:
