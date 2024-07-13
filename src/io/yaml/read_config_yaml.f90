@@ -143,40 +143,25 @@ contains
     logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
     logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
-    type(type_error), allocatable :: io_err
     character(len=:), allocatable :: string_val !< The corresponding value
+    logical :: string_present
 
-    select type (dict)
-    type is (type_dictionary)
-
-      string_val = dict%get_string(keyword, error=io_err)
-      if (.not. allocated(io_err)) then
-        if(string_val == 'true') then
-          logical_val = .true.
-        else if (string_val == 'false') then
-          logical_val = .false.
-        else 
-          call error_abort("Set the value for " // keyword // " to true or false, not " // string_val)
-        end if
-
-        if (present(value_present)) then
-          value_present = .true.
-        end if
-      else
-        if (present(value_present)) then
-          value_present = .false.
-        end if
-
-        if (present(required)) then
-          if (required) then
-            call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
-          end if
-        end if
+    call get_string_value(dict, keyword, string_val, value_present=string_present, &
+                          required=required)
+    if (string_present) then
+      ! Parse truth value of string
+      if(string_val == 'true') then
+        logical_val = .true.
+      else if (string_val == 'false') then
+        logical_val = .false.
+      else 
+        call error_abort("Set the value for " // keyword // " to true or false, not " // string_val)
       end if
+    end if
 
-    class default
-      call error_abort("Unknown type")
-    end select
+    if (present(value_present)) then
+      value_present = string_present
+    end if
 
   end subroutine get_logical_value
  
