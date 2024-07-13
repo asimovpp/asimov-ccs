@@ -111,8 +111,10 @@ contains
       open(newunit=u,file='/dev/null',status='replace', action='write')
       write(u,*) "keyword = ", keyword
       string_val = dict%get_string(keyword, error=io_err)
-      string_val = trim(string_val)
-
+      if (.not. allocated(io_err)) then
+        string_val = trim(string_val)
+      end if
+      
       if (present(value_present) .eqv. .true.) then
         write(u,*) "value_present present?", present(value_present)
         if (allocated(io_err) .eqv. .true.) then
