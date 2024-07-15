@@ -148,13 +148,13 @@ contains
 
     call get_string_value(dict, keyword, string_val, value_present=string_present, &
                           required=required)
-    if (string_present) then
+    if (string_present .eqv. .true.) then
       logical_val = parse_logic_string(string_val)
     else
       logical_val = .false.
     end if
 
-    if (present(value_present)) then
+    if (present(value_present) .eqv. .true.) then
       value_present = string_present
     end if
 
