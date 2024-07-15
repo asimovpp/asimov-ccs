@@ -9,8 +9,7 @@ endif
 ifeq ($(BUILD),debug)
   # Add debugging (i.e. expensive) flags
   FFLAGS += -g 
-  FFLAGS += -check bounds
-  FFLAGS += -fpe0
+  FFLAGS += -check all
   FFLAGS += -warn all,noexternals
 else
   FFLAGS += -O3
