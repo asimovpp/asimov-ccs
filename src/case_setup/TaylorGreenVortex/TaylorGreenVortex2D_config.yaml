@@ -67,6 +67,7 @@ compute_bwidth : false
 
 variables:
   store_residuals: false
+  enable_cell_corrections: false
   n_variables: 5
   variable_1:
     name: u
