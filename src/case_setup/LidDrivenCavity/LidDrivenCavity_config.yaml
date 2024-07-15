@@ -18,6 +18,12 @@ relaxation_factor:
 
 target_residual: 1.0e-10
 
+# Report partition quality (true/false)
+compute_partqual : false
+
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:
