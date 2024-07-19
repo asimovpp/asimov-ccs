@@ -45,8 +45,8 @@ module read_config
     module subroutine get_integer_value(dict, keyword, int_val, value_present, required)
       class(*), pointer, intent(in) :: dict     !< The dictionary
       character(len=*), intent(in) :: keyword   !< The key
-      integer, intent(out) :: int_val           !< The corresponding value
-      logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      integer, intent(inout) :: int_val           !< The corresponding value
+      logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
     end subroutine
 
@@ -56,8 +56,8 @@ module read_config
     module subroutine get_real_value(dict, keyword, real_val, value_present, required)
       class(*), pointer, intent(in) :: dict            !< The dictionary to read from
       character(len=*), intent(in) :: keyword          !< The key to read
-      real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
-      logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      real(ccs_real), intent(inout) :: real_val          !< The value read from the dictionary
+      logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
     end subroutine
 
@@ -74,7 +74,7 @@ module read_config
     module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
       class(*), pointer, intent(in) :: dict                       !< The dictionary
       character(len=*), intent(in) :: keyword                     !< The key
-      logical, intent(out) :: logical_val !< The corresponding value
+      logical, intent(inout) :: logical_val !< The corresponding value
       logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
