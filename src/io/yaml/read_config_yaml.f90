@@ -99,10 +99,11 @@ contains
     logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
     type(type_error), allocatable :: io_err
-  
+
     select type (dict)
     type is (type_dictionary)
 
+      string_val = ""
       string_val = dict%get_string(keyword, error=io_err)
 
       if (allocated(io_err)) then
