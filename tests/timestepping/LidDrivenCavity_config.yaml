@@ -18,8 +18,8 @@ relaxation_factor:
 
 target_residual: 1.0e-10
 
-compute_partqual: false
-compute_bwidth: false
+#compute_partqual: false
+#compute_bwidth: false
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
