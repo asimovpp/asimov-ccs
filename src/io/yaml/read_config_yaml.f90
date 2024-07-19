@@ -34,12 +34,16 @@ contains
     type is (type_dictionary)
 
       int_val = dict%get_integer(keyword, error=io_err)
-      ! call error_handler(io_err)
 
-      if (present(value_present)) then
-        if (allocated(io_err)) then
+      if (allocated(io_err)) then
+        if (present(value_present)) then
           value_present = .false.
-        else
+        end if
+        if(present(required) .and. required .eqv. .true.) then
+          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        end if
+      else
+        if (present(value_present)) then
           value_present = .true.
         end if
       end if
@@ -47,15 +51,7 @@ contains
     class default
       call error_abort("Unknown type")
     end select
-
-    if (allocated(io_err)) then
-      if (present(required)) then
-        if (required) then
-          call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
-        end if
-      end if
-    end if
-    
+   
   end subroutine
 
   !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
@@ -74,10 +70,16 @@ contains
     type is (type_dictionary)
 
       real_val = dict%get_real(keyword, error=io_err)
-      if (present(value_present)) then
-        if (allocated(io_err)) then
+
+      if (allocated(io_err)) then
+        if (present(value_present)) then
           value_present = .false.
-        else
+        end if
+        if(present(required) .and. required .eqv. .true.) then
+          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        end if
+      else
+        if (present(value_present)) then
           value_present = .true.
         end if
       end if
@@ -85,12 +87,6 @@ contains
     class default
       call error_abort("Unknown type")
     end select
-
-    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
-      if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
-      end if
-    end if
 
   end subroutine
 
@@ -98,65 +94,68 @@ contains
   module subroutine get_string_value(dict, keyword, string_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
-    character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
-    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+    character(len=:), allocatable, intent(out) :: string_val  !< The corresponding value
+    logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
     logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
     type(type_error), allocatable :: io_err
-    integer :: u
   
     select type (dict)
     type is (type_dictionary)
 
-      open(newunit=u,file='/dev/null',status='replace', action='write')
-      write(u,*) "keyword = ", keyword
       string_val = dict%get_string(keyword, error=io_err)
-      if (.not. allocated(io_err)) then
-        string_val = trim(string_val)
-      end if
-      
-      if (present(value_present) .eqv. .true.) then
-        write(u,*) "value_present present?", present(value_present)
-        if (allocated(io_err) .eqv. .true.) then
+
+      if (allocated(io_err)) then
+        ! print *, "Keyword ", keyword, " not in YAML file"
+        if (present(value_present)) then
           value_present = .false.
-        else
+        end if
+        if(present(required) .and. required .eqv. .true.) then
+          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        end if
+      else
+        string_val = trim(string_val)
+        if (present(value_present)) then
           value_present = .true.
         end if
       end if
-      close(u)
-
+      
     class default
       call error_abort("Unknown type")
     end select
 
-    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
-      if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword // ". Possibly missing keyword in yaml file.")
-      end if
-    end if
   end subroutine
 
   module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
-    logical, intent(inout) :: logical_val                       !< The corresponding value
-    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+    logical, intent(out) :: logical_val                       !< The corresponding value
+    logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
     logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
-    character(len=:), allocatable :: string_val !< The corresponding value
-    logical :: string_present
+    type(type_error), allocatable :: io_err
 
-    call get_string_value(dict, keyword, string_val, value_present=string_present, &
-                          required=required)
-    if (string_present .eqv. .true.) then
-      logical_val = parse_logic_string(string_val)
-    else
-      logical_val = .false.
-    end if
+    select type (dict)
+    type is (type_dictionary)
 
-    if (present(value_present) .eqv. .true.) then
-      value_present = string_present
-    end if
+      logical_val = dict%get_logical(keyword, error=io_err)
+      if (allocated(io_err)) then
+        ! print *, "Keyword ", keyword, " not in YAML file"
+        if (present(value_present)) then
+          value_present = .false.
+        end if
+        if(present(required) .and. required .eqv. .true.) then
+          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        end if
+      else
+        if (present(value_present)) then
+          value_present = .true.
+        end if
+      end if
+
+    class default
+      call error_abort("Unknown type")
+    end select
 
   end subroutine get_logical_value
 
