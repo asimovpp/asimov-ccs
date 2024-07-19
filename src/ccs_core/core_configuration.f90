@@ -126,8 +126,8 @@ contains
       mesh_opt%domain_size = domain_size
     end if
 
-    call get_value(config_file, 'compute_bwidth', mesh_opt%compute_bwidth)
-    call get_value(config_file, 'compute_partqual', mesh_opt%compute_partqual)
+    call get_value(config_file, 'compute_bwidth', mesh_opt%compute_bwidth, required=.false.)
+    call get_value(config_file, 'compute_partqual', mesh_opt%compute_partqual, required=.false.)
     
   end subroutine get_mesh_options
 
