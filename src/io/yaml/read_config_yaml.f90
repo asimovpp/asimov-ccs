@@ -39,8 +39,10 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required) .and. required .eqv. .true.) then
-          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        if(present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
         end if
       else
         if (present(value_present)) then
@@ -75,8 +77,10 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required) .and. required .eqv. .true.) then
-          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        if(present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
         end if
       else
         if (present(value_present)) then
@@ -111,8 +115,10 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required) .and. required .eqv. .true.) then
-          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        if(present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
         end if
       else
         string_val = trim(string_val)
@@ -145,8 +151,10 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required) .and. required .eqv. .true.) then
-          call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+        if(present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
         end if
       else
         if (present(value_present)) then
