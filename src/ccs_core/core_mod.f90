@@ -23,6 +23,7 @@ module core
   public :: run_solver
   public :: ccs_options
 
+  integer(ccs_int), parameter :: mesh_null = 0
   integer(ccs_int), parameter, public :: read_input_mesh = 1
   integer(ccs_int), parameter, public :: build_mesh_2d = 2
   integer(ccs_int), parameter, public :: build_mesh_3d = 3
@@ -37,9 +38,9 @@ module core
   
   !v Options for the mesh configuration
   type :: mesh_options
-    integer(ccs_int) :: init_mesh_type
+    integer(ccs_int) :: init_mesh_type = mesh_null
     integer(ccs_int) :: cps = huge(0)
-    real(ccs_real) :: domain_size
+    real(ccs_real) :: domain_size = 0.0_ccs_real
     logical :: compute_bwidth = .true.
     logical :: compute_partqual = .true.
   end type mesh_options

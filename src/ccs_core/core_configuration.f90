@@ -104,6 +104,9 @@ contains
     type(mesh_options), intent(out) :: mesh_opt
 
     real(ccs_real) :: domain_size
+    logical :: bwidth, partqual
+
+    mesh_opt = mesh_options()
 
     mesh_opt%init_mesh_type = build_mesh_2d
     if (mesh_opt%init_mesh_type == read_input_mesh) then
@@ -126,8 +129,10 @@ contains
       mesh_opt%domain_size = domain_size
     end if
 
-    call get_value(config_file, 'compute_bwidth', mesh_opt%compute_bwidth, required=.false.)
-    call get_value(config_file, 'compute_partqual', mesh_opt%compute_partqual, required=.false.)
+    call get_value(config_file, 'compute_bwidth', bwidth, required=.false.)
+    call get_value(config_file, 'compute_partqual', partqual, required=.false.)
+    mesh_opt%compute_bwidth = bwidth
+    mesh_opt%compute_partqual = partqual
     
   end subroutine get_mesh_options
 
