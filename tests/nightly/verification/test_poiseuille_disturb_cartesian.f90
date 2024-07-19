@@ -4,6 +4,7 @@
 program test_poiseuille_disturb_cartesian
 #include "ccs_macros.inc"
 
+  use core
   use testing_lib
   use error_analysis, only: get_order, print_error_summary, disturb_cartesian
   use mesh_utils, only: build_square_mesh
