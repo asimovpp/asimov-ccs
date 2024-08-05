@@ -84,17 +84,11 @@ contains
       call error_abort(trim(error))
     end if
 
-    print *, "+ VARS"
     call get_variable_definitions(config_file, run_options%variables)
-    print *, "+ REFS"
     call get_reference_values(config_file, run_options%reference_values)
-    print *, "+ SOL"
     call get_solver_options(config_file, run_options%solve)
-    print *, "+ IO"
     call get_io_options(config_file, run_options%io)
-    print *, "+ MSH"
     call get_mesh_options(config_file, run_options%mesh)
-    print *, "+ DONE"
 
   end subroutine
 
@@ -122,7 +116,6 @@ contains
     end if
       
     if (mesh_opt%init_mesh_type == read_input_mesh) then
-      call error_abort("Reading the mesh hasn't been implemented yet!")
     else
       if (cps_cmdline == huge(0)) then  ! cps was not set on the command line
         call get_value(config_file, 'cps', mesh_opt%cps)
@@ -189,12 +182,9 @@ contains
     variables%variable_names = variable_names
     variables%variable_types = variable_types
     
-    print *, "++ OUT"
     ! call get_output_type(config_file, post_type, variables%output_variables)
     variables%output_variables = ['u', 'v', 'w', 'p']
-    print *, "++ SOL"
     call get_solve(config_file, variables%solved_variables)
-    print *, "++ DONE"
 
   end subroutine get_variable_definitions
 

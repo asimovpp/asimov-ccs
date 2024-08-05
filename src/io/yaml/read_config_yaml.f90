@@ -650,7 +650,6 @@ contains
 
       dict => config_file%get_dictionary('post', required=.false., error=io_err)
 
-      print *, "+++++ 1"
       if (.not. allocated(io_err)) then
         ! print *, "Reading post type"
         ! call get_value(dict, "type", post_type)
@@ -658,19 +657,14 @@ contains
         select type (dict)
         type is (type_dictionary)
 
-          print *, "+++++ 2"
           list => dict%get_list('variables', required=.false., error=io_err)
           ! call error_handler(io_err)
 
-          print *, "+++++ 2.1"
           if (.not. allocated(io_err)) then
-            print *, "+++++ 2.2"
             item => list%first
-            print *, "+++++ 3"
             do while (associated(item))
               select type (element => item%node)
               class is (type_scalar)
-                print *, "+++++ 4"
                 elt = ""
                 elt = element%string
                 print *, elt
