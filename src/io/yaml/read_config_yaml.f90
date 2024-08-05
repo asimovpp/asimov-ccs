@@ -357,7 +357,6 @@ contains
       type is(type_dictionary)
         do i = 1, n_var
           write (key, '(A, I0)') "variable_", i
-          print *, i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
           call get_value(dict_var, 'solve', solved, value_present=val_present, required=.false.)
           if (val_present) then
@@ -375,8 +374,6 @@ contains
     class default
       call error_abort("Unknown type")
     end select
-
-    print *, "Solved variables = ", solved_variables
 
   end subroutine
 
@@ -667,7 +664,6 @@ contains
               class is (type_scalar)
                 elt = ""
                 elt = element%string
-                print *, elt
                 post_vars = [post_vars, elt]
                 item => item%next
               end select
@@ -802,7 +798,6 @@ contains
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
           ! call error_handler(io_err)
           call get_value(dict_var, "name", variable)
-          print *, "Found variable ", variable
           write (variables(i), '(A)') trim(variable)
         class default
           call error_abort("type unhandled")
@@ -841,7 +836,6 @@ contains
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
           ! call error_handler(io_err)
           call get_value(dict_var, "type", scheme)
-          print *, scheme
           variable_types(i) = get_scheme_id(trim(scheme))
         class default
           call error_abort("type unhandled")

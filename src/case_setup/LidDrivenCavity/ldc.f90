@@ -52,10 +52,8 @@ program ldc
   type(ccs_options) :: run_options
 
   ! Launch MPI
-  print *, "START"
   call initialise_parallel_environment(par_env)
   call timer_init()
-  print *, "INIT'd PAR ENV"
 
   irank = par_env%proc_id
   isize = par_env%num_procs
@@ -63,9 +61,7 @@ program ldc
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
   call timer_register_start("Init time", timer_index_init)
 
-  print *, "GET CONF"
   call get_config(par_env, run_options)
-  print *, "CONFIG PAR"
   call configure_parallelism(run_options, par_env, shared_env)
   if (irank == par_env%root) print *, "Starting ", run_options%paths%case_name, " case!"
 
@@ -76,7 +72,6 @@ program ldc
   pressure_solver_precon_name = "gamg"
 
   ! Create a mesh
-  print *, "INIT MESH"
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
