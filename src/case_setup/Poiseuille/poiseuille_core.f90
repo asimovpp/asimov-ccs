@@ -26,7 +26,6 @@ module poiseuille_core
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
-  use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &

@@ -106,9 +106,21 @@ contains
     real(ccs_real) :: domain_size
     logical :: bwidth, partqual
 
+    character(len=:), allocatable :: mesh_type
+
     mesh_opt = mesh_options()
 
-    mesh_opt%init_mesh_type = build_mesh_2d
+    call get_value(config_file, "mesh", mesh_type)
+    if (mesh_type == "2d") then
+      mesh_opt%init_mesh_type = build_mesh_2d
+    else if (mesh_type == "3d") then
+      mesh_opt%init_mesh_type = build_mesh_3d
+    else if (mesh_type == "read") then
+      mesh_opt%init_mesh_type = read_input_mesh
+    else
+      call error_abort("Unknown mesh specification - have you set `mesh: <2d|3d|read>' in the config file?")
+    end if
+      
     if (mesh_opt%init_mesh_type == read_input_mesh) then
       call error_abort("Reading the mesh hasn't been implemented yet!")
     else
@@ -269,7 +281,6 @@ contains
   ! Print test case configuration
   subroutine print_configuration(par_env, run_options)
 
-    use ccs_base, only: mesh
     use parallel, only: is_root
 
     class(parallel_environment), intent(in) :: par_env
@@ -304,17 +315,9 @@ contains
           print *, "* Running for ", num_iters, "iterations"
         end if
         print *, "******************************************************************************"
-        print *, "* MESH SIZE"
-        if (cps /= huge(0)) then
-          print *, "* Cells per side: ", cps
-          write (*, '(1x, a, e10.3)') "* Domain size: ", domain_size
-        end if
-        print *, "* Global number of cells is ", mesh%topo%global_num_cells ! XXX: unknown at this point
-        print *, "******************************************************************************"
         print *, "* RELAXATION FACTORS"
         write (*, '(1x, a, e10.3)') "* velocity: ", velocity_relax
         write (*, '(1x, a, e10.3)') "* pressure: ", pressure_relax
-        print *, "******************************************************************************"
       end associate
       print *, "******************************************************************************"
       print *, "* REFERENCE VALUES"

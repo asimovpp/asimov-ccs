@@ -25,7 +25,6 @@ module tgv2d_core
   use mesh_utils, only: build_square_mesh
   use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
-  use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, reset_outputlist_counter, get_field, add_field, &
                    set_is_field_solved, &

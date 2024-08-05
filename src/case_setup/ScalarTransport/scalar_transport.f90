@@ -86,7 +86,7 @@ program scalar_transport
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start scalar solver"
 
-  ! ! Write out mesh and solution
+  ! Write out mesh and solution
   call run_solver(par_env, run_options, postproc_scalar, flow_fields)
 
   ! Clean-up

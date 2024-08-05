@@ -12,6 +12,7 @@ submodule (core) core_solver
   use ccs_base, only: mesh
   
   use pv_coupling, only: solve_nonlinear
+  use scalars, only: update_scalars
 
   use timers, only: timer_register, timer_start, timer_stop
 
@@ -46,6 +47,8 @@ contains
     logical:: diverged = .false.
 
     integer(ccs_int) :: write_frequency
+
+    logical :: flow_sol
     
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
@@ -55,6 +58,8 @@ contains
       ! num steps may not have been set
       num_steps = 1
     end if
+
+    flow_sol = check_flow_sol(par_env, flow_fields)
     
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
@@ -65,7 +70,12 @@ contains
 
       ! XXX: Coupler update here
       
-      call solve_nonlinear(par_env, run_options, mesh, flow_fields, diverged)
+      if (flow_sol) then
+        call solve_nonlinear(par_env, run_options, mesh, flow_fields, diverged)
+      else
+        ! Only scalar transport
+        call update_scalars(par_env, mesh, flow_fields)
+      end if
 
       ! XXX: Or coupler update here?
       
@@ -91,6 +101,45 @@ contains
     end do
 
   end subroutine run_solver
+
+  !v Check whether we are solving fluid flow or scalars only. If pressure and at least one of u,v,w
+  !  are present then we are solving the flow field, otherwise it is scalar transport with frozen
+  !  flow field.
+  logical function check_flow_sol(par_env, flow_fields) 
+
+    use types, only: field
+    use parallel, only: is_root
+    use utils, only: get_field
+    
+    class(parallel_environment), intent(in) :: par_env
+    type(fluid), intent(in) :: flow_fields
+
+    logical :: have_p, have_vel
+    integer :: i_field
+    class(field), pointer :: phi
+
+    have_p = .false.
+    have_vel = .false.
+
+    do i_field = 1, size(flow_fields%fields)
+      call get_field(flow_fields, i_field, phi)
+      if (phi%name == "p") then
+        have_p = .true.
+      else if ((phi%name == "u") .or. (phi%name == "v") .or. (phi%name == "w")) then
+        have_vel = .true.
+      end if
+    end do
+
+    check_flow_sol = have_p .and. have_vel
+    if (is_root(par_env)) then
+      if (check_flow_sol) then
+        print *, "Solving fluid flow"
+      else
+        print *, "Solving scalar transport only"
+      end if
+    end if
+    
+  end function check_flow_sol
 
   logical function check_stop_run(par_env, diverged)
 

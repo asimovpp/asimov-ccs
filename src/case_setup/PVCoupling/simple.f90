@@ -25,7 +25,6 @@ program simple
   use mesh_utils, only: build_square_mesh
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
-  use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, get_field, add_field, &
                    set_is_field_solved, &
                    allocate_fluid_fields

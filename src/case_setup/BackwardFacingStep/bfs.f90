@@ -26,7 +26,6 @@ program bfs
                       create_new_par_env, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
-  use pv_coupling, only: solve_nonlinear
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
