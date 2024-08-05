@@ -140,6 +140,9 @@ contains
 
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
+    if (is_root(par_env)) then
+      print *, "Mesh file:", geo_file
+    end if
 
     call create_shared_roots_comm(par_env, shared_env, reader_env)
 
