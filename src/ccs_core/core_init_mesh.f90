@@ -24,7 +24,7 @@ contains
 
     if (is_root(par_env)) then
       print *, "******************************************************************************"
-      print *, "* MESH SIZE"
+      print *, "* MESH INFO"
     end if
     
     associate (cps => run_options%mesh%cps)
@@ -33,18 +33,18 @@ contains
       case (build_mesh_2d)
         ! Create a cubic mesh
         if (is_root(par_env)) then
-          print *, "Building 2D mesh"
+          print *, "* Building 2D mesh"
         end if
         mesh = build_square_mesh(par_env, shared_env, run_options, cps, run_options%mesh%domain_size)
       case (build_mesh_3d) 
         ! Create a cubic mesh
         if (is_root(par_env)) then
-          print *, "Building 3D mesh"
+          print *, "* Building 3D mesh"
         end if
         mesh = build_mesh(par_env, shared_env, run_options, cps, cps, cps, run_options%mesh%domain_size)
       case (read_input_mesh)
         if (is_root(par_env)) then
-          print *, "Reading mesh file"
+          print *, "* Reading mesh file"
         end if
         call read_mesh(par_env, shared_env, run_options, run_options%paths%case_name, mesh)
       case default
