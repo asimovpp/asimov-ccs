@@ -43,7 +43,8 @@ module tgv2d_core
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
-  real(ccs_real), dimension(3) :: error_L2_global, error_Linf_global
+  ! Global variables to pass error calculations to the postprocessing subroutine
+  real(ccs_real), dimension(3) :: tgv2d_error_L2_global, tgv2d_error_Linf_global
   
 contains
 
@@ -113,11 +114,11 @@ contains
     
     call timer(init_time)
 
-    error_L2_global = 0.0_ccs_real
-    error_Linf_global = 0.0_ccs_real
+    tgv2d_error_L2_global = 0.0_ccs_real
+    tgv2d_error_Linf_global = 0.0_ccs_real
     call run_solver(par_env, run_options, postproc_tgv, flow_fields)
-    error_L2 = error_L2_global
-    error_Linf = error_L2_global
+    error_L2 = tgv2d_error_L2_global
+    error_Linf = tgv2d_error_Linf_global
 
     ! Clean-up
 
@@ -306,7 +307,7 @@ contains
     call get_field(flow_fields, "p", p)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
-    call calc_tgv2d_error(par_env, u, w, v, p, error_L2_global, error_Linf_global)
+    call calc_tgv2d_error(par_env, u, w, v, p, tgv2d_error_L2_global, tgv2d_error_Linf_global)
     nullify(u)
     nullify(v)
     nullify(w)

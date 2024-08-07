@@ -53,7 +53,8 @@ module poiseuille_core
   character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
-  real(ccs_real), dimension(3) :: error_L2_local, error_Linf_local
+  ! Global variables to pass errors to/from postprocessing
+  real(ccs_real), dimension(3) :: pois_error_L2_global, pois_error_Linf_global
   
   contains
 
@@ -139,8 +140,8 @@ module poiseuille_core
     call timer_register_start("Solver time inc I/O", timer_index_sol)
 
     call run_solver(par_env, run_options, postproc_poiseuille, flow_fields)
-    error_L2 = error_L2_local
-    error_Linf = error_Linf_local
+    error_L2 = pois_error_L2_global
+    error_Linf = pois_error_Linf_global
 
     call timer_stop(timer_index_sol)
 
@@ -171,7 +172,7 @@ module poiseuille_core
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
 
-    call calc_error(par_env, u, v, p, error_L2_local, error_Linf_local)
+    call calc_error(par_env, u, v, p, pois_error_L2_global, pois_error_Linf_global)
     nullify(u)
     nullify(v)
     nullify(w)
