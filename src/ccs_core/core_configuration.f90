@@ -89,10 +89,11 @@ contains
 
   end subroutine
 
+  !> Parses the mesh options from the configuration file
   subroutine get_mesh_options(config_file, mesh_opt)
     
-    class(*), pointer, intent(in) :: config_file
-    type(mesh_options), intent(out) :: mesh_opt
+    class(*), pointer, intent(in) :: config_file !< Configuration file handle
+    type(mesh_options), intent(out) :: mesh_opt  !< Object for mesh options
 
     real(ccs_real) :: domain_size
     logical :: bwidth, partqual
@@ -138,10 +139,11 @@ contains
     
   end subroutine get_mesh_options
 
+  !> Parses the IO options from the configuration file
   subroutine get_io_options(config_file, io)
     
-    class(*), pointer, intent(in) :: config_file
-    type(io_options), intent(out) :: io
+    class(*), pointer, intent(in) :: config_file !< Configuration file handle
+    type(io_options), intent(out) :: io          !< Object for IO options
 
     integer(ccs_int) :: write_frequency
 
@@ -154,12 +156,13 @@ contains
 
   end subroutine get_io_options
 
+  !> Parses the flow variables options from the configuration file
   subroutine get_variable_definitions(config_file, variables)
 
     use constants, only: ccs_string_len
     
-    class(*), pointer, intent(in) :: config_file
-    type(variable_options), intent(out) :: variables
+    class(*), pointer, intent(in) :: config_file     !< Configuration file handle
+    type(variable_options), intent(out) :: variables !< Object for flow variables options
 
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
@@ -185,17 +188,18 @@ contains
 
   end subroutine get_variable_definitions
 
+  !> Parses flow reference values from the configuration file
   subroutine get_reference_values(config_file, reference_values)
 
-    class(*), pointer, intent(in) :: config_file
-    type(ref_vals), intent(out) :: reference_values
+    class(*), pointer, intent(in) :: config_file    !< Configuration file handle
+    type(ref_vals), intent(out) :: reference_values !< Object for reference values
 
     ! Set defaults
     reference_values%p_ref = 0.0
     reference_values%p_total = 1.01325e5_ccs_real ! 1 Atmosphere
-    reference_values%temp_ref = 293.15_ccs_real          ! 20C (in Kelvin)
-    reference_values%dens_ref = 1.19_ccs_real             ! Air @ STP
-    reference_values%visc_ref = 1.0e-5_ccs_real         ! Air @ STP
+    reference_values%temp_ref = 293.15_ccs_real   ! 20C (in Kelvin)
+    reference_values%dens_ref = 1.19_ccs_real     ! Air @ STP
+    reference_values%visc_ref = 1.0e-5_ccs_real   ! Air @ STP
     reference_values%velo_ref = 1.0_ccs_real
     reference_values%len_ref = 1.0_ccs_real
     reference_values%pref_at_cell = -1 ! To be ignored
@@ -209,10 +213,11 @@ contains
     
   end subroutine get_reference_values
   
+  !> Parses the solver options from the configuration file
   subroutine get_solver_options(config_file, solve)
 
-    class(*), pointer, intent(in) :: config_file
-    type(solver_options), intent(out) :: solve
+    class(*), pointer, intent(in) :: config_file !< Configuration file handle
+    type(solver_options), intent(out) :: solve   !< Object for solver options
 
     integer(ccs_int) :: num_steps
     integer(ccs_int) :: num_iters
