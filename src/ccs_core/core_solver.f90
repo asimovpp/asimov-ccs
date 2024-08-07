@@ -6,6 +6,7 @@ submodule (core) core_solver
 #include "ccs_macros.inc"
   use kinds, only: ccs_int
   use types, only: fluid
+  use parallel, only: is_root
   use parallel_types, only: parallel_environment
   use utils, only: debug_print
 
@@ -80,7 +81,7 @@ contains
       ! XXX: Or coupler update here?
       
       if (timestepping_is_active()) then
-        if (par_env%proc_id == par_env%root) then
+        if (is_root(par_env)) then
           print *, "TIME = ", t
         end if
       end if
@@ -89,8 +90,14 @@ contains
 
       ! If a STOP file exist, write solution and exit the main simulation loop
       if (check_stop_run(par_env, diverged)) then
+        if (is_root(par_env)) then
+          if (diverged) then
+            print *, "INFO: Divergence detected, stopping"
+          else
+            print *, "INFO: STOP file present, stopping"
+          end if
+        end if
         call write_step(par_env, run_options, t, flow_fields)
-        call dprint("STOP run")
         exit
       end if
 
