@@ -2,6 +2,9 @@
 program tgv
 #include "ccs_macros.inc"
 
+  use caliper_mod
+  use iso_c_binding, ONLY : C_INT64_T
+
   use petscsys
   use petscvec
 
@@ -91,6 +94,18 @@ program tgv
 
   logical:: use_mpi_splitting
 
+  type(ConfigManager)   :: mgr
+  integer(C_INT64_T)    :: cali_loop_attribute, cali_index_attribute, cali_index_io_attribute
+  integer :: cali_ierr, argc
+  character(len=256)    :: arg
+  logical               :: ret
+  character(len=:), allocatable :: errmsg
+  integer :: debug_if_statements = 0
+  integer(8) :: profile_mesh_size = 0, profile_mesh_graph_connectivity = 0
+  integer(8) :: profile_fluid_size = 0, profile_tmp = 0
+  real(ccs_real), dimension(:), pointer:: profile_u_data, profile_v_data, profile_w_data, profile_p_data
+  real(ccs_real), dimension(:), pointer:: profile_mf_data, profile_viscosity_data, profile_density_data
+
   character(len=128), dimension(:), allocatable :: bnd_names
   
   ! Launch MPI
@@ -114,8 +129,10 @@ program tgv
 
   ccs_config_file = case_path // ccsconfig
 
+  call cali_begin_region('Cali Elapsed time')
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 
+  call cali_begin_region('Cali Init time')
   call timer_register_start("Init time", timer_index_init)
 
   ! Read case name and runtime parameters from configuration file
@@ -135,6 +152,7 @@ program tgv
 
   ! If cps is no longer the default value, it has been set explicity and
   ! the mesh generator is invoked...
+  call cali_begin_region('Cali Mesh build/read time')
   call timer_register_start("Mesh build/read time", timer_index_build)
   call get_boundary_names(ccs_config_file, bnd_names)
   if (cps /= huge(0)) then
@@ -147,6 +165,7 @@ program tgv
   end if
   call set_mesh_object(mesh)
   call timer_stop(timer_index_build)
+  call cali_end_region('Cali Mesh build/read time')
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
@@ -235,9 +254,11 @@ program tgv
   call calc_enstrophy(par_env, u, v, w)
 
   ! Write out mesh to file
+  call cali_begin_region('Cali I/O time for mesh')
   call timer_register_start("I/O time for mesh", timer_index_io_init)
   call write_mesh(par_env, case_path, mesh)
   call timer_stop(timer_index_io_init)
+  call cali_end_region('Cali I/O time for mesh')
 
   ! Print the run configuration
   if (irank == par_env%root) then
@@ -267,8 +288,13 @@ program tgv
   end if 
 
   call timer_stop(timer_index_init)
+  call cali_end_region('Cali Init time')
   call timer_register("I/O time for solution", timer_index_io_sol)
   call timer_register("Solver time inc I/O", timer_index_sol)
+
+  cali_loop_attribute = cali_find_attribute('loop')
+  cali_index_attribute = cali_make_loop_iteration_attribute('computationloop')
+  cali_index_io_attribute = cali_make_loop_iteration_attribute('ioloop')
 
   if(.not.unsteady) then
     num_steps = 1
@@ -277,7 +303,10 @@ program tgv
     print*, "unsteady-state activated"
   end if
 
+  call cali_begin_region('Cali loop region')
+  call cali_begin_string(cali_loop_attribute, 'mainloop')
   do t = 1, num_steps
+    call cali_begin_int(cali_index_attribute, t)
     call timer_start(timer_index_sol)
     call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
                          flow_fields)
@@ -297,9 +326,11 @@ program tgv
 
     ! If a STOP file exist, write solution and exit the main simulation loop
     if (query_stop_run(par_env) .eqv. .true.) then
+      call cali_begin_int(cali_index_io_attribute, t)
       call timer_start(timer_index_io_sol)
       call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
       call timer_stop(timer_index_io_sol)
+      call cali_end(cali_index_io_attribute)
       call dprint("STOP file found. Writing output and ending simulation.")
       exit
     end if
@@ -308,14 +339,19 @@ program tgv
       if(.not. unsteady) then
         call write_solution(par_env, case_path, mesh, flow_fields)
       else
+        call cali_begin_int(cali_index_io_attribute, t)
         call timer_start(timer_index_io_sol)
         call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
         call timer_stop(timer_index_io_sol)
+        call cali_end(cali_index_io_attribute)
       end if
     end if
 
     call timer_stop(timer_index_sol)
+    call cali_end(cali_index_attribute)
   end do  
+  call cali_end(cali_loop_attribute)
+  call cali_end_region('Cali loop region')
 
   ! Clean-up
   nullify(u)
@@ -324,6 +360,7 @@ program tgv
   nullify(p)
 
   call timer_stop(timer_index_total)
+  call cali_end_region('Cali Elapsed time')
 
   call timer_print_all(par_env)
   call timer_export_csv(par_env)
