@@ -110,6 +110,20 @@ program tgv
   
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+
+  mgr = ConfigManager_new()
+    
+  ! to generate loop report
+  call mgr%add('loop-report,aggregate_across_ranks, iteration_interval=1,timeseries.maxrows=0,mem.highwatermark')
+  ! to generate mpi report and runtime report
+  ! call mgr%add('runtime-report,mpi-report,aggregate_across_ranks,profile.mpi,mem.highwatermark,mpi.message.size,mpi.message.count')
+  ! experimental features, render hotspots with Chrone-trace
+  ! call mgr%add('spot,profile.mpi')
+  ! generate event records for every process separately, not recommend
+  ! call mgr%add('event-trace,trace.mpi')
+
+  call mgr%start
+
   call timer_init()
 
   irank = par_env%proc_id
@@ -373,6 +387,10 @@ program tgv
   end if
 
   call nullify_mesh_object()
+
+  call mgr%flush
+  call configmanager_delete(mgr)
+  
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
 
