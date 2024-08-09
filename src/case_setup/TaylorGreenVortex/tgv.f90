@@ -96,15 +96,11 @@ program tgv
 
   type(ConfigManager)   :: mgr
   integer(C_INT64_T)    :: cali_loop_attribute, cali_index_attribute, cali_index_io_attribute
-  integer :: cali_ierr, argc
+  ! integer :: cali_ierr
+  integer :: argc
   character(len=256)    :: arg
   logical               :: ret
   character(len=:), allocatable :: errmsg
-  integer :: debug_if_statements = 0
-  integer(8) :: profile_mesh_size = 0, profile_mesh_graph_connectivity = 0
-  integer(8) :: profile_fluid_size = 0, profile_tmp = 0
-  real(ccs_real), dimension(:), pointer:: profile_u_data, profile_v_data, profile_w_data, profile_p_data
-  real(ccs_real), dimension(:), pointer:: profile_mf_data, profile_viscosity_data, profile_density_data
 
   character(len=128), dimension(:), allocatable :: bnd_names
   
@@ -112,15 +108,21 @@ program tgv
   call initialise_parallel_environment(par_env)
 
   mgr = ConfigManager_new()
-    
-  ! to generate loop report
-  call mgr%add('loop-report,aggregate_across_ranks, iteration_interval=1,timeseries.maxrows=0,mem.highwatermark')
-  ! to generate mpi report and runtime report
-  ! call mgr%add('runtime-report,mpi-report,aggregate_across_ranks,profile.mpi,mem.highwatermark,mpi.message.size,mpi.message.count')
-  ! experimental features, render hotspots with Chrone-trace
-  ! call mgr%add('spot,profile.mpi')
-  ! generate event records for every process separately, not recommend
-  ! call mgr%add('event-trace,trace.mpi')
+  call mgr%set_default_parameter('aggregate_across_ranks', 'false')
+  do argc = 1, command_argument_count()
+    if (argc .ge. 1) then
+      call get_command_argument(argc, arg)
+      if (arg(1:5) == '-cali') then
+        call get_command_argument(argc + 1, arg)
+        call mgr%add(arg)
+        ret = mgr%error()
+        if (ret) then
+          errmsg = mgr%error_msg()
+          write(*,*) 'ConfigManager: ', errmsg
+        endif
+      endif
+    endif
+  end do
 
   call mgr%start
 
@@ -390,7 +392,7 @@ program tgv
 
   call mgr%flush
   call configmanager_delete(mgr)
-  
+
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
 
