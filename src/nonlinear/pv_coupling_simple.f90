@@ -345,6 +345,8 @@ contains
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
     use timers, only: timer_register_start, timer_stop
+    use profiler
+    use caliper_mod
 
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
@@ -401,7 +403,9 @@ contains
     call get_field(flow, "density", density)
     
     call timer_register_start("Building coefficients", timer_coeffs)
+    call cali_begin_region('cali_region:compute_fluxes')
     call compute_fluxes(u, mf, viscosity, density, component, M, vec)
+    call cali_end_region('cali_region:compute_fluxes')
     call timer_stop(timer_coeffs)
 
     call apply_timestep(u, workvec, M, vec)

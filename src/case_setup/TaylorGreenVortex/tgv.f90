@@ -525,6 +525,8 @@ contains
     integer(ccs_int):: nnb
     integer(ccs_int):: j
 
+    call cali_begin_region('cali_region:initialise_flow')
+
     ! Set alias
     call get_local_num_cells(n_local)
 
@@ -539,9 +541,8 @@ contains
 
     ! Set initial values for velocity fields
     cali_loop_attribute = cali_find_attribute('loop')
-    cali_index_attribute = cali_make_loop_iteration_attribute('init_velocity_field')
-    call cali_begin_region('Cali velocity field initialisation')
-    call cali_begin_string(cali_loop_attribute, 'init_velocity_field')
+    cali_index_attribute = cali_make_loop_iteration_attribute('cali_loop:init_velocity_field')
+    call cali_begin_string(cali_loop_attribute, 'cali_loop:init_velocity_field')
   
     do index_p = 1, n_local
       call cali_begin_int(cali_index_attribute, index_p)
@@ -567,7 +568,6 @@ contains
       call cali_end(cali_index_attribute)
     end do  
     call cali_end(cali_loop_attribute)
-    call cali_end_region('Cali velocity field initialisation')
 
     call get_field(flow_fields, "u", u)
     call get_field(flow_fields, "v", v)
@@ -651,6 +651,8 @@ contains
 
     nullify(mu)
     nullify(rho)
+
+    call cali_end_region('cali_region:initialise_flow')
 
   end subroutine initialise_flow
 
