@@ -34,6 +34,7 @@ program tgv
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use petsctypes, only: vector_petsc
+  use profiler, only: profiler_init, profiler_shutdown
   use pv_coupling, only: solve_nonlinear
   use read_config, only: get_variables, get_boundary_names, get_boundary_count, get_case_name, get_store_residuals, &
                          get_enable_cell_corrections, get_variable_types
@@ -89,43 +90,18 @@ program tgv
   logical:: store_residuals, enable_cell_corrections
 
   integer(ccs_int):: t          ! Timestep counter
+  integer(C_INT64_T) :: cali_loop_attribute, cali_index_attribute, cali_index_io_attribute
 
   type(fluid):: flow_fields
 
   logical:: use_mpi_splitting
-
-  type(ConfigManager)   :: mgr
-  integer(C_INT64_T)    :: cali_loop_attribute, cali_index_attribute, cali_index_io_attribute
-  ! integer :: cali_ierr
-  integer :: argc
-  character(len=256)    :: arg
-  logical               :: ret
-  character(len=:), allocatable :: errmsg
 
   character(len=128), dimension(:), allocatable :: bnd_names
   
   ! Launch MPI
   call initialise_parallel_environment(par_env)
 
-  mgr = ConfigManager_new()
-  call mgr%set_default_parameter('aggregate_across_ranks', 'false')
-  do argc = 1, command_argument_count()
-    if (argc .ge. 1) then
-      call get_command_argument(argc, arg)
-      if (arg(1:5) == '-cali') then
-        call get_command_argument(argc + 1, arg)
-        call mgr%add(arg)
-        ret = mgr%error()
-        if (ret) then
-          errmsg = mgr%error_msg()
-          write(*,*) 'ConfigManager: ', errmsg
-        endif
-      endif
-    endif
-  end do
-
-  call mgr%start
-
+  call profiler_init()
   call timer_init()
 
   irank = par_env%proc_id
@@ -308,8 +284,6 @@ program tgv
   call timer_register("I/O time for solution", timer_index_io_sol)
   call timer_register("Solver time inc I/O", timer_index_sol)
 
-  cali_loop_attribute = cali_find_attribute('loop')
-  cali_index_attribute = cali_make_loop_iteration_attribute('computationloop')
   cali_index_io_attribute = cali_make_loop_iteration_attribute('ioloop')
 
   if(.not.unsteady) then
@@ -319,8 +293,11 @@ program tgv
     print*, "unsteady-state activated"
   end if
 
+  cali_loop_attribute = cali_find_attribute('loop')
+  cali_index_attribute = cali_make_loop_iteration_attribute('mainloop')
   call cali_begin_region('Cali loop region')
   call cali_begin_string(cali_loop_attribute, 'mainloop')
+
   do t = 1, num_steps
     call cali_begin_int(cali_index_attribute, t)
     call timer_start(timer_index_sol)
@@ -390,8 +367,7 @@ program tgv
 
   call nullify_mesh_object()
 
-  call mgr%flush
-  call configmanager_delete(mgr)
+  call profiler_shutdown
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
@@ -562,7 +538,14 @@ contains
     call set_mode(insert_mode, p_vals)
 
     ! Set initial values for velocity fields
+    cali_loop_attribute = cali_find_attribute('loop')
+    cali_index_attribute = cali_make_loop_iteration_attribute('init_velocity_field')
+    call cali_begin_region('Cali velocity field initialisation')
+    call cali_begin_string(cali_loop_attribute, 'init_velocity_field')
+  
     do index_p = 1, n_local
+      call cali_begin_int(cali_index_attribute, index_p)
+
       call create_cell_locator(index_p, loc_p)
       call get_global_index(loc_p, global_index_p)
 
@@ -581,7 +564,10 @@ contains
       call set_entry(w_val, w_vals)
       call set_row(global_index_p, p_vals)
       call set_entry(p_val, p_vals)
-    end do
+      call cali_end(cali_index_attribute)
+    end do  
+    call cali_end(cali_loop_attribute)
+    call cali_end_region('Cali velocity field initialisation')
 
     call get_field(flow_fields, "u", u)
     call get_field(flow_fields, "v", v)
