@@ -309,8 +309,8 @@ contains
       end associate
       print *, "******************************************************************************"
       print *, "* SOLVER CONFIGURATION"
-      print *, "* Velocity: ", trim(run_options%solve%velocity_precon), " + ", trim(run_options%velocity_solver)
-      print *, "* Pressure: ", trim(run_options%solve%pressure_precon), " + ", trim(run_options%pressure_solver)
+      print *, "* Velocity: ", trim(run_options%solve%velocity_precon), " + ", trim(run_options%solve%velocity_solver)
+      print *, "* Pressure: ", trim(run_options%solve%pressure_precon), " + ", trim(run_options%solve%pressure_solver)
       print *, "******************************************************************************"
       print *, "* REFERENCE VALUES"
       print *, "* Pressure      : ", run_options%reference_values%p_ref
