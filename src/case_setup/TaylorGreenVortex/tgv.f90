@@ -8,9 +8,7 @@ program tgv
   use core
   use ccs_base, only: mesh
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use case_config, only: case_name, &
-                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+  use case_config, only: case_name, write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
@@ -90,12 +88,6 @@ program tgv
   call timer_register_start("Init time", timer_index_init)
 
   if (is_root(par_env)) print *, "Starting ", case_name, " case!"
-
-  ! set solver and preconditioner info
-  velocity_solver_method_name = "gmres"
-  velocity_solver_precon_name = "bjacobi"
-  pressure_solver_method_name = "cg"
-  pressure_solver_precon_name = "gamg"
 
   call initialise_mesh(par_env, shared_env, run_options)
 

@@ -137,7 +137,7 @@ contains
     type is (linear_solver_petsc)
       associate (ksp => solver%KSP)
         ! Set linear solver type directly from method name
-        call KSPSetType(ksp, method_name, ierr)
+        call KSPSetType(ksp, trim(method_name), ierr)
 
         if (allocated(solver%linear_system%name)) then
           call KSPSetOptionsPrefix(ksp, solver%linear_system%name // ':', ierr)
@@ -172,7 +172,7 @@ contains
         call KSPGetPC(ksp, pc, ierr)
 
         ! Set preconditioner type directly using precon_name
-        call PCSetType(pc, precon_name, ierr)
+        call PCSetType(pc, trim(precon_name), ierr)
         call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
 
         ! Allow command-line options to override settings in source or config file

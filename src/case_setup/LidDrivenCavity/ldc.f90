@@ -9,9 +9,7 @@ program ldc
   use petscsys
 
   use core
-  use case_config, only: write_gradients, velocity_solver_method_name, &
-       velocity_solver_precon_name, &
-       pressure_solver_method_name, pressure_solver_precon_name
+  use case_config, only: write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high
@@ -64,12 +62,6 @@ program ldc
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
   if (irank == par_env%root) print *, "Starting ", run_options%paths%case_name, " case!"
-
-  ! set solver and preconditioner info
-  velocity_solver_method_name = "gmres"
-  velocity_solver_precon_name = "bjacobi"
-  pressure_solver_method_name = "cg"
-  pressure_solver_precon_name = "gamg"
 
   ! Create a mesh
   call initialise_mesh(par_env, shared_env, run_options)

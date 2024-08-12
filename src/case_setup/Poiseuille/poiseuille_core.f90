@@ -7,10 +7,7 @@ module poiseuille_core
 
   use core
   use ccs_base, only: mesh
-  use case_config, only:  domain_size,  &
-                          case_name, &
-                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+  use case_config, only: domain_size, case_name, write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -96,12 +93,6 @@ module poiseuille_core
     else
       call initialise_mesh(par_env, shared_env, run_options)
     end if
-
-    ! set solver and preconditioner info
-    velocity_solver_method_name = "gmres"
-    velocity_solver_precon_name = "bjacobi"
-    pressure_solver_method_name = "cg"
-    pressure_solver_precon_name = "gamg"
 
     ! Initialise fields
     if (irank == par_env%root) print *, "Initialise fields"

@@ -68,6 +68,10 @@ module core
     real(ccs_real) :: res_target = huge(0.0_ccs_real)
     real(ccs_real) :: velocity_relax = huge(0.0_ccs_real)
     real(ccs_real) :: pressure_relax = huge(0.0_ccs_real)
+    character(len=ccs_string_len) :: velocity_solver = "gmres"
+    character(len=ccs_string_len) :: velocity_precon = "bjacobi"
+    character(len=ccs_string_len) :: pressure_solver = "cg"
+    character(len=ccs_string_len) :: pressure_precon = "gamg"
   end type solver_options
 
   !v Options for parallelism

@@ -6,9 +6,7 @@ module tgv2d_core
 
   use core
   use ccs_base, only: mesh
-  use case_config, only: domain_size, &
-                         write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+  use case_config, only: domain_size, write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
@@ -90,12 +88,6 @@ contains
     if (present(input_num_steps)) then
       run_options%solve%num_steps = input_num_steps
     end if
-    
-    ! set solver and preconditioner info
-    velocity_solver_method_name = "gmres"
-    velocity_solver_precon_name = "bjacobi"
-    pressure_solver_method_name = "cg"
-    pressure_solver_precon_name = "gamg"
 
     ! Initialise fields
     if (irank == par_env%root) print *, "Initialise fields"

@@ -137,8 +137,6 @@ program poisson
   use ccs_base, only: mesh
   use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
-  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
@@ -187,12 +185,6 @@ program poisson
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
 
-  ! set solver and preconditioner info
-  velocity_solver_method_name = "gmres"
-  velocity_solver_precon_name = "bjacobi"
-  pressure_solver_method_name = "cg"
-  pressure_solver_precon_name = "gamg"
-
   call sync(par_env)
   call timer(start_time)
 
@@ -238,8 +230,8 @@ program poisson
   ! Create linear solver & set options
   call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
-  call set_solver_method(pressure_solver_method_name, poisson_solver)
-  call set_solver_precon(pressure_solver_precon_name, poisson_solver)
+  call set_solver_method(run_options%solve%pressure_solver, poisson_solver)
+  call set_solver_precon(run_options%solve%pressure_precon, poisson_solver)
   call solve(poisson_solver)
 
   ! Check solution

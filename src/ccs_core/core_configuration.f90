@@ -308,6 +308,10 @@ contains
         write (*, '(1x, a, e10.3)') "* pressure: ", pressure_relax
       end associate
       print *, "******************************************************************************"
+      print *, "* SOLVER CONFIGURATION"
+      print *, "* Velocity: ", trim(run_options%solve%velocity_precon), " + ", trim(run_options%velocity_solver)
+      print *, "* Pressure: ", trim(run_options%solve%pressure_precon), " + ", trim(run_options%pressure_solver)
+      print *, "******************************************************************************"
       print *, "* REFERENCE VALUES"
       print *, "* Pressure      : ", run_options%reference_values%p_ref
       print *, "* Total Pressure: ", run_options%reference_values%p_total
