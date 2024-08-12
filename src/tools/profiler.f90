@@ -28,7 +28,7 @@ contains
     do argc = 1, command_argument_count()
       if (argc .ge. 1) then
         call get_command_argument(argc, arg)
-        if (arg(1:5) == '-cali') then
+        if (arg(1:6) == '--cali') then
           call get_command_argument(argc + 1, arg)
           call mgr%add(arg)
           ret = mgr%error()

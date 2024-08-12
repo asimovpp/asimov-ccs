@@ -692,6 +692,8 @@ contains
 
     use fv, only: compute_boundary_coeffs
     use timers, only: timer_register_start, timer_stop
+    use profiler
+    use caliper_mod
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -749,6 +751,7 @@ contains
     integer(ccs_int) :: timer_coeffs
 
     call timer_register_start("Building coefficients", timer_coeffs)
+    call cali_begin_region('cali_region:build_coefficients')
     ! First zero matrix
     call zero(M)
 
@@ -880,6 +883,8 @@ contains
     call update(M)
     call update(vec)
     call finalise(M)
+
+    call cali_end_region('cali_region:build_coefficients')
     call timer_stop(timer_coeffs)
 
     ! Create linear solver

@@ -734,6 +734,8 @@ contains
   module subroutine update_gradient(phi)
 
     use meshing, only: get_local_num_cells
+    use profiler
+    use caliper_mod
 
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
     real(ccs_real), dimension(:), allocatable :: x_gradients
@@ -745,6 +747,7 @@ contains
     integer(ccs_int) :: timer_index
 
     call timer_register_start("Compute gradient", timer_index)
+    call cali_begin_region('cali_region:compute_gradient')
 
     call get_local_num_cells(local_num_cells)
     allocate(x_gradients(local_num_cells))
@@ -773,6 +776,7 @@ contains
     call restore_vector_data(phi%z_gradients, gradients_data)
     call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
 
+    call cali_end_region('cali_region:compute_gradient')
     call timer_stop(timer_index)
 
   end subroutine update_gradient
