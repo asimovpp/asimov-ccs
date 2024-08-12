@@ -147,7 +147,6 @@ contains
 
       logical_val = dict%get_logical(keyword, error=io_err)
       if (allocated(io_err)) then
-        ! print *, "Keyword ", keyword, " not in YAML file"
         if (present(value_present)) then
           value_present = .false.
         end if
@@ -648,7 +647,6 @@ contains
       dict => config_file%get_dictionary('post', required=.false., error=io_err)
 
       if (.not. allocated(io_err)) then
-        ! print *, "Reading post type"
         ! call get_value(dict, "type", post_type)
         post_type = "center"
         select type (dict)
