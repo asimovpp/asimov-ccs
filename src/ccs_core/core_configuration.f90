@@ -261,7 +261,6 @@ contains
     solve%velocity_relax = velocity_relax
     solve%pressure_relax = pressure_relax
 
-    ! XXX: Are these still relevant?
     solve%it_start = 1
     solve%it_end = num_iters
 
