@@ -35,7 +35,7 @@ module reordering
     !> Print statistics on the local matrix bandwidth
     module subroutine print_bandwidth(par_env, run_options)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-      type(ccs_options), intent(in) :: run_options
+      type(ccs_options), intent(in) :: run_options                            !< Runtime options object
     end subroutine print_bandwidth
     
     !> Generate a mesh cell reordering mapping.
