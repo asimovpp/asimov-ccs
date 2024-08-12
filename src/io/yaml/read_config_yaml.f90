@@ -133,6 +133,7 @@ contains
 
   end subroutine
 
+  !> Get the logical value associated with the keyword from dict
   module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
@@ -166,21 +167,6 @@ contains
     end select
 
   end subroutine get_logical_value
-
-  logical function parse_logic_string(str)
-
-    character(len=*), intent(in) :: str
-
-    if(str == 'true') then
-      parse_logic_string = .true.
-    else if (str == 'false') then
-      parse_logic_string = .false.
-    else 
-      parse_logic_string = .false.
-      call error_abort("The string " // str // " cannot be parsed as a logic value")
-    end if
-
-  end function parse_logic_string
  
   subroutine error_handler(io_err)
     type(type_error), pointer, intent(inout) :: io_err
