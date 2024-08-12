@@ -167,9 +167,6 @@ contains
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
 
-    ! character(len=:), allocatable :: post_type ! Where is I/O (cell/vertex)? Currently unused
-
-    ! allocate(variable_names(0)) ! Default size to 0 for error checking
     call get_variables(config_file, variable_names)
     if (size(variable_names) == 0) then
       call error_abort("No variables were specified.")
