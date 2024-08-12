@@ -10,8 +10,14 @@ present:
   string: Hello world!
   yes: true
   no: false
+  opt: HI!
 
 absent:
   foo: bar
 
 not_a_dict: baz
+
+unexpected: Spanish inquisition
+
+optional:
+  foo: bar

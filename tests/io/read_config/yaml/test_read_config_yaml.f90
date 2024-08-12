@@ -120,6 +120,9 @@ contains
 
     logical :: expected, required
 
+    character(len=:), allocatable :: sval
+    logical :: val_present
+
     select type(conf_file)
     type is(type_dictionary)
 
@@ -132,6 +135,19 @@ contains
       required = .true. ! Require to find values
       call test_read_values(dict, expected, required)
 
+      !- Read an optional string
+      print *, "- read optional string"
+      call get_value(dict, "opt", sval, val_present, required=.false.)
+      if (.not. val_present) then
+        call stop_test("Optional string value status does not meet expectation")
+      end if
+      if (val_present) then
+        if (sval /= "HI!") then
+          print *, sval
+          call stop_test("Optional string value does not match expectation")
+        end if
+      end if
+
       ! Read from dictionary without values
       print *, "+ Dictionary: absent"
       dict => conf_file%get_dictionary("absent", required=.true., error=io_err)
@@ -143,6 +159,19 @@ contains
       dict => conf_file%get_dictionary("not_a_dict", required=.true., error=io_err)
       if (.not. allocated(io_err)) then
         call stop_test("Non-dictionary should have raised an error")
+      end if
+
+      ! Read from optional dictionary
+      print *, "+ Optional dictionary"
+      dict => conf_file%get_dictionary("absent", required=.false., error=io_err)
+      call get_value(dict, "foo", sval, val_present, required=.false.)
+      if (.not. val_present) then
+        call stop_test("Optional dictionary string value status does not meet expectation")
+      end if
+      if (val_present) then
+        if (sval /= "bar") then
+          call stop_test("Optional dictionary string value does not match expectation")
+        end if
       end if
 
     class default
