@@ -16,6 +16,11 @@
     - source setup_gitlab_runner_env
     - source ${INTEL_SETUP} 32bit
 
+.setup_intelx:
+  before_script:
+    - source setup_gitlab_runner_env
+    - source ${INTEL_SETUP} 32bit intelx
+
 .setup_cray:
   before_script:
     - source setup_gitlab_runner_env
@@ -81,22 +86,22 @@ build_intel:
 
 test_intel:
   needs: 
-    - job: build_intel
+    - job: debug_build_intel
       artifacts: true
   extends: [.general_setup, .setup_intel, .test_common]
   script:
-    - HOME=${CI_HOME} CMP=intel make tests
+    - HOME=${CI_HOME} CMP=intel BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 
 debug_build_intelx:
-  extends: [.general_setup, .setup_intel]
+  extends: [.general_setup, .setup_intelx]
   script:
     - HOME=${CI_HOME} CMP=intelx BUILD=debug make all
   allow_failure: true
 
 build_intelx:
-  extends: [.general_setup, .setup_intel]
+  extends: [.general_setup, .setup_intelx]
   script:
     - HOME=${CI_HOME} CMP=intelx make obj
   artifacts:
@@ -104,11 +109,11 @@ build_intelx:
 
 test_intelx:
   needs: 
-    - job: build_intelx
+    - job: debug_build_intelx
       artifacts: true
-  extends: [.general_setup, .setup_intel, .test_common]
+  extends: [.general_setup, .setup_intelx, .test_common]
   script:
-    - HOME=${CI_HOME} CMP=intelx make tests
+    - HOME=${CI_HOME} CMP=intelx BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 debug_build_cray:
@@ -126,13 +131,13 @@ build_cray:
 
 test_cray:
   needs: 
-    - job: build_cray
+    - job: debug_build_cray
       artifacts: true
   extends: [.general_setup, .setup_cray, .test_common]
   script:
     - cray_run_command "slurmctld -vv"
     - cray_run_command "slurmd -vv"
-    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make tests"
 
 #-----------------------------------------------------------------------------#
 

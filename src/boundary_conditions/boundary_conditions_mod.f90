@@ -41,10 +41,10 @@ contains
     end if
 
     call dprint("reading bc config " // bc_field)
-    call get_bc_field(config_file, "name", phi)
+    call get_bc_field(config_file, "name", phi, required=.false.)
     call get_bc_field(config_file, "type", phi, required=.false.)
     call get_bc_field(config_file, "value", phi, required=.false.)
-    call get_bc_field(config_file, bc_field, phi)
+    call get_bc_field(config_file, bc_field, phi, required=.false.)
   end subroutine read_bc_config
 
   !> Sets the appropriate integer values for strings with given by the key-value pair attribute, value

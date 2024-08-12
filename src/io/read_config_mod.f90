@@ -42,10 +42,12 @@ module read_config
   interface
 
     !> Gets the integer value associated with the keyword from dict
-    module subroutine get_integer_value(dict, keyword, int_val)
+    module subroutine get_integer_value(dict, keyword, int_val, value_present, required)
       class(*), pointer, intent(in) :: dict     !< The dictionary
       character(len=*), intent(in) :: keyword   !< The key
-      integer, intent(out) :: int_val           !< The corresponding value
+      integer, intent(inout) :: int_val           !< The corresponding value
+      logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
     end subroutine
 
     !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
@@ -54,8 +56,8 @@ module read_config
     module subroutine get_real_value(dict, keyword, real_val, value_present, required)
       class(*), pointer, intent(in) :: dict            !< The dictionary to read from
       character(len=*), intent(in) :: keyword          !< The key to read
-      real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
-      logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      real(ccs_real), intent(inout) :: real_val          !< The value read from the dictionary
+      logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
     end subroutine
 
@@ -63,8 +65,8 @@ module read_config
     module subroutine get_string_value(dict, keyword, string_val, value_present, required)
       class(*), pointer, intent(in) :: dict                       !< The dictionary
       character(len=*), intent(in) :: keyword                     !< The key
-      character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
-      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      character(len=:), allocatable, intent(out) :: string_val  !< The corresponding value
+      logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
       logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
 
@@ -73,7 +75,7 @@ module read_config
       class(*), pointer, intent(in) :: dict                       !< The dictionary
       character(len=*), intent(in) :: keyword                     !< The key
       logical, intent(inout) :: logical_val !< The corresponding value
-      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
 
@@ -121,15 +123,10 @@ module read_config
     !
     !  By default, all variables will be solved. Using this
     !  "solve" keyword, the user can specifically request that
-    !  certain variables will not be solved by setting in to "off"
-    !
-    !  @todo extend list of variables
-    module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
+    !  certain variables will not be solved by setting it to "off"
+    module subroutine get_solve(config_file, solved_variables)
       class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-      character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
-      character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
-      character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
-      character(len=:), allocatable, optional, intent(inout) :: p_sol   !< solve p on/off
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: solved_variables
     end subroutine
 
     !v Get solvers to be used
@@ -214,8 +211,8 @@ module read_config
     !> Get output type variables
     module subroutine get_output_type(config_file, post_type, post_vars)
       class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
-      character(len=:), allocatable, intent(inout) :: post_type   !< values at cell centres or cell vertices?
-      character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
+      character(len=:), allocatable, intent(out) :: post_type   !< values at cell centres or cell vertices?
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: post_vars !< variables to be written out
     end subroutine
 
     !> Gets the specified field value from the config file and writes to given bcs struct

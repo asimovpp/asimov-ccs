@@ -75,10 +75,12 @@ contains
   !> Initalise PETSc
   subroutine initialise_petsc(par_env)
 
+    use petsc
     type(parallel_environment_mpi), intent(in) :: par_env !< parallel_environment_mpi
 
     integer :: ierr ! Error code
 
+    call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-no_signal_handler","true",ierr) ! This should prevent PETSc swallowing tracebacks
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
     if (ierr /= 0) then

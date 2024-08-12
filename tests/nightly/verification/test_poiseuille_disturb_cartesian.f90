@@ -4,6 +4,7 @@
 program test_poiseuille_disturb_cartesian
 #include "ccs_macros.inc"
 
+  use core
   use testing_lib
   use error_analysis, only: get_order, print_error_summary, disturb_cartesian
   use mesh_utils, only: build_square_mesh
@@ -26,6 +27,7 @@ program test_poiseuille_disturb_cartesian
   character(len=12), dimension(nvar) :: variable_labels
 
   integer(ccs_int) :: i
+  type(ccs_options) :: run_options
 
   call init()
 
@@ -40,7 +42,7 @@ program test_poiseuille_disturb_cartesian
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
+    mesh = build_square_mesh(par_env, shared_env, run_options, cps, domain_size)
 
     call set_mesh_object(mesh)
     call disturb_cartesian(cps, domain_size, mesh)

@@ -5,6 +5,7 @@
 program test_square_mesh_point_distribution
 
   use testing_lib
+  use core
   use mesh_utils, only: build_square_mesh
   use meshing, only: get_local_num_cells, get_global_num_cells
   use meshing, only: set_mesh_object, nullify_mesh_object
@@ -21,11 +22,13 @@ program test_square_mesh_point_distribution
 
   integer(ccs_int) :: global_num_cells
 
+  type(ccs_options) :: run_options
+  
   call init()
 
   do mctr = 1, size(m)
     n = m(mctr)
-    mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real)
+    mesh = build_square_mesh(par_env, shared_env, run_options, n, 1.0_ccs_real)
     call set_mesh_object(mesh)
 
     call get_local_num_cells(nlocal)

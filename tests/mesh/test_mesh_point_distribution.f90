@@ -5,6 +5,7 @@
 program test_mesh_point_distribution
 
   use testing_lib
+  use core
   use mesh_utils, only: build_mesh
   use meshing, only: get_local_num_cells, get_global_num_cells
   use meshing, only: set_mesh_object, nullify_mesh_object
@@ -16,6 +17,7 @@ program test_mesh_point_distribution
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
   integer(ccs_int) :: global_num_cells
+  type(ccs_options) :: run_options
 
   call init()
 
@@ -23,7 +25,7 @@ program test_mesh_point_distribution
   ny = 4
   nz = 4
 
-  mesh = build_mesh(par_env, shared_env, nx, ny, nz, 1.0_ccs_real)
+  mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, 1.0_ccs_real)
   call set_mesh_object(mesh)
 
   call get_local_num_cells(nlocal)

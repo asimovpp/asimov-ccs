@@ -133,11 +133,10 @@ program poisson
   use problem_setup
 
   ! ASiMoV-CCS uses
+  use core
   use ccs_base, only: mesh
   use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
-  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
@@ -174,29 +173,22 @@ program poisson
   type(matrix_spec) :: mat_properties
   type(equation_system) :: poisson_eq
 
-  integer(ccs_int) :: cps = 10 !< Default value for cells per side
-
   real(ccs_real) :: err_norm
-  logical :: use_mpi_splitting
 
   double precision :: start_time
   double precision :: end_time
 
-  call initialise_parallel_environment(par_env)
-  use_mpi_splitting = .false.
-  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
-  call read_command_line_arguments(par_env, cps=cps)
+  type(ccs_options) :: run_options
 
-  ! set solver and preconditioner info
-  velocity_solver_method_name = "gmres"
-  velocity_solver_precon_name = "bjacobi"
-  pressure_solver_method_name = "cg"
-  pressure_solver_precon_name = "gamg"
+  call initialise_parallel_environment(par_env)
+
+  call get_config(par_env, run_options)
+  call configure_parallelism(run_options, par_env, shared_env)
 
   call sync(par_env)
   call timer(start_time)
 
-  call initialise_poisson(par_env, shared_env)
+  call initialise_poisson(par_env, shared_env, run_options)
 
   ! Initialise with default values
   call initialise(vec_properties)
@@ -238,8 +230,8 @@ program poisson
   ! Create linear solver & set options
   call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
-  call set_solver_method(pressure_solver_method_name, poisson_solver)
-  call set_solver_precon(pressure_solver_precon_name, poisson_solver)
+  call set_solver_method(run_options%solve%pressure_solver, poisson_solver)
+  call set_solver_precon(run_options%solve%pressure_precon, poisson_solver)
   call solve(poisson_solver)
 
   ! Check solution
@@ -299,14 +291,14 @@ contains
     call update(u_exact)
   end subroutine set_exact_sol
 
-  subroutine initialise_poisson(par_env, shared_env)
+  subroutine initialise_poisson(par_env, shared_env, run_options)
 
     class(parallel_environment), allocatable :: par_env
     class(parallel_environment), allocatable :: shared_env
+    type(ccs_options), intent(in) :: run_options
 
-    mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
-    call set_mesh_object(mesh)
-
+    call initialise_mesh(par_env, shared_env, run_options)
+    
   end subroutine initialise_poisson
 
   !> Forcing function

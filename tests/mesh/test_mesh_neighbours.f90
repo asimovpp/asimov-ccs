@@ -5,6 +5,8 @@ program test_mesh_neighbours
 
   use testing_lib
 
+  use core
+  
   use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
                      get_boundary_status, get_local_num_cells, get_local_index
   use meshing, only: set_mesh_object, nullify_mesh_object
@@ -34,6 +36,8 @@ program test_mesh_neighbours
   integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
   integer(ccs_int) :: mctr
 
+  type(ccs_options) :: run_options
+
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
@@ -45,7 +49,7 @@ program test_mesh_neighbours
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
+    mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
     call set_mesh_object(mesh)
 
     boundary_ctr = 0

@@ -4,6 +4,7 @@
 program test_tgv_cartesian
 #include "ccs_macros.inc"
 
+  use core
   use testing_lib
   use error_analysis, only: get_order, print_error_summary
   use mesh_utils, only: build_square_mesh
@@ -26,6 +27,7 @@ program test_tgv_cartesian
   character(len=12), dimension(nvar) :: variable_labels
 
   integer(ccs_int) :: i
+  type(ccs_options) :: run_options
 
   call init()
 
@@ -40,7 +42,7 @@ program test_tgv_cartesian
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
+    mesh = build_square_mesh(par_env, shared_env, run_options, cps, domain_size)
 
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do

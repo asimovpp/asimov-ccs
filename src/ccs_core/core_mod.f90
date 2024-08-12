@@ -4,59 +4,112 @@
 
 module core
 
+  use constants, only: ccs_string_len
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid
 
   use parallel_types, only: parallel_environment
   use constants, only: ccs_string_len
 
-
   implicit none
 
   private
 
+  public :: get_config
   public :: initialise_flow
   public :: configure_parallelism
   public :: initialise_mesh
   public :: initialise_fields
   public :: run_solver
   public :: ccs_options
+
+  integer(ccs_int), parameter :: mesh_null = 0
   integer(ccs_int), parameter, public :: read_input_mesh = 1
   integer(ccs_int), parameter, public :: build_mesh_2d = 2
   integer(ccs_int), parameter, public :: build_mesh_3d = 3
 
-  !v Type to contain the configuration of the CCS run
-  type :: ccs_options
-    !! Generic/misc
+  !v Type to contain path-related options for the CCS run
+  type :: ccs_paths
     character(len=:), allocatable :: case_name
     character(len=:), allocatable :: case_path
-    character(len=:), allocatable :: config_file
-    character(len = ccs_string_len), dimension(:), allocatable :: variable_names  
-    integer(ccs_int), dimension(:), allocatable :: variable_types              
-    character(len=ccs_string_len), dimension(:), allocatable :: output_variables
-
-    !! Parallel-related
-    logical :: use_mpi_splitting
-    integer :: split_type
-
-    !! Mesh-related
     character(len=:), allocatable :: mesh_path
+    character(len=:), allocatable :: ccs_config_file
+  end type ccs_paths
+  
+  !v Options for the mesh configuration
+  type :: mesh_options
+    integer(ccs_int) :: init_mesh_type = mesh_null
+    integer(ccs_int) :: cps = huge(0)
+    real(ccs_real) :: domain_size = 0.0_ccs_real
+    logical :: compute_bwidth = .true.
+    logical :: compute_partqual = .true.
+  end type mesh_options
+  
+  !v Options for IO configuration
+  type :: io_options
+    integer(ccs_int) :: write_frequency = huge(0)
+  end type io_options
 
-    !! Solver-related
+  !v Options for variable declarations
+  type :: variable_options
+    character(len=ccs_string_len), dimension(:), allocatable :: variable_names
+    integer(ccs_int), dimension(:), allocatable :: variable_types
+    character(len=ccs_string_len), dimension(:), allocatable :: output_variables
     character(len=ccs_string_len), dimension(:), allocatable :: solved_variables
-    integer(ccs_int) :: num_steps
-    real(ccs_real) :: dt
-    integer(ccs_int) :: write_frequency
+  end type variable_options
+
+  !v Options for solver configuration
+  type :: solver_options
+    integer(ccs_int) :: num_steps = huge(0)
+    integer(ccs_int) :: num_iters = huge(0)
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
-    real(ccs_real) :: res_target
-    integer(ccs_int) :: init_mesh_type
-    integer(ccs_int) :: cps
-    real(ccs_real) :: domain_size
+    real(ccs_real) :: dt = huge(0.0_ccs_real)
+    real(ccs_real) :: res_target = huge(0.0_ccs_real)
+    real(ccs_real) :: velocity_relax = huge(0.0_ccs_real)
+    real(ccs_real) :: pressure_relax = huge(0.0_ccs_real)
+    character(len=ccs_string_len) :: velocity_solver = "gmres"
+    character(len=ccs_string_len) :: velocity_precon = "bjacobi"
+    character(len=ccs_string_len) :: pressure_solver = "cg"
+    character(len=ccs_string_len) :: pressure_precon = "gamg"
+  end type solver_options
+
+  !v Options for parallelism
+  type :: parallel_options
+    logical :: use_mpi_splitting
+    integer :: split_type
+  end type parallel_options
+  
+  !v Reference values for the problem
+  type :: ref_vals
+    real(ccs_real) :: p_ref    !< reference pressure
+    real(ccs_real) :: p_total  !< total pressure
+    real(ccs_real) :: temp_ref !< reference temperature
+    real(ccs_real) :: dens_ref !< reference density
+    real(ccs_real) :: visc_ref !< laminar viscosity
+    real(ccs_real) :: velo_ref !< reference velocity
+    real(ccs_real) :: len_ref  !< reference length, used to define the Reynolds number of the flow
+    integer :: pref_at_cell    !< cell at which the reference pressure is set
+  end type ref_vals
+  
+  !v Type to contain the configuration of the CCS run
+  type :: ccs_options
+    type(ccs_paths) :: paths
+    type(mesh_options) :: mesh
+    type(io_options) :: io
+    type(variable_options) :: variables
+    type(solver_options) :: solve
+    type(parallel_options) :: parallel
+    type(ref_vals) :: reference_values
   end type ccs_options
 
-
   interface
+    !v Subroutine to get the runtime configuration.
+    module subroutine get_config(par_env, run_options)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_options), intent(out) :: run_options
+    end subroutine get_config
+
     !v Subroutine to configure sub parallel environments.
     !
     ! Currently this only configures the shared environment, but it could be extended for particle
@@ -67,7 +120,6 @@ module core
       class(parallel_environment), allocatable, intent(out) :: shared_env
     end subroutine configure_parallelism
     
-
     !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
     !  on every cell or face
     module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
@@ -89,7 +141,6 @@ module core
         end subroutine
       end interface
     end subroutine
-
 
     !v Subroutine to initialise the mesh.
     !
@@ -113,13 +164,20 @@ module core
     !
     ! This is responsible for the time loop, calling post-processing subroutines and performing
     ! solution output.
-    module subroutine run_solver(par_env, run_options, flow_fields)
+    module subroutine run_solver(par_env, run_options, postproc, flow_fields)
       class(parallel_environment), allocatable, intent(in) :: par_env
       type(ccs_options), intent(in) :: run_options
+      interface
+        subroutine postproc(par_env, flow_fields)
+          use types, only: fluid
+          use parallel_types, only: parallel_environment
+          class(parallel_environment), allocatable, intent(in) :: par_env
+          type(fluid), intent(in) :: flow_fields
+        end subroutine postproc
+      end interface
       type(fluid), intent(inout) :: flow_fields
     end subroutine run_solver
 
   end interface
-
     
 end module core

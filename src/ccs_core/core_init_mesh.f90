@@ -15,44 +15,60 @@ implicit none
 contains
 
   module subroutine initialise_mesh(par_env, shared_env, run_options)
-    class(parallel_environment), intent(in), allocatable :: par_env     !< The global parallel environment
-    class(parallel_environment), intent(in), allocatable :: shared_env  !< The shared parallel environment
-    type(ccs_options), intent(in) :: run_options                        !< Object containing relevant options for building/reading the mesh
+    class(parallel_environment), intent(in), allocatable :: par_env    !< The global parallel environment
+    class(parallel_environment), intent(in), allocatable :: shared_env !< The shared parallel environment
+    type(ccs_options), intent(in) :: run_options                       !< Object containing relevant options for building/reading the mesh
   
     integer(ccs_int) :: timer_index_build
     integer(ccs_int) :: timer_index_io_init
 
-    associate (cps => run_options%cps)
+    if (is_root(par_env)) then
+      print *, "******************************************************************************"
+      print *, "* MESH INFO"
+    end if
+    
+    associate (cps => run_options%mesh%cps)
       call timer_register_start("Mesh read time", timer_index_build)
-      select case (run_options%init_mesh_type)
+      select case (run_options%mesh%init_mesh_type)
       case (build_mesh_2d)
         ! Create a cubic mesh
         if (is_root(par_env)) then
-          print *, "Building mesh"
+          print *, "* Building 2D mesh"
         end if
-        mesh = build_square_mesh(par_env, shared_env, cps, run_options%domain_size)
+        mesh = build_square_mesh(par_env, shared_env, run_options, cps, run_options%mesh%domain_size)
       case (build_mesh_3d) 
         ! Create a cubic mesh
         if (is_root(par_env)) then
-          print *, "Building mesh"
+          print *, "* Building 3D mesh"
         end if
-        mesh = build_mesh(par_env, shared_env, cps, cps, cps, run_options%domain_size)
+        mesh = build_mesh(par_env, shared_env, run_options, cps, cps, cps, run_options%mesh%domain_size)
       case (read_input_mesh)
         if (is_root(par_env)) then
-          print *, "Reading mesh file"
+          print *, "* Reading mesh file"
         end if
-        call read_mesh(par_env, shared_env, run_options%case_name, mesh)
+        call read_mesh(par_env, shared_env, run_options, run_options%paths%case_name, mesh)
       case default
         call error_abort("invalid init mesh type specified")
       end select
       call set_mesh_object(mesh)
       call timer_stop(timer_index_build)
-  
-      ! Write out mesh to file
-      call timer_register_start("I/O time for mesh", timer_index_io_init)
-      call write_mesh(par_env, run_options%case_path, mesh)
-      call timer_stop(timer_index_io_init)
+
+      if (is_root(par_env)) then
+        if ((run_options%mesh%init_mesh_type == build_mesh_2d) .or. &
+            (run_options%mesh%init_mesh_type == build_mesh_3d)) then
+          print *, "* Cells per side: ", cps
+          write (*, '(1x, a, e10.3)') "* Domain size: ", run_options%mesh%domain_size
+        end if
+        print *, "* Global number of cells is ", mesh%topo%global_num_cells
+        print *, "******************************************************************************"
+      end if
     end associate
+  
+    ! Write out mesh to file
+    call timer_register_start("I/O time for mesh", timer_index_io_init)
+    call write_mesh(par_env, run_options%paths%case_path, mesh)
+    call timer_stop(timer_index_io_init)
+
   end subroutine initialise_mesh
 
 end submodule core_init_mesh

@@ -4,8 +4,8 @@
 
 submodule(pv_coupling) pv_coupling_simple
 #include "ccs_macros.inc"
-  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+  use core, only: ccs_options
+  use kinds, only: ccs_int, ccs_real
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, bc_config, vector_values, cell_locator, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
@@ -46,15 +46,12 @@ submodule(pv_coupling) pv_coupling_simple
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
-  module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    flow, diverged)
+  module subroutine solve_nonlinear(par_env, run_options, mesh, flow, diverged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env   !< parallel environment
+    type(ccs_options), intent(in) :: run_options
     type(ccs_mesh), intent(in) :: mesh                                !< the mesh
-    integer(ccs_int), intent(in) :: it_start
-    integer(ccs_int), intent(in) :: it_end
-    real(ccs_real), intent(in) :: res_target                          !< Target residual
     type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
     logical, optional, intent(out) :: diverged                        !< returns true if the solution diverged
 
@@ -90,6 +87,14 @@ contains
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
     class(field), pointer :: viscosity !< field containing the viscosity
     class(field), pointer :: density !< field containing the density
+
+    integer(ccs_int) :: it_start
+    integer(ccs_int) :: it_end
+    real(ccs_real) :: res_target                          !< Target residual
+
+    it_start = run_options%solve%it_start
+    it_end = run_options%solve%it_end
+    res_target = run_options%solve%res_target
 
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
@@ -169,14 +174,14 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, flow, ivar, M, source, &
+      call calculate_velocity(par_env, run_options, flow, ivar, M, source, &
                               lin_system, invA, workvec, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(invA, ivar, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, invA, M, source, lin_system, p_prime, lin_solverP)
+      call calculate_pressure_correction(par_env, run_options, invA, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -186,7 +191,7 @@ contains
 
       ! Update pressure field with pressure correction
       call dprint("NONLINEAR: correct pressure")
-      call update_pressure(p_prime, p)
+      call update_pressure(run_options, p_prime, p)
 
       !< density values are in single digits (same as i/p)
 
@@ -239,11 +244,12 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, flow, ivar, M, vec, &
+  subroutine calculate_velocity(par_env, run_options, flow, ivar, M, vec, &
                                 lin_sys, invA, workvec, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    type(ccs_options), intent(in) :: run_options
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     integer(ccs_int), intent(inout) :: ivar              !< flow variable counter
     class(ccs_matrix), allocatable, intent(inout) :: M   !< matrix object
@@ -303,7 +309,7 @@ contains
     ! ----------
     if (u_sol) then
       call zero_vector(invAu)
-      call calculate_velocity_component(flow, par_env, varu, p, 1, M, vec, lin_sys, u, invAu, &
+      call calculate_velocity_component(flow, par_env, run_options, varu, p, 1, M, vec, lin_sys, u, invAu, &
            workvec, res, residuals)
       call axpy(1.0_ccs_real, invAu, invA)
       call vec_reciprocal(invAu)
@@ -314,8 +320,8 @@ contains
     ! ----------
     if (v_sol) then
       call zero_vector(invAv)
-      call calculate_velocity_component(flow, par_env, varv, p, 2, M, vec, lin_sys, v, invAv, &
-                                        workvec, res, residuals)
+      call calculate_velocity_component(flow, par_env, run_options, varv, p, 2, M, vec, lin_sys, v, invAv, &
+           workvec, res, residuals)
       call axpy(1.0_ccs_real, invAv, invA)
       call vec_reciprocal(invAv)
       dim = dim + 1.0_ccs_real
@@ -325,8 +331,8 @@ contains
     ! ----------
     if (w_sol) then
       call zero_vector(invAw)
-      call calculate_velocity_component(flow, par_env, varw, p, 3, M, vec, lin_sys, w, invAw, &
-                                        workvec, res, residuals)
+      call calculate_velocity_component(flow, par_env, run_options, varw, p, 3, M, vec, lin_sys, w, invAw, &
+           workvec, res, residuals)
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
       dim = dim + 1.0_ccs_real
@@ -339,16 +345,16 @@ contains
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, ivar, p, component, M, vec, &
+  subroutine calculate_velocity_component(flow, par_env, run_options, ivar, p, component, M, vec, &
                                           lin_sys, u, invA, workvec, input_res, residuals)
 
-    use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
     use timers, only: timer_register_start, timer_stop
 
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     class(parallel_environment), allocatable, intent(in) :: par_env
+    type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: ivar
     class(field), pointer :: mf
     class(field), pointer :: viscosity
@@ -422,7 +428,7 @@ contains
 
     ! Underrelax the equations
     call dprint("GV: underrelax u")
-    call underrelax(velocity_relax, u, workvec, M, vec)
+    call underrelax(run_options%solve%velocity_relax, u, workvec, M, vec)
 
     ! Store contribution to central coefficient
     call dprint("GV: get u diag")
@@ -454,8 +460,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(velocity_solver_method_name, lin_solver)
-    call set_solver_precon(velocity_solver_precon_name, lin_solver)
+    call set_solver_method(run_options%solve%velocity_solver, lin_solver)
+    call set_solver_precon(run_options%solve%velocity_precon, lin_solver)
 
     ! Solve the linear system
     call dprint("GV: solve u")
@@ -684,13 +690,14 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, lin_solver)
+  subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
     use timers, only: timer_register_start, timer_stop
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    type(ccs_options), intent(in) :: run_options                    !< runtime options
     class(ccs_vector), intent(inout) :: invA                        !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
@@ -888,8 +895,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(pressure_solver_method_name, lin_solver)
-    call set_solver_precon(pressure_solver_precon_name, lin_solver)
+    call set_solver_method(run_options%solve%pressure_solver, lin_solver)
+    call set_solver_precon(run_options%solve%pressure_precon, lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")
@@ -1063,15 +1070,14 @@ contains
   end subroutine compute_mass_imbalance
 
   !> Corrects the pressure field, using explicit underrelaxation
-  subroutine update_pressure(p_prime, p)
-
-    use case_config, only: pressure_relax
+  subroutine update_pressure(run_options, p_prime, p)
 
     ! Arguments
+    type(ccs_options), intent(in) :: run_options
     class(field), intent(in) :: p_prime !< pressure correction
     class(field), intent(inout) :: p    !< the pressure field being corrected
 
-    call axpy(pressure_relax, p_prime%values, p%values)
+    call axpy(run_options%solve%pressure_relax, p_prime%values, p%values)
 
     call update_gradient(p)
 

@@ -5,6 +5,7 @@
 program test_mesh_volume
 
   use testing_lib
+  use core
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells
   use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_mesh
@@ -28,6 +29,8 @@ program test_mesh_volume
 
   real(ccs_real) :: CV
 
+  type(ccs_options) :: run_options
+  
   call init()
 
   nx = 4
@@ -35,7 +38,7 @@ program test_mesh_volume
   nz = 4
 
   l = parallel_random(par_env)
-  mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
+  mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
   call set_mesh_object(mesh)
   expected_vol = l**3 ! XXX: Currently the mesh is a hard-coded 3D cube...
 

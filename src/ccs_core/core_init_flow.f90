@@ -17,10 +17,7 @@ submodule(core) core_init_flow
 
   use constants, only: insert_mode, ndim
 
-
-
   implicit none
-
 
   contains
 
@@ -44,12 +41,10 @@ submodule(core) core_init_flow
       end subroutine
     end interface
 
-
     call initialise_cells(flow_fields, get_init_flow)
     call initialise_mass_flux(flow_fields, get_init_mass_flux)
 
   end subroutine
-
 
   subroutine initialise_cells(flow_fields, get_init_flow)
 
@@ -94,8 +89,7 @@ submodule(core) core_init_flow
         call create_cell_locator(index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
 
-        init_val = 0.0_ccs_real
-        ! Call case specific function
+        call get_init_default(current_field%name, init_val)
         call get_init_flow(loc_p, current_field%name, init_val)
 
         call set_row(global_index_p, values)
@@ -112,6 +106,23 @@ submodule(core) core_init_flow
 
   end subroutine
 
+  ! Sets "sensible" default values
+  pure subroutine get_init_default(field_name, init_val)
+
+    character(len=*), intent(in) :: field_name
+    real(ccs_real), intent(out) :: init_val
+
+    select case(field_name)
+    case ("density")
+      init_val = 1.0_ccs_real ! Zero density will cause solver failure!
+    case ("viscosity")
+      init_val = 1.0e-2_ccs_real
+    case default
+      init_val = 0.0_ccs_real
+    end select
+    
+  end subroutine get_init_default
+  
   subroutine initialise_mass_flux(flow_fields, get_init_mass_flux)
 
     type(fluid), intent(inout) :: flow_fields
@@ -194,7 +205,5 @@ submodule(core) core_init_flow
     call update(mf%values)
 
   end subroutine
-
-
 
 end submodule

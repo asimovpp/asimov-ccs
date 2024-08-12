@@ -3,6 +3,8 @@ program test_mesh_indices
 
   use testing_lib
 
+  use core
+  
   use meshing, only: create_cell_locator, get_global_index, get_local_num_cells, get_global_num_cells
   use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_mesh
@@ -22,6 +24,8 @@ program test_mesh_indices
   integer(ccs_int), dimension(5) :: m = (/4, 8, 12 ,16, 20/)
   integer(ccs_int) :: mctr
 
+  type(ccs_options) :: run_options
+
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
@@ -33,7 +37,7 @@ program test_mesh_indices
     nz = n
 
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, shared_env, nx, ny, nz, l)
+    mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
     call set_mesh_object(mesh)
 
     call get_local_num_cells(nlocal)
