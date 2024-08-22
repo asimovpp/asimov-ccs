@@ -308,7 +308,7 @@ module types
     pure function coeffs_interface(this) result(coeffs)
         import :: abstract_kernel
         class(abstract_kernel), intent(in) :: this
-      real :: coeffs(:)
+        real, allocatable :: coeffs(:)
     end function coeffs_interface
 
     subroutine eval_interface(this, result)

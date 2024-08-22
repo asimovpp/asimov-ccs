@@ -18,4 +18,4 @@ submodule (fv_kernels) advection_kernel_submodule
         result = sum(this%coeffs())
     end subroutine advection_eval
 
-    end submodule advection_kernel_submodule
+end submodule advection_kernel_submodule
