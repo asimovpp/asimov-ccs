@@ -29,3 +29,5 @@ ccs_app
 *.h5
 *.xmf
 *.geo
+**/.DS_Store
+.vscode
