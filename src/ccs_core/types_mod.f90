@@ -318,11 +318,4 @@ module types
     end subroutine eval_interface
   end interface
 
-  !> Advection kernel
-  type, extends(abstract_kernel) :: advection_kernel
-  contains
-      procedure :: coeffs => advection_coeffs
-      procedure :: eval => advection_eval
-  end type advection_kernel
-
 end module types
