@@ -305,7 +305,7 @@ module types
   !> Abstract kernel interface
   ! Define interfaces for the deferred procedures
   abstract interface
-    function coeffs_interface(this) result(coeffs)
+    pure function coeffs_interface(this) result(coeffs)
         import :: abstract_kernel
         class(abstract_kernel), intent(in) :: this
       real :: coeffs(:)
