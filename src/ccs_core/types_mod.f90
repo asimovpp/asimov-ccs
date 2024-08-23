@@ -314,7 +314,7 @@ module types
     subroutine eval_interface(self, result)
       import :: abstract_kernel
       class(abstract_kernel), intent(in) :: self
-      real, allocatable intent(out) :: result(:)
+      real, allocatable, intent(out) :: result(:)
     end subroutine eval_interface
 
     pure function width_interface(self) result(width)
