@@ -5,7 +5,7 @@ program test_tgv_timestep
 #include "ccs_macros.inc"
 
   use testing_lib
-  use error_analysis, only: get_order, print_error_summary
+  use error_analysis, only: get_orders, print_error_summary
   use tgv2d_core, only: run_tgv2d
   use timestepping, only: get_theoretical_order
 
@@ -45,8 +45,8 @@ program test_tgv_timestep
 
     call print_error_summary(variable_labels, refinements, errors_L2, errors_Linf)
 
-    call get_order(refinements, errors_L2, orders_L2)
-    call get_order(refinements, errors_Linf, orders_Linf)
+    call get_orders(refinements, errors_L2, orders_L2)
+    call get_orders(refinements, errors_Linf, orders_Linf)
 
     call get_theoretical_order(theoretical_order)
 

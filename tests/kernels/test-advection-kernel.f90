@@ -12,7 +12,7 @@ program test_advection_kernel
     real(ccs_real), dimension(3) :: N_loc, P_loc, f_loc
     real(ccs_real), dimension(2) :: coeffs
     real(ccs_real) :: rhs
-    real(ccs_real), dimension(1, num_iters) :: errors
+    real(ccs_real), dimension(num_iters) :: errors
     real(ccs_real), dimension(num_iters) :: refinements
     real(ccs_real), dimension(1) :: orders
 
@@ -24,7 +24,6 @@ program test_advection_kernel
     phi_P_prime = phi_prime(0)
     interpol_factor = 2_ccs_real / 3_ccs_real
 
-    ! Main loop
     do i = 1, num_iters
         dx = 1.0_ccs_real / real(i)**2
         N_loc = P_loc + [dx, 0, 0]
@@ -35,13 +34,13 @@ program test_advection_kernel
         call advection%eval([phi_P, phi_N], [u_P, u_N], P_loc, N_loc, f_loc, &
                             interpol_factor, is_boundary=.false., coeffs, rhs)
 
-        errors(1, i) = get_error(coeffs, rhs, f_loc)
+        call get_error(coeffs, rhs, f_loc, errors(i))
         refinements(i) = dx
     end do
 
     call get_order(refinements, errors, orders)
 
-    call assert_gt(orders(1), advection%order*0.95, "Convergence order not preserved by advection kernel")
+    call assert_gt(orders(1), advection%get_order()*0.95, "Convergence order not preserved by advection kernel")
 
 contains
 
@@ -66,9 +65,10 @@ contains
         phi_prime = 2*cos(2*x + 17)
     end function phi_prime
 
-    subroutine get_error(coeffs, rhs, f_loc)
+    subroutine get_error(coeffs, rhs, f_loc, error)
         real(ccs_real), intent(in) :: coeffs(2), rhs
         real(ccs_real), intent(in) :: f_loc(3)
+        real(ccs_real), intent(out) :: error
         real(ccs_real) :: analytical, error
 
         analytical = u(f_loc(1)) * phi_prime(f_loc(1))
