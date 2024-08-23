@@ -297,25 +297,24 @@ module types
   !
   ! Abstract kernel base class to specialised later
   type, abstract, public :: abstract_kernel
-    contains
-    procedure(coeffs_interface), deferred :: coeffs
-    procedure(eval_interface), deferred :: eval
+  contains
+     procedure(coeffs_interface), deferred :: coeffs
+     procedure(eval_interface), deferred :: eval
   end type abstract_kernel
 
   !> Abstract kernel interface
-  ! Define interfaces for the deferred procedures
   abstract interface
-    pure function coeffs_interface(this) result(coeffs)
+     pure function coeffs_interface(this) result(coeffs)
         import :: abstract_kernel
         class(abstract_kernel), intent(in) :: this
         real, allocatable :: coeffs(:)
-    end function coeffs_interface
+     end function coeffs_interface
 
-    subroutine eval_interface(this, result)
-      import :: abstract_kernel
-      class(abstract_kernel), intent(in) :: this
-      real, intent(out) :: result
-    end subroutine eval_interface
+     subroutine eval_interface(this, result)
+        import :: abstract_kernel
+        class(abstract_kernel), intent(in) :: this
+        real, intent(out) :: result
+     end subroutine eval_interface
   end interface
 
 end module types
