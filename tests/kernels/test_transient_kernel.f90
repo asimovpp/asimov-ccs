@@ -12,6 +12,7 @@
 
 program test_transient_kernel
 
+  use testing_lib
   use kinds, only: ccs_real
 
   implicit none
@@ -34,6 +35,8 @@ program test_transient_kernel
 
   integer :: i
 
+  call init()
+  
   ! The convergence ratio between refinement levels should be (1/2)^p where p is the order of the
   ! scheme. To allow some reasonable tolerance, 1.1/(2^p) has been used.
   ctol = 1.1 / (2**transient%get_order())
@@ -62,7 +65,8 @@ program test_transient_kernel
   do i = 2, nref + 1
     r = err(i) / err(i - 1)
     if (r > ctol) then
-      print *, "Convergence ratio ", r, "exceeds tolerance", ctol
+      write(message, *) "Convergence ratio ", r, "exceeds tolerance", ctol
+      call stop_test(message)
     end if
   end do
   
@@ -87,9 +91,12 @@ program test_transient_kernel
   do i = 2, nref + 1
     r = err(i) / err(i - 1)
     if (r > ctol) then
-      print *, "Convergence ratio ", r, "exceeds tolerance", ctol
+      write(message, *) "Convergence ratio ", r, "exceeds tolerance", ctol
+      call stop_test(message)
     end if
   end do
+
+  call fin()
   
 contains
 
