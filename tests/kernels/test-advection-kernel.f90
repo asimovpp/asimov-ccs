@@ -14,7 +14,7 @@ program test_advection_kernel
     real(ccs_real) :: rhs
     real(ccs_real), dimension(num_iters) :: errors
     real(ccs_real), dimension(num_iters) :: refinements
-    real(ccs_real), dimension(1) :: orders
+    real(ccs_real) :: order
 
 
     type(advection_kernel) :: advection
@@ -38,9 +38,9 @@ program test_advection_kernel
         refinements(i) = dx
     end do
 
-    call get_order(refinements, errors, orders)
+    call get_order(refinements, errors, order)
 
-    call assert_gt(orders(1), advection%get_order()*0.95, "Convergence order not preserved by advection kernel")
+    call assert_gt(order, advection%get_order()*0.95, "Convergence order not preserved by advection kernel")
 
 contains
 
