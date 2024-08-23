@@ -298,23 +298,30 @@ module types
   ! Abstract kernel base class to specialised later
   type, abstract, public :: abstract_kernel
   contains
-     procedure(coeffs_interface), deferred :: coeffs
-     procedure(eval_interface), deferred :: eval
+    procedure(coeffs_interface), deferred :: eval_coeffs ! Returns the implicit contributions to the discretisation
+    procedure(eval_interface), deferred :: eval_explicit ! Returns the explicit contributions to the discretisatio
+    procedure(width_interface), deferred :: get_width    ! Returns the stencil width
   end type abstract_kernel
 
   !> Abstract kernel interface
   abstract interface
-     pure function coeffs_interface(this) result(coeffs)
-        import :: abstract_kernel
-        class(abstract_kernel), intent(in) :: this
-        real, allocatable :: coeffs(:)
-     end function coeffs_interface
+    pure function coeffs_interface(self) result(coeffs)
+      import :: abstract_kernel
+      class(abstract_kernel), intent(in) :: self
+      real, allocatable :: coeffs(:)
+    end function coeffs_interface
 
-     subroutine eval_interface(this, result)
-        import :: abstract_kernel
-        class(abstract_kernel), intent(in) :: this
-        real, intent(out) :: result
-     end subroutine eval_interface
+    subroutine eval_interface(self, result)
+      import :: abstract_kernel
+      class(abstract_kernel), intent(in) :: self
+      real, allocatable intent(out) :: result(:)
+    end subroutine eval_interface
+
+    pure function width_interface(self) result(width)
+      import :: abstract_kernel
+      class(abstract_kernel), intent(in) :: self
+      integer :: width
+    end function width_interface
   end interface
 
 end module types
