@@ -40,6 +40,7 @@ program test_transient_kernel
   
   ! The convergence ratio between refinement levels should be (1/2)^p where p is the order of the
   ! scheme. To allow some reasonable tolerance, 1.1/(2^p) has been used.
+  ! XXX: This is a specialisation of the transient kernel, should it be added for other kernels?
   ctol = 1.1 / (2**transient%get_order())
 
   ! Allocate space for the old values
