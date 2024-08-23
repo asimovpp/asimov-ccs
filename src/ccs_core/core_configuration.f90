@@ -5,7 +5,8 @@ submodule(core) core_configuration
                          get_value, &
                          get_variables, get_relaxation_factors, &
                          get_output_type, get_solve, &
-                         get_reference_number
+                         get_reference_number, &
+                         get_boundary_names
   use utils, only: exit_print
 
   implicit none
@@ -113,6 +114,8 @@ contains
       call error_abort("Unknown mesh specification - have you set `mesh: <2d|3d|read>' in the config file?")
     end if
       
+    call get_boundary_names(config_file, mesh_opt%bnd_names)
+    
     if (mesh_opt%init_mesh_type == read_input_mesh) then
     else
       if (cps_cmdline == huge(0)) then  ! cps was not set on the command line

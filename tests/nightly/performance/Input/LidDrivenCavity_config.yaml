@@ -72,7 +72,7 @@ variables:
     type: central
 
 boundaries:
-  n_boundaries: 6
+  n_boundaries: 4
   boundary_1: 
     name: left
     type: dirichlet

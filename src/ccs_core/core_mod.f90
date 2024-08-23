@@ -43,6 +43,7 @@ module core
     real(ccs_real) :: domain_size = 0.0_ccs_real
     logical :: compute_bwidth = .true.
     logical :: compute_partqual = .true.
+    character(len=ccs_string_len), dimension(:), allocatable :: bnd_names
   end type mesh_options
   
   !v Options for IO configuration
@@ -56,10 +57,12 @@ module core
     integer(ccs_int), dimension(:), allocatable :: variable_types
     character(len=ccs_string_len), dimension(:), allocatable :: output_variables
     character(len=ccs_string_len), dimension(:), allocatable :: solved_variables
+    logical :: restart = .false.
   end type variable_options
 
   !v Options for solver configuration
   type :: solver_options
+    logical :: unsteady = .false.
     integer(ccs_int) :: num_steps = huge(0)
     integer(ccs_int) :: num_iters = huge(0)
     integer(ccs_int) :: it_start
@@ -122,7 +125,9 @@ module core
     
     !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
     !  on every cell or face
-    module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+    module subroutine initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_options), intent(in) :: run_options
       type(fluid), intent(inout) :: flow_fields
       interface 
         pure subroutine get_init_flow(loc_p, field_name, init_val)

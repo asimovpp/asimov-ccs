@@ -132,6 +132,14 @@ module parallel
       integer, intent(out) :: window
     end subroutine create_shared_array_real_2D
     
+    !> Create an real 3D MPI shared memory array
+    module subroutine create_shared_array_real_3D(shared_env, length, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      integer(ccs_int), dimension(3), intent(in) :: length
+      real(ccs_real), pointer, dimension(:,:,:), intent(out) :: array
+      integer, intent(out) :: window
+    end subroutine create_shared_array_real_3D
+    
     !> Destroy an integer 1D MPI shared memory array
     module subroutine destroy_shared_array_int_1D(shared_env, array, window)
       class(parallel_environment), intent(in) :: shared_env
@@ -202,6 +210,7 @@ module parallel
     module procedure create_shared_array_int_2D
     module procedure create_shared_array_real_1D
     module procedure create_shared_array_real_2D
+    module procedure create_shared_array_real_3D
   end interface
 
   interface destroy_shared_array

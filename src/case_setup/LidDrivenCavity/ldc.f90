@@ -18,15 +18,12 @@ program ldc
                    vector_spec, ccs_vector, field_ptr, fluid
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
-  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
-  use meshing, only: set_mesh_object, nullify_mesh_object, get_local_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_mesh, build_square_mesh
-  use meshing, only: get_global_num_cells
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use petsctypes, only: vector_petsc
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
@@ -43,7 +40,7 @@ program ldc
   integer(ccs_int) :: irank ! MPI rank ID
   integer(ccs_int) :: isize ! Size of MPI world
 
-  integer(ccs_int) :: timer_index_init, timer_index_total, timer_index_sol
+  integer(ccs_int) :: timer_index_init, timer_index_total
 
   type(fluid) :: flow_fields
 
@@ -73,13 +70,10 @@ program ldc
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+  call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call timer_stop(timer_index_init)
-  call timer_register_start("Solver time inc I/O", timer_index_sol)
   call run_solver(par_env, run_options, postproc_ldc, flow_fields)
-
-  call timer_stop(timer_index_sol)
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
@@ -131,6 +125,6 @@ contains
     associate (foo => loc_f, bar => init_val)
     end associate
 
-  end subroutine
+  end subroutine get_init_mass_flux
 
 end program ldc

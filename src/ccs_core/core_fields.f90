@@ -7,12 +7,14 @@ submodule(core) core_fields
   use boundary_conditions, only: set_bc_type, allocate_bc_arrays
   use ccs_base, only: mesh
   use parallel, only: is_root
-  use utils, only: set_size, initialise, get_field, add_field_to_outputlist, set_is_field_solved
+  use utils, only: set_size, initialise, get_field, add_field_to_outputlist, set_is_field_solved, &
+                   exit_print
   use read_config, only: get_store_residuals, get_enable_cell_corrections, get_boundary_count
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
                     set_field_name, set_field_type
+  use fortran_yaml_c_interface, only: parse
 
 implicit none
 
@@ -20,20 +22,27 @@ contains
 
   !> Sets field spec based on specified run options in preparation for building fields
   subroutine set_field_properties(par_env, run_options, field_properties)
-    class(parallel_environment), intent(in), allocatable:: par_env    !< The parallel environment
-    type(ccs_options), intent(in) :: run_options                      !< Object containing relevant options for setting field properties
-    type(field_spec), intent(out) :: field_properties                 !< The resulting field_spec object
+    class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                   !< Object containing relevant options for setting field properties
+    type(field_spec), intent(out) :: field_properties              !< The resulting field_spec object
 
     integer(ccs_int) :: n_boundaries
     logical:: store_residuals, enable_cell_corrections
     type(vector_spec) :: vec_properties
 
-  	! Read boundary conditions
+    class(*), pointer :: config_file
+    character(:), allocatable :: error
+
+    ! Read boundary conditions
     if (is_root(par_env)) then
       print *, "Read and allocate BCs"
     end if
     ! XXX: these calls should probably be moved to the config reading section
-    call get_boundary_count(run_options%paths%ccs_config_file, n_boundaries)
+    config_file => parse(run_options%paths%ccs_config_file, error)
+    if (allocated(error)) then
+      call error_abort(trim(error))
+    end if
+    call get_boundary_count(config_file, n_boundaries)
     call get_store_residuals(run_options%paths%ccs_config_file, store_residuals)
     call get_enable_cell_corrections(run_options%paths%ccs_config_file, enable_cell_corrections)
 

@@ -35,6 +35,7 @@ module vec
   public :: mult_vec_vec
   public :: scale_vec
   public :: get_natural_data_vec
+  public :: get_global_data_vec
   public :: reorder_data_vec
 
   interface
@@ -207,6 +208,18 @@ module vec
       !< this ensures it will be
       !< de/reallocated by this subroutine.
     end subroutine get_natural_data_vec
+
+    !> Interface to return the vector data in global ordering
+    module subroutine get_global_data_vec(par_env, mesh, v, data)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_mesh), intent(in) :: mesh
+      class(ccs_vector), intent(inout) :: v
+      real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
+      !< global ordering. Note the use
+      !< of allocatable + intent(out),
+      !< this ensures it will be
+      !< de/reallocated by this subroutine.
+    end subroutine get_global_data_vec
 
     module subroutine reorder_data_vec(par_env, data_from, idx_to, data_to)
       class(parallel_environment), intent(in) :: par_env

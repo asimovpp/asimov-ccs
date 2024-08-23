@@ -6,6 +6,7 @@ program test_tgv_disturb_cartesian
 
   use testing_lib
   use error_analysis, only: get_order, print_error_summary, disturb_cartesian
+  use ccs_base, only: bnd_names_default
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d, domain_size
   use mesh_utils, only: compute_face_interpolation
@@ -40,7 +41,8 @@ program test_tgv_disturb_cartesian
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, shared_env, cps, domain_size)
+    mesh = build_square_mesh(par_env, shared_env, cps, domain_size, &
+         bnd_names_default(1:4))
 
     call set_mesh_object(mesh)
     call disturb_cartesian(cps, domain_size, mesh)

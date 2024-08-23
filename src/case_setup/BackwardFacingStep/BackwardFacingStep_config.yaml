@@ -1,12 +1,19 @@
 ---
 title: BackwardFacingStep
 
+# restart capability
+restart: false
+
+# unstaedy state
+unsteady: true
+
+#  number of steady iterations
+iterations: 100
+
 #  number of timesteps
-steps: 100
-#  number of iterations
-iterations: 5
+steps: 5
 # time step size
-dt: 8.0e-1
+dt: 0.01
 
 # Square/cubic mesh generation parameters
 # cells per side
@@ -81,7 +88,7 @@ variables:
 boundaries:
   n_boundaries: 8
   boundary_1: 
-    name: left
+    name: default
     type: neumann
     value: 0
     variable_p:
@@ -93,11 +100,11 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_2:
-    name: right
+    name: live
     type: neumann
     value: 0
   boundary_3:
-    name: bottom
+    name: inflow
     type: neumann
     value: 0
     variable_p:
@@ -109,7 +116,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_4:
-    name: top
+    name: outflow
     type: neumann
     value: 0
     variable_p:
@@ -122,7 +129,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_5:
-    name: back
+    name: step
     type: neumann
     value: 0
     variable_p:
@@ -134,7 +141,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_6:
-    name: front
+    name: bottomwall
     type: neumann
     value: 0
     variable_p:
@@ -146,7 +153,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_7:
-    name: other1
+    name: backwall
     type: neumann
     value: 0
     variable_p:
@@ -158,7 +165,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_8:
-    name: other2
+    name: topwall
     type: neumann
     value: 0
     variable_p:

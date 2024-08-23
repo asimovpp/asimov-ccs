@@ -1,5 +1,7 @@
 submodule(core) core_init_flow
 
+  use ccs_base, only: mesh
+  
   use kinds, only: ccs_int, ccs_real
 
   use fields, only: get_field_is_face_based
@@ -15,6 +17,8 @@ submodule(core) core_init_flow
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
   use fv, only: compute_boundary_values
 
+  use io_visualisation, only: read_solution
+
   use constants, only: insert_mode, ndim
 
   implicit none
@@ -22,7 +26,9 @@ submodule(core) core_init_flow
   contains
 
   !> Initialise both cell centre values and mass fluxes
-  module subroutine initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+  module subroutine initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_options), intent(in) :: run_options
     type(fluid), intent(inout) :: flow_fields
     interface 
       pure subroutine get_init_flow(loc_p, field_name, init_val)
@@ -41,10 +47,14 @@ submodule(core) core_init_flow
       end subroutine
     end interface
 
-    call initialise_cells(flow_fields, get_init_flow)
-    call initialise_mass_flux(flow_fields, get_init_mass_flux)
+    if (.not. run_options%variables%restart) then
+      call initialise_cells(flow_fields, get_init_flow)
+      call initialise_mass_flux(flow_fields, get_init_mass_flux)
+    else
+      call read_solution(par_env, run_options%paths%case_path, mesh, flow_fields)
+    end if
 
-  end subroutine
+  end subroutine initialise_flow
 
   subroutine initialise_cells(flow_fields, get_init_flow)
 
@@ -58,7 +68,7 @@ submodule(core) core_init_flow
         type(cell_locator), intent(in) :: loc_p
         character(len=*), intent(in) :: field_name
         real(ccs_real), intent(inout) :: init_val
-      end subroutine
+      end subroutine get_init_flow
     end interface
 
     ! Local variables

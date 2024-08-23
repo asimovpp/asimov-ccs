@@ -1,10 +1,17 @@
 ---
 title: TaylorGreenVortex
 
+# restart capability
+restart: false  
+
+# unstaedy state
+unsteady: true
+
+#  number of steady iterations
+iterations: 7
+
 #  number of timesteps
 steps: 10
-#  number of iterations
-iterations: 7
 # time step size
 dt: 1.0e-2
 

@@ -2,12 +2,13 @@ program bc_test
 #include "ccs_macros.inc"
 
   ! ASiMoV-CCS uses
+  use ccs_base, only: mesh
   use testing_lib
   use kinds, only: ccs_real, ccs_int
   use types, only: field, central_field
   use utils, only: debug_print, exit_print, str
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count
+  use read_config, only: get_variables, get_boundary_count, get_boundary_names
   use constants, only: ccs_string_len
   use bc_constants
 
@@ -26,7 +27,9 @@ program bc_test
   real(ccs_real), dimension(:), allocatable :: bc_values
 
   class(*), pointer :: parsed_config_file
-    character(:), allocatable :: error
+  character(:), allocatable :: error
+
+  character(len=128), dimension(:), allocatable :: bnd_names
 
     call init()
 
@@ -40,8 +43,11 @@ program bc_test
   ! First get the number of boundaries and variables
   parsed_config_file => parse(config_file, error)
   if (allocated(error)) then
-     call error_abort(trim(error))
+    call error_abort(trim(error))
   end if
+  call get_boundary_names(config_file, bnd_names)
+  mesh%bnd_names = bnd_names ! Need to mock a mesh with bounday names
+  print *, mesh%bnd_names
   call get_boundary_count(config_file, n_boundaries)
   call get_variables(parsed_config_file, variable_names)
   allocate (phi(size(variable_names) - 4))
@@ -81,7 +87,7 @@ program bc_test
   allocate (bc_ids(n_boundaries))
   allocate (bc_types(n_boundaries))
   allocate (bc_values(n_boundaries))
-  bc_ids = (/1, 2, 4, 3/)
+  bc_ids = [ 1, 2, 3, 4 ]
   bc_types = bc_type_dirichlet
   bc_values = 1
   call check_bcs(u%bcs, bc_ids, bc_types, bc_values)

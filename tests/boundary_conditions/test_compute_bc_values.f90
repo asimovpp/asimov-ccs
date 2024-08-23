@@ -1,6 +1,7 @@
 program test_compute_bc_values
 #include "ccs_macros.inc"
 
+  use ccs_base, only: bnd_names_default
   use testing_lib
   use core
   use kinds, only: ccs_real, ccs_int

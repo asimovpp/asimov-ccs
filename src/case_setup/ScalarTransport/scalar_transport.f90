@@ -18,7 +18,6 @@ program scalar_transport
                    vector_spec, ccs_vector, field_ptr, fluid
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals
-  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, &
@@ -27,15 +26,16 @@ program scalar_transport
   use mesh_utils, only: build_mesh
   use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
-                     get_local_index, get_boundary_status, get_face_normal, set_mesh_object, nullify_mesh_object
-  use vec, only: create_vector, set_vector_location
+                     get_local_index, get_boundary_status, get_face_normal, set_mesh_object, nullify_mesh_object, &
+                     get_local_num_cells
+  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
                    get_field, &
                    allocate_fluid_fields, dealloc_fluid_fields, &
                    get_scheme_name
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_boundary_count, get_store_residuals, get_variables, get_variable_types
+  use read_config, only: get_store_residuals, get_variables, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, finalise_timestep
 
   implicit none
@@ -77,12 +77,13 @@ program scalar_transport
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise flow field"
-  call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+  call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call activate_timestepping()
   call set_timestep(run_options%solve%dt)
 
   call timer(init_time)
+
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start scalar solver"
 

@@ -142,15 +142,15 @@ contains
     type(ccs_mesh), intent(inout) :: mesh
 
     associate (total_num_cells => mesh%topo%total_num_cells)
-      if (allocated(mesh%geo%volumes)) then
-        deallocate (mesh%geo%volumes)
+      if (associated(mesh%geo%volumes)) then
+        call destroy_shared_array(shared_env, mesh%geo%volumes, mesh%geo%volumes_window)
       end if
-      allocate (mesh%geo%volumes(total_num_cells))
+      call create_shared_array(shared_env, total_num_cells, mesh%geo%volumes, mesh%geo%volumes_window)
 
-      if (allocated(mesh%geo%x_p)) then
-        deallocate (mesh%geo%x_p)
+      if (associated(mesh%geo%x_p)) then
+        call destroy_shared_array(shared_env, mesh%geo%x_p, mesh%geo%x_p_window)
       end if
-      allocate (mesh%geo%x_p(ndim, total_num_cells))
+      call create_shared_array(shared_env, [ndim, total_num_cells], mesh%geo%x_p, mesh%geo%x_p_window)
     end associate
 
   end subroutine

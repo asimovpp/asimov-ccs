@@ -4,6 +4,7 @@
 !  verified by summing the volumes of all cells.
 program test_mesh_square_mesh_volume
 
+  use ccs_base, only: bnd_names_default
   use testing_lib
   use core
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells

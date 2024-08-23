@@ -6,8 +6,12 @@ program test_vec_set_entries
 
   use testing_lib
 
+<<<<<<< HEAD
   use core
   
+=======
+  use ccs_base, only: bnd_names_default
+>>>>>>> develop
   use kinds
   use constants, only: insert_mode, add_mode
   use types, only: ccs_vector, ccs_mesh
@@ -25,7 +29,12 @@ program test_vec_set_entries
   call init()
 
   do n = 4, 100
+<<<<<<< HEAD
     mesh = build_square_mesh(par_env, shared_env, run_options, n, 1.0_ccs_real)
+=======
+    mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real, &
+         bnd_names_default(1:4))
+>>>>>>> develop
     call set_mesh_object(mesh)
 
     call init_vector()

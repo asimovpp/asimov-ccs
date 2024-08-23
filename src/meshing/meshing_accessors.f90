@@ -386,8 +386,9 @@ contains
     real(ccs_real), dimension(ndim), intent(out) :: normal !< an ndimensional array representing the face normal vector.
 
     associate (cell => loc_f%index_p, &
-               face => loc_f%cell_face_ctr)
-      normal(:) = mesh%geo%face_normals(:, face, cell)
+               face => loc_f%cell_face_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Face normal arrays consist of only local cells, hence specify local offset
+      normal(:) = mesh%geo%face_normals(:, face, cell+offset)
     end associate
   end subroutine get_face_normal
 
@@ -397,8 +398,9 @@ contains
     real(ccs_real), intent(out) :: area     !< the face area.
 
     associate (cell => loc_f%index_p, &
-               face => loc_f%cell_face_ctr)
-      area = mesh%geo%face_areas(face, cell)
+               face => loc_f%cell_face_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Face area arrays consist of only local cells, hence specify local offset
+      area = mesh%geo%face_areas(face, cell+offset)
     end associate
   end subroutine get_face_area
 
@@ -408,10 +410,22 @@ contains
     type(face_locator), intent(in) :: loc_f !< The face locator object
 
     associate (cell => loc_f%index_p, &
-               face => loc_f%cell_face_ctr)
-      mesh%geo%face_areas(face, cell) = area
+               face => loc_f%cell_face_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Face area arrays consist of only local cells, hence specify local offset
+      mesh%geo%face_areas(face, cell+offset) = area
     end associate
   end subroutine set_area
+
+  !> Set the volume of specified cell
+  module subroutine set_volume(volume, loc_p)
+    real(ccs_real), intent(in) :: volume      !< The cell volume
+    type(cell_locator), intent(in) :: loc_p   !< The cell locator object
+
+    associate (cell => loc_p%index_p, &
+               offset => mesh%topo%shared_array_total_offset)   ! volumes arrays consist of only local cells, hence specify local offset
+      mesh%geo%volumes(cell+offset) = volume
+    end associate
+  end subroutine set_volume
 
   !> Returns the centre of a cell
   pure module subroutine get_cell_centre(loc_p, x)
@@ -420,9 +434,9 @@ contains
 
     integer :: dim
 
-    associate (cell => loc_p%index_p)
+    associate (cell => loc_p%index_p, offset => mesh%topo%shared_array_total_offset)  ! Cell centre arrays interleave halo cells with local cells, hence specify total offset
       do dim = 1, min(size(x), ndim)
-        x(dim) = mesh%geo%x_p(dim, cell)
+        x(dim) = mesh%geo%x_p(dim, cell+offset)
       end do
     end associate
   end subroutine get_cell_centre
@@ -444,8 +458,9 @@ contains
     real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the face centre.
 
     associate (cell => loc_f%index_p, &
-               face => loc_f%cell_face_ctr)
-      x(:) = mesh%geo%x_f(:, face, cell)
+               face => loc_f%cell_face_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Face centre arrays consist of only local cells, hence specify local offset
+      x(:) = mesh%geo%x_f(:, face, cell+offset)
     end associate
   end subroutine get_face_centre
 
@@ -457,9 +472,10 @@ contains
     integer :: dim
 
     associate (cell => loc_v%index_p, &
-               vert => loc_v%cell_vert_ctr)
+               vert => loc_v%cell_vert_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Vertex centre arrays consist of only local cells, hence specify local offset
       do dim = 1, min(size(x), ndim)
-        x(dim) = mesh%geo%vert_coords(dim, vert, cell)
+        x(dim) = mesh%geo%vert_coords(dim, vert, cell+offset)
       end do
     end associate
   end subroutine get_vert_centre
@@ -469,8 +485,9 @@ contains
     type(cell_locator), intent(in) :: loc_p !< the cell locator object.
     real(ccs_real), intent(out) :: V        !< the cell volume.
 
-    associate (cell => loc_p%index_p)
-      V = mesh%geo%volumes(cell)
+    associate (cell => loc_p%index_p, &
+               offset => mesh%topo%shared_array_total_offset)   ! Volume arrays interleave halo cells with local cells, hence specify total offset
+      V = mesh%geo%volumes(cell+offset)
     end associate
   end subroutine get_cell_volume
 
@@ -695,9 +712,9 @@ contains
 
     integer :: dim
 
-    associate (i => loc_p%index_p)
+    associate (i => loc_p%index_p, offset => mesh%topo%shared_array_total_offset)   ! Cell centre arrays interleave halo cells with local cells, hence specify total offset
       do dim = 1, min(size(x_p), ndim)
-        mesh%geo%x_p(dim, i) = x_p(dim)
+        mesh%geo%x_p(dim, i+offset) = x_p(dim)
       end do
     end associate
   end subroutine set_cell_centre
@@ -710,9 +727,10 @@ contains
     integer :: dim
 
     associate (i => loc_f%index_p, &
-               j => loc_f%cell_face_ctr)
+               j => loc_f%cell_face_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Face centre arrays consist of only local cells, hence specify local offset
       do dim = 1, min(size(x_f), ndim)
-        mesh%geo%x_f(dim, j, i) = x_f(dim)
+        mesh%geo%x_f(dim, j, i+offset) = x_f(dim)
       end do
     end associate
   end subroutine set_face_centre
@@ -725,9 +743,10 @@ contains
     integer :: dim
 
     associate (i => loc_v%index_p, &
-               j => loc_v%cell_vert_ctr)
+               j => loc_v%cell_vert_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Vertex centre arrays consist of only local cells, hence specify local offset
       do dim = 1, min(size(x_v), ndim)
-        mesh%geo%vert_coords(dim, j, i) = x_v(dim)
+        mesh%geo%vert_coords(dim, j, i+offset) = x_v(dim)
       end do
     end associate
   end subroutine set_vert_centre
@@ -744,9 +763,10 @@ contains
 
     invmag = 1.0_ccs_real / sqrt(sum(normal**2))
     associate (cell => loc_f%index_p, &
-               face => loc_f%cell_face_ctr)
+               face => loc_f%cell_face_ctr, &
+               offset => mesh%topo%shared_array_local_offset)   ! Face normal arrays consist of only local cells, hence specify local offset
       do dim = 1, min(size(normal), ndim)
-        mesh%geo%face_normals(dim, face, cell) = normal(dim) * invmag
+        mesh%geo%face_normals(dim, face, cell+offset) = normal(dim) * invmag
       end do
     end associate
   end subroutine set_normal
@@ -765,4 +785,84 @@ contains
     mesh%is_generated = is_generated
   end subroutine
 
+  !> Get the numerical ID of a boundary from its name
+  pure module subroutine get_bc_id(mesh, name, bc_id)
+    type(ccs_mesh), intent(in) :: mesh     !< The mesh
+    character(len=*), intent(in) :: name   !< The boundary name
+    integer(ccs_int), intent(out) :: bc_id !< The boundary ID
+
+    integer(ccs_int) :: nbc
+    logical :: found
+
+    found = .false.
+    nbc = size(mesh%bnd_names)
+
+    do bc_id = 1, nbc
+      if (trim(name) == trim(mesh%bnd_names(bc_id))) then
+        found = .true.
+        exit
+      end if
+    end do
+
+    if (.not.found) then
+      ! Failed to find BC by name
+      error stop unknown_bc_name
+    end if
+    
+  end subroutine get_bc_id
+
+  !> Find a list of (boundary) faces based on their boundary name
+  module subroutine find_face_entities(mesh, name, faces)
+    type(ccs_mesh), intent(in) :: mesh                                  !< The mesh
+    character(len=*), intent(in) :: name                                !< The boundary name
+    type(face_locator), dimension(:), allocatable, intent(out) :: faces !< The list of boundary faces
+
+    integer(ccs_int) :: id
+
+    integer :: i, j
+    
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: nnb
+
+    type(cell_locator) :: loc_p
+    type(face_locator) :: loc_f
+    type(neighbour_locator) :: loc_nb
+
+    logical :: is_boundary
+    integer(ccs_int) :: boundary_id
+    
+    ! First find the ID of the boundary
+    call get_bc_id(mesh, name, id)
+
+    allocate(faces(0))
+
+    ! Loop over cell-faces
+    call get_local_num_cells(local_num_cells)
+    do i = 1, local_num_cells
+      call create_cell_locator(i, loc_p)
+      call count_neighbours(loc_p, nnb)
+
+      do j = 1, nnb
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+
+        if (is_boundary) then
+          call get_local_index(loc_nb, boundary_id)
+          boundary_id = -boundary_id
+          if (boundary_id == id) then
+            call create_face_locator(i, j, loc_f)
+            faces = [faces, loc_f]
+          end if
+        end if
+      end do
+    end do
+
+    if (size(faces) == 0) then
+      ! Failed to find any
+      deallocate(faces)
+    end if
+
+  end subroutine find_face_entities
+
+  
 end submodule meshing_accessors

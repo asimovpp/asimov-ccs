@@ -76,38 +76,19 @@ contains
 
   !> Sets the bc struct's id field to the appropriate integer value
   pure subroutine set_bc_id(boundary_index, name, bcs)
+
+    use ccs_base, only: mesh
+    use meshing, only: get_bc_id
+
     integer(ccs_int), intent(in) :: boundary_index !< index of the boundary within the bc struct's arrays
     character(len=*), intent(in) :: name           !< string giving the bc name
     type(bc_config), intent(inout) :: bcs          !< the bcs struct
 
-    ! XXX: in the general case this mapping should be read in from the mesh file
-    select case (name)
-    case ("left")
-      bcs%ids(boundary_index) = 1
-    case ("right")
-      bcs%ids(boundary_index) = 2
-    case ("bottom")
-      bcs%ids(boundary_index) = 3
-    case ("top")
-      bcs%ids(boundary_index) = 4
-    case ("back")
-      bcs%ids(boundary_index) = 5
-    case ("front")
-      bcs%ids(boundary_index) = 6
-    case ("other1")
-      bcs%ids(boundary_index) = 7
-    case ("other2")
-      bcs%ids(boundary_index) = 8
-    case ("other3")
-      bcs%ids(boundary_index) = 9
-    case ("other4")
-      bcs%ids(boundary_index) = 10
-    case ("other5")
-      bcs%ids(boundary_index) = 11
-    case default
-      error stop invalid_bc_id ! Invalid BC name ID received
-    end select
-
+    integer :: bc_id
+    
+    call get_bc_id(mesh, name, bc_id)
+    bcs%ids(boundary_index) = bc_id
+    
   end subroutine set_bc_id
 
   !> Sets the bc struct's value field to the given real value

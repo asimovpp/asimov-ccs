@@ -16,7 +16,6 @@ module poiseuille_core
                    field_ptr, fluid, bc_profile
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
        set_field_type, set_field_vector_properties, set_field_enable_cell_corrections
-  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
@@ -29,8 +28,8 @@ module poiseuille_core
                    set_is_field_solved, &
                    allocate_fluid_fields, reset_outputlist_counter
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_enable_cell_corrections, &
-                          get_variable_types
+  use read_config, only: get_variables, get_case_name, &
+                         get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
   use mesh_utils, only: read_mesh, build_square_mesh, compute_face_interpolation
   use meshing, only: get_total_num_cells, get_global_num_cells, set_mesh_object, nullify_mesh_object, get_local_num_cells
@@ -41,7 +40,6 @@ module poiseuille_core
   use utils, only: str
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_reset
-  use vec, only: get_vector_data, restore_vector_data
 
   implicit none
 
@@ -70,7 +68,6 @@ module poiseuille_core
 
     integer(ccs_int) :: timer_index_total
     integer(ccs_int) :: timer_index_init
-    integer(ccs_int) :: timer_index_sol
 
     type(fluid) :: flow_fields
 
@@ -113,7 +110,7 @@ module poiseuille_core
 
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
-    call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+    call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     call get_field(flow_fields, "u", u)
     call get_field(flow_fields, "v", v)
@@ -128,14 +125,11 @@ module poiseuille_core
     if (irank == par_env%root) print *, "Start SIMPLE"
 
     call timer_stop(timer_index_init)
-    call timer_register_start("Solver time inc I/O", timer_index_sol)
 
     call run_solver(par_env, run_options, postproc_poiseuille, flow_fields)
     error_L2 = pois_error_L2_global
     error_Linf = pois_error_Linf_global
-
-    call timer_stop(timer_index_sol)
-
+    
     ! Clean-up
 
     call timer_stop(timer_index_total)

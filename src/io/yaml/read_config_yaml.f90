@@ -667,19 +667,12 @@ contains
 
   end subroutine get_output_type
 
-  module subroutine get_boundary_count(filename, n_boundaries)
-    character(len=*), intent(in) :: filename
+  module subroutine get_boundary_count(config_file, n_boundaries)
+    class(*), intent(in) :: config_file
     integer(ccs_int), intent(out) :: n_boundaries
 
-    class(*), pointer :: config_file
     class(*), pointer :: dict
-    character(:), allocatable :: error
     type(type_error), allocatable :: io_err
-
-    config_file => parse(filename, error)
-    if (allocated(error)) then
-      call error_abort(trim(error))
-    end if
 
     select type (config_file)
     type is (type_dictionary)
@@ -692,6 +685,53 @@ contains
     end select
   end subroutine get_boundary_count
 
+  module subroutine get_boundary_names(config_file, bnd_names)
+    class(*), intent(in) :: config_file
+    character(len=128), dimension(:), allocatable, intent(out) :: bnd_names
+
+    integer :: n_boundaries
+
+    class(*), pointer :: dict, dict2
+    character(:), allocatable :: error
+    type(type_error), allocatable :: io_err
+
+    integer :: i
+    
+    character(len=25) :: boundary_entry
+    character(len=:), allocatable :: tmpstr
+    
+    call get_boundary_count(config_file, n_boundaries)
+    allocate(bnd_names(n_boundaries))
+
+    if (allocated(error)) then
+      call error_abort(trim(error))
+    end if
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
+      !call error_handler(io_err)
+
+      do i = 1, n_boundaries
+        write(boundary_entry, '(A, I0)') "boundary_", i
+        select type(dict)
+        type is(type_dictionary)
+          dict2 => dict%get_dictionary(boundary_entry, required=.true., error=io_err)
+          !call error_handler(io_err)
+          
+          call get_value(dict2, "name", tmpstr)
+          bnd_names(i) = trim(tmpstr)
+        class default
+          call error_abort("type unhandled")
+        end select
+      end do
+    class default
+      call error_abort("type unhandled")
+    end select
+
+    
+  end subroutine get_boundary_names
+    
   module subroutine get_store_residuals(filename, store_residuals)
     character(len=*), intent(in) :: filename
     logical, intent(out) :: store_residuals

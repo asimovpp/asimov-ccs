@@ -2,9 +2,11 @@
 module timers
 #include "ccs_macros.inc"
 
+  use mpi
   use kinds
   use types
   use parallel_types, only: parallel_environment
+  use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: timer, is_root
 
   use utils, only: exit_print
@@ -153,20 +155,26 @@ contains
   subroutine timer_print(par_env, timer_index)
     class(parallel_environment), intent(in) :: par_env
     integer(ccs_int), intent(in) :: timer_index
-    double precision :: time, total_time
+    double precision :: time, total_time, max_time
+    integer :: ierr
 
     call timer_get_time(timer_index, time)
 
+    select type(par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+    end select
+
     if (is_root(par_env)) then
-      write(*,'(A30, F12.4, A)', advance="no")  trim(timer_names(timer_index)) // ":", time, " s"
+      write(*,'(A30, F12.4, A)', advance="no")  trim(timer_names(timer_index)) // ":", max_time, " s"
 
       if (total_index /= 0) then
         call timer_get_time(total_index, total_time)
-        write(*, '(F10.2, A)', advance="no") 100*time / total_time, " %"
+        write(*, '(F10.2, A)', advance="no") 100*max_time / total_time, " %"
       end if
 
       if (counters(timer_index) >= 2) then
-        write(*, '(F10.4, A, I10, A)', advance="no") time / counters(timer_index), " s/call", counters(timer_index), " calls"
+        write(*, '(F10.4, A, I10, A)', advance="no") max_time / counters(timer_index), " s/call", counters(timer_index), " calls"
       end if
       write(*, '(A)') ""
     end if

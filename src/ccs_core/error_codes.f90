@@ -25,5 +25,6 @@ module error_codes
   integer, public, parameter :: invalid_component = 111 
   integer, public, parameter :: unknown_mode = 112
   integer, public, parameter :: no_free_entry = 113
+  integer, public, parameter :: unknown_bc_name = 114
 
 end module error_codes

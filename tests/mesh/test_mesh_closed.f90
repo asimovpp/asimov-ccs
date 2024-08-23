@@ -10,6 +10,7 @@ program test_mesh_closed
   
   use constants
 
+  use ccs_base, only: bnd_names_default
   use meshing, only: create_face_locator, get_face_normal, get_face_area, get_local_num_cells
   use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_mesh

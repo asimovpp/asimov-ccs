@@ -28,8 +28,8 @@ module tgv2d_core
                    set_is_field_solved, &
                    allocate_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use read_config, only: get_variables, get_boundary_count, get_store_residuals, get_enable_cell_corrections, &
-                          get_variable_types
+  use read_config, only: get_variables, get_store_residuals, &
+                         get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
   use io_visualisation, only: reset_io_visualisation
   use fv, only: update_gradient
@@ -99,7 +99,7 @@ contains
 
     ! Initialise velocity field
     if (irank == par_env%root) print *, "Initialise velocity field"
-    call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+    call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"

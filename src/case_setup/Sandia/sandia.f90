@@ -10,7 +10,7 @@ program sandia
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
-  use meshing, only: set_mesh_object, nullify_mesh_object
+  use meshing, only: set_mesh_object, nullify_mesh_object, get_local_num_cells
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -24,7 +24,7 @@ program sandia
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
   use scalars, only: update_scalars
-  use read_config, only: get_enable_cell_corrections, get_boundary_count, get_case_name, get_store_residuals
+  use read_config, only: get_enable_cell_corrections, get_case_name, get_store_residuals
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
@@ -54,7 +54,7 @@ program sandia
 
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
-
+  
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   call timer_init()
@@ -86,7 +86,7 @@ program sandia
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+  call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
   if (irank == par_env%root) print *, "Start SIMPLE"

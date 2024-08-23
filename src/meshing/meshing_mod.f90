@@ -45,11 +45,14 @@ module meshing
   public :: get_vert_per_cell, set_vert_per_cell
   public :: set_centre
   public :: set_area
+  public :: set_volume
   public :: set_normal
   public :: get_face_interpolation
   public :: set_face_interpolation
   public :: get_mesh_generated, set_mesh_generated
-
+  public :: get_bc_id
+  public :: find_entities
+  
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
@@ -125,6 +128,10 @@ module meshing
     module procedure get_neighbour_local_status
   end interface get_local_status
 
+  interface find_entities
+    module procedure find_face_entities
+  end interface find_entities
+  
   interface
 
     module subroutine set_mesh_object(input_mesh)
@@ -488,6 +495,12 @@ module meshing
       type(face_locator), intent(in) :: loc_f !< The face locator object
     end subroutine set_area
 
+    !> Set the volume of specified cell
+    module subroutine set_volume(volume, loc_p)
+      real(ccs_real), intent(in) :: volume      !< The cell volume
+      type(cell_locator), intent(in) :: loc_p   !< The cell locator object
+    end subroutine set_volume
+
     !v Set the normal of specified face
     !
     !  Normalises the stored normal.
@@ -518,6 +531,20 @@ module meshing
       logical, intent(in) :: is_generated
     end subroutine
 
+    !> Get the numerical ID of a boundary from its name
+    pure module subroutine get_bc_id(mesh, name, bc_id)
+      type(ccs_mesh), intent(in) :: mesh     !< The mesh
+      character(len=*), intent(in) :: name   !< The boundary name
+      integer(ccs_int), intent(out) :: bc_id !< The boundary ID
+    end subroutine get_bc_id
+
+    !> Find a list of (boundary) faces based on their boundary name
+    module subroutine find_face_entities(mesh, name, faces)
+      type(ccs_mesh), intent(in) :: mesh                                  !< The mesh
+      character(len=*), intent(in) :: name                                !< The boundary name
+      type(face_locator), dimension(:), allocatable, intent(out) :: faces !< The list of boundary faces
+    end subroutine find_face_entities
+    
   end interface
 
 end module meshing

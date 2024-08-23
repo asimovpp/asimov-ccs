@@ -27,7 +27,7 @@ program tgv
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use petsctypes, only: vector_petsc
-  use read_config, only: get_variables, get_boundary_count, get_case_name, get_store_residuals, get_enable_cell_corrections, get_variable_types
+  use read_config, only: get_variables, get_case_name, get_store_residuals, get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -99,7 +99,6 @@ program tgv
 
   ! Read boundary conditions
   if (irank == par_env%root) print *, "Read and allocate BCs"
-  call get_boundary_count(run_options%paths%ccs_config_file, n_boundaries)
   call get_store_residuals(run_options%paths%ccs_config_file, store_residuals)
   call get_enable_cell_corrections(run_options%paths%ccs_config_file, enable_cell_corrections)
 
@@ -168,7 +167,7 @@ program tgv
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
-  call initialise_flow(flow_fields, get_init_flow, get_init_mass_flux)
+  call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
   call calc_kinetic_energy(par_env, u, v, w)
   call calc_enstrophy(par_env, u, v, w)
 

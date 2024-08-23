@@ -187,6 +187,7 @@ contains
           coeffaF = interpolation_factor
         else !Gamma
           gamma_m = phiPt / beta_m
+          call get_face_interpolation(loc_f, interpolation_factor)
           coeffaF = (1.0_ccs_real - interpolation_factor) * gamma_m
         end if
         coeffaP = 1.0_ccs_real - coeffaF

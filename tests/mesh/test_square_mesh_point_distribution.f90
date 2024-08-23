@@ -4,6 +4,7 @@
 !  \f$\sum_p n_p = N\f$.
 program test_square_mesh_point_distribution
 
+  use ccs_base, only: bnd_names_default
   use testing_lib
   use core
   use mesh_utils, only: build_square_mesh
