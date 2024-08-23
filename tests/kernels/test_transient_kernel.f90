@@ -26,6 +26,7 @@ program test_transient_kernel
   
   real(ccs_real) :: t0, tend ! Start and end of integration interval
   real(ccs_real) :: dt       ! Timestep
+  real(ccs_real) :: V        ! Volume
   integer :: nsteps ! Number of timesteps to integrate over
   
   real(ccs_real) :: ctol, r
@@ -47,6 +48,7 @@ program test_transient_kernel
   !! Test a linear ODE
   print *, "Integrating linear ODE f'(t) = a cos(at)"
   dt = 1.0e-3 ! Arbitrary...
+  V = dt**(1.0_ccs_real / 3.0_ccs_real) ! Assuming U~=1 would give a CFL=1
   t0 = 0
   tend = t0 + nstep0 * dt
 
@@ -73,6 +75,7 @@ program test_transient_kernel
   ! Test a non-linear ODE
   print *, "Integrating non-linear ODE f'(t) = -f(t)^2"
   dt = 1.0e-3 ! Arbitrary...
+  V = dt**(1.0_ccs_real / 3.0_ccs_real) ! Assuming U~=1 would give a CFL=1
   t0 = 0
   tend = t0 + nstep0 * dt
 
@@ -235,7 +238,8 @@ contains
     prev = old(1)
     do while((.not. converged) .and. (i < niter))
       ! Get transient coefficient and RHS
-      call transient%eval(old, dt, coeff, rhs)
+      call transient%eval_coeffs(V, dt, coeff)
+      call transient%eval_explicit(V, old, dt, coeff)
       
       ! Add forcing coefficient and RHS
       ! Note that these are implicit schemes so should be evaluated at t+dt
