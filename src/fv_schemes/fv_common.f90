@@ -18,7 +18,7 @@ submodule(fv) fv_common
                      get_local_num_cells, get_face_interpolation, &
                      get_max_faces, get_centre
   use boundary_conditions, only: get_bc_index
-  use timers, only: timer_register_start, timer_stop
+  use profiler, only: profiler_begin_region, profiler_end_region
   use bc_constants
   use error_codes
 
@@ -735,7 +735,6 @@ contains
 
     use meshing, only: get_local_num_cells
     use profiler
-    use caliper_mod
 
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
     real(ccs_real), dimension(:), allocatable :: x_gradients
@@ -744,10 +743,8 @@ contains
 
     real(ccs_real), dimension(:), pointer :: gradients_data    ! Data array for gradients
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: timer_index
 
-    call timer_register_start("Compute gradient", timer_index)
-    call cali_begin_region('cali_region:compute_gradient')
+    call profiler_begin_region("Compute gradient")
 
     call get_local_num_cells(local_num_cells)
     allocate(x_gradients(local_num_cells))
@@ -776,8 +773,7 @@ contains
     call restore_vector_data(phi%z_gradients, gradients_data)
     call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
 
-    call cali_end_region('cali_region:compute_gradient')
-    call timer_stop(timer_index)
+    call profiler_end_region("Compute gradient")
 
   end subroutine update_gradient
 

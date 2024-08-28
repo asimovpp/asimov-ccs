@@ -1,23 +1,16 @@
-!v Interface to Caliper profiler
-module profiler
-#include "ccs_macros.inc"
+submodule(profiler) profiler_caliper
 
   use caliper_mod
-  use iso_c_binding, ONLY : C_INT64_T
+  use iso_c_binding, only : C_INT64_T
 
   implicit none
 
-  private
-
   type(ConfigManager) :: mgr
-
-  public :: profiler_init
-  public :: profiler_shutdown
 
 contains
 
   !> Initialise Caliper profiler
-  subroutine profiler_init()
+  module subroutine profiler_init()
 
     integer :: argc
     character(len=256)    :: arg
@@ -45,11 +38,28 @@ contains
   end subroutine
 
   !> Shutdown Caliper profiler
-  subroutine profiler_shutdown()
+  module subroutine profiler_shutdown(par_env)
+    class(parallel_environment), intent(in) :: par_env
 
     call mgr%flush
     call configmanager_delete(mgr)
 
-    end subroutine
+  end subroutine
 
-end module profiler
+  !> Profile region -- start
+  module subroutine profiler_begin_region(region_name)
+    character(len=*), intent(in) :: region_name
+
+    call cali_begin_region(region_name)
+
+  end subroutine
+
+  !> Profile region -- stop
+  module subroutine profiler_end_region(region_name)
+    character(len=*), intent(in) :: region_name
+
+    call cali_end_region(region_name)
+
+  end subroutine
+
+end submodule

@@ -117,9 +117,6 @@ contains
     use partitioning, only: compute_connectivity_get_local_cells, &
                             compute_partitioner_input
 
-    use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop
-    use caliper_mod
     use profiler  
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -136,14 +133,6 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
-    integer(ccs_int) :: timer_read_topo
-    integer(ccs_int) :: timer_read_geo
-    integer(ccs_int) :: timer_partitioner_input
-
-    call timer_register("Read mesh topology", timer_read_topo)
-    call timer_register("Compute partitioner input", timer_partitioner_input)
-    call timer_register("Read mesh geometry", timer_read_geo)
-
     call set_mesh_object(mesh)
     call set_mesh_generated(.false.)
     call nullify_mesh_object()
@@ -158,27 +147,21 @@ contains
 
     call open_file(geo_file, "read", geo_reader)
 
-    call timer_start(timer_read_topo)
-    call cali_begin_region('cali_region:read_topology')
+    call profiler_begin_region("Read mesh topology")
     call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
-    call cali_end_region('cali_region:read_topology')
-    call timer_stop(timer_read_topo)
+    call profiler_end_region("Read mesh topology")
 
-    call timer_start(timer_partitioner_input)
-    call cali_begin_region('cali_region:compute_partitioner_input')
+    call profiler_begin_region("Compute partitioner input")
     call compute_partitioner_input(par_env, shared_env, mesh)
-    call cali_end_region('cali_region:compute_partitioner_input')
-    call timer_stop(timer_partitioner_input)
+    call profiler_end_region("Compute partitioner input")
 
     call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call set_offsets(shared_env, mesh)
 
-    call timer_start(timer_read_geo)
-    call cali_begin_region('cali_region:read_geometry')
+    call profiler_begin_region("Read mesh geometry")
     call read_geometry(shared_env, reader_env, geo_reader, mesh)
-    call cali_end_region('cali_region:read_geometry')
-    call timer_stop(timer_read_geo)
+    call profiler_end_region("Read mesh geometry")
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -1519,9 +1502,6 @@ contains
   function build_mesh(par_env, shared_env, nx, ny, nz, side_length, bnd_names) result(mesh)
 
     use partitioning, only: compute_partitioner_input
-    use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop
-    use caliper_mod
     use profiler  
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
@@ -1535,14 +1515,6 @@ contains
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
-
-    integer(ccs_int) :: timer_build_topo
-    integer(ccs_int) :: timer_build_geo
-    integer(ccs_int) :: timer_partitioner_input
-    
-    call timer_register("Build mesh topology", timer_build_topo)
-    call timer_register("Compute partitioner input", timer_partitioner_input)
-    call timer_register("Build mesh geometry", timer_build_geo)
 
     call set_mesh_object(mesh)
     call set_mesh_generated(.true.)
@@ -1559,27 +1531,21 @@ contains
       call error_abort(error_message)
     end if
 
-    call timer_start(timer_build_topo)
-    call cali_begin_region('cali_region:build_topology')
+    call profiler_begin_region("Build mesh topology")
     call build_topology(par_env, shared_env, nx, ny, nz, mesh)
-    call cali_end_region('cali_region:build_topology')
-    call timer_stop(timer_build_topo)
+    call profiler_end_region("Build mesh topology")
 
-    call timer_start(timer_partitioner_input)
-    call cali_begin_region('cali_region:compute_partitioner_input')
+    call profiler_begin_region("Compute partitioner input")
     call compute_partitioner_input(par_env, shared_env, mesh)
-    call cali_end_region('cali_region:compute_partitioner_input')
-    call timer_stop(timer_partitioner_input)
+    call profiler_end_region("Compute partitioner input")
 
     call mesh_partition_reorder(par_env, shared_env, mesh)
 
     call set_offsets(shared_env, mesh)
 
-    call timer_start(timer_build_geo)
-    call cali_begin_region('cali_region:build_geometry')
+    call profiler_begin_region("Build mesh geometry")
     call build_geometry(par_env, shared_env, nx, ny, nz, side_length, mesh)
-    call cali_end_region('cali_region:build_geometry')
-    call timer_stop(timer_build_geo)
+    call profiler_end_region("Build mesh geometry")
 
     call cleanup_topo(shared_env, mesh)
 
@@ -3028,9 +2994,6 @@ contains
                             compute_partitioner_input, &
                             cleanup_partitioner_data, &
                             print_partition_quality
-    use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop
-    use caliper_mod
     use profiler
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -3038,45 +3001,32 @@ contains
     class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
-    integer(ccs_int) :: timer_partitioning
-    integer(ccs_int) :: timer_compute_connectivity
-    integer(ccs_int) :: timer_reordering
-
-    call timer_register("Partitioning", timer_partitioning)
-    call timer_register("Computing connectivity", timer_compute_connectivity)
-    call timer_register("Reordering", timer_reordering)
     call set_mesh_object(mesh)
 
     call create_shared_roots_comm(par_env, shared_env, roots_env)
 
-    call timer_start(timer_partitioning)
     if (par_env%num_procs > 1) then
-      call cali_begin_region('cali_region:partition_kway')
+      call profiler_begin_region("Kway partitioning")
       call partition_kway(par_env, shared_env, roots_env, mesh)
-      call cali_end_region('cali_region:partition_kway')
+      call profiler_end_region("Kway partitioning")
     else
-      call cali_begin_region('cali_region:partition_strided')
+      call profiler_begin_region("Strided partitioning")
       call partition_stride(par_env, shared_env, roots_env, mesh)
-      call cali_end_region('cali_region:partition_strided')
+      call profiler_end_region("Strided partitioning")
     end if
     call print_partition_quality(par_env)
-    call timer_stop(timer_partitioning)
 
-    call timer_start(timer_compute_connectivity)
-    call cali_begin_region('cali_region:compute_connectivity')
+    call profiler_begin_region("Computing connectivity")
     call compute_connectivity(par_env, shared_env, mesh)
-    call cali_end_region('cali_region:compute_connectivity')
-    call timer_stop(timer_compute_connectivity)
+    call profiler_end_region("Computing connectivity")
 
 ! insert halo / local cells computation here
 
     call print_bandwidth(par_env)
 
-    call timer_start(timer_reordering)
-    call cali_begin_region('cali_region:reorder_cells')
+    call profiler_begin_region("Reordering")
     call reorder_cells(par_env, shared_env, mesh)
-    call cali_end_region('cali_region:reorder_cells')
-    call timer_stop(timer_reordering)
+    call profiler_end_region("Reordering")
 
     call cleanup_partitioner_data(shared_env, mesh)
 

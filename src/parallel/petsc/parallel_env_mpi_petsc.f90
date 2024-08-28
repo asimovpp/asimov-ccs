@@ -54,6 +54,8 @@ contains
   !> Cleanup the PETSc and MPI parallel environments
   module subroutine cleanup_parallel_environment(par_env)
 
+    use caliper_mod
+
     class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
 
     integer :: ierr ! Error code

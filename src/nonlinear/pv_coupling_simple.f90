@@ -344,9 +344,7 @@ contains
 
     use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
-    use timers, only: timer_register_start, timer_stop
     use profiler
-    use caliper_mod
 
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
@@ -371,7 +369,6 @@ contains
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: global_num_cells
-    integer(ccs_int) :: timer_coeffs
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -402,11 +399,9 @@ contains
     call get_field(flow, "viscosity", viscosity)
     call get_field(flow, "density", density)
     
-    call timer_register_start("Building coefficients", timer_coeffs)
-    call cali_begin_region('cali_region:compute_fluxes')
+    call profiler_begin_region("Compute fluxes")
     call compute_fluxes(u, mf, viscosity, density, component, M, vec)
-    call cali_end_region('cali_region:compute_fluxes')
-    call timer_stop(timer_coeffs)
+    call profiler_end_region("Compute fluxes")
 
     call apply_timestep(u, workvec, M, vec)
 
@@ -691,9 +686,7 @@ contains
   subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
-    use timers, only: timer_register_start, timer_stop
     use profiler
-    use caliper_mod
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -748,10 +741,8 @@ contains
     real(ccs_real) :: dxmag
 
     integer(ccs_int) :: global_num_cells
-    integer(ccs_int) :: timer_coeffs
 
-    call timer_register_start("Building coefficients", timer_coeffs)
-    call cali_begin_region('cali_region:build_coefficients')
+    call profiler_begin_region("Building coefficients")
     ! First zero matrix
     call zero(M)
 
@@ -884,8 +875,7 @@ contains
     call update(vec)
     call finalise(M)
 
-    call cali_end_region('cali_region:build_coefficients')
-    call timer_stop(timer_coeffs)
+    call profiler_end_region("Building coefficients")
 
     ! Create linear solver
     call dprint("P': create lin sys")
