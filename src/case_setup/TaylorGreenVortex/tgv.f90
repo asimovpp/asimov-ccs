@@ -269,9 +269,9 @@ program tgv
 
   if(.not.unsteady) then
     num_steps = 1
-    print*, "steady-state activated"
+    if (irank == par_env%root) print*, "steady-state activated"
   else
-    print*, "unsteady-state activated"
+    if (irank == par_env%root) print*, "unsteady-state activated"
   end if
 
   cali_loop_attribute = cali_find_attribute('loop')
