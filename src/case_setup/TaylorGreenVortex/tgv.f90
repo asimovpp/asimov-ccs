@@ -90,12 +90,11 @@ program tgv
 
   character(len=128), dimension(:), allocatable :: bnd_names
   
-  call profiler_begin_region('Elapsed time')
-
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-
   call profiler_init()
+
+  call profiler_begin_region('Elapsed time')
 
   irank = par_env%proc_id
   isize = par_env%num_procs
