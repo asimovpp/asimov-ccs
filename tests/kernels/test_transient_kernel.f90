@@ -240,7 +240,7 @@ contains
     do while((.not. converged) .and. (i < niter))
       ! Get transient coefficient and RHS
       call transient%eval_coeffs(V, dt, coeff)
-      call transient%eval_explicit(V, old, dt, coeff)
+      call transient%eval_explicit(V, old, dt, rhs)
       
       ! Add forcing coefficient and RHS
       ! Note that these are implicit schemes so should be evaluated at t+dt
