@@ -40,7 +40,7 @@ program bfs
   use meshing, only: set_mesh_object, nullify_mesh_object
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
-  use io_visualisation, only: write_solution
+  use io_visualisation, only: write_solution, read_solution
   use fv, only: update_gradient
   use utils, only: str
 
