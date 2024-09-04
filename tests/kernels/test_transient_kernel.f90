@@ -13,8 +13,9 @@
 program test_transient_kernel
 
   use testing_lib
-  use kinds, only: ccs_real
+  use kinds, only: ccs_real 
   use transient_kernel_def, only: transient_second_order_kernel
+  use transient_kernels, only: transient_kernel
 
   implicit none
 
@@ -62,7 +63,7 @@ program test_transient_kernel
   ! Perform a series of integrations, refining the step each time
   do i = 1, nref + 1
     nsteps = nstep0 * i
-    err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, dt / (2**(i - 1)), f0, f1)
+    err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, dt / (2**(i - 1)), f0, f1, 1000, 1e-8_ccs_real)
   end do
 
   ! Check the error convergence
@@ -89,7 +90,7 @@ program test_transient_kernel
   ! Perform a series of integrations, refininng the step each time
   do i = 1, nref + 1
     nsteps = nstep0 * i
-    err(i) = integrate(transient, fprime2, fprime_i2, t0, nsteps, dt / (2**(i - 1)), f0, f2)
+    err(i) = integrate(transient, fprime2, fprime_i2, t0, nsteps, dt / (2**(i - 1)), f0, f2, 1000, 1e-8_ccs_real)
   end do
 
   ! Check the error convergence
@@ -147,7 +148,7 @@ contains
   !v Integrate the derivative fprime(t) from t0 over nsteps of dt, using old values f0. At the end
   !  of the integration compute the error using fn(t) and return.
   pure real(ccs_real) function integrate(transient, fprime, fprime_i, t0, nsteps, dt, f0, fn, niter, tol)
-    type(transient_kernel), intent(in) :: transient
+    class(transient_kernel), intent(in) :: transient
     real(ccs_real), intent(in) :: t0
     integer, intent(in) :: nsteps
     real(ccs_real), intent(in) :: dt
@@ -157,16 +158,19 @@ contains
     interface
       !> Function to evaluate the transient forcing at time t, may be non-linear.
       pure real(ccs_real) function fprime(f, t)
+        use kinds, only: ccs_real
         real(ccs_real), intent(in) :: f
         real(ccs_real), intent(in) :: t
       end function fprime
       !> Function to evaluate the implicit component of the forcing at time t, may be non-linear.
       pure real(ccs_real) function fprime_i(f, t)
+        use kinds, only: ccs_real
         real(ccs_real), intent(in) :: f
         real(ccs_real), intent(in) :: t
       end function fprime_i
       !> The function being integrated.
       pure real(ccs_real) function fn(t)
+        use kinds, only: ccs_real
         real(ccs_real), intent(in) :: t
       end function fn
     end interface
@@ -208,7 +212,7 @@ contains
   end function update_old
 
   pure real(ccs_real) function converge_nonlinear(transient, fprime, fprime_i, old, t, dt, niter, tol)
-    type(transient_kernel), intent(in) :: transient ! The transient kernel
+    class(transient_kernel), intent(in) :: transient ! The transient kernel
     real(ccs_real), dimension(:), intent(in) :: old  ! Function value(s) at previous timestep(s)
     real(ccs_real), intent(in) :: t                  ! Current time
     real(ccs_real), intent(in) :: dt                 ! Timestep
@@ -217,11 +221,13 @@ contains
     interface
       !> Function to evaluate the transient forcing at time t, may be non-linear.
       pure real(ccs_real) function fprime(f, t)
+        use kinds, only: ccs_real
         real(ccs_real), intent(in) :: f
         real(ccs_real), intent(in) :: t
       end function fprime
       !> Function to evaluate the implicit component of the forcing at time t, may be non-linear.
       pure real(ccs_real) function fprime_i(f, t)
+        use kinds, only: ccs_real
         real(ccs_real), intent(in) :: f
         real(ccs_real), intent(in) :: t
       end function fprime_i
@@ -231,6 +237,7 @@ contains
     real(ccs_real) :: fnew ! The updated function value
     logical :: converged
     integer :: i           ! Iteration counter
+    real(ccs_real), parameter :: rho = 1.0_ccs_real
 
     real(ccs_real) :: coeff ! The implicit coefficient from transient and forcing contributions
     real(ccs_real) :: rhs   ! The explicit term from transient and forcing contributions
@@ -240,8 +247,8 @@ contains
     prev = old(1)
     do while((.not. converged) .and. (i < niter))
       ! Get transient coefficient and RHS
-      call transient%eval_coeffs(V, dt, coeff)
-      call transient%eval_explicit(V, old, dt, rhs)
+      call transient%eval_coeffs(rho, V, dt, coeff)
+      call transient%eval_explicit(rho, V, old, dt, rhs)
       
       ! Add forcing coefficient and RHS
       ! Note that these are implicit schemes so should be evaluated at t+dt
