@@ -95,7 +95,7 @@ program test_transient_kernel
 
     ! Set initial values
     do j = 1, transient%get_width()
-      f0(j) = f2(t0 - (j - 1) * dt)
+      f0(j) = f2(t0 - (j - 1) * cur_dt)
     end do
 
     err(i) = integrate(transient, fprime2, fprime_i2, t0, nsteps, cur_dt, f0, f2, 1000, 1e-8_ccs_real)
