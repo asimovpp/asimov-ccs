@@ -15,7 +15,7 @@ program test_transient_kernel
   use testing_lib
   use kinds, only: ccs_real 
   use error_analysis, only: get_order
-  use transient_kernel_def, only: transient_first_order_kernel
+  use transient_kernel_def, only: transient_second_order_kernel
   use transient_kernels, only: transient_kernel
 
   implicit none
@@ -25,7 +25,7 @@ program test_transient_kernel
   real(ccs_real), parameter :: alpha = 3.1415_ccs_real ! Arbitrary constant for linear ODE problem
   real(ccs_real), parameter :: C = 1.617_ccs_real ! Arbitrary constant for non-linear ODE problem
 
-  type(transient_first_order_kernel) :: transient ! The transient kernel
+  type(transient_second_order_kernel) :: transient ! The transient kernel
   
   real(ccs_real) :: t0, tend ! Start and end of integration interval
   real(ccs_real) :: dt       ! Timestep
@@ -43,7 +43,7 @@ program test_transient_kernel
   integer :: i, j
 
   call init()
-  transient = transient_first_order_kernel()
+  transient = transient_second_order_kernel()
   call transient%set_step(17)
 
   print *, "order", transient%order
