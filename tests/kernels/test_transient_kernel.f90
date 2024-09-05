@@ -157,7 +157,7 @@ contains
     associate(foo => t)
     end associate
 
-    fprime_i2 = 2 * f
+    fprime_i2 = f
   end function fprime_i2
 
   !v Integrate the derivative fprime(t) from t0 over nsteps of dt, using old values f0. At the end
