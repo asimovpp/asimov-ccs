@@ -195,7 +195,7 @@ contains
     end do
     
     ! Return error
-    integrate = f - fn(t)
+    integrate = abs(f - fn(t))
     
   end function integrate
 
