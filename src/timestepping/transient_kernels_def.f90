@@ -53,7 +53,7 @@ module transient_kernel_def
 
   subroutine init_theta(self)
     class(transient_theta_kernel) :: self
-    real(ccs_real), parameter :: theta = 1.5_ccs_real
+    real(ccs_real), parameter :: theta = 0.5_ccs_real
 
     if (theta == 1.0_ccs_real) then
       self%order = 2
@@ -63,7 +63,7 @@ module transient_kernel_def
     self%width_trans = [1, 2]
     self%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
                                           1.0_ccs_real + theta, -0.5_ccs_real*theta], shape=(/2, 2/))
-    self%implicit_coeff_trans = [ 1.0_ccs_real, 1.0_ccs_real + theta]
+    self%implicit_coeff_trans = [ 1.0_ccs_real, 1.0_ccs_real + 0.5_ccs_real*theta]
   end subroutine
 
 
