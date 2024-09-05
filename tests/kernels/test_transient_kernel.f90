@@ -15,7 +15,7 @@ program test_transient_kernel
   use testing_lib
   use kinds, only: ccs_real 
   use error_analysis, only: get_order
-  use transient_kernel_def, only: transient_second_order_kernel
+  use transient_kernel_def, only: transient_second_order_kernel, transient_first_order_kernel, transient_theta_kernel
   use transient_kernels, only: transient_kernel
 
   implicit none
@@ -27,85 +27,31 @@ program test_transient_kernel
 
   class(transient_kernel), allocatable :: transient ! The transient kernel
   
-  real(ccs_real) :: t0, tend ! Start and end of integration interval
-  real(ccs_real) :: dt       ! Timestep
-  real(ccs_real) :: V        ! Volume
-  integer :: nsteps ! Number of timesteps to integrate over
-  
-  real(ccs_real), dimension(nref + 1) :: err ! The error history
-  real(ccs_real), dimension(nref + 1) :: dts ! dt history
-  real(ccs_real) :: cur_dt
-
-  real(ccs_real), dimension(:), allocatable :: f0 ! The initial value(s)
-
-  real(ccs_real) :: order
-  integer :: i, j
-
   call init()
-  allocate(transient_second_order_kernel :: transient)
 
-  call transient%init()
-  call transient%set_step(17)
-
-  print *, "order", transient%order
-  print *, "width", transient%width
-  print *, "implicit", transient%implicit_coeff
-  print *, "explicit", transient%explicit_coeffs
-  
-  ! Allocate space for the old values
-  allocate(f0(transient%get_width()))
-  
-  !! Test a linear ODE
+  print *, "First order kernel"
+  allocate(transient_first_order_kernel :: transient)
   print *, "Integrating linear ODE f'(t) = a cos(at)"
-  dt = 1.0e-3 ! Arbitrary...
-  V = dt**(1.0_ccs_real / 3.0_ccs_real) ! Assuming U~=1 would give a CFL=1
-  t0 = 0
-  tend = t0 + nstep0 * dt
-
-  ! Perform a series of integrations, refining the step each time
-  do i = 1, nref + 1
-    nsteps = nstep0 * (2**(i - 1))
-    cur_dt = dt/(2**(i-1)) 
-    print *, "Checking end time: ", tend, t0 + nsteps * cur_dt
-    dts(i) = cur_dt
-
-    ! Set initial values
-    do j = 1, transient%get_width()
-      f0(j) = f1(t0 - (j - 1) * cur_dt)
-    end do
-
-    err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, cur_dt, f0, f1, 10000, 1e-10_ccs_real)
-  end do
-  
-  ! Check the error convergence
-  call get_order(dts, err, order)
-  call assert_gt(order, transient%get_order()*0.95_ccs_real, "Convergence order not preserved by transient kernel")
-
-  ! Test a non-linear ODE
+  call run_test(transient, f1, fprime1, fprime_i1)
   print *, "Integrating non-linear ODE f'(t) = -f(t)^2"
-  dt = 1.0e-3 ! Arbitrary...
-  V = dt**(1.0_ccs_real / 3.0_ccs_real) ! Assuming U~=1 would give a CFL=1
-  t0 = 0
-  tend = t0 + nstep0 * dt
+  call run_test(transient, f2, fprime2, fprime_i2)
+  deallocate(transient)
 
-  ! Perform a series of integrations, refininng the step each time
-  do i = 1, nref + 1
-    nsteps = nstep0 * (2**(i - 1))
-    cur_dt = dt/(2**(i-1)) 
-    print *, "Checking end time: ", tend, t0 + nsteps * cur_dt
-    dts(i) = cur_dt
+  print *, "Second order kernel"
+  allocate(transient_second_order_kernel :: transient)
+  print *, "Integrating linear ODE f'(t) = a cos(at)"
+  call run_test(transient, f1, fprime1, fprime_i1)
+  print *, "Integrating non-linear ODE f'(t) = -f(t)^2"
+  call run_test(transient, f2, fprime2, fprime_i2)
+  deallocate(transient)
 
-    ! Set initial values
-    do j = 1, transient%get_width()
-      f0(j) = f2(t0 - (j - 1) * cur_dt)
-    end do
-
-    err(i) = integrate(transient, fprime2, fprime_i2, t0, nsteps, cur_dt, f0, f2, 1000, 1e-8_ccs_real)
-  end do
-
-  ! Check the error convergence
-  call get_order(dts, err, order)
-  call assert_gt(order, transient%get_order()*0.95_ccs_real, "Convergence order not preserved by transient kernel")
+  print *, "Theta kernel"
+  allocate(transient_theta_kernel :: transient)
+  print *, "Integrating linear ODE f'(t) = a cos(at)"
+  call run_test(transient, f1, fprime1, fprime_i1)
+  print *, "Integrating non-linear ODE f'(t) = -f(t)^2"
+  call run_test(transient, f2, fprime2, fprime_i2)
+  deallocate(transient)
 
   call fin()
   
@@ -162,12 +108,85 @@ contains
     fprime_i2 = f
   end function fprime_i2
 
+  subroutine run_test(transient, fn, fprime, fprime_i)
+    class(transient_kernel), intent(in) :: transient
+    interface
+      !> Function to evaluate the transient forcing at time t, may be non-linear.
+      pure real(ccs_real) function fprime(f, t)
+        use kinds, only: ccs_real
+        real(ccs_real), intent(in) :: f
+        real(ccs_real), intent(in) :: t
+      end function fprime
+      !> Function to evaluate the implicit component of the forcing at time t, may be non-linear.
+      pure real(ccs_real) function fprime_i(f, t)
+        use kinds, only: ccs_real
+        real(ccs_real), intent(in) :: f
+        real(ccs_real), intent(in) :: t
+      end function fprime_i
+      !> The function being integrated.
+      pure real(ccs_real) function fn(t)
+        use kinds, only: ccs_real
+        real(ccs_real), intent(in) :: t
+      end function fn
+    end interface
+    real(ccs_real) :: t0, tend ! Start and end of integration interval
+    real(ccs_real) :: dt       ! Timestep
+    real(ccs_real) :: V        ! Volume
+    integer :: nsteps ! Number of timesteps to integrate over
+    
+    real(ccs_real), dimension(nref + 1) :: err ! The error history
+    real(ccs_real), dimension(nref + 1) :: dts ! dt history
+    real(ccs_real) :: cur_dt
+
+    real(ccs_real), dimension(:), allocatable :: f0 ! The initial value(s)
+
+    real(ccs_real) :: order
+    integer :: i, j
+
+
+    call transient%init()
+    call transient%set_step(17)
+    
+    print *, "order", transient%order
+    print *, "width", transient%width
+    print *, "implicit", transient%implicit_coeff
+    print *, "explicit", transient%explicit_coeffs
+
+    ! Allocate space for the old values
+    allocate(f0(transient%get_width()))
+  
+    dt = 1.0e-3 ! Arbitrary...
+    V = dt**(1.0_ccs_real / 3.0_ccs_real) ! Assuming U~=1 would give a CFL=1
+    t0 = 0
+    tend = t0 + nstep0 * dt
+
+    ! Perform a series of integrations, refining the step each time
+    do i = 1, nref + 1
+      nsteps = nstep0 * (2**(i - 1))
+      cur_dt = dt/(2**(i-1)) 
+      dts(i) = cur_dt
+
+      ! Set initial values
+      do j = 1, transient%get_width()
+        f0(j) = f1(t0 - (j - 1) * cur_dt)
+      end do
+
+      err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, V, cur_dt, f0, f1, 100, 1e-8_ccs_real)
+    end do
+  
+    ! Check the error convergence
+    call get_order(dts, err, order)
+    call assert_gt(order, transient%get_order()*0.95_ccs_real, "Convergence order not preserved by transient kernel")
+  
+  end subroutine
+
   !v Integrate the derivative fprime(t) from t0 over nsteps of dt, using old values f0. At the end
   !  of the integration compute the error using fn(t) and return.
-  pure real(ccs_real) function integrate(transient, fprime, fprime_i, t0, nsteps, dt, f0, fn, niter, tol)
+  pure real(ccs_real) function integrate(transient, fprime, fprime_i, t0, nsteps, V, dt, f0, fn, niter, tol)
     class(transient_kernel), intent(in) :: transient
     real(ccs_real), intent(in) :: t0
     integer, intent(in) :: nsteps
+    real(ccs_real), intent(in) :: V
     real(ccs_real), intent(in) :: dt
     real(ccs_real), dimension(:), intent(in) :: f0
     integer, intent(in) :: niter      ! How many non-linear iterations?
@@ -204,7 +223,7 @@ contains
     ! Perform integration
     t = t0
     do step = 1, nsteps
-      f = converge_nonlinear(transient, fprime, fprime_i, old, t, dt, niter, tol)
+      f = converge_nonlinear(transient, fprime, fprime_i, old, t, V, dt, niter, tol)
       old = update_old(f, old)
 
       t = t + dt
@@ -228,10 +247,11 @@ contains
     new_old(1) = new
   end function update_old
 
-  pure real(ccs_real) function converge_nonlinear(transient, fprime, fprime_i, old, t, dt, niter, tol)
+  pure real(ccs_real) function converge_nonlinear(transient, fprime, fprime_i, old, t, V, dt, niter, tol)
     class(transient_kernel), intent(in) :: transient ! The transient kernel
     real(ccs_real), dimension(:), intent(in) :: old  ! Function value(s) at previous timestep(s)
     real(ccs_real), intent(in) :: t                  ! Current time
+    real(ccs_real), intent(in) :: V                  ! Volume
     real(ccs_real), intent(in) :: dt                 ! Timestep
     integer, intent(in) :: niter                     ! Maximum number of non-linear iterations
     real(ccs_real), intent(in) :: tol                ! (Relative) tolerance
