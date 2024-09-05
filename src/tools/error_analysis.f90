@@ -71,7 +71,7 @@ contains
     real(ccs_real), intent(out) :: order !< the computed order
     real(ccs_real), dimension(:), allocatable :: x, y
     real(ccs_real) :: x_bar, y_bar, Sxx, Sxy
-    integer(ccs_int) :: nref, i, j
+    integer(ccs_int) :: nref, j
 
     nref = size(refinements)
 

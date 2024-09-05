@@ -117,11 +117,17 @@ contains
     real(ccs_real), intent(in) :: f
     real(ccs_real), intent(in) :: t
 
+    associate(foo => f)
+    end associate
+
     fprime1 = alpha * cos(alpha * t)
   end function fprime1
   pure real(ccs_real) function fprime_i1(f, t)
     real(ccs_real), intent(in) :: f
     real(ccs_real), intent(in) :: t
+
+    associate(foo => f, bar => t)
+    end associate
 
     fprime_i1 = 0.0_ccs_real
   end function fprime_i1
@@ -136,12 +142,18 @@ contains
     real(ccs_real), intent(in) :: f
     real(ccs_real), intent(in) :: t
 
+    associate(foo => f, bar => t)
+    end associate
+
     ! Using Picard linearisation -> no explicit forcing term
     fprime2 = 0.0_ccs_real
   end function fprime2
   pure real(ccs_real) function fprime_i2(f, t)
     real(ccs_real), intent(in) :: f
     real(ccs_real), intent(in) :: t
+
+    associate(foo => t)
+    end associate
 
     fprime_i2 = 2 * f
   end function fprime_i2

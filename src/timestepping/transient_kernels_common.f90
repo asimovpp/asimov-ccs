@@ -5,12 +5,12 @@ module transient_kernels
   implicit none
 
   type, abstract :: transient_kernel
-    real(ccs_real) :: order              !< Theoretical order of the scheme
+    integer(ccs_int) :: order              !< Theoretical order of the scheme
     integer(ccs_int) :: width            !< size of the stencil required (=number of old values)
     real(ccs_real), allocatable, dimension(:) :: explicit_coeffs !< rhs coefficients associated to old values
     real(ccs_real) :: implicit_coeff     !< lhs/diagonal coefficient
 
-    real(ccs_real), allocatable, dimension(:) :: width_trans
+    integer(ccs_int), allocatable, dimension(:) :: width_trans
     real(ccs_real), allocatable, dimension(:, :) :: explicit_coeffs_trans
     real(ccs_real), allocatable, dimension(:) :: implicit_coeff_trans
   contains

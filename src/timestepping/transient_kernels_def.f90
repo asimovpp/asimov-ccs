@@ -58,7 +58,11 @@ module transient_kernel_def
     type(transient_theta_kernel) :: transient
     real(ccs_real), parameter :: theta = 1.5_ccs_real
 
-    transient%order = theta
+    if (theta == 1.0_ccs_real) then
+      transient%order = 2
+    else
+      transient%order = 1
+    end if
     transient%width_trans = [1, 2]
     transient%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
                                                1.0_ccs_real + theta, -0.5_ccs_real*theta], shape=(/2, 2/))
