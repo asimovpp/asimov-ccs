@@ -15,7 +15,7 @@ program test_transient_kernel
   use testing_lib
   use kinds, only: ccs_real 
   use error_analysis, only: get_order
-  use transient_kernel_def, only: transient_second_order_kernel
+  use transient_kernel_def, only: transient_first_order_kernel
   use transient_kernels, only: transient_kernel
 
   implicit none
@@ -25,7 +25,7 @@ program test_transient_kernel
   real(ccs_real), parameter :: alpha = 3.1415_ccs_real ! Arbitrary constant for linear ODE problem
   real(ccs_real), parameter :: C = 1.617_ccs_real ! Arbitrary constant for non-linear ODE problem
 
-  type(transient_second_order_kernel) :: transient ! The transient kernel
+  type(transient_first_order_kernel) :: transient ! The transient kernel
   
   real(ccs_real) :: t0, tend ! Start and end of integration interval
   real(ccs_real) :: dt       ! Timestep
@@ -35,14 +35,15 @@ program test_transient_kernel
   real(ccs_real) :: ctol, r
   real(ccs_real), dimension(nref + 1) :: err ! The error history
   real(ccs_real), dimension(nref + 1) :: dts ! dt history
+  real(ccs_real) :: cur_dt
 
   real(ccs_real), dimension(:), allocatable :: f0 ! The initial value(s)
 
   real(ccs_real) :: order
-  integer :: i
+  integer :: i, j
 
   call init()
-  transient = transient_second_order_kernel()
+  transient = transient_first_order_kernel()
   call transient%set_step(17)
 
   print *, "order", transient%order
@@ -65,16 +66,18 @@ program test_transient_kernel
   t0 = 0
   tend = t0 + nstep0 * dt
 
-  ! Set initial values
-  do i = 1, transient%get_width()
-    f0(i) = f1(t0 - (i - 1) * dt)
-  end do
-
   ! Perform a series of integrations, refining the step each time
   do i = 1, nref + 1
     nsteps = nstep0 * i
-    dts(i) = dt/(2**(i-1)) 
-    err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, dt / (2**(i - 1)), f0, f1, 10000, 1e-10_ccs_real)
+    cur_dt = dt/(2**(i-1)) 
+    dts(i) = cur_dt
+
+    ! Set initial values
+    do j = 1, transient%get_width()
+      f0(j) = f1(t0 - (j - 1) * cur_dt)
+    end do
+
+    err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, cur_dt, f0, f1, 10000, 1e-10_ccs_real)
   end do
   
   call get_order(dts, err, order)
@@ -97,9 +100,6 @@ program test_transient_kernel
   t0 = 0
   tend = t0 + nstep0 * dt
 
-  ! Set initial values
-  do i = 1, transient%get_width()
-    f0(i) = f2(t0 - (i - 1) * dt)
   end do
 
   ! Perform a series of integrations, refininng the step each time
@@ -162,7 +162,7 @@ contains
 
   !v Integrate the derivative fprime(t) from t0 over nsteps of dt, using old values f0. At the end
   !  of the integration compute the error using fn(t) and return.
-  real(ccs_real) function integrate(transient, fprime, fprime_i, t0, nsteps, dt, f0, fn, niter, tol)
+  pure real(ccs_real) function integrate(transient, fprime, fprime_i, t0, nsteps, dt, f0, fn, niter, tol)
     class(transient_kernel), intent(in) :: transient
     real(ccs_real), intent(in) :: t0
     integer, intent(in) :: nsteps
@@ -226,7 +226,7 @@ contains
     new_old(1) = new
   end function update_old
 
-  real(ccs_real) function converge_nonlinear(transient, fprime, fprime_i, old, t, dt, niter, tol)
+  pure real(ccs_real) function converge_nonlinear(transient, fprime, fprime_i, old, t, dt, niter, tol)
     class(transient_kernel), intent(in) :: transient ! The transient kernel
     real(ccs_real), dimension(:), intent(in) :: old  ! Function value(s) at previous timestep(s)
     real(ccs_real), intent(in) :: t                  ! Current time
