@@ -14,12 +14,21 @@ module transient_kernels
     real(ccs_real), allocatable, dimension(:, :) :: explicit_coeffs_trans
     real(ccs_real), allocatable, dimension(:) :: implicit_coeff_trans
   contains
+    procedure(init), deferred :: init
     procedure :: get_order
     procedure :: get_width
     procedure :: set_step
     procedure :: eval_coeffs
     procedure :: eval_explicit
   end type
+
+  abstract interface
+    subroutine init(self)
+      import :: transient_kernel
+      class(transient_kernel) :: self
+    end subroutine 
+  end interface
+
 
   contains
 

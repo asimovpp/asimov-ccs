@@ -11,22 +11,19 @@ module transient_kernel_def
   use transient_kernels
 
   type, extends(transient_kernel) :: transient_first_order_kernel
+    contains
+    procedure :: init => init_first_order
   end type
-  interface transient_first_order_kernel
-    module procedure init_first_order
-  end interface
 
   type, extends(transient_kernel) :: transient_second_order_kernel
+    contains
+    procedure :: init => init_second_order
   end type
-  interface transient_second_order_kernel
-    module procedure init_second_order
-  end interface
 
   type, extends(transient_kernel) :: transient_theta_kernel
+    contains
+    procedure :: init => init_theta
   end type
-  interface transient_theta_kernel
-    module procedure init_theta
-  end interface
 
   private :: init_first_order
   private :: init_second_order
@@ -34,40 +31,40 @@ module transient_kernel_def
 
   contains
 
-    function init_first_order() result(transient)
-      type(transient_first_order_kernel) :: transient
+  subroutine init_first_order(self)
+    class(transient_first_order_kernel) :: self
 
-      transient%order = 1
-      transient%width_trans = [1]
-      transient%explicit_coeffs_trans = reshape([1.0_ccs_real], shape=(/1,1/))
-      transient%implicit_coeff_trans = [ 1.0_ccs_real ]
-   end function
+    self%order = 1
+    self%width_trans = [1]
+    self%explicit_coeffs_trans = reshape([1.0_ccs_real], shape=(/1,1/))
+    self%implicit_coeff_trans = [ 1.0_ccs_real ]
+  end subroutine 
 
 
-  function init_second_order() result(transient)
-    type(transient_second_order_kernel) :: transient
+  subroutine init_second_order(self)
+    class(transient_second_order_kernel) :: self
 
-    transient%order = 2
-    transient%width_trans = [1, 2]
-    transient%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
-                                               2.0_ccs_real, -0.5_ccs_real], shape=(/2, 2/))
-    transient%implicit_coeff_trans = [ 1.0_ccs_real, 1.5_ccs_real ]
-  end function
+    self%order = 2
+    self%width_trans = [1, 2]
+    self%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
+                                          2.0_ccs_real, -0.5_ccs_real], shape=(/2, 2/))
+    self%implicit_coeff_trans = [ 1.0_ccs_real, 1.5_ccs_real ]
+  end subroutine
 
-  function init_theta() result(transient)
-    type(transient_theta_kernel) :: transient
+  subroutine init_theta(self)
+    class(transient_theta_kernel) :: self
     real(ccs_real), parameter :: theta = 1.5_ccs_real
 
     if (theta == 1.0_ccs_real) then
-      transient%order = 2
+      self%order = 2
     else
-      transient%order = 1
+      self%order = 1
     end if
-    transient%width_trans = [1, 2]
-    transient%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
-                                               1.0_ccs_real + theta, -0.5_ccs_real*theta], shape=(/2, 2/))
-    transient%implicit_coeff_trans = [ 1.0_ccs_real, 1.0_ccs_real + theta]
-  end function
+    self%width_trans = [1, 2]
+    self%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
+                                          1.0_ccs_real + theta, -0.5_ccs_real*theta], shape=(/2, 2/))
+    self%implicit_coeff_trans = [ 1.0_ccs_real, 1.0_ccs_real + theta]
+  end subroutine
 
 
 end module transient_kernel_def

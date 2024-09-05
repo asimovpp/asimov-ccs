@@ -25,7 +25,7 @@ program test_transient_kernel
   real(ccs_real), parameter :: alpha = 3.1415_ccs_real ! Arbitrary constant for linear ODE problem
   real(ccs_real), parameter :: C = 1.617_ccs_real ! Arbitrary constant for non-linear ODE problem
 
-  type(transient_second_order_kernel) :: transient ! The transient kernel
+  class(transient_kernel), allocatable :: transient ! The transient kernel
   
   real(ccs_real) :: t0, tend ! Start and end of integration interval
   real(ccs_real) :: dt       ! Timestep
@@ -42,7 +42,9 @@ program test_transient_kernel
   integer :: i, j
 
   call init()
-  transient = transient_second_order_kernel()
+  allocate(transient_second_order_kernel :: transient)
+
+  call transient%init()
   call transient%set_step(17)
 
   print *, "order", transient%order
