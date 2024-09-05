@@ -62,8 +62,9 @@ program test_transient_kernel
 
   ! Perform a series of integrations, refining the step each time
   do i = 1, nref + 1
-    nsteps = nstep0 * i
+    nsteps = nstep0 * (2**(i - 1))
     cur_dt = dt/(2**(i-1)) 
+    print *, "Checking end time: ", tend, t0 + nsteps * cur_dt
     dts(i) = cur_dt
 
     ! Set initial values
@@ -87,8 +88,9 @@ program test_transient_kernel
 
   ! Perform a series of integrations, refininng the step each time
   do i = 1, nref + 1
-    nsteps = nstep0 * i
+    nsteps = nstep0 * (2**(i - 1))
     cur_dt = dt/(2**(i-1)) 
+    print *, "Checking end time: ", tend, t0 + nsteps * cur_dt
     dts(i) = cur_dt
 
     ! Set initial values
