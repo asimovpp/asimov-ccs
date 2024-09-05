@@ -1,4 +1,12 @@
 module transient_kernel_def
+!> Definition of transient kernels. Each scheme is defined by a theoretical order, width (=number of old values to use) and
+!> explicit coefficients associated with the as well as implicit (diagonal) coefficient
+!>
+!> Because at the start of a computation, fewer 'old' values are available, reverting to a lower order scheme is necessary.
+!> This is the reason why each scheme implements their `width`, `explicit_coeffs` and `implicit_coeff` as arrays, 
+!> the first element being used for the 1st timestep, etc. until the full scheme can be used.
+!>
+
 
   use transient_kernels
 

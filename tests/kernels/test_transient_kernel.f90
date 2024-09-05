@@ -14,6 +14,7 @@ program test_transient_kernel
 
   use testing_lib
   use kinds, only: ccs_real 
+  use error_analysis, only: get_order
   use transient_kernel_def, only: transient_second_order_kernel
   use transient_kernels, only: transient_kernel
 
@@ -33,12 +34,21 @@ program test_transient_kernel
   
   real(ccs_real) :: ctol, r
   real(ccs_real), dimension(nref + 1) :: err ! The error history
+  real(ccs_real), dimension(nref + 1) :: dts ! dt history
 
   real(ccs_real), dimension(:), allocatable :: f0 ! The initial value(s)
 
+  real(ccs_real) :: order
   integer :: i
 
   call init()
+  transient = transient_second_order_kernel()
+  call transient%set_step(17)
+
+  print *, "order", transient%order
+  print *, "width", transient%width
+  print *, "implicit", transient%implicit_coeff
+  print *, "explicit", transient%explicit_coeffs
   
   ! The convergence ratio between refinement levels should be (1/2)^p where p is the order of the
   ! scheme. To allow some reasonable tolerance, 1.1/(2^p) has been used.
@@ -63,17 +73,22 @@ program test_transient_kernel
   ! Perform a series of integrations, refining the step each time
   do i = 1, nref + 1
     nsteps = nstep0 * i
-    err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, dt / (2**(i - 1)), f0, f1, 1000, 1e-8_ccs_real)
+    dts(i) = dt/(2**(i-1)) 
+    err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, dt / (2**(i - 1)), f0, f1, 10000, 1e-10_ccs_real)
   end do
+  
+  call get_order(dts, err, order)
+  call assert_gt(order, transient%get_order()*0.95_ccs_real, "Convergence order not preserved by transient kernel")
 
   ! Check the error convergence
-  do i = 2, nref + 1
-    r = err(i) / err(i - 1)
-    if (r > ctol) then
-      write(message, *) "Convergence ratio ", r, "exceeds tolerance", ctol
-      call stop_test(message)
-    end if
-  end do
+  ! do i = 2, nref + 1
+  !   r = err(i) / err(i - 1)
+  !   print *, r
+  !   if (r > ctol) then
+  !     write(message, *) "Convergence ratio ", r, "exceeds tolerance", ctol
+  !     call stop_test(message)
+  !   end if
+  ! end do
   
   ! Test a non-linear ODE
   print *, "Integrating non-linear ODE f'(t) = -f(t)^2"
@@ -147,7 +162,7 @@ contains
 
   !v Integrate the derivative fprime(t) from t0 over nsteps of dt, using old values f0. At the end
   !  of the integration compute the error using fn(t) and return.
-  pure real(ccs_real) function integrate(transient, fprime, fprime_i, t0, nsteps, dt, f0, fn, niter, tol)
+  real(ccs_real) function integrate(transient, fprime, fprime_i, t0, nsteps, dt, f0, fn, niter, tol)
     class(transient_kernel), intent(in) :: transient
     real(ccs_real), intent(in) :: t0
     integer, intent(in) :: nsteps
@@ -211,7 +226,7 @@ contains
     new_old(1) = new
   end function update_old
 
-  pure real(ccs_real) function converge_nonlinear(transient, fprime, fprime_i, old, t, dt, niter, tol)
+  real(ccs_real) function converge_nonlinear(transient, fprime, fprime_i, old, t, dt, niter, tol)
     class(transient_kernel), intent(in) :: transient ! The transient kernel
     real(ccs_real), dimension(:), intent(in) :: old  ! Function value(s) at previous timestep(s)
     real(ccs_real), intent(in) :: t                  ! Current time
