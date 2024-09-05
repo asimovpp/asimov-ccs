@@ -267,8 +267,8 @@ contains
       
       ! Add forcing coefficient and RHS
       ! Note that these are implicit schemes so should be evaluated at t+dt
-      coeff = coeff + fprime_i(prev, t + dt)
-      rhs = rhs + fprime(prev, t + dt)
+      coeff = coeff + fprime_i(prev, t + dt) * V
+      rhs = rhs + fprime(prev, t + dt) * V
 
       ! Perform update
       fnew = rhs / coeff
