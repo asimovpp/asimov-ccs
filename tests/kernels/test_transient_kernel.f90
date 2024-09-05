@@ -32,7 +32,6 @@ program test_transient_kernel
   real(ccs_real) :: V        ! Volume
   integer :: nsteps ! Number of timesteps to integrate over
   
-  real(ccs_real) :: ctol, r
   real(ccs_real), dimension(nref + 1) :: err ! The error history
   real(ccs_real), dimension(nref + 1) :: dts ! dt history
   real(ccs_real) :: cur_dt
@@ -51,11 +50,6 @@ program test_transient_kernel
   print *, "implicit", transient%implicit_coeff
   print *, "explicit", transient%explicit_coeffs
   
-  ! The convergence ratio between refinement levels should be (1/2)^p where p is the order of the
-  ! scheme. To allow some reasonable tolerance, 1.1/(2^p) has been used.
-  ! XXX: This is a specialisation of the transient kernel, should it be added for other kernels?
-  ctol = 1.1 / (2**transient%get_order())
-
   ! Allocate space for the old values
   allocate(f0(transient%get_width()))
   
@@ -80,19 +74,10 @@ program test_transient_kernel
     err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, cur_dt, f0, f1, 10000, 1e-10_ccs_real)
   end do
   
+  ! Check the error convergence
   call get_order(dts, err, order)
   call assert_gt(order, transient%get_order()*0.95_ccs_real, "Convergence order not preserved by transient kernel")
 
-  ! Check the error convergence
-  ! do i = 2, nref + 1
-  !   r = err(i) / err(i - 1)
-  !   print *, r
-  !   if (r > ctol) then
-  !     write(message, *) "Convergence ratio ", r, "exceeds tolerance", ctol
-  !     call stop_test(message)
-  !   end if
-  ! end do
-  
   ! Test a non-linear ODE
   print *, "Integrating non-linear ODE f'(t) = -f(t)^2"
   dt = 1.0e-3 ! Arbitrary...
@@ -100,22 +85,23 @@ program test_transient_kernel
   t0 = 0
   tend = t0 + nstep0 * dt
 
-  end do
-
   ! Perform a series of integrations, refininng the step each time
   do i = 1, nref + 1
     nsteps = nstep0 * i
-    err(i) = integrate(transient, fprime2, fprime_i2, t0, nsteps, dt / (2**(i - 1)), f0, f2, 1000, 1e-8_ccs_real)
+    cur_dt = dt/(2**(i-1)) 
+    dts(i) = cur_dt
+
+    ! Set initial values
+    do j = 1, transient%get_width()
+      f0(j) = f2(t0 - (j - 1) * dt)
+    end do
+
+    err(i) = integrate(transient, fprime2, fprime_i2, t0, nsteps, cur_dt, f0, f2, 1000, 1e-8_ccs_real)
   end do
 
   ! Check the error convergence
-  do i = 2, nref + 1
-    r = err(i) / err(i - 1)
-    if (r > ctol) then
-      write(message, *) "Convergence ratio ", r, "exceeds tolerance", ctol
-      call stop_test(message)
-    end if
-  end do
+  call get_order(dts, err, order)
+  call assert_gt(order, transient%get_order()*0.95_ccs_real, "Convergence order not preserved by transient kernel")
 
   call fin()
   
