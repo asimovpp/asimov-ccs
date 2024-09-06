@@ -3,6 +3,7 @@
 !  Provides the interface for timestepping methods.
 module timestepping
 
+  use transient_kernels, only: transient_kernel
   use kinds, only: ccs_real, ccs_int
   use types, only: field, ccs_mesh, ccs_vector, ccs_matrix, vector_spec
 
@@ -133,6 +134,17 @@ module timestepping
       class(ccs_matrix), intent(inout) :: M !< equation system
       class(ccs_vector), intent(inout) :: b !< rhs vector
     end subroutine
+
+    !> Apply time scheme from kernel
+    module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
+      class(transient_kernel), intent(inout) :: transient ! The transient kernel
+      class(field), intent(inout) :: phi !< flow variable
+      class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
+      class(ccs_matrix), intent(inout) :: M !< equation system
+      class(ccs_vector), intent(inout) :: b !< rhs vector
+    end subroutine
+
+
 
   end interface
 

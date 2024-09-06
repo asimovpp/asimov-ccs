@@ -2,6 +2,7 @@ submodule(timestepping) timestepping_common
 #include "ccs_macros.inc"
 
   use meshing, only: get_local_num_cells, create_cell_locator, get_volume
+  use transient_kernels, only: transient_kernel
   use types, only: cell_locator
   use utils, only: exit_print
 
@@ -286,5 +287,77 @@ contains
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
   end subroutine apply_timestep_theta
+
+  module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
+    use kinds, only: ccs_int
+    use mat, only: set_matrix_diagonal, get_matrix_diagonal
+    use vec, only: get_vector_data, restore_vector_data
+    use utils, only: update, finalise
+
+    class(transient_kernel), intent(inout) :: transient ! The transient kernel
+    class(field), intent(inout) :: phi
+    class(ccs_vector), intent(inout) :: diag
+    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(inout) :: b
+
+    real(ccs_real), dimension(:), pointer :: diag_data
+    real(ccs_real), dimension(:), pointer :: b_data
+    real(ccs_real), dimension(:), pointer :: phi_old1_data
+    real(ccs_real), dimension(:), pointer :: phi_old2_data
+    real(ccs_real) :: rho
+    integer(ccs_int) :: i
+    integer(ccs_int) :: local_num_cells
+
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: V_p, coeff, rhs
+    real(ccs_real), allocatable, dimension(:) :: old
+
+    rho = 1.0
+
+    call transient%set_step(current_step)
+    call transient%set_dt(get_timestep())
+
+    call finalise(M)
+    call get_matrix_diagonal(M, diag)
+
+    allocate(old(transient%get_width()))
+    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
+    if (transient%get_width() == 2) then
+      call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
+    end if
+
+    call get_vector_data(diag, diag_data)
+    call update(b)
+    call get_vector_data(b, b_data)
+
+    call get_local_num_cells(local_num_cells)
+    do i = 1, local_num_cells
+      call create_cell_locator(i, loc_p)
+      call get_volume(loc_p, V_p)
+
+      call transient%eval_coeffs(rho, V_p, coeff)
+
+      if (transient%get_width() == 1) then
+        old = [ phi_old1_data(i) ]
+      else
+        old = [ phi_old1_data(i), phi_old2_data(i) ]
+      end if
+
+      call transient%eval_explicit(rho, V_p, old, rhs)
+
+      diag_data(i) = diag_data(i) + coeff
+      b_data(i) = b_data(i) + rhs
+    end do
+
+    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
+    if (transient%get_width() == 2) then
+      call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
+    end if
+    call restore_vector_data(diag, diag_data)
+    call restore_vector_data(b, b_data)
+    call set_matrix_diagonal(diag, M)
+  end subroutine apply_timestep_kernel
+
+ 
 
 end submodule timestepping_common
