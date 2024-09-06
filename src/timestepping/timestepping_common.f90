@@ -315,7 +315,7 @@ contains
     rho = 1.0
 
     call transient%init()
-    call transient%set_step(current_step)
+    call transient%set_step(current_step+1)
     call transient%set_dt(get_timestep())
 
     call finalise(M)
