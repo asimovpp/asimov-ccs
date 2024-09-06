@@ -5,7 +5,7 @@ program test_tgv_disturb_cartesian
 #include "ccs_macros.inc"
 
   use testing_lib
-  use error_analysis, only: get_order, print_error_summary, disturb_cartesian
+  use error_analysis, only: get_orders, print_error_summary, disturb_cartesian
   use ccs_base, only: bnd_names_default
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d, domain_size
@@ -55,8 +55,8 @@ program test_tgv_disturb_cartesian
 
     call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 
-    call get_order(refinements, error_L2, orders_L2)
-    call get_order(refinements, error_Linf, orders_Linf)
+    call get_orders(refinements, error_L2, orders_L2)
+    call get_orders(refinements, error_Linf, orders_Linf)
 
     call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
     call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")
