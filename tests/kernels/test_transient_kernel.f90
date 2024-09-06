@@ -168,10 +168,10 @@ contains
 
       ! Set initial values
       do j = 1, transient%get_width()
-        f0(j) = f1(t0 - (j - 1) * cur_dt)
+        f0(j) = fn(t0 - (j - 1) * cur_dt)
       end do
 
-      err(i) = integrate(transient, fprime1, fprime_i1, t0, nsteps, V, cur_dt, f0, f1, 100, 1e-8_ccs_real)
+      err(i) = integrate(transient, fprime, fprime_i, t0, nsteps, V, cur_dt, f0, fn, 1000, 1e-8_ccs_real)
     end do
   
     ! Check the error convergence
