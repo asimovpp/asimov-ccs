@@ -105,6 +105,7 @@ contains
     integer(ccs_int) :: nvar, i
 
     nvar = size(errors, dim=1)
+    allocate(orders(nvar))
     orders(:) = 0.0_ccs_real
 
     do i = 1, nvar
