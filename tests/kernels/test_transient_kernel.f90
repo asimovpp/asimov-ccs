@@ -109,7 +109,7 @@ contains
   end function fprime_i2
 
   subroutine run_test(transient, fn, fprime, fprime_i)
-    class(transient_kernel), intent(in) :: transient
+    class(transient_kernel), intent(inout) :: transient
     interface
       !> Function to evaluate the transient forcing at time t, may be non-linear.
       pure real(ccs_real) function fprime(f, t)
@@ -171,6 +171,7 @@ contains
         f0(j) = fn(t0 - (j - 1) * cur_dt)
       end do
 
+      call transient%set_dt(cur_dt)
       err(i) = integrate(transient, fprime, fprime_i, t0, nsteps, V, cur_dt, f0, fn, 1000, 1e-8_ccs_real)
     end do
   
@@ -284,8 +285,8 @@ contains
     prev = old(1)
     do while((.not. converged) .and. (i < niter))
       ! Get transient coefficient and RHS
-      call transient%eval_coeffs(rho, V, dt, coeff)
-      call transient%eval_explicit(rho, V, old, dt, rhs)
+      call transient%eval_coeffs(rho, V, coeff)
+      call transient%eval_explicit(rho, V, old, rhs)
       
       ! Add forcing coefficient and RHS
       ! Note that these are implicit schemes so should be evaluated at t+dt
