@@ -138,6 +138,7 @@ contains
     integer(ccs_int) :: index_p
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(3) :: x_p
+    real(ccs_real) :: V_P
 
     real(ccs_real), dimension(:), pointer :: x_data
     real(ccs_real), dimension(:), pointer :: S_data
@@ -170,9 +171,10 @@ contains
     do index_p = 1, local_num_cells
        call create_cell_locator(index_p, loc_p)
        call get_centre(loc_p, x_p)
+       call get_volume(loc_p, V_P)
 
        x_data(index_p) = set_solution(x_p)
-       S_data(index_p) = compute_source(x_p)
+       S_data(index_p) = compute_source(x_p) * V_P ! We need to pass the integrated source
     end do
     call restore_vector_data(x, x_data)
     call restore_vector_data(S, S_data)

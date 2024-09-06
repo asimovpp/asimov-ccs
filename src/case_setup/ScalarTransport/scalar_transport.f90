@@ -211,7 +211,7 @@ program scalar_transport
   if (irank == par_env%root) print *, "Start scalar solver"
   do t = 1, num_steps
     call write_mesh(par_env, case_path, mesh)
-    call update_scalars(par_env, mesh, flow_fields)
+    call update_scalars(par_env, mesh, eval_sources, flow_fields)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t, " / ", num_steps
     end if
@@ -486,5 +486,20 @@ contains
     nullify(density)
     
   end subroutine initialise_case
+
+  !> Case-specific source terms
+  subroutine eval_sources(flow, phi, R, S)
+    use types, only: fluid, field, ccs_vector
+    use fv, only: zero_sources
+
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
+    call zero_sources(flow, phi, R, S)
+    
+  end subroutine eval_sources
 
 end program scalar_transport

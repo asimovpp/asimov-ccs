@@ -232,7 +232,7 @@ program ldc
     call timer_register_start("Solver time inc I/O", timer_index_sol)
     ! Solve using SIMPLE algorithm
     if (irank == par_env%root) print *, "Start SIMPLE"
-    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+    call solve_nonlinear(par_env, mesh, eval_sources, it_start, it_end, res_target, &
                      flow_fields)
 
     ! Write out mesh and solution
@@ -472,5 +472,20 @@ contains
     nullify(rho)
 
   end subroutine initialise_velocity
+
+  !> Case-specific source terms
+  subroutine eval_sources(flow, phi, R, S)
+    use types, only: fluid, field, ccs_vector
+    use fv, only: zero_sources
+
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
+    call zero_sources(flow, phi, R, S)
+    
+  end subroutine eval_sources
 
 end program ldc
