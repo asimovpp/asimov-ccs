@@ -1,5 +1,4 @@
 submodule(fv_kernels) advection_kernel_submodule
-   use fv_kernels
 
    implicit none
 
