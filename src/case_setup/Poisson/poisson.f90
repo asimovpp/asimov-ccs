@@ -134,7 +134,7 @@ program poisson
 
   ! ASiMoV-CCS uses
   use core
-  use ccs_base, only: mesh
+  use ccs_base, only: mesh, bnd_names_default
   use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
@@ -187,6 +187,7 @@ program poisson
   call sync(par_env)
   call timer(start_time)
 
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
   call initialise_poisson(par_env, shared_env, run_options)
 
   ! Initialise with default values
@@ -292,13 +293,10 @@ contains
 
   subroutine initialise_poisson(par_env, shared_env, run_options)
 
-    use ccs_base, only: bnd_names_default
-
     class(parallel_environment), allocatable :: par_env
     class(parallel_environment), allocatable :: shared_env
     type(ccs_options), intent(in) :: run_options
 
-    run_options%mesh%bnd_names = bnd_names_default(1:4)
     call initialise_mesh(par_env, shared_env, run_options)
     
   end subroutine initialise_poisson
