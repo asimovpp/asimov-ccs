@@ -4,6 +4,7 @@
 program test_tgv_loop
 #include "ccs_macros.inc"
 
+  use ccs_base, only: bnd_names_default
   use core
   use testing_lib
   use error_analysis, only: get_order, print_error_summary
@@ -38,6 +39,7 @@ program test_tgv_loop
 
   do i = 1, num_cps
     cps = cps_list(i)
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
     mesh = build_square_mesh(par_env, shared_env, run_options, cps, domain_size)
 
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)

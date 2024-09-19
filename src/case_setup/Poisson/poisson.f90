@@ -151,7 +151,6 @@ program poisson
                    set_size, &
                    set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
   use vec, only: create_vector_values
-  use mesh_utils, only: build_square_mesh
   use meshing, only: get_face_area, get_centre, get_volume, get_global_index, &
                      count_neighbours, get_boundary_status
   use parallel_types, only: parallel_environment
@@ -293,10 +292,13 @@ contains
 
   subroutine initialise_poisson(par_env, shared_env, run_options)
 
+    use ccs_base, only: bnd_names_default
+
     class(parallel_environment), allocatable :: par_env
     class(parallel_environment), allocatable :: shared_env
     type(ccs_options), intent(in) :: run_options
 
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
     call initialise_mesh(par_env, shared_env, run_options)
     
   end subroutine initialise_poisson
