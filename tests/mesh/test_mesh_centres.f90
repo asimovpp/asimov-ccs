@@ -6,6 +6,7 @@ program test_mesh_centres
 
   use testing_lib
 
+  use ccs_base, only: bnd_names_default
   use core
   
   use constants, only: ndim
@@ -50,6 +51,7 @@ program test_mesh_centres
     nz = n
 
     l = parallel_random(par_env)
+    run_options%mesh%bnd_names = bnd_names_default
     mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
     call set_mesh_object(mesh)
 

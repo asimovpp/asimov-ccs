@@ -6,6 +6,7 @@ program test_mesh_square_mesh_closed
 
   use testing_lib
 
+  use ccs_base, only: bnd_names_default
   use core
   
   use constants
@@ -41,6 +42,7 @@ program test_mesh_square_mesh_closed
     n = m(mctr)
 
     l = parallel_random(par_env)
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
     mesh = build_square_mesh(par_env, shared_env, run_options, n, l)
     call set_mesh_object(mesh)
 

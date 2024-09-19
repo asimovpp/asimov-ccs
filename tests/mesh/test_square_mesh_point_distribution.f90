@@ -6,6 +6,7 @@ program test_square_mesh_point_distribution
 
   use ccs_base, only: bnd_names_default
   use testing_lib
+  use ccs_base, only: bnd_names_default
   use core
   use mesh_utils, only: build_square_mesh
   use meshing, only: get_local_num_cells, get_global_num_cells
@@ -29,6 +30,7 @@ program test_square_mesh_point_distribution
 
   do mctr = 1, size(m)
     n = m(mctr)
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
     mesh = build_square_mesh(par_env, shared_env, run_options, n, 1.0_ccs_real)
     call set_mesh_object(mesh)
 

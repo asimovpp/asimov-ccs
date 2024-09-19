@@ -47,6 +47,7 @@ program test_mesh_closed
     nz = n
 
     l = parallel_random(par_env)
+    run_options%mesh%bnd_names = bnd_names_default
     mesh = build_mesh(par_env, shared_env, run_options, nx, nz, ny, l)
     call set_mesh_object(mesh)
 

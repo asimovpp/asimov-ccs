@@ -6,6 +6,7 @@ program test_mesh_square_mesh_volume
 
   use ccs_base, only: bnd_names_default
   use testing_lib
+  use ccs_base, only: bnd_names_default
   use core
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells
   use meshing, only: set_mesh_object, nullify_mesh_object
@@ -39,6 +40,7 @@ program test_mesh_square_mesh_volume
   do mctr = 1, size(m)
     n = m(mctr)
     l = parallel_random(par_env)
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
     mesh = build_square_mesh(par_env, shared_env, run_options, n, l)
     call set_mesh_object(mesh)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...

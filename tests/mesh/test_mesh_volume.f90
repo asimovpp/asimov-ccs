@@ -5,6 +5,7 @@
 program test_mesh_volume
 
   use testing_lib
+  use ccs_base, only: bnd_names_default
   use core
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells
   use meshing, only: set_mesh_object, nullify_mesh_object
@@ -38,6 +39,7 @@ program test_mesh_volume
   nz = 4
 
   l = parallel_random(par_env)
+  run_options%mesh%bnd_names = bnd_names_default
   mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
   call set_mesh_object(mesh)
   expected_vol = l**3 ! XXX: Currently the mesh is a hard-coded 3D cube...

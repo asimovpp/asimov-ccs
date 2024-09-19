@@ -3,6 +3,7 @@ program test_mesh_indices
 
   use testing_lib
 
+  use ccs_base, only: bnd_names_default
   use core
   
   use meshing, only: create_cell_locator, get_global_index, get_local_num_cells, get_global_num_cells
@@ -37,6 +38,7 @@ program test_mesh_indices
     nz = n
 
     l = parallel_random(par_env)
+    run_options%mesh%bnd_names = bnd_names_default
     mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
     call set_mesh_object(mesh)
 
