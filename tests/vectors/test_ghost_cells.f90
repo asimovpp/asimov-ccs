@@ -2,6 +2,7 @@
 program test_ghost_cells
 
   use testing_lib
+  use ccs_base, only: bnd_names_default
   use core
   use constants, only: insert_mode
   use kinds, only: ccs_int
@@ -39,6 +40,7 @@ program test_ghost_cells
   proc_id = par_env%proc_id
   num_procs = par_env%num_procs
 
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
   mesh = build_square_mesh(par_env, shared_env, run_options, 11, 1.0_ccs_real)
   call set_mesh_object(mesh)
   call get_local_num_cells(local_num_cells)

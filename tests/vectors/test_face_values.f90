@@ -2,6 +2,7 @@
 program test_face_values
 
   use testing_lib
+  use ccs_base, only: bnd_names_default
   use core
   use kinds, only: ccs_int, ccs_real
   use constants, only: face
@@ -27,6 +28,7 @@ program test_face_values
   call init()
 
   ! Create a square mesh
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
   mesh = build_square_mesh(par_env, shared_env, run_options, cps, 1.0_ccs_real)
   call set_mesh_object(mesh)
 
