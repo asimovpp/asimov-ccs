@@ -126,6 +126,7 @@ contains
   subroutine init_case()
 
     use constants, only: cell
+    use ccs_base, only: bnd_names_default
     use types, only: matrix_spec, vector_spec
 
     use vec, only: create_vector, set_vector_location
@@ -146,6 +147,7 @@ contains
     real(ccs_real), dimension(:), pointer :: S_data
     
     ! Initialise mesh
+    run_options%mesh%bnd_names = bnd_names_default
     mesh = build_mesh(par_env, shared_env, run_options, n, n, n, l)
     call set_mesh_object(mesh)
 
