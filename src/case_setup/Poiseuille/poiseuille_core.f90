@@ -126,7 +126,7 @@ module poiseuille_core
 
     call timer_stop(timer_index_init)
 
-    call run_solver(par_env, run_options, postproc_poiseuille, flow_fields)
+    call run_solver(par_env, run_options, eval_sources, postproc_poiseuille, flow_fields)
     error_L2 = pois_error_L2_global
     error_Linf = pois_error_Linf_global
     
@@ -326,5 +326,20 @@ module poiseuille_core
     end if
 
   end subroutine calc_error
+
+  !> Case-specific source terms
+  subroutine eval_sources(flow, phi, R, S)
+    use types, only: fluid, field, ccs_vector
+    use fv, only: zero_sources
+
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
+    call zero_sources(flow, phi, R, S)
+    
+  end subroutine eval_sources
 
 end module poiseuille_core

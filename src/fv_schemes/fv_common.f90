@@ -859,37 +859,63 @@ contains
 
   end subroutine update_gradient_component
 
-  !> Adds a fixed source term to the righthand side of the equation
-  module subroutine add_fixed_source(S, rhs)
+  !v Zeros the linear and fixed sources. Can be used in place of a specific implementation when
+  !  there are no sources, serves as a template for any case-specific source implementation.
+  !
+  !  Note source routines should return "integrated" sources, i.e. SV and RV.
+  module subroutine zero_sources(flow, phi, R, S)
 
-    class(ccs_vector), intent(inout) :: S      !< The source field
-    class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
 
-    real(ccs_real), dimension(:), pointer :: S_data
-    real(ccs_real), dimension(:), pointer :: rhs_data
-
+    real(ccs_real), dimension(:), pointer:: R_data, S_data
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: index_p
+
+    integer :: index_p
     type(cell_locator) :: loc_p
     real(ccs_real) :: V_p
-    
-    call get_vector_data_readonly(S, S_data)
-    call get_vector_data(rhs, rhs_data)
+
+    ! Silence warnings
+    associate(foo => flow, bar => phi)
+    end associate
+
+    call get_vector_data(R, R_data)
+    call get_vector_data(S, S_data)
+
     call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-       call create_cell_locator(index_p, loc_p)
-       call get_volume(loc_p, V_p)
-
-       rhs_data(index_p) = rhs_data(index_p) + S_data(index_p) * V_p
+      ! XXX: Dummy implementation, use flow/phi to compute field-specific sources
+      call create_cell_locator(index_p, loc_p)
+      call get_volume(loc_p, V_p)
+      R_data(index_p) = 0 * V_p
+      S_data(index_p) = 0 * V_p
     end do
-    call restore_vector_data_readonly(S, S_data)
-    call restore_vector_data(rhs, rhs_data)
 
+    call restore_vector_data(R, R_data)
+    call restore_vector_data(S, S_data)
+    call update(R)
+    call update(S)
+
+  end subroutine zero_sources
+  
+  !v Adds a fixed source term to the righthand side of the equation, expects the integrated source
+  !  SV
+  module subroutine add_fixed_source(S, rhs)
+    use solver, only: axpy
+
+    class(ccs_vector), intent(inout) :: S   !< The source field
+    class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
+    
+    ! Ensure RHS is in "clean" state
+    call update(rhs)
+    call axpy(1.0_ccs_real, S, rhs)
     call update(rhs)
     
   end subroutine add_fixed_source
 
-  !> Adds a linear source term to the system matrix
+  !> Adds a linear source term to the system matrix, expects the integrated source RV
   module subroutine add_linear_source(S, M)
 
     use mat, only: add_matrix_diagonal
@@ -897,39 +923,7 @@ contains
     class(ccs_vector), intent(inout) :: S !< The source field
     class(ccs_matrix), intent(inout) :: M !< The system
 
-    real(ccs_real), dimension(:), pointer :: S_data
-
-    real(ccs_real), dimension(:), allocatable :: S_store
-    
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: index_p
-    type(cell_locator) :: loc_p
-    real(ccs_real) :: V_p
-    
-    call get_local_num_cells(local_num_cells)
-    allocate(S_store(local_num_cells))
-
-    call get_vector_data(S, S_data)
-    do index_p = 1, local_num_cells
-       call create_cell_locator(index_p, loc_p)
-       call get_volume(loc_p, V_p)
-
-       S_store(index_p) = S_data(index_p)
-       S_data(index_p) = S_data(index_p) * V_p
-    end do
-    call restore_vector_data(S, S_data)
-    call update(S)
-
     call add_matrix_diagonal(S, M)
-    
-    call get_vector_data(S, S_data)
-    do index_p = 1, local_num_cells
-       S_data(index_p) = S_store(index_p)
-    end do
-    call restore_vector_data(S, S_data)
-    call update(S)
-
-    deallocate(S_store)
     
   end subroutine add_linear_source
 

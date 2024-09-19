@@ -88,7 +88,7 @@ program scalar_transport
   if (irank == par_env%root) print *, "Start scalar solver"
 
   ! Write out mesh and solution
-  call run_solver(par_env, run_options, postproc_scalar, flow_fields)
+  call run_solver(par_env, run_options, eval_sources, postproc_scalar, flow_fields)
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
@@ -202,5 +202,20 @@ contains
     end associate
     
   end subroutine postproc_scalar
+
+  !> Case-specific source terms
+  subroutine eval_sources(flow, phi, R, S)
+    use types, only: fluid, field, ccs_vector
+    use fv, only: zero_sources
+
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
+    call zero_sources(flow, phi, R, S)
+    
+  end subroutine eval_sources
 
 end program scalar_transport
