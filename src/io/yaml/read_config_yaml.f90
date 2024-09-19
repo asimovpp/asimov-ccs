@@ -668,7 +668,7 @@ contains
   end subroutine get_output_type
 
   module subroutine get_boundary_count(config_file, n_boundaries)
-    class(*), intent(in) :: config_file
+    class(*), pointer, intent(in) :: config_file
     integer(ccs_int), intent(out) :: n_boundaries
 
     class(*), pointer :: dict
@@ -686,7 +686,7 @@ contains
   end subroutine get_boundary_count
 
   module subroutine get_boundary_names(config_file, bnd_names)
-    class(*), intent(in) :: config_file
+    class(*), pointer, intent(in) :: config_file
     character(len=128), dimension(:), allocatable, intent(out) :: bnd_names
 
     integer :: n_boundaries
