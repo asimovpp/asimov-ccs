@@ -4,6 +4,7 @@
 program test_diffusion_coeff
 
   use testing_lib
+  use ccs_base, only: bnd_names_default
   use core
   use meshing, only: create_cell_locator, create_neighbour_locator, get_boundary_status
   use meshing, only: set_mesh_object, nullify_mesh_object
@@ -34,6 +35,7 @@ program test_diffusion_coeff
   
   call init()
 
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
   mesh = build_square_mesh(par_env, shared_env, run_options, cps, L)
   call set_mesh_object(mesh)
 

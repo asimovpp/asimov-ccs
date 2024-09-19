@@ -3,6 +3,7 @@ program test_compute_fluxes
 #include "ccs_macros.inc"
 
   use testing_lib
+  use ccs_base, only: bnd_names_default
   use core
   use types, only: field, central_field, face_field, matrix_values_spec
   use mesh_utils, only: build_square_mesh
@@ -36,6 +37,7 @@ program test_compute_fluxes
   
   call init()
 
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
   mesh = build_square_mesh(par_env, shared_env, run_options, cps, 1.0_ccs_real)
   call set_mesh_object(mesh)
 
