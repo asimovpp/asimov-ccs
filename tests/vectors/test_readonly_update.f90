@@ -33,13 +33,15 @@ program test_readonly_update
   type(cell_locator) :: loc_p
   integer(ccs_int) :: global_index_p
 
+  type(ccs_options) :: run_options
+
   call init()
 
   proc_id = par_env%proc_id
   num_procs = par_env%num_procs
 
-  mesh = build_square_mesh(par_env, shared_env, 11, 1.0_ccs_real, &
-       bnd_names_default(1:4))
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
+  mesh = build_square_mesh(par_env, shared_env, run_options, 11, 1.0_ccs_real)
   call set_mesh_object(mesh)
   call get_local_num_cells(local_num_cells)
 
