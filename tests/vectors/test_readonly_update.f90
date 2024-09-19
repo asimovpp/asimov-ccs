@@ -3,6 +3,7 @@ program test_readonly_update
 
   use testing_lib
   use ccs_base, only: bnd_names_default
+  use core
   use constants, only: insert_mode
   use kinds, only: ccs_int
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
