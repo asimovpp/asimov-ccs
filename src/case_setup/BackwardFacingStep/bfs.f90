@@ -75,18 +75,19 @@ program bfs
 
   ! Initialise fields
   if (irank == par_env%root) print *, "Initialise fields"
-
-  ! Write gradients to solution file
   write_gradients = .true.
+  call initialise_fields(par_env, run_options, flow_fields)
 
   ! Read and set BC profiles
   ! Read u componemt (1st column)
+  call get_field(flow_fields, "u", u)
   call read_bc_profile(case_path // '.blasius.prf', 1, profile)
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
   profile%centre(:) = [ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real ] 
   
   ! Set to 3rd boundary condition (inlet)
   call set_bc_profile(u, profile, 3)
+  nullify(u)
 
   ! Initialise velocity field
   if (irank == par_env%root) print *, "Initialise velocity field"
