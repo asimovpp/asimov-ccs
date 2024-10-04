@@ -92,11 +92,12 @@ contains
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
 
     use iso_c_binding
-
+    use iso_fortran_env, only: int64
+    
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     integer(ccs_int), pointer, dimension(:), intent(out) :: array
-    integer, intent(out) :: window
+    integer(int64), intent(out) :: window
     type(c_ptr) :: c_array_ptr
     integer(ccs_int) :: dummy_int = 1_ccs_int
     integer(ccs_err) :: ierr
@@ -104,14 +105,14 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_int)
-    byte_size = length * disp_unit
+    byte_size = int(length, int64) * int(disp_unit, int64)
 
     if (is_root(shared_env)) then
       allocate_byte_size = byte_size
     else
       allocate_byte_size = 0
-    end if
-
+   end if
+   
     select type (shared_env)
     type is (parallel_environment_mpi)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
@@ -132,11 +133,12 @@ contains
   module subroutine create_shared_array_long_1D(shared_env, length, array, window)
 
     use iso_c_binding
+    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     integer(ccs_long), pointer, dimension(:), intent(out) :: array
-    integer, intent(out) :: window
+    integer(int64), intent(out) :: window
     type(c_ptr) :: c_array_ptr
     integer(ccs_long) :: dummy_long = 1_ccs_long
     integer(ccs_err) :: ierr
@@ -144,7 +146,7 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_long)
-    byte_size = length * disp_unit
+    byte_size = int(length, int64) * int(disp_unit, int64)
 
     if (is_root(shared_env)) then
       allocate_byte_size = byte_size
@@ -172,11 +174,12 @@ contains
   module subroutine create_shared_array_int_2D(shared_env, length, array, window)
 
     use iso_c_binding
+    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(2), intent(in) :: length
     integer(ccs_int), pointer, dimension(:,:), intent(out) :: array
-    integer, intent(out) :: window
+    integer(int64), intent(out) :: window
     type(c_ptr) :: c_array_ptr
     integer(ccs_int) :: dummy_int = 1_ccs_int
     integer(ccs_err) :: ierr
@@ -212,11 +215,12 @@ contains
   module subroutine create_shared_array_real_1D(shared_env, length, array, window)
 
     use iso_c_binding
+    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     real(ccs_real), pointer, dimension(:), intent(out) :: array
-    integer, intent(out) :: window
+    integer(int64), intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
     real(ccs_real) :: dummy_real = 1.0_ccs_real
@@ -225,7 +229,7 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_real)
-    byte_size = length * disp_unit
+    byte_size = int(length, int64) * int(disp_unit, int64)
 
     if (is_root(shared_env)) then
       allocate_byte_size = byte_size
@@ -253,11 +257,12 @@ contains
   module subroutine create_shared_array_real_2D(shared_env, length, array, window)
 
     use iso_c_binding
+    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(2), intent(in) :: length
     real(ccs_real), pointer, dimension(:,:), intent(out) :: array
-    integer, intent(out) :: window
+    integer(int64), intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
     real(ccs_real) :: dummy_real = 1.0_ccs_real
@@ -294,11 +299,12 @@ contains
   module subroutine create_shared_array_real_3D(shared_env, length, array, window)
 
     use iso_c_binding
+    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(3), intent(in) :: length
     real(ccs_real), pointer, dimension(:,:,:), intent(out) :: array
-    integer, intent(out) :: window
+    integer(int64), intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
     real(ccs_real) :: dummy_real = 1.0_ccs_real
@@ -307,7 +313,7 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_real)
-    byte_size = length(1) * length(2) * length(3) * disp_unit
+    byte_size = int(length(1), int64) * int(length(2), int64) * int(length(3), int64) * int(disp_unit, int64)
 
     if (is_root(shared_env)) then
       allocate_byte_size = byte_size
