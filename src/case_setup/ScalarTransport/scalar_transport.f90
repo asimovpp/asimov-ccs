@@ -10,7 +10,7 @@ program scalar_transport
 
   use core
   use case_config, only: case_name
-  use constants, only: cell, face, ccsconfig, ccs_string_len, &
+  use constants, only: cell, face, ccs_string_len, &
                        face_centred, cell_centred_central, cell_centred_upwind, &
                        ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int

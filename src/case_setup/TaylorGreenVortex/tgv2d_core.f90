@@ -7,7 +7,7 @@ module tgv2d_core
   use core
   use ccs_base, only: mesh
   use case_config, only: write_gradients
-  use constants, only: cell, face, ccsconfig, ccs_string_len, &
+  use constants, only: cell, face, ccs_string_len, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &

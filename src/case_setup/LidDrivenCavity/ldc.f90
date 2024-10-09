@@ -10,7 +10,7 @@ program ldc
 
   use core
   use case_config, only: write_gradients
-  use constants, only: cell, face, ccsconfig, ccs_string_len, &
+  use constants, only: cell, face, ccs_string_len, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high
   use kinds, only: ccs_real, ccs_int

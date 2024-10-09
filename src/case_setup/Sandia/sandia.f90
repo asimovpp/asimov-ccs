@@ -7,7 +7,7 @@ program sandia
 
   use core
   use case_config, only: case_name, write_gradients
-  use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
+  use constants, only: cell, face, ccs_string_len, geoext, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use meshing, only: set_mesh_object, nullify_mesh_object, get_local_num_cells

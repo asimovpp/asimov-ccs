@@ -8,8 +8,7 @@ program bfs
   use core
   use ccs_base, only: mesh
   use case_config, only: case_name, write_gradients
-  use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
-                       cell_centred_central, cell_centred_upwind, face_centred, &
+  use constants, only: ndim, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
