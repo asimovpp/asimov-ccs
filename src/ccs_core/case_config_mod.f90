@@ -11,10 +11,7 @@ module case_config
 
   private
 
-  real(ccs_real), public :: cfl = huge(0.0)
-
   ! Fluid properties
-  real(ccs_real), public :: viscocity = huge(0.0)
 
   character(len=:), allocatable, save, public :: case_name
 

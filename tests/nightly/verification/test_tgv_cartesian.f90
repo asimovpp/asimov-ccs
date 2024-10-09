@@ -8,7 +8,7 @@ program test_tgv_cartesian
   use testing_lib
   use error_analysis, only: get_order, print_error_summary
   use mesh_utils, only: build_square_mesh
-  use tgv2d_core, only: run_tgv2d, domain_size
+  use tgv2d_core, only: run_tgv2d
 
   implicit none
 
@@ -28,6 +28,8 @@ program test_tgv_cartesian
 
   integer(ccs_int) :: i
   type(ccs_options) :: run_options
+
+  real(ccs_real) :: domain_size
 
   call init()
 

@@ -8,7 +8,7 @@ program test_tgv_disturb_cartesian
   use error_analysis, only: get_order, print_error_summary, disturb_cartesian
   use ccs_base, only: bnd_names_default
   use mesh_utils, only: build_square_mesh
-  use tgv2d_core, only: run_tgv2d, domain_size
+  use tgv2d_core, only: run_tgv2d
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_total_num_cells, set_mesh_object, nullify_mesh_object
 
@@ -27,6 +27,8 @@ program test_tgv_disturb_cartesian
   character(len=12), dimension(nvar) :: variable_labels
 
   integer(ccs_int) :: i, j
+
+  real(ccs_real) :: domain_size
 
   call init()
 

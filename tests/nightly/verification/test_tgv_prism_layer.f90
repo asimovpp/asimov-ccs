@@ -10,7 +10,7 @@ program test_tgv_prism_layer
   use error_analysis, only: get_order, print_error_summary
   use types, only: cell_locator, face_locator, vert_locator
   use mesh_utils, only: build_square_mesh
-  use tgv2d_core, only: run_tgv2d, domain_size
+  use tgv2d_core, only: run_tgv2d
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_local_num_cells, get_total_num_cells, set_mesh_object, nullify_mesh_object, &
                      create_cell_locator, create_face_locator, create_vert_locator, &
@@ -36,6 +36,8 @@ program test_tgv_prism_layer
 
   integer(ccs_int) :: i, j
   type(ccs_options) :: run_options
+
+  real(ccs_real) :: domain_size
 
   call init()
 
