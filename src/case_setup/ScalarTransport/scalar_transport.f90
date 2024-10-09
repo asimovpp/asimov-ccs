@@ -32,7 +32,7 @@ program scalar_transport
   use scalars, only: update_scalars
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
                    get_field, &
-                   allocate_fluid_fields, dealloc_fluid_fields, &
+                   dealloc_fluid_fields, &
                    get_scheme_name
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_store_residuals, get_variables, get_variable_types

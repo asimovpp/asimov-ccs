@@ -35,7 +35,7 @@ program tgv
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
-                   allocate_fluid_fields, str, debug_print, &
+                   str, debug_print, &
                    dealloc_fluid_fields
   use vec, only: create_vector, set_vector_location
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &

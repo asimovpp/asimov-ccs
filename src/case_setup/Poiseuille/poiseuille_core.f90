@@ -26,7 +26,7 @@ module poiseuille_core
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
-                   allocate_fluid_fields, dealloc_fluid_fields, reset_outputlist_counter
+                   dealloc_fluid_fields, reset_outputlist_counter
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
   use read_config, only: get_variables, get_case_name, &
                          get_enable_cell_corrections, get_variable_types

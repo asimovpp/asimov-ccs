@@ -26,7 +26,6 @@ module tgv2d_core
   use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, reset_outputlist_counter, get_field, add_field, &
                    set_is_field_solved, &
-                   allocate_fluid_fields, &
                    dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_variables, get_store_residuals, &

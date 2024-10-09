@@ -28,7 +28,7 @@ program sandia
   use utils, only: set_size, initialise, update, exit_print, &
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
-                   allocate_fluid_fields, dealloc_fluid_fields
+                   dealloc_fluid_fields
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh
