@@ -29,7 +29,6 @@ program ldc
   use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
                    get_field, set_is_field_solved, &
                    dealloc_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
 
   implicit none

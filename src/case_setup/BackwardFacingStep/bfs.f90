@@ -27,7 +27,7 @@ program bfs
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
                    dealloc_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
+  use boundary_conditions, only: set_bc_profile
   use read_config, only: get_variables, get_case_name, &
                          get_store_residuals, get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values

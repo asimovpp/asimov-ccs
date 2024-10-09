@@ -11,7 +11,6 @@ module case_config
 
   private
 
-  real(ccs_real), public :: domain_size = huge(0.0)
   real(ccs_real), public :: cfl = huge(0.0)
 
   ! Fluid properties

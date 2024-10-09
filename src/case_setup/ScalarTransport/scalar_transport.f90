@@ -34,7 +34,6 @@ program scalar_transport
                    get_field, &
                    dealloc_fluid_fields, &
                    get_scheme_name
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_store_residuals, get_variables, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, finalise_timestep
 

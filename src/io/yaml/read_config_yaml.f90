@@ -14,7 +14,7 @@ submodule(read_config) read_config_utils
                             type_list, &
                             type_list_item, &
                             type_scalar
-  use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type, allocate_bc_arrays
+  use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type
 
   implicit none
 

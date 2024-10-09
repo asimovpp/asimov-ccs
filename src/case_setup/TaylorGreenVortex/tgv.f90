@@ -6,7 +6,6 @@ program tgv
   use petscvec
 
   use core
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use case_config, only: case_name, write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred

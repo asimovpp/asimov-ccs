@@ -29,7 +29,7 @@ program sandia
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
                    dealloc_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
+  use boundary_conditions, only: set_bc_profile
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh
   use partitioning, only: compute_partitioner_input, &

@@ -6,7 +6,7 @@ module tgv2d_core
 
   use core
   use ccs_base, only: mesh
-  use case_config, only: domain_size, write_gradients
+  use case_config, only: write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
@@ -27,7 +27,6 @@ module tgv2d_core
                    add_field_to_outputlist, reset_outputlist_counter, get_field, add_field, &
                    set_is_field_solved, &
                    dealloc_fluid_fields
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use read_config, only: get_variables, get_store_residuals, &
                          get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping

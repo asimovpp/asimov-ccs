@@ -4,7 +4,7 @@ submodule(core) core_fields
   use types, only: vector_spec, field_spec, field
   use constants, only: face, cell, face_centred, cell_centred_central
   use bc_constants
-  use boundary_conditions, only: set_bc_type, allocate_bc_arrays
+  use boundary_conditions, only: set_bc_type
   use ccs_base, only: mesh
   use parallel, only: is_root
   use utils, only: set_size, initialise, get_field, add_field_to_outputlist, set_is_field_solved, &

@@ -7,7 +7,7 @@ module poiseuille_core
 
   use core
   use ccs_base, only: mesh
-  use case_config, only: domain_size, case_name, write_gradients
+  use case_config, only: case_name, write_gradients
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -27,7 +27,7 @@ module poiseuille_core
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &
                    dealloc_fluid_fields, reset_outputlist_counter
-  use boundary_conditions, only: read_bc_config, allocate_bc_arrays, set_bc_profile
+  use boundary_conditions, only: set_bc_profile
   use read_config, only: get_variables, get_case_name, &
                          get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
