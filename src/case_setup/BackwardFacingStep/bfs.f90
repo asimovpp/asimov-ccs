@@ -8,8 +8,6 @@ program bfs
   use core
   use ccs_base, only: mesh
   use case_config, only: case_name, write_gradients
-  use constants, only: ndim, &
-                       ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -31,7 +29,7 @@ program bfs
                          get_store_residuals, get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use mesh_utils, only: read_mesh
-  use meshing, only: set_mesh_object, nullify_mesh_object
+  use meshing, only: nullify_mesh_object
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use fv, only: update_gradient

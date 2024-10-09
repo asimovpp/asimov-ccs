@@ -8,8 +8,7 @@ module poiseuille_core
   use core
   use ccs_base, only: mesh
   use case_config, only: case_name, write_gradients
-  use constants, only: cell, face, ccs_string_len, geoext, ndim, &
-                       cell_centred_central, cell_centred_upwind, face_centred
+  use constants, only: cell, face, ccs_string_len, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -32,7 +31,7 @@ module poiseuille_core
                          get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
   use mesh_utils, only: read_mesh, build_square_mesh, compute_face_interpolation
-  use meshing, only: get_total_num_cells, get_global_num_cells, set_mesh_object, nullify_mesh_object, get_local_num_cells
+  use meshing, only: get_total_num_cells, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
   use io_visualisation, only: reset_io_visualisation
@@ -45,7 +44,6 @@ module poiseuille_core
 
   public :: run_poiseuille
 
-  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
   ! Global variables to pass errors to/from postprocessing

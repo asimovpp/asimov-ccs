@@ -135,13 +135,13 @@ program poisson
   ! ASiMoV-CCS uses
   use core
   use ccs_base, only: mesh, bnd_names_default
-  use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
+  use constants, only: ndim, add_mode, insert_mode
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
   use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, get_local_num_cells
-  use meshing, only: set_mesh_object, nullify_mesh_object
+  use meshing, only: nullify_mesh_object
   use vec, only: create_vector
   use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols

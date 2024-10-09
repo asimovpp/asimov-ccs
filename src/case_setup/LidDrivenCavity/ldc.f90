@@ -10,9 +10,7 @@ program ldc
 
   use core
   use case_config, only: write_gradients
-  use constants, only: cell, face, ccs_string_len, &
-                       cell_centred_central, cell_centred_upwind, face_centred, &
-                       ccs_split_type_shared, ccs_split_type_low_high
+  use constants, only: cell, face
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, gamma_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid
@@ -22,7 +20,7 @@ program ldc
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
-  use meshing, only: set_mesh_object, nullify_mesh_object
+  use meshing, only: nullify_mesh_object
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use petsctypes, only: vector_petsc

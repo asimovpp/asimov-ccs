@@ -7,10 +7,8 @@ program tgv
 
   use core
   use case_config, only: case_name, write_gradients
-  use constants, only: cell, face, ccs_string_len, geoext, ndim, &
-                       cell_centred_central, cell_centred_upwind, face_centred
-  use constants, only: ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
-  use meshing, only: set_mesh_object, nullify_mesh_object
+  use constants, only: cell, face, ndim
+  use meshing, only: nullify_mesh_object
   use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
                     set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse

@@ -10,9 +10,7 @@ program scalar_transport
 
   use core
   use case_config, only: case_name
-  use constants, only: cell, face, ccs_string_len, &
-                       face_centred, cell_centred_central, cell_centred_upwind, &
-                       ccs_split_type_low_high
+  use constants, only: cell, face
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid
@@ -26,7 +24,7 @@ program scalar_transport
   use mesh_utils, only: build_mesh
   use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
-                     get_local_index, get_boundary_status, get_face_normal, set_mesh_object, nullify_mesh_object, &
+                     get_local_index, get_boundary_status, get_face_normal, nullify_mesh_object, &
                      get_local_num_cells
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use scalars, only: update_scalars

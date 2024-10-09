@@ -15,7 +15,7 @@ submodule(partitioning) partitioning_common
                      create_cell_locator, create_neighbour_locator, &
                      get_global_index, &
                      get_local_index, set_local_index, &
-                     set_mesh_object, nullify_mesh_object, &
+                     nullify_mesh_object, &
                      set_topo_object, nullify_topo_object
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
 

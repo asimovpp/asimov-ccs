@@ -7,8 +7,7 @@ module tgv2d_core
   use core
   use ccs_base, only: mesh
   use case_config, only: write_gradients
-  use constants, only: cell, face, ccs_string_len, &
-                       cell_centred_central, cell_centred_upwind, face_centred
+  use constants, only: cell, face, ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid
@@ -37,7 +36,6 @@ module tgv2d_core
 
   public :: run_tgv2d
 
-  character(len=ccs_string_len), dimension(:), allocatable :: variable_names  ! variable names for BC reading
   integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
 
   ! Global variables to pass error calculations to the postprocessing subroutine
