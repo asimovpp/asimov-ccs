@@ -8,26 +8,18 @@ module poiseuille_core
   use core
   use ccs_base, only: mesh
   use case_config, only: case_name, write_gradients
-  use constants, only: cell, face, ccs_string_len, ndim
+  use constants, only: ccs_string_len, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, fluid, ccs_mesh, bc_profile
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
   use parallel_types, only: parallel_environment
-  use vec, only: create_vector, set_vector_location
-  use petsctypes, only: vector_petsc
   use utils, only:  calc_kinetic_energy, calc_enstrophy, get_field
   use boundary_conditions, only: set_bc_profile
-  use read_config, only: get_variables, get_case_name, &
-                         get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
-  use mesh_utils, only: read_mesh, build_square_mesh, compute_face_interpolation
   use meshing, only: get_total_num_cells, get_global_num_cells, nullify_mesh_object, get_local_num_cells
-  use partitioning, only: compute_partitioner_input, &
-                          partition_kway, compute_connectivity
   use io_visualisation, only: reset_io_visualisation
-  use fv, only: update_gradient
   use utils, only: str, exit_print, reset_outputlist_counter, dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_reset

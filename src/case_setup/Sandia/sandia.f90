@@ -7,7 +7,7 @@ program sandia
 
   use core
   use case_config, only: case_name, write_gradients
-  use constants, only: cell, face, ndim
+  use constants, only: ndim
   use meshing, only: nullify_mesh_object, get_local_num_cells
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: fluid
@@ -15,20 +15,10 @@ program sandia
                       cleanup_parallel_environment, timer, &
                       sync, is_root
   use parallel_types, only: parallel_environment
-  use vec, only: create_vector, set_vector_location
-  use petsctypes, only: vector_petsc
   use scalars, only: update_scalars
   use read_config, only: get_enable_cell_corrections, get_case_name, get_store_residuals
-  ! use utils, only: update, exit_print, &
-  !                  add_field_to_outputlist, get_field, add_field, &
-  !                  set_is_field_solved, &
-  !                  dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh
-  use partitioning, only: compute_partitioner_input, &
-                          partition_kway, compute_connectivity
-  use fv, only: update_gradient
   use utils, only: str, dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_export_csv

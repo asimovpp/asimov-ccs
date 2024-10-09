@@ -7,27 +7,21 @@ module tgv2d_core
   use core
   use ccs_base, only: mesh
   use case_config, only: write_gradients
-  use constants, only: cell, face, ccs_string_len
+  use constants, only: ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: fluid, field, ccs_mesh
-  use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
   use parallel_types, only: parallel_environment
   use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
-  use vec, only: set_vector_location
-  use petsctypes, only: vector_petsc
   use utils, only: exit_print, calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, reset_outputlist_counter, get_field, add_field, &
                    set_is_field_solved, &
                    dealloc_fluid_fields
-  use read_config, only: get_variables, get_store_residuals, &
-                         get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
   use io_visualisation, only: reset_io_visualisation
-  use fv, only: update_gradient
 
   implicit none
 

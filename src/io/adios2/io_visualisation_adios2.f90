@@ -192,7 +192,7 @@ contains
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
     use vec, only: get_vector_data, restore_vector_data
-    use types, only: field_ptr, cell_locator
+    use types, only: cell_locator
     use case_config, only: write_gradients
     use meshing, only: get_local_num_cells, get_global_num_cells, &
                        create_cell_locator, &

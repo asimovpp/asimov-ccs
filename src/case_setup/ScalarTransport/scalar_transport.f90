@@ -10,10 +10,8 @@ program scalar_transport
 
   use core
   use case_config, only: case_name
-  use constants, only: cell, face
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, field_ptr, fluid
+  use types, only: field, ccs_mesh, fluid
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, &
@@ -24,13 +22,11 @@ program scalar_transport
                      create_cell_locator, create_face_locator, create_neighbour_locator, &
                      get_local_index, get_boundary_status, get_face_normal, nullify_mesh_object, &
                      get_local_num_cells
-  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use scalars, only: update_scalars
   use utils, only: exit_print, add_field_to_outputlist, &
                    get_field, &
                    dealloc_fluid_fields, &
                    get_scheme_name
-  use read_config, only: get_store_residuals, get_variables, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, finalise_timestep
 
   implicit none

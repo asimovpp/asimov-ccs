@@ -7,7 +7,7 @@ program bfs
 
   use core
   use ccs_base, only: mesh
-  use case_config, only: case_name, write_gradients
+  use case_config, only: write_gradients
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, fluid, bc_profile
   use parallel, only: initialise_parallel_environment, &
@@ -15,17 +15,10 @@ program bfs
                       read_command_line_arguments, sync, &
                       create_new_par_env, is_root
   use parallel_types, only: parallel_environment
-  use vec, only: create_vector, set_vector_location
   use utils, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
-  use read_config, only: get_variables, get_case_name, &
-                         get_store_residuals, get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use mesh_utils, only: read_mesh
   use meshing, only: nullify_mesh_object
-  use partitioning, only: compute_partitioner_input, &
-                          partition_kway, compute_connectivity
-  use fv, only: update_gradient
   use utils, only: str
   use timers, only: timer_print_all, timer_export_csv
 
@@ -59,7 +52,7 @@ program bfs
 
   call timer(start_time)
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+  if (irank == par_env%root) print *, "Starting ", run_options%paths%case_name, " case!"
 
   call initialise_mesh(par_env, shared_env, run_options)
 

@@ -6,22 +6,15 @@ program tgv
   use petscvec
 
   use core
-  use case_config, only: case_name, write_gradients
-  use constants, only: cell, face, ndim
+  use case_config, only: write_gradients
+  use constants, only: ndim
   use meshing, only: nullify_mesh_object
-  use fortran_yaml_c_interface, only: parse
-  use fv, only: update_gradient
   use kinds, only: ccs_real, ccs_int, ccs_long
-  use mesh_utils, only: read_mesh, build_mesh
   use parallel, only: initialise_parallel_environment, &
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
   use parallel_types, only: parallel_environment
-  use partitioning, only: compute_partitioner_input, &
-                          partition_kway, compute_connectivity
-  use petsctypes, only: vector_petsc
-  use read_config, only: get_variables, get_case_name, get_store_residuals, get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use types, only: fluid, field
   use utils, only: exit_print, &
@@ -30,7 +23,6 @@ program tgv
                    set_is_field_solved, &
                    str, debug_print, &
                    dealloc_fluid_fields
-  use vec, only: create_vector, set_vector_location
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
                     timer_get_time, timer_print_all, timer_export_csv
 
@@ -66,7 +58,7 @@ program tgv
 
   call timer_register_start("Init time", timer_index_init)
 
-  if (is_root(par_env)) print *, "Starting ", case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
   call initialise_mesh(par_env, shared_env, run_options)
 
