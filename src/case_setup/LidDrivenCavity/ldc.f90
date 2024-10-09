@@ -20,11 +20,8 @@ program ldc
   use meshing, only: nullify_mesh_object
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
-  use petsctypes, only: vector_petsc
-  use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
-                   get_field, set_is_field_solved, &
-                   dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
+  use utils, only: dealloc_fluid_fields
 
   implicit none
 

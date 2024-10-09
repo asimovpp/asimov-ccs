@@ -17,11 +17,7 @@ module poiseuille_core
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
   use petsctypes, only: vector_petsc
-  use utils, only: set_size, initialise, update, exit_print, &
-                   calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist, get_field, add_field, &
-                   set_is_field_solved, &
-                   dealloc_fluid_fields, reset_outputlist_counter
+  use utils, only:  calc_kinetic_energy, calc_enstrophy, get_field
   use boundary_conditions, only: set_bc_profile
   use read_config, only: get_variables, get_case_name, &
                          get_enable_cell_corrections, get_variable_types
@@ -32,7 +28,7 @@ module poiseuille_core
                           partition_kway, compute_connectivity
   use io_visualisation, only: reset_io_visualisation
   use fv, only: update_gradient
-  use utils, only: str
+  use utils, only: str, exit_print, reset_outputlist_counter, dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_reset
 

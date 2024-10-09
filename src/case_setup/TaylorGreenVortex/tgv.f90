@@ -24,7 +24,7 @@ program tgv
   use read_config, only: get_variables, get_case_name, get_store_residuals, get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use types, only: fluid, field
-  use utils, only: set_size, initialise, update, exit_print, &
+  use utils, only: exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &
                    set_is_field_solved, &

@@ -26,7 +26,7 @@ program scalar_transport
                      get_local_num_cells
   use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
   use scalars, only: update_scalars
-  use utils, only: set_size, initialise, update, exit_print, add_field_to_outputlist, &
+  use utils, only: exit_print, add_field_to_outputlist, &
                    get_field, &
                    dealloc_fluid_fields, &
                    get_scheme_name

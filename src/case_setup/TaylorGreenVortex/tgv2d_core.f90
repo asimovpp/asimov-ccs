@@ -9,7 +9,7 @@ module tgv2d_core
   use case_config, only: write_gradients
   use constants, only: cell, face, ccs_string_len
   use kinds, only: ccs_real, ccs_int
-  use types, only: fluid, field
+  use types, only: fluid, field, ccs_mesh
   use fortran_yaml_c_interface, only: parse
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
@@ -19,7 +19,7 @@ module tgv2d_core
   use mesh_utils, only: build_square_mesh
   use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
-  use utils, only: set_size, initialise, update, exit_print, calc_kinetic_energy, calc_enstrophy, &
+  use utils, only: exit_print, calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, reset_outputlist_counter, get_field, add_field, &
                    set_is_field_solved, &
                    dealloc_fluid_fields

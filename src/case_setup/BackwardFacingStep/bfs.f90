@@ -16,10 +16,7 @@ program bfs
                       create_new_par_env, is_root
   use parallel_types, only: parallel_environment
   use vec, only: create_vector, set_vector_location
-  use utils, only: set_size, initialise, update, exit_print, &
-                   add_field_to_outputlist, get_field, add_field, &
-                   set_is_field_solved, &
-                   dealloc_fluid_fields
+  use utils, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
   use read_config, only: get_variables, get_case_name, &
                          get_store_residuals, get_enable_cell_corrections, get_variable_types
