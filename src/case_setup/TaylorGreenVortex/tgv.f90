@@ -9,8 +9,6 @@ program tgv
   use case_config, only: case_name, write_gradients
   use constants, only: cell, face, ndim
   use meshing, only: nullify_mesh_object
-  use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
   use fortran_yaml_c_interface, only: parse
   use fv, only: update_gradient
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -25,9 +23,7 @@ program tgv
   use petsctypes, only: vector_petsc
   use read_config, only: get_variables, get_case_name, get_store_residuals, get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
-  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid
+  use types, only: fluid, field
   use utils, only: set_size, initialise, update, exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
                    add_field_to_outputlist, get_field, add_field, &

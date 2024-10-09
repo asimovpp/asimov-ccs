@@ -9,11 +9,7 @@ program bfs
   use ccs_base, only: mesh
   use case_config, only: case_name, write_gradients
   use kinds, only: ccs_real, ccs_int, ccs_long
-  use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
-                   vector_spec, ccs_vector, io_environment, io_process, &
-                   field_ptr, fluid, bc_profile
-  use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties, set_field_store_residuals, set_field_enable_cell_corrections
+  use types, only: field, fluid, bc_profile
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, &

@@ -14,8 +14,6 @@ program scalar_transport
   use kinds, only: ccs_real, ccs_int
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, field_ptr, fluid
-  use fields, only: create_field, set_field_config_file, set_field_n_boundaries, set_field_name, &
-                    set_field_type, set_field_vector_properties, set_field_store_residuals
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, &
