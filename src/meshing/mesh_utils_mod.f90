@@ -3100,12 +3100,12 @@ contains
     logical :: cell_local
 
 
-    allocate (xadj(0))
+    call get_local_num_cells(local_num_cells)
+    allocate (xadj(local_num_cells + 1))
     allocate (adjncy(0))
     ctr = 1
-    xadj = [xadj, ctr]
+    xadj(1) = ctr
     
-    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
@@ -3118,7 +3118,7 @@ contains
           ctr = ctr + 1
         end if
       end do
-      xadj = [xadj, ctr]
+      xadj(i + 1) = ctr
     end do
 
   end subroutine build_adjacency_matrix
