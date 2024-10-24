@@ -7,7 +7,8 @@ program tgv2d
 
   use tgv2d_core
   use constants, only: ccs_split_type_shared
-  use parallel, only: initialise_parallel_environment, create_new_par_env 
+  use parallel, only: initialise_parallel_environment, cleanup_parallel_environment, &
+                      create_new_par_env
 
   implicit none
 

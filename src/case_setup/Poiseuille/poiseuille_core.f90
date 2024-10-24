@@ -10,13 +10,11 @@ module poiseuille_core
   use constants, only: ccs_string_len, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, fluid, ccs_mesh, bc_profile
-  use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, is_root
+  use parallel, only: timer, is_root
   use parallel_types, only: parallel_environment
   use utils, only:  calc_kinetic_energy, calc_enstrophy, get_field
   use boundary_conditions, only: set_bc_profile
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, reset_timestepping
+  use timestepping, only: reset_timestepping
   use meshing, only: get_total_num_cells, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter, dealloc_fluid_fields
@@ -211,7 +209,7 @@ module poiseuille_core
 
     use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
-    use timestepping, only: get_current_time, get_current_step
+    use timestepping, only: get_current_step
 
     class(parallel_environment), intent(in) :: par_env !< The parallel environment
     class(field), intent(inout) :: u, v, p
@@ -233,7 +231,6 @@ module poiseuille_core
     integer(ccs_int) :: index_p, local_num_cells
 
     character(len=ccs_string_len) :: fmt
-    real(ccs_real) :: time
     integer(ccs_int) :: step
 
     integer(ccs_int) :: global_num_cells
@@ -252,7 +249,6 @@ module poiseuille_core
     call get_vector_data(u%values, u_data)
     call get_vector_data(v%values, v_data)
     call get_vector_data(p%values, p_data)
-    call get_current_time(time)
     call get_current_step(step)
 
     call get_local_num_cells(local_num_cells)

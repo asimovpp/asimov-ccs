@@ -9,9 +9,7 @@ module tgv2d_core
   use constants, only: ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: fluid, field, ccs_mesh
-  use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, is_root
+  use parallel, only: timer, is_root
   use parallel_types, only: parallel_environment
   use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
@@ -19,7 +17,7 @@ module tgv2d_core
                    add_field_to_outputlist, reset_outputlist_counter, get_field, add_field, &
                    set_is_field_solved, &
                    dealloc_fluid_fields
-  use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
+  use timestepping, only: reset_timestepping
   use io_visualisation, only: reset_io_visualisation
 
   implicit none
@@ -79,9 +77,6 @@ contains
     ! Initialise fields
     if (is_root(par_env)) print *, "Initialise fields"
     call initialise_fields(par_env, run_options, flow_fields)
-
-    call activate_timestepping()
-    call set_timestep(run_options%solve%dt)
 
     ! Initialise velocity field
     if (is_root(par_env)) print *, "Initialise velocity field"

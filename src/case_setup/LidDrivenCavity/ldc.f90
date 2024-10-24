@@ -13,9 +13,8 @@ program ldc
   use kinds, only: ccs_real, ccs_int
   use types, only: fluid
   use parallel, only: initialise_parallel_environment, &
-                      create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, is_root
+                      is_root
   use meshing, only: nullify_mesh_object
   use parallel_types, only: parallel_environment
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all

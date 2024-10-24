@@ -11,9 +11,8 @@ program scalar_transport
   use core
   use kinds, only: ccs_real, ccs_int
   use types, only: field, ccs_mesh, fluid
-  use parallel, only: initialise_parallel_environment, create_new_par_env, &
+  use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, &
                       is_root
   use parallel_types, only: parallel_environment
   use mesh_utils, only: build_mesh
@@ -24,9 +23,7 @@ program scalar_transport
   use scalars, only: update_scalars
   use utils, only: exit_print, add_field_to_outputlist, &
                    get_field, &
-                   dealloc_fluid_fields, &
-                   get_scheme_name
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values, finalise_timestep
+                   dealloc_fluid_fields
 
   implicit none
 
@@ -68,9 +65,6 @@ program scalar_transport
   ! Initialise velocity field
   if (is_root(par_env)) print *, "Initialise flow field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
-
-  call activate_timestepping()
-  call set_timestep(run_options%solve%dt)
 
   call timer(init_time)
 

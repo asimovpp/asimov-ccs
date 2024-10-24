@@ -28,6 +28,8 @@ contains
 
   module subroutine run_solver(par_env, run_options, eval_sources, postproc, flow_fields)
 
+    use timestepping, only: activate_timestepping, set_timestep
+
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
     interface
@@ -63,6 +65,11 @@ contains
 
     logical :: flow_sol
     
+    if (run_options%solve%unsteady) then
+      call activate_timestepping()
+      call set_timestep(run_options%solve%dt)
+    end if
+  
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
     if (timestepping_is_active()) then

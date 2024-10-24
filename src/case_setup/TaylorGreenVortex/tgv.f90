@@ -10,11 +10,9 @@ program tgv
   use meshing, only: nullify_mesh_object
   use kinds, only: ccs_real, ccs_int, ccs_long
   use parallel, only: initialise_parallel_environment, &
-                      create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, is_root
+                      is_root
   use parallel_types, only: parallel_environment
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use types, only: fluid, field
   use utils, only: exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
@@ -66,9 +64,6 @@ program tgv
 
   call initialise_fields(par_env, run_options, flow_fields)
   
-  call activate_timestepping()
-  call set_timestep(run_options%solve%dt)
-
   ! Initialise velocity field
   if (is_root(par_env)) print *, "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)

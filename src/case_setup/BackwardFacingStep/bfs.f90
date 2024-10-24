@@ -11,12 +11,10 @@ program bfs
   use types, only: field, fluid, bc_profile
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, &
-                      create_new_par_env, is_root
+                      is_root
   use parallel_types, only: parallel_environment
   use utils, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use meshing, only: nullify_mesh_object
   use utils, only: str
   use timers, only: timer_print_all, timer_export_csv
@@ -76,9 +74,6 @@ program bfs
 
   ! Solve using SIMPLE algorithm
   if (is_root(par_env)) print *, "Start SIMPLE"
-
-  call activate_timestepping()
-  call set_timestep(run_options%solve%dt)
 
   call run_solver(par_env, run_options, eval_sources, postproc_bfs, flow_fields)
   

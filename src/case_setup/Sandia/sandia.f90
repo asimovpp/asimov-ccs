@@ -12,12 +12,11 @@ program sandia
   use types, only: fluid
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      sync, is_root
+                      is_root
   use parallel_types, only: parallel_environment
   use scalars, only: update_scalars
   use read_config, only: get_enable_cell_corrections, get_store_residuals
   use boundary_conditions, only: set_bc_profile
-  use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use utils, only: str, dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_export_csv
@@ -70,9 +69,6 @@ program sandia
 
   ! Solve using SIMPLE algorithm
   if (is_root(par_env)) print *, "Start SIMPLE"
-
-  call activate_timestepping()
-  call set_timestep(run_options%solve%dt)
 
   call timer_stop(timer_index_init)
 
