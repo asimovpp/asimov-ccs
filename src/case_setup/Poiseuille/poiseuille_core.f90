@@ -7,13 +7,12 @@ module poiseuille_core
 
   use core
   use ccs_base, only: mesh
-  use case_config, only: case_name, write_gradients
   use constants, only: ccs_string_len, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, fluid, ccs_mesh, bc_profile
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, is_root
+                      read_command_line_arguments, is_root
   use parallel_types, only: parallel_environment
   use utils, only:  calc_kinetic_energy, calc_enstrophy, get_field
   use boundary_conditions, only: set_bc_profile
@@ -65,7 +64,7 @@ module poiseuille_core
     ! Read case name and runtime parameters from configuration file
     call get_config(par_env, run_options)
 
-    if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+    if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
     if (present(input_mesh)) then
       mesh = input_mesh
@@ -74,13 +73,10 @@ module poiseuille_core
     end if
 
     ! Initialise fields
-    if (irank == par_env%root) print *, "Initialise fields"
-
-    ! Write gradients to solution file
-    write_gradients = .true.
+    if (is_root(par_env)) print *, "Initialise fields"
 
     ! Create and initialise field vectors
-    if (irank == par_env%root) print *, "Initialise field vectors"
+    if (is_root(par_env)) print *, "Initialise field vectors"
     
     call initialise_fields(par_env, run_options, flow_fields)
     
@@ -91,7 +87,7 @@ module poiseuille_core
     nullify(u)
 
     ! Initialise velocity field
-    if (irank == par_env%root) print *, "Initialise velocity field"
+    if (is_root(par_env)) print *, "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     call get_field(flow_fields, "u", u)
@@ -104,7 +100,7 @@ module poiseuille_core
     nullify(w)
 
     ! Solve using SIMPLE algorithm
-    if (irank == par_env%root) print *, "Start SIMPLE"
+    if (is_root(par_env)) print *, "Start SIMPLE"
 
     call timer_stop(timer_index_init)
 
@@ -296,7 +292,7 @@ module poiseuille_core
     call get_global_num_cells(global_num_cells)
     error_L2(:) = sqrt(error_L2(:) / global_num_cells)
 
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       if (first_time) then
         first_time = .false.
         open (newunit=io_unit, file="err.log", status="replace", form="formatted")

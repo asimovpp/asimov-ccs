@@ -6,7 +6,6 @@ program tgv
   use petscvec
 
   use core
-  use case_config, only: write_gradients
   use constants, only: ndim
   use meshing, only: nullify_mesh_object
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -63,10 +62,7 @@ program tgv
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (irank == par_env%root) print *, "Initialise fields"
-
-  ! Write gradients to solution file
-  write_gradients = .true.
+  if (is_root(par_env)) print *, "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
   
@@ -74,7 +70,7 @@ program tgv
   call set_timestep(run_options%solve%dt)
 
   ! Initialise velocity field
-  if (irank == par_env%root) print *, "Initialise velocity field"
+  if (is_root(par_env)) print *, "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call timer_stop(timer_index_init)
@@ -90,7 +86,7 @@ program tgv
 
   call timer_get_time(timer_index_sol, sol_time)
   call timer_get_time(timer_index_io_sol, io_time)
-  if (irank == par_env%root) then
+  if (is_root(par_env)) then
     write(*,'(A30, F10.4, A)') "Solver time no I/O:", sol_time - io_time, " s"
     write(*,'(A30, F10.4, A)') "Average time/step (no I/O):", (sol_time - io_time) / run_options%solve%num_steps, " s"
   end if

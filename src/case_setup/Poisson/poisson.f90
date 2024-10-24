@@ -157,7 +157,8 @@ program poisson
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
                       read_command_line_arguments, &
-                      timer, sync, create_new_par_env
+                      timer, sync, create_new_par_env, &
+                      is_root
 
   implicit none
 
@@ -239,7 +240,7 @@ program poisson
   call axpy(-1.0_ccs_real, u_exact, u)
 
   err_norm = norm(u, 2) * mesh%geo%h
-  if (par_env%proc_id == par_env%root) then
+  if (is_root(par_env)) then
     print *, "Norm of error = ", err_norm
   end if
 
@@ -252,7 +253,7 @@ program poisson
 
   call timer(end_time)
 
-  if (par_env%proc_id == par_env%root) then
+  if (is_root(par_env)) then
     print *, "Elapsed time = ", (end_time - start_time)
   end if
 

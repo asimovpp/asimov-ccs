@@ -9,14 +9,13 @@ program ldc
   use petscsys
 
   use core
-  use case_config, only: write_gradients
   use constants, only: cell, face
   use kinds, only: ccs_real, ccs_int
   use types, only: fluid
   use parallel, only: initialise_parallel_environment, &
                       create_new_par_env, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, is_root
+                      read_command_line_arguments, is_root
   use meshing, only: nullify_mesh_object
   use parallel_types, only: parallel_environment
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
@@ -48,18 +47,17 @@ program ldc
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
-  if (irank == par_env%root) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
   ! Create a mesh
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (irank == par_env%root) print *, "Initialise fields"
-  write_gradients = .false.
+  if (is_root(par_env)) print *, "Initialise fields"
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
-  if (irank == par_env%root) print *, "Initialise velocity field"
+  if (is_root(par_env)) print *, "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call timer_stop(timer_index_init)

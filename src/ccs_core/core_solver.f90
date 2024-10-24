@@ -207,9 +207,9 @@ contains
     
     call timer_start(timer_index_io_sol)
     if (timestepping_is_active()) then
-      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+      call write_solution(par_env, run_options, mesh, flow_fields, t, num_steps, dt)
     else
-      call write_solution(par_env, case_path, mesh, flow_fields)
+      call write_solution(par_env, run_options, mesh, flow_fields)
     end if
     call timer_stop(timer_index_io_sol)
 

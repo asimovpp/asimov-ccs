@@ -6,7 +6,6 @@ program sandia
   use petscsys
 
   use core
-  use case_config, only: case_name, write_gradients
   use constants, only: ndim
   use meshing, only: nullify_mesh_object, get_local_num_cells
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -16,7 +15,7 @@ program sandia
                       sync, is_root
   use parallel_types, only: parallel_environment
   use scalars, only: update_scalars
-  use read_config, only: get_enable_cell_corrections, get_case_name, get_store_residuals
+  use read_config, only: get_enable_cell_corrections, get_store_residuals
   use boundary_conditions, only: set_bc_profile
   use timestepping, only: set_timestep, activate_timestepping, initialise_old_values
   use utils, only: str, dealloc_fluid_fields
@@ -52,16 +51,13 @@ program sandia
 
   call timer_register_start("Init time", timer_index_init)
 
-  if (is_root(par_env)) print *, "Starting ", case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
   ! Read mesh from .geo file
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (irank == par_env%root) print *, "Initialise fields"
-
-  ! Write gradients to solution file
-  write_gradients = .false.
+  if (is_root(par_env)) print *, "Initialise fields"
 
   ! Initialise the fields
   call initialise_fields(par_env, run_options, flow_fields)
@@ -69,11 +65,11 @@ program sandia
   ! XXX: coupling BCs could be built here
 
   ! Initialise velocity field
-  if (irank == par_env%root) print *, "Initialise velocity field"
+  if (is_root(par_env)) print *, "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
-  if (irank == par_env%root) print *, "Start SIMPLE"
+  if (is_root(par_env)) print *, "Start SIMPLE"
 
   call activate_timestepping()
   call set_timestep(run_options%solve%dt)

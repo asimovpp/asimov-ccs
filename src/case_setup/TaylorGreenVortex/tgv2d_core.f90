@@ -6,13 +6,12 @@ module tgv2d_core
 
   use core
   use ccs_base, only: mesh
-  use case_config, only: write_gradients
   use constants, only: ccs_string_len
   use kinds, only: ccs_real, ccs_int
   use types, only: fluid, field, ccs_mesh
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, timer, &
-                      read_command_line_arguments, sync, is_root
+                      read_command_line_arguments, is_root
   use parallel_types, only: parallel_environment
   use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
@@ -78,19 +77,18 @@ contains
     end if
 
     ! Initialise fields
-    if (irank == par_env%root) print *, "Initialise fields"
-    write_gradients = .true.
+    if (is_root(par_env)) print *, "Initialise fields"
     call initialise_fields(par_env, run_options, flow_fields)
 
     call activate_timestepping()
     call set_timestep(run_options%solve%dt)
 
     ! Initialise velocity field
-    if (irank == par_env%root) print *, "Initialise velocity field"
+    if (is_root(par_env)) print *, "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     ! Solve using SIMPLE algorithm
-    if (irank == par_env%root) print *, "Start SIMPLE"
+    if (is_root(par_env)) print *, "Start SIMPLE"
     
     call timer(init_time)
 
@@ -110,7 +108,7 @@ contains
 
     call timer(end_time)
 
-    if (irank == par_env%root) then
+    if (is_root(par_env)) then
       print *, "Init time: ", init_time - start_time
       print *, "Elapsed time: ", end_time - start_time
     end if
@@ -261,7 +259,7 @@ contains
     call get_global_num_cells(global_num_cells)
     error_L2(:) = sqrt(error_L2(:) / global_num_cells)
 
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       if (first_time) then
         first_time = .false.
         open (newunit=io_unit, file="tgv2d-err.log", status="replace", form="formatted")

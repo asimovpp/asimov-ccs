@@ -9,7 +9,6 @@ program scalar_transport
   use petscsys
 
   use core
-  use case_config, only: case_name
   use kinds, only: ccs_real, ccs_int
   use types, only: field, ccs_mesh, fluid
   use parallel, only: initialise_parallel_environment, create_new_par_env, &
@@ -57,17 +56,17 @@ program scalar_transport
 
   call timer(start_time)
 
-  if (irank == par_env%root) print *, "Starting ", case_name, " case!"
+  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (irank == par_env%root) print *, "Initialise fields"
+  if (is_root(par_env)) print *, "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
-  if (irank == par_env%root) print *, "Initialise flow field"
+  if (is_root(par_env)) print *, "Initialise flow field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call activate_timestepping()
@@ -76,7 +75,7 @@ program scalar_transport
   call timer(init_time)
 
   ! Solve using SIMPLE algorithm
-  if (irank == par_env%root) print *, "Start scalar solver"
+  if (is_root(par_env)) print *, "Start scalar solver"
 
   ! Write out mesh and solution
   call run_solver(par_env, run_options, eval_sources, postproc_scalar, flow_fields)
@@ -86,7 +85,7 @@ program scalar_transport
 
   call timer(end_time)
 
-  if (irank == par_env%root) then
+  if (is_root(par_env)) then
     print *, "Init time: ", init_time - start_time
     print *, "Elapsed time: ", end_time - start_time
   end if
