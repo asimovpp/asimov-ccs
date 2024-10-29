@@ -381,7 +381,19 @@ contains
       ! Loop over connections of cell i
       do j = 1, tmp_int2d(i, max_faces + 1)
         associate (nbidx => tmp_int2d(i, j))
-          if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
+
+          if (nbidx .lt. 0) then
+            ! boundary 'cell'
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(nbidx, loc_nb)
+ 
+          else if (any(mesh%topo%global_indices == nbidx)) then
+            ! local in cell
+            local_idx = findloc(mesh%topo%global_indices, nbidx)
+            call create_neighbour_locator(loc_p, j, loc_nb)
+            call set_local_index(local_idx(1), loc_nb)
+
+         else !if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
             ! Halo cell
             if (.not. any(tmp1 == nbidx)) then
               ! New halo cell
@@ -412,19 +424,6 @@ contains
 
           !local_idx = findloc(tmp1, nbidx)
           !topo%adjncy(ctr) = local_idx(1)
-
-          if (nbidx .lt. 0) then
-            ! boundary 'cell'
-            call create_neighbour_locator(loc_p, j, loc_nb)
-            call set_local_index(nbidx, loc_nb)
-          end if
-
-          if (any(mesh%topo%global_indices == nbidx)) then
-            ! local in cell
-            local_idx = findloc(mesh%topo%global_indices, nbidx)
-            call create_neighbour_locator(loc_p, j, loc_nb)
-            call set_local_index(local_idx(1), loc_nb)
-          end if
 
           mesh%topo%graph_conn%adjncy(ctr) = nbidx
         end associate
