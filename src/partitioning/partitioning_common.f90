@@ -332,7 +332,7 @@ contains
   subroutine flatten_connectivity(tmp_int2d, mesh)
 
     use meshing, only: set_halo_num_cells
-    use sorts, only: heapsort_int, search_in_sorted
+    use sorts, only: findloc_in_sorted
 
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
@@ -340,10 +340,10 @@ contains
     integer :: i, j
     integer, dimension(:), allocatable :: tmp1
     integer, dimension(:), allocatable :: tmp2
-    integer(ccs_int), dimension(:), allocatable :: sorted_global_indices
 
     integer :: ctr
     integer, dimension(1) :: local_idx
+    integer(ccs_int) :: cell_idx
 
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: local_num_cells
@@ -373,10 +373,6 @@ contains
     ! Initialise neighbour indices
     mesh%topo%nb_indices(:, :) = 0_ccs_int
 
-    allocate(sorted_global_indices, source=mesh%topo%global_indices)
-    call heapsort_int(sorted_global_indices)
-    !call quicksort_int(sorted_global_indices)
-
     call get_halo_num_cells(halo_num_cells)
     call set_total_num_cells(local_num_cells + halo_num_cells)
     do i = 1, local_num_cells
@@ -393,39 +389,41 @@ contains
             call create_neighbour_locator(loc_p, j, loc_nb)
             call set_local_index(nbidx, loc_nb)
  
-          else if (search_in_sorted(nbidx, sorted_global_indices)) then
-            ! local in cell
-            local_idx = findloc(mesh%topo%global_indices, nbidx)
-            call create_neighbour_locator(loc_p, j, loc_nb)
-            call set_local_index(local_idx(1), loc_nb)
+          else
+            cell_idx = findloc_in_sorted(nbidx, mesh%topo%global_indices)
+            if (cell_idx >= 0) then
+              ! local in cell
+              call create_neighbour_locator(loc_p, j, loc_nb)
+              call set_local_index(cell_idx, loc_nb)
+            else
+              ! Halo cell
+              if (.not. any(tmp1 == nbidx)) then
+                ! New halo cell
+                ! Copy and extend size of halo cells buffer
+                call get_halo_num_cells(halo_num_cells)
+                call set_halo_num_cells(halo_num_cells + 1)
+                call get_halo_num_cells(halo_num_cells)
+                call set_total_num_cells(local_num_cells + halo_num_cells)
+                if (halo_num_cells > size(tmp1)) then
+                  allocate (tmp2(size(tmp1) + local_num_cells))
 
-          else !if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
-            ! Halo cell
-            if (.not. any(tmp1 == nbidx)) then
-              ! New halo cell
-              ! Copy and extend size of halo cells buffer
+                  tmp2(:) = -1
+                  tmp2(1:size(tmp1)) = tmp1(1:size(tmp1))
 
-              call get_halo_num_cells(halo_num_cells)
-              call set_halo_num_cells(halo_num_cells + 1)
-              call get_halo_num_cells(halo_num_cells)
-              call set_total_num_cells(local_num_cells + halo_num_cells)
-              if (halo_num_cells > size(tmp1)) then
-                allocate (tmp2(size(tmp1) + local_num_cells))
+                  deallocate (tmp1)
+                  allocate (tmp1, source=tmp2)
+                  deallocate (tmp2)
+                end if
 
-                tmp2(:) = -1
-                tmp2(1:size(tmp1)) = tmp1(1:size(tmp1))
-
-                deallocate (tmp1)
-                allocate (tmp1, source=tmp2)
-                deallocate (tmp2)
+                tmp1(halo_num_cells) = nbidx
+                local_idx(1) = halo_num_cells
+              else
+                local_idx = findloc(tmp1, nbidx)
               end if
-
-              tmp1(halo_num_cells) = nbidx
+              call create_neighbour_locator(loc_p, j, loc_nb)
+              call set_local_index(local_num_cells + local_idx(1), loc_nb)
             end if
 
-            local_idx = findloc(tmp1, nbidx)
-            call create_neighbour_locator(loc_p, j, loc_nb)
-            call set_local_index(local_num_cells + local_idx(1), loc_nb)
           end if
 
           !local_idx = findloc(tmp1, nbidx)

@@ -8,15 +8,15 @@ private
 
 public :: heapsort_int
 public :: quicksort_int
-public :: search_in_sorted
+public :: findloc_in_sorted
 
 contains
 
-  pure function search_in_sorted(value, a) result(found)
-    !! Search for value in sorted array a (Hermann Bottenbruch binary search)
+  pure function findloc_in_sorted(value, a) result(idx)
+    !! Find the location of value in sorted array a. returns -1 if not found (Hermann Bottenbruch binary search)
     integer(ccs_int), intent(in) :: value
     integer(ccs_int), intent(in), dimension(:) :: a
-    logical :: found
+    integer(ccs_int) :: idx
     integer(ccs_int) :: n, first, last, mid
 
     n = size(a)
@@ -32,9 +32,9 @@ contains
     end do
 
     if (a(first) == value) then
-      found = .true.
+      idx = first
     else
-      found = .false.
+      idx = -1
     end if
   end function
 
