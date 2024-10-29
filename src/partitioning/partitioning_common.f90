@@ -332,7 +332,7 @@ contains
   subroutine flatten_connectivity(tmp_int2d, mesh)
 
     use meshing, only: set_halo_num_cells
-    use sorts, only: headsort_int, search_in_sorted
+    use sorts, only: heapsort_int, search_in_sorted
 
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
@@ -340,6 +340,7 @@ contains
     integer :: i, j
     integer, dimension(:), allocatable :: tmp1
     integer, dimension(:), allocatable :: tmp2
+    integer(ccs_int), dimension(:), allocatable :: sorted_global_indices
 
     integer :: ctr
     integer, dimension(1) :: local_idx

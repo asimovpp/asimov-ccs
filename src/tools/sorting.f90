@@ -23,7 +23,7 @@ contains
     first = 1
     last = n
     do while (first /= last)
-      mid = ceil((first + last)/2, ccs_int)
+      mid = ceiling((first + last)/2.0_ccs_real, ccs_int)
       if (a(mid) > value) then
         last = mid - 1
       else
@@ -58,7 +58,7 @@ contains
        call siftdown(a, 0, bottom)
      end do
   
-  end subroutine heapsort
+  end subroutine heapsort_int
 
   pure subroutine siftdown(a, start, bottom)
     integer(ccs_int), intent(inout) :: a(0:)
@@ -89,7 +89,7 @@ contains
   pure recursive subroutine quicksort_int(a)
     integer, parameter  ::  changesize = 64
     integer(ccs_int), dimension(:), contiguous, intent(inout) ::  a
-    integer(ccs_int) :: first = 1
+    integer(ccs_int) :: first
     integer(ccs_int) :: i
     integer(ccs_int) :: j
     integer(ccs_int) :: last
@@ -97,6 +97,7 @@ contains
     integer(ccs_int) :: t
     integer(ccs_int) :: x
   
+    first = 1
     last = size(a, 1)
     if ((last - first) < changesize)then
       call insertion_sort_int(a(first:last)) 
@@ -140,7 +141,7 @@ contains
       implicit none
       integer(ccs_int), dimension(:), intent(inout) :: a
       integer(ccs_int) :: x
-      integer(ccs_int) :: n, i, j
+      integer(ccs_int) :: i, j
       
       do i = 2, size(a)
           x = a(i)
