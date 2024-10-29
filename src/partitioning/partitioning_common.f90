@@ -332,6 +332,7 @@ contains
   subroutine flatten_connectivity(tmp_int2d, mesh)
 
     use meshing, only: set_halo_num_cells
+    use sorts, only: headsort_int, search_in_sorted
 
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
@@ -371,6 +372,10 @@ contains
     ! Initialise neighbour indices
     mesh%topo%nb_indices(:, :) = 0_ccs_int
 
+    allocate(sorted_global_indices, source=mesh%topo%global_indices)
+    call heapsort_int(sorted_global_indices)
+    !call quicksort_int(sorted_global_indices)
+
     call get_halo_num_cells(halo_num_cells)
     call set_total_num_cells(local_num_cells + halo_num_cells)
     do i = 1, local_num_cells
@@ -387,13 +392,13 @@ contains
             call create_neighbour_locator(loc_p, j, loc_nb)
             call set_local_index(nbidx, loc_nb)
  
-          else if (any(mesh%topo%global_indices == nbidx)) then
+          else if (search_in_sorted(nbidx, sorted_global_indices)) then
             ! local in cell
             local_idx = findloc(mesh%topo%global_indices, nbidx)
             call create_neighbour_locator(loc_p, j, loc_nb)
             call set_local_index(local_idx(1), loc_nb)
 
-         else !if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
+          else !if ((.not. any(mesh%topo%global_indices == nbidx)) .and. (nbidx .gt. 0)) then
             ! Halo cell
             if (.not. any(tmp1 == nbidx)) then
               ! New halo cell
