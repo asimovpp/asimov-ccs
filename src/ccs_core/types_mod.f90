@@ -141,18 +141,26 @@ module types
                                                                             !< 0 on internal faces
                                                                             !< -X on a bondary face according to the boundary index
     integer :: bnd_rid_window                                               !< Associated shared window
+    integer(ccs_int) :: shared_array_local_offset                           !< Offset within shared arrays for quantities that are locally indexed (i.e. each rank is responsible for local_num_cells of these)
+    integer(ccs_int) :: shared_array_total_offset                           !< Offset within shared arrays for quantities that are totally indexed (i.e. each rank is responsible for total_num_cells of these)
   end type topology
 
   !> Geometry type
   type, public :: geometry
     real(ccs_real) :: h                                                 !< The (constant) grid spacing XXX: remove!
     real(ccs_real) :: scalefactor                                       !< Scalefactor
-    real(ccs_real), dimension(:, :), allocatable :: face_areas          !< Face areas (face, cell)
-    real(ccs_real), dimension(:), allocatable :: volumes                !< Cell volumes
-    real(ccs_real), dimension(:, :), allocatable :: x_p                 !< Cell centres (dimension, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: x_f              !< Face centres (dimension, face, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: face_normals     !< Face normals (dimension, face, cell)
-    real(ccs_real), dimension(:, :, :), allocatable :: vert_coords      !< Vertex coordinates (dimension, vertex, cell)
+    real(ccs_real), dimension(:, :), pointer :: face_areas              !< Face areas (face, cell)
+    integer :: face_areas_window                                        !< Associated shared window
+    real(ccs_real), dimension(:), pointer :: volumes                    !< Cell volumes
+    integer :: volumes_window                                           !< Associated shared window
+    real(ccs_real), dimension(:, :), pointer :: x_p                     !< Cell centres (dimension, cell)
+    integer :: x_p_window                                               !< Associated shared window
+    real(ccs_real), dimension(:, :, :), pointer :: x_f                  !< Face centres (dimension, face, cell)
+    integer :: x_f_window                                               !< Associated shared window
+    real(ccs_real), dimension(:, :, :), pointer :: face_normals         !< Face normals (dimension, face, cell)
+    integer :: face_normals_window                                      !< Associated shared window
+    real(ccs_real), dimension(:, :, :), pointer :: vert_coords          !< Vertex coordinates (dimension, vertex, cell)
+    integer :: vert_coords_window                                       !< Associated shared window
     real(ccs_real), dimension(:), allocatable :: face_interpol          !< Face interpolation factor, factor = face_interpol(iface)
   end type geometry
 

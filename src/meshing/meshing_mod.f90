@@ -45,6 +45,7 @@ module meshing
   public :: get_vert_per_cell, set_vert_per_cell
   public :: set_centre
   public :: set_area
+  public :: set_volume
   public :: set_normal
   public :: get_face_interpolation
   public :: set_face_interpolation
@@ -493,6 +494,12 @@ module meshing
       real(ccs_real), intent(in) :: area      !< The face area
       type(face_locator), intent(in) :: loc_f !< The face locator object
     end subroutine set_area
+
+    !> Set the volume of specified cell
+    module subroutine set_volume(volume, loc_p)
+      real(ccs_real), intent(in) :: volume      !< The cell volume
+      type(cell_locator), intent(in) :: loc_p   !< The cell locator object
+    end subroutine set_volume
 
     !v Set the normal of specified face
     !

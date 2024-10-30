@@ -161,4 +161,23 @@ contains
 
   end function
 
+  !> Get the number of steps in the ADIOS2 file
+  module subroutine get_num_steps(io_proc, steps)
+    class(io_process), intent(inout) :: io_proc
+    integer(ccs_long), intent(out) :: steps
+
+    integer(ccs_int) :: ierr
+
+    select type(io_proc)
+    type is (adios2_io_process)
+
+      call adios2_steps(steps, io_proc%engine, ierr)
+
+    class default
+      call error_abort("Unknown IO process handler type")
+
+    end select
+
+  end subroutine
+
 end submodule

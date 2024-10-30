@@ -7,7 +7,7 @@ module io
   use types, only: io_environment, io_process
   use parallel_types, only: parallel_environment
   use constants, only: ndim, adiosconfig
-  use kinds, only: ccs_int, ccs_real
+  use kinds, only: ccs_int, ccs_real, ccs_long
 
   implicit none
 
@@ -18,6 +18,7 @@ module io
   public :: configure_io
   public :: open_file
   public :: close_file
+  public :: get_num_steps
   public :: read_scalar
   public :: read_array
   public :: write_scalar
@@ -92,6 +93,11 @@ module io
       class(io_process), intent(inout) :: io_proc !< IO process
     end subroutine
 
+    module subroutine get_num_steps(io_proc, steps)
+      class(io_process), intent(inout) :: io_proc
+      integer(ccs_long), intent(out) :: steps
+    end subroutine
+
     !> Read a scalar integer from file
     module subroutine read_scalar_int32(io_proc, attr_name, attr)
       class(io_process), intent(in) :: io_proc  !< IO process used for reading
@@ -121,75 +127,83 @@ module io
     end subroutine
 
     !> Read a 1D 32-bit integer array from file
-    module subroutine read_array_int32_1D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_int32_1D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of integer array to read
       integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
       integer(int32), dimension(:), intent(inout) :: var       !< The 1D integer array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !> Read a 1D 64-bit integer array from file
-    module subroutine read_array_int64_1D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_int64_1D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of integer array to read
       integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
       integer(int64), dimension(:), intent(inout) :: var       !< The 1D integer array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !> Read a 2D 32-bit integer array from file
-    module subroutine read_array_int32_2D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_int32_2D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of integer array to read
       integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(2), intent(in) :: count        !< How many array element to read
       integer(int32), dimension(:, :), intent(inout) :: var    !< The 2D integer array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !> Read a 2D 64-bit integer array from file
-    module subroutine read_array_int64_2D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_int64_2D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of integer array to read
       integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(2), intent(in) :: count        !< How many array element to read
       integer(int64), dimension(:, :), intent(inout) :: var    !< The 2D integer array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !> Read a 1D 32-bit real array from file
-    module subroutine read_array_real32_1D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_real32_1D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of real array to read
       integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
       real(real32), dimension(:), intent(inout) :: var         !< The 1D real array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !> Read a 1D 64-bit real array from file
-    module subroutine read_array_real64_1D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_real64_1D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of real array to read
       integer(int64), dimension(1), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(1), intent(in) :: count        !< How many array element to read
       real(real64), dimension(:), intent(inout) :: var         !< The 1D real array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !> Read a 2D 32-bit real array from file
-    module subroutine read_array_real32_2D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_real32_2D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of real array to read
       integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(2), intent(in) :: count        !< How many array element to read
       real(real32), dimension(:, :), intent(inout) :: var      !< The 2D real array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !> Read a 2D 64-bit real array from file
-    module subroutine read_array_real64_2D(io_proc, var_name, global_start, count, var)
+    module subroutine read_array_real64_2D(io_proc, var_name, global_start, count, var, step)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                 !< Name of real array to read
       integer(int64), dimension(2), intent(in) :: global_start !< What global index to start reading from
       integer(int64), dimension(2), intent(in) :: count        !< How many array element to read
       real(real64), dimension(:, :), intent(inout) :: var      !< The 2D real array
+      integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
     !>  Write a scalar integer to file

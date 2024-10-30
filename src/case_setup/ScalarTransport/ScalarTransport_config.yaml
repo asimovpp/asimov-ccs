@@ -1,10 +1,17 @@
 ---
 title: ScalarTransport
 
+# restart capability
+restart: false
+
+# unstaedy state
+unsteady: true
+
+#  number of steady iterations
+iterations: 10
+
 #  number of timesteps
 steps: 100
-#  number of iterations
-iterations: 10
 # time step size
 dt: 1.0e-2
 

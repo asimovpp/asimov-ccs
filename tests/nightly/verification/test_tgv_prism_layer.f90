@@ -7,10 +7,14 @@ program test_tgv_prism_layer
   use testing_lib
   use ccs_base, only: bnd_names_default
   use error_analysis, only: get_order, print_error_summary
+  use types, only: cell_locator, face_locator, vert_locator
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d, domain_size
   use mesh_utils, only: compute_face_interpolation
-  use meshing, only: get_local_num_cells, set_mesh_object, nullify_mesh_object
+  use meshing, only: get_local_num_cells, get_total_num_cells, set_mesh_object, nullify_mesh_object, &
+                     create_cell_locator, create_face_locator, create_vert_locator, &
+                     get_centre, set_centre, set_area, set_volume, get_face_normal, get_volume, get_face_area
+  use utils, only: debug_print, str
 
   implicit none
 
@@ -48,7 +52,7 @@ program test_tgv_prism_layer
     mesh = build_square_mesh(par_env, shared_env, cps, domain_size, &
          bnd_names_default(1:4))
 
-    call generate_prism_layer(growth_rate, cps, mesh)
+    call generate_prism_layer(shared_env, growth_rate, cps, mesh)
 
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do
@@ -75,39 +79,70 @@ program test_tgv_prism_layer
 contains
 
   !v Modifies a square mesh by applying a growth rate along the x axis hence generating a prism layer
-  subroutine generate_prism_layer(growth_rate, cps, mesh)
+  subroutine generate_prism_layer(shared_env, growth_rate, cps, mesh)
+    class(parallel_environment), intent(in) :: shared_env
     real(ccs_real), intent(in) :: growth_rate
     integer(ccs_int), intent(in) :: cps
     type(ccs_mesh), intent(inout) :: mesh
 
     real(ccs_real) :: power, dx
-    integer(ccs_int) :: iface, icell, local_num_cells
+    integer(ccs_int) :: iface, icell, ivert, local_num_cells, total_num_cells
+    real(ccs_real), dimension(3) :: x_p, x_f, x_v, normal
+    real(ccs_real) :: area, volume
+    type(cell_locator) :: loc_p
+    type(face_locator) :: loc_f
+    type(vert_locator) :: loc_v
 
     call set_mesh_object(mesh)
     
     dx = domain_size / real(cps)
+    
+    call get_local_num_cells(local_num_cells)
+    call get_total_num_cells(total_num_cells)
 
     ! Update face centers
-    mesh%geo%x_f(1, :, :) = apply_gr(mesh%geo%x_f(1, :, :), growth_rate)
-
-    ! Update vertices
-    mesh%geo%vert_coords(1, :, :) = apply_gr(mesh%geo%vert_coords(1, :, :), growth_rate)
-
-    ! Update face areas
-    call get_local_num_cells(local_num_cells)
     do icell = 1, local_num_cells
+      call create_cell_locator(icell, loc_p)
       do iface = 1, 4
-        if (abs(mesh%geo%face_normals(2, iface, icell)) .gt. 0.01) then
-          mesh%geo%face_areas(iface, icell) = apply_gr(mesh%geo%x_p(1, icell) + dx/2, growth_rate) - apply_gr(mesh%geo%x_p(1, icell) - dx/2, growth_rate)
+        call create_face_locator(icell, iface, loc_f)
+        call get_centre(loc_f, x_f)
+        x_f(1) = apply_gr(x_f(1), growth_rate)
+        call set_centre(loc_f, x_f)
+      end do
+
+      ! Update vertices
+      do ivert = 1, 4
+        call create_vert_locator(icell, ivert, loc_v)
+        call get_centre(loc_v, x_v)
+        x_v(1) = apply_gr(x_v(1), growth_rate)
+        call set_centre(loc_v, x_v)
+      end do
+
+      ! Update face areas
+      do iface = 1, 4
+        call create_face_locator(icell, iface, loc_f)
+        call get_face_normal(loc_f, normal)
+        if (abs(normal(2)) .gt. 0.01) then
+          call get_centre(loc_p, x_p)
+          area = apply_gr(x_p(1) + dx/2, growth_rate) - apply_gr(x_p(1) - dx/2, growth_rate)
+          call set_area(area, loc_f)
         end if
       end do
     end do
 
     ! Update cell volumes
-    mesh%geo%volumes(:) = dx * (apply_gr(mesh%geo%x_p(1, :) + dx/2, growth_rate) - apply_gr(mesh%geo%x_p(1, :) - dx/2, growth_rate))
+    do icell = 1, total_num_cells
+      call create_cell_locator(icell, loc_p)
+      call get_centre(loc_p, x_p)
+      volume = dx * (apply_gr(x_p(1) + dx/2, growth_rate) - apply_gr(x_p(1) - dx/2, growth_rate))
+      call set_volume(volume, loc_p)
 
-    ! Update cell centers (average of the new faces positions)
-    mesh%geo%x_p(1, :) = 0.5_ccs_real * (apply_gr(mesh%geo%x_p(1, :) + dx/2, growth_rate) + apply_gr(mesh%geo%x_p(1, :) - dx/2, growth_rate))
+      ! Update cell centers (average of the new faces positions)
+      x_p(1) = 0.5_ccs_real * (apply_gr(x_p(1) + dx/2, growth_rate) + apply_gr(x_p(1) - dx/2, growth_rate))
+      call set_centre(loc_p, x_p)
+    end do
+
+    call sync(shared_env)
 
     ! Update face interpolation
     call compute_face_interpolation(mesh)

@@ -5,8 +5,9 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, gamma_field, linear_upwind_field, bc_config, &
-                   face_locator, cell_locator, neighbour_locator, bc_profile
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, &
+                   gamma_field, linear_upwind_field, bc_config, face_locator, cell_locator, &
+                   neighbour_locator, bc_profile, fluid
   use constants, only: ndim
 
   implicit none
@@ -24,6 +25,7 @@ module fv
   public :: get_value_from_bc_profile
   public :: add_fixed_source
   public :: add_linear_source
+  public :: zero_sources
   
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
@@ -175,7 +177,15 @@ module fv
         type(bc_profile), intent(in) :: profile       !< boundary condition profile
         real(ccs_real), intent(out) :: bc_value       !< Interpolated value
     end subroutine get_value_from_bc_profile
-
+    
+    !v Zeros the linear and fixed sources. Can be used in place of a specific implementation when
+    !  there are no sources, serves as a template for any case-specific source implementation.
+    module subroutine zero_sources(flow, phi, R, S)
+      type(fluid), intent(in) :: flow !< Provides access to full flow field
+      class(field), intent(in) :: phi !< Field being transported
+      class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+      class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    end subroutine zero_sources
 
     !> Adds a fixed source term to the righthand side of the equation
     module subroutine add_fixed_source(S, rhs)

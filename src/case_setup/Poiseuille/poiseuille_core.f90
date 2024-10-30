@@ -9,7 +9,7 @@ module poiseuille_core
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+                         pressure_solver_method_name, pressure_solver_precon_name, restart, unsteady
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int, ccs_long
@@ -39,12 +39,11 @@ module poiseuille_core
   use meshing, only: get_total_num_cells, get_global_num_cells, set_mesh_object, nullify_mesh_object, get_local_num_cells
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
-  use io_visualisation, only: write_solution, reset_io_visualisation
+  use io_visualisation, only: write_solution, reset_io_visualisation, read_solution
   use fv, only: update_gradient
   use utils, only: str
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_reset
-  use vec, only: get_vector_data, restore_vector_data
 
   implicit none
 
@@ -92,6 +91,9 @@ module poiseuille_core
     type(fluid) :: flow_fields
 
     character(len=128), dimension(:), allocatable :: bnd_names
+    
+    integer(ccs_int):: t          ! Timestep counter
+    integer(ccs_int):: timer_index_io_sol
     
     call timer_init()
     irank = par_env%proc_id
@@ -244,30 +246,58 @@ module poiseuille_core
     nullify(density)
 
     call timer_stop(timer_index_init)
-    call timer_register_start("Solver time inc I/O", timer_index_sol)
 
-    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                          flow_fields)
+    if(restart) then
+      if (is_root(par_env)) then
+        print*, "restart capability activated"
+      end if
+      call read_solution(par_env, case_path, mesh, flow_fields)
+    end if 
 
-    ! This could be a postprocessing subroutine
-    call get_field(flow_fields, "u", u)
-    call get_field(flow_fields, "v", v)
-    call get_field(flow_fields, "w", w)
-    call get_field(flow_fields, "p", p)
-    call calc_kinetic_energy(par_env, u, v, w)
-    call calc_enstrophy(par_env, u, v, w)
+    if(.not.unsteady) then
+      num_steps = 1
+      print*, "steady-state activated"
+    else
+      print*, "unsteady-state activated"
+    end if
 
-    call calc_error(par_env, u, v, p, error_L2, error_Linf)
-    nullify(u)
-    nullify(v)
-    nullify(w)
-    nullify(p)
-    nullify(mf)
+    do t = 1, num_steps
+      call timer_register_start("Solver time inc I/O", timer_index_sol)
+      call solve_nonlinear(par_env, mesh, eval_sources, it_start, it_end, res_target, &
+                        flow_fields)
 
-    call write_solution(par_env, case_path, mesh, flow_fields)
+      ! This could be a postprocessing subroutine
+      call get_field(flow_fields, "u", u)
+      call get_field(flow_fields, "v", v)
+      call get_field(flow_fields, "w", w)
+      call get_field(flow_fields, "p", p)
+      call calc_kinetic_energy(par_env, u, v, w)
+      call calc_enstrophy(par_env, u, v, w)
 
-    call timer_stop(timer_index_sol)
+      call calc_error(par_env, u, v, p, error_L2, error_Linf)
+      nullify(u)
+      nullify(v)
+      nullify(w)
+      nullify(p)
+      nullify(mf)
 
+      if (par_env%proc_id == par_env%root) then
+        print *, "TIME = ", t
+      end if
+
+      if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
+        if(.not. unsteady) then
+          call write_solution(par_env, case_path, mesh, flow_fields)
+        else
+          call timer_start(timer_index_io_sol)
+          call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+          call timer_stop(timer_index_io_sol)
+        end if
+      end if
+
+      call timer_stop(timer_index_sol)
+    end do 
+    
     ! Clean-up
 
     call timer_stop(timer_index_total)
@@ -310,9 +340,25 @@ module poiseuille_core
        call error_abort("The number of variable types does not match the number of named variables")
     end if
 
-    call get_value(config_file, 'steps', num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num_steps.")
+    call get_value(config_file, 'restart', restart)
+
+    call get_value(config_file, 'unsteady', unsteady)
+
+    if (unsteady) then
+      call get_value(config_file, 'steps', num_steps)
+      if (num_steps == huge(0)) then
+        call error_abort("No value assigned to num_steps.")
+      end if
+
+      call get_value(config_file, 'dt', dt)
+      if (dt == huge(0.0)) then
+        call error_abort("No value assigned to dt.")
+      end if
+
+      call get_value(config_file, 'write_frequency', write_frequency)
+      if (write_frequency == huge(0.0)) then
+        call error_abort("No value assigned to write_frequency.")
+      end if
     end if
 
     call get_value(config_file, 'iterations', num_iters)
@@ -320,21 +366,11 @@ module poiseuille_core
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_value(config_file, 'dt', dt)
-    if (dt == huge(0.0)) then
-      call error_abort("No value assigned to dt.")
-    end if
-
     if (cps == huge(0)) then ! cps was not set on the command line
       call get_value(config_file, 'cps', cps)
       if (cps == huge(0)) then
         call error_abort("No value assigned to cps.")
       end if
-    end if
-
-    call get_value(config_file, 'write_frequency', write_frequency)
-    if (write_frequency == huge(0.0)) then
-      call error_abort("No value assigned to write_frequency.")
     end if
 
     call get_value(config_file, 'L', domain_size)
@@ -369,8 +405,12 @@ module poiseuille_core
     print *, " "
     print *, "******************************************************************************"
     print *, "* SIMULATION LENGTH"
-    print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-    write (*, '(1x,a,e10.3)') "* Time step size: ", dt
+    if (unsteady) then
+      print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+      write (*, '(1x,a,e10.3)') "* Time step size: ", dt
+    else
+      print *, "* Running for ", num_iters, "iterations"
+    end if     
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
     if (cps /= huge(0)) then
@@ -671,5 +711,20 @@ module poiseuille_core
     end if
 
   end subroutine calc_error
+
+  !> Case-specific source terms
+  subroutine eval_sources(flow, phi, R, S)
+    use types, only: fluid, field, ccs_vector
+    use fv, only: zero_sources
+
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
+    call zero_sources(flow, phi, R, S)
+    
+  end subroutine eval_sources
 
 end module poiseuille_core

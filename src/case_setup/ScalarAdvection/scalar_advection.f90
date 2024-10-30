@@ -9,7 +9,7 @@ program scalar_advection
   use case_config, only: num_steps, num_iters, dt, cps, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, write_gradients, &
                          velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+                         pressure_solver_method_name, pressure_solver_precon_name, restart, unsteady
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, field_spec, &
                    equation_system, linear_solver, ccs_mesh, field_ptr, &
                    field, upwind_field, central_field, bc_config, face_locator, &
@@ -33,7 +33,7 @@ program scalar_advection
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, is_root
   use fv, only: compute_fluxes, update_gradient
-  use io_visualisation, only: write_solution
+  use io_visualisation, only: write_solution, read_solution
   use read_config, only: get_variables, get_boundary_count, get_boundary_names, get_case_name, &
                          get_enable_cell_corrections, get_variable_types
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
@@ -75,6 +75,9 @@ program scalar_advection
   type(fluid) :: flow_fields
 
   character(len=128), dimension(:), allocatable :: bnd_names
+  integer(ccs_int):: t          ! Timestep counter
+  integer(ccs_int):: timer_index_sol
+  integer(ccs_int):: timer_index_io_sol
 
   call initialise_parallel_environment(par_env)
   use_mpi_splitting = .false.
@@ -225,16 +228,45 @@ program scalar_advection
 
   call finalise(M)
 
+  if(restart) then
+    if (is_root(par_env)) then
+      print*, "restart capability activated"
+    end if
+    call read_solution(par_env, case_path, mesh, flow_fields)
+  end if 
+
   ! Create linear solver & set options
   if (irank == par_env%root) print *, "Solve"
   call get_field(flow_fields, "scalar", scalar)
-  call set_equation_system(par_env, source, scalar%values, M, scalar_equation_system)
-  call create_solver(scalar_equation_system, scalar_solver)
-  call solve(scalar_solver)
-  nullify(scalar)
 
-  call write_mesh(par_env, case_path, mesh)
-  call write_solution(par_env, case_path, mesh, flow_fields)
+  if(.not.unsteady) then
+    num_steps = 1
+    print*, "steady-state activated"
+  else
+    print*, "unsteady-state activated"
+  end if
+
+  do t = 1, num_steps
+    call timer_register_start("Solver time inc I/O", timer_index_sol)
+    call set_equation_system(par_env, source, scalar%values, M, scalar_equation_system)
+    call create_solver(scalar_equation_system, scalar_solver)
+    call solve(scalar_solver)
+    nullify(scalar)
+
+    if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
+      if(.not. unsteady) then
+        call write_solution(par_env, case_path, mesh, flow_fields)
+      else
+        call timer_start(timer_index_io_sol)
+        !call write_mesh(par_env, case_path, mesh)
+        call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+        call timer_stop(timer_index_io_sol)
+      end if 
+    end if 
+
+    call timer_stop(timer_index_sol)
+
+  end do
 
   ! Clean up
   deallocate(source)
@@ -416,31 +448,37 @@ contains
        call error_abort("The number of variable types does not match the number of named variables")
     end if
 
-    call get_value(config_file, 'steps', num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num_steps.")
-    end if
+    call get_value(config_file, 'restart', restart)
+
+    call get_value(config_file, 'unsteady', unsteady)
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_value(config_file, 'dt', dt)
-    if (dt == huge(0.0)) then
-      call error_abort("No value assigned to dt.")
-    end if
+    if(unsteady) then
+      call get_value(config_file, 'steps', num_steps)
+      if (num_steps == huge(0)) then
+        call error_abort("No value assigned to num_steps.")
+      end if
+
+      call get_value(config_file, 'dt', dt)
+      if (dt == huge(0.0)) then
+        call error_abort("No value assigned to dt.")
+      end if
+
+      call get_value(config_file, 'write_frequency', write_frequency)
+      if (write_frequency == huge(0.0)) then
+        call error_abort("No value assigned to write_frequency.")
+      end if
+    end if 
 
     if (cps == huge(0)) then ! cps was not set on the command line
       call get_value(config_file, 'cps', cps)
       if (cps == huge(0)) then
         call error_abort("No value assigned to cps.")
       end if
-    end if
-
-    call get_value(config_file, 'write_frequency', write_frequency)
-    if (write_frequency == huge(0.0)) then
-      call error_abort("No value assigned to write_frequency.")
     end if
 
     call get_value(config_file, 'L', domain_size)

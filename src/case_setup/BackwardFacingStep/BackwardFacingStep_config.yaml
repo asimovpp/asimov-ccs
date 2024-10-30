@@ -1,12 +1,19 @@
 ---
 title: BackwardFacingStep
 
+# restart capability
+restart: false
+
+# unstaedy state
+unsteady: true
+
+#  number of steady iterations
+iterations: 100
+
 #  number of timesteps
-steps: 100
-#  number of iterations
-iterations: 5
+steps: 5
 # time step size
-dt: 8.0e-1
+dt: 0.01
 
 # Square/cubic mesh generation parameters
 # cells per side

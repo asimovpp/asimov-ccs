@@ -31,6 +31,37 @@ contains
 
   end subroutine
 
+  !> Read the flow solution 
+  module subroutine read_solution(par_env, case_name, mesh, flow, step, maxstep)
+
+    use parallel, only: timer
+    
+    ! Arguments
+    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
+    type(fluid), intent(inout) :: flow                                       !< The flow variables
+    integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
+    integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
+    integer(ccs_int) :: timer_index_read_field
+
+    call timer_register("Read fields time", timer_index_read_field)
+    
+    ! Read the required fields ('heavy' data)
+    if (present(step) .and. present(maxstep)) then
+      ! Unsteady case
+      call timer_start(timer_index_read_field)
+      call read_fields(par_env, case_name, mesh, flow, step, maxstep)
+      call timer_stop(timer_index_read_field)
+    else
+      ! Steady case
+      call timer_start(timer_index_read_field)
+      call read_fields(par_env, case_name, mesh, flow)
+      call timer_stop(timer_index_read_field)
+    end if
+
+  end subroutine
+
   !> Write the flow solution for the current time-step to file
   module subroutine write_solution(par_env, case_name, mesh, flow, step, maxstep, dt)
 
@@ -40,7 +71,7 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name                  !< The case name
     type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
-    type(fluid), intent(inout) :: flow                                       !< The flow variables
+    type(fluid), intent(inout) :: flow                                      !< The flow variables
     integer(ccs_int), optional, intent(in) :: step                          !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                       !< The maximum time-step count
     real(ccs_real), optional, intent(in) :: dt                              !< The time-step size

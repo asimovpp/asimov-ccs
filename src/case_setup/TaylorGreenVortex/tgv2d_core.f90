@@ -9,7 +9,7 @@ module tgv2d_core
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
                          pressure_solver_method_name, pressure_solver_precon_name, &
-                         compute_bwidth, compute_partqual
+                         compute_bwidth, compute_partqual, restart, unsteady
   use constants, only: cell, face, ccsconfig, ccs_string_len, &
                        cell_centred_central, cell_centred_upwind, face_centred
   use kinds, only: ccs_real, ccs_int
@@ -22,7 +22,7 @@ module tgv2d_core
                       cleanup_parallel_environment, timer, &
                       read_command_line_arguments, sync, is_root
   use parallel_types, only: parallel_environment
-  use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
+  use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object, get_local_num_cells
   use mesh_utils, only: build_square_mesh, write_mesh
   use vec, only: set_vector_location
   use petsctypes, only: vector_petsc
@@ -35,7 +35,7 @@ module tgv2d_core
   use read_config, only: get_variables, get_boundary_count, get_boundary_names, get_store_residuals, &
                          get_enable_cell_corrections, get_variable_types
   use timestepping, only: set_timestep, activate_timestepping, reset_timestepping
-  use io_visualisation, only: write_solution, reset_io_visualisation
+  use io_visualisation, only: write_solution, reset_io_visualisation, read_solution
   use fv, only: update_gradient
 
   implicit none
@@ -240,11 +240,25 @@ contains
     nullify(mf)
     nullify(viscosity)
     nullify(density)
+
+    if(restart) then
+      if (is_root(par_env)) then
+        print*, "restart capability activated"
+      end if
+      call read_solution(par_env, case_path, mesh, flow_fields)
+    end if 
     
     call timer(init_time)
 
+    if(.not.unsteady) then
+      num_steps = 1
+      print*, "steady-state activated"
+    else
+      print*, "unsteady-state activated"
+    end if
+
     do t = 1, num_steps
-      call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+      call solve_nonlinear(par_env, mesh, eval_sources, it_start, it_end, res_target, &
                            flow_fields)
 
       call get_field(flow_fields, "u", u)
@@ -261,7 +275,11 @@ contains
       nullify(p)
 
       if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-        call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+        if(.not. unsteady) then
+          call write_solution(par_env, case_path, mesh, flow_fields)
+        else 
+          call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+        end if 
       end if
     end do
 
@@ -306,20 +324,32 @@ contains
        call error_abort("The number of variable types does not match the number of named variables")
     end if
 
-    call get_value(config_file, 'steps', num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num_steps.")
-    end if
+    call get_value(config_file, 'restart', restart)
 
-    call get_value(config_file, 'iterations', num_iters)
+    call get_value(config_file, 'unsteady', unsteady)
+
+    call get_value(config_file, 'iterations', num_iters) ! steady-state
     if (num_iters == huge(0)) then
       call error_abort("No value assigned to num_iters.")
     end if
 
-    call get_value(config_file, 'dt', dt)
-    if (dt == huge(0.0)) then
-      call error_abort("No value assigned to dt.")
-    end if
+    if(unsteady) then
+      call get_value(config_file, 'steps', num_steps)
+      if (num_steps == huge(0)) then
+        call error_abort("No value assigned to num_steps.")
+      end if
+
+      call get_value(config_file, 'dt', dt)
+      if (dt == huge(0.0)) then
+        call error_abort("No value assigned to dt.")
+      end if
+
+      call get_value(config_file, 'write_frequency', write_frequency)
+      if (write_frequency == huge(0.0)) then
+        call error_abort("No value assigned to write_frequency.")
+      end if
+    end if 
+    
 
     if (cps == huge(0)) then ! cps was not set on the command line
       call get_value(config_file, 'cps', cps)
@@ -363,8 +393,12 @@ contains
     print *, " "
     print *, "******************************************************************************"
     print *, "* SIMULATION LENGTH"
-    print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-    write (*, '(1x,a,e10.3)') "* Time step size: ", dt
+    if (unsteady) then
+      print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+      write (*, '(1x,a,e10.3)') "* Time step size: ", dt
+    else
+      print *, "* Running for ", num_iters, "iterations"
+    end if 
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
     print *, "* Cells per side: ", cps
@@ -643,6 +677,21 @@ contains
     end if
 
   end subroutine calc_tgv2d_error
+
+  !> Case-specific source terms
+  subroutine eval_sources(flow, phi, R, S)
+    use types, only: fluid, field, ccs_vector
+    use fv, only: zero_sources
+
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
+    call zero_sources(flow, phi, R, S)
+    
+  end subroutine eval_sources
 
 end module tgv2d_core
 

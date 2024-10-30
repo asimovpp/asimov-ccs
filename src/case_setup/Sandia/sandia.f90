@@ -9,11 +9,11 @@ program sandia
   use case_config, only: num_steps, num_iters, dt, domain_size, write_frequency, &
                          velocity_relax, pressure_relax, res_target, case_name, &
                          write_gradients, velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+                         pressure_solver_method_name, pressure_solver_precon_name, restart, unsteady
   use constants, only: cell, face, ccsconfig, ccs_string_len, geoext, adiosconfig, ndim, &
                        cell_centred_central, cell_centred_upwind, face_centred, &
                        ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
-  use meshing, only: set_mesh_object, nullify_mesh_object
+  use meshing, only: set_mesh_object, nullify_mesh_object, get_local_num_cells
   use kinds, only: ccs_real, ccs_int, ccs_long
   use types, only: field, field_spec, upwind_field, central_field, face_field, ccs_mesh, &
                    vector_spec, ccs_vector, io_environment, io_process, &
@@ -40,7 +40,7 @@ program sandia
   use mesh_utils, only: read_mesh, write_mesh
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
-  use io_visualisation, only: write_solution
+  use io_visualisation, only: write_solution, read_solution
   use fv, only: update_gradient
   use utils, only: str
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
@@ -251,9 +251,23 @@ program sandia
   call timer_register("I/O time for solution", timer_index_io_sol)
   call timer_register("Solver time inc I/O", timer_index_sol)
 
+  if(restart) then
+    if (is_root(par_env)) then
+      print*, "restart capability activated"
+    end if
+    call read_solution(par_env, case_path, mesh, flow_fields)
+  end if 
+
+  if(.not.unsteady) then
+    num_steps = 1
+    print*, "steady-state activated"
+  else
+    print*, "unsteady-state activated"
+  end if
+
   do t = 1, num_steps
     call timer_start(timer_index_sol)
-    call solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
+    call solve_nonlinear(par_env, mesh, eval_sources, it_start, it_end, res_target, &
                          flow_fields, diverged)
     if (par_env%proc_id == par_env%root) then
       print *, "TIME = ", t
@@ -268,13 +282,17 @@ program sandia
     end if
 
     if ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0)) then
-      call timer_start(timer_index_io_sol)
-      call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
-      call timer_stop(timer_index_io_sol)
+      if(.not. unsteady) then
+        call write_solution(par_env, case_path, mesh, flow_fields)
+      else
+        call timer_start(timer_index_io_sol)
+        call write_solution(par_env, case_path, mesh, flow_fields, t, num_steps, dt)
+        call timer_stop(timer_index_io_sol)
+      end if
     end if
     call timer_stop(timer_index_sol)
   end do
-
+ 
   ! Clean-up
 
   call timer_stop(timer_index_total)
@@ -312,25 +330,30 @@ contains
        call error_abort("The number of variable types does not match the number of named variables")
     end if
 
+    call get_value(config_file, 'restart', restart)
 
-    call get_value(config_file, 'steps', num_steps)
-    if (num_steps == huge(0)) then
-      call error_abort("No value assigned to num_steps.")
-    end if
+    call get_value(config_file, 'unsteady', unsteady)
+
+    if(unsteady) then
+      call get_value(config_file, 'steps', num_steps)
+      if (num_steps == huge(0)) then
+        call error_abort("No value assigned to num_steps.")
+      end if
+
+      call get_value(config_file, 'dt', dt)
+      if (dt == huge(0.0)) then
+        call error_abort("No value assigned to dt.")
+      end if
+
+      call get_value(config_file, 'write_frequency', write_frequency)
+      if (write_frequency == huge(0.0)) then
+        call error_abort("No value assigned to write_frequency.")
+      end if
+    end if 
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
       call error_abort("No value assigned to num_iters.")
-    end if
-
-    call get_value(config_file, 'dt', dt)
-    if (dt == huge(0.0)) then
-      call error_abort("No value assigned to dt.")
-    end if
-
-    call get_value(config_file, 'write_frequency', write_frequency)
-    if (write_frequency == huge(0.0)) then
-      call error_abort("No value assigned to write_frequency.")
     end if
 
     call get_value(config_file, 'L', domain_size)
@@ -361,8 +384,12 @@ contains
     print *, " "
     print *, "******************************************************************************"
     print *, "* SIMULATION LENGTH"
-    print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-    write (*, '(1x, a, e10.3)') "* Time step size: ", dt
+    if (unsteady) then
+      print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+      write (*, '(1x, a, e10.3)') "* Time step size: ", dt
+    else
+      print *, "* Running for ", num_iters, "iterations"
+    end if 
     print *, "******************************************************************************"
     print *, "* MESH SIZE"
     print *, "* Global number of cells is ", mesh%topo%global_num_cells
@@ -541,5 +568,20 @@ contains
     nullify(rho)
 
   end subroutine initialise_flow
+
+  !> Case-specific source terms
+  subroutine eval_sources(flow, phi, R, S)
+    use types, only: fluid, field, ccs_vector
+    use fv, only: zero_sources
+
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+    
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
+    call zero_sources(flow, phi, R, S)
+    
+  end subroutine eval_sources
 
 end program sandia

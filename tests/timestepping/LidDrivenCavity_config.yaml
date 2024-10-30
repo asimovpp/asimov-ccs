@@ -1,8 +1,21 @@
 ---
 title: LidDrivenCavity
+# restart capability
+restart: false
 
-#  number of iterations
+# unstaedy state
+unsteady: false
+
+#  number of steady iterations
 iterations: 10
+
+#  number of timesteps
+steps: 5
+# time step size
+dt: 0.01
+
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 5
 
 # Square/cubic mesh generation parameters
 # cells per side

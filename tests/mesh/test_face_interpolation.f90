@@ -119,6 +119,10 @@ contains
     mesh%geo%x_f(:, 1, 1) = (/face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
     mesh%geo%x_f(:, 1, 2) = (/face_coordinate, 0.0_ccs_real, 0.0_ccs_real/)
 
+    ! Set the offsets to zero to make sure the accessors work ok
+    mesh%topo%shared_array_local_offset = 0
+    mesh%topo%shared_array_total_offset = 0
+
     call nullify_mesh_object()
 
   end function

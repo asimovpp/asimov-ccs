@@ -4,6 +4,8 @@ module error_analysis
 
   use kinds
   use types
+  use constants, only: ndim
+  use meshing, only: get_centre, set_centre, create_cell_locator
 
 contains
 
@@ -115,6 +117,8 @@ contains
     real(ccs_real) :: dx
     integer(ccs_int) :: icell, total_num_cells, idim, icell_global
     real(ccs_real) :: disturbance
+    type(cell_locator) :: loc_p
+    real(ccs_real), dimension(ndim) :: x_p
 
     dx = domain_size / real(cps)
 
@@ -122,15 +126,20 @@ contains
     do icell = 1, total_num_cells
       icell_global = mesh%topo%global_indices(icell)
 
-      if (mesh%geo%x_p(1, icell) >= 0.1 * domain_size .and. mesh%geo%x_p(1, icell) <= 0.9 * domain_size .and. &
-          mesh%geo%x_p(2, icell) >= 0.1 * domain_size .and. mesh%geo%x_p(2, icell) <= 0.9 * domain_size) then
+      call create_cell_locator(icell, loc_p)
+      call get_centre(loc_p, x_p)
+
+      if (x_p(1) >= 0.1 * domain_size .and. x_p(1) <= 0.9 * domain_size .and. &
+          x_p(2) >= 0.1 * domain_size .and. x_p(2) <= 0.9 * domain_size) then
         idim = 1
         disturbance = real(modulo(3 * icell_global, 17), ccs_real) / 17.0_ccs_real
-        mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real) * dx / 20.0
+        x_p(idim) = x_p(idim) + (disturbance - 0.5_ccs_real) * dx / 20.0
 
         idim = 2
         disturbance = real(modulo(3 * icell_global, 29), ccs_real) / 29.0_ccs_real
-        mesh%geo%x_p(idim, icell) = mesh%geo%x_p(idim, icell) + (disturbance - 0.5_ccs_real) * dx / 20.0
+        x_p(idim) = x_p(idim) + (disturbance - 0.5_ccs_real) * dx / 20.0
+
+        call set_centre(loc_p, x_p)
       end if
 
     end do
