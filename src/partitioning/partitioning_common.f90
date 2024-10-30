@@ -332,7 +332,6 @@ contains
   subroutine flatten_connectivity(tmp_int2d, mesh)
 
     use meshing, only: set_halo_num_cells
-    use sorts, only: findloc_in_sorted
 
     integer, dimension(:, :), intent(in) :: tmp_int2d
     type(ccs_mesh), target, intent(inout) :: mesh        !< The mesh for which to compute the partition
@@ -827,5 +826,33 @@ contains
     end associate
     
   end subroutine compute_partition_quality
+
+
+  !v Find the location of value in sorted array a. returns -1 if not found
+  ! Using Hermann Bottenbruch binary search
+  pure function findloc_in_sorted(value, a) result(idx)
+    integer(ccs_int), intent(in) :: value
+    integer(ccs_int), intent(in), dimension(:) :: a
+    integer(ccs_int) :: idx
+    integer(ccs_int) :: n, first, last, mid
+
+    n = size(a)
+    first = 1
+    last = n
+    do while (first /= last)
+      mid = ceiling((first + last)/2.0_ccs_real, ccs_int)
+      if (a(mid) > value) then
+        last = mid - 1
+      else
+        first = mid
+      end if
+    end do
+
+    if (a(first) == value) then
+      idx = first
+    else
+      idx = -1
+    end if
+  end function
   
 end submodule
