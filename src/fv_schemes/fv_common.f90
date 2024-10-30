@@ -757,7 +757,7 @@ contains
 
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
-      call update_gradient_at_point(phi, loc_p, grad_p)
+      call compute_gradient_at_point(phi, loc_p, grad_p)
       x_gradients(i) = grad_p(1)
       y_gradients(i) = grad_p(2)
       z_gradients(i) = grad_p(3)
@@ -783,7 +783,7 @@ contains
   end subroutine update_gradient
 
   !> Helper subroutine to calculate a gradient at a point (cell centre)
-  pure subroutine update_gradient_at_point(phi, loc_p, gradients)
+  pure subroutine compute_gradient_at_point(phi, loc_p, gradients)
 
     class(field), intent(in) :: phi         !< the field whose gradient we want to compute
     type(cell_locator), intent(in) :: loc_p !< locator of the current cell gradient is being evaluated in
@@ -855,7 +855,7 @@ contains
     call get_volume(loc_p, V)
     gradients(:) = gradients(:) / V
 
-  end subroutine update_gradient_at_point
+  end subroutine compute_gradient_at_point
 
   !v Zeros the linear and fixed sources. Can be used in place of a specific implementation when
   !  there are no sources, serves as a template for any case-specific source implementation.
