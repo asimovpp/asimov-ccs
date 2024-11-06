@@ -95,11 +95,11 @@ contains
 
   !> Gets the string associated with the keyword from dict
   module subroutine get_string_value(dict, keyword, string_val, value_present, required)
-    class(*), pointer, intent(in) :: dict                       !< The dictionary
-    character(len=*), intent(in) :: keyword                     !< The key
-    character(len=:), allocatable, intent(out) :: string_val  !< The corresponding value
-    logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
-    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+    class(*), pointer, intent(in) :: dict                    !< The dictionary
+    character(len=*), intent(in) :: keyword                  !< The key. Length is assumed (len=*) from input
+    character(len=:), allocatable, intent(out) :: string_val !< The corresponding value. Length is allocated as result (len=:)
+    logical, intent(out), optional :: value_present          !< Indicates whether the key-value pair is present in the dictionary
+    logical, optional, intent(in) :: required                !< Flag indicating whether result is required. Absence implies not required.
 
     type(type_error), allocatable :: io_err
 
