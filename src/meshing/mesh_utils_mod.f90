@@ -923,21 +923,25 @@ contains
   !v Utility constructor to build a 2D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny cells.
-  function build_square_mesh(par_env, shared_env, run_options, cps, side_length) result(mesh)
+  function build_square_mesh(par_env, shared_env, run_options) result(mesh)
 
     use partitioning, only: compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     type(ccs_options), intent(in) :: run_options
-    integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
-    real(ccs_real), intent(in) :: side_length          !< The length of the side.
 
     character(len=128), dimension(4) :: bnd_names      !< Boundary name list
     
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
+
+    real(ccs_real) :: side_length
+    integer :: cps
+
+    side_length = run_options%mesh%domain_size
+    cps = run_options%mesh%cps
 
     bnd_names = run_options%mesh%bnd_names
     
@@ -1516,7 +1520,7 @@ contains
   !v Utility constructor to build a 3D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
-  function build_mesh(par_env, shared_env, run_options, nx, ny, nz, side_length) result(mesh)
+  function build_mesh(par_env, shared_env, run_options) result(mesh)
 
     use partitioning, only: compute_partitioner_input
     use parallel, only: timer
@@ -1525,10 +1529,6 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     type(ccs_options), intent(in) :: run_options
-    integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
-    integer(ccs_int), intent(in) :: ny                 !< Number of cells in the y direction.
-    integer(ccs_int), intent(in) :: nz                 !< Number of cells in the z direction.
-    real(ccs_real), intent(in) :: side_length          !< The length of the side.
 
     character(len=128), dimension(6) :: bnd_names
     
@@ -1540,6 +1540,14 @@ contains
     integer(ccs_int) :: timer_build_geo
     integer(ccs_int) :: timer_partitioner_input
 
+    real(ccs_real) :: side_length
+    integer :: nx, ny, nz
+
+    side_length = run_options%mesh%domain_size
+    nx = run_options%mesh%cps
+    ny = run_options%mesh%cps
+    nz = run_options%mesh%cps
+    
     bnd_names = run_options%mesh%bnd_names
     
     call timer_register("Build mesh topology", timer_build_topo)

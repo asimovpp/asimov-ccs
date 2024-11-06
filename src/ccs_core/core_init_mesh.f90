@@ -35,13 +35,13 @@ contains
         if (is_root(par_env)) then
           print *, "* Building 2D mesh"
         end if
-        mesh = build_square_mesh(par_env, shared_env, run_options, cps, run_options%mesh%domain_size)
+        mesh = build_square_mesh(par_env, shared_env, run_options)
       case (build_mesh_3d) 
         ! Create a cubic mesh
         if (is_root(par_env)) then
           print *, "* Building 3D mesh"
         end if
-        mesh = build_mesh(par_env, shared_env, run_options, cps, cps, cps, run_options%mesh%domain_size)
+        mesh = build_mesh(par_env, shared_env, run_options)
       case (read_input_mesh)
         if (is_root(par_env)) then
           print *, "* Reading mesh file"
