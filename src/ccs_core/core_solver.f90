@@ -26,12 +26,16 @@ submodule (core) core_solver
 
 contains
 
+  !v Subroutine to run a flow problem.
+  !
+  ! This is responsible for the time loop, calling post-processing subroutines and performing
+  ! solution output.
   module subroutine run_solver(par_env, run_options, eval_sources, postproc, flow_fields)
 
     use timestepping, only: activate_timestepping, set_timestep
 
-    class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_options), intent(in) :: run_options
+    class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                    !< The runtime configuration
     interface
       !v Subroutine to evaluate source terms, case-specific.
       !
@@ -45,14 +49,15 @@ contains
       end subroutine eval_sources
     end interface
     interface
+      !v Subroutine to perform online analysis of the solution, case-specific.
       subroutine postproc(par_env, flow_fields)
         use types, only: fluid
         use parallel_types, only: parallel_environment
-        class(parallel_environment), allocatable, intent(in) :: par_env
-        type(fluid), intent(in) :: flow_fields
+        class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
+        type(fluid), intent(in) :: flow_fields                          !< The flow field structure
       end subroutine
     end interface
-    type(fluid), intent(inout) :: flow_fields
+    type(fluid), intent(inout) :: flow_fields !< The flow field structure, contains the solution
 
     integer(ccs_int) :: t ! Timestep counter
     integer(ccs_int) :: num_steps
@@ -137,8 +142,8 @@ contains
     use parallel, only: is_root
     use utils, only: get_field
     
-    class(parallel_environment), intent(in) :: par_env
-    type(fluid), intent(in) :: flow_fields
+    class(parallel_environment), intent(in) :: par_env !< The parallel environemnt
+    type(fluid), intent(in) :: flow_fields             !< The flow field structure
 
     logical :: have_p, have_vel
     integer :: i_field
@@ -167,21 +172,23 @@ contains
     
   end function check_flow_sol
 
+  !> Predicate to test if a stop condition has been met
   logical function check_stop_run(par_env, diverged)
 
     use parallel, only: query_stop_run
     
-    class(parallel_environment), intent(in) :: par_env
-    logical, intent(in) :: diverged
+    class(parallel_environment), intent(in) :: par_env !< The parallel environment
+    logical, intent(in) :: diverged                    !< Error flag raised by solver divergence
     
     check_stop_run = (query_stop_run(par_env) .or. diverged)
 
   end function check_stop_run
   
+  !> Predicate to test if conditions for solution output are met
   logical pure function check_to_write(run_options, t)
 
-    type(ccs_options), intent(in) :: run_options
-    integer(ccs_int), intent(in) :: t
+    type(ccs_options), intent(in) :: run_options !< The runtime configuration
+    integer(ccs_int), intent(in) :: t            !< The timestep counter
     
     if (timestepping_is_active()) then
       associate(num_steps => run_options%solve%num_steps, &
@@ -195,20 +202,19 @@ contains
     
   end function check_to_write
   
+  !> Utility subroutine to write the solution for a step
   subroutine write_step(par_env, run_options, t, flow_fields)
 
     use io_visualisation, only: write_solution
 
-    class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_options), intent(in) :: run_options
-    integer(ccs_int), intent(in) :: t
-    type(fluid), intent(inout) :: flow_fields
+    class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                    !< The runtime configuration
+    integer(ccs_int), intent(in) :: t                               !< The timestep counter
+    type(fluid), intent(inout) :: flow_fields                       !< The flow field structure
 
-    character(len=:), allocatable :: case_path
     integer(ccs_int) :: num_steps
     real(ccs_real) :: dt
     
-    case_path = run_options%paths%case_path
     num_steps = run_options%solve%num_steps
     dt = run_options%solve%dt
     
