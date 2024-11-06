@@ -110,8 +110,8 @@ module core
   interface
     !v Subroutine to get the runtime configuration.
     module subroutine get_config(par_env, run_options)
-      class(parallel_environment), intent(in) :: par_env
-      type(ccs_options), intent(out) :: run_options
+      class(parallel_environment), intent(in) :: par_env !< The parallel environment
+      type(ccs_options), intent(out) :: run_options      !< The runtime configuration
     end subroutine get_config
 
     !v Subroutine to configure sub parallel environments.
@@ -120,8 +120,8 @@ module core
     ! environments, etc.
     module subroutine configure_parallelism(run_options, par_env, shared_env)
       type(ccs_options), intent(in) :: run_options
-      class(parallel_environment), allocatable, intent(in) ::  par_env
-      class(parallel_environment), allocatable, intent(out) :: shared_env
+      class(parallel_environment), allocatable, intent(in) ::  par_env    !< The (primary) parallel environment
+      class(parallel_environment), allocatable, intent(out) :: shared_env !< The split (shared) parallel environment
     end subroutine configure_parallelism
     
     !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
@@ -154,8 +154,8 @@ module core
     !
     ! This is responsible for the building or reading of the mesh (whichever is specified in the config file)
     module subroutine initialise_mesh(par_env, shared_env, run_options)
-      class(parallel_environment), intent(in), allocatable :: par_env
-      class(parallel_environment), intent(in), allocatable :: shared_env
+      class(parallel_environment), intent(in), allocatable :: par_env    !< The (primary) parallel environment
+      class(parallel_environment), intent(in), allocatable :: shared_env !< The split (shared) parallel environment
       type(ccs_options), intent(in) :: run_options
     end subroutine initialise_mesh
 
@@ -163,9 +163,9 @@ module core
     !
     ! This is responsible for setting the building common fields and any other fields specified in the case config file
     module subroutine initialise_fields(par_env, run_options, flow_fields)
-      class(parallel_environment), intent(in), allocatable:: par_env    
-      type(ccs_options), intent(in) :: run_options
-      type(fluid), intent(out) :: flow_fields
+      class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+      type(ccs_options), intent(in) :: run_options                   !< The runtime configuration
+      type(fluid), intent(out) :: flow_fields                        !< The flow field structure
     end subroutine initialise_fields
 
     !v Subroutine to run a flow problem.
@@ -173,8 +173,8 @@ module core
     ! This is responsible for the time loop, calling post-processing subroutines and performing
     ! solution output.
     module subroutine run_solver(par_env, run_options, eval_sources, postproc, flow_fields)
-      class(parallel_environment), allocatable, intent(in) :: par_env
-      type(ccs_options), intent(in) :: run_options
+      class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
+      type(ccs_options), intent(in) :: run_options                    !< The runtime configuration
       interface
         !v Subroutine to evaluate source terms, case-specific.
         !
@@ -188,14 +188,15 @@ module core
         end subroutine eval_sources
       end interface
       interface
+        !v Subroutine to perform online analysis of the solution, case-specific.
         subroutine postproc(par_env, flow_fields)
           use types, only: fluid
           use parallel_types, only: parallel_environment
-          class(parallel_environment), allocatable, intent(in) :: par_env
-          type(fluid), intent(in) :: flow_fields
+          class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
+          type(fluid), intent(in) :: flow_fields                          !< The flow field structure
         end subroutine postproc
       end interface
-      type(fluid), intent(inout) :: flow_fields
+      type(fluid), intent(inout) :: flow_fields !< The flow field structure, contains the solution
     end subroutine run_solver
 
   end interface
