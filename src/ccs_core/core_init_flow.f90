@@ -48,7 +48,7 @@ submodule(core) core_init_flow
     end interface
 
     if (.not. run_options%variables%restart) then
-      call initialise_cells(flow_fields, get_init_flow)
+      call initialise_cell_values(flow_fields, get_init_flow)
       call initialise_mass_flux(flow_fields, get_init_mass_flux)
     else
       call read_solution(par_env, run_options%paths%case_path, mesh, flow_fields)
@@ -56,7 +56,7 @@ submodule(core) core_init_flow
 
   end subroutine initialise_flow
 
-  subroutine initialise_cells(flow_fields, get_init_flow)
+  subroutine initialise_cell_values(flow_fields, get_init_flow)
 
     ! Arguments
     type(fluid), intent(inout) :: flow_fields
@@ -114,7 +114,7 @@ submodule(core) core_init_flow
 
     end do
 
-  end subroutine
+  end subroutine initialise_cell_values
 
   ! Sets "sensible" default values
   pure subroutine get_init_default(field_name, init_val)
