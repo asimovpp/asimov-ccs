@@ -41,7 +41,9 @@ program test_ghost_cells
   num_procs = par_env%num_procs
 
   run_options%mesh%bnd_names = bnd_names_default(1:4)
-  mesh = build_square_mesh(par_env, shared_env, run_options, 11, 1.0_ccs_real)
+  run_options%mesh%cps = 11
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_square_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
   call get_local_num_cells(local_num_cells)
 

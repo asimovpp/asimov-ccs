@@ -149,7 +149,9 @@ contains
     
     ! Initialise mesh
     run_options%mesh%bnd_names = bnd_names_default
-    mesh = build_mesh(par_env, shared_env, run_options, n, n, n, l)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     ! Initialise vectors

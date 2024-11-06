@@ -17,7 +17,7 @@ program test_mesh_neighbours
 
   type(cell_locator) :: loc_p
 
-  integer(ccs_int) :: n, nx, ny, nz
+  integer(ccs_int) :: n
   real(ccs_real) :: l
 
   integer(ccs_int) :: local_num_cells
@@ -45,13 +45,11 @@ program test_mesh_neighbours
   do mctr = 2, size(m)
     n = m(mctr)
 
-    nx = n
-    ny = n
-    nz = n
-
     l = parallel_random(par_env)
     run_options%mesh%bnd_names = bnd_names_default
-    mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     boundary_ctr = 0
@@ -95,7 +93,7 @@ program test_mesh_neighbours
       call stop_test("ERROR: Unknown parallel environment!")
     end select
 
-    expected_boundary_ctr = 6 * nx * ny ! XXX: specific to 3D Cartesian mesh. For a cube this just counts the surface area in terms of cells.
+    expected_boundary_ctr = 6 * n * n ! XXX: specific to 3D Cartesian mesh. For a cube this just counts the surface area in terms of cells.
     ! each cell on the edge excluding cube vertices, and 8 for each cell on a face
     ! excluding cube vertices and edges
     call assert_eq(global_boundary_ctr, expected_boundary_ctr, "FAIL: mesh boundary count is incorrect")

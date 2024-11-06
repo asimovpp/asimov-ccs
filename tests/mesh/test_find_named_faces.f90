@@ -37,7 +37,9 @@ program find_named_faces
   bnd_names(4) = "delta" ! Top
   
   run_options%mesh%bnd_names = bnd_names
-  mesh = build_square_mesh(par_env, shared_env, run_options, cps, l)
+  run_options%mesh%cps = cps
+  run_options%mesh%domain_size = l
+  mesh = build_square_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
   
   do i = 1, size(bnd_names)

@@ -53,7 +53,10 @@ program test_tgv_prism_layer
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, shared_env, run_options, cps, domain_size)
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
+    run_options%mesh%cps = cps
+    run_options%mesh%domain_size = domain_size
+    mesh = build_square_mesh(par_env, shared_env, run_options)
 
     call generate_prism_layer(shared_env, growth_rate, cps, mesh)
 

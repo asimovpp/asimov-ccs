@@ -31,7 +31,9 @@ program test_square_mesh_point_distribution
   do mctr = 1, size(m)
     n = m(mctr)
     run_options%mesh%bnd_names = bnd_names_default(1:4)
-    mesh = build_square_mesh(par_env, shared_env, run_options, n, 1.0_ccs_real)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = 1.0_ccs_real
+    mesh = build_square_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     call get_local_num_cells(nlocal)

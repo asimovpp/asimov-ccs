@@ -19,7 +19,7 @@ program test_mesh_closed
 
   type(face_locator) :: loc_f
 
-  integer(ccs_int) :: n, nx, ny, nz
+  integer(ccs_int) :: n
   real(ccs_real) :: l
 
   real(ccs_real), dimension(ndim) :: S
@@ -42,13 +42,11 @@ program test_mesh_closed
   do mctr = 1, size(m)
     n = m(mctr)
 
-    nx = n
-    ny = n
-    nz = n
-
     l = parallel_random(par_env)
     run_options%mesh%bnd_names = bnd_names_default
-    mesh = build_mesh(par_env, shared_env, run_options, nx, nz, ny, l)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     A_expected = (l / n)**2

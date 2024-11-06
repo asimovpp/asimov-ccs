@@ -13,7 +13,7 @@ program test_mesh_point_distribution
 
   implicit none
 
-  integer(ccs_int) :: nx, ny, nz
+  integer(ccs_int) :: n
   integer(ccs_int) :: nlocal
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
@@ -22,12 +22,12 @@ program test_mesh_point_distribution
 
   call init()
 
-  nx = 4
-  ny = 4
-  nz = 4
-
+  n = 4
+  
   run_options%mesh%bnd_names = bnd_names_default
-  mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, 1.0_ccs_real)
+  run_options%mesh%cps = n
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
 
   call get_local_num_cells(nlocal)
@@ -43,7 +43,7 @@ program test_mesh_point_distribution
     ! end select
   end if
 
-  n_expected = nx * ny * nz
+  n_expected = n**3
 
   if (nlocal > n_expected) then
     write (message, *) "FAIL: Local number of cells ", nlocal, &

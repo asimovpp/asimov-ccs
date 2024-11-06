@@ -14,7 +14,7 @@ program test_mesh_volume
   implicit none
 
 
-  integer(ccs_int) :: nx, ny, nz
+  integer(ccs_int) :: n
   real(ccs_real) :: l
   real(ccs_real) :: vol
   real(ccs_real) :: vol_global
@@ -34,17 +34,17 @@ program test_mesh_volume
   
   call init()
 
-  nx = 4
-  ny = 4
-  nz = 4
+  n = 4
 
   l = parallel_random(par_env)
   run_options%mesh%bnd_names = bnd_names_default
-  mesh = build_mesh(par_env, shared_env, run_options, nx, ny, nz, l)
+  run_options%mesh%cps = n
+  run_options%mesh%domain_size = l
+  mesh = build_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
   expected_vol = l**3 ! XXX: Currently the mesh is a hard-coded 3D cube...
 
-  CV = (l / nx) * (l / ny) * (l / nz)
+  CV = (l / n)**3
 
   vol = 0.0_ccs_real
   nneg_vol = 0
@@ -75,7 +75,7 @@ program test_mesh_volume
 
   ! XXX: This would be a good candidate for a testing library
   if (abs(expected_vol - vol_global) > 1.0e-8) then
-    print *, mesh%geo%h, l / nx !TODO: not sure if this should be put inside message
+    print *, mesh%geo%h, l / n !TODO: not sure if this should be put inside message
     write (message, *) "FAIL: expected ", expected_vol, " got ", vol_global
     call stop_test(message)
   end if

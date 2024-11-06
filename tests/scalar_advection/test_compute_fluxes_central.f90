@@ -38,7 +38,9 @@ program test_compute_fluxes
   call init()
 
   run_options%mesh%bnd_names = bnd_names_default(1:4)
-  mesh = build_square_mesh(par_env, shared_env, run_options, cps, 1.0_ccs_real)
+  run_options%mesh%cps = cps
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_square_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
 
   allocate (central_field :: scalar)

@@ -43,7 +43,9 @@ program test_mesh_square_mesh_closed
 
     l = parallel_random(par_env)
     run_options%mesh%bnd_names = bnd_names_default(1:4)
-    mesh = build_square_mesh(par_env, shared_env, run_options, n, l)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_square_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     A_expected = l / n

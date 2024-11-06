@@ -44,7 +44,9 @@ program test_tgv_cartesian
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, shared_env, run_options, cps, domain_size)
+    run_options%mesh%cps = cps
+    run_options%mesh%domain_size = domain_size
+    mesh = build_square_mesh(par_env, shared_env, run_options)
 
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do

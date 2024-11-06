@@ -27,7 +27,9 @@ program test_vec_set_entries
 
   do n = 4, 100
     run_options%mesh%bnd_names = bnd_names_default(1:4)
-    mesh = build_square_mesh(par_env, shared_env, run_options, n, 1.0_ccs_real)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = 1.0_ccs_real
+    mesh = build_square_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     call init_vector()

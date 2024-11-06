@@ -36,7 +36,9 @@ program test_diffusion_coeff
   call init()
 
   run_options%mesh%bnd_names = bnd_names_default(1:4)
-  mesh = build_square_mesh(par_env, shared_env, run_options, cps, L)
+  run_options%mesh%cps = cps
+  run_options%mesh%domain_size = L
+  mesh = build_square_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
 
   index_p = 1
