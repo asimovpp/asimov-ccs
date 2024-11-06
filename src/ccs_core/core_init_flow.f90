@@ -25,25 +25,28 @@ submodule(core) core_init_flow
 
   contains
 
-  !> Initialise both cell centre values and mass fluxes
+  !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
+  !  on every cell or face
   module subroutine initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
-    class(parallel_environment), intent(in) :: par_env
-    type(ccs_options), intent(in) :: run_options
-    type(fluid), intent(inout) :: flow_fields
-    interface 
+    class(parallel_environment), intent(in) :: par_env !< Parallel environment
+    type(ccs_options), intent(in) :: run_options       !< Runtime configuration
+    type(fluid), intent(inout) :: flow_fields          !< The flow
+    interface
+      !> User-supplied subroutine to set field values at cell centres
       pure subroutine get_init_flow(loc_p, field_name, init_val)
         use kinds, only: ccs_real
         use types, only: cell_locator
-        type(cell_locator), intent(in) :: loc_p
-        character(len=*), intent(in) :: field_name
-        real(ccs_real), intent(inout) :: init_val
+        type(cell_locator), intent(in) :: loc_p    !< Cell locator
+        character(len=*), intent(in) :: field_name !< Name of field being initialised
+        real(ccs_real), intent(inout) :: init_val  !< The initial value to set for the field
       end subroutine
 
+      !> User-supplied subroutine to set the mass flux at face centres
       pure subroutine get_init_mass_flux(loc_f, init_val)
         use kinds, only: ccs_real
         use types, only: face_locator
-        type(face_locator), intent(in) :: loc_f
-        real(ccs_real), intent(inout) :: init_val
+        type(face_locator), intent(in) :: loc_f   !< Face locator
+        real(ccs_real), intent(inout) :: init_val !< The initial value to set for the mass flux
       end subroutine
     end interface
 
@@ -56,18 +59,21 @@ submodule(core) core_init_flow
 
   end subroutine initialise_flow
 
+  !v Initialise the cell centred values by calling the user-supplied initialisation per cell-centred
+  !  field on each cell.
   subroutine initialise_cell_values(flow_fields, get_init_flow)
 
     ! Arguments
-    type(fluid), intent(inout) :: flow_fields
+    type(fluid), intent(inout) :: flow_fields !< The flow
 
     interface 
+      !> User-supplied subroutine to set field values at cell centres
       pure subroutine get_init_flow(loc_p, field_name, init_val)
         use kinds, only: ccs_real
         use types, only: cell_locator
-        type(cell_locator), intent(in) :: loc_p
-        character(len=*), intent(in) :: field_name
-        real(ccs_real), intent(inout) :: init_val
+        type(cell_locator), intent(in) :: loc_p    !< Cell locator
+        character(len=*), intent(in) :: field_name !< Name of field being initialised
+        real(ccs_real), intent(inout) :: init_val  !< The initial value to set for the field
       end subroutine get_init_flow
     end interface
 
@@ -116,7 +122,7 @@ submodule(core) core_init_flow
 
   end subroutine initialise_cell_values
 
-  ! Sets "sensible" default values
+  !> Utility subroutine to set "sensible" default values
   pure subroutine get_init_default(field_name, init_val)
 
     character(len=*), intent(in) :: field_name
@@ -133,16 +139,19 @@ submodule(core) core_init_flow
     
   end subroutine get_init_default
   
+  !v Initialise the face centred mass flux values by calling the user-supplied initialisation on
+  !  mesh faces.
   subroutine initialise_mass_flux(flow_fields, get_init_mass_flux)
 
-    type(fluid), intent(inout) :: flow_fields
+    type(fluid), intent(inout) :: flow_fields !< The flow field structure
 
     interface
+      !> User-supplied subroutine to set the mass flux at face centres
       pure subroutine get_init_mass_flux(loc_f, init_val)
         use kinds, only: ccs_real
         use types, only: face_locator
-        type(face_locator), intent(in) :: loc_f
-        real(ccs_real), intent(inout) :: init_val
+        type(face_locator), intent(in) :: loc_f   !< Face locator
+        real(ccs_real), intent(inout) :: init_val !< The initial value to set for the mass flux
       end subroutine
     end interface
 
