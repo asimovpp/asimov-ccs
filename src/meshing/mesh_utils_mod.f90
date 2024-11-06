@@ -111,7 +111,7 @@ module mesh_utils
 contains
 
   !v Read mesh from file
-  subroutine read_mesh(par_env, shared_env, run_options, case_name, mesh)
+  subroutine read_mesh(par_env, shared_env, run_options, mesh)
 
     use partitioning, only: compute_connectivity_get_local_cells, &
                             compute_partitioner_input
@@ -122,7 +122,6 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options
-    character(len=:), allocatable :: case_name
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
     ! Local variables
@@ -137,6 +136,8 @@ contains
     integer(ccs_int) :: timer_read_geo
     integer(ccs_int) :: timer_partitioner_input
 
+    character(len=:), allocatable :: case_name
+
     call timer_register("Read mesh topology", timer_read_topo)
     call timer_register("Compute partitioner input", timer_partitioner_input)
     call timer_register("Read mesh geometry", timer_read_geo)
@@ -145,6 +146,7 @@ contains
     call set_mesh_generated(.false.)
     call nullify_mesh_object()
 
+    case_name = run_options%paths%case_name
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
     if (is_root(par_env)) then

@@ -46,7 +46,7 @@ contains
         if (is_root(par_env)) then
           print *, "* Reading mesh file"
         end if
-        call read_mesh(par_env, shared_env, run_options, run_options%paths%case_name, mesh)
+        call read_mesh(par_env, shared_env, run_options, mesh)
       case default
         call error_abort("invalid init mesh type specified")
       end select
