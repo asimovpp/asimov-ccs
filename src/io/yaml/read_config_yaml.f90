@@ -110,7 +110,6 @@ contains
       string_val = dict%get_string(keyword, error=io_err)
 
       if (allocated(io_err)) then
-        ! print *, "Keyword ", keyword, " not in YAML file"
         if (present(value_present)) then
           value_present = .false.
         end if
