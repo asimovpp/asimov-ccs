@@ -12,6 +12,7 @@ bases:
       parallel_utils: parallel_utils_mpi
       fv_common: fv_common
       fv: fv_discretisation
+      fv_kernels: fv_kernels
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
@@ -46,6 +47,7 @@ bases:
       parallel_utils: parallel_utils_mpi
       fv_common: fv_common
       fv: fv_discretisation
+      fv_kernels: fv_kernels
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
