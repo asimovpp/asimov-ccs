@@ -299,29 +299,40 @@ module types
   type, abstract, public :: abstract_kernel
   contains
     procedure(coeffs_interface), deferred :: eval_coeffs ! Returns the implicit contributions to the discretisation
-    procedure(eval_interface), deferred :: eval_explicit ! Returns the explicit contributions to the discretisatio
+    procedure(eval_interface), deferred :: eval_explicit ! Returns the explicit contributions to the discretisation
     procedure(width_interface), deferred :: get_width    ! Returns the stencil width
+    procedure(order_interface), deferred :: get_order    ! Returns the theorectical order of discretisation
   end type abstract_kernel
 
   !> Abstract kernel interface
   abstract interface
     pure function coeffs_interface(self) result(coeffs)
       import :: abstract_kernel
+      import :: ccs_real
       class(abstract_kernel), intent(in) :: self
-      real, allocatable :: coeffs(:)
+      real(ccs_real), allocatable :: coeffs(:)
     end function coeffs_interface
 
     subroutine eval_interface(self, result)
       import :: abstract_kernel
+      import :: ccs_real
       class(abstract_kernel), intent(in) :: self
-      real, allocatable, intent(out) :: result(:)
+      real(ccs_real), allocatable intent(out) :: result(:)
     end subroutine eval_interface
 
     pure function width_interface(self) result(width)
       import :: abstract_kernel
+      import :: ccs_int
       class(abstract_kernel), intent(in) :: self
-      integer :: width
+      integer(ccs_int) :: width
     end function width_interface
+
+    pure function order_interface(self) result(order)
+      import :: abstract_kernel
+      import :: ccs_int
+      class(abstract_kernel), intent(in) :: self
+      integer(ccs_int) :: order
+    end function order_interface
   end interface
 
 end module types
