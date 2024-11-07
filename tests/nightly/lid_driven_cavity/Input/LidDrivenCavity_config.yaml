@@ -1,6 +1,8 @@
 ---
 title: LidDrivenCavity
 
+mesh: 2d
+
 #  number of iterations
 iterations: 1000
 

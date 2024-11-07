@@ -7,6 +7,8 @@ restart: false
 # unstaedy state
 unsteady: false
 
+mesh: 2d
+
 #  number of timesteps
 steps: 100
 #  number of iterations
