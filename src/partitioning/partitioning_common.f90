@@ -332,6 +332,7 @@ contains
 
   !v Take the 2D connectivity graph and convert to 1D
   !  Note that cell neighbours are still globally numbered at this point.
+  !  This subroutine assumes that mesh%topo%global_indices is sorted
   subroutine flatten_connectivity(tmp_int2d, mesh)
 
     use meshing, only: set_halo_num_cells
