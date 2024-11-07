@@ -69,11 +69,7 @@ program tgv
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call timer_stop(timer_index_init)
-  call timer_register("I/O time for solution", timer_index_io_sol)
-  call timer_register("Solver time inc I/O", timer_index_sol)
-
   call run_solver(par_env, run_options, eval_sources, postproc_tgv, flow_fields)
-
   call timer_stop(timer_index_total)
 
   call timer_print_all(par_env)

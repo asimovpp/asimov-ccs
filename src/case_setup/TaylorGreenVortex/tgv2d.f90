@@ -9,6 +9,7 @@ program tgv2d
   use constants, only: ccs_split_type_shared
   use parallel, only: initialise_parallel_environment, cleanup_parallel_environment, &
                       create_new_par_env
+  use timers, only: timer_init
 
   implicit none
 
@@ -20,6 +21,7 @@ program tgv2d
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+  call timer_init()
   use_mpi_splitting = .true.
   call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 

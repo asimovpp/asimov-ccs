@@ -157,6 +157,8 @@ program poisson
                       cleanup_parallel_environment, &
                       timer, sync, &
                       is_root
+  use timers, only: timer_init, timer_register_start, timer_stop, &
+                    timer_print_all, timer_export_csv
 
   implicit none
 
@@ -173,18 +175,18 @@ program poisson
 
   real(ccs_real) :: err_norm
 
-  double precision :: start_time
-  double precision :: end_time
+  integer(ccs_int):: timer_index_total
 
   type(ccs_options) :: run_options
 
   call initialise_parallel_environment(par_env)
+  call timer_init()
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
 
   call sync(par_env)
-  call timer(start_time)
+  call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 
   run_options%mesh%bnd_names = bnd_names_default(1:4)
   call initialise_poisson(par_env, shared_env, run_options)
@@ -249,11 +251,9 @@ program poisson
   deallocate (M)
   deallocate (poisson_solver)
 
-  call timer(end_time)
+  call timer_stop(timer_index_total)
 
-  if (is_root(par_env)) then
-    print *, "Elapsed time = ", (end_time - start_time)
-  end if
+  call timer_print_all(par_env)
 
   call cleanup_parallel_environment(par_env)
 
