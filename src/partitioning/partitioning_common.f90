@@ -278,6 +278,9 @@ contains
     mesh%topo%global_indices(:) = -1 ! This will allow us to check later
 
     ctr = 1
+    ! Note flatten_connectivity relies on the fact 
+    ! mesh%topo%global_indices is a sorted array. If this were to change, 
+    ! flatten_connectivity would have to be adapted 
     associate (irank => par_env%proc_id, &
                partition => mesh%topo%graph_conn%global_partition)
       call get_global_num_cells(global_num_cells)
@@ -389,6 +392,7 @@ contains
             call set_local_index(nbidx, loc_nb)
  
           else
+            ! Relies on the fact that mesh%topo%global_indices is sorted at that moment
             cell_idx = findloc_in_sorted(nbidx, mesh%topo%global_indices)
             if (cell_idx >= 0) then
               ! local in cell
