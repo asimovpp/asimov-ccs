@@ -8,6 +8,7 @@ program test_poiseuille_disturb_cartesian
   use testing_lib
   use error_analysis, only: get_order, print_error_summary, disturb_cartesian
   use mesh_utils, only: build_square_mesh
+  use ccs_base, only: bnd_names_default
   use poiseuille_core, only: run_poiseuille
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_total_num_cells, set_mesh_object, nullify_mesh_object
@@ -46,6 +47,7 @@ program test_poiseuille_disturb_cartesian
     cps = cps_list(i)
     run_options%mesh%cps = cps
     run_options%mesh%domain_size = domain_size
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
     mesh = build_square_mesh(par_env, shared_env, run_options)
 
     call set_mesh_object(mesh)

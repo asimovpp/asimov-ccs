@@ -9,6 +9,7 @@ program test_tgv_cartesian
   use error_analysis, only: get_order, print_error_summary
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d
+  use ccs_base, only: mesh, bnd_names_default
 
   implicit none
 
@@ -46,6 +47,7 @@ program test_tgv_cartesian
     cps = cps_list(i)
     run_options%mesh%cps = cps
     run_options%mesh%domain_size = domain_size
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
     mesh = build_square_mesh(par_env, shared_env, run_options)
 
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
