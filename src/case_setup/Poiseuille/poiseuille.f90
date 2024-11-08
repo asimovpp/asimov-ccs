@@ -9,7 +9,7 @@ program poiseuille
   use constants, only: ccs_split_type_low_high
   use parallel, only: initialise_parallel_environment, cleanup_parallel_environment, &
                       create_new_par_env 
-  use timers, only: timer_init
+  use timers, only: timer_init, timer_reset
 
   implicit none
 
@@ -28,6 +28,7 @@ program poiseuille
   call run_poiseuille(par_env, shared_env, error_L2, error_Linf)
 
   ! Finalise MPI
+  call timer_reset()
   call cleanup_parallel_environment(par_env)
 
 end program poiseuille

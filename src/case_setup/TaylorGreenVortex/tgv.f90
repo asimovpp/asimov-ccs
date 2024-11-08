@@ -21,7 +21,7 @@ program tgv
                    str, debug_print, &
                    dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
-                    timer_get_time, timer_print_all, timer_export_csv
+                    timer_get_time, timer_print_all, timer_export_csv, timer_get_index
 
   implicit none
 
@@ -75,6 +75,8 @@ program tgv
   call timer_print_all(par_env)
   call timer_export_csv(par_env)
 
+  call timer_get_index("Solver time inc I/O", timer_index_sol)
+  call timer_get_index("I/O time for solution", timer_index_io_sol)
   call timer_get_time(timer_index_sol, sol_time)
   call timer_get_time(timer_index_io_sol, io_time)
   if (is_root(par_env)) then
