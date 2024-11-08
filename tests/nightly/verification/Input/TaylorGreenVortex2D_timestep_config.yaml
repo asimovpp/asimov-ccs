@@ -67,19 +67,29 @@ viscocity : 1.0e-3
 #  variables: [u, v, w, p]
 
 variables:
-  n_variables: 4
+  enable_cell_corrections: true
+  n_variables: 5
   variable_1:
     name: u
     type: central
+    solve: on
   variable_2:
     name: v
     type: central
+    solve: on
   variable_3:
+    name: w
+    type: central
+    solve: on
+  variable_4:
     name: p
     type: central
-  variable_4:
+    solve: on
+  variable_5:
     name: p_prime
     type: central
+    solve: off
+
 
 boundaries:
   n_boundaries: 4
