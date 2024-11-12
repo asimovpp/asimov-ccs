@@ -32,7 +32,10 @@ module transient_kernel_def
   contains
 
   subroutine init_first_order(self)
+    !! First order scheme
     class(transient_first_order_kernel) :: self
+
+    call self%cleanup_kernel()
 
     self%order = 1
     self%width_trans = [1]
@@ -42,18 +45,31 @@ module transient_kernel_def
 
 
   subroutine init_second_order(self)
+    !! Three time level (2nd order) scheme. Reverts back to 1st order scheme for 1st timestep
     class(transient_second_order_kernel) :: self
+
+    call self%cleanup_kernel()
 
     self%order = 2
     self%width_trans = [1, 2]
-    self%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
-                                          2.0_ccs_real, -0.5_ccs_real], shape=(/2, 2/))
-    self%implicit_coeff_trans = [ 1.0_ccs_real, 1.5_ccs_real ]
+
+    allocate(self%explicit_coeffs_trans(2,2))
+    self%explicit_coeffs_trans(:, 1) = [1.0_ccs_real, 0.0_ccs_real] ! 1st order scheme (for 1st timestep)
+    self%explicit_coeffs_trans(:, 2) = [2.0_ccs_real, -0.5_ccs_real] ! 2nd order scheme
+
+    allocate(self%implicit_coeff_trans(2))
+    self%implicit_coeff_trans(1) = 1.0_ccs_real ! 1st order scheme
+    self%implicit_coeff_trans(2) = 1.5_ccs_real ! 2nd order scheme
   end subroutine
 
   subroutine init_theta(self)
+    !! Theta scheme, blend between a 1st order and 2nd order scheme using theta. 
+    !! Theta=0 -> 1st order scheme
+    !! Theta=1 -> Three time level scheme (2nd order)
     class(transient_theta_kernel) :: self
     real(ccs_real), parameter :: theta = 0.5_ccs_real
+
+    call self%cleanup_kernel()
 
     if (theta == 1.0_ccs_real) then
       self%order = 2
@@ -61,9 +77,14 @@ module transient_kernel_def
       self%order = 1
     end if
     self%width_trans = [1, 2]
-    self%explicit_coeffs_trans = reshape([1.0_ccs_real, 0.0_ccs_real, &
-                                          1.0_ccs_real + theta, -0.5_ccs_real*theta], shape=(/2, 2/))
-    self%implicit_coeff_trans = [ 1.0_ccs_real, 1.0_ccs_real + 0.5_ccs_real*theta]
+
+    allocate(self%explicit_coeffs_trans(2,2))
+    self%explicit_coeffs_trans(:, 1) = [1.0_ccs_real, 0.0_ccs_real] ! 1st order scheme (for 1st timestep)
+    self%explicit_coeffs_trans(:, 2) = [1.0_ccs_real + theta, -0.5_ccs_real*theta] ! Theta scheme
+
+    allocate(self%implicit_coeff_trans(2))
+    self%implicit_coeff_trans(1) = 1.0_ccs_real ! 1st order scheme
+    self%implicit_coeff_trans(2) = 1.0_ccs_real + 0.5_ccs_real*theta ! Theta scheme
   end subroutine
 
 

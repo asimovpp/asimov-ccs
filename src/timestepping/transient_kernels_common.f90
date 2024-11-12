@@ -23,6 +23,7 @@ module transient_kernels
     procedure :: set_dt
     procedure :: eval_coeffs
     procedure :: eval_explicit
+    procedure :: cleanup_kernel
   end type
 
   abstract interface
@@ -102,5 +103,25 @@ module transient_kernels
     get_width = self%width
   end function
 
+  module subroutine cleanup_kernel(self)
+    class(transient_kernel) :: self
+
+    if (allocated(self%explicit_coeffs)) then
+      deallocate(self%explicit_coeffs)
+    end if
+
+    if (allocated(self%explicit_coeffs_trans)) then
+      deallocate(self%explicit_coeffs_trans)
+    end if
+
+    if (allocated(self%implicit_coeff_trans)) then
+      deallocate(self%implicit_coeff_trans)
+    end if
+
+    if (allocated(self%width_trans)) then
+      deallocate(self%width_trans)
+    end if
+
+  end subroutine
 
 end module transient_kernels
