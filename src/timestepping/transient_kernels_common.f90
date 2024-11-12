@@ -112,7 +112,7 @@ module transient_kernels
     get_width = self%width
   end function
 
-  module subroutine cleanup_kernel(self)
+  subroutine cleanup_kernel(self)
     !! Deallocate allocatable array from kernel object
     class(transient_kernel) :: self
 
