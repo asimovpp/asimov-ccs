@@ -31,3 +31,5 @@ ccs_app
 *.geo
 **/.DS_Store
 .vscode
+.devcontainer
+.idea
