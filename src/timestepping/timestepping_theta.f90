@@ -47,13 +47,6 @@ contains
     allocate(transient_theta_kernel :: transient)
     call apply_timestep_kernel(transient, phi, diag, M, b)
 
-    ! ! Do a first order update the first time because there no two past time steps yet.
-    ! if (first_update) then
-    !   call apply_timestep_first_order(phi, diag, M, b)
-    ! else
-    !   call apply_timestep_theta(theta, phi, diag, M, b)
-    ! end if
-
   end subroutine apply_timestep
 
   module subroutine update_old_values(x)

@@ -42,8 +42,6 @@ contains
 
     allocate(transient_first_order_kernel :: transient)
     call apply_timestep_kernel(transient, phi, diag, M, b)
-    ! call apply_timestep_first_order(phi, diag, M, b)
-
 
   end subroutine apply_timestep
 
