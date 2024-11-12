@@ -5,12 +5,14 @@ module transient_kernels
   implicit none
 
   type, abstract :: transient_kernel
-    real(ccs_real) :: dt                 !< time step size
+    real(ccs_real), private :: dt                 !< time step size
     integer(ccs_int) :: order            !< Theoretical order of the scheme
-    integer(ccs_int) :: width            !< size of the stencil required (=number of old values)
-    real(ccs_real), allocatable, dimension(:) :: explicit_coeffs !< rhs coefficients associated to old values
-    real(ccs_real) :: implicit_coeff     !< lhs/diagonal coefficient
+    integer(ccs_int), private :: width            !< size of the stencil required (=number of old values)
+    real(ccs_real), allocatable, dimension(:), private :: explicit_coeffs !< rhs coefficients associated to old values
+    real(ccs_real), private :: implicit_coeff     !< lhs/diagonal coefficient
 
+    ! *_trans variable are set once by the `init` function and define the scheme variables depending on the timestep
+    ! This is to revert to a lower width scheme for the first few timesteps when timestep < width 
     integer(ccs_int), allocatable, dimension(:) :: width_trans
     real(ccs_real), allocatable, dimension(:, :) :: explicit_coeffs_trans
     real(ccs_real), allocatable, dimension(:) :: implicit_coeff_trans
@@ -37,6 +39,7 @@ module transient_kernels
   contains
 
   subroutine set_step(self, step, restart)
+    !! To be run at the begining of every timestep, it sets the right coefficients self%width, explicit_coeffs and implicit_coeff
     class(transient_kernel) :: self
     integer(ccs_int), intent(in) :: step
     logical, optional, intent(in) :: restart
@@ -58,6 +61,7 @@ module transient_kernels
 
 
   pure subroutine eval_coeffs(self, rho, V, coeff)
+    !! Computes and returns the implicit coefficient (diagonal coeff)
     class(transient_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: rho
     real(ccs_real), intent(in) :: V
@@ -67,6 +71,7 @@ module transient_kernels
   end subroutine
 
   pure subroutine eval_explicit(self, rho, V, old, rhs)
+    !! Computes and returns the right hand side (explicit qqt)
     class(transient_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: rho
     real(ccs_real), intent(in) :: V
@@ -78,6 +83,7 @@ module transient_kernels
   end subroutine
 
   subroutine set_dt(self, dt)
+    !! Setter for  time step size
     class(transient_kernel), intent(inout) :: self
     real(ccs_real), intent(in) :: dt
 
@@ -86,24 +92,28 @@ module transient_kernels
   end subroutine
 
   real(ccs_real) function get_dt(self)
+    !! Getter for  time step size
     class(transient_kernel), intent(in) :: self
 
     get_dt = self%dt
   end function
 
   integer(ccs_int) function get_order(self)
+    !! Getter for the analytical order
     class(transient_kernel), intent(in) :: self
 
     get_order = self%order
   end function
 
   integer(ccs_int) function get_width(self)
+    !! Getter for the stencil width
     class(transient_kernel), intent(in) :: self
 
     get_width = self%width
   end function
 
   module subroutine cleanup_kernel(self)
+    !! Deallocate allocatable array from kernel object
     class(transient_kernel) :: self
 
     if (allocated(self%explicit_coeffs)) then
