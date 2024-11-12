@@ -9,12 +9,13 @@ program test_advection_kernel
 
 
     integer(ccs_int) :: i, num_iters=10
-    real(ccs_real) :: phi_P, phi_P_prime, interpol_factor
+    real(ccs_real) :: phi_P, interpol_factor
     real(ccs_real) :: phi_N
     real(ccs_real) :: dx
     real(ccs_real), dimension(3) :: x_N, x_P, x_f
     real(ccs_real), dimension(2) :: coeffs
     real(ccs_real) :: rhs
+    real(ccs_real) :: u_f
     real(ccs_real), dimension(num_iters) :: errors
     real(ccs_real), dimension(num_iters) :: refinements
     real(ccs_real) :: order
@@ -24,8 +25,8 @@ program test_advection_kernel
 
     ! Initialising values
 
-    phi_P = phi(0)
-    phi_P_prime = grad_phi(0)
+    x_P = [0, 0, 0]
+    phi_P = phi(x_P(1))
     interpol_factor = 2_ccs_real / 3_ccs_real
 
     ! Refinement loop
@@ -35,9 +36,10 @@ program test_advection_kernel
         x_f = x_P + [dx/3, 0, 0]
 
         phi_N = phi(dx)
+        u_f = interpol_factor*u(x_P(1)) + (1-interpol_factor)*u(x_N(1))
 
-        call advection%eval([phi_P, phi_N], [u_P, u_N], x_P, x_N, x_f, &
-                            interpol_factor, is_boundary=.false., coeffs, rhs)
+        call advection%eval([phi_P, phi_N], u_f, x_P, x_N, x_f, &
+                            is_boundary=.false., coeffs, rhs)
 
         ! Compute discretisation error
         call get_error(coeffs, rhs, x_f, errors(i))
