@@ -1,5 +1,8 @@
 
 program test_advection_kernel
+    !! Test the advection kernel by running a refinement loop, computing the discretisation
+    !!  error (difference between analytical and computed values), and checking the order of
+    !!  convergence is the theoretical order for the scheme
     implicit none
 
     use kinds, only: ccs_real
@@ -19,11 +22,13 @@ program test_advection_kernel
 
     type(advection_kernel) :: advection
 
+    ! Initialising values
 
     phi_P = phi(0)
     phi_P_prime = grad_phi(0)
     interpol_factor = 2_ccs_real / 3_ccs_real
 
+    ! Refinement loop
     do i = 1, num_iters
         dx = 1.0_ccs_real / real(i)**2
         x_N = x_P + [dx, 0, 0]
@@ -34,10 +39,12 @@ program test_advection_kernel
         call advection%eval([phi_P, phi_N], [u_P, u_N], x_P, x_N, x_f, &
                             interpol_factor, is_boundary=.false., coeffs, rhs)
 
+        ! Compute discretisation error
         call get_error(coeffs, rhs, x_f, errors(i))
         refinements(i) = dx
     end do
 
+    ! Compute convergence order
     call get_order(refinements, errors, order)
 
     call assert_gt(order, advection%get_order()*0.95, "Convergence order not preserved by advection kernel")
@@ -45,6 +52,7 @@ program test_advection_kernel
 contains
 
     function u(x)
+        ! Velocity field
         real(ccs_real) :: u
         real(ccs_real), intent(in) :: x
 
@@ -52,6 +60,7 @@ contains
     end function u
 
     function phi(x)
+        ! Function being tested
         real(ccs_real) :: phi
         real(ccs_real), intent(in) :: x
 
@@ -59,6 +68,7 @@ contains
     end function phi
 
     function grad_phi(x)
+        ! Analytical derivative of phi
         real(ccs_real) :: grad_phi
         real(ccs_real), intent(in) :: x
 
@@ -66,6 +76,7 @@ contains
     end function grad_phi
 
     subroutine get_error(coeffs, rhs, x_f, error)
+        ! Computes discretisation error by comparing with analytical value 
         real(ccs_real), intent(in) :: coeffs(2), rhs
         real(ccs_real), intent(in) :: x_f(3)
         real(ccs_real), intent(out) :: error
