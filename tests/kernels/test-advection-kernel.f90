@@ -21,7 +21,7 @@ program test_advection_kernel
 
 
     phi_P = phi(0)
-    phi_P_prime = phi_prime(0)
+    phi_P_prime = grad_phi(0)
     interpol_factor = 2_ccs_real / 3_ccs_real
 
     do i = 1, num_iters
@@ -58,12 +58,12 @@ contains
         phi = sin(2*x + 17)
     end function phi
 
-    function phi_prime(x)
-        real(ccs_real) :: phi_prime
+    function grad_phi(x)
+        real(ccs_real) :: grad_phi
         real(ccs_real), intent(in) :: x
 
-        phi_prime = 2*cos(2*x + 17)
-    end function phi_prime
+        grad_phi = 2*cos(2*x + 17)
+    end function grad_phi
 
     subroutine get_error(coeffs, rhs, f_loc, error)
         real(ccs_real), intent(in) :: coeffs(2), rhs
@@ -71,7 +71,7 @@ contains
         real(ccs_real), intent(out) :: error
         real(ccs_real) :: analytical, error
 
-        analytical = u(f_loc(1)) * phi_prime(f_loc(1))
+        analytical = u(f_loc(1)) * grad_phi(f_loc(1))
         error = abs(analytical - (rhs - coeffs(2) * phi(f_loc(1))) / coeffs(1))
     end subroutine get_error
 
