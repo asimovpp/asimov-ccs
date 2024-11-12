@@ -147,10 +147,10 @@ contains
     call transient%init()
     call transient%set_step(17)
     
-    print *, "order", transient%order
-    print *, "width", transient%width
-    print *, "implicit", transient%implicit_coeff
-    print *, "explicit", transient%explicit_coeffs
+    ! print *, "order", transient%order
+    ! print *, "width", transient%width
+    ! print *, "implicit", transient%implicit_coeff
+    ! print *, "explicit", transient%explicit_coeffs
 
     ! Allocate space for the old values
     allocate(f0(transient%get_width()))
