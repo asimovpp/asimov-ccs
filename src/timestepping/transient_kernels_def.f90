@@ -3,7 +3,7 @@ module transient_kernel_def
 !> explicit coefficients associated with the as well as implicit (diagonal) coefficient
 !>
 !> Because at the start of a computation, fewer 'old' values are available, reverting to a lower order scheme is necessary.
-!> This is the reason why each scheme implements their `width`, `explicit_coeffs` and `implicit_coeff` as arrays, 
+!> This is the reason why each scheme implements their `width`, `explicit_coeffs` and `implicit_coeff` as arrays,
 !> the first element being used for the 1st timestep, etc. until the full scheme can be used.
 !>
 
@@ -42,7 +42,7 @@ module transient_kernel_def
     allocate(self%explicit_coeffs_trans(1, 1))
     self%explicit_coeffs_trans(1, 1) = 1.0_ccs_real
     self%implicit_coeff_trans = [ 1.0_ccs_real ]
-  end subroutine 
+  end subroutine
 
 
   subroutine init_second_order(self)
@@ -64,7 +64,7 @@ module transient_kernel_def
   end subroutine
 
   subroutine init_theta(self)
-    !! Theta scheme, blend between a 1st order and 2nd order scheme using theta. 
+    !! Theta scheme, blend between a 1st order and 2nd order scheme using theta.
     !! Theta=0 -> 1st order scheme
     !! Theta=1 -> Three time level scheme (2nd order)
     class(transient_theta_kernel) :: self

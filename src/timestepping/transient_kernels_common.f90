@@ -12,7 +12,7 @@ module transient_kernels
     real(ccs_real), private :: implicit_coeff     !< lhs/diagonal coefficient
 
     ! *_trans variable are set once by the `init` function and define the scheme variables depending on the timestep
-    ! This is to revert to a lower width scheme for the first few timesteps when timestep < width 
+    ! This is to revert to a lower width scheme for the first few timesteps when timestep < width
     integer(ccs_int), allocatable, dimension(:) :: width_trans
     real(ccs_real), allocatable, dimension(:, :) :: explicit_coeffs_trans
     real(ccs_real), allocatable, dimension(:) :: implicit_coeff_trans
@@ -32,7 +32,7 @@ module transient_kernels
     subroutine init(self)
       import :: transient_kernel
       class(transient_kernel) :: self
-    end subroutine 
+    end subroutine
   end interface
 
 
