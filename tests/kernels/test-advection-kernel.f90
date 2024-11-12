@@ -24,7 +24,6 @@ program test_advection_kernel
     type(advection_kernel) :: advection
 
     ! Initialising values
-
     x_P = [0, 0, 0]
     phi_P = phi(x_P(1))
     interpol_factor = 2_ccs_real / 3_ccs_real
@@ -42,7 +41,7 @@ program test_advection_kernel
                             is_boundary=.false., coeffs, rhs)
 
         ! Compute discretisation error
-        call get_error(coeffs, rhs, x_f, errors(i))
+        call get_error(coeffs, rhs, x_P, x_N, x_f, errors(i))
         refinements(i) = dx
     end do
 
@@ -69,23 +68,17 @@ contains
         phi = sin(2*x + 17)
     end function phi
 
-    function grad_phi(x)
-        ! Analytical derivative of phi
-        real(ccs_real) :: grad_phi
-        real(ccs_real), intent(in) :: x
-
-        grad_phi = 2*cos(2*x + 17)
-    end function grad_phi
-
-    subroutine get_error(coeffs, rhs, x_f, error)
+    subroutine get_error(coeffs, rhs, x_P, x_N, x_f, error)
         ! Computes discretisation error by comparing with analytical value 
         real(ccs_real), intent(in) :: coeffs(2), rhs
+        real(ccs_real), intent(in) :: x_P(3)
+        real(ccs_real), intent(in) :: x_N(3)
         real(ccs_real), intent(in) :: x_f(3)
         real(ccs_real), intent(out) :: error
         real(ccs_real) :: analytical, error
 
-        analytical = u(x_f(1)) * grad_phi(x_f(1))
-        error = abs(analytical - (rhs - coeffs(2) * phi(x_f(1))) / coeffs(1))
+        analytical = u(x_f(1)) * phi(x_f(1))
+        error = abs(analytical - (coeffs(1) * phi(x_P(1)) + coeffs(2) * phi(x_N(1)) + rhs))
     end subroutine get_error
 
 end program test_advection_kernel
