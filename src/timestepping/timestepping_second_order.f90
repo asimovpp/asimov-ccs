@@ -43,6 +43,8 @@ contains
       return
     end if
 
+    ! Allocating the kernel every timestep is temporary, it should be done once when the final equation 
+    ! system isget_vector_data, restore_vector_data implemented
     allocate(transient_second_order_kernel :: transient)
     call apply_timestep_kernel(transient, phi, diag, M, b)
 
