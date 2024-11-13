@@ -140,7 +140,7 @@ contains
   module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
-    use vec, only: get_vector_data, restore_vector_data
+    use vec, only: get_vector_data, restore_vector_data, get_vector_data_readonly, restore_vector_data_readonly
     use utils, only: update, finalise
 
     class(transient_kernel), intent(inout) :: transient ! The transient kernel
@@ -171,9 +171,9 @@ contains
     call get_matrix_diagonal(M, diag)
 
     allocate(old(transient%get_width()))
-    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
+    call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
     if (transient%get_width() == 2) then
-      call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
+      call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
     end if
 
     call get_vector_data(diag, diag_data)
@@ -199,9 +199,9 @@ contains
       b_data(i) = b_data(i) + rhs
     end do
 
-    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
+    call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
     if (transient%get_width() == 2) then
-      call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
+      call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
     end if
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
