@@ -6,6 +6,7 @@ module transient_kernels
 
   type, abstract :: transient_kernel
     real(ccs_real), private :: dt                 !< time step size
+    real(ccs_real), private :: invdt                 !< time step size
     integer(ccs_int) :: order            !< Theoretical order of the scheme
     integer(ccs_int), private :: width            !< size of the stencil required (=number of old values)
     real(ccs_real), allocatable, dimension(:), private :: explicit_coeffs !< rhs coefficients associated to old values
@@ -67,7 +68,7 @@ module transient_kernels
     real(ccs_real), intent(in) :: V
     real(ccs_real), intent(out) :: coeff
 
-    coeff = self%implicit_coeff * rho*V/self%dt
+    coeff = self%implicit_coeff * rho*V*self%invdt
   end subroutine
 
   pure subroutine eval_explicit(self, rho, V, old, rhs)
@@ -78,7 +79,7 @@ module transient_kernels
     real(ccs_real), dimension(:), intent(in) :: old
     real(ccs_real), intent(out) :: rhs
 
-    rhs = dot_product(old(1:self%width), self%explicit_coeffs(1:self%width))*rho*V/self%dt
+    rhs = dot_product(old(1:self%width), self%explicit_coeffs(1:self%width))*rho*V*self%invdt
 
   end subroutine
 
@@ -88,6 +89,7 @@ module transient_kernels
     real(ccs_real), intent(in) :: dt
 
     self%dt = dt
+    self%invdt = 1.0_ccs_real/dt
 
   end subroutine
 
