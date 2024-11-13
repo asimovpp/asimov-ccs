@@ -305,15 +305,17 @@ module types
   !> Abstract kernel interface
   abstract interface
      pure function coeffs_interface(this) result(coeffs)
+        use kinds, only: ccs_real
         import :: abstract_kernel
         class(abstract_kernel), intent(in) :: this
-        real, allocatable :: coeffs(:)
+        real(ccs_real), allocatable :: coeffs(:)
      end function coeffs_interface
 
      subroutine eval_interface(this, result)
+        use kinds, only: ccs_real
         import :: abstract_kernel
         class(abstract_kernel), intent(in) :: this
-        real, intent(out) :: result
+        real(ccs_real), intent(out) :: result
      end subroutine eval_interface
   end interface
 
