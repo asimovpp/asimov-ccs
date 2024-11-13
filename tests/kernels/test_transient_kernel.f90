@@ -14,7 +14,7 @@ program test_transient_kernel
 
   use testing_lib
   use kinds, only: ccs_real 
-  use error_analysis, only: get_order
+  use error_analysis, only: compute_order
   use transient_kernel_def, only: transient_second_order_kernel, transient_first_order_kernel, transient_theta_kernel
   use transient_kernels, only: transient_kernel
 
@@ -171,7 +171,7 @@ contains
     end do
   
     ! Check the error convergence
-    call get_order(dts, err, order)
+    call compute_order(dts, err, order)
     call assert_gt(order, transient%get_order()*0.95_ccs_real, "Convergence order not preserved by transient kernel")
   
   end subroutine

@@ -6,7 +6,7 @@ program test_tgv_loop
 
   use ccs_base, only: bnd_names_default
   use testing_lib
-  use error_analysis, only: get_orders, print_error_summary
+  use error_analysis, only: compute_order, print_error_summary
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d, domain_size
 
