@@ -32,7 +32,7 @@ module transient_kernel_def
   contains
 
   subroutine init_first_order(self)
-    !! First order scheme
+    !! Implicit Euler (1st order scheme)
     class(transient_first_order_kernel) :: self
 
     call self%cleanup_kernel()
