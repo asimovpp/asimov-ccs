@@ -223,6 +223,7 @@ contains
       w_an = 0.0_ccs_real
       p_an = +(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2))) * (ft**2)
 
+      !print *, x_p(1), x_p(2), u_an, u_data(index_p), v_an, v_data(index_p)
       error_L2_local(1) = error_L2_local(1) + (u_an - u_data(index_p))**2
       error_L2_local(2) = error_L2_local(2) + (v_an - v_data(index_p))**2
       !error_L2_local(3) = error_L2_local(3) + (w_an - w_data(index_p))**2
@@ -277,7 +278,7 @@ contains
     call get_field(flow_fields, "p", p)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
-    call calc_tgv2d_error(par_env, u, w, v, p, tgv2d_error_L2_global, tgv2d_error_Linf_global)
+    call calc_tgv2d_error(par_env, u, v, w, p, tgv2d_error_L2_global, tgv2d_error_Linf_global)
     nullify(u)
     nullify(v)
     nullify(w)
