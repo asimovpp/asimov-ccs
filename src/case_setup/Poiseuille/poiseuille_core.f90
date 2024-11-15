@@ -15,7 +15,7 @@ module poiseuille_core
   use utils, only:  calc_kinetic_energy, calc_enstrophy, get_field
   use boundary_conditions, only: set_bc_profile
   use timestepping, only: reset_timestepping
-  use meshing, only: get_total_num_cells, get_global_num_cells, nullify_mesh_object, get_local_num_cells
+  use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter, dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
@@ -39,7 +39,7 @@ module poiseuille_core
     real(ccs_real), dimension(3), intent(out) :: error_Linf !< Linf norm of the error for the U, V and P fields respectively
     type(ccs_mesh), intent(inout), optional :: input_mesh !< mesh object to use, if not provided, the build_square_mesh is used
 
-    class(field), pointer :: u, v, w
+    class(field), pointer :: u
     type(bc_profile), allocatable :: profile
 
     integer(ccs_int) :: irank ! MPI rank ID
@@ -52,7 +52,6 @@ module poiseuille_core
 
     type(ccs_options) :: run_options
 
-    call timer_init()
     irank = par_env%proc_id
     isize = par_env%num_procs
 
@@ -66,17 +65,18 @@ module poiseuille_core
 
     if (present(input_mesh)) then
       mesh = input_mesh
+      call set_mesh_object(mesh)
     else
       call initialise_mesh(par_env, shared_env, run_options)
     end if
 
     ! Initialise fields
     if (is_root(par_env)) print *, "Initialise fields"
+    call initialise_fields(par_env, run_options, flow_fields)
 
     ! Create and initialise field vectors
     if (is_root(par_env)) print *, "Initialise field vectors"
     
-    call initialise_fields(par_env, run_options, flow_fields)
     
     ! Set to 1st boundary condition (inlet)
     call get_field(flow_fields, "u", u)
@@ -88,20 +88,13 @@ module poiseuille_core
     if (is_root(par_env)) print *, "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
-    call get_field(flow_fields, "u", u)
-    call get_field(flow_fields, "v", v)
-    call get_field(flow_fields, "w", w)
-    call calc_kinetic_energy(par_env, u, v, w)
-    call calc_enstrophy(par_env, u, v, w)
-    nullify(u)
-    nullify(v)
-    nullify(w)
-
     ! Solve using SIMPLE algorithm
     if (is_root(par_env)) print *, "Start SIMPLE"
 
     call timer_stop(timer_index_init)
 
+    pois_error_L2_global = 0.0_ccs_real
+    pois_error_Linf_global = 0.0_ccs_real
     call run_solver(par_env, run_options, eval_sources, postproc_poiseuille, flow_fields)
     error_L2 = pois_error_L2_global
     error_Linf = pois_error_Linf_global
