@@ -169,6 +169,7 @@ contains
 
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
+    logical :: present, restart
 
     call get_variables(config_file, variable_names)
     if (size(variable_names) == 0) then
@@ -182,6 +183,11 @@ contains
     variables%variable_names = variable_names
     variables%variable_types = variable_types
     
+    call get_value(config_file, 'restart', restart, present, required=.false.)
+    if (present) then
+      variables%restart =  restart
+    end if
+
     ! call get_output_type(config_file, post_type, variables%output_variables)
     variables%output_variables = ['u', 'v', 'w', 'p']
     call get_solve(config_file, variables%solved_variables)
