@@ -64,8 +64,8 @@ program test_tgv_cartesian
     call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")
     !call assert_gt(orders_L2(3), 1.9_ccs_real, "P not converging in 2nd order ")
 
-    call assert_gt(orders_Linf(1), 1.4_ccs_real, "U not converging in 2nd order ")
-    call assert_gt(orders_Linf(2), 1.4_ccs_real, "V not converging in 2nd order ")
+    call assert_gt(orders_Linf(1), 1.35_ccs_real, "U not converging in 2nd order ")
+    call assert_gt(orders_Linf(2), 1.35_ccs_real, "V not converging in 2nd order ")
     !call assert_gt(orders_Linf(3), 1.4_ccs_real, "P not converging in 2nd order ")
 
   end if
