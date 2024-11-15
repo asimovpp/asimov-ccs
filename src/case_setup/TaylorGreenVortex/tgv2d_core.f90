@@ -95,7 +95,7 @@ contains
     error_Linf = tgv2d_error_Linf_global
 
     call timer_print_all(par_env)
-    call timer_export_csv(par_env)
+    !call timer_export_csv(par_env)
 
     ! Clean-up
     call reset_timestepping()
