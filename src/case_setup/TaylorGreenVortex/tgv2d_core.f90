@@ -19,6 +19,7 @@ module tgv2d_core
                    dealloc_fluid_fields
   use timestepping, only: reset_timestepping
   use io_visualisation, only: reset_io_visualisation
+  use timers, only: timer_register_start, timer_stop, timer_print_all, timer_export_csv
 
   implicit none
 
@@ -43,9 +44,8 @@ contains
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
 
-    double precision :: start_time
-    double precision :: init_time
-    double precision :: end_time
+    integer(ccs_int):: timer_index_total
+    integer(ccs_int):: timer_index_init
 
     type(fluid) :: flow_fields
 
@@ -54,7 +54,8 @@ contains
     irank = par_env%proc_id
     isize = par_env%num_procs
 
-    call timer(start_time)
+    call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
+    call timer_register_start("Init time", timer_index_init)
 
     call get_config(par_env, run_options)
     ! call configure_parallelism(run_options, par_env, shared_env)
@@ -85,28 +86,23 @@ contains
     ! Solve using SIMPLE algorithm
     if (is_root(par_env)) print *, "Start SIMPLE"
     
-    call timer(init_time)
-
     tgv2d_error_L2_global = 0.0_ccs_real
     tgv2d_error_Linf_global = 0.0_ccs_real
+    call timer_stop(timer_index_init)
     call run_solver(par_env, run_options, eval_sources, postproc_tgv, flow_fields)
+    call timer_stop(timer_index_total)
     error_L2 = tgv2d_error_L2_global
     error_Linf = tgv2d_error_Linf_global
 
-    ! Clean-up
+    call timer_print_all(par_env)
+    call timer_export_csv(par_env)
 
+    ! Clean-up
     call reset_timestepping()
     call reset_outputlist_counter()
     call reset_io_visualisation()
     call dealloc_fluid_fields(flow_fields)
     call nullify_mesh_object()
-
-    call timer(end_time)
-
-    if (is_root(par_env)) then
-      print *, "Init time: ", init_time - start_time
-      print *, "Elapsed time: ", end_time - start_time
-    end if
 
   end subroutine run_tgv2d
 
