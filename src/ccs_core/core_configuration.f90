@@ -222,6 +222,7 @@ contains
     integer(ccs_int) :: num_steps
     integer(ccs_int) :: num_iters
     real(ccs_real) :: dt
+    logical :: unsteady
     real(ccs_real) :: res_target
     real(ccs_real) :: velocity_relax, pressure_relax
     logical :: present, required
@@ -250,6 +251,10 @@ contains
     end if
     solve%num_steps = num_steps
     solve%dt = dt
+    call get_value(config_file, 'unsteady', unsteady, present, required)
+    if (present) then
+      solve%unsteady = unsteady
+    end if
 
     call get_value(config_file, 'target_residual', res_target)
     if (res_target == huge(0.0)) then
