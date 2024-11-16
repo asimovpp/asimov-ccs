@@ -1,6 +1,8 @@
 ---
 title: LidDrivenCavity
 
+mesh: 2d
+
 #  number of iterations
 iterations: 1000
 
@@ -58,18 +60,23 @@ variables:
   variable_1:
     name: u
     type: central
+    solve: on
   variable_2:
     name: v
     type: upwind
+    solve: on
   variable_3:
     name: w
     type: upwind
+    solve: on
   variable_4:
     name: p
     type: central
+    solve: on
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 6

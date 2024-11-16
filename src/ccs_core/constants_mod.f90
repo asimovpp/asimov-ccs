@@ -4,11 +4,14 @@
 
 module constants
 
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_real
 
   implicit none
 
   private
+
+  ! Mathematical constants
+  real(ccs_real), public, parameter :: pi = 4 * atan(1.0_ccs_real)
 
   ! Constants to control setting values in objects
   integer(ccs_int), public, parameter :: add_mode = 1    !< Add to existing value

@@ -6,6 +6,8 @@ program test_vec_set_entries
 
   use testing_lib
 
+  use core
+  
   use ccs_base, only: bnd_names_default
   use kinds
   use constants, only: insert_mode, add_mode
@@ -19,12 +21,15 @@ program test_vec_set_entries
   class(ccs_vector), allocatable :: v
   integer(ccs_int) :: n
   real(ccs_real), parameter :: elt_val = 1.0_ccs_real
+  type(ccs_options) :: run_options
 
   call init()
 
   do n = 4, 100
-    mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real, &
-         bnd_names_default(1:4))
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = 1.0_ccs_real
+    mesh = build_square_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     call init_vector()

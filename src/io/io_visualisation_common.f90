@@ -8,8 +8,10 @@ submodule(io_visualisation) io_visualisation_common
 #include "ccs_macros.inc"
 
   use constants, only: ndim
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_get_time, timer_print_all
+  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
+                    timer_print, timer_get_time, timer_print_all
 
+  use core, only: ccs_options
   use types, only: field
   use utils, only: get_field
   
@@ -37,12 +39,12 @@ contains
     use parallel, only: timer
     
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
-    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
-    type(fluid), intent(inout) :: flow                                       !< The flow variables
-    integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
-    integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
+    class(parallel_environment), intent(in) :: par_env     !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name !< The case name
+    type(ccs_mesh), intent(in) :: mesh                     !< The mesh
+    type(fluid), intent(inout) :: flow                     !< The flow variables
+    integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
+    integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
     integer(ccs_int) :: timer_index_read_field
 
     call timer_register("Read fields time", timer_index_read_field)
@@ -63,13 +65,13 @@ contains
   end subroutine
 
   !> Write the flow solution for the current time-step to file
-  module subroutine write_solution(par_env, case_name, mesh, flow, step, maxstep, dt)
+  module subroutine write_solution(par_env, run_options, mesh, flow, step, maxstep, dt)
 
     use parallel, only: timer
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                  !< The case name
+    type(ccs_options), intent(in) :: run_options                            !< The runtime configuration
     type(ccs_mesh), intent(in) :: mesh                                      !< The mesh
     type(fluid), intent(inout) :: flow                                      !< The flow variables
     integer(ccs_int), optional, intent(in) :: step                          !< The current time-step count
@@ -85,12 +87,12 @@ contains
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
       call timer_start(timer_index_write_field)
-      call write_fields(par_env, case_name, mesh, flow, step, maxstep)
+      call write_fields(par_env, run_options, mesh, flow, step, maxstep)
       call timer_stop(timer_index_write_field)
     else
       ! Steady case
       call timer_start(timer_index_write_field)
-      call write_fields(par_env, case_name, mesh, flow)
+      call write_fields(par_env, run_options, mesh, flow)
       call timer_stop(timer_index_write_field)
     end if
 
@@ -98,26 +100,25 @@ contains
     if (present(step) .and. present(maxstep) .and. present(dt)) then
       ! Unsteady case
       call timer_start(timer_index_write_xdmf)
-      call write_xdmf(par_env, case_name, flow, step, maxstep, dt)
+      call write_xdmf(par_env, run_options, flow, step, maxstep, dt)
       call timer_stop(timer_index_write_xdmf)
     else
       ! Steady case
       call timer_start(timer_index_write_xdmf)
-      call write_xdmf(par_env, case_name, flow)
+      call write_xdmf(par_env, run_options, flow)
       call timer_stop(timer_index_write_xdmf)
     end if
 
   end subroutine
 
   !> Write the XML descriptor file, which describes the grid and flow data in the 'heavy' data files
-  module subroutine write_xdmf(par_env, case_name, flow, step, maxstep, dt)
+  module subroutine write_xdmf(par_env, run_options, flow, step, maxstep, dt)
 
-    use case_config, only: write_gradients
     use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices, get_mesh_generated
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    class(parallel_environment), target, allocatable, intent(in) :: par_env  !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                             !< The runtime configuration
     type(fluid), intent(inout) :: flow                                       !< The flow variables
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
@@ -149,9 +150,9 @@ contains
 
     class(field), pointer :: phi
     
-    xdmf_file = case_name // '.sol.xmf'
-    sol_file = case_name // '.sol.h5'
-    geo_file = case_name // '.geo'
+    xdmf_file = run_options%paths%case_name // '.sol.xmf'
+    sol_file = run_options%paths%case_name // '.sol.h5'
+    geo_file = run_options%paths%case_name // '.geo'
 
     ! On first call, write the header of the XML file
     if (par_env%proc_id == par_env%root) then
@@ -316,7 +317,7 @@ contains
       end if
 
       ! Enstrophy
-      if (write_gradients .and. (num_vel_cmp == 3)) then
+      if (run_options%io%write_gradients .and. (num_vel_cmp == 3)) then
         write (ioxdmf, '(a,a)') l4, '<Attribute Name = "enstrophy" AttributeType = "Scalar" Center = "Cell">'
 
         fmt = '(a,a,i0,a,a)'

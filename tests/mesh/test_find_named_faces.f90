@@ -1,6 +1,7 @@
 !> @brief Test finding the faces on a specific boundary using the boundary name.
 program find_named_faces
 
+  use core
   use testing_lib
   use meshing, only: find_entities, set_mesh_object, get_face_normal
   use mesh_utils, only: build_square_mesh
@@ -16,6 +17,8 @@ program find_named_faces
   integer :: i, f
 
   real(ccs_real), dimension(3) :: n
+
+  type(ccs_options) :: run_options
   
   call init()
 
@@ -33,7 +36,10 @@ program find_named_faces
   bnd_names(3) = "gamma" ! Bottom
   bnd_names(4) = "delta" ! Top
   
-  mesh = build_square_mesh(par_env, shared_env, cps, l, bnd_names)
+  run_options%mesh%bnd_names = bnd_names
+  run_options%mesh%cps = cps
+  run_options%mesh%domain_size = l
+  mesh = build_square_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
   
   do i = 1, size(bnd_names)
