@@ -3123,13 +3123,15 @@ contains
     type(neighbour_locator) :: loc_nb
     logical :: cell_local
 
+    integer, parameter :: alloc_step = 100 ! How many entries to increase an array by
+    integer, dimension(:), allocatable :: tmp
 
-    allocate (xadj(0))
-    allocate (adjncy(0))
-    ctr = 1
-    xadj = [xadj, ctr]
-    
     call get_local_num_cells(local_num_cells)
+    allocate (xadj(local_num_cells + 1))
+    allocate (adjncy(3 * local_num_cells)) ! A reasonable starting point (minimal faces per cell is 3 == TRI)
+    ctr = 1
+    xadj(1) = ctr
+    
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
@@ -3138,13 +3140,26 @@ contains
         call get_local_status(loc_nb, cell_local)
         if (cell_local) then
           call get_local_index(loc_nb, idx)
-          adjncy = [adjncy, idx]
+          if (ctr > size(adjncy)) then
+            allocate(tmp(size(adjncy) + alloc_step))
+            tmp(1:size(adjncy)) = adjncy(:)
+            adjncy = tmp
+            deallocate(tmp)
+          end if
+          adjncy(ctr) = idx
           ctr = ctr + 1
         end if
       end do
-      xadj = [xadj, ctr]
+      xadj(i + 1) = ctr
     end do
 
+    if (size(adjncy) > (ctr - 1)) then
+      ! Shrink adjncy array
+      allocate(tmp(ctr - 1))
+      tmp(:) = adjncy(1:(ctr-1))
+      adjncy = tmp
+    end if
+    
   end subroutine build_adjacency_matrix
 
   !v Sets the offsets used for indexing into shared arrays for data that belongs to each rank. 
