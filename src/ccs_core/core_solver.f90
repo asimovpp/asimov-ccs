@@ -65,8 +65,6 @@ contains
     integer(ccs_int) :: it_start, it_end
 
     logical:: diverged = .false.
-
-    logical :: flow_sol
     
     if (run_options%solve%unsteady) then
       call activate_timestepping()
@@ -81,8 +79,6 @@ contains
       ! num steps may not have been set
       num_steps = 1
     end if
-
-    flow_sol = check_flow_sol(par_env, flow_fields)
     
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
@@ -91,14 +87,7 @@ contains
       call timer_start(timer_index_sol)
 
       ! XXX: Coupler update here
-      
-      if (flow_sol) then
-        call solve_nonlinear(par_env, run_options, eval_sources, mesh, flow_fields, diverged)
-      else
-        ! Only scalar transport
-        call update_scalars(par_env, mesh, eval_sources, flow_fields)
-      end if
-
+      call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
       ! XXX: Or coupler update here?
       
       if (timestepping_is_active()) then
@@ -120,6 +109,40 @@ contains
     end do
 
   end subroutine run_solver
+
+  !> Advance the simulation by one step.
+  subroutine advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
+
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    type(ccs_options), intent(in) :: run_options
+    interface
+      !v Subroutine to evaluate source terms, case-specific.
+      !
+      !  Note this should return the integrated source.
+      subroutine eval_sources(flow, phi, R, S)
+        use types, only: fluid, field, ccs_vector
+        type(fluid), intent(in) :: flow !< Provides access to full flow field
+        class(field), intent(in) :: phi !< Field being transported
+        class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+        class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+      end subroutine eval_sources
+    end interface
+    type(fluid), intent(inout) :: flow_fields
+    logical, intent(out) :: diverged
+
+    logical :: flow_sol
+
+    flow_sol = check_flow_sol(par_env, flow_fields)
+      
+    if (flow_sol) then
+      call solve_nonlinear(par_env, run_options, eval_sources, mesh, flow_fields, diverged)
+    else
+      ! Only scalar transport
+      diverged = .false.
+      call update_scalars(par_env, mesh, eval_sources, flow_fields)
+    end if
+    
+  end subroutine advance_step
 
   !> Checks for stop conditions.
   logical function check_stop_run(par_env, run_options, t, flow_fields, diverged)
