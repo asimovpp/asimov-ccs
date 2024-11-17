@@ -66,8 +66,6 @@ contains
 
     logical:: diverged = .false.
 
-    integer(ccs_int) :: write_frequency
-
     logical :: flow_sol
     
     if (run_options%solve%unsteady) then
@@ -89,7 +87,6 @@ contains
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
     
-    write_frequency = run_options%io%write_frequency
     do t = 1, num_steps
       call timer_start(timer_index_sol)
 
