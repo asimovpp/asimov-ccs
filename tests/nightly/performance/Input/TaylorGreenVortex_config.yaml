@@ -1,6 +1,11 @@
 ---
 title: TaylorGreenVortex
 
+# restart capability
+restart: false 
+
+# unstaedy state
+unsteady: true
 #  number of timesteps
 steps: 5
 #  number of iterations
@@ -8,6 +13,7 @@ iterations: 10
 # time step size
 dt: 1.0e-2
 
+mesh: 3d
 # Square/cubic mesh generation parameters
 # cells per side
 cps: 90
@@ -65,18 +71,23 @@ variables:
   variable_1:
     name: u
     type: central
+    solve: on
   variable_2:
     name: v
     type: central
+    solve: on
   variable_3:
     name: w
     type: central
+    solve: on
   variable_4:
     name: p
     type: central
+    solve: on
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 6

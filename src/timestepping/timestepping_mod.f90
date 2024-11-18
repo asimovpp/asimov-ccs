@@ -23,6 +23,7 @@ module timestepping
   public :: finalise_timestep
   public :: reset_timestepping
   public :: get_theoretical_order
+  public :: timestepping_is_active
 
   interface
     !> Apply one timestep correction

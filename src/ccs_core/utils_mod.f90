@@ -54,7 +54,6 @@ module utils
   public :: get_is_field_solved
   public :: add_field
   public :: set_is_field_solved
-  public :: allocate_fluid_fields
   public :: dealloc_fluid_fields
   public :: get_natural_data
   public :: reorder_data
@@ -536,14 +535,6 @@ contains
     phi%solve = solve
     
   end subroutine set_is_field_solved
-
-  ! Allocates arrays in fluid field structure to specified size
-  subroutine allocate_fluid_fields(n_fields, flow)
-    integer(ccs_int), intent(in) :: n_fields  !< Size of arrays in fluid structure
-    type(fluid), intent(out) :: flow          !< the fluid structure
-
-    allocate (flow%fields(n_fields))
-  end subroutine allocate_fluid_fields
 
   ! Deallocates fluid arrays
   subroutine dealloc_fluid_fields(flow)
