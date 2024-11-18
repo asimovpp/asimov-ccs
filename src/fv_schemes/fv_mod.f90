@@ -153,22 +153,22 @@ module fv
 
     !> Computes the value of the scalar field on the boundary
     pure module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)
-      class(field), intent(inout) :: phi                         !< the field for which boundary values are being computed
-      integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
-      type(cell_locator), intent(in) :: loc_p                 !< location of cell
-      type(face_locator), intent(in) :: loc_f                 !< location of face
-      real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
-      real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
+      class(field), intent(in) :: phi                        !< the field for which boundary values are being computed
+      integer(ccs_int), intent(in) :: component              !< integer indicating direction of velocity field component
+      type(cell_locator), intent(in) :: loc_p                !< location of cell
+      type(face_locator), intent(in) :: loc_f                !< location of face
+      real(ccs_real), dimension(ndim), intent(in) :: normal  !< boundary face normal direction
+      real(ccs_real), intent(out) :: bc_value                !< the value of the scalar field at the specified boundary
     end subroutine
   
     pure module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
-      class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
-      integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
-      type(cell_locator), intent(in) :: loc_p                 !< location of cell
-      type(face_locator), intent(in) :: loc_f                 !< location of face
-      real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
-      real(ccs_real), intent(out) :: a                        !< The diagonal coeff (implicit)
-      real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
+      class(field), intent(in) :: phi                       !< the field for which boundary values are being computed
+      integer(ccs_int), intent(in) :: component             !< integer indicating direction of velocity field component
+      type(cell_locator), intent(in) :: loc_p               !< location of cell
+      type(face_locator), intent(in) :: loc_f               !< location of face
+      real(ccs_real), dimension(ndim), intent(in) :: normal !< boundary face normal direction
+      real(ccs_real), intent(out) :: a                      !< The diagonal coeff (implicit)
+      real(ccs_real), intent(out) :: b                      !< The RHS entry (explicit)
     end subroutine
 
     !> Linear interpolate of BC profile 
